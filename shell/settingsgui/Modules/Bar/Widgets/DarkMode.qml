@@ -1,4 +1,5 @@
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.UI
 import qs.settingsgui.Widgets
@@ -29,14 +30,17 @@ NIconButton {
   readonly property string iconColorKey: widgetSettings.iconColor !== undefined ? widgetSettings.iconColor : widgetMetadata.iconColor
 
   icon: "dark-mode"
-  tooltipText: Settings.data.colorSchemes.darkMode ? I18n.tr("tooltips.switch-to-light-mode") : I18n.tr("tooltips.switch-to-dark-mode")
+  tooltipText: GlobalConfig.colorSchemes.darkMode ? I18n.tr("tooltips.switch-to-light-mode") : I18n.tr("tooltips.switch-to-dark-mode")
   tooltipDirection: BarService.getTooltipDirection(screen?.name)
   baseSize: Style.getCapsuleHeightForScreen(screen?.name)
   applyUiScale: false
   customRadius: Style.radiusL
   colorBg: Style.capsuleColor
   colorFg: Color.resolveColorKey(iconColorKey)
-  onClicked: Settings.data.colorSchemes.darkMode = !Settings.data.colorSchemes.darkMode
+  onClicked: {
+    GlobalConfig.colorSchemes.darkMode = !GlobalConfig.colorSchemes.darkMode;
+    GlobalConfig.save();
+  }
 
   border.color: Style.capsuleBorderColor
   border.width: Style.capsuleBorderWidth

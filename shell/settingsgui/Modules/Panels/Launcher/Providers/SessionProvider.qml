@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Compositor
 import qs.settingsgui.Services.UI
@@ -9,9 +10,9 @@ Item {
 
   property string name: I18n.tr("tooltips.session-menu")
   property var launcher: null
-  property bool handleSearch: Settings.data.appLauncher.enableSessionSearch
+  property bool handleSearch: GlobalConfig.launcher.enableSessionSearch
   property string supportedLayouts: "list"
-  property string iconMode: Settings.data.appLauncher.iconMode
+  property string iconMode: GlobalConfig.launcher.iconMode
 
   // Session actions with search keywords
   readonly property var sessionActions: [
@@ -70,7 +71,7 @@ Item {
   }
 
   function getEnabledActions() {
-    var powerOptions = Settings.data.sessionMenu.powerOptions || [];
+    var powerOptions = GlobalConfig.session.powerOptions || [];
     var enabledSet = {};
 
     for (var i = 0; i < powerOptions.length; i++) {

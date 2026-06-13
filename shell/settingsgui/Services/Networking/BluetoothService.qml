@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Io
+import Ryoku.Config
 import "../../Helpers/BluetoothUtils.js" as BluetoothUtils
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.System
@@ -84,16 +85,16 @@ Singleton {
       checkAirplaneMode();
     }
     function onEnabledChanged() {
-      if (adapter?.enabled && Settings.data.network.bluetoothAutoConnect) {
+      if (adapter?.enabled && GlobalConfig.network.bluetoothAutoConnect) {
         autoConnectTimer.restart();
       }
     }
   }
 
   Connections {
-    target: Settings.data.network
+    target: GlobalConfig.network
     function onBluetoothAutoConnectChanged() {
-      if (Settings.data.network.bluetoothAutoConnect && adapter?.enabled) {
+      if (GlobalConfig.network.bluetoothAutoConnect && adapter?.enabled) {
         autoConnectTimer.restart();
       } else {
         autoConnectTimer.stop();
@@ -421,7 +422,7 @@ Singleton {
   }
 
   function attemptAutoConnect() {
-    if (NetworkService.airplaneModeEnabled || !adapter || !adapter.enabled || !Settings.data.network.bluetoothAutoConnect) {
+    if (NetworkService.airplaneModeEnabled || !adapter || !adapter.enabled || !GlobalConfig.network.bluetoothAutoConnect) {
       return;
     }
 

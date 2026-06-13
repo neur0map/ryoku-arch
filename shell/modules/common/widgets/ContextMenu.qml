@@ -163,15 +163,9 @@ Loader {
             fallbackColor: Appearance.colors.colSurfaceContainer
             inirColor: Appearance.inir.colLayer2
             auroraTransparency: Appearance.aurora.popupTransparentize
-            radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
-                : Appearance.rounding.normal
+            radius: Appearance.rounding.normal
             border.width: 1
-            border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-                        : Appearance.inirEverywhere ? Appearance.inir.colBorder
-                        : Appearance.auroraEverywhere 
-                            ? Appearance.aurora.colTooltipBorder
-                            : Appearance.colors.colSurfaceContainerHighest
+            border.color: Appearance.colors.colSurfaceContainerHighest
 
             implicitWidth: menuColumn.implicitWidth + (root.padding * 2)
             implicitHeight: menuColumn.implicitHeight + (root.padding * 2)
@@ -192,9 +186,7 @@ Loader {
                                 Layout.bottomMargin: 2
                                 Layout.fillWidth: true
                                 implicitHeight: 1
-                                color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-                                    : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
-                                    : Appearance.colors.colOutlineVariant
+                                color: Appearance.colors.colOutlineVariant
                             }
                         }
                         DelegateChoice {
@@ -209,20 +201,10 @@ Loader {
 
                                 implicitWidth: Math.max(140, menuRow.implicitWidth + 20)
                                 implicitHeight: 32
-                                buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                                    : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
-                                    : Appearance.rounding.small
+                                buttonRadius: Appearance.rounding.small
                                 colBackground: "transparent"
-                                colBackgroundHover: Appearance.angelEverywhere
-                                    ? Appearance.angel.colGlassPopupHover
-                                    : Appearance.inirEverywhere 
-                                        ? Appearance.inir.colLayer2Hover
-                                        : ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
-                                colRipple: Appearance.angelEverywhere
-                                    ? Appearance.angel.colGlassPopupActive
-                                    : Appearance.inirEverywhere
-                                        ? Appearance.inir.colLayer2Active
-                                        : ColorUtils.transparentize(Appearance.colors.colPrimary, 0.7)
+                                colBackgroundHover: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
+                                colRipple: ColorUtils.transparentize(Appearance.colors.colPrimary, 0.7)
 
                                 onClicked: {
                                     if (!enabled) return;
@@ -249,8 +231,7 @@ Loader {
                                             MaterialSymbol {
                                                 text: menuBtn.modelData.iconName ?? ""
                                                 iconSize: Appearance.font.pixelSize.normal
-                                                color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                                    : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+                                                color: Appearance.m3colors.m3onSurface
                                             }
                                         }
 
@@ -265,8 +246,7 @@ Loader {
 
                                     StyledText {
                                         text: menuBtn.modelData.text ?? ""
-                                        color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                            : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+                                        color: Appearance.m3colors.m3onSurface
                                         font.pixelSize: Appearance.font.pixelSize.small
                                         Layout.fillWidth: true
                                         Layout.alignment: Qt.AlignVCenter

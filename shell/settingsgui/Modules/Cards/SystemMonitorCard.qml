@@ -5,6 +5,7 @@ import qs.settingsgui.Commons
 import qs.settingsgui.Services.System
 import qs.settingsgui.Services.UI
 import qs.settingsgui.Widgets
+import Ryoku.Config
 
 NBox {
   id: root
@@ -12,7 +13,7 @@ NBox {
   Component.onCompleted: SystemStatService.registerComponent("card-sysmonitor")
   Component.onDestruction: SystemStatService.unregisterComponent("card-sysmonitor")
 
-  readonly property string diskPath: Settings.data.controlCenter.diskPath || "/"
+  readonly property string diskPath: GlobalConfig.controlCenter.diskPath || "/"
   readonly property real contentScale: 0.95 * Style.uiScaleRatio
 
   Item {

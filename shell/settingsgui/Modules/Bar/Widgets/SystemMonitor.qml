@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.Bar.Extras
 import qs.settingsgui.Modules.Panels.Settings
@@ -84,7 +85,7 @@ Item {
   Component.onDestruction: SystemStatService.unregisterComponent("bar-sysmon:" + (screen?.name || "unknown"))
 
   function openExternalMonitor() {
-    Quickshell.execDetached(["sh", "-c", Settings.data.systemMonitor.externalMonitor]);
+    Quickshell.execDetached(["sh", "-c", GlobalConfig.systemMonitor.externalMonitor]);
   }
 
   function buildTooltipContent() {
@@ -167,7 +168,7 @@ Item {
                    PanelService.closeContextMenu(screen);
 
                    if (action === "sysmon-settings") {
-                     let monitorCmd = Settings.data.systemMonitor.externalMonitor;
+                     let monitorCmd = GlobalConfig.systemMonitor.externalMonitor;
                      if (monitorCmd && monitorCmd.trim() !== "") {
                        openExternalMonitor();
                      } else {

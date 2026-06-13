@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Ryoku.Config
 import "../Settings/Tabs/Connections" as WifiPrefs
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.MainScreen
@@ -20,7 +21,7 @@ SmartPanel {
   // Info panel collapsed by default, view mode persisted in settings
   // Ethernet details UI state (mirrors Wi‑Fi info behavior)
   property bool ethernetInfoExpanded: false
-  property bool ethernetDetailsGrid: (Settings.data.network.wifiDetailsViewMode === "grid")
+  property bool ethernetDetailsGrid: (GlobalConfig.network.wifiDetailsViewMode === "grid")
   property int ipVersion: 4
 
   // Unified panel view mode: "wifi" | "ethernet" (persisted)
@@ -30,7 +31,8 @@ SmartPanel {
   onPanelViewModeChanged: {
     // Persist last view (only after restored the initial value)
     if (panelViewPersistEnabled) {
-      Settings.data.network.networkPanelView = panelViewMode;
+      GlobalConfig.network.networkPanelView = panelViewMode;
+      GlobalConfig.save();
     }
     if (panelViewMode === "wifi") {
       ethernetInfoExpanded = false;
@@ -64,8 +66,8 @@ SmartPanel {
 
   onOpened: {
     // Restore last view if valid, otherwise choose what's available (prefer Wi‑Fi when both exist)
-    if (Settings.data.network.networkPanelView) {
-      const last = Settings.data.network.networkPanelView;
+    if (GlobalConfig.network.networkPanelView) {
+      const last = GlobalConfig.network.networkPanelView;
       if (last === "ethernet" && NetworkService.ethernetAvailable) {
         panelViewMode = "ethernet";
       } else {
@@ -621,7 +623,8 @@ SmartPanel {
                             baseSize: Style.baseWidgetSize * 0.65
                             onClicked: {
                               ethernetDetailsGrid = !ethernetDetailsGrid;
-                              Settings.data.network.wifiDetailsViewMode = ethernetDetailsGrid ? "grid" : "list";
+                              GlobalConfig.network.wifiDetailsViewMode = ethernetDetailsGrid ? "grid" : "list";
+                              GlobalConfig.save();
                             }
                             z: 1
                           }

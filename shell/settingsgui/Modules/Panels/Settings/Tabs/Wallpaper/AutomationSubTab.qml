@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Widgets
 
@@ -9,7 +10,7 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // RYOKU WIRED: Settings.data.wallpaper.automationEnabled / wallpaperChangeMode /
+  // RYOKU WIRED: GlobalConfig.wallpaper.automationEnabled / wallpaperChangeMode /
   // randomIntervalSec. The actual rotation runs in qs.modules.WallpaperRotation
   // (always-loaded), which picks the next wallpaper and applies it through ryoku's
   // Wallpapers service. These settings persist in the settings-gui settings.json.
@@ -17,14 +18,17 @@ ColumnLayout {
   NToggle {
     label: I18n.tr("panels.wallpaper.automation-scheduled-change-label")
     description: I18n.tr("panels.wallpaper.automation-scheduled-change-description")
-    checked: Settings.data.wallpaper.automationEnabled
-    onToggled: checked => Settings.data.wallpaper.automationEnabled = checked
+    checked: GlobalConfig.wallpaper.automationEnabled
+    onToggled: checked => {
+      GlobalConfig.wallpaper.automationEnabled = checked;
+      GlobalConfig.save();
+    }
   }
 
   ColumnLayout {
     spacing: Style.marginL
     Layout.fillWidth: true
-    enabled: Settings.data.wallpaper.automationEnabled
+    enabled: GlobalConfig.wallpaper.automationEnabled
 
     NComboBox {
       label: I18n.tr("panels.wallpaper.automation-change-mode-label")
@@ -40,8 +44,11 @@ ColumnLayout {
           "name": I18n.tr("panels.wallpaper.automation-change-mode-alphabetical")
         }
       ]
-      currentKey: Settings.data.wallpaper.wallpaperChangeMode
-      onSelected: key => Settings.data.wallpaper.wallpaperChangeMode = key
+      currentKey: GlobalConfig.wallpaper.wallpaperChangeMode
+      onSelected: key => {
+        GlobalConfig.wallpaper.wallpaperChangeMode = key;
+        GlobalConfig.save();
+      }
     }
 
     NSpinBox {
@@ -53,11 +60,13 @@ ColumnLayout {
       to: 1440
       stepSize: 1
       suffix: "m"
-      value: Math.max(1, Math.round(Settings.data.wallpaper.randomIntervalSec / 60))
+      value: Math.max(1, Math.round(GlobalConfig.wallpaper.randomIntervalSec / 60))
       onValueChanged: {
         const seconds = value * 60;
-        if (Settings.data.wallpaper.randomIntervalSec !== seconds)
-          Settings.data.wallpaper.randomIntervalSec = seconds;
+        if (GlobalConfig.wallpaper.randomIntervalSec !== seconds) {
+          GlobalConfig.wallpaper.randomIntervalSec = seconds;
+          GlobalConfig.save();
+        }
       }
     }
   }

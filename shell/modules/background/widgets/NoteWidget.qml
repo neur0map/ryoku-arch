@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import Ryoku.Config
 import qs.components
+import qs.components.effects
 import qs.services
 
 // Sticky note content hosted inside a DesktopWidget. Empty header area falls through
@@ -21,6 +22,36 @@ StyledRect {
     color: Qt.alpha(Colours.palette.m3tertiaryContainer, 0.92)
     border.width: 1
     border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
+
+    Elevation {
+        anchors.fill: parent
+        z: -1
+        radius: parent.radius
+        level: 2
+    }
+
+    StyledClippingRect {
+        anchors.fill: parent
+        radius: parent.radius
+        color: "transparent"
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 14
+            gradient: Gradient {
+                GradientStop {
+                    position: 0
+                    color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
+                }
+                GradientStop {
+                    position: 1
+                    color: "transparent"
+                }
+            }
+        }
+    }
 
     HoverHandler {
         id: noteHover

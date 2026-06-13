@@ -14,8 +14,8 @@ Singleton {
 
     property alias enabled: props.enabled
 
-    // Opt-in "no visuals at all": the vendored Overlay.qml suppresses pinned
-    // widget input regions when this is true.
+    // Opt-in "no visuals at all": the overlay suppresses pinned widget input
+    // regions when this is true.
     readonly property bool shouldHidePanels: props.enabled && GlobalConfig.gameMode.hidePanels
 
     // gamemoded auto-detect state

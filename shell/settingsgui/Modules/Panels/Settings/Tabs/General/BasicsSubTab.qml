@@ -228,7 +228,7 @@ ColumnLayout {
   }
 
   NToggle {
-    // RYOKU WIRED: Settings.data.general.smoothScrollEnabled — the vendored upstream
+    // RYOKU WIRED: Settings.data.general.smoothScrollEnabled — ryoku's
     // scroll widgets (NScrollView / NListView / NGridView) animate wheel scrolling when
     // on. Affects the panels built from those widgets (e.g. the Settings panel lists).
     Layout.fillWidth: true

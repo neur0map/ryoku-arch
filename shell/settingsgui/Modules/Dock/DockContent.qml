@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Compositor
 import qs.settingsgui.Services.System
@@ -18,7 +19,7 @@ Item {
   required property int extraLeft
   required property int extraRight
   property alias dockContainer: dockContainer
-  readonly property bool isAttachedMode: Settings.data.dock.dockType === "attached"
+  readonly property bool isAttachedMode: GlobalConfig.dock.dockType === "attached"
   readonly property string tooltipDirection: dockRoot.dockPosition === "left" ? "right" : (dockRoot.dockPosition === "right" ? "left" : (dockRoot.dockPosition === "top" ? "bottom" : "top"))
 
   Rectangle {
@@ -26,7 +27,7 @@ Item {
     // For vertical dock, swap width and height logic
     width: dockRoot.isVertical ? Math.round(dockRoot.iconSize * 1.5) : Math.min(dockLayout.implicitWidth + Style.marginXL, dockRoot.maxWidth)
     height: dockRoot.isVertical ? Math.min(dockLayout.implicitHeight + Style.marginXL, dockRoot.maxHeight) : Math.round(dockRoot.iconSize * 1.5)
-    color: Qt.alpha(Color.mSurface, (isAttachedMode ? 0 : Color.adaptiveOpacity(Settings.data.dock.backgroundOpacity)))
+    color: Qt.alpha(Color.mSurface, (isAttachedMode ? 0 : Color.adaptiveOpacity(GlobalConfig.dock.backgroundOpacity)))
 
     // Anchor based on padding to achieve centering shift
     anchors.horizontalCenter: extraLeft > 0 || extraRight > 0 ? undefined : parent.horizontalCenter
@@ -39,7 +40,7 @@ Item {
 
     radius: Style.radiusL
     border.width: Style.borderS
-    border.color: Qt.alpha(Color.mOutline, (isAttachedMode ? 0 : Color.adaptiveOpacity(Settings.data.dock.backgroundOpacity)))
+    border.color: Qt.alpha(Color.mOutline, (isAttachedMode ? 0 : Color.adaptiveOpacity(GlobalConfig.dock.backgroundOpacity)))
 
     MouseArea {
       id: dockMouseArea
@@ -143,11 +144,11 @@ Item {
           return;
         }
 
-        if (Settings.data.appLauncher.customLaunchPrefixEnabled && Settings.data.appLauncher.customLaunchPrefix.trim() !== "") {
-          const prefix = Settings.data.appLauncher.customLaunchPrefix.trim().split(" ");
+        if (GlobalConfig.launcher.customLaunchPrefixEnabled && GlobalConfig.launcher.customLaunchPrefix.trim() !== "") {
+          const prefix = GlobalConfig.launcher.customLaunchPrefix.trim().split(" ");
 
-          if (app.runInTerminal && Settings.data.appLauncher.terminalCommand.trim() !== "") {
-            const terminal = Settings.data.appLauncher.terminalCommand.trim().split(" ");
+          if (app.runInTerminal && GlobalConfig.launcher.terminalCommand.trim() !== "") {
+            const terminal = GlobalConfig.launcher.terminalCommand.trim().split(" ");
             const command = prefix.concat(terminal.concat(app.command));
             Quickshell.execDetached(command);
           } else {
@@ -155,9 +156,9 @@ Item {
             Quickshell.execDetached(command);
           }
         } else {
-          if (app.runInTerminal && Settings.data.appLauncher.terminalCommand.trim() !== "") {
+          if (app.runInTerminal && GlobalConfig.launcher.terminalCommand.trim() !== "") {
             Logger.d("Dock", "Executing terminal app manually: " + app.name);
-            const terminal = Settings.data.appLauncher.terminalCommand.trim().split(" ");
+            const terminal = GlobalConfig.launcher.terminalCommand.trim().split(" ");
             const command = terminal.concat(app.command);
             CompositorService.spawn(command);
           } else if (app.command && app.command.length > 0) {
@@ -235,15 +236,15 @@ Item {
             }
             readonly property var launcherMetadata: BarWidgetRegistry.widgetMetadata["Launcher"]
             readonly property string launcherIcon: {
-              if (Settings.data.dock.launcherIcon !== undefined && Settings.data.dock.launcherIcon !== "")
-                return Settings.data.dock.launcherIcon;
+              if (GlobalConfig.dock.launcherIcon !== undefined && GlobalConfig.dock.launcherIcon !== "")
+                return GlobalConfig.dock.launcherIcon;
               if (launcherWidgetSettings.icon !== undefined && launcherWidgetSettings.icon !== "")
                 return launcherWidgetSettings.icon;
               return (launcherMetadata && launcherMetadata.icon) ? launcherMetadata.icon : "search";
             }
             readonly property string launcherIconColorKey: {
-              if (Settings.data.dock.launcherIconColor !== undefined)
-                return Settings.data.dock.launcherIconColor;
+              if (GlobalConfig.dock.launcherIconColor !== undefined)
+                return GlobalConfig.dock.launcherIconColor;
               if (launcherWidgetSettings.iconColor !== undefined)
                 return launcherWidgetSettings.iconColor;
               if (launcherMetadata && launcherMetadata.iconColor !== undefined)
@@ -251,8 +252,8 @@ Item {
               return "none";
             }
             readonly property bool launcherUseDistroLogo: {
-              if (Settings.data.dock.launcherUseDistroLogo !== undefined)
-                return Settings.data.dock.launcherUseDistroLogo;
+              if (GlobalConfig.dock.launcherUseDistroLogo !== undefined)
+                return GlobalConfig.dock.launcherUseDistroLogo;
               if (launcherWidgetSettings.useDistroLogo !== undefined)
                 return launcherWidgetSettings.useDistroLogo;
               if (launcherMetadata && launcherMetadata.useDistroLogo !== undefined)
@@ -396,7 +397,7 @@ Item {
 
         Loader {
           id: launcherButtonStart
-          active: Settings.data.dock.showLauncherIcon && Settings.data.dock.launcherPosition === "start"
+          active: GlobalConfig.dock.showLauncherIcon && GlobalConfig.dock.launcherPosition === "start"
           visible: active
           sourceComponent: launcherButtonComponent
           readonly property real indicatorMargin: Math.max(3, Math.round(dockRoot.iconSize * 0.18))
@@ -446,9 +447,9 @@ Item {
               return modelData.title || modelData.appId || "";
             }
             property bool isRunning: toplevels.length > 0
-            readonly property bool baseIndicatorVisible: Settings.data.dock.inactiveIndicators ? isRunning : isActive
+            readonly property bool baseIndicatorVisible: GlobalConfig.dock.inactiveIndicators ? isRunning : isActive
             // Grouped indicators should be visible whenever grouped windows are running, even if none is focused.
-            readonly property bool showGroupedIndicator: Settings.data.dock.groupApps && groupedCount > 1 && isRunning
+            readonly property bool showGroupedIndicator: GlobalConfig.dock.groupApps && groupedCount > 1 && isRunning
 
             // Store index for drag-and-drop
             property int modelIndex: index
@@ -575,13 +576,13 @@ Item {
                 asynchronous: true
 
                 // Dim pinned apps that aren't running
-                opacity: appButton.isRunning ? 1.0 : Settings.data.dock.deadOpacity
+                opacity: appButton.isRunning ? 1.0 : GlobalConfig.dock.deadOpacity
 
                 // Apply dock-specific colorization shader only to non-focused apps
-                layer.enabled: !appButton.isActive && Settings.data.dock.colorizeIcons
+                layer.enabled: !appButton.isActive && GlobalConfig.dock.colorizeIcons
                 layer.smooth: true
                 layer.effect: ShaderEffect {
-                  property color targetColor: Settings.data.colorSchemes.darkMode ? Color.mOnSurface : Color.mSurfaceVariant
+                  property color targetColor: GlobalConfig.colorSchemes.darkMode ? Color.mOnSurface : Color.mSurfaceVariant
                   property real colorizeMode: 0.0 // Dock mode (grayscale)
 
                   fragmentShader: Qt.resolvedUrl(Quickshell.shellDir + "/settingsgui" + "/Shaders/qsb/appicon_colorize.frag.qsb")
@@ -733,14 +734,14 @@ Item {
                                return;
                              }
 
-                             if (!Settings.data.dock.groupApps || runningToplevels.length <= 1) {
+                             if (!GlobalConfig.dock.groupApps || runningToplevels.length <= 1) {
                                if (primaryToplevel && primaryToplevel.activate) {
                                  primaryToplevel.activate();
                                }
                                return;
                              }
 
-                             const clickAction = Settings.data.dock.groupClickAction || "cycle";
+                             const clickAction = GlobalConfig.dock.groupClickAction || "cycle";
                              if (clickAction === "list") {
                                const targetScreen = dockRoot.modelData || dockRoot.screen || null;
                                TooltipService.hideImmediately();
@@ -799,7 +800,7 @@ Item {
               anchors.leftMargin: dockRoot.isVertical && dockRoot.dockPosition === "left" ? 1 : 0
               anchors.rightMargin: dockRoot.isVertical && dockRoot.dockPosition === "right" ? 1 : 0
 
-              sourceComponent: Settings.data.dock.groupIndicatorStyle === "dots" ? groupDotsIndicatorComponent : groupNumberIndicatorComponent
+              sourceComponent: GlobalConfig.dock.groupIndicatorStyle === "dots" ? groupDotsIndicatorComponent : groupNumberIndicatorComponent
             }
 
             Component {
@@ -866,7 +867,7 @@ Item {
 
         Loader {
           id: launcherButtonEnd
-          active: Settings.data.dock.showLauncherIcon && Settings.data.dock.launcherPosition === "end"
+          active: GlobalConfig.dock.showLauncherIcon && GlobalConfig.dock.launcherPosition === "end"
           visible: active
           sourceComponent: launcherButtonComponent
           readonly property real indicatorMargin: Math.max(3, Math.round(dockRoot.iconSize * 0.18))

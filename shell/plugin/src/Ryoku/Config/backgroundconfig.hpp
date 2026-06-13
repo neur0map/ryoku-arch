@@ -3,6 +3,7 @@
 #include "configobject.hpp"
 
 #include <qstring.h>
+#include <qvariant.h>
 
 namespace ryoku::config {
 
@@ -118,6 +119,23 @@ public:
         : ConfigObject(parent) {}
 };
 
+// Desktop-widget placement layer: master enable, overview, grid snapping and the
+// per-monitor widget layout. Migrated out of the legacy settings-gui store (Stage 1).
+class DesktopWidgetsLayout : public ConfigObject {
+    Q_OBJECT
+    QML_ANONYMOUS
+
+    CONFIG_PROPERTY(bool, enabled, false)
+    CONFIG_PROPERTY(bool, overviewEnabled, true)
+    CONFIG_PROPERTY(bool, gridSnap, false)
+    CONFIG_PROPERTY(bool, gridSnapScale, false)
+    CONFIG_PROPERTY(QVariantList, monitorWidgets, {})
+
+public:
+    explicit DesktopWidgetsLayout(QObject* parent = nullptr)
+        : ConfigObject(parent) {}
+};
+
 class BackgroundConfig : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
@@ -127,13 +145,15 @@ class BackgroundConfig : public ConfigObject {
     CONFIG_SUBOBJECT(DesktopClock, desktopClock)
     CONFIG_SUBOBJECT(BackgroundVisualiser, visualiser)
     CONFIG_SUBOBJECT(BackgroundWidgets, widgets)
+    CONFIG_SUBOBJECT(DesktopWidgetsLayout, desktopWidgets)
 
 public:
     explicit BackgroundConfig(QObject* parent = nullptr)
         : ConfigObject(parent)
         , m_desktopClock(new DesktopClock(this))
         , m_visualiser(new BackgroundVisualiser(this))
-        , m_widgets(new BackgroundWidgets(this)) {}
+        , m_widgets(new BackgroundWidgets(this))
+        , m_desktopWidgets(new DesktopWidgetsLayout(this)) {}
 };
 
 } // namespace ryoku::config

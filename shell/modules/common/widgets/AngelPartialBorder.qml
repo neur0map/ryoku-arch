@@ -22,7 +22,7 @@ Item {
     property real borderWidth: Appearance.angel.borderWidth
     property color borderColor: hovered ? Appearance.angel.colBorderHover : Appearance.angel.colBorder
 
-    visible: Appearance.angelEverywhere
+    visible: false
 
     // Top edge — from left, fades to transparent at right end
     Rectangle {

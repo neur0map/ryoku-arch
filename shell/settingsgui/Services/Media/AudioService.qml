@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
@@ -23,7 +24,7 @@ Singleton {
   readonly property bool hasInput: !!source
   readonly property list<PwNode> sinks: deviceNodes.sinks
   readonly property list<PwNode> sources: deviceNodes.sources
-  readonly property real maxVolume: Settings.data.audio.volumeOverdrive ? 1.5 : 1.0
+  readonly property real maxVolume: GlobalConfig.services.maxVolume
   readonly property real epsilon: 0.005
 
   // Fallback state sourced from wpctl when PipeWire node values go stale.
@@ -161,7 +162,7 @@ Singleton {
     return Date.now() < inputOSDSuppressedUntilMs;
   }
 
-  readonly property real stepVolume: Settings.data.audio.volumeStep / 100.0
+  readonly property real stepVolume: GlobalConfig.services.audioIncrement
 
   // Filtered device nodes (non-stream sinks and sources)
   readonly property var deviceNodes: Pipewire.ready ? Pipewire.nodes.values.reduce((acc, node) => {

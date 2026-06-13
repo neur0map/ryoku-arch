@@ -44,6 +44,33 @@ class LauncherConfig : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(bool, vimKeybinds, false)
     CONFIG_GLOBAL_PROPERTY(QStringList, favouriteApps)
     CONFIG_GLOBAL_PROPERTY(QStringList, hiddenApps)
+    // App-launcher behaviour, clipboard, view, and search options migrated out of
+    // the legacy settings-gui store (Settings.data.appLauncher.*) into typed config.
+    CONFIG_PROPERTY(bool, enableClipboardHistory, false)
+    CONFIG_PROPERTY(bool, autoPasteClipboard, false)
+    CONFIG_PROPERTY(bool, enableClipPreview, true)
+    CONFIG_PROPERTY(bool, clipboardWrapText, true)
+    CONFIG_PROPERTY(bool, enableClipboardSmartIcons, true)
+    CONFIG_PROPERTY(bool, enableClipboardChips, true)
+    CONFIG_PROPERTY(QString, clipboardWatchTextCommand, u"wl-paste --type text --watch cliphist store"_s)
+    CONFIG_PROPERTY(QString, clipboardWatchImageCommand, u"wl-paste --type image --watch cliphist store"_s)
+    CONFIG_PROPERTY(QString, position, u"center"_s)   // center | top_* | bottom_* | follow_bar
+    CONFIG_PROPERTY(QStringList, pinnedApps, {})       // Desktop entry IDs pinned to the top of the launcher
+    CONFIG_PROPERTY(bool, sortByMostUsed, true)
+    CONFIG_PROPERTY(QString, terminalCommand, u"alacritty -e"_s)
+    CONFIG_PROPERTY(bool, customLaunchPrefixEnabled, false)
+    CONFIG_PROPERTY(QString, customLaunchPrefix, u""_s)
+    CONFIG_PROPERTY(QString, viewMode, u"list"_s)      // list | grid
+    CONFIG_PROPERTY(bool, showCategories, true)
+    CONFIG_PROPERTY(QString, iconMode, u"tabler"_s)    // tabler | native
+    CONFIG_PROPERTY(bool, showIconBackground, false)
+    CONFIG_PROPERTY(bool, enableSettingsSearch, true)
+    CONFIG_PROPERTY(bool, enableWindowsSearch, true)
+    CONFIG_PROPERTY(bool, enableSessionSearch, true)
+    CONFIG_PROPERTY(bool, ignoreMouseInput, false)
+    CONFIG_PROPERTY(QString, screenshotAnnotationTool, u""_s)
+    CONFIG_PROPERTY(bool, overviewLayer, false)
+    CONFIG_PROPERTY(QString, density, u"default"_s)    // compact | default | comfortable
     CONFIG_SUBOBJECT(LauncherUseFuzzy, useFuzzy)
     CONFIG_GLOBAL_PROPERTY(QVariantList, actions,
         {

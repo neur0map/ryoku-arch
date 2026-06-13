@@ -7,28 +7,18 @@ import qs.components
 import qs.services
 
 // Self-contained desktop weather card. Style switches the presentation: "default"
-// icon+temp+description, "minimal" icon+temp, "detailed" adds feels-like/humidity/wind.
-StyledRect {
+// hero icon+temp+description, "minimal" icon+temp, "detailed" adds tonal
+// feels-like/humidity/wind chips. The condition glyph gently breathes for life.
+WidgetCard {
     id: root
 
-    property bool showBackground: true
-    property real sizeScale: 1
     readonly property string style: GlobalConfig.background.widgets.weather.style
-
-    readonly property real pad: Tokens.padding.large * sizeScale
-
-    implicitWidth: content.implicitWidth + pad * 2
-    implicitHeight: content.implicitHeight + pad * 2
-    radius: Tokens.rounding.large * sizeScale
-    color: showBackground ? Qt.alpha(Colours.palette.m3surfaceContainer, 0.78) : "transparent"
-    border.width: showBackground ? 1 : 0
-    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
 
     Component.onCompleted: Weather.reload()
 
     Loader {
         id: content
-        anchors.centerIn: parent
+
         sourceComponent: {
             switch (root.style) {
             case "minimal":
@@ -41,20 +31,41 @@ StyledRect {
         }
     }
 
-    // ── default: icon + temp + description ───────────────────────────────────
+    // A condition glyph that slowly breathes — cheap ambient motion.
+    component WeatherGlyph: MaterialIcon {
+        animate: true
+        text: Weather.icon
+        color: Colours.palette.m3secondary
+        fill: 1
+
+        SequentialAnimation on scale {
+            running: !GameMode.enabled
+            loops: Animation.Infinite
+            NumberAnimation {
+                from: 1
+                to: 1.06
+                duration: 2600
+                easing.type: Easing.InOutSine
+            }
+            NumberAnimation {
+                from: 1.06
+                to: 1
+                duration: 2600
+                easing.type: Easing.InOutSine
+            }
+        }
+    }
+
+    // ── default: hero icon + temp + description ──────────────────────────────
     Component {
         id: cardStyle
 
         RowLayout {
-            spacing: Tokens.spacing.normal * root.sizeScale
+            spacing: Tokens.spacing.large * root.sizeScale
 
-            MaterialIcon {
+            WeatherGlyph {
                 Layout.alignment: Qt.AlignVCenter
-                animate: true
-                text: Weather.icon
-                color: Colours.palette.m3secondary
-                font.pointSize: Tokens.font.size.extraLarge * 1.9 * root.sizeScale
-                fill: 1
+                font.pointSize: Tokens.font.size.extraLarge * 2.1 * root.sizeScale
             }
             ColumnLayout {
                 Layout.alignment: Qt.AlignVCenter
@@ -63,8 +74,8 @@ StyledRect {
                     animate: true
                     text: Weather.temp
                     color: Colours.palette.m3primary
-                    font.pointSize: Tokens.font.size.extraLarge * root.sizeScale
-                    font.weight: Font.Medium
+                    font.pointSize: Tokens.font.size.extraLarge * 1.15 * root.sizeScale
+                    font.weight: Font.DemiBold
                 }
                 StyledText {
                     Layout.maximumWidth: 180 * root.sizeScale
@@ -83,15 +94,11 @@ StyledRect {
         id: minimalStyle
 
         RowLayout {
-            spacing: Tokens.spacing.small * root.sizeScale
+            spacing: Tokens.spacing.normal * root.sizeScale
 
-            MaterialIcon {
+            WeatherGlyph {
                 Layout.alignment: Qt.AlignVCenter
-                animate: true
-                text: Weather.icon
-                color: Colours.palette.m3secondary
-                font.pointSize: Tokens.font.size.extraLarge * 1.3 * root.sizeScale
-                fill: 1
+                font.pointSize: Tokens.font.size.extraLarge * 1.4 * root.sizeScale
             }
             StyledText {
                 Layout.alignment: Qt.AlignVCenter
@@ -99,7 +106,7 @@ StyledRect {
                 text: Weather.temp
                 color: Colours.palette.m3primary
                 font.pointSize: Tokens.font.size.extraLarge * root.sizeScale
-                font.weight: Font.Medium
+                font.weight: Font.DemiBold
             }
         }
     }
@@ -113,15 +120,11 @@ StyledRect {
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: Tokens.spacing.normal * root.sizeScale
+                spacing: Tokens.spacing.large * root.sizeScale
 
-                MaterialIcon {
+                WeatherGlyph {
                     Layout.alignment: Qt.AlignVCenter
-                    animate: true
-                    text: Weather.icon
-                    color: Colours.palette.m3secondary
                     font.pointSize: Tokens.font.size.extraLarge * 2.1 * root.sizeScale
-                    fill: 1
                 }
                 ColumnLayout {
                     Layout.alignment: Qt.AlignVCenter
@@ -130,8 +133,8 @@ StyledRect {
                         animate: true
                         text: Weather.temp
                         color: Colours.palette.m3primary
-                        font.pointSize: Tokens.font.size.extraLarge * root.sizeScale
-                        font.weight: Font.Medium
+                        font.pointSize: Tokens.font.size.extraLarge * 1.15 * root.sizeScale
+                        font.weight: Font.DemiBold
                     }
                     StyledText {
                         Layout.maximumWidth: 200 * root.sizeScale
@@ -144,25 +147,19 @@ StyledRect {
                 }
             }
 
-            StyledRect {
-                Layout.fillWidth: true
-                implicitHeight: 1
-                color: Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
-            }
-
             RowLayout {
                 Layout.fillWidth: true
-                spacing: Tokens.spacing.larger * root.sizeScale
+                spacing: Tokens.spacing.small * root.sizeScale
 
-                DetailStat {
+                DetailChip {
                     icon: "thermostat"
                     text: Weather.feelsLike
                 }
-                DetailStat {
+                DetailChip {
                     icon: "humidity_percentage"
                     text: Weather.humidity + "%"
                 }
-                DetailStat {
+                DetailChip {
                     icon: "air"
                     text: Math.round(Weather.windSpeed) + ""
                 }
@@ -170,21 +167,35 @@ StyledRect {
         }
     }
 
-    component DetailStat: RowLayout {
-        id: ds
+    component DetailChip: StyledRect {
+        id: chip
+
         required property string icon
         required property string text
-        spacing: Tokens.spacing.smaller * root.sizeScale
 
-        MaterialIcon {
-            text: ds.icon
-            color: Colours.palette.m3tertiary
-            font.pointSize: Tokens.font.size.normal * root.sizeScale
-        }
-        StyledText {
-            text: ds.text
-            color: Colours.palette.m3onSurface
-            font.pointSize: Tokens.font.size.small * root.sizeScale
+        Layout.fillWidth: true
+        implicitHeight: chipRow.implicitHeight + Tokens.padding.small * 2 * root.sizeScale
+        radius: Tokens.rounding.normal * root.sizeScale
+        color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.55)
+
+        RowLayout {
+            id: chipRow
+
+            anchors.centerIn: parent
+            spacing: Tokens.spacing.smaller * root.sizeScale
+
+            MaterialIcon {
+                text: chip.icon
+                color: Colours.palette.m3tertiary
+                fill: 1
+                font.pointSize: Tokens.font.size.normal * root.sizeScale
+            }
+            StyledText {
+                text: chip.text
+                color: Colours.palette.m3onSurface
+                font.pointSize: Tokens.font.size.small * root.sizeScale
+                font.weight: Font.Medium
+            }
         }
     }
 }

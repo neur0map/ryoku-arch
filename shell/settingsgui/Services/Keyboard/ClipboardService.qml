@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import Quickshell.Io
 import qs.settingsgui.Commons
@@ -10,7 +11,7 @@ import qs.settingsgui.Services.UI
 Singleton {
   id: root
 
-  property bool active: Settings.data.appLauncher.enableClipboardHistory && cliphistAvailable
+  property bool active: GlobalConfig.launcher.enableClipboardHistory && cliphistAvailable
   property bool loading: false
   property var items: [] // [{id, preview, mime, isImage}]
 
@@ -69,7 +70,7 @@ Singleton {
         }
       } else {
         root.cliphistAvailable = false;
-        if (Settings.data.appLauncher.enableClipboardHistory) {
+        if (GlobalConfig.launcher.enableClipboardHistory) {
           ToastService.showWarning(I18n.tr("toast.clipboard.unavailable"), I18n.tr("toast.clipboard.unavailable-desc"), 6000);
         }
       }
@@ -254,7 +255,7 @@ Singleton {
     id: watchText
     stdout: StdioCollector {}
     onExited: (exitCode, exitStatus) => {
-      if (root.autoWatch && root.watchersStarted && Settings.data.appLauncher.clipboardWatchTextCommand.trim() !== "") {
+      if (root.autoWatch && root.watchersStarted && GlobalConfig.launcher.clipboardWatchTextCommand.trim() !== "") {
         watchTextRestartTimer.restart();
       }
     }
@@ -274,7 +275,7 @@ Singleton {
     id: watchImage
     stdout: StdioCollector {}
     onExited: (exitCode, exitStatus) => {
-      if (root.autoWatch && root.watchersStarted && Settings.data.appLauncher.clipboardWatchImageCommand.trim() !== "") {
+      if (root.autoWatch && root.watchersStarted && GlobalConfig.launcher.clipboardWatchImageCommand.trim() !== "") {
         watchImageRestartTimer.restart();
       }
     }
@@ -315,10 +316,10 @@ Singleton {
       return;
     watchersStarted = true;
 
-    watchText.command = ["sh", "-c", Settings.data.appLauncher.clipboardWatchTextCommand];
+    watchText.command = ["sh", "-c", GlobalConfig.launcher.clipboardWatchTextCommand];
     watchText.running = true;
 
-    watchImage.command = ["sh", "-c", Settings.data.appLauncher.clipboardWatchImageCommand];
+    watchImage.command = ["sh", "-c", GlobalConfig.launcher.clipboardWatchImageCommand];
     watchImage.running = true;
   }
 

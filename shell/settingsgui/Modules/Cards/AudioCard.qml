@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Layouts
 import Quickshell
 import qs.settingsgui.Commons
@@ -169,7 +170,7 @@ NBox {
         id: outputVolumeSlider
         Layout.fillWidth: true
         from: 0
-        to: Settings.data.audio.volumeOverdrive ? 1.5 : 1.0
+        to: GlobalConfig.services.maxVolume
         value: localOutputVolume
         stepSize: 0.01
         heightRatio: 0.5
@@ -188,9 +189,9 @@ NBox {
           onWheel: wheel => {
                      if (outputVolumeSlider.enabled && AudioService.sink) {
                        const delta = wheel.angleDelta.y || wheel.angleDelta.x;
-                       const step = Settings.data.audio.volumeStep / 100.0;
+                       const step = GlobalConfig.services.audioIncrement;
                        const increment = delta > 0 ? step : -step;
-                       const maxVolume = Settings.data.audio.volumeOverdrive ? 1.5 : 1.0;
+                       const maxVolume = GlobalConfig.services.maxVolume;
                        const newValue = Math.max(0, Math.min(maxVolume, localOutputVolume + increment));
                        localOutputVolume = newValue;
                      }
@@ -234,7 +235,7 @@ NBox {
         id: inputVolumeSlider
         Layout.fillWidth: true
         from: 0
-        to: Settings.data.audio.volumeOverdrive ? 1.5 : 1.0
+        to: GlobalConfig.services.maxVolume
         value: localInputVolume
         stepSize: 0.01
         heightRatio: 0.5
@@ -253,9 +254,9 @@ NBox {
           onWheel: wheel => {
                      if (inputVolumeSlider.enabled && AudioService.source) {
                        const delta = wheel.angleDelta.y || wheel.angleDelta.x;
-                       const step = Settings.data.audio.volumeStep / 100.0;
+                       const step = GlobalConfig.services.audioIncrement;
                        const increment = delta > 0 ? step : -step;
-                       const maxVolume = Settings.data.audio.volumeOverdrive ? 1.5 : 1.0;
+                       const maxVolume = GlobalConfig.services.maxVolume;
                        const newValue = Math.max(0, Math.min(maxVolume, localInputVolume + increment));
                        localInputVolume = newValue;
                      }

@@ -551,7 +551,7 @@
     "subTab": 0,
     "subTabLabel": "common.colors",
     "visibleWhen": [
-      "Settings.data.colorSchemes.schedulingMode === \"manual\""
+      "GlobalConfig.colorSchemes.schedulingMode === \"manual\""
     ]
   },
   {
@@ -671,7 +671,7 @@
     "subTab": 1,
     "subTabLabel": "common.bluetooth",
     "visibleWhen": [
-      "Settings.data.network.bluetoothRssiPollingEnabled"
+      "GlobalConfig.network.bluetoothRssiPollingEnabled"
     ]
   },
   {
@@ -683,7 +683,7 @@
     "subTab": 1,
     "subTabLabel": "common.bluetooth",
     "visibleWhen": [
-      "Settings.data.network.bluetoothAutoConnect"
+      "GlobalConfig.network.bluetoothAutoConnect"
     ]
   },
   {
@@ -990,7 +990,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.dockType === \"floating\""
+      "GlobalConfig.dock.dockType === \"floating\""
     ]
   },
   {
@@ -1002,7 +1002,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.dockType === \"attached\" && Settings.data.bar.barType === \"framed\""
+      "GlobalConfig.dock.dockType === \"attached\" && Settings.data.bar.barType === \"framed\""
     ]
   },
   {
@@ -1023,7 +1023,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.showDockIndicator"
+      "GlobalConfig.dock.showDockIndicator"
     ]
   },
   {
@@ -1035,7 +1035,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.showDockIndicator"
+      "GlobalConfig.dock.showDockIndicator"
     ]
   },
   {
@@ -1047,7 +1047,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.showDockIndicator"
+      "GlobalConfig.dock.showDockIndicator"
     ]
   },
   {
@@ -1077,7 +1077,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.dockType === \"floating\""
+      "GlobalConfig.dock.dockType === \"floating\""
     ]
   },
   {
@@ -1098,7 +1098,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.dockType === \"floating\" && Settings.data.dock.displayMode === \"auto_hide\""
+      "GlobalConfig.dock.dockType === \"floating\" && GlobalConfig.dock.displayMode === \"auto_hide\""
     ]
   },
   {
@@ -1137,7 +1137,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.groupApps"
+      "GlobalConfig.dock.groupApps"
     ]
   },
   {
@@ -1149,7 +1149,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.groupApps"
+      "GlobalConfig.dock.groupApps"
     ]
   },
   {
@@ -1161,7 +1161,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.groupApps"
+      "GlobalConfig.dock.groupApps"
     ]
   },
   {
@@ -1200,7 +1200,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.showLauncherIcon"
+      "GlobalConfig.dock.showLauncherIcon"
     ]
   },
   {
@@ -1212,7 +1212,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.showLauncherIcon"
+      "GlobalConfig.dock.showLauncherIcon"
     ]
   },
   {
@@ -1224,7 +1224,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.showLauncherIcon"
+      "GlobalConfig.dock.showLauncherIcon"
     ]
   },
   {
@@ -1236,7 +1236,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.dock.showLauncherIcon"
+      "GlobalConfig.dock.showLauncherIcon"
     ]
   },
   {
@@ -1489,7 +1489,7 @@
     "subTab": 1,
     "subTabLabel": "common.clipboard",
     "visibleWhen": [
-      "Settings.data.appLauncher.enableClipboardHistory"
+      "GlobalConfig.launcher.enableClipboardHistory"
     ]
   },
   {
@@ -1501,7 +1501,7 @@
     "subTab": 1,
     "subTabLabel": "common.clipboard",
     "visibleWhen": [
-      "Settings.data.appLauncher.enableClipboardHistory"
+      "GlobalConfig.launcher.enableClipboardHistory"
     ]
   },
   {
@@ -1531,7 +1531,7 @@
     "subTab": 2,
     "subTabLabel": "common.execute",
     "visibleWhen": [
-      "Settings.data.appLauncher.customLaunchPrefixEnabled"
+      "GlobalConfig.launcher.customLaunchPrefixEnabled"
     ]
   },
   {
@@ -1966,7 +1966,7 @@
     "subTab": 3,
     "subTabLabel": "common.sound",
     "visibleWhen": [
-      "!(Settings.data.notifications?.sounds?.separateSounds ?? false)"
+      "!(GlobalConfig.notifs?.sounds?.separateSounds ?? false)"
     ]
   },
   {
@@ -1978,7 +1978,7 @@
     "subTab": 3,
     "subTabLabel": "common.sound",
     "visibleWhen": [
-      "SoundService.multimediaAvailable && (Settings.data.notifications?.sounds?.enabled ?? false) && (Settings.data.notifications?.sounds?.separateSounds ?? false)"
+      "SoundService.multimediaAvailable && (GlobalConfig.notifs?.sounds?.enabled ?? false) && (GlobalConfig.notifs?.sounds?.separateSounds ?? false)"
     ]
   },
   {
@@ -1990,7 +1990,7 @@
     "subTab": 3,
     "subTabLabel": "common.sound",
     "visibleWhen": [
-      "SoundService.multimediaAvailable && (Settings.data.notifications?.sounds?.enabled ?? false) && (Settings.data.notifications?.sounds?.separateSounds ?? false)"
+      "SoundService.multimediaAvailable && (GlobalConfig.notifs?.sounds?.enabled ?? false) && (GlobalConfig.notifs?.sounds?.separateSounds ?? false)"
     ]
   },
   {
@@ -2002,7 +2002,7 @@
     "subTab": 3,
     "subTabLabel": "common.sound",
     "visibleWhen": [
-      "SoundService.multimediaAvailable && (Settings.data.notifications?.sounds?.enabled ?? false) && (Settings.data.notifications?.sounds?.separateSounds ?? false)"
+      "SoundService.multimediaAvailable && (GlobalConfig.notifs?.sounds?.enabled ?? false) && (GlobalConfig.notifs?.sounds?.separateSounds ?? false)"
     ]
   },
   {
@@ -2131,7 +2131,7 @@
     "subTab": 0,
     "subTabLabel": "common.general",
     "visibleWhen": [
-      "Settings.data.sessionMenu.largeButtonsStyle"
+      "GlobalConfig.session.largeButtonsStyle"
     ]
   },
   {
@@ -2143,7 +2143,7 @@
     "subTab": 0,
     "subTabLabel": "common.general",
     "visibleWhen": [
-      "!Settings.data.sessionMenu.largeButtonsStyle"
+      "!GlobalConfig.session.largeButtonsStyle"
     ]
   },
   {
@@ -2501,7 +2501,7 @@
     "subTabLabel": "common.general",
     "visibleWhen": [
       "CompositorService.isNiri",
-      "Settings.data.wallpaper.overviewEnabled"
+      "GlobalConfig.wallpaper.overviewEnabled"
     ]
   },
   {
@@ -2514,7 +2514,7 @@
     "subTabLabel": "common.general",
     "visibleWhen": [
       "CompositorService.isNiri",
-      "Settings.data.wallpaper.overviewEnabled"
+      "GlobalConfig.wallpaper.overviewEnabled"
     ]
   },
   {

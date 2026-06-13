@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.System
 import qs.settingsgui.Widgets
@@ -52,26 +53,30 @@ ColumnLayout {
       from: 0
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.cpuWarningThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.cpuWarningThreshold")
+      value: GlobalConfig.systemMonitor.cpuWarningThreshold
+      defaultValue: 80
       suffix: "%"
       onValueChanged: {
-        Settings.data.systemMonitor.cpuWarningThreshold = value;
-        if (Settings.data.systemMonitor.cpuCriticalThreshold < value) {
-          Settings.data.systemMonitor.cpuCriticalThreshold = value;
+        GlobalConfig.systemMonitor.cpuWarningThreshold = value;
+        if (GlobalConfig.systemMonitor.cpuCriticalThreshold < value) {
+          GlobalConfig.systemMonitor.cpuCriticalThreshold = value;
         }
+        GlobalConfig.save();
       }
     }
 
     NSpinBox {
       Layout.alignment: Qt.AlignHCenter
-      from: Settings.data.systemMonitor.cpuWarningThreshold
+      from: GlobalConfig.systemMonitor.cpuWarningThreshold
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.cpuCriticalThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.cpuCriticalThreshold")
+      value: GlobalConfig.systemMonitor.cpuCriticalThreshold
+      defaultValue: 90
       suffix: "%"
-      onValueChanged: Settings.data.systemMonitor.cpuCriticalThreshold = value
+      onValueChanged: {
+        GlobalConfig.systemMonitor.cpuCriticalThreshold = value;
+        GlobalConfig.save();
+      }
     }
 
     NText {
@@ -84,26 +89,30 @@ ColumnLayout {
       from: 0
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.tempWarningThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.tempWarningThreshold")
+      value: GlobalConfig.systemMonitor.tempWarningThreshold
+      defaultValue: 80
       suffix: "°C"
       onValueChanged: {
-        Settings.data.systemMonitor.tempWarningThreshold = value;
-        if (Settings.data.systemMonitor.tempCriticalThreshold < value) {
-          Settings.data.systemMonitor.tempCriticalThreshold = value;
+        GlobalConfig.systemMonitor.tempWarningThreshold = value;
+        if (GlobalConfig.systemMonitor.tempCriticalThreshold < value) {
+          GlobalConfig.systemMonitor.tempCriticalThreshold = value;
         }
+        GlobalConfig.save();
       }
     }
 
     NSpinBox {
       Layout.alignment: Qt.AlignHCenter
-      from: Settings.data.systemMonitor.tempWarningThreshold
+      from: GlobalConfig.systemMonitor.tempWarningThreshold
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.tempCriticalThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.tempCriticalThreshold")
+      value: GlobalConfig.systemMonitor.tempCriticalThreshold
+      defaultValue: 90
       suffix: "°C"
-      onValueChanged: Settings.data.systemMonitor.tempCriticalThreshold = value
+      onValueChanged: {
+        GlobalConfig.systemMonitor.tempCriticalThreshold = value;
+        GlobalConfig.save();
+      }
     }
 
     NText {
@@ -118,27 +127,31 @@ ColumnLayout {
       from: 0
       to: 120
       stepSize: 5
-      value: Settings.data.systemMonitor.gpuWarningThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.gpuWarningThreshold")
+      value: GlobalConfig.systemMonitor.gpuWarningThreshold
+      defaultValue: 80
       suffix: "°C"
       onValueChanged: {
-        Settings.data.systemMonitor.gpuWarningThreshold = value;
-        if (Settings.data.systemMonitor.gpuCriticalThreshold < value) {
-          Settings.data.systemMonitor.gpuCriticalThreshold = value;
+        GlobalConfig.systemMonitor.gpuWarningThreshold = value;
+        if (GlobalConfig.systemMonitor.gpuCriticalThreshold < value) {
+          GlobalConfig.systemMonitor.gpuCriticalThreshold = value;
         }
+        GlobalConfig.save();
       }
     }
 
     NSpinBox {
       visible: SystemStatService.gpuAvailable
       Layout.alignment: Qt.AlignHCenter
-      from: Settings.data.systemMonitor.gpuWarningThreshold
+      from: GlobalConfig.systemMonitor.gpuWarningThreshold
       to: 120
       stepSize: 5
-      value: Settings.data.systemMonitor.gpuCriticalThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.gpuCriticalThreshold")
+      value: GlobalConfig.systemMonitor.gpuCriticalThreshold
+      defaultValue: 90
       suffix: "°C"
-      onValueChanged: Settings.data.systemMonitor.gpuCriticalThreshold = value
+      onValueChanged: {
+        GlobalConfig.systemMonitor.gpuCriticalThreshold = value;
+        GlobalConfig.save();
+      }
     }
 
     NText {
@@ -151,26 +164,30 @@ ColumnLayout {
       from: 0
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.memWarningThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.memWarningThreshold")
+      value: GlobalConfig.systemMonitor.memWarningThreshold
+      defaultValue: 80
       suffix: "%"
       onValueChanged: {
-        Settings.data.systemMonitor.memWarningThreshold = value;
-        if (Settings.data.systemMonitor.memCriticalThreshold < value) {
-          Settings.data.systemMonitor.memCriticalThreshold = value;
+        GlobalConfig.systemMonitor.memWarningThreshold = value;
+        if (GlobalConfig.systemMonitor.memCriticalThreshold < value) {
+          GlobalConfig.systemMonitor.memCriticalThreshold = value;
         }
+        GlobalConfig.save();
       }
     }
 
     NSpinBox {
       Layout.alignment: Qt.AlignHCenter
-      from: Settings.data.systemMonitor.memWarningThreshold
+      from: GlobalConfig.systemMonitor.memWarningThreshold
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.memCriticalThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.memCriticalThreshold")
+      value: GlobalConfig.systemMonitor.memCriticalThreshold
+      defaultValue: 90
       suffix: "%"
-      onValueChanged: Settings.data.systemMonitor.memCriticalThreshold = value
+      onValueChanged: {
+        GlobalConfig.systemMonitor.memCriticalThreshold = value;
+        GlobalConfig.save();
+      }
     }
 
     NText {
@@ -183,26 +200,30 @@ ColumnLayout {
       from: 0
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.swapWarningThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.swapWarningThreshold")
+      value: GlobalConfig.systemMonitor.swapWarningThreshold
+      defaultValue: 80
       suffix: "%"
       onValueChanged: {
-        Settings.data.systemMonitor.swapWarningThreshold = value;
-        if (Settings.data.systemMonitor.swapCriticalThreshold < value) {
-          Settings.data.systemMonitor.swapCriticalThreshold = value;
+        GlobalConfig.systemMonitor.swapWarningThreshold = value;
+        if (GlobalConfig.systemMonitor.swapCriticalThreshold < value) {
+          GlobalConfig.systemMonitor.swapCriticalThreshold = value;
         }
+        GlobalConfig.save();
       }
     }
 
     NSpinBox {
       Layout.alignment: Qt.AlignHCenter
-      from: Settings.data.systemMonitor.swapWarningThreshold
+      from: GlobalConfig.systemMonitor.swapWarningThreshold
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.swapCriticalThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.swapCriticalThreshold")
+      value: GlobalConfig.systemMonitor.swapCriticalThreshold
+      defaultValue: 90
       suffix: "%"
-      onValueChanged: Settings.data.systemMonitor.swapCriticalThreshold = value
+      onValueChanged: {
+        GlobalConfig.systemMonitor.swapCriticalThreshold = value;
+        GlobalConfig.save();
+      }
     }
 
     NText {
@@ -215,26 +236,30 @@ ColumnLayout {
       from: 0
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.diskWarningThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.diskWarningThreshold")
+      value: GlobalConfig.systemMonitor.diskWarningThreshold
+      defaultValue: 80
       suffix: "%"
       onValueChanged: {
-        Settings.data.systemMonitor.diskWarningThreshold = value;
-        if (Settings.data.systemMonitor.diskCriticalThreshold < value) {
-          Settings.data.systemMonitor.diskCriticalThreshold = value;
+        GlobalConfig.systemMonitor.diskWarningThreshold = value;
+        if (GlobalConfig.systemMonitor.diskCriticalThreshold < value) {
+          GlobalConfig.systemMonitor.diskCriticalThreshold = value;
         }
+        GlobalConfig.save();
       }
     }
 
     NSpinBox {
       Layout.alignment: Qt.AlignHCenter
-      from: Settings.data.systemMonitor.diskWarningThreshold
+      from: GlobalConfig.systemMonitor.diskWarningThreshold
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.diskCriticalThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.diskCriticalThreshold")
+      value: GlobalConfig.systemMonitor.diskCriticalThreshold
+      defaultValue: 90
       suffix: "%"
-      onValueChanged: Settings.data.systemMonitor.diskCriticalThreshold = value
+      onValueChanged: {
+        GlobalConfig.systemMonitor.diskCriticalThreshold = value;
+        GlobalConfig.save();
+      }
     }
 
     NText {
@@ -247,14 +272,15 @@ ColumnLayout {
       from: 0
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.diskAvailWarningThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.diskAvailWarningThreshold")
+      value: GlobalConfig.systemMonitor.diskAvailWarningThreshold
+      defaultValue: 20
       suffix: "%"
       onValueChanged: {
-        Settings.data.systemMonitor.diskAvailWarningThreshold = value;
-        if (Settings.data.systemMonitor.diskAvailCriticalThreshold > value) {
-          Settings.data.systemMonitor.diskAvailCriticalThreshold = value;
+        GlobalConfig.systemMonitor.diskAvailWarningThreshold = value;
+        if (GlobalConfig.systemMonitor.diskAvailCriticalThreshold > value) {
+          GlobalConfig.systemMonitor.diskAvailCriticalThreshold = value;
         }
+        GlobalConfig.save();
       }
     }
 
@@ -263,10 +289,13 @@ ColumnLayout {
       from: 0
       to: 20
       stepSize: 5
-      value: Settings.data.systemMonitor.diskAvailCriticalThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.diskAvailCriticalThreshold")
+      value: GlobalConfig.systemMonitor.diskAvailCriticalThreshold
+      defaultValue: 10
       suffix: "%"
-      onValueChanged: Settings.data.systemMonitor.diskAvailCriticalThreshold = value
+      onValueChanged: {
+        GlobalConfig.systemMonitor.diskAvailCriticalThreshold = value;
+        GlobalConfig.save();
+      }
     }
 
     NText {
@@ -279,26 +308,30 @@ ColumnLayout {
       from: 0
       to: 100
       stepSize: 5
-      value: Settings.data.systemMonitor.batteryWarningThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.batteryWarningThreshold")
+      value: GlobalConfig.systemMonitor.batteryWarningThreshold
+      defaultValue: 20
       suffix: "%"
       onValueChanged: {
-        Settings.data.systemMonitor.batteryWarningThreshold = value;
-        if (Settings.data.systemMonitor.batteryCriticalThreshold > value) {
-          Settings.data.systemMonitor.batteryCriticalThreshold = value;
+        GlobalConfig.systemMonitor.batteryWarningThreshold = value;
+        if (GlobalConfig.systemMonitor.batteryCriticalThreshold > value) {
+          GlobalConfig.systemMonitor.batteryCriticalThreshold = value;
         }
+        GlobalConfig.save();
       }
     }
 
     NSpinBox {
       Layout.alignment: Qt.AlignHCenter
       from: 0
-      to: Settings.data.systemMonitor.batteryWarningThreshold
+      to: GlobalConfig.systemMonitor.batteryWarningThreshold
       stepSize: 5
-      value: Settings.data.systemMonitor.batteryCriticalThreshold
-      defaultValue: Settings.getDefaultValue("systemMonitor.batteryCriticalThreshold")
+      value: GlobalConfig.systemMonitor.batteryCriticalThreshold
+      defaultValue: 5
       suffix: "%"
-      onValueChanged: Settings.data.systemMonitor.batteryCriticalThreshold = value
+      onValueChanged: {
+        GlobalConfig.systemMonitor.batteryCriticalThreshold = value;
+        GlobalConfig.save();
+      }
     }
   }
 }

@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
@@ -13,7 +14,7 @@ import qs.settingsgui.Widgets
 Variants {
   id: launcherVariants
 
-  model: Quickshell.screens.filter(screen => Settings.data.appLauncher.overviewLayer)
+  model: Quickshell.screens.filter(screen => GlobalConfig.launcher.overviewLayer)
 
   delegate: Loader {
     id: windowLoader
@@ -71,7 +72,7 @@ Variants {
       readonly property int barThickness: Math.round(Style.barHeight + Style.marginL)
 
       readonly property string panelPosition: {
-        var pos = Settings.data.appLauncher.position;
+        var pos = GlobalConfig.launcher.position;
         if (pos === "follow_bar") {
           if (barIsVertical) {
             return "center_" + barPosition;
@@ -90,7 +91,7 @@ Variants {
         var provider = launcherCore.activeProvider;
         if (!provider || !provider.hasPreview)
           return false;
-        if (!Settings.data.appLauncher.enableClipPreview)
+        if (!GlobalConfig.launcher.enableClipPreview)
           return false;
         return launcherCore.selectedIndex >= 0 && launcherCore.results && !!launcherCore.results[launcherCore.selectedIndex];
       }

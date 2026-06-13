@@ -2,8 +2,38 @@
 
 ## [Unreleased]
 
+### Added
+
+- **GTK/Qt apps now recolor with the shell scheme.** A `gtk.css` + `kdeglobals`
+  template pair is rendered from the active palette on every scheme change and
+  installed as a managed, marker-delimited block (with a one-time backup of any
+  existing file) into `~/.config/gtk-{3,4}.0/gtk.css` and `~/.config/kdeglobals`, so
+  libadwaita/GTK and Qt/KDE apps follow Ryoku's dynamic colors instead of staying on
+  stock Adwaita. Gated on `services.syncAppColors` (on by default; set it false to
+  leave app config untouched).
+- **Reduce-motion preference.** A new "Reduce motion" toggle (Settings → appearance,
+  `appearance.reduceMotion`) makes shell motion instant, wired into the native `Anim`
+  duration, the shared `Appearance` animation gate, and the `StateLayer` hover-wash and
+  press-ripple (whose explicit durations previously ignored the preference).
+
 ### Changed
 
+- **Desktop widgets redesigned as frosted glass**: the desktop clock, resources,
+  weather, media, battery and sticky-note widgets are no longer flat translucent-grey
+  rectangles. A shared `WidgetCard` surface gives every widget a blurred slice of the
+  wallpaper behind it (clipped to the rounded shape, the DesktopClock blur technique
+  generalized), an accent wash so neutrals carry the wallpaper hue, an inner top
+  highlight and a real elevation shadow, with a springy scale+fade entrance. Card
+  opacity is wallpaper-luminance adaptive (`Colours.wallLuminance`) so the frost stays
+  on the scheme's side and text stays legible over bright or busy wallpapers.
+  Data-viz went premium: **Resources** now defaults to circular ring gauges
+  (CPU/MEM/DSK, accent-per-metric, value-eased; Bars/Compact still selectable);
+  **Media** bleeds the album art as a blurred colour wash with a morphing play/pause
+  FAB and a gradient progress bar; **Weather** is a hero icon (gently breathing) +
+  accent temperature + tonal detail chips; **Battery** is a liquid-fill pill (eased
+  green→amber→red with a charging shimmer + bolt); the **Clock** gains a breathing
+  colon and joins the frosted family. Motion uses the existing M3-expressive spring
+  tokens and is frozen by Game Mode (which also releases the blur FBOs).
 - **Default browser is now Chromium (was Helium)**: Helium ran under XWayland to
   dodge a Chromium-on-Wayland rendering bug, but XWayland clients cannot capture
   native Wayland surfaces, so screen sharing (Discord/Meet/OBS) showed a black
@@ -13,9 +43,37 @@
   on update (a browser you chose yourself is left untouched), and `SUPER+B` plus
   the xdg/mimetype defaults follow. Helium stays available via
   `ryoku-install-helium-browser`.
+- **Popups now read as frosted glass.** Hyprland `decoration:blur:popups` is enabled,
+  so tray menus, context menus and dropdowns inherit the blur of the surface they
+  open from instead of rendering as flat opaque rectangles (existing installs get it
+  via a `[global]` migration).
+- **Snappier panel/bar dismissal.** Close transitions use an M3-expressive
+  accelerating curve (shorter, accelerates out) while opens keep the decelerating
+  spatial reveal, so dismissing a surface feels crisp rather than heavy.
+- **Lower-jank resource monitor.** The system-usage service no longer forks `lsblk`
+  and a shell `cat` every tick: disk topology moved to a slow timer
+  (`dashboard.storageUpdateInterval`, default 60 s) and GENERIC (AMD/Intel) GPU usage
+  reads sysfs directly via `FileView`, eliminating per-second subprocess churn.
+- **Snappier settings open + bar polish.** Settings tabs now load asynchronously
+  (`asynchronous: true`), so opening the settings panel no longer hitches while the
+  large tab content rebuilds, and the bar's OS/launcher logo button gains the standard
+  hover-wash + press-ripple feedback via the shared `StateLayer`.
 
 ### Fixed
 
+- **Settings that silently did nothing now take effect**, audio overdrive, volume and
+  brightness step size, brightness DDC/minimum, the °F and 12-hour-clock toggles, and
+  the primary media player. Each writes the typed config (`services.maxVolume`,
+  `services.audioIncrement`, `services.brightnessIncrement`/`brightnessDdc`/
+  `brightnessEnforceMin`, `services.useFahrenheit`/`useTwelveHourClock`,
+  `services.defaultPlayer`), but many surfaces, the audio and
+  brightness panels/cards/OSD, the weather and calendar cards, the desktop-weather
+  widget and the analogue clock, still read dead legacy keys
+  (`audio.volumeOverdrive`/`volumeStep`, `brightness.{brightnessStep,enforceMinimum,
+  enableDdcSupport}`, `location.useFahrenheit`/`use12hourFormat`) that no UI ever
+  wrote, so toggling them did nothing and the control-center surfaces disagreed with
+  the bar/OSD. Repointed every consumer to the typed keys, so the controls apply and
+  all surfaces stay consistent.
 - **Wayland screen sharing was broken for every portal app** (black screen / empty
   source picker in Discord, OBS, Meet, and any Wayland client). `xdg-desktop-portal`
   >= 1.20 ships `Requisite=graphical-session.target`, and a bare (non-uwsm) Hyprland
@@ -23,12 +81,12 @@
   (`org.freedesktop.portal.Desktop`) could never activate. A new
   `hyprland-session.target` wrapper pulls `graphical-session.target` up at login
   (and a migration does so for the running session on existing installs), restoring
-  all portal-based screen sharing and file pickers. This was not a GPU problem: the
+  all portal-based screen sharing and file pickers. This was not a GPU problem, the
   NVIDIA/wlroots capture path was healthy throughout.
 - **Bundled Chromium `copy-url` extension no longer errors on launch**: its manifest
   referenced an `icon.png` symlink that dangled (it pointed at a root icon that does
   not exist), so Chromium logged "Could not load icon" on every start. Dropped the
-  cosmetic icon reference: the extension is a keyboard command whose notification
+  cosmetic icon reference, the extension is a keyboard command whose notification
   uses an inline icon, so it needs none.
 - **Chromium "is sharing your screen" bar no longer blocks the screen center**: the
   bar's own Hide button is a no-op under Wayland (it tries to minimize, which Hyprland

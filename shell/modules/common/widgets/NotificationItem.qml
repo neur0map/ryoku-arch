@@ -103,9 +103,7 @@ Item { // Notification item area
         id: background
         width: parent.width
         anchors.left: parent.left
-        radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
-            : Appearance.rounding.small
+        radius: Appearance.rounding.small
         anchors.leftMargin: root.xOffset
 
         Behavior on anchors.leftMargin {
@@ -120,16 +118,10 @@ Item { // Notification item area
         color: (expanded && !onlyNotification) ?
             (notificationObject?.urgency == NotificationUrgency.Critical) ?
                 ColorUtils.mix(Appearance.colors.colSecondaryContainer, Appearance.colors.colLayer2, 0.35) :
-                (Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer2
-                    : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
-                    : Appearance.colors.colLayer3) :
+                Appearance.colors.colLayer3 :
             "transparent"
-        border.width: (expanded && !onlyNotification && (Appearance.angelEverywhere || Appearance.auroraEverywhere || Appearance.inirEverywhere)) ? 1 : 0
-        border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder
-            : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutline, 0.8)
-            : Appearance.colors.colLayer0Border
+        border.width: 0
+        border.color: Appearance.colors.colLayer0Border
 
         implicitHeight: expanded ? (contentColumn.implicitHeight + root.padding * 2) : summaryRow.implicitHeight
         Behavior on implicitHeight {
@@ -233,8 +225,7 @@ Item { // Notification item area
                         maskSource: Rectangle {
                             width: actionsFlickable.width
                             height: actionsFlickable.height
-                            radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                                : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                            radius: Appearance.rounding.small
                         }
                     }
 

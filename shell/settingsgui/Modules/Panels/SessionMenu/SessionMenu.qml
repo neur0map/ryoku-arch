@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Widgets
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.MainScreen
 import qs.settingsgui.Services.Compositor
@@ -15,8 +16,8 @@ import qs.settingsgui.Widgets
 SmartPanel {
   id: root
 
-  readonly property bool largeButtonsStyle: Settings.data.sessionMenu.largeButtonsStyle || false
-  readonly property bool largeButtonsLayout: Settings.data.sessionMenu.largeButtonsLayout || "grid"
+  readonly property bool largeButtonsStyle: GlobalConfig.session.largeButtonsStyle || false
+  readonly property bool largeButtonsLayout: GlobalConfig.session.largeButtonsLayout || "grid"
 
   // Large buttons style is fullscreen — disable blur behind it
   blurEnabled: !largeButtonsStyle
@@ -29,14 +30,14 @@ SmartPanel {
     if (largeButtonsStyle) {
       return 0;
     }
-    var headerHeight = Settings.data.sessionMenu.showHeader ? Style.baseWidgetSize * 0.6 : 0;
+    var headerHeight = GlobalConfig.session.showHeader ? Style.baseWidgetSize * 0.6 : 0;
 
-    var dividerHeight = Settings.data.sessionMenu.showHeader ? Style.marginS : 0;
+    var dividerHeight = GlobalConfig.session.showHeader ? Style.marginS : 0;
     var buttonHeight = Style.baseWidgetSize * 1.3 * Style.uiScaleRatio;
     var buttonSpacing = Style.marginS;
     var enabledCount = powerOptions.length;
 
-    var headerSpacing = Settings.data.sessionMenu.showHeader ? Style.margin2L : 0;
+    var headerSpacing = GlobalConfig.session.showHeader ? Style.margin2L : 0;
     var baseHeight = (Style.marginL * 4) + headerHeight + dividerHeight + headerSpacing;
     var buttonsHeight = enabledCount > 0 ? (buttonHeight * enabledCount) + (buttonSpacing * (enabledCount - 1)) : 0;
 
@@ -45,7 +46,7 @@ SmartPanel {
   preferredHeightRatio: largeButtonsStyle ? 1.0 : 0
 
   // Positioning - large buttons style is always centered and fullscreen
-  readonly property string panelPosition: Settings.data.sessionMenu.position
+  readonly property string panelPosition: GlobalConfig.session.position
 
   panelAnchorHorizontalCenter: largeButtonsStyle || panelPosition === "center" || panelPosition.endsWith("_center")
   panelAnchorVerticalCenter: largeButtonsStyle || panelPosition === "center"
@@ -57,7 +58,7 @@ SmartPanel {
   // SessionMenu handle it's own closing logic
   property bool closeWithEscape: false
 
-  readonly property int timerDuration: Settings.data.sessionMenu.countdownDuration
+  readonly property int timerDuration: GlobalConfig.session.countdownDuration
   property string pendingAction: ""
   property bool timerActive: false
   property int timeRemaining: 0
@@ -130,7 +131,7 @@ SmartPanel {
     // Reference version to trigger re-evaluation
     void (_powerOptionsVersion);
     var options = [];
-    var settingsOptions = Settings.data.sessionMenu.powerOptions || [];
+    var settingsOptions = GlobalConfig.session.powerOptions || [];
 
     for (var i = 0; i < settingsOptions.length; i++) {
       var settingOption = settingsOptions[i];
@@ -152,7 +153,7 @@ SmartPanel {
   }
 
   Connections {
-    target: Settings.data.sessionMenu
+    target: GlobalConfig.session
     function onPowerOptionsChanged() {
       root._powerOptionsVersion++;
     }
@@ -178,7 +179,7 @@ SmartPanel {
   }
 
   function startTimer(action) {
-    if (!Settings.data.sessionMenu.enableCountdown) {
+    if (!GlobalConfig.session.enableCountdown) {
       executeAction(action);
       return;
     }
@@ -295,7 +296,7 @@ SmartPanel {
 
   function getGridInfo() {
     let columns, rows;
-    if (Settings.data.sessionMenu.largeButtonsLayout === "single-row") {
+    if (GlobalConfig.session.largeButtonsLayout === "single-row") {
       columns = powerOptions.length;
       rows = 1;
     } else {
@@ -599,7 +600,7 @@ SmartPanel {
       GridLayout {
         id: largeButtonsGrid
         Layout.alignment: Qt.AlignHCenter
-        columns: Settings.data.sessionMenu.largeButtonsLayout === "single-row" ? powerOptions.length : Math.min(3, Math.ceil(Math.sqrt(powerOptions.length)))
+        columns: GlobalConfig.session.largeButtonsLayout === "single-row" ? powerOptions.length : Math.min(3, Math.ceil(Math.sqrt(powerOptions.length)))
         rowSpacing: Style.marginXL
         columnSpacing: Style.marginXL
         width: columns * 200 * Style.uiScaleRatio + (columns - 1) * Style.marginXL
@@ -639,7 +640,7 @@ SmartPanel {
         spacing: Style.marginL
 
         RowLayout {
-          visible: Settings.data.sessionMenu.showHeader
+          visible: GlobalConfig.session.showHeader
           Layout.fillWidth: true
           Layout.preferredHeight: Style.baseWidgetSize * 0.6
 
@@ -678,7 +679,7 @@ SmartPanel {
         }
 
         NDivider {
-          visible: Settings.data.sessionMenu.showHeader
+          visible: GlobalConfig.session.showHeader
           Layout.fillWidth: true
         }
 
@@ -808,7 +809,7 @@ SmartPanel {
         // Countdown as plain text (left of keybind)
         NText {
           id: countdownText
-          visible: !Settings.data.sessionMenu.showHeader && buttonRoot.pending && timerActive && pendingAction === modelData.action
+          visible: !GlobalConfig.session.showHeader && buttonRoot.pending && timerActive && pendingAction === modelData.action
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
           text: Math.ceil(timeRemaining / 1000)
@@ -828,7 +829,7 @@ SmartPanel {
           color: (buttonRoot.isSelected || buttonRoot.effectiveHover) ? Color.mOnPrimary : Color.mSurface
           border.width: Style.borderS
           border.color: (buttonRoot.isSelected || buttonRoot.effectiveHover) ? Color.mOnPrimary : Color.mOutline
-          visible: Settings.data.sessionMenu.showKeybinds && (buttonRoot.keybind !== "") && !buttonRoot.pending
+          visible: GlobalConfig.session.showKeybinds && (buttonRoot.keybind !== "") && !buttonRoot.pending
 
           NText {
             id: labelText
@@ -1059,7 +1060,7 @@ SmartPanel {
       color: (largeButtonRoot.isSelected || largeButtonRoot.effectiveHover) ? Color.mOnPrimary : Qt.alpha(Color.mSurfaceVariant, 0.7)
       border.width: Style.borderS
       border.color: (largeButtonRoot.isSelected || largeButtonRoot.effectiveHover) ? Color.mOnPrimary : Color.mOutline
-      visible: Settings.data.sessionMenu.showKeybinds && (largeButtonRoot.keybind !== "") && !largeButtonRoot.pending
+      visible: GlobalConfig.session.showKeybinds && (largeButtonRoot.keybind !== "") && !largeButtonRoot.pending
       z: 10
 
       NText {

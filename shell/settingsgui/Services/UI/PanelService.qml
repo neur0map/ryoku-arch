@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Compositor
@@ -243,7 +244,7 @@ Singleton {
   }
 
   function openLauncher(screen) {
-    if (Settings.data.appLauncher.overviewLayer) {
+    if (GlobalConfig.launcher.overviewLayer) {
       if (openedPanel) {
         closingPanel = openedPanel;
         assignToSlot(1, closingPanel);
@@ -261,7 +262,7 @@ Singleton {
   }
 
   function toggleLauncher(screen) {
-    if (Settings.data.appLauncher.overviewLayer) {
+    if (GlobalConfig.launcher.overviewLayer) {
       if (overlayLauncherOpen && overlayLauncherScreen === screen) {
         closeOverlayLauncher();
       } else {
@@ -293,7 +294,7 @@ Singleton {
 
 
   function isLauncherOpen(screen) {
-    if (Settings.data.appLauncher.overviewLayer) {
+    if (GlobalConfig.launcher.overviewLayer) {
       return overlayLauncherOpen && overlayLauncherScreen === screen;
     } else {
       var panel = getPanel("launcherPanel", screen);
@@ -302,7 +303,7 @@ Singleton {
   }
 
   function getLauncherSearchText(screen) {
-    if (Settings.data.appLauncher.overviewLayer) {
+    if (GlobalConfig.launcher.overviewLayer) {
       return overlayLauncherCore ? overlayLauncherCore.searchText : "";
     } else {
       var panel = getPanel("launcherPanel", screen);
@@ -311,7 +312,7 @@ Singleton {
   }
 
   function setLauncherSearchText(screen, text) {
-    if (Settings.data.appLauncher.overviewLayer) {
+    if (GlobalConfig.launcher.overviewLayer) {
       if (overlayLauncherCore)
         overlayLauncherCore.setSearchText(text);
     } else {
@@ -322,7 +323,7 @@ Singleton {
   }
 
   function openLauncherWithSearch(screen, searchText) {
-    if (Settings.data.appLauncher.overviewLayer) {
+    if (GlobalConfig.launcher.overviewLayer) {
       openLauncher(screen);
       // Set search text after core is ready
       Qt.callLater(() => {
@@ -339,7 +340,7 @@ Singleton {
   }
 
   function closeLauncher(screen) {
-    if (Settings.data.appLauncher.overviewLayer) {
+    if (GlobalConfig.launcher.overviewLayer) {
       closeOverlayLauncher();
     } else {
       var panel = getPanel("launcherPanel", screen);

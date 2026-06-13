@@ -1,0 +1,79 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Recolor GTK/Qt (libadwaita) apps to the active Ryoku scheme by installing the
+# rendered gtk.css + kdeglobals into the user's config. Gated on the same shell
+# setting as the rest of the system-theme sync (services.syncAppColors).
+#
+# SAFETY: managed colors are written inside sentinel-marked blocks. Existing user
+# content is preserved - on the first managed write to a non-empty file with no
+# markers, a one-time <file>.ryoku-bak snapshot is taken. When the flag is off
+# nothing is touched.
+
+# Honour the live shell setting. Read the raw value the SAME way as the GNOME/GTK
+# theme-name gate (no `// true` - jq's `//` swallows an explicit false). Missing
+# key/file -> "null"/"" -> treated as on (default true).
+if [[ "$(jq -r '.services.syncAppColors' "$RYOKU_CONFIG_PATH/shell.json" 2>/dev/null)" == "false" ]]; then
+  exit 0
+fi
+
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+theme_dir="$RYOKU_CONFIG_PATH/current/theme"
+
+gtk_src="$theme_dir/gtk.css"
+kde_src="$theme_dir/kdeglobals"
+
+# Write $payload into $target between sentinel markers, replacing an existing
+# managed block in place or appending a fresh one. $open/$close are the exact
+# marker lines for the file's comment syntax.
+install_managed_block() {
+  local target="$1" open="$2" close="$3" payload="$4"
+
+  mkdir -p "$(dirname "$target")"
+
+  # One-time backup before the first managed touch of an existing, unmarked file.
+  if [[ -s $target && ! -e $target.ryoku-bak ]] && ! grep -qF "$open" "$target"; then
+    cp -p "$target" "$target.ryoku-bak"
+  fi
+
+  local block
+  block="$open"$'\n'"$payload"$'\n'"$close"
+
+  if [[ -f $target ]] && grep -qF "$open" "$target"; then
+    # Replace only the existing marker block, leave everything else intact.
+    local tmp
+    tmp="$(mktemp)"
+    OPEN="$open" CLOSE="$close" BLOCK="$block" awk '
+      BEGIN { o = ENVIRON["OPEN"]; c = ENVIRON["CLOSE"] }
+      index($0, o) == 1 && !done { print ENVIRON["BLOCK"]; skip = 1; done = 1; next }
+      skip && index($0, c) == 1 { skip = 0; next }
+      skip { next }
+      { print }
+    ' "$target" >"$tmp"
+    mv "$tmp" "$target"
+  elif [[ -s $target ]]; then
+    # Preserve user content, append the managed block after a blank separator.
+    printf '\n%s\n' "$block" >>"$target"
+  else
+    printf '%s\n' "$block" >"$target"
+  fi
+}
+
+# --- GTK3 + GTK4 (libadwaita) ------------------------------------------------
+if [[ -f $gtk_src ]]; then
+  gtk_open='/* >>> ryoku managed colors (do not edit) */'
+  gtk_close='/* <<< ryoku managed colors */'
+  gtk_payload="$(<"$gtk_src")"
+  for gtk_target in "$config_home/gtk-3.0/gtk.css" "$config_home/gtk-4.0/gtk.css"; do
+    install_managed_block "$gtk_target" "$gtk_open" "$gtk_close" "$gtk_payload"
+  done
+fi
+
+# --- KDE / Qt (kdeglobals) ---------------------------------------------------
+if [[ -f $kde_src ]]; then
+  kde_open='# >>> ryoku managed colors (do not edit)'
+  kde_close='# <<< ryoku managed colors'
+  kde_payload="$(<"$kde_src")"
+  install_managed_block "$config_home/kdeglobals" "$kde_open" "$kde_close" "$kde_payload"
+fi

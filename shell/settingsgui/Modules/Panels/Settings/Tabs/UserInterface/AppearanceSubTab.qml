@@ -6,8 +6,9 @@ import qs.settingsgui.Commons
 import qs.settingsgui.Widgets
 
 // RYOKU: shell appearance, wired to GlobalConfig.appearance.* (Ryoku.Config).
-// Demonstrates the toggle->intensity disclosure: the transparency opacity sliders
-// only appear when the Transparency toggle is on.
+// Transparency is on by default; the opacity sliders stay visible and are
+// disabled (greyed) when the Transparency toggle is off, so the control is
+// always discoverable.
 ColumnLayout {
   id: root
   spacing: Style.marginL
@@ -24,12 +25,48 @@ ColumnLayout {
     }
   }
 
+  NText {
+    text: "Glass intensity"
+    color: Color.mOnSurfaceVariant
+  }
+
+  // RYOKU: one-tap glass presets (noctalia-style Soft/Glass/Sheer). Each writes
+  // the existing transparency.base/layers; the sliders below still fine-tune
+  // (which simply lands on no active preset = custom). Soft == the shipped
+  // defaults, so a fresh install reads as "Soft".
+  RowLayout {
+    Layout.fillWidth: true
+    enabled: GlobalConfig.appearance.transparency.enabled
+    spacing: Style.marginXS
+
+    Repeater {
+      model: [
+        { name: "Soft", base: 0.85, layers: 0.4 },
+        { name: "Glass", base: 0.7, layers: 0.3 },
+        { name: "Sheer", base: 0.55, layers: 0.2 }
+      ]
+
+      NButton {
+        required property var modelData
+        readonly property bool active: Math.abs(GlobalConfig.appearance.transparency.base - modelData.base) < 0.02
+        Layout.fillWidth: true
+        text: modelData.name
+        outlined: !active
+        onClicked: {
+          GlobalConfig.appearance.transparency.base = modelData.base;
+          GlobalConfig.appearance.transparency.layers = modelData.layers;
+          GlobalConfig.save();
+        }
+      }
+    }
+  }
+
   NValueSlider {
     Layout.fillWidth: true
-    visible: GlobalConfig.appearance.transparency.enabled
+    enabled: GlobalConfig.appearance.transparency.enabled
     label: "Panel opacity"
     description: "Opacity of panel backgrounds"
-    from: 0.4
+    from: 0.2
     to: 1.0
     stepSize: 0.01
     value: GlobalConfig.appearance.transparency.base
@@ -42,7 +79,7 @@ ColumnLayout {
 
   NValueSlider {
     Layout.fillWidth: true
-    visible: GlobalConfig.appearance.transparency.enabled
+    enabled: GlobalConfig.appearance.transparency.enabled
     label: "Surface opacity"
     description: "Opacity of inner surfaces / layers"
     from: 0.2
@@ -150,6 +187,17 @@ ColumnLayout {
     text: Math.round(GlobalConfig.appearance.anim.durations.scale * 100) + "%"
     onMoved: value => {
       GlobalConfig.appearance.anim.durations.scale = value;
+      GlobalConfig.save();
+    }
+  }
+
+  NToggle {
+    Layout.fillWidth: true
+    label: "Reduce motion"
+    description: "Make shell animations instant (accessibility)"
+    checked: GlobalConfig.appearance.reduceMotion
+    onToggled: checked => {
+      GlobalConfig.appearance.reduceMotion = checked;
       GlobalConfig.save();
     }
   }

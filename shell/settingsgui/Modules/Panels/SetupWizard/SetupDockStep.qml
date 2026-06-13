@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Compositor
 import qs.settingsgui.Widgets
@@ -58,12 +59,15 @@ ColumnLayout {
       Layout.fillWidth: true
       label: I18n.tr("panels.dock.enabled-label")
       description: I18n.tr("panels.dock.enabled-description")
-      checked: Settings.data.dock.enabled
-      onToggled: checked => Settings.data.dock.enabled = checked
+      checked: GlobalConfig.dock.enabled
+      onToggled: checked => {
+        GlobalConfig.dock.enabled = checked;
+        GlobalConfig.save();
+      }
     }
 
     NComboBox {
-      visible: Settings.data.dock.enabled
+      visible: GlobalConfig.dock.enabled
       Layout.fillWidth: true
       label: I18n.tr("panels.display.title")
       description: I18n.tr("panels.dock.appearance-display-description")
@@ -81,12 +85,15 @@ ColumnLayout {
           "name": I18n.tr("panels.dock.appearance-display-exclusive")
         }
       ]
-      currentKey: Settings.data.dock.displayMode
-      onSelected: key => Settings.data.dock.displayMode = key
+      currentKey: GlobalConfig.dock.displayMode
+      onSelected: key => {
+        GlobalConfig.dock.displayMode = key;
+        GlobalConfig.save();
+      }
     }
 
     ColumnLayout {
-      visible: Settings.data.dock.enabled
+      visible: GlobalConfig.dock.enabled
       spacing: Style.marginXXS
       Layout.fillWidth: true
       NLabel {
@@ -98,14 +105,17 @@ ColumnLayout {
         from: 0
         to: 1
         stepSize: 0.01
-        value: Settings.data.dock.backgroundOpacity
-        onMoved: value => Settings.data.dock.backgroundOpacity = value
-        text: Math.floor(Settings.data.dock.backgroundOpacity * 100) + "%"
+        value: GlobalConfig.dock.backgroundOpacity
+        onMoved: value => {
+          GlobalConfig.dock.backgroundOpacity = value;
+          GlobalConfig.save();
+        }
+        text: Math.floor(GlobalConfig.dock.backgroundOpacity * 100) + "%"
       }
     }
 
     ColumnLayout {
-      visible: Settings.data.dock.enabled
+      visible: GlobalConfig.dock.enabled
       spacing: Style.marginXXS
       Layout.fillWidth: true
       NLabel {
@@ -117,14 +127,17 @@ ColumnLayout {
         from: 0
         to: 4
         stepSize: 0.01
-        value: Settings.data.dock.floatingRatio
-        onMoved: value => Settings.data.dock.floatingRatio = value
-        text: Math.floor(Settings.data.dock.floatingRatio * 100) + "%"
+        value: GlobalConfig.dock.floatingRatio
+        onMoved: value => {
+          GlobalConfig.dock.floatingRatio = value;
+          GlobalConfig.save();
+        }
+        text: Math.floor(GlobalConfig.dock.floatingRatio * 100) + "%"
       }
     }
 
     ColumnLayout {
-      visible: Settings.data.dock.enabled
+      visible: GlobalConfig.dock.enabled
       spacing: Style.marginXXS
       Layout.fillWidth: true
       NLabel {
@@ -136,38 +149,47 @@ ColumnLayout {
         from: 0
         to: 2
         stepSize: 0.01
-        value: Settings.data.dock.size
-        onMoved: value => Settings.data.dock.size = value
-        text: Math.floor(Settings.data.dock.size * 100) + "%"
+        value: GlobalConfig.dock.size
+        onMoved: value => {
+          GlobalConfig.dock.size = value;
+          GlobalConfig.save();
+        }
+        text: Math.floor(GlobalConfig.dock.size * 100) + "%"
       }
     }
 
     NToggle {
-      visible: Settings.data.dock.enabled
+      visible: GlobalConfig.dock.enabled
       Layout.fillWidth: true
       label: I18n.tr("panels.dock.monitors-only-same-monitor-label")
       description: I18n.tr("panels.dock.monitors-only-same-monitor-description")
-      checked: Settings.data.dock.onlySameOutput
-      onToggled: checked => Settings.data.dock.onlySameOutput = checked
+      checked: GlobalConfig.dock.onlySameOutput
+      onToggled: checked => {
+        GlobalConfig.dock.onlySameOutput = checked;
+        GlobalConfig.save();
+      }
     }
 
     NToggle {
-      visible: Settings.data.dock.enabled
+      visible: GlobalConfig.dock.enabled
       Layout.fillWidth: true
       label: I18n.tr("panels.dock.appearance-colorize-icons-label")
       description: I18n.tr("panels.dock.appearance-colorize-icons-description")
-      checked: Settings.data.dock.colorizeIcons
-      onToggled: checked => Settings.data.dock.colorizeIcons = checked
+      checked: GlobalConfig.dock.colorizeIcons
+      onToggled: checked => {
+        GlobalConfig.dock.colorizeIcons = checked;
+        GlobalConfig.save();
+      }
     }
 
     NHeader {
-      visible: Settings.data.dock.enabled
+      visible: GlobalConfig.dock.enabled
       label: I18n.tr("panels.dock.monitors-title")
       description: I18n.tr("panels.dock.monitors-desc")
     }
 
     Repeater {
-      visible: Settings.data.dock.enabled
+      visible: GlobalConfig.dock.enabled
       model: Quickshell.screens || []
       delegate: NCheckbox {
         Layout.fillWidth: true
@@ -176,7 +198,7 @@ ColumnLayout {
           return (info && info.scale) ? info.scale : 1.0;
         }
         label: modelData.name || "Unknown"
-        visible: Settings.data.dock.enabled
+        visible: GlobalConfig.dock.enabled
         description: {
           I18n.tr("system.monitor-description", {
                     "model": modelData.model,
@@ -185,18 +207,19 @@ ColumnLayout {
                     "scale": compositorScale
                   });
         }
-        checked: (Settings.data.dock.monitors || []).indexOf(modelData.name) !== -1
+        checked: (GlobalConfig.dock.monitors || []).indexOf(modelData.name) !== -1
         onToggled: checked => {
                      if (checked) {
-                       const arr = (Settings.data.dock.monitors || []).slice();
+                       const arr = (GlobalConfig.dock.monitors || []).slice();
                        if (arr.indexOf(modelData.name) === -1)
                        arr.push(modelData.name);
-                       Settings.data.dock.monitors = arr;
+                       GlobalConfig.dock.monitors = arr;
                      } else {
-                       Settings.data.dock.monitors = (Settings.data.dock.monitors || []).filter(function (n) {
+                       GlobalConfig.dock.monitors = (GlobalConfig.dock.monitors || []).filter(function (n) {
                          return n !== modelData.name;
                        });
                      }
+                     GlobalConfig.save();
                    }
       }
     }

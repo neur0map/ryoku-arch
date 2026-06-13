@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Compositor
 import qs.settingsgui.Services.UI
@@ -73,7 +74,7 @@ Singleton {
     const layoutChanged = isInitialized && currentLayout !== previousLayout && currentLayout !== I18n.tr("common.unknown") && previousLayout !== "" && previousLayout !== I18n.tr("common.unknown");
 
     if (layoutChanged) {
-      if (Settings.data.notifications.enableKeyboardLayoutToast) {
+      if (GlobalConfig.notifs.enableKeyboardLayoutToast) {
         const message = I18n.tr("toast.keyboard-layout.changed", {
                                   "layout": fullLayoutName
                                 });

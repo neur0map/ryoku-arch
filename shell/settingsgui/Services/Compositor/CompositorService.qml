@@ -6,6 +6,7 @@ import Quickshell.Io
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Control
 import qs.settingsgui.Services.UI
+import Ryoku.Config
 
 Singleton {
   id: root
@@ -485,7 +486,7 @@ Singleton {
 
   // Session management helper for custom commands
   function getCustomCommand(action) {
-    const powerOptions = Settings.data.sessionMenu.powerOptions || [];
+    const powerOptions = GlobalConfig.session.powerOptions || [];
     for (let i = 0; i < powerOptions.length; i++) {
       const option = powerOptions[i];
       if (option.action === action && option.enabled && option.command && option.command.trim() !== "") {

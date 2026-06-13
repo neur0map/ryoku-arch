@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Platform
 import qs.settingsgui.Services.UI
@@ -109,14 +110,14 @@ Item {
   }
 
   function snapToGrid(coord) {
-    if (!Settings.data.desktopWidgets.gridSnap) {
+    if (!GlobalConfig.background.desktopWidgets.gridSnap) {
       return coord;
     }
     return Math.round(coord / root.gridSize) * root.gridSize;
   }
 
   function snapScaleToGrid(scale) {
-    if (!Settings.data.desktopWidgets.gridSnap || !Settings.data.desktopWidgets.gridSnapScale) {
+    if (!GlobalConfig.background.desktopWidgets.gridSnap || !GlobalConfig.background.desktopWidgets.gridSnapScale) {
       return scale;
     }
 
@@ -155,7 +156,7 @@ Item {
       return;
     }
 
-    var monitorWidgets = Settings.data.desktopWidgets.monitorWidgets || [];
+    var monitorWidgets = GlobalConfig.background.desktopWidgets.monitorWidgets || [];
     var newMonitorWidgets = monitorWidgets.slice();
 
     for (var i = 0; i < newMonitorWidgets.length; i++) {
@@ -166,7 +167,8 @@ Item {
           newMonitorWidgets[i] = Object.assign({}, newMonitorWidgets[i], {
                                                  "widgets": widgets
                                                });
-          Settings.data.desktopWidgets.monitorWidgets = newMonitorWidgets;
+          GlobalConfig.background.desktopWidgets.monitorWidgets = newMonitorWidgets;
+          GlobalConfig.save();
         }
         break;
       }
@@ -178,7 +180,7 @@ Item {
       return;
     }
 
-    var monitorWidgets = Settings.data.desktopWidgets.monitorWidgets || [];
+    var monitorWidgets = GlobalConfig.background.desktopWidgets.monitorWidgets || [];
     var newMonitorWidgets = monitorWidgets.slice();
 
     for (var i = 0; i < newMonitorWidgets.length; i++) {
@@ -190,7 +192,8 @@ Item {
           newMonitorWidgets[i] = Object.assign({}, newMonitorWidgets[i], {
                                                  "widgets": widgets
                                                });
-          Settings.data.desktopWidgets.monitorWidgets = newMonitorWidgets;
+          GlobalConfig.background.desktopWidgets.monitorWidgets = newMonitorWidgets;
+          GlobalConfig.save();
         }
         break;
       }
@@ -202,7 +205,7 @@ Item {
       return;
     }
 
-    var monitorWidgets = Settings.data.desktopWidgets.monitorWidgets || [];
+    var monitorWidgets = GlobalConfig.background.desktopWidgets.monitorWidgets || [];
     var newMonitorWidgets = monitorWidgets.slice();
 
     for (var i = 0; i < newMonitorWidgets.length; i++) {
@@ -214,7 +217,8 @@ Item {
           newMonitorWidgets[i] = Object.assign({}, newMonitorWidgets[i], {
                                                  "widgets": widgets
                                                });
-          Settings.data.desktopWidgets.monitorWidgets = newMonitorWidgets;
+          GlobalConfig.background.desktopWidgets.monitorWidgets = newMonitorWidgets;
+          GlobalConfig.save();
         }
         break;
       }
@@ -413,7 +417,7 @@ Item {
                              newY = Math.max(-scaledHeight + minVisibleY, Math.min(newY, root.parent.height - minVisibleY));
                            }
 
-                           if (Settings.data.desktopWidgets.gridSnap) {
+                           if (GlobalConfig.background.desktopWidgets.gridSnap) {
                              newX = root.snapToGrid(newX);
                              newY = root.snapToGrid(newY);
                              // Re-clamp after snapping

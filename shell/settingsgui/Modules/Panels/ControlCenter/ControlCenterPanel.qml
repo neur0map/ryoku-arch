@@ -8,11 +8,12 @@ import qs.settingsgui.Modules.MainScreen
 import qs.settingsgui.Services.Media
 import qs.settingsgui.Services.UI
 import qs.settingsgui.Widgets
+import Ryoku.Config
 
 SmartPanel {
   id: root
 
-  readonly property string controlCenterPosition: Settings.data.controlCenter.position
+  readonly property string controlCenterPosition: GlobalConfig.controlCenter.position
 
   readonly property bool hasBarOnScreen: {
     var monitors = Settings.data.bar.monitors || [];
@@ -33,8 +34,8 @@ SmartPanel {
   preferredHeight: {
     var height = 0;
     var count = 0;
-    for (var i = 0; i < Settings.data.controlCenter.cards.length; i++) {
-      const card = Settings.data.controlCenter.cards[i];
+    for (var i = 0; i < GlobalConfig.controlCenter.cards.length; i++) {
+      const card = GlobalConfig.controlCenter.cards[i];
       if (!card.enabled)
         continue;
       const contributes = (card.id !== "weather-card" || Settings.data.location.weatherEnabled);
@@ -95,7 +96,7 @@ SmartPanel {
       spacing: Style.marginL
 
       Repeater {
-        model: Settings.data.controlCenter.cards
+        model: GlobalConfig.controlCenter.cards
         Loader {
           active: modelData.enabled && (modelData.id !== "weather-card" || Settings.data.location.weatherEnabled)
           visible: active

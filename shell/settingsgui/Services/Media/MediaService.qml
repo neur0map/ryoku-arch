@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import Quickshell.Services.Mpris
 import qs.settingsgui.Commons
@@ -167,7 +168,7 @@ Singleton {
       }
     }
 
-    const preferred = (Settings.data.audio.preferredPlayer || "");
+    const preferred = (GlobalConfig.services.defaultPlayer || "");
     if (preferred !== "") {
       for (var i = 0; i < availablePlayers.length; i++) {
         const p = availablePlayers[i];

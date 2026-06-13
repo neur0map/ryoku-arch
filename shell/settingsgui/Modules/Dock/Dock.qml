@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Compositor
 import qs.settingsgui.Services.System
@@ -13,7 +14,7 @@ import qs.settingsgui.Widgets
 
 Loader {
 
-  active: Settings.data.dock.enabled
+  active: GlobalConfig.dock.enabled
   sourceComponent: Variants {
     model: Quickshell.screens
 
@@ -48,7 +49,7 @@ Loader {
       }
 
       Connections {
-        target: Settings.data.dock
+        target: GlobalConfig.dock
         function onPinnedAppsChanged() {
           updateDockApps();
         }
@@ -77,24 +78,24 @@ Loader {
       }
 
       // Shared properties between peek and dock windows
-      readonly property string displayMode: Settings.data.dock.displayMode
+      readonly property string displayMode: GlobalConfig.dock.displayMode
       readonly property bool autoHide: displayMode === "auto_hide"
       readonly property bool exclusive: displayMode === "exclusive"
-      readonly property bool isAttachedMode: Settings.data.dock.dockType === "attached"
+      readonly property bool isAttachedMode: GlobalConfig.dock.dockType === "attached"
       readonly property int hideDelay: 500
       readonly property int showDelay: 100
-      readonly property int hideAnimationDuration: Math.max(0, Math.round(Style.animationFast / (Settings.data.dock.animationSpeed || 1.0)))
-      readonly property int showAnimationDuration: Math.max(0, Math.round(Style.animationFast / (Settings.data.dock.animationSpeed || 1.0)))
+      readonly property int hideAnimationDuration: Math.max(0, Math.round(Style.animationFast / (GlobalConfig.dock.animationSpeed || 1.0)))
+      readonly property int showAnimationDuration: Math.max(0, Math.round(Style.animationFast / (GlobalConfig.dock.animationSpeed || 1.0)))
       readonly property int peekThickness: 1
-      readonly property int indicatorThickness: Settings.data.dock.indicatorThickness || 3
-      readonly property string indicatorColorKey: Settings.data.dock.indicatorColor || "primary"
-      readonly property real indicatorOpacity: Settings.data.dock.indicatorOpacity !== undefined ? Settings.data.dock.indicatorOpacity : 0.6
-      readonly property int iconSize: Math.round(12 + 24 * (Settings.data.dock.size ?? 1))
-      readonly property int floatingMargin: Settings.data.dock.floatingRatio * Style.marginL
+      readonly property int indicatorThickness: GlobalConfig.dock.indicatorThickness || 3
+      readonly property string indicatorColorKey: GlobalConfig.dock.indicatorColor || "primary"
+      readonly property real indicatorOpacity: GlobalConfig.dock.indicatorOpacity !== undefined ? GlobalConfig.dock.indicatorOpacity : 0.6
+      readonly property int iconSize: Math.round(12 + 24 * (GlobalConfig.dock.size ?? 1))
+      readonly property int floatingMargin: GlobalConfig.dock.floatingRatio * Style.marginL
       readonly property int maxWidth: modelData ? modelData.width * 0.8 : 1000
       readonly property int maxHeight: modelData ? modelData.height * 0.8 : 1000
 
-      readonly property string dockPosition: Settings.data.dock.position
+      readonly property string dockPosition: GlobalConfig.dock.position
       readonly property bool isVertical: dockPosition === "left" || dockPosition === "right"
 
       readonly property bool hasBar: modelData && modelData.name ? (Settings.data.bar.monitors.includes(modelData.name) || (Settings.data.bar.monitors.length === 0)) : false
@@ -116,7 +117,7 @@ Loader {
       }
       readonly property int peekEdgeLength: {
         const edgeSize = isVertical ? Math.round(modelData?.height || maxHeight) : Math.round(modelData?.width || maxWidth);
-        const minLength = Math.max(1, Math.round(edgeSize * (Settings.data.dock.showDockIndicator ? 0.1 : 0.25)));
+        const minLength = Math.max(1, Math.round(edgeSize * (GlobalConfig.dock.showDockIndicator ? 0.1 : 0.25)));
         return Math.max(minLength, dockIndicatorLength);
       }
       readonly property int peekCenterOffsetX: {
@@ -154,11 +155,11 @@ Loader {
         return Math.max(0, Math.round((edgeSize - peekEdgeLength) / 2));
       }
       readonly property bool showDockIndicator: {
-        if (!Settings.data.dock.showDockIndicator || (!autoHide && !isAttachedMode) || !hidden)
+        if (!GlobalConfig.dock.showDockIndicator || (!autoHide && !isAttachedMode) || !hidden)
           return false;
         return !staticPanelOpen;
       }
-      readonly property int dockItemCount: dockApps.length + (Settings.data.dock.showLauncherIcon ? 1 : 0)
+      readonly property int dockItemCount: dockApps.length + (GlobalConfig.dock.showLauncherIcon ? 1 : 0)
       readonly property bool indicatorVisible: showDockIndicator && dockIndicatorLength > 0
       readonly property int dockIndicatorLength: {
         if (dockItemCount <= 0)
@@ -215,7 +216,7 @@ Loader {
         if (!appData)
           return null;
 
-        if (Settings.data.dock.groupApps) {
+        if (GlobalConfig.dock.groupApps) {
           return appData.appId;
         }
 
@@ -275,7 +276,7 @@ Loader {
       }
 
       function savePinnedOrder() {
-        const currentPinned = Settings.data.dock.pinnedApps || [];
+        const currentPinned = GlobalConfig.dock.pinnedApps || [];
         const newPinned = [];
         const seen = new Set();
 
@@ -299,7 +300,8 @@ Loader {
                               });
 
         if (JSON.stringify(currentPinned) !== JSON.stringify(newPinned)) {
-          Settings.data.dock.pinnedApps = newPinned;
+          GlobalConfig.dock.pinnedApps = newPinned;
+          GlobalConfig.save();
         }
       }
 
@@ -384,13 +386,13 @@ Loader {
           return [];
 
         if (appData.toplevels && appData.toplevels.length > 0) {
-          return appData.toplevels.filter(toplevel => toplevel && (!Settings.data.dock.onlySameOutput || !toplevel.screens || toplevel.screens.includes(modelData)));
+          return appData.toplevels.filter(toplevel => toplevel && (!GlobalConfig.dock.onlySameOutput || !toplevel.screens || toplevel.screens.includes(modelData)));
         }
 
         if (!appData.toplevel)
           return [];
 
-        if (Settings.data.dock.onlySameOutput && appData.toplevel.screens && !appData.toplevel.screens.includes(modelData))
+        if (GlobalConfig.dock.onlySameOutput && appData.toplevel.screens && !appData.toplevel.screens.includes(modelData))
           return [];
 
         return [appData.toplevel];
@@ -409,7 +411,7 @@ Loader {
 
       // Build grouped render model without mutating the raw toplevel list.
       function buildGroupedDockApps(apps) {
-        if (!Settings.data.dock.groupApps) {
+        if (!GlobalConfig.dock.groupApps) {
           return apps.map(app => {
                             const entry = Object.assign({}, app);
                             entry.toplevels = getToplevelsForEntry(app);
@@ -466,7 +468,7 @@ Loader {
 
       function updateDockApps() {
         const runningApps = ToplevelManager ? (ToplevelManager.toplevels.values || []) : [];
-        const pinnedApps = Settings.data.dock.pinnedApps || [];
+        const pinnedApps = GlobalConfig.dock.pinnedApps || [];
         const combined = [];
         const processedToplevels = new Set();
         const processedPinnedAppIds = new Set();
@@ -480,7 +482,7 @@ Loader {
             if (processedToplevels.has(toplevel)) {
               return; // Already processed this toplevel instance
             }
-            if (Settings.data.dock.onlySameOutput && toplevel.screens && !toplevel.screens.includes(modelData)) {
+            if (GlobalConfig.dock.onlySameOutput && toplevel.screens && !toplevel.screens.includes(modelData)) {
               return; // Filtered out by onlySameOutput setting
             }
             combined.push({
@@ -546,7 +548,7 @@ Loader {
         }
 
         //if pinnedStatic then push all pinned and then all remaining running apps
-        if (Settings.data.dock.pinnedStatic) {
+        if (GlobalConfig.dock.pinnedStatic) {
           pushPinned();
           pushRunning(false);
 
@@ -681,7 +683,7 @@ Loader {
 
       // PEEK WINDOW — only needed when dock can auto-hide or is in attached mode
       Loader {
-        active: (autoHide || isAttachedMode) && (barIsReady || !hasBar) && modelData && (Settings.data.dock.monitors.length === 0 || Settings.data.dock.monitors.includes(modelData.name))
+        active: (autoHide || isAttachedMode) && (barIsReady || !hasBar) && modelData && (GlobalConfig.dock.monitors.length === 0 || GlobalConfig.dock.monitors.includes(modelData.name))
 
         sourceComponent: PanelWindow {
           id: peekWindow
@@ -742,7 +744,7 @@ Loader {
 
       // DOCK INDICATOR WINDOW — only needed when dock can auto-hide/attach and indicator is enabled
       Loader {
-        active: (autoHide || isAttachedMode) && Settings.data.dock.showDockIndicator && (barIsReady || !hasBar) && modelData && (Settings.data.dock.monitors.length === 0 || Settings.data.dock.monitors.includes(modelData.name))
+        active: (autoHide || isAttachedMode) && GlobalConfig.dock.showDockIndicator && (barIsReady || !hasBar) && modelData && (GlobalConfig.dock.monitors.length === 0 || GlobalConfig.dock.monitors.includes(modelData.name))
 
         sourceComponent: PanelWindow {
           id: dockIndicatorWindow
@@ -808,7 +810,7 @@ Loader {
 
       Loader {
         id: dockWindowLoader
-        active: Settings.data.dock.enabled && !isAttachedMode && (barIsReady || !hasBar) && modelData && (Settings.data.dock.monitors.length === 0 || Settings.data.dock.monitors.includes(modelData.name)) && dockLoaded && ToplevelManager && (dockApps.length > 0)
+        active: GlobalConfig.dock.enabled && !isAttachedMode && (barIsReady || !hasBar) && modelData && (GlobalConfig.dock.monitors.length === 0 || GlobalConfig.dock.monitors.includes(modelData.name)) && dockLoaded && ToplevelManager && (dockApps.length > 0)
 
         sourceComponent: PanelWindow {
           id: dockWindow

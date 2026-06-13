@@ -122,7 +122,7 @@ Item {
             Anim {
                 target: root
                 property: root.horizontal ? "implicitHeight" : "implicitWidth"
-                type: Anim.DefaultSpatial
+                type: Anim.EmphasizedAccel
             }
         }
     ]

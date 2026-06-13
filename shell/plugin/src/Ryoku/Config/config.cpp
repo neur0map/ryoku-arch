@@ -3,6 +3,7 @@
 #include "backgroundconfig.hpp"
 #include "barconfig.hpp"
 #include "borderconfig.hpp"
+#include "clipboardconfig.hpp"
 #include "controlcenterconfig.hpp"
 #include "dashboardconfig.hpp"
 #include "gamemodeconfig.hpp"
@@ -10,6 +11,8 @@
 #include "generalconfig.hpp"
 #include "launcherconfig.hpp"
 #include "lockconfig.hpp"
+#include "networkconfig.hpp"
+#include "nightlightconfig.hpp"
 #include "monitorconfigmanager.hpp"
 #include "notifsconfig.hpp"
 #include "osdconfig.hpp"
@@ -20,6 +23,14 @@
 #include "userpaths.hpp"
 #include "utilitiesconfig.hpp"
 #include "winfoconfig.hpp"
+#include "dockconfig.hpp"
+#include "templatesconfig.hpp"
+#include "calendarconfig.hpp"
+#include "colorschemesconfig.hpp"
+#include "systemmonitorconfig.hpp"
+#include "wallpaperconfig.hpp"
+#include "hooksconfig.hpp"
+#include "pluginsconfig.hpp"
 
 #include <qqmlengine.h>
 #include <qstandardpaths.h>
@@ -45,6 +56,7 @@ GlobalConfig::GlobalConfig(QObject* parent)
     , m_gaming(new GamingConfig(this))
     , m_gameMode(new GameModeConfig(this))
     , m_controlCenter(new ControlCenterConfig(this))
+    , m_clipboard(new ClipboardConfig(this))
     , m_launcher(new LauncherConfig(this))
     , m_notifs(new NotifsConfig(this))
     , m_osd(new OsdConfig(this))
@@ -54,7 +66,17 @@ GlobalConfig::GlobalConfig(QObject* parent)
     , m_utilities(new UtilitiesConfig(this))
     , m_sidebar(new SidebarConfig(this))
     , m_services(new ServiceConfig(this))
-    , m_paths(new UserPaths(this)) {
+    , m_paths(new UserPaths(this))
+    , m_network(new NetworkConfig(this))
+    , m_nightLight(new NightLightConfig(this))
+    , m_dock(new DockConfig(this))
+    , m_templates(new TemplatesConfig(this))
+    , m_calendar(new CalendarConfig(this))
+    , m_colorSchemes(new ColorSchemesConfig(this))
+    , m_systemMonitor(new SystemMonitorConfig(this))
+    , m_wallpaper(new WallpaperConfig(this))
+    , m_hooks(new HooksConfig(this))
+    , m_plugins(new PluginsConfig(this)) {
     setupFileBackend(configDir() + QStringLiteral("shell.json"));
 }
 
@@ -69,6 +91,7 @@ GlobalConfig::GlobalConfig(GlobalConfig* fallback, const QString& filePath, cons
     , m_gaming(new GamingConfig(this))
     , m_gameMode(new GameModeConfig(this))
     , m_controlCenter(new ControlCenterConfig(this))
+    , m_clipboard(new ClipboardConfig(this))
     , m_launcher(new LauncherConfig(this))
     , m_notifs(new NotifsConfig(this))
     , m_osd(new OsdConfig(this))
@@ -78,7 +101,17 @@ GlobalConfig::GlobalConfig(GlobalConfig* fallback, const QString& filePath, cons
     , m_utilities(new UtilitiesConfig(this))
     , m_sidebar(new SidebarConfig(this))
     , m_services(new ServiceConfig(this))
-    , m_paths(new UserPaths(this)) {
+    , m_paths(new UserPaths(this))
+    , m_network(new NetworkConfig(this))
+    , m_nightLight(new NightLightConfig(this))
+    , m_dock(new DockConfig(this))
+    , m_templates(new TemplatesConfig(this))
+    , m_calendar(new CalendarConfig(this))
+    , m_colorSchemes(new ColorSchemesConfig(this))
+    , m_systemMonitor(new SystemMonitorConfig(this))
+    , m_wallpaper(new WallpaperConfig(this))
+    , m_hooks(new HooksConfig(this))
+    , m_plugins(new PluginsConfig(this)) {
     if (!filePath.isEmpty())
         setupFileBackend(filePath, screen);
     if (fallback)

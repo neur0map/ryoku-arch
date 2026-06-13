@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import Quickshell.Io
 import qs.settingsgui.Commons
@@ -21,7 +22,7 @@ Singleton {
 
   function getAvailableMethods(): list<string> {
     var methods = [];
-    if (Settings.data.brightness.enableDdcSupport && monitors.some(m => m.isDdc))
+    if (GlobalConfig.services.brightnessDdc && monitors.some(m => m.isDdc))
       methods.push("ddcutil");
     if (monitors.some(m => !m.isDdc))
       methods.push("internal");
@@ -150,7 +151,7 @@ Singleton {
   Component.onCompleted: {
     Logger.i("Brightness", "Service started");
     scanBacklightDevices();
-    if (Settings.data.brightness.enableDdcSupport) {
+    if (GlobalConfig.services.brightnessDdc) {
       ddcProc.running = true;
     }
   }
@@ -158,21 +159,25 @@ Singleton {
   onMonitorsChanged: {
     ddcMonitors = [];
     scanBacklightDevices();
-    if (Settings.data.brightness.enableDdcSupport) {
+    if (GlobalConfig.services.brightnessDdc) {
       ddcProc.running = true;
     }
   }
 
   Connections {
-    target: Settings.data.brightness
-    function onEnableDdcSupportChanged() {
-      if (Settings.data.brightness.enableDdcSupport) {
+    target: GlobalConfig.services
+    function onBrightnessDdcChanged() {
+      if (GlobalConfig.services.brightnessDdc) {
         ddcMonitors = [];
         ddcProc.running = true;
       } else {
         ddcMonitors = [];
       }
     }
+  }
+
+  Connections {
+    target: Settings.data.brightness
     function onBacklightDeviceMappingsChanged() {
       scanBacklightDevices();
       for (var i = 0; i < monitors.length; i++) {
@@ -260,7 +265,7 @@ Singleton {
     id: monitor
 
     required property ShellScreen modelData
-    readonly property bool isDdc: Settings.data.brightness.enableDdcSupport && root.ddcMonitors.some(m => m.connector === modelData.name)
+    readonly property bool isDdc: GlobalConfig.services.brightnessDdc && root.ddcMonitors.some(m => m.connector === modelData.name)
     readonly property string busNum: root.ddcMonitors.find(m => m.connector === modelData.name)?.busNum ?? ""
     readonly property bool isAppleDisplay: root.appleDisplayPresent && modelData.model.startsWith("StudioDisplay")
     readonly property string method: isAppleDisplay ? "apple" : (isDdc ? "ddcutil" : "internal")
@@ -431,7 +436,7 @@ Singleton {
       }
     }
 
-    readonly property real stepSize: Settings.data.brightness.brightnessStep / 100.0
+    readonly property real stepSize: GlobalConfig.services.brightnessIncrement
 
     // Timer for debouncing rapid changes
     readonly property Timer timer: Timer {
@@ -460,7 +465,7 @@ Singleton {
     }
 
     function setBrightness(value: real): void {
-      var min = Settings.data.brightness.enforceMinimum && isDdc ? 0.01 : 0;
+      var min = GlobalConfig.services.brightnessEnforceMin && isDdc ? 0.01 : 0;
       value = Math.max(min, Math.min(1, value));
       var rounded = Math.round(value * 100);
 
@@ -496,7 +501,7 @@ Singleton {
       } else if (!isDdc) {
         monitor.commandRunning = true;
         monitor.ignoreNextChange = true;
-        var setMin = Settings.data.brightness.enforceMinimum ? "-n" : "";
+        var setMin = GlobalConfig.services.brightnessEnforceMin ? "-n" : "";
         var backlightDeviceName = root.getBacklightDeviceName(monitor.backlightDevice);
         if (backlightDeviceName !== "") {
           setBrightnessProc.command = ["brightnessctl", "-d", backlightDeviceName, "s", rounded + "%", setMin];

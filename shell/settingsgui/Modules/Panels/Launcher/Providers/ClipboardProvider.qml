@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Keyboard
@@ -9,19 +10,19 @@ Item {
 
   property string name: I18n.tr("launcher.providers.clipboard")
   property var launcher: null
-  property string iconMode: Settings.data.appLauncher.iconMode
+  property string iconMode: GlobalConfig.launcher.iconMode
   property string supportedLayouts: "list"
   property bool wrapNavigation: false // Don't wrap at end of list
 
   property bool handleSearch: false
 
-  property bool hasPreview: Settings.data.appLauncher.enableClipPreview
+  property bool hasPreview: GlobalConfig.launcher.enableClipPreview
   property string previewComponentPath: "./ClipboardPreview.qml"
 
   // Image handling - expose revision for reactive updates in delegates
   readonly property int imageRevision: ClipboardService.revision
 
-  property var availableCategories: Settings.data.appLauncher.enableClipboardChips ? ["All", "Images", "Links", "Files", "Code", "Colors"] : []
+  property var availableCategories: GlobalConfig.launcher.enableClipboardChips ? ["All", "Images", "Links", "Files", "Code", "Colors"] : []
   property string selectedCategory: "All"
 
   function selectCategory(cat) {
@@ -218,7 +219,7 @@ Item {
     };
 
     items.forEach(function (item) {
-      if (Settings.data.appLauncher.enableClipboardChips && root.selectedCategory !== "All") {
+      if (GlobalConfig.launcher.enableClipboardChips && root.selectedCategory !== "All") {
         if (item.contentType !== catMap[root.selectedCategory]) {
           return;
         }
@@ -240,7 +241,7 @@ Item {
       }
 
       entry.onActivate = function () {
-        if (Settings.data.appLauncher.autoPasteClipboard) {
+        if (GlobalConfig.launcher.autoPasteClipboard) {
           launcher.closeImmediately();
           Qt.callLater(() => {
                          ClipboardService.pasteFromClipboard(item.id, item.mime);
@@ -324,7 +325,7 @@ Item {
 
     let defaultIcon = iconMode === "tabler" ? "clipboard" : "text-x-generic";
     let colorHex = "";
-    if (Settings.data.appLauncher.enableClipboardSmartIcons) {
+    if (GlobalConfig.launcher.enableClipboardSmartIcons) {
       if (item.contentType === "link")
         defaultIcon = iconMode === "tabler" ? "link" : "insert-link";
       else if (item.contentType === "file")
@@ -361,12 +362,12 @@ Item {
 
     var actions = [];
 
-    if (item.isImage && Settings.data.appLauncher.screenshotAnnotationTool.trim() !== "") {
+    if (item.isImage && GlobalConfig.launcher.screenshotAnnotationTool.trim() !== "") {
       actions.push({
                      "icon": "pencil",
                      "tooltip": I18n.tr("tooltips.open-annotation-tool"),
                      "action": function () {
-                       var tool = Settings.data.appLauncher.screenshotAnnotationTool.trim();
+                       var tool = GlobalConfig.launcher.screenshotAnnotationTool.trim();
                        Quickshell.execDetached(["sh", "-c", "cliphist decode " + item.clipboardId + " | " + tool]);
                        if (launcher)
                          launcher.close();

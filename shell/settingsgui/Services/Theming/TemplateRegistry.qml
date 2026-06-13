@@ -4,12 +4,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.settingsgui.Commons
+import Ryoku.Config
 
 Singleton {
   id: root
 
   Component.onCompleted: {
-    if (Settings.data.templates.enableUserTheming)
+    if (GlobalConfig.templates.enableUserTheming)
     writeUserTemplatesToml();
   }
 

@@ -38,7 +38,7 @@ TabBar {
             topRightRadius: height
             bottomLeftRadius: 0
             bottomRightRadius: 0
-            color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+            color: Appearance.colors.colPrimary
 
             property Item currentTabItem: root._tabItemAt(root.currentIndex)
             property real targetVisualWidth: {
@@ -92,7 +92,7 @@ TabBar {
                 left: parent.left
                 right: parent.right
             }
-            color: Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle : Appearance.colors.colOutlineVariant
+            color: Appearance.colors.colOutlineVariant
         }
     }
 }

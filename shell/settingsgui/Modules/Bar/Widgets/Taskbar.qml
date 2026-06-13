@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Compositor
 import qs.settingsgui.Services.System
@@ -156,7 +157,7 @@ Item {
   }
 
   function savePinnedOrder() {
-    const currentPinned = Settings.data.dock.pinnedApps || [];
+    const currentPinned = GlobalConfig.dock.pinnedApps || [];
     const newPinned = [];
     const seen = new Set();
 
@@ -180,7 +181,8 @@ Item {
                           });
 
     if (JSON.stringify(currentPinned) !== JSON.stringify(newPinned)) {
-      Settings.data.dock.pinnedApps = newPinned;
+      GlobalConfig.dock.pinnedApps = newPinned;
+      GlobalConfig.save();
     }
   }
 
@@ -288,7 +290,7 @@ Item {
   function isAppPinned(appId) {
     if (!appId)
       return false;
-    const pinnedApps = Settings.data.dock.pinnedApps || [];
+    const pinnedApps = GlobalConfig.dock.pinnedApps || [];
     const normalizedId = normalizeAppId(appId);
     if (pinnedApps.some(pinnedId => normalizeAppId(pinnedId) === normalizedId))
       return true;
@@ -308,7 +310,7 @@ Item {
     const desktopEntryId = getDesktopEntryId(appId);
     const normalizedId = normalizeAppId(desktopEntryId);
 
-    let pinnedApps = (Settings.data.dock.pinnedApps || []).slice();
+    let pinnedApps = (GlobalConfig.dock.pinnedApps || []).slice();
 
     // Find existing pinned app with case-insensitive matching
     const existingIndex = pinnedApps.findIndex(pinnedId => normalizeAppId(pinnedId) === normalizedId);
@@ -321,12 +323,13 @@ Item {
       pinnedApps.push(desktopEntryId);
     }
 
-    Settings.data.dock.pinnedApps = pinnedApps;
+    GlobalConfig.dock.pinnedApps = pinnedApps;
+    GlobalConfig.save();
   }
 
   function updateCombinedModel() {
     const runningWindows = [];
-    const pinnedApps = Settings.data.dock.pinnedApps || [];
+    const pinnedApps = GlobalConfig.dock.pinnedApps || [];
     const processedAppIds = new Set();
 
     // First pass: Add all running windows
@@ -394,11 +397,11 @@ Item {
     try {
       const app = DesktopEntries.byId(appId);
 
-      if (Settings.data.appLauncher.customLaunchPrefixEnabled && Settings.data.appLauncher.customLaunchPrefix.trim() !== "") {
-        const prefix = Settings.data.appLauncher.customLaunchPrefix.trim().split(" ");
+      if (GlobalConfig.launcher.customLaunchPrefixEnabled && GlobalConfig.launcher.customLaunchPrefix.trim() !== "") {
+        const prefix = GlobalConfig.launcher.customLaunchPrefix.trim().split(" ");
 
-        if (app.runInTerminal && Settings.data.appLauncher.terminalCommand.trim() !== "") {
-          const terminal = Settings.data.appLauncher.terminalCommand.trim().split(" ");
+        if (app.runInTerminal && GlobalConfig.launcher.terminalCommand.trim() !== "") {
+          const terminal = GlobalConfig.launcher.terminalCommand.trim().split(" ");
           const command = prefix.concat(terminal.concat(app.command));
           Quickshell.execDetached(command);
         } else {
@@ -406,9 +409,9 @@ Item {
           Quickshell.execDetached(command);
         }
       } else {
-        if (app.runInTerminal && Settings.data.appLauncher.terminalCommand.trim() !== "") {
+        if (app.runInTerminal && GlobalConfig.launcher.terminalCommand.trim() !== "") {
           Logger.d("Taskbar", "Executing terminal app manually: " + app.name);
-          const terminal = Settings.data.appLauncher.terminalCommand.trim().split(" ");
+          const terminal = GlobalConfig.launcher.terminalCommand.trim().split(" ");
           const command = terminal.concat(app.command);
           CompositorService.spawn(command);
         } else if (app.command && app.command.length > 0) {
@@ -519,7 +522,7 @@ Item {
   }
 
   Connections {
-    target: Settings.data.dock
+    target: GlobalConfig.dock
     function onPinnedAppsChanged() {
       updateCombinedModel();
     }
@@ -830,7 +833,7 @@ Item {
 
                     layer.enabled: widgetSettings.colorizeIcons !== false
                     layer.effect: ShaderEffect {
-                      property color targetColor: Settings.data.colorSchemes.darkMode ? Color.mOnSurface : Color.mSurfaceVariant
+                      property color targetColor: GlobalConfig.colorSchemes.darkMode ? Color.mOnSurface : Color.mSurfaceVariant
                       property real colorizeMode: 0.0 // Dock mode (grayscale)
 
                       fragmentShader: Qt.resolvedUrl(Quickshell.shellDir + "/settingsgui" + "/Shaders/qsb/appicon_colorize.frag.qsb")

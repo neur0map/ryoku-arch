@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Notifications
 import Quickshell.Wayland
+import Ryoku.Config
 import "../../Helpers/sha256.js" as Checksum
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Compositor
@@ -84,7 +85,7 @@ Singleton {
       notificationServerLoader = null;
     }
 
-    if (Settings.isLoaded && Settings.data.notifications.enabled !== false) {
+    if (Settings.isLoaded && GlobalConfig.notifs.enabled !== false) {
       notificationServerLoader = notificationServerComponent.createObject(root);
     }
   }
@@ -165,14 +166,14 @@ Singleton {
     if (!SoundService.multimediaAvailable) {
       return;
     }
-    if (!Settings.data.notifications?.sounds?.enabled) {
+    if (!GlobalConfig.notifs?.sounds?.enabled) {
       return;
     }
     if (AudioService.muted) {
       return;
     }
     if (appName) {
-      const excludedApps = Settings.data.notifications.sounds.excludedApps || "";
+      const excludedApps = GlobalConfig.notifs.sounds.excludedApps || "";
       if (excludedApps.trim() !== "") {
         const excludedList = excludedApps.toLowerCase().split(',').map(app => app.trim());
         const normalizedName = appName.toLowerCase();
@@ -196,7 +197,7 @@ Singleton {
     }
     lastSoundTime = now;
 
-    const volume = Settings.data.notifications?.sounds?.volume ?? 0.5;
+    const volume = GlobalConfig.notifs?.sounds?.volume ?? 0.5;
     SoundService.playSound(soundFile, {
                              volume: volume,
                              fallback: false,
@@ -205,7 +206,7 @@ Singleton {
   }
 
   function getNotificationSoundFile(urgency) {
-    const settings = Settings.data.notifications?.sounds;
+    const settings = GlobalConfig.notifs?.sounds;
     if (!settings) {
       return "";
     }
@@ -367,9 +368,9 @@ Singleton {
   }
 
   function calculateDuration(data) {
-    const durations = [Settings.data.notifications?.lowUrgencyDuration * 1000 || 3000, Settings.data.notifications?.normalUrgencyDuration * 1000 || 8000, Settings.data.notifications?.criticalUrgencyDuration * 1000 || 15000];
+    const durations = [GlobalConfig.notifs?.lowUrgencyDuration * 1000 || 3000, GlobalConfig.notifs?.normalUrgencyDuration * 1000 || 8000, GlobalConfig.notifs?.criticalUrgencyDuration * 1000 || 15000];
 
-    if (Settings.data.notifications?.respectExpireTimeout) {
+    if (GlobalConfig.notifs?.respectExpireTimeout) {
       if (data.expireTimeout === 0)
         return -1; // Never expire
       if (data.expireTimeout > 0)
@@ -549,7 +550,7 @@ Singleton {
   function trySaveToHistory(data, notification) {
     if (notification.transient)
       return;
-    const s = Settings.data.notifications?.saveToHistory;
+    const s = GlobalConfig.notifs?.saveToHistory;
     if (s) {
       let ok = true;
       if (data.urgency === 0)
@@ -1118,7 +1119,7 @@ Singleton {
   }
 
   function checkMediaToast() {
-    if (!Settings.data.notifications.enableMediaToast || !mediaToastInitialized)
+    if (!GlobalConfig.notifs.enableMediaToast || !mediaToastInitialized)
       return;
 
     if (doNotDisturb || PowerProfileService.performanceMode)

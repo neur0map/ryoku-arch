@@ -2,9 +2,9 @@
 # Guards the Helium -> Chromium default-browser swap. Helium runs under XWayland
 # (so it cannot screen-share native Wayland windows); Chromium runs on Wayland and
 # drives the PipeWire screencast portal. This checks fresh installs, the installer,
-# mimetypes, the SUPER+B keybind, and the migrator -- and functionally proves the
-# migrator switches a Helium default to Chromium while leaving a browser the user
-# deliberately chose untouched.
+# mimetypes, the SUPER+B keybind, and the migrator. It functionally proves the
+# migrator installs + switches a Helium default to Chromium (leaving a browser the
+# user deliberately chose untouched), and that migration 1781360776 rebinds SUPER+B.
 
 set -euo pipefail
 
@@ -48,9 +48,16 @@ grep -q 'var_heliumBrowser' "$ROOT/config/hypr/hyprland.lua" \
 grep -q 'browser:chromium)' "$ROOT/bin/ryoku-default-app-migrate" \
   || fail "migrator is missing the browser:chromium spec"
 
-# ── 6. migration invokes it ───────────────────────────────────────────────────
-grep -q 'ryoku-default-app-migrate browser chromium' "$ROOT/migrations/1781360776.sh" \
-  || fail "migration must invoke the chromium browser migration"
+# ── 6. migration installs, forces the switch, rebinds SUPER+B, defers cleanly ──
+MIG="$ROOT/migrations/1781360776.sh"
+grep -q 'ryoku-default-app-migrate browser chromium yes' "$MIG" \
+  || fail "migration must force the chromium install + switch (pass 'yes')"
+grep -q 'var_heliumBrowser = "chromium"' "$MIG" \
+  || fail "migration must rebind SUPER+B by rewriting var_heliumBrowser to chromium"
+grep -q 'default-web-browser' "$MIG" \
+  || fail "migration must gate the rebind on chromium being the resulting default"
+grep -q 'exit "$status"' "$MIG" \
+  || fail "migration must propagate the migrator status so a deferred install retries"
 
 # ── 7. functional: Helium default -> Chromium; deliberate choice preserved ─────
 WORK="$(mktemp -d)"
@@ -93,5 +100,39 @@ printf 'brave-browser.desktop' >"$WORK/default-browser"
 run_migrate || fail "migrator run failed for a Brave default"
 [[ "$(cat "$WORK/default-browser")" == "brave-browser.desktop" ]] \
   || fail "migrator must NOT override a deliberate non-Ryoku default (got '$(cat "$WORK/default-browser")')"
+
+# ── 8. functional: migration 1781360776 rebinds SUPER+B once Chromium is default ─
+B8="$WORK/m8"
+mkdir -p "$B8/bin" "$B8/.config/hypr"
+# Stub the migrator to succeed and record chromium as the resulting default browser.
+cat >"$B8/bin/ryoku-default-app-migrate" <<'EOF'
+#!/bin/bash
+printf 'chromium.desktop' >"$XDG_TEST_STATE"
+exit 0
+EOF
+cat >"$B8/bin/xdg-settings" <<'EOF'
+#!/bin/bash
+[[ $1 == get ]] && { cat "$XDG_TEST_STATE" 2>/dev/null || true; }
+exit 0
+EOF
+for c in ryoku-cmd-present hyprctl; do printf '#!/bin/bash\nexit 0\n' >"$B8/bin/$c"; done
+chmod +x "$B8"/bin/*
+
+run_mig() {
+  HOME="$B8" XDG_CONFIG_HOME="$B8/.config" XDG_TEST_STATE="$B8/default-browser" \
+    PATH="$B8/bin:$PATH" bash "$ROOT/migrations/1781360776.sh" >/dev/null 2>&1
+}
+
+# The Ryoku Helium default keybind gets rewritten to chromium...
+printf '%s\n' 'local var_heliumBrowser = "sh -lc '\''$HOME/.local/bin/helium'\''"' >"$B8/.config/hypr/hyprland.lua"
+run_mig || fail "migration 776 must exit 0 when chromium installs cleanly"
+grep -q 'local var_heliumBrowser = "chromium"' "$B8/.config/hypr/hyprland.lua" \
+  || fail "migration 776 must rebind SUPER+B (var_heliumBrowser) to chromium"
+
+# ...but a value the user customized is left alone.
+printf '%s\n' 'local var_heliumBrowser = "firefox"' >"$B8/.config/hypr/hyprland.lua"
+run_mig || true
+grep -q 'local var_heliumBrowser = "firefox"' "$B8/.config/hypr/hyprland.lua" \
+  || fail "migration 776 must not clobber a customized var_heliumBrowser"
 
 echo "PASS: default-browser-chromium"

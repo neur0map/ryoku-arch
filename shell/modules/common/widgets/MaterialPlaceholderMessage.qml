@@ -47,35 +47,18 @@ Item {
         id: placeholderColumn
         anchors.centerIn: parent
         width: Math.min(root.maximumWidth, parent ? parent.width - 24 : root.maximumWidth)
-        spacing: root.compact ? 6 : (Appearance.inirEverywhere ? 8 : 10)
+        spacing: root.compact ? 6 : 10
 
         Item {
             visible: root.icon !== ""
             Layout.alignment: Qt.AlignHCenter
-            implicitWidth: Appearance.inirEverywhere ? 72 : materialShape.implicitWidth
-            implicitHeight: Appearance.inirEverywhere ? 72 : materialShape.implicitHeight
-
-            Rectangle {
-                anchors.fill: parent
-                visible: Appearance.inirEverywhere
-                radius: Appearance.inir.roundingNormal
-                color: Appearance.inir.colLayer2
-                border.width: 1
-                border.color: Appearance.inir.colBorder
-            }
-
-            MaterialSymbol {
-                anchors.centerIn: parent
-                visible: Appearance.inirEverywhere
-                text: root.icon
-                iconSize: 32
-                color: Appearance.inir.colTextSecondary
-            }
+            implicitWidth: materialShape.implicitWidth
+            implicitHeight: materialShape.implicitHeight
 
             MaterialShapeWrappedMaterialSymbol {
                 id: materialShape
                 anchors.centerIn: parent
-                visible: !Appearance.inirEverywhere
+                visible: true
                 text: root.icon
                 shape: root.shape
                 padding: 12
@@ -99,7 +82,7 @@ Item {
             wrapMode: Text.Wrap
             font.pixelSize: root.compact ? Appearance.font.pixelSize.normal : Appearance.font.pixelSize.large
             font.weight: Font.DemiBold
-            color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+            color: Appearance.m3colors.m3onSurface
         }
 
         StyledText {
@@ -110,7 +93,7 @@ Item {
             horizontalAlignment: root.textHorizontalAlignment
             wrapMode: Text.Wrap
             font.pixelSize: Appearance.font.pixelSize.small
-            color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+            color: Appearance.colors.colSubtext
         }
 
         RippleButtonWithIcon {

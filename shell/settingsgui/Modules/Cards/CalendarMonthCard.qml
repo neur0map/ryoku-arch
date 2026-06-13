@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
@@ -376,7 +377,7 @@ NBox {
                                                    if (root.isAllDayEvent(event)) {
                                                      return event.summary;
                                                    } else {
-                                                     const timeFormat = Settings.data.location.use12hourFormat ? "hh:mm AP" : "HH:mm";
+                                                     const timeFormat = GlobalConfig.services.useTwelveHourClock ? "hh:mm AP" : "HH:mm";
                                                      const start = new Date(event.start * 1000);
                                                      const startFormatted = I18n.locale.toString(start, timeFormat);
                                                      const end = new Date(event.end * 1000);

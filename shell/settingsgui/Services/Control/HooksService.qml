@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Power
 import qs.settingsgui.Services.Theming
@@ -12,9 +13,9 @@ Singleton {
   id: root
 
   Connections {
-    target: Settings.data.colorSchemes
+    target: GlobalConfig.colorSchemes
     function onDarkModeChanged() {
-      executeDarkModeHook(Settings.data.colorSchemes.darkMode);
+      executeDarkModeHook(GlobalConfig.colorSchemes.darkMode);
     }
   }
 
@@ -25,8 +26,8 @@ Singleton {
     target: WallpaperService
     function onWallpaperChanged(screenName, path) {
       // Check if we need to wait for color generation
-      if (Settings.data.colorSchemes.useWallpaperColors) {
-        var effectiveMonitor = Settings.data.colorSchemes.monitorForColors;
+      if (GlobalConfig.colorSchemes.useWallpaperColors) {
+        var effectiveMonitor = GlobalConfig.colorSchemes.monitorForColors;
         if (effectiveMonitor === "" || effectiveMonitor === undefined) {
           effectiveMonitor = Screen.name;
         }
@@ -103,17 +104,17 @@ Singleton {
   }
 
   function executeWallpaperHook(wallpaperPath, screenName) {
-    if (!Settings.data.hooks?.enabled) {
+    if (!GlobalConfig.hooks.enabled) {
       return;
     }
 
-    const script = Settings.data.hooks?.wallpaperChange;
+    const script = GlobalConfig.hooks.wallpaperChange;
     if (!script || script === "") {
       return;
     }
 
     try {
-      const theme = Settings.data.colorSchemes.darkMode ? "dark" : "light";
+      const theme = GlobalConfig.colorSchemes.darkMode ? "dark" : "light";
       let command = script.replace(/\$1/g, wallpaperPath);
       command = command.replace(/\$2/g, screenName || "");
       command = command.replace(/\$3/g, theme);
@@ -125,11 +126,11 @@ Singleton {
   }
 
   function executeDarkModeHook(isDarkMode) {
-    if (!Settings.data.hooks?.enabled) {
+    if (!GlobalConfig.hooks.enabled) {
       return;
     }
 
-    const script = Settings.data.hooks?.darkModeChange;
+    const script = GlobalConfig.hooks.darkModeChange;
     if (!script || script === "") {
       return;
     }
@@ -144,11 +145,11 @@ Singleton {
   }
 
   function executeLockHook() {
-    if (!Settings.data.hooks?.enabled) {
+    if (!GlobalConfig.hooks.enabled) {
       return;
     }
 
-    const script = Settings.data.hooks?.screenLock;
+    const script = GlobalConfig.hooks.screenLock;
     if (!script || script === "") {
       return;
     }
@@ -163,11 +164,11 @@ Singleton {
   }
 
   function executeUnlockHook() {
-    if (!Settings.data.hooks?.enabled) {
+    if (!GlobalConfig.hooks.enabled) {
       return;
     }
 
-    const script = Settings.data.hooks?.screenUnlock;
+    const script = GlobalConfig.hooks.screenUnlock;
     if (!script || script === "") {
       return;
     }
@@ -182,11 +183,11 @@ Singleton {
   }
 
   function executePerformanceModeEnabledHook() {
-    if (!Settings.data.hooks?.enabled) {
+    if (!GlobalConfig.hooks.enabled) {
       return;
     }
 
-    const script = Settings.data.hooks?.performanceModeEnabled;
+    const script = GlobalConfig.hooks.performanceModeEnabled;
     if (!script || script === "") {
       return;
     }
@@ -199,11 +200,11 @@ Singleton {
   }
 
   function executePerformanceModeDisabledHook() {
-    if (!Settings.data.hooks?.enabled) {
+    if (!GlobalConfig.hooks.enabled) {
       return;
     }
 
-    const script = Settings.data.hooks?.performanceModeDisabled;
+    const script = GlobalConfig.hooks.performanceModeDisabled;
     if (!script || script === "") {
       return;
     }
@@ -216,17 +217,17 @@ Singleton {
   }
 
   function executeColorGenerationHook() {
-    if (!Settings.data.hooks?.enabled) {
+    if (!GlobalConfig.hooks.enabled) {
       return;
     }
 
-    const script = Settings.data.hooks?.colorGeneration;
+    const script = GlobalConfig.hooks.colorGeneration;
     if (!script || script === "") {
       return;
     }
 
     try {
-      const theme = Settings.data.colorSchemes.darkMode ? "dark" : "light";
+      const theme = GlobalConfig.colorSchemes.darkMode ? "dark" : "light";
       const command = script.replace(/\$1/g, theme);
       Quickshell.execDetached(["sh", "-lc", command]);
       Logger.d("HooksService", `Executed color generation hook: ${command}`);
@@ -259,13 +260,13 @@ Singleton {
   }
 
   function executeSessionHook(action, callback) {
-    if (!Settings.data.hooks?.enabled) {
+    if (!GlobalConfig.hooks.enabled) {
       callback();
 
       return;
     }
 
-    const script = Settings.data.hooks?.session;
+    const script = GlobalConfig.hooks.session;
     if (!script) {
       callback();
 
@@ -277,11 +278,11 @@ Singleton {
   }
 
   function executeStartupHook() {
-    if (!Settings.data.hooks?.enabled) {
+    if (!GlobalConfig.hooks.enabled) {
       return;
     }
 
-    const script = Settings.data.hooks?.startup;
+    const script = GlobalConfig.hooks.startup;
     if (!script || script === "") {
       return;
     }

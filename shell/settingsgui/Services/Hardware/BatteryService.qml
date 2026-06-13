@@ -5,6 +5,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.UPower
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Networking
 import qs.settingsgui.Services.UI
@@ -18,8 +19,8 @@ Singleton {
   readonly property bool batteryPluggedIn: isPluggedIn(primaryDevice)
   readonly property bool batteryReady: isDeviceReady(primaryDevice)
   readonly property bool batteryPresent: isDevicePresent(primaryDevice)
-  readonly property real warningThreshold: Settings.data.systemMonitor.batteryWarningThreshold
-  readonly property real criticalThreshold: Settings.data.systemMonitor.batteryCriticalThreshold
+  readonly property real warningThreshold: GlobalConfig.systemMonitor.batteryWarningThreshold
+  readonly property real criticalThreshold: GlobalConfig.systemMonitor.batteryCriticalThreshold
   readonly property string batteryIcon: getIcon(batteryPercentage, batteryCharging, batteryPluggedIn, batteryReady)
 
   readonly property var laptopBatteries: UPower.devices.values.filter(d => d.isLaptopBattery).sort((x, y) => {
@@ -320,7 +321,7 @@ Singleton {
   }
 
   function notify(device, level) {
-    if (!Settings.data.notifications.enableBatteryToast) {
+    if (!GlobalConfig.notifs.enableBatteryToast) {
       return;
     }
     var name = getDeviceName(device);

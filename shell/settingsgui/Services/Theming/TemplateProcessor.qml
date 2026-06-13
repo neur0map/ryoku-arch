@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.System
@@ -61,7 +62,7 @@ Singleton {
   ]
 
   function isTemplateEnabled(templateId) {
-    const activeTemplates = Settings.data.templates.activeTemplates;
+    const activeTemplates = GlobalConfig.templates.activeTemplates;
     if (!activeTemplates)
       return false;
     for (let i = 0; i < activeTemplates.length; i++) {
@@ -96,7 +97,7 @@ Singleton {
   function executeWallpaperColors(wallpaperPath, mode) {
     Logger.d("TemplateProcessor", `executeWallpaperColors: path=${wallpaperPath}, mode=${mode}`);
     const content = buildThemeConfig();
-    if (!content && !Settings.data.templates.enableUserTheming) {
+    if (!content && !GlobalConfig.templates.enableUserTheming) {
       Logger.d("TemplateProcessor", "executeWallpaperColors: no config content and no user theming, aborting");
       return;
     }
@@ -126,7 +127,7 @@ Singleton {
 
   function executePredefinedScheme(schemeData, mode, wallpaperPath) {
     const tomlContent = buildPredefinedTemplateConfig(mode);
-    if (!tomlContent && !Settings.data.templates.enableUserTheming) {
+    if (!tomlContent && !GlobalConfig.templates.enableUserTheming) {
       Logger.d("TemplateProcessor", "No application templates enabled for predefined scheme");
       return;
     }
@@ -191,9 +192,9 @@ Singleton {
 
   function buildThemeConfig() {
     var lines = [];
-    var mode = Settings.data.colorSchemes.darkMode ? "dark" : "light";
+    var mode = GlobalConfig.colorSchemes.darkMode ? "dark" : "light";
 
-    if (Settings.data.colorSchemes.useWallpaperColors) {
+    if (GlobalConfig.colorSchemes.useWallpaperColors) {
       addWallpaperTheming(lines, mode);
     }
 
@@ -309,7 +310,7 @@ Singleton {
 
   // Get scheme type, defaulting to tonal-spot if not a recognized value
   function getSchemeType() {
-    const method = Settings.data.colorSchemes.generationMethod;
+    const method = GlobalConfig.colorSchemes.generationMethod;
     const validKeys = root.schemeTypes.map(scheme => scheme.key);
     return validKeys.includes(method) ? method : "tonal-spot";
   }
@@ -338,7 +339,7 @@ Singleton {
   }
 
   function buildUserTemplateCommand(input, mode) {
-    if (!Settings.data.templates.enableUserTheming)
+    if (!GlobalConfig.templates.enableUserTheming)
       return "";
 
     const userConfigPath = getUserConfigPath();
@@ -358,7 +359,7 @@ Singleton {
   }
 
   function buildUserTemplateCommandForPredefined(schemeData, mode, wallpaperPath) {
-    if (!Settings.data.templates.enableUserTheming)
+    if (!GlobalConfig.templates.enableUserTheming)
       return "";
 
     const userConfigPath = getUserConfigPath();

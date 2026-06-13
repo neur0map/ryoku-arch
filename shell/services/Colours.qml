@@ -94,15 +94,25 @@ Singleton {
     }
 
     function reloadHyprRules(): void {
+        // Surfaces (besides the bar/panels/notifications/osd that live inside the
+        // ryoku-drawers window) that should also pick up the glass blur when
+        // transparency is on. All colon-free so the hyprlang fallback is safe.
+        const namespaces = ["ryoku-drawers", "ryoku-plugin-menu"];
         if (Hypr.extras.luaMode) {
             // Lua mode: `keyword layerrule` is rejected; hl.layer_rule is the
             // dynamic equivalent (verified live on Hyprland 0.55.3).
-            Hypr.extras.evalLua(`hl.layer_rule({ match = { namespace = "^(ryoku-drawers)$" }, blur = ${transparency.enabled} })`);
-            Hypr.extras.evalLua(`hl.layer_rule({ match = { namespace = "^(ryoku-drawers)$" }, ignore_alpha = ${transparency.base - 0.03} })`);
+            const nsRegex = `^(${namespaces.join("|")})$`;
+            Hypr.extras.evalLua(`hl.layer_rule({ match = { namespace = "${nsRegex}" }, blur = ${transparency.enabled} })`);
+            Hypr.extras.evalLua(`hl.layer_rule({ match = { namespace = "${nsRegex}" }, ignore_alpha = ${transparency.base - 0.03} })`);
             return;
         }
-        const str = "keyword layerrule %1 %2, match:namespace ryoku-drawers";
-        Hypr.extras.batchMessage([str.arg("blur").arg(transparency.enabled ? 1 : 0), str.arg("ignore_alpha").arg(transparency.base - 0.03)]);
+        const str = "keyword layerrule %1 %2, match:namespace %3";
+        const msgs = [];
+        for (const ns of namespaces) {
+            msgs.push(str.arg("blur").arg(transparency.enabled ? 1 : 0).arg(ns));
+            msgs.push(str.arg("ignore_alpha").arg(transparency.base - 0.03).arg(ns));
+        }
+        Hypr.extras.batchMessage(msgs);
     }
 
     Component.onCompleted: {

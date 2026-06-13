@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Bluetooth
+import Ryoku.Config
 import "../Settings/Tabs/Connections" as BluetoothPrefs
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.MainScreen
@@ -59,11 +60,14 @@ SmartPanel {
           }
 
           NIconButton {
-            icon: Settings.data.network.bluetoothAutoConnect ? "bluetooth-connected" : "bluetooth"
-            tooltipText: Settings.data.network.bluetoothAutoConnect ? I18n.tr("tooltips.bluetooth-auto-connect-on") : I18n.tr("tooltips.bluetooth-auto-connect-off")
-            colorFg: Settings.data.network.bluetoothAutoConnect ? Color.mPrimary : Color.mOnSurfaceVariant
+            icon: GlobalConfig.network.bluetoothAutoConnect ? "bluetooth-connected" : "bluetooth"
+            tooltipText: GlobalConfig.network.bluetoothAutoConnect ? I18n.tr("tooltips.bluetooth-auto-connect-on") : I18n.tr("tooltips.bluetooth-auto-connect-off")
+            colorFg: GlobalConfig.network.bluetoothAutoConnect ? Color.mPrimary : Color.mOnSurfaceVariant
             baseSize: Style.baseWidgetSize * 0.8
-            onClicked: Settings.data.network.bluetoothAutoConnect = !Settings.data.network.bluetoothAutoConnect
+            onClicked: {
+              GlobalConfig.network.bluetoothAutoConnect = !GlobalConfig.network.bluetoothAutoConnect;
+              GlobalConfig.save();
+            }
           }
 
           NIconButton {

@@ -148,19 +148,12 @@ MouseArea { // Notification group area
 
         // For popup: glass blur for aurora/angel, solid for others
         // For sidebar: transparent to show parent's blur
-        color: Appearance.angelEverywhere ? (popup ? "transparent" : Appearance.angel.colGlassCard)
-            : Appearance.inirEverywhere ? (popup ? Appearance.inir.colLayer2 : Appearance.inir.colLayer1)
-            : Appearance.auroraEverywhere ? "transparent"
-            : (popup ? ColorUtils.applyAlpha(Appearance.colors.colLayer2, 1 - Appearance.backgroundTransparency)
-                     : Appearance.colors.colLayer2)
+        color: popup ? ColorUtils.applyAlpha(Appearance.colors.colLayer2, 1 - Appearance.backgroundTransparency)
+                     : Appearance.colors.colLayer2
 
-        radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-            : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
-        border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-            : (Appearance.inirEverywhere || (Appearance.auroraEverywhere && popup)) ? 1 : 0
-        border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder
-            : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder : "transparent"
+        radius: Appearance.rounding.normal
+        border.width: 0
+        border.color: "transparent"
         anchors.leftMargin: root.xOffset
 
         Behavior on anchors.leftMargin {
@@ -175,7 +168,7 @@ MouseArea { // Notification group area
         clip: true
 
         // Rounded corner clipping for glass blur
-        layer.enabled: root.popup && Appearance.auroraEverywhere && !Appearance.inirEverywhere
+        layer.enabled: false
         layer.effect: GE.OpacityMask {
             maskSource: Rectangle {
                 width: background.width
@@ -204,7 +197,7 @@ MouseArea { // Notification group area
         Image {
             id: notifBlurredWallpaper
             anchors.fill: parent
-            visible: root.popup && Appearance.auroraEverywhere && !Appearance.inirEverywhere
+            visible: false
             source: Wallpapers.effectiveWallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true
@@ -212,28 +205,22 @@ MouseArea { // Notification group area
             sourceSize.height: 270
             asynchronous: true
 
-            layer.enabled: Appearance.effectsEnabled && Appearance.auroraEverywhere && !Appearance.inirEverywhere
+            layer.enabled: false
             layer.effect: MultiEffect {
                 source: notifBlurredWallpaper
                 anchors.fill: source
-                saturation: Appearance.angelEverywhere
-                    ? (Appearance.angel.blurSaturation * Appearance.angel.colorStrength)
-                    : (Appearance.effectsEnabled ? 0.2 : 0)
+                saturation: Appearance.effectsEnabled ? 0.2 : 0
                 blurEnabled: Appearance.effectsEnabled
                 blurMax: 64
-                blur: Appearance.effectsEnabled
-                    ? (Appearance.angelEverywhere ? Appearance.angel.blurIntensity : 1)
-                    : 0
+                blur: Appearance.effectsEnabled ? 1 : 0
             }
         }
 
         // Glass tint overlay
         Rectangle {
             anchors.fill: parent
-            visible: root.popup && Appearance.auroraEverywhere && !Appearance.inirEverywhere
-            color: Appearance.angelEverywhere
-                ? ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.angel.overlayOpacity)
-                : ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.aurora.popupTransparentize)
+            visible: false
+            color: ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.aurora.popupTransparentize)
         }
 
         // Angel partial border for popup

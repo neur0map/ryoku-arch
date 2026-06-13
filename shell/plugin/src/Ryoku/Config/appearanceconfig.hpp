@@ -224,7 +224,7 @@ class AppearanceTransparency : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_GLOBAL_PROPERTY(bool, enabled, false)
+    CONFIG_GLOBAL_PROPERTY(bool, enabled, true)
     CONFIG_GLOBAL_PROPERTY(qreal, base, 0.85)
     CONFIG_GLOBAL_PROPERTY(qreal, layers, 0.4)
 
@@ -238,6 +238,8 @@ class AppearanceConfig : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(qreal, deformScale, 1)
+    CONFIG_PROPERTY(qreal, dimmerOpacity, 0.5)
+    CONFIG_PROPERTY(bool, reduceMotion, false)
     CONFIG_SUBOBJECT(AppearanceRounding, rounding)
     CONFIG_SUBOBJECT(AppearanceSpacing, spacing)
     CONFIG_SUBOBJECT(AppearancePadding, padding)

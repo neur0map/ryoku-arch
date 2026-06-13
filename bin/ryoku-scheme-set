@@ -94,6 +94,8 @@ ryoku-restart-btop
 if [[ "$(jq -r '.services.syncSystemTheme' "$RYOKU_CONFIG_PATH/shell.json" 2>/dev/null)" != "false" ]]; then
   ryoku-theme-set-gnome
 fi
+# Recolor GTK/Qt apps to the new palette (self-gated on services.syncAppColors).
+ryoku-theme-set-qtgtk
 ryoku-theme-set-browser
 ryoku-theme-set-vscode
 ryoku-theme-set-obsidian

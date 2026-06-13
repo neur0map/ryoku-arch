@@ -75,7 +75,7 @@ ProgressBar {
                 anchors.left: parent.left
                 width: contentItem.width * root.visualPosition
                 height: contentItem.height
-                radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall : height / 2
+                radius: height / 2
                 color: root.highlightColor
             }
         }
@@ -84,7 +84,7 @@ ProgressBar {
             anchors.right: parent.right
             width: (1 - root.visualPosition) * parent.width - valueBarGap
             height: parent.height
-            radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall : height / 2
+            radius: height / 2
             color: root.trackColor
         }
         
@@ -92,7 +92,7 @@ ProgressBar {
             anchors.right: parent.right
             width: valueBarGap
             height: valueBarGap
-            radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall : height / 2
+            radius: height / 2
             color: root.highlightColor
         }
     }

@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Ryoku.Config
 import "../../Helpers/sha256.js" as Checksum
 import qs.settingsgui.Commons
 
@@ -97,7 +98,7 @@ Singleton {
       return;
     }
 
-    if (Settings.data.wallpaper.useOriginalImages && !needsConversion(sourcePath)) {
+    if (GlobalConfig.wallpaper.useOriginalImages && !needsConversion(sourcePath)) {
       callback(sourcePath, false);
       return;
     }

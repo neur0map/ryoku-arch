@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.MainScreen
 import qs.settingsgui.Modules.Panels.Settings
@@ -19,14 +20,14 @@ SmartPanel {
 
   readonly property string screenBarPosition: Settings.getBarPositionForScreen(screen?.name)
   readonly property string panelPosition: {
-    if (Settings.data.wallpaper.panelPosition === "follow_bar") {
+    if (GlobalConfig.wallpaper.panelPosition === "follow_bar") {
       if (screenBarPosition === "left" || screenBarPosition === "right") {
         return `center_${screenBarPosition}`;
       } else {
         return `${screenBarPosition}_center`;
       }
     } else {
-      return Settings.data.wallpaper.panelPosition;
+      return GlobalConfig.wallpaper.panelPosition;
     }
   }
   panelAnchorHorizontalCenter: panelPosition === "center" || panelPosition.endsWith("_center")
@@ -139,8 +140,8 @@ SmartPanel {
     property var currentScreen: Quickshell.screens[currentScreenIndex]
     property string filterText: ""
     property int appearanceTabIndex: 0
-    readonly property bool headerScreensStripAvailable: !Settings.data.wallpaper.setWallpaperOnAllMonitors || Settings.data.wallpaper.enableMultiMonitorDirectories
-    readonly property bool headerDevicesButtonVisible: Quickshell.screens.length > 1 || Settings.data.wallpaper.enableMultiMonitorDirectories
+    readonly property bool headerScreensStripAvailable: !GlobalConfig.wallpaper.setWallpaperOnAllMonitors || GlobalConfig.wallpaper.enableMultiMonitorDirectories
+    readonly property bool headerDevicesButtonVisible: Quickshell.screens.length > 1 || GlobalConfig.wallpaper.enableMultiMonitorDirectories
     property alias screenRepeater: screenRepeater
 
     Component.onCompleted: {
@@ -152,9 +153,9 @@ SmartPanel {
         return;
       }
 
-      var width = Settings.data.wallpaper.wallhavenResolutionWidth || "";
-      var height = Settings.data.wallpaper.wallhavenResolutionHeight || "";
-      var mode = Settings.data.wallpaper.wallhavenResolutionMode || "atleast";
+      var width = GlobalConfig.wallpaper.wallhavenResolutionWidth || "";
+      var height = GlobalConfig.wallpaper.wallhavenResolutionHeight || "";
+      var mode = GlobalConfig.wallpaper.wallhavenResolutionMode || "atleast";
 
       if (width && height) {
         var resolution = width + "x" + height;
@@ -170,11 +171,11 @@ SmartPanel {
         WallhavenService.resolutions = "";
       }
 
-      if (Settings.data.wallpaper.useWallhaven) {
+      if (GlobalConfig.wallpaper.useWallhaven) {
         if (wallhavenView) {
           wallhavenView.loading = true;
         }
-        WallhavenService.search(Settings.data.wallpaper.wallhavenQuery || "", 1);
+        WallhavenService.search(GlobalConfig.wallpaper.wallhavenQuery || "", 1);
       }
     }
 
@@ -193,7 +194,7 @@ SmartPanel {
     NColorPickerDialog {
       id: solidColorPicker
       screen: root.screen
-      selectedColor: Settings.data.wallpaper.solidColor
+      selectedColor: GlobalConfig.wallpaper.solidColor
       onColorSelected: color => WallpaperService.setSolidColor(color.toString())
     }
 
@@ -212,7 +213,7 @@ SmartPanel {
         if (wallhavenView && wallhavenView.gridView) {
           wallhavenView.gridView.currentIndex = -1;
         }
-        panelContent.appearanceTabIndex = Settings.data.colorSchemes.darkMode ? 1 : 0;
+        panelContent.appearanceTabIndex = GlobalConfig.colorSchemes.darkMode ? 1 : 0;
         WallpaperService.wallpaperSelectionAppearance = panelContent.appearanceTabIndex === 1 ? "dark" : "light";
         Qt.callLater(() => {
                        if (searchInput.inputItem) {
@@ -247,7 +248,8 @@ SmartPanel {
         id: wallhavenSearchDebounceTimer
         interval: 500
         onTriggered: {
-          Settings.data.wallpaper.wallhavenQuery = searchInput.text;
+          GlobalConfig.wallpaper.wallhavenQuery = searchInput.text;
+          GlobalConfig.save();
           if (typeof WallhavenService !== "undefined") {
             wallhavenView.loading = true;
             WallhavenService.search(searchInput.text, 1);
@@ -285,31 +287,37 @@ SmartPanel {
             }
 
             NIconButton {
-              visible: Settings.data.wallpaper.enabled
+              visible: GlobalConfig.wallpaper.enabled
               icon: "dark-mode"
-              tooltipText: Settings.data.wallpaper.linkLightAndDarkWallpapers ? I18n.tr("wallpaper.panel.header-separate-light-dark-tooltip") : I18n.tr("wallpaper.panel.header-link-light-dark-tooltip")
+              tooltipText: GlobalConfig.wallpaper.linkLightAndDarkWallpapers ? I18n.tr("wallpaper.panel.header-separate-light-dark-tooltip") : I18n.tr("wallpaper.panel.header-link-light-dark-tooltip")
               baseSize: Style.baseWidgetSize * 0.8
-              colorBg: !Settings.data.wallpaper.linkLightAndDarkWallpapers ? Color.mPrimary : Color.smartAlpha(Color.mSurfaceVariant)
-              colorFg: !Settings.data.wallpaper.linkLightAndDarkWallpapers ? Color.mOnPrimary : Color.mPrimary
-              onClicked: Settings.data.wallpaper.linkLightAndDarkWallpapers = !Settings.data.wallpaper.linkLightAndDarkWallpapers
+              colorBg: !GlobalConfig.wallpaper.linkLightAndDarkWallpapers ? Color.mPrimary : Color.smartAlpha(Color.mSurfaceVariant)
+              colorFg: !GlobalConfig.wallpaper.linkLightAndDarkWallpapers ? Color.mOnPrimary : Color.mPrimary
+              onClicked: {
+                GlobalConfig.wallpaper.linkLightAndDarkWallpapers = !GlobalConfig.wallpaper.linkLightAndDarkWallpapers;
+                GlobalConfig.save();
+              }
             }
 
             NIconButton {
-              visible: Settings.data.wallpaper.enabled && panelContent.headerDevicesButtonVisible
+              visible: GlobalConfig.wallpaper.enabled && panelContent.headerDevicesButtonVisible
               icon: "devices"
-              tooltipText: Settings.data.wallpaper.setWallpaperOnAllMonitors ? I18n.tr("wallpaper.panel.header-devices-apply-all-tooltip") : I18n.tr("wallpaper.panel.header-devices-per-monitor-tooltip")
+              tooltipText: GlobalConfig.wallpaper.setWallpaperOnAllMonitors ? I18n.tr("wallpaper.panel.header-devices-apply-all-tooltip") : I18n.tr("wallpaper.panel.header-devices-per-monitor-tooltip")
               baseSize: Style.baseWidgetSize * 0.8
-              colorBg: !Settings.data.wallpaper.setWallpaperOnAllMonitors ? Color.mPrimary : Color.smartAlpha(Color.mSurfaceVariant)
-              colorFg: !Settings.data.wallpaper.setWallpaperOnAllMonitors ? Color.mOnPrimary : Color.mPrimary
-              onClicked: Settings.data.wallpaper.setWallpaperOnAllMonitors = !Settings.data.wallpaper.setWallpaperOnAllMonitors
+              colorBg: !GlobalConfig.wallpaper.setWallpaperOnAllMonitors ? Color.mPrimary : Color.smartAlpha(Color.mSurfaceVariant)
+              colorFg: !GlobalConfig.wallpaper.setWallpaperOnAllMonitors ? Color.mOnPrimary : Color.mPrimary
+              onClicked: {
+                GlobalConfig.wallpaper.setWallpaperOnAllMonitors = !GlobalConfig.wallpaper.setWallpaperOnAllMonitors;
+                GlobalConfig.save();
+              }
             }
 
             NIconButton {
               icon: "palette"
               tooltipText: I18n.tr("wallpaper.panel.solid-color-tooltip")
               baseSize: Style.baseWidgetSize * 0.8
-              colorBg: Settings.data.wallpaper.useSolidColor ? Color.mPrimary : Color.mSurfaceVariant
-              colorFg: Settings.data.wallpaper.useSolidColor ? Color.mOnPrimary : Color.mPrimary
+              colorBg: GlobalConfig.wallpaper.useSolidColor ? Color.mPrimary : Color.mSurfaceVariant
+              colorFg: GlobalConfig.wallpaper.useSolidColor ? Color.mOnPrimary : Color.mPrimary
               onClicked: solidColorPicker.open()
             }
 
@@ -338,7 +346,7 @@ SmartPanel {
 
           NTabBar {
             id: appearanceTabBar
-            visible: Settings.data.wallpaper.enabled && !Settings.data.wallpaper.linkLightAndDarkWallpapers
+            visible: GlobalConfig.wallpaper.enabled && !GlobalConfig.wallpaper.linkLightAndDarkWallpapers
             Layout.fillWidth: true
             currentIndex: panelContent.appearanceTabIndex
             spacing: Style.marginM
@@ -350,7 +358,8 @@ SmartPanel {
               }
               panelContent.appearanceTabIndex = currentIndex;
               WallpaperService.wallpaperSelectionAppearance = currentIndex === 1 ? "dark" : "light";
-              Settings.data.colorSchemes.darkMode = currentIndex === 1;
+              GlobalConfig.colorSchemes.darkMode = currentIndex === 1;
+              GlobalConfig.save();
             }
 
             NTabButton {
@@ -394,14 +403,14 @@ SmartPanel {
 
             NTextInput {
               id: searchInput
-              placeholderText: Settings.data.wallpaper.useWallhaven ? I18n.tr("placeholders.search-wallhaven") : I18n.tr("placeholders.search-wallpapers")
+              placeholderText: GlobalConfig.wallpaper.useWallhaven ? I18n.tr("placeholders.search-wallhaven") : I18n.tr("placeholders.search-wallpapers")
               fontSize: Style.fontSizeM
               Layout.fillWidth: true
 
               property bool initializing: true
               Component.onCompleted: {
-                if (Settings.data.wallpaper.useWallhaven) {
-                  searchInput.text = Settings.data.wallpaper.wallhavenQuery || "";
+                if (GlobalConfig.wallpaper.useWallhaven) {
+                  searchInput.text = GlobalConfig.wallpaper.wallhavenQuery || "";
                 } else {
                   searchInput.text = panelContent.filterText || "";
                 }
@@ -415,10 +424,10 @@ SmartPanel {
               }
 
               Connections {
-                target: Settings.data.wallpaper
+                target: GlobalConfig.wallpaper
                 function onUseWallhavenChanged() {
-                  if (Settings.data.wallpaper.useWallhaven) {
-                    searchInput.text = Settings.data.wallpaper.wallhavenQuery || "";
+                  if (GlobalConfig.wallpaper.useWallhaven) {
+                    searchInput.text = GlobalConfig.wallpaper.wallhavenQuery || "";
                   } else {
                     searchInput.text = panelContent.filterText || "";
                   }
@@ -430,7 +439,7 @@ SmartPanel {
                 if (initializing) {
                   return;
                 }
-                if (Settings.data.wallpaper.useWallhaven) {
+                if (GlobalConfig.wallpaper.useWallhaven) {
                   wallhavenSearchDebounceTimer.restart();
                 } else {
                   searchDebounceTimer.restart();
@@ -438,11 +447,12 @@ SmartPanel {
               }
 
               onEditingFinished: {
-                if (Settings.data.wallpaper.useWallhaven) {
+                if (GlobalConfig.wallpaper.useWallhaven) {
                   wallhavenSearchDebounceTimer.stop();
                   // Only search if the query actually changed
                   if (typeof WallhavenService !== "undefined" && text !== WallhavenService.currentQuery) {
-                    Settings.data.wallpaper.wallhavenQuery = text;
+                    GlobalConfig.wallpaper.wallhavenQuery = text;
+                    GlobalConfig.save();
                     wallhavenView.loading = true;
                     WallhavenService.search(text, 1);
                   }
@@ -451,7 +461,7 @@ SmartPanel {
 
               Keys.onPressed: event => {
                                 if (Keybinds.checkKey(event, 'down', Settings)) {
-                                  if (Settings.data.wallpaper.useWallhaven) {
+                                  if (GlobalConfig.wallpaper.useWallhaven) {
                                     if (wallhavenView && wallhavenView.gridView) {
                                       wallhavenView.gridView.forceActiveFocus();
                                     }
@@ -468,14 +478,15 @@ SmartPanel {
 
             NIconButton {
               icon: "color-swatch"
-              tooltipText: Settings.data.colorSchemes.useWallpaperColors ? I18n.tr("wallpaper.panel.color-extraction-enabled") : I18n.tr("wallpaper.panel.color-extraction-disabled")
+              tooltipText: GlobalConfig.colorSchemes.useWallpaperColors ? I18n.tr("wallpaper.panel.color-extraction-enabled") : I18n.tr("wallpaper.panel.color-extraction-disabled")
               baseSize: Style.baseWidgetSize * 0.8
               onClicked: {
-                Settings.data.colorSchemes.useWallpaperColors = !Settings.data.colorSchemes.useWallpaperColors;
-                if (Settings.data.colorSchemes.useWallpaperColors) {
+                GlobalConfig.colorSchemes.useWallpaperColors = !GlobalConfig.colorSchemes.useWallpaperColors;
+                GlobalConfig.save();
+                if (GlobalConfig.colorSchemes.useWallpaperColors) {
                   AppThemeService.generate();
                 } else {
-                  ColorSchemeService.setPredefinedScheme(Settings.data.colorSchemes.predefinedScheme);
+                  ColorSchemeService.setPredefinedScheme(GlobalConfig.colorSchemes.predefinedScheme);
                 }
               }
             }
@@ -492,11 +503,11 @@ SmartPanel {
                                                     _initialized = true;
                                                   })
 
-              model: Settings.data.colorSchemes.useWallpaperColors ? TemplateProcessor.schemeTypes : ColorSchemeService.schemes.map(s => ({
+              model: GlobalConfig.colorSchemes.useWallpaperColors ? TemplateProcessor.schemeTypes : ColorSchemeService.schemes.map(s => ({
                                                                                                                                             "key": ColorSchemeService.getBasename(s),
                                                                                                                                             "name": ColorSchemeService.getBasename(s)
                                                                                                                                           }))
-              currentKey: Settings.data.colorSchemes.useWallpaperColors ? Settings.data.colorSchemes.generationMethod : Settings.data.colorSchemes.predefinedScheme
+              currentKey: GlobalConfig.colorSchemes.useWallpaperColors ? GlobalConfig.colorSchemes.generationMethod : GlobalConfig.colorSchemes.predefinedScheme
               onCurrentKeyChanged: {
                 if (!_initialized)
                   return;
@@ -508,8 +519,9 @@ SmartPanel {
               }
               onSelected: key => {
                             _userChanging = true;
-                            if (Settings.data.colorSchemes.useWallpaperColors) {
-                              Settings.data.colorSchemes.generationMethod = key;
+                            if (GlobalConfig.colorSchemes.useWallpaperColors) {
+                              GlobalConfig.colorSchemes.generationMethod = key;
+                              GlobalConfig.save();
                               AppThemeService.generate();
                             } else {
                               ColorSchemeService.setPredefinedScheme(key);
@@ -552,7 +564,7 @@ SmartPanel {
                   "name": I18n.tr("wallpaper.panel.source-wallhaven")
                 }
               ]
-              currentKey: Settings.data.wallpaper.useWallhaven ? "wallhaven" : "local"
+              currentKey: GlobalConfig.wallpaper.useWallhaven ? "wallhaven" : "local"
               property bool skipNextSelected: false
               Component.onCompleted: {
                 // Skip the first onSelected if it fires during initialization
@@ -566,19 +578,20 @@ SmartPanel {
                               return;
                             }
                             var useWallhaven = (key === "wallhaven");
-                            Settings.data.wallpaper.useWallhaven = useWallhaven;
+                            GlobalConfig.wallpaper.useWallhaven = useWallhaven;
+                            GlobalConfig.save();
                             if (useWallhaven) {
-                              searchInput.text = Settings.data.wallpaper.wallhavenQuery || "";
+                              searchInput.text = GlobalConfig.wallpaper.wallhavenQuery || "";
                             } else {
                               searchInput.text = panelContent.filterText || "";
                             }
                             if (useWallhaven && typeof WallhavenService !== "undefined") {
                               // Don't search here - Component.onCompleted will handle it when the component is created
                               // This prevents duplicate searches
-                              WallhavenService.categories = Settings.data.wallpaper.wallhavenCategories;
-                              WallhavenService.purity = Settings.data.wallpaper.wallhavenPurity;
-                              WallhavenService.sorting = Settings.data.wallpaper.wallhavenSorting;
-                              WallhavenService.order = Settings.data.wallpaper.wallhavenOrder;
+                              WallhavenService.categories = GlobalConfig.wallpaper.wallhavenCategories;
+                              WallhavenService.purity = GlobalConfig.wallpaper.wallhavenPurity;
+                              WallhavenService.sorting = GlobalConfig.wallpaper.wallhavenSorting;
+                              WallhavenService.order = GlobalConfig.wallpaper.wallhavenOrder;
 
                               panelContent.updateWallhavenResolution();
 
@@ -586,7 +599,7 @@ SmartPanel {
                               // Preserve current page when switching back to Wallhaven source
                               if (wallhavenView && wallhavenView.initialized && !WallhavenService.fetching) {
                                 wallhavenView.loading = true;
-                                WallhavenService.search(Settings.data.wallpaper.wallhavenQuery || "", WallhavenService.currentPage);
+                                WallhavenService.search(GlobalConfig.wallpaper.wallhavenQuery || "", WallhavenService.currentPage);
                               }
                             }
                           }
@@ -598,7 +611,7 @@ SmartPanel {
               icon: "settings"
               tooltipText: I18n.tr("wallpaper.panel.wallhaven-settings-title")
               baseSize: Style.baseWidgetSize * 0.8
-              visible: Settings.data.wallpaper.useWallhaven
+              visible: GlobalConfig.wallpaper.useWallhaven
               onClicked: {
                 if (searchInput.inputItem) {
                   searchInput.inputItem.focus = false;
@@ -623,7 +636,7 @@ SmartPanel {
           anchors.fill: parent
           anchors.margins: Style.marginL
 
-          currentIndex: Settings.data.wallpaper.useWallhaven ? 1 : 0
+          currentIndex: GlobalConfig.wallpaper.useWallhaven ? 1 : 0
 
           StackLayout {
             id: screenStack
@@ -663,7 +676,7 @@ SmartPanel {
     }
 
     property string currentBrowsePath: WallpaperService.getCurrentBrowsePath(targetScreen?.name ?? "")
-    property bool isBrowseMode: Settings.data.wallpaper.viewMode === "browse"
+    property bool isBrowseMode: GlobalConfig.wallpaper.viewMode === "browse"
     property int _browseScanGeneration: 0
 
     // Favorited paths (any light/dark) first, then the rest
@@ -873,25 +886,26 @@ SmartPanel {
       if (isDirectory) {
         WallpaperService.setBrowsePath(targetScreen.name, path);
       } else {
-        var screen = Settings.data.wallpaper.setWallpaperOnAllMonitors ? undefined : targetScreen.name;
+        var screen = GlobalConfig.wallpaper.setWallpaperOnAllMonitors ? undefined : targetScreen.name;
         WallpaperService.changeWallpaper(path, screen, WallpaperService.wallpaperSelectionAppearance);
         WallpaperService.applyFavoriteTheme(path, screen, WallpaperService.wallpaperSelectionAppearance);
       }
     }
 
     function cycleViewMode() {
-      var mode = Settings.data.wallpaper.viewMode;
+      var mode = GlobalConfig.wallpaper.viewMode;
       if (mode === "single") {
-        Settings.data.wallpaper.viewMode = "recursive";
+        GlobalConfig.wallpaper.viewMode = "recursive";
       } else if (mode === "recursive") {
-        Settings.data.wallpaper.viewMode = "browse";
+        GlobalConfig.wallpaper.viewMode = "browse";
       } else {
-        Settings.data.wallpaper.viewMode = "single";
+        GlobalConfig.wallpaper.viewMode = "single";
       }
+      GlobalConfig.save();
     }
 
     function getViewModeIcon() {
-      var mode = Settings.data.wallpaper.viewMode;
+      var mode = GlobalConfig.wallpaper.viewMode;
       if (mode === "single")
         return "folder";
       if (mode === "recursive")
@@ -900,7 +914,7 @@ SmartPanel {
     }
 
     function getViewModeTooltip() {
-      var mode = Settings.data.wallpaper.viewMode;
+      var mode = GlobalConfig.wallpaper.viewMode;
       var modeName;
       if (mode === "single")
         modeName = I18n.tr("panels.wallpaper.view-mode-single");
@@ -950,7 +964,7 @@ SmartPanel {
 
         // Right side: actions (view mode, hide filenames, refresh)
         NIconButton {
-          property string sortOrder: Settings.data.wallpaper.sortOrder || "name"
+          property string sortOrder: GlobalConfig.wallpaper.sortOrder || "name"
           icon: {
             if (sortOrder === "date_desc")
               return "clock";
@@ -995,7 +1009,8 @@ SmartPanel {
             else
               next = "name";
 
-            Settings.data.wallpaper.sortOrder = next;
+            GlobalConfig.wallpaper.sortOrder = next;
+            GlobalConfig.save();
           }
         }
 
@@ -1007,17 +1022,23 @@ SmartPanel {
         }
 
         NIconButton {
-          icon: Settings.data.wallpaper.hideWallpaperFilenames ? "id-off" : "id"
-          tooltipText: Settings.data.wallpaper.hideWallpaperFilenames ? I18n.tr("panels.wallpaper.settings-hide-wallpaper-filenames-tooltip-show") : I18n.tr("panels.wallpaper.settings-hide-wallpaper-filenames-tooltip-hide")
+          icon: GlobalConfig.wallpaper.hideWallpaperFilenames ? "id-off" : "id"
+          tooltipText: GlobalConfig.wallpaper.hideWallpaperFilenames ? I18n.tr("panels.wallpaper.settings-hide-wallpaper-filenames-tooltip-show") : I18n.tr("panels.wallpaper.settings-hide-wallpaper-filenames-tooltip-hide")
           baseSize: Style.baseWidgetSize * 0.8
-          onClicked: Settings.data.wallpaper.hideWallpaperFilenames = !Settings.data.wallpaper.hideWallpaperFilenames
+          onClicked: {
+            GlobalConfig.wallpaper.hideWallpaperFilenames = !GlobalConfig.wallpaper.hideWallpaperFilenames;
+            GlobalConfig.save();
+          }
         }
 
         NIconButton {
-          icon: Settings.data.wallpaper.showHiddenFiles ? "eye" : "eye-closed"
-          tooltipText: Settings.data.wallpaper.showHiddenFiles ? I18n.tr("panels.wallpaper.settings-show-hidden-files-tooltip-hide") : I18n.tr("panels.wallpaper.settings-show-hidden-files-tooltip-show")
+          icon: GlobalConfig.wallpaper.showHiddenFiles ? "eye" : "eye-closed"
+          tooltipText: GlobalConfig.wallpaper.showHiddenFiles ? I18n.tr("panels.wallpaper.settings-show-hidden-files-tooltip-hide") : I18n.tr("panels.wallpaper.settings-show-hidden-files-tooltip-show")
           baseSize: Style.baseWidgetSize * 0.8
-          onClicked: Settings.data.wallpaper.showHiddenFiles = !Settings.data.wallpaper.showHiddenFiles
+          onClicked: {
+            GlobalConfig.wallpaper.showHiddenFiles = !GlobalConfig.wallpaper.showHiddenFiles;
+            GlobalConfig.save();
+          }
         }
 
         NIconButton {
@@ -1260,7 +1281,7 @@ SmartPanel {
 
                 TapHandler {
                   onTapped: {
-                    var mon = Settings.data.wallpaper.setWallpaperOnAllMonitors ? undefined : (wallpaperScreenView.targetScreen ? wallpaperScreenView.targetScreen.name : undefined);
+                    var mon = GlobalConfig.wallpaper.setWallpaperOnAllMonitors ? undefined : (wallpaperScreenView.targetScreen ? wallpaperScreenView.targetScreen.name : undefined);
                     WallpaperService.toggleFavorite(wallpaperItem.wallpaperPath, WallpaperService.wallpaperSelectionAppearance, mon);
                   }
                 }
@@ -1284,7 +1305,7 @@ SmartPanel {
                 property var favData: {
                   _favRevision;
                   WallpaperService.favoritesRevision;
-                  Settings.data.wallpaper.linkLightAndDarkWallpapers;
+                  GlobalConfig.wallpaper.linkLightAndDarkWallpapers;
                   return WallpaperService.getFavoriteForDisplay(wallpaperItem.wallpaperPath);
                 }
                 property var colors: favData && favData.paletteColors ? favData.paletteColors : []
@@ -1318,7 +1339,7 @@ SmartPanel {
                     width: paletteRow.diameter
                     height: paletteRow.diameter
                     radius: width * 0.5
-                    visible: Settings.data.wallpaper.linkLightAndDarkWallpapers
+                    visible: GlobalConfig.wallpaper.linkLightAndDarkWallpapers
                     color: Color.mSurface
                     border.color: Color.mShadow
                     border.width: Style.borderS
@@ -1380,7 +1401,7 @@ SmartPanel {
 
             NText {
               text: wallpaperItem.filename
-              visible: !Settings.data.wallpaper.hideWallpaperFilenames
+              visible: !GlobalConfig.wallpaper.hideWallpaperFilenames
               color: (hoverHandler.hovered || wallpaperItem.isSelected || wallpaperGridView.currentIndex === index) ? Color.mOnSurface : Color.mOnSurfaceVariant
               pointSize: Style.fontSizeXS
               Layout.fillWidth: true
@@ -1470,7 +1491,7 @@ SmartPanel {
     }
 
     Component.onCompleted: {
-      if (typeof WallhavenService !== "undefined" && Settings.data.wallpaper.useWallhaven && !initialized) {
+      if (typeof WallhavenService !== "undefined" && GlobalConfig.wallpaper.useWallhaven && !initialized) {
         // Set flags immediately to prevent race conditions
         if (WallhavenService.initialSearchScheduled) {
           // Another instance already scheduled the search, just initialize properties
@@ -1481,14 +1502,14 @@ SmartPanel {
         // We're the first one - claim the search
         initialized = true;
         WallhavenService.initialSearchScheduled = true;
-        WallhavenService.categories = Settings.data.wallpaper.wallhavenCategories;
-        WallhavenService.purity = Settings.data.wallpaper.wallhavenPurity;
-        WallhavenService.sorting = Settings.data.wallpaper.wallhavenSorting;
-        WallhavenService.order = Settings.data.wallpaper.wallhavenOrder;
+        WallhavenService.categories = GlobalConfig.wallpaper.wallhavenCategories;
+        WallhavenService.purity = GlobalConfig.wallpaper.wallhavenPurity;
+        WallhavenService.sorting = GlobalConfig.wallpaper.wallhavenSorting;
+        WallhavenService.order = GlobalConfig.wallpaper.wallhavenOrder;
 
-        var width = Settings.data.wallpaper.wallhavenResolutionWidth || "";
-        var height = Settings.data.wallpaper.wallhavenResolutionHeight || "";
-        var mode = Settings.data.wallpaper.wallhavenResolutionMode || "atleast";
+        var width = GlobalConfig.wallpaper.wallhavenResolutionWidth || "";
+        var height = GlobalConfig.wallpaper.wallhavenResolutionHeight || "";
+        var mode = GlobalConfig.wallpaper.wallhavenResolutionMode || "atleast";
         if (width && height) {
           var resolution = width + "x" + height;
           if (mode === "atleast") {
@@ -1506,7 +1527,7 @@ SmartPanel {
         // Now check if we can actually search (fetching check is in WallhavenService.search)
         // Use persisted currentPage to maintain state across window reopening
         loading = true;
-        WallhavenService.search(Settings.data.wallpaper.wallhavenQuery || "", WallhavenService.currentPage);
+        WallhavenService.search(GlobalConfig.wallpaper.wallhavenQuery || "", WallhavenService.currentPage);
       }
     }
 
@@ -1663,7 +1684,7 @@ SmartPanel {
 
               NText {
                 text: wallhavenItem.wallpaperId || I18n.tr("common.unknown")
-                visible: !Settings.data.wallpaper.hideWallpaperFilenames
+                visible: !GlobalConfig.wallpaper.hideWallpaperFilenames
                 color: (hoverHandler.hovered || wallhavenGridView.currentIndex === index) ? Color.mOnSurface : Color.mOnSurfaceVariant
                 pointSize: Style.fontSizeXS
                 Layout.fillWidth: true
@@ -1842,7 +1863,7 @@ SmartPanel {
               var page = parseInt(text);
               if (!isNaN(page) && page >= 1 && page <= WallhavenService.lastPage) {
                 if (page !== WallhavenService.currentPage) {
-                  WallhavenService.search(Settings.data.wallpaper.wallhavenQuery || "", page);
+                  WallhavenService.search(GlobalConfig.wallpaper.wallhavenQuery || "", page);
                 }
               } else {
                 // Reset to current page if invalid
@@ -1877,8 +1898,8 @@ SmartPanel {
       if (typeof WallhavenService !== "undefined") {
         WallhavenService.downloadWallpaper(wallpaper, function (success, localPath) {
           if (success) {
-            var whScreen = Settings.data.wallpaper.setWallpaperOnAllMonitors ? undefined : Quickshell.screens[currentScreenIndex].name;
-            if (!Settings.data.wallpaper.setWallpaperOnAllMonitors && currentScreenIndex < Quickshell.screens.length) {
+            var whScreen = GlobalConfig.wallpaper.setWallpaperOnAllMonitors ? undefined : Quickshell.screens[currentScreenIndex].name;
+            if (!GlobalConfig.wallpaper.setWallpaperOnAllMonitors && currentScreenIndex < Quickshell.screens.length) {
               WallpaperService.changeWallpaper(localPath, Quickshell.screens[currentScreenIndex].name, WallpaperService.wallpaperSelectionAppearance);
             } else {
               WallpaperService.changeWallpaper(localPath, undefined, WallpaperService.wallpaperSelectionAppearance);

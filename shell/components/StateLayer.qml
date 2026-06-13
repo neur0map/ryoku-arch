@@ -76,7 +76,7 @@ MouseArea {
         property: "circleRadius"
         to: root.endRadius
         easing: Tokens.anim.standard
-        duration: Tokens.anim.durations.expressiveSlowEffects * 2
+        duration: GlobalConfig.appearance.reduceMotion ? 0 : Tokens.anim.durations.expressiveSlowEffects * 2
     }
 
     Anim {
@@ -86,7 +86,7 @@ MouseArea {
         property: "opacity"
         to: 0
         easing: Tokens.anim.expressiveSlowEffects
-        duration: Tokens.anim.durations.expressiveSlowEffects
+        duration: GlobalConfig.appearance.reduceMotion ? 0 : Tokens.anim.durations.expressiveSlowEffects
     }
 
     StyledRect {
@@ -184,7 +184,7 @@ MouseArea {
     Behavior on stateOpacity {
         Anim {
             easing: Tokens.anim.expressiveDefaultEffects
-            duration: Tokens.anim.durations.expressiveDefaultEffects
+            duration: GlobalConfig.appearance.reduceMotion ? 0 : Tokens.anim.durations.expressiveDefaultEffects
         }
     }
 }

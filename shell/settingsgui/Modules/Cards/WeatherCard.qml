@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
@@ -157,7 +158,7 @@ NBox {
                   return "";
                 var temp = LocationService.data.weather.current_weather.temperature;
                 var suffix = "C";
-                if (Settings.data.location.useFahrenheit) {
+                if (GlobalConfig.services.useFahrenheit) {
                   temp = LocationService.celsiusToFahrenheit(temp);
                   var suffix = "F";
                 }
@@ -240,7 +241,7 @@ NBox {
             text: {
               var max = LocationService.data.weather.daily.temperature_2m_max[index];
               var min = LocationService.data.weather.daily.temperature_2m_min[index];
-              if (Settings.data.location.useFahrenheit) {
+              if (GlobalConfig.services.useFahrenheit) {
                 max = LocationService.celsiusToFahrenheit(max);
                 min = LocationService.celsiusToFahrenheit(min);
               }

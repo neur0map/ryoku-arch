@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Platform
 import qs.settingsgui.Services.UI
@@ -33,15 +34,21 @@ ColumnLayout {
   NToggle {
     label: I18n.tr("panels.plugins.auto-update")
     description: I18n.tr("panels.plugins.auto-update-description")
-    checked: Settings.data.plugins.autoUpdate
-    onToggled: checked => Settings.data.plugins.autoUpdate = checked
+    checked: GlobalConfig.plugins.autoUpdate
+    onToggled: checked => {
+      GlobalConfig.plugins.autoUpdate = checked;
+      GlobalConfig.save();
+    }
   }
 
   NToggle {
     label: I18n.tr("panels.plugins.notify-updates")
     description: I18n.tr("panels.plugins.notify-updates-description")
-    checked: Settings.data.plugins.notifyUpdates
-    onToggled: checked => Settings.data.plugins.notifyUpdates = checked
+    checked: GlobalConfig.plugins.notifyUpdates
+    onToggled: checked => {
+      GlobalConfig.plugins.notifyUpdates = checked;
+      GlobalConfig.save();
+    }
   }
 
   NButton {

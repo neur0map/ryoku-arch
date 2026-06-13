@@ -1217,6 +1217,7 @@ Item {
               delegate: Loader {
                 anchors.fill: parent
                 active: index === root.currentTabIndex
+                asynchronous: true
                 opacity: 0
 
                 NumberAnimation on opacity {
@@ -1255,6 +1256,7 @@ Item {
 
                   Loader {
                     active: true
+                    asynchronous: true
                     // RYOKU: disabled tabs render as a greyed, non-interactive preview
                     // (NScrollView stays scrollable so the whole tab can be seen).
                     enabled: !(root.tabsModel[index]?.disabled === true)

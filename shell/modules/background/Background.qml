@@ -136,6 +136,8 @@ Variants {
             }
 
             DesktopWidget {
+                id: resourcesWidget
+
                 z: 2
                 cfg: GlobalConfig.background.widgets.resources
                 canvas: widgetHost
@@ -147,10 +149,15 @@ Variants {
                 ResourcesWidget {
                     showBackground: GlobalConfig.background.widgets.resources.background
                     sizeScale: GlobalConfig.background.widgets.resources.scale
+                    wallpaper: behindClock
+                    screenX: resourcesWidget.x
+                    screenY: resourcesWidget.y
                 }
             }
 
             DesktopWidget {
+                id: weatherWidget
+
                 z: 2
                 cfg: GlobalConfig.background.widgets.weather
                 canvas: widgetHost
@@ -162,10 +169,15 @@ Variants {
                 WeatherWidget {
                     showBackground: GlobalConfig.background.widgets.weather.background
                     sizeScale: GlobalConfig.background.widgets.weather.scale
+                    wallpaper: behindClock
+                    screenX: weatherWidget.x
+                    screenY: weatherWidget.y
                 }
             }
 
             DesktopWidget {
+                id: mediaWidget
+
                 z: 2
                 cfg: GlobalConfig.background.widgets.media
                 canvas: widgetHost
@@ -177,10 +189,15 @@ Variants {
                 MediaWidget {
                     showBackground: GlobalConfig.background.widgets.media.background
                     sizeScale: GlobalConfig.background.widgets.media.scale
+                    wallpaper: behindClock
+                    screenX: mediaWidget.x
+                    screenY: mediaWidget.y
                 }
             }
 
             DesktopWidget {
+                id: batteryWidget
+
                 z: 2
                 cfg: GlobalConfig.background.widgets.battery
                 canvas: widgetHost
@@ -189,40 +206,12 @@ Variants {
                 selfScales: true
                 visible: GlobalConfig.background.widgets.battery.enabled && UPower.displayDevice.isLaptopBattery
 
-                StyledRect {
-                    id: batteryCard
-
-                    readonly property bool showBackground: GlobalConfig.background.widgets.battery.background
-                    readonly property real sizeScale: GlobalConfig.background.widgets.battery.scale
-
-                    implicitWidth: batteryRow.implicitWidth + Tokens.padding.large * 2 * sizeScale
-                    implicitHeight: batteryRow.implicitHeight + Tokens.padding.large * 2 * sizeScale
-                    radius: Tokens.rounding.large * sizeScale
-                    color: showBackground ? Qt.alpha(Colours.palette.m3surfaceContainer, 0.78) : "transparent"
-                    border.width: showBackground ? 1 : 0
-                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
-
-                    Row {
-                        id: batteryRow
-
-                        anchors.centerIn: parent
-                        spacing: Tokens.spacing.small * batteryCard.sizeScale
-
-                        MaterialIcon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: UPower.displayDevice.state === UPowerDeviceState.Charging ? "battery_charging_full" : "battery_horiz_075"
-                            color: UPower.displayDevice.percentage <= 0.2 ? Colours.palette.m3error : Colours.palette.m3primary
-                            font.pointSize: Tokens.font.size.extraLarge * batteryCard.sizeScale
-                        }
-
-                        StyledText {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: Math.round(UPower.displayDevice.percentage * 100) + "%"
-                            color: Colours.palette.m3onSurface
-                            font.pointSize: Tokens.font.size.extraLarge * batteryCard.sizeScale
-                            font.weight: Font.Bold
-                        }
-                    }
+                BatteryWidget {
+                    showBackground: GlobalConfig.background.widgets.battery.background
+                    sizeScale: GlobalConfig.background.widgets.battery.scale
+                    wallpaper: behindClock
+                    screenX: batteryWidget.x
+                    screenY: batteryWidget.y
                 }
             }
 

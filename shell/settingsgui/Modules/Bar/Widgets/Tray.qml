@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.Bar.Extras
 import qs.settingsgui.Services.UI
@@ -425,7 +426,7 @@ Item {
 
           layer.enabled: widgetSettings.colorizeIcons !== false
           layer.effect: ShaderEffect {
-            property color targetColor: Settings.data.colorSchemes.darkMode ? Color.mOnSurface : Color.mSurfaceVariant
+            property color targetColor: GlobalConfig.colorSchemes.darkMode ? Color.mOnSurface : Color.mSurfaceVariant
             property real colorizeMode: 1.0
 
             fragmentShader: Qt.resolvedUrl(Quickshell.shellDir + "/settingsgui" + "/Shaders/qsb/appicon_colorize.frag.qsb")

@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.Panels.Settings
 import qs.settingsgui.Services.UI
@@ -171,8 +172,8 @@ PopupWindow {
     const appId = getCurrentAppId();
     const isRunning = windows.length > 0;
     const isPinned = isAppPinned(appId);
-    const grouped = Settings.data.dock.groupApps && windows.length > 1;
-    const rawGroupMenuMode = forcedGroupMenuMode || Settings.data.dock.groupContextMenuMode || "extended";
+    const grouped = GlobalConfig.dock.groupApps && windows.length > 1;
+    const rawGroupMenuMode = forcedGroupMenuMode || GlobalConfig.dock.groupContextMenuMode || "extended";
     const menuModeForGroup = grouped ? ((rawGroupMenuMode === "list" || rawGroupMenuMode === "extended") ? rawGroupMenuMode : "extended") : "single";
 
     var next = [];
@@ -261,7 +262,7 @@ PopupWindow {
                         } else if (action.execute) {
                           action.execute();
                         }
-                        if (Settings.data.dock.dockType === "attached") {
+                        if (GlobalConfig.dock.dockType === "attached") {
                           const panel = PanelService.getPanel("staticDockPanel", root.screen, false);
                           if (panel)
                             panel.close();
@@ -317,7 +318,7 @@ PopupWindow {
   function isAppPinned(appId) {
     if (!appId)
       return false;
-    const pinnedApps = Settings.data.dock.pinnedApps || [];
+    const pinnedApps = GlobalConfig.dock.pinnedApps || [];
     const normalizedId = normalizeAppId(appId);
     return pinnedApps.some(pinnedId => normalizeAppId(pinnedId) === normalizedId);
   }
@@ -330,7 +331,7 @@ PopupWindow {
     const desktopEntryId = getDesktopEntryId(appId);
     const normalizedId = normalizeAppId(desktopEntryId);
 
-    let pinnedApps = (Settings.data.dock.pinnedApps || []).slice();
+    let pinnedApps = (GlobalConfig.dock.pinnedApps || []).slice();
 
     // Find existing pinned app with case-insensitive matching
     const existingIndex = pinnedApps.findIndex(pinnedId => normalizeAppId(pinnedId) === normalizedId);
@@ -343,7 +344,8 @@ PopupWindow {
       pinnedApps.push(desktopEntryId);
     }
 
-    Settings.data.dock.pinnedApps = pinnedApps;
+    GlobalConfig.dock.pinnedApps = pinnedApps;
+    GlobalConfig.save();
   }
 
   // Dock position for context menu placement

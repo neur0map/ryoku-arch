@@ -7,7 +7,7 @@ import qs.settingsgui.Commons
 
 // Ryoku: scheduled wallpaper rotation for the Wallpaper settings' Automation
 // subtab. Always loaded from shell.qml so rotation runs whether or not settings
-// are open. Config persists in settings.json (Settings.data.wallpaper.*); the
+// are open. Config persists in settings.json (GlobalConfig.wallpaper.*); the
 // wallpaper is applied through Ryoku's own Wallpapers service (the `ryoku
 // wallpaper` CLI), not the dormant WallpaperService.
 Item {
@@ -31,7 +31,7 @@ Item {
 
         const current = Wallpapers.actualCurrent;
 
-        if ((Settings.data.wallpaper.wallpaperChangeMode || "random") === "alphabetical") {
+        if ((GlobalConfig.wallpaper.wallpaperChangeMode || "random") === "alphabetical") {
             paths.sort((a, b) => a.localeCompare(b));
             const idx = paths.indexOf(current);
             return paths[(idx + 1) % paths.length];
@@ -48,8 +48,8 @@ Item {
     }
 
     Timer {
-        interval: Math.max(60, Settings.data.wallpaper.randomIntervalSec) * 1000
-        running: Settings.data.wallpaper.automationEnabled && GlobalConfig.background.wallpaperEnabled
+        interval: Math.max(60, GlobalConfig.wallpaper.randomIntervalSec) * 1000
+        running: GlobalConfig.wallpaper.automationEnabled && GlobalConfig.background.wallpaperEnabled
         repeat: true
         triggeredOnStart: false
         onTriggered: {

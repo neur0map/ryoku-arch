@@ -9,6 +9,7 @@ import qs.settingsgui.Modules.MainScreen
 import qs.settingsgui.Services.Location
 import qs.settingsgui.Services.UI
 import qs.settingsgui.Widgets
+import Ryoku.Config
 
 SmartPanel {
   id: root
@@ -28,7 +29,7 @@ SmartPanel {
       spacing: Style.marginM
 
       Repeater {
-        model: Settings.data.calendar.cards
+        model: GlobalConfig.calendar.cards
         Loader {
           active: modelData.enabled && (modelData.id !== "weather-card" || Settings.data.location.weatherEnabled)
           visible: active

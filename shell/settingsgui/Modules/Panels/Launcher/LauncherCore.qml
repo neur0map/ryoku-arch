@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
@@ -59,7 +60,7 @@ Rectangle {
   readonly property var defaultProvider: appsProvider
   readonly property var currentProvider: activeProvider || defaultProvider
 
-  readonly property string launcherDensity: (currentProvider && currentProvider.ignoreDensity === false) ? (Settings.data.appLauncher.density || "default") : "comfortable"
+  readonly property string launcherDensity: (currentProvider && currentProvider.ignoreDensity === false) ? (GlobalConfig.launcher.density || "default") : "comfortable"
   readonly property int effectiveIconSize: launcherDensity === "comfortable" ? 48 : (launcherDensity === "default" ? 36 : 24)
   readonly property int badgeSize: Math.round(effectiveIconSize * Style.uiScaleRatio)
   readonly property int entryHeight: Math.round(badgeSize + (launcherDensity === "compact" ? (Style.marginL + Style.marginXXS) : (Style.marginXL + Style.marginS)))
@@ -77,7 +78,7 @@ Rectangle {
     if (!providerShowsCategories || providerCategories.length === 0)
       return false;
     if (currentProvider === defaultProvider)
-      return Settings.data.appLauncher.showCategories;
+      return GlobalConfig.launcher.showCategories;
     return true;
   }
 
@@ -106,7 +107,7 @@ Rectangle {
       return "single";
     if (providerHasDisplayString)
       return "grid";
-    return Settings.data.appLauncher.viewMode;
+    return GlobalConfig.launcher.viewMode;
   }
 
   readonly property bool isGridView: layoutMode === "grid"
@@ -331,7 +332,7 @@ Rectangle {
 
       // Sort by _score (higher = better match), items without _score go first
       if (searchText.trim() !== "") {
-        const boostByUsage = Settings.data.appLauncher.sortByMostUsed;
+        const boostByUsage = GlobalConfig.launcher.sortByMostUsed;
 
         allResults.sort((a, b) => {
                           let sa = a._score !== undefined ? a._score : 0;
@@ -403,11 +404,11 @@ Rectangle {
       const provider = item.provider || currentProvider;
 
       // Track usage for providers that opt in (cross-provider "most used" tracking)
-      if (Settings.data.appLauncher.sortByMostUsed && provider && provider.trackUsage && item.usageKey) {
+      if (GlobalConfig.launcher.sortByMostUsed && provider && provider.trackUsage && item.usageKey) {
         ShellState.recordLauncherUsage(item.usageKey);
       }
 
-      if (Settings.data.appLauncher.autoPasteClipboard && provider && provider.supportsAutoPaste && item.autoPasteText) {
+      if (GlobalConfig.launcher.autoPasteClipboard && provider && provider.supportsAutoPaste && item.autoPasteText) {
         if (item.onAutoPaste)
           item.onAutoPaste();
         closeImmediately();
@@ -533,7 +534,7 @@ Rectangle {
   ClipboardProvider {
     id: clipProvider
     Component.onCompleted: {
-      if (Settings.data.appLauncher.enableClipboardHistory) {
+      if (GlobalConfig.launcher.enableClipboardHistory) {
         registerProvider(this);
         Logger.d("Launcher", "Registered: ClipboardProvider");
       }
@@ -600,7 +601,7 @@ Rectangle {
 
   HoverHandler {
     id: globalHoverHandler
-    enabled: !Settings.data.appLauncher.ignoreMouseInput
+    enabled: !GlobalConfig.launcher.ignoreMouseInput
 
     onPointChanged: {
       if (!root.mouseTrackingReady) {
@@ -657,12 +658,15 @@ Rectangle {
 
       NIconButton {
         visible: root.showLayoutToggle
-        icon: Settings.data.appLauncher.viewMode === "grid" ? "layout-list" : "layout-grid"
-        tooltipText: Settings.data.appLauncher.viewMode === "grid" ? I18n.tr("tooltips.list-view") : I18n.tr("tooltips.grid-view")
+        icon: GlobalConfig.launcher.viewMode === "grid" ? "layout-list" : "layout-grid"
+        tooltipText: GlobalConfig.launcher.viewMode === "grid" ? I18n.tr("tooltips.list-view") : I18n.tr("tooltips.grid-view")
         customRadius: Style.iRadiusM
         Layout.preferredWidth: searchInput.height
         Layout.preferredHeight: searchInput.height
-        onClicked: Settings.data.appLauncher.viewMode = Settings.data.appLauncher.viewMode === "grid" ? "list" : "grid"
+        onClicked: {
+          GlobalConfig.launcher.viewMode = GlobalConfig.launcher.viewMode === "grid" ? "list" : "grid";
+          GlobalConfig.save();
+        }
       }
     }
 
@@ -721,7 +725,7 @@ Rectangle {
         model: root.results
         currentIndex: root.selectedIndex
         cacheBuffer: resultsList.height * 2
-        interactive: !Settings.data.appLauncher.ignoreMouseInput
+        interactive: !GlobalConfig.launcher.ignoreMouseInput
         onCurrentIndexChanged: {
           cancelFlick();
           if (currentIndex >= 0) {
@@ -823,7 +827,7 @@ Rectangle {
         cacheBuffer: resultsGrid.height * 2
         keyNavigationEnabled: false
         focus: false
-        interactive: !Settings.data.appLauncher.ignoreMouseInput
+        interactive: !GlobalConfig.launcher.ignoreMouseInput
 
         // Completely disable GridView key handling
         Keys.enabled: false

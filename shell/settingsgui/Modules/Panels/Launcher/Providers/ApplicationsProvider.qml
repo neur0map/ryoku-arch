@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Compositor
@@ -195,7 +196,7 @@ Item {
   function isAppPinned(app) {
     if (!app)
       return false;
-    const pinnedApps = Settings.data.appLauncher.pinnedApps || [];
+    const pinnedApps = GlobalConfig.launcher.pinnedApps || [];
     const appId = getAppKey(app);
     const normalizedId = normalizeAppId(appId);
     return pinnedApps.some(pinnedId => normalizeAppId(pinnedId) === normalizedId);
@@ -245,7 +246,7 @@ Item {
     let hasSystem = false;
     let hasPinned = false;
 
-    const pinnedApps = Settings.data.appLauncher.pinnedApps || [];
+    const pinnedApps = GlobalConfig.launcher.pinnedApps || [];
     if (pinnedApps.length > 0) {
       for (let app of entries) {
         if (isAppPinned(app)) {
@@ -357,7 +358,7 @@ Item {
   }
 
   Connections {
-    target: Settings.data.appLauncher
+    target: GlobalConfig.launcher
     function onPinnedAppsChanged() {
       const wasViewingPinned = selectedCategory === "Pinned";
       updateAvailableCategories();
@@ -420,7 +421,7 @@ Item {
     if (!query || query.trim() === "") {
       // Return filtered apps, optionally sorted by usage
       let sorted;
-      if (Settings.data.appLauncher.sortByMostUsed) {
+      if (GlobalConfig.launcher.sortByMostUsed) {
         sorted = filteredEntries.slice().sort((a, b) => {
                                                 const aPinned = isAppPinned(a);
                                                 const bPinned = isAppPinned(b);
@@ -535,12 +536,12 @@ Item {
                          return;
                        }
 
-                       if (Settings.data.appLauncher.customLaunchPrefixEnabled && Settings.data.appLauncher.customLaunchPrefix.trim() !== "") {
-                         const prefix = Settings.data.appLauncher.customLaunchPrefix.trim().split(" ");
-                         Logger.d("ApplicationsProvider", `Using custom launch prefix: ${Settings.data.appLauncher.customLaunchPrefix.trim()}`);
+                       if (GlobalConfig.launcher.customLaunchPrefixEnabled && GlobalConfig.launcher.customLaunchPrefix.trim() !== "") {
+                         const prefix = GlobalConfig.launcher.customLaunchPrefix.trim().split(" ");
+                         Logger.d("ApplicationsProvider", `Using custom launch prefix: ${GlobalConfig.launcher.customLaunchPrefix.trim()}`);
 
-                         if (app.runInTerminal && Settings.data.appLauncher.terminalCommand.trim() !== "") {
-                           const terminal = Settings.data.appLauncher.terminalCommand.trim().split(" ");
+                         if (app.runInTerminal && GlobalConfig.launcher.terminalCommand.trim() !== "") {
+                           const terminal = GlobalConfig.launcher.terminalCommand.trim().split(" ");
                            const command = prefix.concat(terminal.concat(app.command));
                            Logger.d("ApplicationsProvider", `Executing command (with prefix and terminal): ${command.join(" ")}`);
                            Quickshell.execDetached(command);
@@ -550,9 +551,9 @@ Item {
                            Quickshell.execDetached(command);
                          }
                        } else {
-                         if (app.runInTerminal && Settings.data.appLauncher.terminalCommand.trim() !== "") {
+                         if (app.runInTerminal && GlobalConfig.launcher.terminalCommand.trim() !== "") {
                            Logger.d("ApplicationsProvider", "Executing terminal app manually: " + app.name);
-                           const terminal = Settings.data.appLauncher.terminalCommand.trim().split(" ");
+                           const terminal = GlobalConfig.launcher.terminalCommand.trim().split(" ");
                            const command = terminal.concat(app.command);
                            Logger.d("ApplicationsProvider", "Executing command (manual terminal): " + command.join(" "));
                            CompositorService.spawn(command);
@@ -593,13 +594,14 @@ Item {
     if (!appId)
       return;
     const normalizedId = normalizeAppId(appId);
-    let arr = (Settings.data.appLauncher.pinnedApps || []).slice();
+    let arr = (GlobalConfig.launcher.pinnedApps || []).slice();
     const idx = arr.findIndex(pinnedId => normalizeAppId(pinnedId) === normalizedId);
     if (idx >= 0)
       arr.splice(idx, 1);
     else
       arr.push(appId);
-    Settings.data.appLauncher.pinnedApps = arr;
+    GlobalConfig.launcher.pinnedApps = arr;
+    GlobalConfig.save();
   }
 
   function getAppKey(app) {

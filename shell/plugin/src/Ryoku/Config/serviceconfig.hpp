@@ -41,6 +41,9 @@ class ServiceConfig : public ConfigObject {
     // Mirror the active light/dark theme to the system (GNOME/GTK) toolkit theme.
     // Gates the ryoku-theme-set-gnome call in the ryoku-theme-set pipeline.
     CONFIG_GLOBAL_PROPERTY(bool, syncSystemTheme, true)
+    // Recolor GTK/Qt apps (libadwaita gtk.css + kdeglobals) to the active scheme.
+    // Gates the ryoku-theme-set-qtgtk apply step in the theme/scheme pipeline.
+    CONFIG_GLOBAL_PROPERTY(bool, syncAppColors, true)
     CONFIG_GLOBAL_PROPERTY(QString, defaultPlayer, u"Spotify"_s)
     CONFIG_GLOBAL_PROPERTY(QVariantList, playerAliases,
         { vmap({ { u"from"_s, u"com.github.th_ch.youtube_music"_s }, { u"to"_s, u"YT Music"_s } }) })

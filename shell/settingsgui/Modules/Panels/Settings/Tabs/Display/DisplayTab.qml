@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Location
 import qs.settingsgui.Services.UI
@@ -42,11 +43,13 @@ ColumnLayout {
 
     onExited: function (exitCode) {
       if (exitCode === 0) {
-        Settings.data.nightLight.enabled = true;
+        GlobalConfig.nightLight.enabled = true;
+        GlobalConfig.save();
         NightLightService.apply();
         ToastService.showNotice(I18n.tr("common.night-light"), I18n.tr("common.enabled"), "nightlight-on");
       } else {
-        Settings.data.nightLight.enabled = false;
+        GlobalConfig.nightLight.enabled = false;
+        GlobalConfig.save();
         ToastService.showWarning(I18n.tr("common.night-light"), I18n.tr("toast.night-light.not-installed"));
       }
     }

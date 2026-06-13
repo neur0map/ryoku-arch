@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.UI
 
@@ -7,9 +8,9 @@ Item {
 
   property string name: I18n.tr("common.settings")
   property var launcher: null
-  property bool handleSearch: Settings.data.appLauncher.enableSettingsSearch
+  property bool handleSearch: GlobalConfig.launcher.enableSettingsSearch
   property string supportedLayouts: "list"
-  property string iconMode: Settings.data.appLauncher.iconMode
+  property string iconMode: GlobalConfig.launcher.iconMode
 
   function init() {
     Logger.d("SettingsProvider", "Initialized");

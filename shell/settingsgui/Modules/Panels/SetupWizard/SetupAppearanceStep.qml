@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.System
 import qs.settingsgui.Services.Theming
@@ -22,7 +23,7 @@ ColumnLayout {
 
   function getSchemeColor(schemeName, key) {
     try {
-      var mode = Settings.data.colorSchemes.darkMode ? "dark" : "light";
+      var mode = GlobalConfig.colorSchemes.darkMode ? "dark" : "light";
       var data = schemeColorsCache[schemeName];
       if (data && data[mode] && data[mode][key])
         return data[mode][key];
@@ -136,8 +137,11 @@ ColumnLayout {
         }
 
         NToggle {
-          checked: Settings.data.colorSchemes.darkMode
-          onToggled: checked => Settings.data.colorSchemes.darkMode = checked
+          checked: GlobalConfig.colorSchemes.darkMode
+          onToggled: checked => {
+            GlobalConfig.colorSchemes.darkMode = checked;
+            GlobalConfig.save();
+          }
         }
       }
 
@@ -189,15 +193,17 @@ ColumnLayout {
         }
 
         NToggle {
-          checked: Settings.data.colorSchemes.useWallpaperColors
+          checked: GlobalConfig.colorSchemes.useWallpaperColors
           onToggled: checked => {
                        if (checked) {
-                         Settings.data.colorSchemes.useWallpaperColors = true;
+                         GlobalConfig.colorSchemes.useWallpaperColors = true;
+                         GlobalConfig.save();
                          AppThemeService.generate();
                        } else {
-                         Settings.data.colorSchemes.useWallpaperColors = false;
-                         if (Settings.data.colorSchemes.predefinedScheme) {
-                           ColorSchemeService.applyScheme(Settings.data.colorSchemes.predefinedScheme);
+                         GlobalConfig.colorSchemes.useWallpaperColors = false;
+                         GlobalConfig.save();
+                         if (GlobalConfig.colorSchemes.predefinedScheme) {
+                           ColorSchemeService.applyScheme(GlobalConfig.colorSchemes.predefinedScheme);
                          }
                        }
                      }
@@ -211,14 +217,14 @@ ColumnLayout {
         opacity: 0.2
         Layout.topMargin: Style.marginS
         Layout.bottomMargin: Style.marginS
-        visible: !Settings.data.colorSchemes.useWallpaperColors
+        visible: !GlobalConfig.colorSchemes.useWallpaperColors
       }
 
       // Predefined schemes section (visible when wallpaper colors disabled)
       ColumnLayout {
         Layout.fillWidth: true
         spacing: Style.marginM
-        visible: !Settings.data.colorSchemes.useWallpaperColors
+        visible: !GlobalConfig.colorSchemes.useWallpaperColors
 
         RowLayout {
           Layout.fillWidth: true
@@ -280,7 +286,7 @@ ColumnLayout {
               radius: Style.radiusS
               color: root.cacheVersion >= 0 ? root.getSchemeColor(schemeName, "mSurface") : root.getSchemeColor(schemeName, "mSurface")
               border.width: Style.borderL
-              border.color: itemMouseArea.containsMouse ? Color.mHover : (Settings.data.colorSchemes.predefinedScheme === schemeName ? Color.mSecondary : Color.mOutline)
+              border.color: itemMouseArea.containsMouse ? Color.mHover : (GlobalConfig.colorSchemes.predefinedScheme === schemeName ? Color.mSecondary : Color.mOutline)
 
               RowLayout {
                 anchors.fill: parent
@@ -304,7 +310,7 @@ ColumnLayout {
                   height: 14
                   radius: width * 0.5
                   color: root.cacheVersion >= 0 ? (function () {
-                    var mode = Settings.data.colorSchemes.darkMode ? "dark" : "light";
+                    var mode = GlobalConfig.colorSchemes.darkMode ? "dark" : "light";
                     var cached = root.schemeColorsCache[schemeItem.schemeName];
                     return (cached && cached[mode] && cached[mode].mPrimary) || root.getSchemeColor(schemeItem.schemeName, "mPrimary");
                   })() : Color.mPrimary
@@ -314,7 +320,7 @@ ColumnLayout {
                   height: 14
                   radius: width * 0.5
                   color: root.cacheVersion >= 0 ? (function () {
-                    var mode = Settings.data.colorSchemes.darkMode ? "dark" : "light";
+                    var mode = GlobalConfig.colorSchemes.darkMode ? "dark" : "light";
                     var cached = root.schemeColorsCache[schemeItem.schemeName];
                     return (cached && cached[mode] && cached[mode].mSecondary) || root.getSchemeColor(schemeItem.schemeName, "mSecondary");
                   })() : Color.mSecondary
@@ -324,7 +330,7 @@ ColumnLayout {
                   height: 14
                   radius: width * 0.5
                   color: root.cacheVersion >= 0 ? (function () {
-                    var mode = Settings.data.colorSchemes.darkMode ? "dark" : "light";
+                    var mode = GlobalConfig.colorSchemes.darkMode ? "dark" : "light";
                     var cached = root.schemeColorsCache[schemeItem.schemeName];
                     return (cached && cached[mode] && cached[mode].mTertiary) || root.getSchemeColor(schemeItem.schemeName, "mTertiary");
                   })() : Color.mTertiary
@@ -334,7 +340,7 @@ ColumnLayout {
                   height: 14
                   radius: width * 0.5
                   color: root.cacheVersion >= 0 ? (function () {
-                    var mode = Settings.data.colorSchemes.darkMode ? "dark" : "light";
+                    var mode = GlobalConfig.colorSchemes.darkMode ? "dark" : "light";
                     var cached = root.schemeColorsCache[schemeItem.schemeName];
                     return (cached && cached[mode] && cached[mode].mError) || root.getSchemeColor(schemeItem.schemeName, "mError");
                   })() : Color.mError
@@ -347,9 +353,10 @@ ColumnLayout {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                  Settings.data.colorSchemes.useWallpaperColors = false;
-                  Settings.data.colorSchemes.predefinedScheme = schemeItem.schemeName;
-                  ColorSchemeService.applyScheme(Settings.data.colorSchemes.predefinedScheme);
+                  GlobalConfig.colorSchemes.useWallpaperColors = false;
+                  GlobalConfig.colorSchemes.predefinedScheme = schemeItem.schemeName;
+                  GlobalConfig.save();
+                  ColorSchemeService.applyScheme(GlobalConfig.colorSchemes.predefinedScheme);
                 }
               }
             }

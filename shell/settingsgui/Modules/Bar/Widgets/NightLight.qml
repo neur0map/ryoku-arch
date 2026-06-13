@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.Panels.Settings
 import qs.settingsgui.Services.System
@@ -37,13 +38,13 @@ NIconButton {
   baseSize: Style.getCapsuleHeightForScreen(screen?.name)
   applyUiScale: false
   customRadius: Style.radiusL
-  colorBg: Settings.data.nightLight.enabled ? Color.mPrimary : Style.capsuleColor
-  colorFg: Settings.data.nightLight.enabled ? Color.mOnPrimary : Color.resolveColorKey(iconColorKey)
+  colorBg: GlobalConfig.nightLight.enabled ? Color.mPrimary : Style.capsuleColor
+  colorFg: GlobalConfig.nightLight.enabled ? Color.mOnPrimary : Color.resolveColorKey(iconColorKey)
   border.color: Style.capsuleBorderColor
   border.width: Style.capsuleBorderWidth
 
-  icon: Settings.data.nightLight.enabled ? (Settings.data.nightLight.forced ? "nightlight-forced" : "nightlight-on") : "nightlight-off"
-  tooltipText: Settings.data.nightLight.enabled ? (Settings.data.nightLight.forced ? I18n.tr("common.night-light") : I18n.tr("common.night-light")) : I18n.tr("common.night-light")
+  icon: GlobalConfig.nightLight.enabled ? (GlobalConfig.nightLight.forced ? "nightlight-forced" : "nightlight-on") : "nightlight-off"
+  tooltipText: GlobalConfig.nightLight.enabled ? (GlobalConfig.nightLight.forced ? I18n.tr("common.night-light") : I18n.tr("common.night-light")) : I18n.tr("common.night-light")
   tooltipDirection: BarService.getTooltipDirection(screen?.name)
   onClicked: {
     // Check if wlsunset is available before enabling night light
@@ -52,15 +53,16 @@ NIconButton {
       return;
     }
 
-    if (!Settings.data.nightLight.enabled) {
-      Settings.data.nightLight.enabled = true;
-      Settings.data.nightLight.forced = false;
-    } else if (Settings.data.nightLight.enabled && !Settings.data.nightLight.forced) {
-      Settings.data.nightLight.forced = true;
+    if (!GlobalConfig.nightLight.enabled) {
+      GlobalConfig.nightLight.enabled = true;
+      GlobalConfig.nightLight.forced = false;
+    } else if (GlobalConfig.nightLight.enabled && !GlobalConfig.nightLight.forced) {
+      GlobalConfig.nightLight.forced = true;
     } else {
-      Settings.data.nightLight.enabled = false;
-      Settings.data.nightLight.forced = false;
+      GlobalConfig.nightLight.enabled = false;
+      GlobalConfig.nightLight.forced = false;
     }
+    GlobalConfig.save();
   }
 
   NPopupContextMenu {

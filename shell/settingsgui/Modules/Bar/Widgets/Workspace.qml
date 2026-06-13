@@ -6,6 +6,7 @@ import QtQuick.Window
 import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.Bar.Extras
 import qs.settingsgui.Services.Compositor
@@ -245,7 +246,7 @@ Item {
   function isAppPinned(appId) {
     if (!appId)
       return false;
-    const pinnedApps = Settings.data.dock.pinnedApps || [];
+    const pinnedApps = GlobalConfig.dock.pinnedApps || [];
     const normalizedId = normalizeAppId(appId);
     return pinnedApps.some(pinnedId => normalizeAppId(pinnedId) === normalizedId);
   }
@@ -255,7 +256,7 @@ Item {
       return;
 
     const normalizedId = normalizeAppId(appId);
-    let pinnedApps = (Settings.data.dock.pinnedApps || []).slice();
+    let pinnedApps = (GlobalConfig.dock.pinnedApps || []).slice();
 
     const existingIndex = pinnedApps.findIndex(pinnedId => normalizeAppId(pinnedId) === normalizedId);
     const isPinned = existingIndex >= 0;
@@ -266,7 +267,8 @@ Item {
       pinnedApps.push(appId);
     }
 
-    Settings.data.dock.pinnedApps = pinnedApps;
+    GlobalConfig.dock.pinnedApps = pinnedApps;
+    GlobalConfig.save();
   }
 
   // Deferred via Qt.callLater to avoid synchronous ListModel mutations during
@@ -801,7 +803,7 @@ Item {
               }
 
               layer.effect: ShaderEffect {
-                property color targetColor: Settings.data.colorSchemes.darkMode ? Color.mOnSurface : Color.mSurfaceVariant
+                property color targetColor: GlobalConfig.colorSchemes.darkMode ? Color.mOnSurface : Color.mSurfaceVariant
                 property real colorizeMode: 0
                 fragmentShader: Qt.resolvedUrl(Quickshell.shellDir + "/settingsgui" + "/Shaders/qsb/appicon_colorize.frag.qsb")
               }

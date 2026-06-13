@@ -3,10 +3,7 @@ import QtQuick.Effects
 import qs.modules.common
 import qs.modules.common.functions
 
-// Dual-mode shadow: material blur shadow OR angel escalonado (offset golden platform).
-// When angel is active, renders as a warm golden offset rectangle behind the target,
-// creating the signature neo-brutalism "stepped layer" effect from docs-site.
-// 52+ usages across the shell — this ONE component themes everything.
+// Material blur shadow. 52+ usages across the shell — this ONE component themes everything.
 Item {
     id: root
     required property var target
@@ -18,14 +15,12 @@ Item {
     property color color: Appearance.colors.colShadow
     property vector2d offset: Qt.vector2d(0.0, 1.0)
 
-    visible: Appearance.angelEverywhere
-        ? true
-        : Appearance.effectsEnabled
+    visible: Appearance.effectsEnabled
     anchors.fill: target
 
     // ─── MATERIAL MODE: standard blur shadow ───
     RectangularShadow {
-        visible: !Appearance.angelEverywhere
+        visible: true
         anchors.fill: parent
         radius: root.radius
         blur: root.blur
@@ -33,37 +28,5 @@ Item {
         spread: root.spread
         color: root.color
         cached: true
-    }
-
-    // ─── ANGEL MODE: escalonado offset golden platform ───
-    Rectangle {
-        id: escalonado
-        visible: Appearance.angelEverywhere
-
-        readonly property int currentOffsetX: root.hovered ? Appearance.angel.escalonadoHoverOffsetX : Appearance.angel.escalonadoOffsetX
-        readonly property int currentOffsetY: root.hovered ? Appearance.angel.escalonadoHoverOffsetY : Appearance.angel.escalonadoOffsetY
-
-        x: currentOffsetX
-        y: currentOffsetY
-        width: parent.width
-        height: parent.height
-
-        color: root.hovered ? Appearance.angel.colEscalonadoHover : Appearance.angel.colEscalonado
-        border.width: 1
-        border.color: Appearance.angel.colEscalonadoBorder
-        radius: root.radius
-
-        Behavior on x {
-            enabled: Appearance.animationsEnabled
-            NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
-        }
-        Behavior on y {
-            enabled: Appearance.animationsEnabled
-            NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
-        }
-        Behavior on color {
-            enabled: Appearance.animationsEnabled
-            ColorAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
-        }
     }
 }

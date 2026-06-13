@@ -107,15 +107,21 @@ ColumnLayout {
   NToggle {
     label: I18n.tr("panels.wallpaper.live-enabled-label")
     description: I18n.tr("panels.wallpaper.live-enabled-description")
-    checked: Settings.data.wallpaper.liveWallpaperEnabled ?? true
-    onToggled: checked => Settings.data.wallpaper.liveWallpaperEnabled = checked
+    checked: GlobalConfig.wallpaper.liveWallpaperEnabled ?? true
+    onToggled: checked => {
+      GlobalConfig.wallpaper.liveWallpaperEnabled = checked;
+      GlobalConfig.save();
+    }
   }
 
   NToggle {
     label: I18n.tr("panels.wallpaper.live-muted-label")
     description: I18n.tr("panels.wallpaper.live-muted-description")
-    checked: Settings.data.wallpaper.videoMuted ?? true
-    onToggled: checked => Settings.data.wallpaper.videoMuted = checked
+    checked: GlobalConfig.wallpaper.videoMuted ?? true
+    onToggled: checked => {
+      GlobalConfig.wallpaper.videoMuted = checked;
+      GlobalConfig.save();
+    }
   }
 
   NSpinBox {
@@ -126,18 +132,23 @@ ColumnLayout {
     to: 144
     stepSize: 1
     suffix: " fps"
-    value: Settings.data.wallpaper.videoFpsCap ?? 60
+    value: GlobalConfig.wallpaper.videoFpsCap ?? 60
     onValueChanged: {
-      if ((Settings.data.wallpaper.videoFpsCap ?? 60) !== value)
-        Settings.data.wallpaper.videoFpsCap = value;
+      if ((GlobalConfig.wallpaper.videoFpsCap ?? 60) !== value) {
+        GlobalConfig.wallpaper.videoFpsCap = value;
+        GlobalConfig.save();
+      }
     }
   }
 
   NToggle {
     label: I18n.tr("panels.wallpaper.live-pause-on-fullscreen-label")
     description: I18n.tr("panels.wallpaper.live-pause-on-fullscreen-description")
-    checked: Settings.data.wallpaper.pauseOnFullscreen ?? true
-    onToggled: checked => Settings.data.wallpaper.pauseOnFullscreen = checked
+    checked: GlobalConfig.wallpaper.pauseOnFullscreen ?? true
+    onToggled: checked => {
+      GlobalConfig.wallpaper.pauseOnFullscreen = checked;
+      GlobalConfig.save();
+    }
   }
 
   NComboBox {
@@ -155,7 +166,10 @@ ColumnLayout {
       { "key": "outer",  "name": "Outer" },
       { "key": "random", "name": "Random" }
     ]
-    currentKey: Settings.data.wallpaper.swwwTransition ?? "any"
-    onSelected: key => Settings.data.wallpaper.swwwTransition = key
+    currentKey: GlobalConfig.wallpaper.swwwTransition ?? "any"
+    onSelected: key => {
+      GlobalConfig.wallpaper.swwwTransition = key;
+      GlobalConfig.save();
+    }
   }
 }

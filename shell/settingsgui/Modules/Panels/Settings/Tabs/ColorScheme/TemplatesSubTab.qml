@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.System
 import qs.settingsgui.Services.Theming
@@ -136,8 +137,8 @@ ColumnLayout {
   }
 
   function isTemplateActive(templateId) {
-    for (var i = 0; i < Settings.data.templates.activeTemplates.length; i++) {
-      if (Settings.data.templates.activeTemplates[i].id === templateId) {
+    for (var i = 0; i < GlobalConfig.templates.activeTemplates.length; i++) {
+      if (GlobalConfig.templates.activeTemplates[i].id === templateId) {
         return true;
       }
     }
@@ -145,7 +146,7 @@ ColumnLayout {
   }
 
   function toggleTemplate(templateId) {
-    var current = Settings.data.templates.activeTemplates.slice();
+    var current = GlobalConfig.templates.activeTemplates.slice();
     var existingIndex = -1;
 
     for (var i = 0; i < current.length; i++) {
@@ -164,7 +165,8 @@ ColumnLayout {
                    });
     }
 
-    Settings.data.templates.activeTemplates = current;
+    GlobalConfig.templates.activeTemplates = current;
+    GlobalConfig.save();
     AppThemeService.generate();
 
     // Clear search context on interaction to return to filtered view
@@ -288,9 +290,10 @@ ColumnLayout {
   NCheckbox {
     label: I18n.tr("panels.color-scheme.templates-misc-user-templates-label")
     description: I18n.tr("panels.color-scheme.templates-misc-user-templates-description")
-    checked: Settings.data.templates.enableUserTheming
+    checked: GlobalConfig.templates.enableUserTheming
     onToggled: checked => {
-                 Settings.data.templates.enableUserTheming = checked;
+                 GlobalConfig.templates.enableUserTheming = checked;
+                 GlobalConfig.save();
                  if (checked) {
                    TemplateRegistry.writeUserTemplatesToml();
                  }

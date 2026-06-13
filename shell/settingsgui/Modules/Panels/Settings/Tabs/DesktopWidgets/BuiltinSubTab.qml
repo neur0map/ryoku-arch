@@ -173,9 +173,9 @@ ColumnLayout {
       title: qsTr("Resources")
       cfg: GlobalConfig.background.widgets.resources
       styleOptions: [
-        { "key": "default", "name": qsTr("Bars") },
-        { "key": "compact", "name": qsTr("Compact") },
-        { "key": "rings", "name": qsTr("Rings") }
+        { "key": "default", "name": qsTr("Rings") },
+        { "key": "bars", "name": qsTr("Bars") },
+        { "key": "compact", "name": qsTr("Compact") }
       ]
     }
     StdWidgetCard {

@@ -1,5 +1,6 @@
 import QtQuick.Layouts
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.Panels.Settings
 import qs.settingsgui.Services.System
@@ -10,20 +11,21 @@ NIconButtonHot {
   property ShellScreen screen
 
   enabled: ProgramCheckerService.wlsunsetAvailable
-  icon: Settings.data.nightLight.enabled ? (Settings.data.nightLight.forced ? "nightlight-forced" : "nightlight-on") : "nightlight-off"
-  hot: Settings.data.nightLight.enabled
+  icon: GlobalConfig.nightLight.enabled ? (GlobalConfig.nightLight.forced ? "nightlight-forced" : "nightlight-on") : "nightlight-off"
+  hot: GlobalConfig.nightLight.enabled
   tooltipText: I18n.tr("common.night-light")
 
   onClicked: {
-    if (!Settings.data.nightLight.enabled) {
-      Settings.data.nightLight.enabled = true;
-      Settings.data.nightLight.forced = false;
-    } else if (Settings.data.nightLight.enabled && !Settings.data.nightLight.forced) {
-      Settings.data.nightLight.forced = true;
+    if (!GlobalConfig.nightLight.enabled) {
+      GlobalConfig.nightLight.enabled = true;
+      GlobalConfig.nightLight.forced = false;
+    } else if (GlobalConfig.nightLight.enabled && !GlobalConfig.nightLight.forced) {
+      GlobalConfig.nightLight.forced = true;
     } else {
-      Settings.data.nightLight.enabled = false;
-      Settings.data.nightLight.forced = false;
+      GlobalConfig.nightLight.enabled = false;
+      GlobalConfig.nightLight.forced = false;
     }
+    GlobalConfig.save();
   }
 
   onRightClicked: {

@@ -16,13 +16,13 @@ and frame use — so the settings panel matches ryoku's theme and the upstream n
 never mixes in.
 
 The public API (m* color roles + helper functions + colorKeyModel) is preserved
-so the vendored upstream widgets keep working unchanged.
+so ryoku's settings widgets keep working unchanged.
 TODO: if a separate "settings accent" is ever wanted, remap the roles here.
 */
 Singleton {
   id: root
 
-  // Kept for API compatibility with vendored widgets (no live scheme reload here).
+  // Kept for API compatibility with the settings widgets (no live scheme reload here).
   property bool reloadColors: false
   property bool skipTransition: false
   property bool isTransitioning: false
@@ -67,7 +67,7 @@ Singleton {
   readonly property color mHover: Colours.palette.m3secondaryContainer
   readonly property color mOnHover: Colours.palette.m3onSecondaryContainer
 
-  // --- Helpers used by the vendored widgets ---
+  // --- Helpers used by the settings widgets ---
   function resolveColorKey(key) {
     switch (key) {
     case "primary":

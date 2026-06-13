@@ -19,6 +19,7 @@ Singleton {
     property string gpuName: ""
     property real gpuPerc
     property real gpuTemp
+    property string gpuBusyPath: ""
 
     // Memory properties
     property real memUsed
@@ -86,10 +87,22 @@ Singleton {
         onTriggered: {
             stat.reload();
             meminfo.reload();
-            storage.running = true;
-            gpuUsage.running = true;
+            if (root.gpuType === "GENERIC") {
+                if (root.gpuBusyPath)
+                    gpuBusy.reload();
+            } else if (root.gpuType === "NVIDIA") {
+                gpuUsage.running = true;
+            }
             sensors.running = true;
         }
+    }
+
+    Timer {
+        running: root.refCount > 0
+        interval: GlobalConfig.dashboard.storageUpdateInterval
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: storage.running = true
     }
 
     // One-time CPU info detection (name)
@@ -277,6 +290,27 @@ Singleton {
                     root.gpuTemp = 0;
                 }
             }
+        }
+    }
+
+    // One-time resolve of the GENERIC GPU busy sysfs path so the fast tick
+    // can read it via FileView (zero forks) instead of a per-tick shell fork.
+    Process {
+        id: gpuBusyResolve
+
+        running: root.gpuType === "GENERIC" && !root.gpuBusyPath
+        command: ["sh", "-c", "ls /sys/class/drm/card*/device/gpu_busy_percent 2>/dev/null | head -1"]
+        stdout: StdioCollector {
+            onStreamFinished: root.gpuBusyPath = text.trim()
+        }
+    }
+
+    FileView {
+        id: gpuBusy
+
+        path: root.gpuBusyPath
+        onLoaded: {
+            root.gpuPerc = (parseInt(text().trim().split("\n")[0], 10) || 0) / 100;
         }
     }
 

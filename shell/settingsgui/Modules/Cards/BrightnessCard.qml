@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Layouts
 import Quickshell
 import qs.settingsgui.Commons
@@ -134,7 +135,7 @@ NBox {
           onWheel: wheel => {
                      if (brightnessSlider.enabled && brightnessMonitor && brightnessMonitor.brightnessControlAvailable) {
                        const delta = wheel.angleDelta.y || wheel.angleDelta.x;
-                       const step = Settings.data.brightness.brightnessStep / 100.0;
+                       const step = GlobalConfig.services.brightnessIncrement;
                        const increment = delta > 0 ? step : -step;
                        const newValue = Math.max(0, Math.min(1, localBrightness + increment));
                        localBrightness = newValue;

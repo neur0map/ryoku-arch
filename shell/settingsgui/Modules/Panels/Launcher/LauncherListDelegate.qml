@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Widgets
@@ -57,7 +58,7 @@ NBox {
           anchors.fill: parent
           radius: Style.radiusXS
           color: Color.mSurface
-          visible: Settings.data.appLauncher.showIconBackground && !modelData.isImage
+          visible: GlobalConfig.launcher.showIconBackground && !modelData.isImage
         }
 
         // Image preview - uses provider's getImageUrl if available
@@ -124,7 +125,7 @@ NBox {
           sourceComponent: Component {
             Loader {
               anchors.fill: parent
-              sourceComponent: Settings.data.appLauncher.iconMode === "tabler" && modelData.isTablerIcon ? tablerIconComponent : systemIconComponent
+              sourceComponent: GlobalConfig.launcher.iconMode === "tabler" && modelData.isTablerIcon ? tablerIconComponent : systemIconComponent
             }
           }
 
@@ -134,7 +135,7 @@ NBox {
               icon: modelData.icon
               pointSize: Style.fontSizeXXXL
               visible: modelData.icon && !modelData.displayString
-              color: (entry.isSelected && !Settings.data.appLauncher.showIconBackground) ? Color.mOnHover : Color.mOnSurface
+              color: (entry.isSelected && !GlobalConfig.launcher.showIconBackground) ? Color.mOnHover : Color.mOnSurface
             }
           }
 
@@ -270,7 +271,7 @@ NBox {
     z: -1
     hoverEnabled: true
     cursorShape: Qt.PointingHandCursor
-    enabled: !Settings.data.appLauncher.ignoreMouseInput
+    enabled: !GlobalConfig.launcher.ignoreMouseInput
     onEntered: {
       if (!launcher.ignoreMouseHover) {
         launcher.selectedIndex = entry.index;

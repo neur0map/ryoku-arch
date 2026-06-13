@@ -24,14 +24,7 @@ Rectangle {
     property real screenWidth: Quickshell.screens[0]?.width ?? 1920
     property real screenHeight: Quickshell.screens[0]?.height ?? 1080
     
-    readonly property bool angelEverywhere: Appearance.angelEverywhere
-    readonly property bool auroraEverywhere: Appearance.auroraEverywhere
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
-    readonly property bool useWallpaperBackdrop: root.wallpaperBackdropEnabled && root.auroraEverywhere && !root.inirEverywhere
-    
-    color: root.useWallpaperBackdrop ? "transparent"
-        : root.inirEverywhere ? root.inirColor
-        : root.fallbackColor
+    color: root.fallbackColor
     
     property bool hovered: false
 
@@ -40,7 +33,7 @@ Rectangle {
 
     clip: true
     
-    layer.enabled: root.useWallpaperBackdrop
+    layer.enabled: false
     layer.effect: GE.OpacityMask {
         maskSource: Rectangle {
             width: root.width
@@ -58,8 +51,8 @@ Rectangle {
         y: -root.screenY
         width: root.screenWidth
         height: root.screenHeight
-        visible: root.useWallpaperBackdrop && status === Image.Ready
-        source: root.useWallpaperBackdrop ? Wallpapers.effectiveWallpaperUrl : ""
+        visible: false
+        source: ""
         fillMode: Image.PreserveAspectCrop
         // All GlassBackground instances share the same wallpaper URL and sourceSize,
         // so Qt's QPixmapCache serves a single decoded pixmap to all of them.
@@ -71,27 +64,21 @@ Rectangle {
 
         // CRITICAL: Only enable blur layer when VISIBLE AND enabled.
         // This releases the FBO when the panel is hidden, saving ~16 MiB per instance.
-        layer.enabled: Appearance.effectsEnabled && root.useWallpaperBackdrop && root.visible
+        layer.enabled: false
         layer.effect: MultiEffect {
             source: blurredWallpaper
             anchors.fill: source
-            saturation: root.angelEverywhere
-                ? (Appearance.angel.blurSaturation * Appearance.angel.colorStrength)
-                : (Appearance.effectsEnabled ? 0.2 : 0)
+            saturation: Appearance.effectsEnabled ? 0.2 : 0
             blurEnabled: Appearance.effectsEnabled
             blurMax: 64
-            blur: Appearance.effectsEnabled
-                ? (root.angelEverywhere ? Appearance.angel.blurIntensity : 1)
-                : 0
+            blur: Appearance.effectsEnabled ? 1 : 0
         }
     }
 
     Rectangle {
         anchors.fill: parent
-        visible: root.useWallpaperBackdrop
-        color: root.angelEverywhere
-            ? ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.angel.overlayOpacity)
-            : ColorUtils.transparentize(Appearance.colors.colLayer0Base, root.auroraTransparency)
+        visible: false
+        color: ColorUtils.transparentize(Appearance.colors.colLayer0Base, root.auroraTransparency)
     }
 
     // Inset glow — light-from-above on top edge, angel only
@@ -100,7 +87,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         height: Appearance.angel.insetGlowHeight
-        visible: root.angelEverywhere
+        visible: false
         color: Appearance.angel.colInsetGlow
     }
 

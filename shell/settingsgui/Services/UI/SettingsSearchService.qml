@@ -7,6 +7,7 @@ import qs.settingsgui.Commons
 import qs.settingsgui.Services.Compositor
 import qs.settingsgui.Services.Power
 import qs.settingsgui.Services.System
+import Ryoku.Config
 
 Singleton {
   id: root
@@ -55,6 +56,7 @@ Singleton {
   readonly property var _roots: ({
                                    "CompositorService": CompositorService,
                                    "Settings": Settings,
+                                   "GlobalConfig": GlobalConfig,
                                    "Quickshell": Quickshell,
                                    "IdleService": IdleService,
                                    "SystemStatService": SystemStatService,

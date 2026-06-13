@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.UI
 import qs.settingsgui.Widgets
@@ -53,9 +54,9 @@ Popup {
       return;
     }
 
-    var width = Settings.data.wallpaper.wallhavenResolutionWidth || "";
-    var height = Settings.data.wallpaper.wallhavenResolutionHeight || "";
-    var mode = Settings.data.wallpaper.wallhavenResolutionMode || "atleast";
+    var width = GlobalConfig.wallpaper.wallhavenResolutionWidth || "";
+    var height = GlobalConfig.wallpaper.wallhavenResolutionHeight || "";
+    var mode = GlobalConfig.wallpaper.wallhavenResolutionMode || "atleast";
 
     if (width && height) {
       var resolution = width + "x" + height;
@@ -72,8 +73,8 @@ Popup {
     }
 
     // Trigger new search with updated resolution only if requested
-    if (triggerSearch && Settings.data.wallpaper.useWallhaven) {
-      WallhavenService.search(Settings.data.wallpaper.wallhavenQuery || "", 1);
+    if (triggerSearch && GlobalConfig.wallpaper.useWallhaven) {
+      WallhavenService.search(GlobalConfig.wallpaper.wallhavenQuery || "", 1);
     }
   }
 
@@ -138,7 +139,7 @@ Popup {
         Layout.fillWidth: true
         enabled: !WallhavenService.apiKeyManagedByEnv
         placeholderText: WallhavenService.apiKeyManagedByEnv ? I18n.tr("wallpaper.panel.apikey-managed-by-env") : I18n.tr("wallpaper.panel.apikey-placeholder")
-        text: WallhavenService.apiKeyManagedByEnv ? "" : (Settings.data.wallpaper.wallhavenApiKey || "")
+        text: WallhavenService.apiKeyManagedByEnv ? "" : (GlobalConfig.wallpaper.wallhavenApiKey || "")
 
         // Fix for password echo mode
         Component.onCompleted: {
@@ -149,7 +150,8 @@ Popup {
 
         onEditingFinished: {
           if (!WallhavenService.apiKeyManagedByEnv) {
-            Settings.data.wallpaper.wallhavenApiKey = text;
+            GlobalConfig.wallpaper.wallhavenApiKey = text;
+            GlobalConfig.save();
           }
         }
       }
@@ -208,12 +210,13 @@ Popup {
             "name": I18n.tr("wallpaper.panel.sorting-toplist")
           }
         ]
-        currentKey: Settings.data.wallpaper.wallhavenSorting || "relevance"
+        currentKey: GlobalConfig.wallpaper.wallhavenSorting || "relevance"
         onSelected: key => {
-                      Settings.data.wallpaper.wallhavenSorting = key;
+                      GlobalConfig.wallpaper.wallhavenSorting = key;
+                      GlobalConfig.save();
                       if (typeof WallhavenService !== "undefined") {
                         WallhavenService.sorting = key;
-                        WallhavenService.search(Settings.data.wallpaper.wallhavenQuery || "", 1);
+                        WallhavenService.search(GlobalConfig.wallpaper.wallhavenQuery || "", 1);
                       }
                     }
       }
@@ -245,12 +248,13 @@ Popup {
             "name": I18n.tr("wallpaper.panel.order-asc")
           }
         ]
-        currentKey: Settings.data.wallpaper.wallhavenOrder || "desc"
+        currentKey: GlobalConfig.wallpaper.wallhavenOrder || "desc"
         onSelected: key => {
-                      Settings.data.wallpaper.wallhavenOrder = key;
+                      GlobalConfig.wallpaper.wallhavenOrder = key;
+                      GlobalConfig.save();
                       if (typeof WallhavenService !== "undefined") {
                         WallhavenService.order = key;
-                        WallhavenService.search(Settings.data.wallpaper.wallhavenQuery || "", 1);
+                        WallhavenService.search(GlobalConfig.wallpaper.wallhavenQuery || "", 1);
                       }
                     }
       }
@@ -276,24 +280,25 @@ Popup {
         spacing: Style.marginL
 
         function getPurityValue(index) {
-          var purity = Settings.data.wallpaper.wallhavenPurity || "100";
+          var purity = GlobalConfig.wallpaper.wallhavenPurity || "100";
           return purity.length > index && purity.charAt(index) === "1";
         }
 
         function updatePurity(sfw, sketchy, nsfw) {
           var purity = (sfw ? "1" : "0") + (sketchy ? "1" : "0") + (nsfw ? "1" : "0");
-          Settings.data.wallpaper.wallhavenPurity = purity;
+          GlobalConfig.wallpaper.wallhavenPurity = purity;
+          GlobalConfig.save();
           sfwToggle.checked = sfw;
           sketchyToggle.checked = sketchy;
           nsfwToggle.checked = nsfw;
           if (typeof WallhavenService !== "undefined") {
             WallhavenService.purity = purity;
-            WallhavenService.search(Settings.data.wallpaper.wallhavenQuery || "", 1);
+            WallhavenService.search(GlobalConfig.wallpaper.wallhavenQuery || "", 1);
           }
         }
 
         Connections {
-          target: Settings.data.wallpaper
+          target: GlobalConfig.wallpaper
           function onWallhavenPurityChanged() {
             sfwToggle.checked = purityRow.getPurityValue(0);
             sketchyToggle.checked = purityRow.getPurityValue(1);
@@ -565,12 +570,13 @@ Popup {
             "name": "5x4"
           }
         ]
-        currentKey: Settings.data.wallpaper.wallhavenRatios || ""
+        currentKey: GlobalConfig.wallpaper.wallhavenRatios || ""
         onSelected: key => {
-                      Settings.data.wallpaper.wallhavenRatios = key;
+                      GlobalConfig.wallpaper.wallhavenRatios = key;
+                      GlobalConfig.save();
                       if (typeof WallhavenService !== "undefined") {
                         WallhavenService.ratios = key;
-                        WallhavenService.search(Settings.data.wallpaper.wallhavenQuery || "", 1);
+                        WallhavenService.search(GlobalConfig.wallpaper.wallhavenQuery || "", 1);
                       }
                     }
       }
@@ -596,24 +602,25 @@ Popup {
         spacing: Style.marginL
 
         function getCategoryValue(index) {
-          var cats = Settings.data.wallpaper.wallhavenCategories || "111";
+          var cats = GlobalConfig.wallpaper.wallhavenCategories || "111";
           return cats.length > index && cats.charAt(index) === "1";
         }
 
         function updateCategories(general, anime, people) {
           var categories = (general ? "1" : "0") + (anime ? "1" : "0") + (people ? "1" : "0");
-          Settings.data.wallpaper.wallhavenCategories = categories;
+          GlobalConfig.wallpaper.wallhavenCategories = categories;
+          GlobalConfig.save();
           generalToggle.checked = general;
           animeToggle.checked = anime;
           peopleToggle.checked = people;
           if (typeof WallhavenService !== "undefined") {
             WallhavenService.categories = categories;
-            WallhavenService.search(Settings.data.wallpaper.wallhavenQuery, 1);
+            WallhavenService.search(GlobalConfig.wallpaper.wallhavenQuery, 1);
           }
         }
 
         Connections {
-          target: Settings.data.wallpaper
+          target: GlobalConfig.wallpaper
           function onWallhavenCategoriesChanged() {
             generalToggle.checked = categoriesRow.getCategoryValue(0);
             animeToggle.checked = categoriesRow.getCategoryValue(1);
@@ -836,19 +843,20 @@ Popup {
               "name": I18n.tr("wallpaper.panel.resolution-exact")
             }
           ]
-          currentKey: Settings.data.wallpaper.wallhavenResolutionMode || "atleast"
+          currentKey: GlobalConfig.wallpaper.wallhavenResolutionMode || "atleast"
 
           Connections {
-            target: Settings.data.wallpaper
+            target: GlobalConfig.wallpaper
             function onWallhavenResolutionModeChanged() {
-              if (resolutionModeComboBox.currentKey !== Settings.data.wallpaper.wallhavenResolutionMode) {
-                resolutionModeComboBox.currentKey = Settings.data.wallpaper.wallhavenResolutionMode || "atleast";
+              if (resolutionModeComboBox.currentKey !== GlobalConfig.wallpaper.wallhavenResolutionMode) {
+                resolutionModeComboBox.currentKey = GlobalConfig.wallpaper.wallhavenResolutionMode || "atleast";
               }
             }
           }
 
           onSelected: key => {
-                        Settings.data.wallpaper.wallhavenResolutionMode = key;
+                        GlobalConfig.wallpaper.wallhavenResolutionMode = key;
+                        GlobalConfig.save();
                         updateResolution(false);
                       }
         }
@@ -863,7 +871,7 @@ Popup {
           Layout.preferredWidth: 80
           placeholderText: I18n.tr("common.width")
           inputMethodHints: Qt.ImhDigitsOnly
-          text: Settings.data.wallpaper.wallhavenResolutionWidth || ""
+          text: GlobalConfig.wallpaper.wallhavenResolutionWidth || ""
 
           Component.onCompleted: {
             if (resolutionWidthInput.inputItem) {
@@ -879,16 +887,17 @@ Popup {
           }
 
           Connections {
-            target: Settings.data.wallpaper
+            target: GlobalConfig.wallpaper
             function onWallhavenResolutionWidthChanged() {
-              if (resolutionWidthInput.text !== Settings.data.wallpaper.wallhavenResolutionWidth) {
-                resolutionWidthInput.text = Settings.data.wallpaper.wallhavenResolutionWidth || "";
+              if (resolutionWidthInput.text !== GlobalConfig.wallpaper.wallhavenResolutionWidth) {
+                resolutionWidthInput.text = GlobalConfig.wallpaper.wallhavenResolutionWidth || "";
               }
             }
           }
 
           onEditingFinished: {
-            Settings.data.wallpaper.wallhavenResolutionWidth = text;
+            GlobalConfig.wallpaper.wallhavenResolutionWidth = text;
+            GlobalConfig.save();
             updateResolution(false);
           }
         }
@@ -905,7 +914,7 @@ Popup {
           Layout.preferredWidth: 80
           placeholderText: I18n.tr("common.height")
           inputMethodHints: Qt.ImhDigitsOnly
-          text: Settings.data.wallpaper.wallhavenResolutionHeight || ""
+          text: GlobalConfig.wallpaper.wallhavenResolutionHeight || ""
 
           Component.onCompleted: {
             if (resolutionHeightInput.inputItem) {
@@ -921,16 +930,17 @@ Popup {
           }
 
           Connections {
-            target: Settings.data.wallpaper
+            target: GlobalConfig.wallpaper
             function onWallhavenResolutionHeightChanged() {
-              if (resolutionHeightInput.text !== Settings.data.wallpaper.wallhavenResolutionHeight) {
-                resolutionHeightInput.text = Settings.data.wallpaper.wallhavenResolutionHeight || "";
+              if (resolutionHeightInput.text !== GlobalConfig.wallpaper.wallhavenResolutionHeight) {
+                resolutionHeightInput.text = GlobalConfig.wallpaper.wallhavenResolutionHeight || "";
               }
             }
           }
 
           onEditingFinished: {
-            Settings.data.wallpaper.wallhavenResolutionHeight = text;
+            GlobalConfig.wallpaper.wallhavenResolutionHeight = text;
+            GlobalConfig.save();
             updateResolution(false);
           }
         }
@@ -946,18 +956,18 @@ Popup {
       Layout.fillWidth: true
       text: I18n.tr("common.apply")
       onClicked: {
-        if (typeof WallhavenService !== "undefined" && Settings.data.wallpaper.useWallhaven) {
-          WallhavenService.categories = Settings.data.wallpaper.wallhavenCategories;
-          WallhavenService.purity = Settings.data.wallpaper.wallhavenPurity;
-          WallhavenService.sorting = Settings.data.wallpaper.wallhavenSorting;
-          WallhavenService.order = Settings.data.wallpaper.wallhavenOrder;
-          WallhavenService.ratios = Settings.data.wallpaper.wallhavenRatios;
-          WallhavenService.apiKey = Settings.data.wallpaper.wallhavenApiKey;
+        if (typeof WallhavenService !== "undefined" && GlobalConfig.wallpaper.useWallhaven) {
+          WallhavenService.categories = GlobalConfig.wallpaper.wallhavenCategories;
+          WallhavenService.purity = GlobalConfig.wallpaper.wallhavenPurity;
+          WallhavenService.sorting = GlobalConfig.wallpaper.wallhavenSorting;
+          WallhavenService.order = GlobalConfig.wallpaper.wallhavenOrder;
+          WallhavenService.ratios = GlobalConfig.wallpaper.wallhavenRatios;
+          WallhavenService.apiKey = GlobalConfig.wallpaper.wallhavenApiKey;
 
           // Update resolution settings (without triggering search)
           updateResolution(false);
 
-          WallhavenService.search(Settings.data.wallpaper.wallhavenQuery || "", 1);
+          WallhavenService.search(GlobalConfig.wallpaper.wallhavenQuery || "", 1);
 
           // Close the popup after applying (delay to prevent click propagation)
           Qt.callLater(() => {

@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Theming
 
@@ -36,14 +37,16 @@ Singleton {
 
   // disable Night Light in settings if wlsunset is not available
   onChecksCompleted: {
-    if (!wlsunsetAvailable && Settings.data.nightLight.enabled) {
-      Settings.data.nightLight.enabled = false;
+    if (!wlsunsetAvailable && GlobalConfig.nightLight.enabled) {
+      GlobalConfig.nightLight.enabled = false;
+      GlobalConfig.save();
     }
   }
 
   onWlsunsetAvailableChanged: {
-    if (!wlsunsetAvailable && Settings.data.nightLight.enabled) {
-      Settings.data.nightLight.enabled = false;
+    if (!wlsunsetAvailable && GlobalConfig.nightLight.enabled) {
+      GlobalConfig.nightLight.enabled = false;
+      GlobalConfig.save();
     }
   }
 

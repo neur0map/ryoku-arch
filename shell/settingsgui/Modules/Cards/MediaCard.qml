@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Media
 import qs.settingsgui.Services.UI
@@ -51,7 +52,7 @@ NBox {
 
   function updateCachedWallpaper() {
     // Handle solid color mode - no wallpaper to cache
-    if (Settings.data.wallpaper.useSolidColor || WallpaperService.isSolidColorPath(wallpaper)) {
+    if (GlobalConfig.wallpaper.useSolidColor || WallpaperService.isSolidColorPath(wallpaper)) {
       cachedWallpaper = "";
       return;
     }
@@ -94,7 +95,7 @@ NBox {
     // Solid color background (always present as base layer)
     Rectangle {
       anchors.fill: parent
-      color: Settings.data.wallpaper.useSolidColor ? Settings.data.wallpaper.solidColor : Color.mSurface
+      color: GlobalConfig.wallpaper.useSolidColor ? GlobalConfig.wallpaper.solidColor : Color.mSurface
     }
 
     Image {
@@ -102,7 +103,7 @@ NBox {
       readonly property int dim: Math.round(256 * Style.uiScaleRatio)
       anchors.fill: parent
       visible: source.toString() !== ""
-      source: MediaService.trackArtUrl || (Settings.data.wallpaper.enabled && !Settings.data.wallpaper.useSolidColor ? root.cachedWallpaper : "")
+      source: MediaService.trackArtUrl || (GlobalConfig.wallpaper.enabled && !GlobalConfig.wallpaper.useSolidColor ? root.cachedWallpaper : "")
       sourceSize: Qt.size(dim, dim)
       fillMode: Image.PreserveAspectCrop
       layer.enabled: true
@@ -289,7 +290,7 @@ NBox {
           shadowOpacity: 0.9
           shadowHorizontalOffset: 0
           shadowVerticalOffset: 0
-          shadowColor: Settings.data.colorSchemes.darkMode ? "black" : "white"
+          shadowColor: GlobalConfig.colorSchemes.darkMode ? "black" : "white"
         }
 
         ColumnLayout {

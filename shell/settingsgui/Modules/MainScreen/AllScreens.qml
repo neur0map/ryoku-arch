@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Ryoku.Config
 
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.MainScreen
@@ -130,7 +131,7 @@ Variants {
     Loader {
       active: {
         // Desktop widgets edit mode needs popup window on ALL screens
-        if (DesktopWidgetRegistry.editMode && Settings.data.desktopWidgets.enabled) {
+        if (DesktopWidgetRegistry.editMode && GlobalConfig.background.desktopWidgets.enabled) {
           return true;
         }
 

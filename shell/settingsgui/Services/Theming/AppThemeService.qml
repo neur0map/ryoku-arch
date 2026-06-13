@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.UI
 
@@ -12,7 +13,7 @@ Singleton {
     target: WallpaperService
 
     function onWallpaperChanged(screenName, path) {
-      var effectiveMonitor = Settings.data.colorSchemes.monitorForColors;
+      var effectiveMonitor = GlobalConfig.colorSchemes.monitorForColors;
       if (effectiveMonitor === "" || effectiveMonitor === undefined) {
         effectiveMonitor = Screen.name;
       }
@@ -20,32 +21,32 @@ Singleton {
       if (screenName !== effectiveMonitor)
         return;
 
-      if (Settings.data.colorSchemes.useWallpaperColors) {
+      if (GlobalConfig.colorSchemes.useWallpaperColors) {
         generateFromWallpaper();
       } else if (ColorSchemeService.lastPredefinedSchemeData) {
         // Regenerate templates only; skip applyScheme so colors.json and scheme reload stay untouched
         // when outputs are unchanged (see template processor skip-identical writes).
         generateFromPredefinedScheme(ColorSchemeService.lastPredefinedSchemeData);
       } else {
-        ColorSchemeService.applyScheme(Settings.data.colorSchemes.predefinedScheme);
+        ColorSchemeService.applyScheme(GlobalConfig.colorSchemes.predefinedScheme);
       }
     }
   }
 
   Connections {
-    target: Settings.data.colorSchemes
+    target: GlobalConfig.colorSchemes
     function onDarkModeChanged() {
       Logger.d("AppThemeService", "Detected dark mode change");
       generate();
     }
     function onMonitorForColorsChanged() {
-      if (Settings.data.colorSchemes.useWallpaperColors) {
-        Logger.d("AppThemeService", "Monitor for colors changed to:", Settings.data.colorSchemes.monitorForColors);
+      if (GlobalConfig.colorSchemes.useWallpaperColors) {
+        Logger.d("AppThemeService", "Monitor for colors changed to:", GlobalConfig.colorSchemes.monitorForColors);
         generateFromWallpaper();
       }
     }
     function onGenerationMethodChanged() {
-      Logger.d("AppThemeService", "Generation method changed to:", Settings.data.colorSchemes.generationMethod);
+      Logger.d("AppThemeService", "Generation method changed to:", GlobalConfig.colorSchemes.generationMethod);
       generate();
     }
   }
@@ -55,16 +56,16 @@ Singleton {
   }
 
   function generate() {
-    if (Settings.data.colorSchemes.useWallpaperColors) {
+    if (GlobalConfig.colorSchemes.useWallpaperColors) {
       generateFromWallpaper();
     } else {
       // applyScheme will trigger template generation via schemeReader.onLoaded
-      ColorSchemeService.applyScheme(Settings.data.colorSchemes.predefinedScheme);
+      ColorSchemeService.applyScheme(GlobalConfig.colorSchemes.predefinedScheme);
     }
   }
 
   function generateFromWallpaper() {
-    var effectiveMonitor = Settings.data.colorSchemes.monitorForColors;
+    var effectiveMonitor = GlobalConfig.colorSchemes.monitorForColors;
     if (effectiveMonitor === "" || effectiveMonitor === undefined) {
       effectiveMonitor = Screen.name;
     }
@@ -74,14 +75,14 @@ Singleton {
       Logger.e("AppThemeService", "No wallpaper found for monitor:", effectiveMonitor);
       return;
     }
-    const mode = Settings.data.colorSchemes.darkMode ? "dark" : "light";
+    const mode = GlobalConfig.colorSchemes.darkMode ? "dark" : "light";
     TemplateProcessor.processWallpaperColors(wp, mode);
   }
 
   function generateFromPredefinedScheme(schemeData) {
     Logger.i("AppThemeService", "Generating templates from predefined color scheme");
-    const mode = Settings.data.colorSchemes.darkMode ? "dark" : "light";
-    var effectiveMonitor = Settings.data.colorSchemes.monitorForColors;
+    const mode = GlobalConfig.colorSchemes.darkMode ? "dark" : "light";
+    var effectiveMonitor = GlobalConfig.colorSchemes.monitorForColors;
     if (effectiveMonitor === "" || effectiveMonitor === undefined) {
       effectiveMonitor = Screen.name;
     }

@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Keyboard
@@ -8,7 +9,7 @@ Item {
 
   property string name: I18n.tr("launcher.providers.emoji")
   property var launcher: null
-  property string iconMode: Settings.data.appLauncher.iconMode
+  property string iconMode: GlobalConfig.launcher.iconMode
   property bool handleSearch: false
   property string supportedLayouts: "grid" // Only grid layout for emoji
   property int preferredGridColumns: 7 // More columns for compact emoji display

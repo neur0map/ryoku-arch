@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 
 // Location and weather service with decoupled geocoding and weather fetching.
@@ -85,7 +86,7 @@ Singleton {
   Timer {
     id: updateTimer
     interval: 20 * 1000
-    running: Settings.data.location.weatherEnabled || Settings.data.colorSchemes.schedulingMode == "location"
+    running: Settings.data.location.weatherEnabled || GlobalConfig.colorSchemes.schedulingMode == "location"
     repeat: true
     onTriggered: {
       update();

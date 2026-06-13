@@ -4,6 +4,7 @@ import Qt.labs.folderlistmodel
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Theming
 import qs.settingsgui.Services.UI
@@ -23,24 +24,24 @@ Singleton {
 
   // prefer-light/prefer-dark only; GTK template post_hook still runs full gtk-refresh.
   function pushSystemColorScheme() {
-    if (!Settings.data.colorSchemes.syncGsettings)
+    if (!GlobalConfig.colorSchemes.syncGsettings)
       return;
     if (TemplateProcessor.isTemplateEnabled("gtk"))
       return;
-    const mode = Settings.data.colorSchemes.darkMode ? "dark" : "light";
+    const mode = GlobalConfig.colorSchemes.darkMode ? "dark" : "light";
     Quickshell.execDetached(["python3", gtkRefreshScript, "--appearance-only", mode]);
   }
 
   Connections {
-    target: Settings.data.colorSchemes
+    target: GlobalConfig.colorSchemes
     function onDarkModeChanged() {
       Logger.d("ColorScheme", "Detected dark mode change");
-      if (!Settings.data.colorSchemes.useWallpaperColors && Settings.data.colorSchemes.predefinedScheme) {
+      if (!GlobalConfig.colorSchemes.useWallpaperColors && GlobalConfig.colorSchemes.predefinedScheme) {
         // Re-apply current scheme to pick the right variant
-        applyScheme(Settings.data.colorSchemes.predefinedScheme);
+        applyScheme(GlobalConfig.colorSchemes.predefinedScheme);
       }
       root.pushSystemColorScheme();
-      const enabled = !!Settings.data.colorSchemes.darkMode;
+      const enabled = !!GlobalConfig.colorSchemes.darkMode;
       const label = enabled ? I18n.tr("tooltips.switch-to-dark-mode") : I18n.tr("tooltips.switch-to-light-mode");
       const description = I18n.tr("common.enabled");
       ToastService.showNotice(label, description, "dark-mode");
@@ -130,7 +131,8 @@ Singleton {
     }
 
     if (schemeExists) {
-      Settings.data.colorSchemes.predefinedScheme = basename;
+      GlobalConfig.colorSchemes.predefinedScheme = basename;
+      GlobalConfig.save();
       applyScheme(schemeName);
       ToastService.showNotice(I18n.tr("panels.color-scheme.title"), basename, "settings-color-scheme");
     } else {
@@ -157,13 +159,14 @@ Singleton {
         schemes = files;
         scanning = false;
         Logger.d("ColorScheme", "Listed", schemes.length, "schemes");
-        var stored = Settings.data.colorSchemes.predefinedScheme;
+        var stored = GlobalConfig.colorSchemes.predefinedScheme;
         if (stored) {
           var basename = getBasename(stored);
           if (basename !== stored) {
-            Settings.data.colorSchemes.predefinedScheme = basename;
+            GlobalConfig.colorSchemes.predefinedScheme = basename;
+            GlobalConfig.save();
           }
-          if (!Settings.data.colorSchemes.useWallpaperColors) {
+          if (!GlobalConfig.colorSchemes.useWallpaperColors) {
             applyScheme(basename);
           }
         }
@@ -185,7 +188,7 @@ Singleton {
         var data = JSON.parse(text());
         var variant = data;
         if (data && (data.dark || data.light)) {
-          if (Settings.data.colorSchemes.darkMode) {
+          if (GlobalConfig.colorSchemes.darkMode) {
             variant = data.dark || data.light;
           } else {
             variant = data.light || data.dark;
@@ -195,7 +198,7 @@ Singleton {
         lastPredefinedSchemeData = data;
         Logger.i("ColorScheme", "Applying color scheme:", getBasename(path));
 
-        if (hasEnabledTemplates() || Settings.data.templates.enableUserTheming) {
+        if (hasEnabledTemplates() || GlobalConfig.templates.enableUserTheming) {
           AppThemeService.generateFromPredefinedScheme(data);
         }
       } catch (e) {
@@ -205,7 +208,7 @@ Singleton {
   }
 
   function hasEnabledTemplates() {
-    const activeTemplates = Settings.data.templates.activeTemplates;
+    const activeTemplates = GlobalConfig.templates.activeTemplates;
     if (!activeTemplates || activeTemplates.length === 0) {
       return false;
     }

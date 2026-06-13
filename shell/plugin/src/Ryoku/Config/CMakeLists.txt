@@ -13,6 +13,7 @@ qml_module(ryoku-config
         backgroundconfig.hpp
         barconfig.hpp
         borderconfig.hpp
+        clipboardconfig.hpp
         controlcenterconfig.hpp
         dashboardconfig.hpp
         gamemodeconfig.hpp
@@ -20,6 +21,16 @@ qml_module(ryoku-config
         generalconfig.hpp
         launcherconfig.hpp
         lockconfig.hpp
+        networkconfig.hpp
+        nightlightconfig.hpp
+        dockconfig.hpp
+        templatesconfig.hpp
+        calendarconfig.hpp
+        colorschemesconfig.hpp
+        systemmonitorconfig.hpp
+        wallpaperconfig.hpp
+        hooksconfig.hpp
+        pluginsconfig.hpp
         notifsconfig.hpp
         osdconfig.hpp
         serviceconfig.hpp

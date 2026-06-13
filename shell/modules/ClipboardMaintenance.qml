@@ -3,18 +3,18 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import qs.settingsgui.Commons
+import Ryoku.Config
 import qs.dashboard.modules.services
 
 // Ryoku: (1) eagerly starts the image-capable ClipboardService so its wl-paste
 // watcher captures text + images into clipboard.db from shell startup — it's
 // otherwise a lazy, dashboard-only singleton that never ran. (2) enforces the
-// history settings (Settings.data.clipboard) on that SQLite store: trim-to-limit +
+// history settings (GlobalConfig.clipboard) on that SQLite store: trim-to-limit +
 // scheduled age cleanup. Always loaded from shell.qml.
 Item {
     id: root
 
-    readonly property var cfg: Settings.data.clipboard
+    readonly property var cfg: GlobalConfig.clipboard
     readonly property string dbPath: ClipboardService.dbPath
 
     Component.onCompleted: {

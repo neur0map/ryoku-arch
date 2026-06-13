@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.Panels.Settings
 import qs.settingsgui.Services.Platform
@@ -677,7 +678,7 @@ Singleton {
 
   function removePluginDesktopWidgetsFromSettings(pluginId) {
     var widgetId = "plugin:" + pluginId;
-    var monitorWidgets = Settings.data.desktopWidgets.monitorWidgets || [];
+    var monitorWidgets = GlobalConfig.background.desktopWidgets.monitorWidgets || [];
     var changed = false;
 
     for (var m = 0; m < monitorWidgets.length; m++) {
@@ -700,7 +701,8 @@ Singleton {
     }
 
     if (changed) {
-      Settings.data.desktopWidgets.monitorWidgets = monitorWidgets;
+      GlobalConfig.background.desktopWidgets.monitorWidgets = monitorWidgets;
+      GlobalConfig.save();
     }
 
     return changed;
@@ -1328,7 +1330,7 @@ Singleton {
     if (updateCount > 0) {
       Logger.i("PluginService", updateCount, "plugin update(s) available");
 
-      if (Settings.data.plugins.notifyUpdates) {
+      if (GlobalConfig.plugins.notifyUpdates) {
         ToastService.showNotice(I18n.tr("panels.plugins.title"), I18n.trp("panels.plugins.update-available", updateCount) + "\n\n" + updatesDescription, "plugin", 5000, I18n.tr("panels.plugins.open-plugins-tab"), function () {
           if (root.screenDetector) {
             root.screenDetector.withCurrentScreen(function (screen) {
@@ -1353,7 +1355,7 @@ Singleton {
       Logger.i("PluginService", "All installed plugins are up to date");
     }
 
-    if (root._isStartupCheck && Settings.data.plugins.autoUpdate && updateCount > 0) {
+    if (root._isStartupCheck && GlobalConfig.plugins.autoUpdate && updateCount > 0) {
       Logger.i("PluginService", "Auto-updating", updateCount, "plugin(s)");
       updateAllPlugins();
     }
@@ -1431,7 +1433,7 @@ Singleton {
     var screenOverridesBackup = JSON.parse(JSON.stringify(Settings.data.bar.screenOverrides || []));
     Logger.d("PluginService", "Backed up bar layout (global + screen overrides)");
 
-    var desktopWidgetsBackup = JSON.parse(JSON.stringify(Settings.data.desktopWidgets.monitorWidgets || []));
+    var desktopWidgetsBackup = JSON.parse(JSON.stringify(GlobalConfig.background.desktopWidgets.monitorWidgets || []));
     Logger.d("PluginService", "Backed up desktop widget settings");
 
     for (var slotNum = 1; slotNum <= 2; slotNum++) {
@@ -1468,7 +1470,8 @@ Singleton {
         Settings.data.bar.screenOverrides = screenOverridesBackup;
         Logger.d("PluginService", "Restored bar layout (global + screen overrides)");
 
-        Settings.data.desktopWidgets.monitorWidgets = desktopWidgetsBackup;
+        GlobalConfig.background.desktopWidgets.monitorWidgets = desktopWidgetsBackup;
+        GlobalConfig.save();
         Logger.d("PluginService", "Restored desktop widget settings");
 
         // Persist restored layout immediately to prevent race with file watcher reload
@@ -1489,7 +1492,8 @@ Singleton {
         Settings.data.bar.widgets.right = barBackup.right;
         Settings.data.bar.screenOverrides = screenOverridesBackup;
 
-        Settings.data.desktopWidgets.monitorWidgets = desktopWidgetsBackup;
+        GlobalConfig.background.desktopWidgets.monitorWidgets = desktopWidgetsBackup;
+        GlobalConfig.save();
         Settings.saveImmediate();
 
         if (callback)

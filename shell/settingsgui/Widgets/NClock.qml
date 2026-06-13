@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Layouts
 import Quickshell
 import "../Helpers/ColorsConvert.js" as ColorsConvert
@@ -277,7 +278,7 @@ Item {
 
       NText {
         text: {
-          var t = Settings.data.location.use12hourFormat ? I18n.locale.toString(now, "hh AP") : I18n.locale.toString(now, "HH");
+          var t = GlobalConfig.services.useTwelveHourClock ? I18n.locale.toString(now, "hh AP") : I18n.locale.toString(now, "HH");
           return t.split(" ")[0];
         }
 

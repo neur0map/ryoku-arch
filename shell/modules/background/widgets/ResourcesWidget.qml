@@ -4,27 +4,19 @@ import QtQuick
 import QtQuick.Layouts
 import Ryoku.Config
 import qs.components
+import qs.components.controls
 import qs.components.misc
 import qs.services
 
 // Self-contained desktop resources card (CPU / memory / disk). Style switches the
-// presentation: "default" labelled bars, "compact" icon+percent row, "rings"
-// circular gauges. Scales by re-rendering at the target size (sizeScale).
-StyledRect {
+// presentation: "default" gradient labelled bars, "compact" accent chips,
+// "rings" circular gauges. Each metric owns an accent (CPU primary, memory
+// secondary, disk tertiary) and eases on value change. Scales by re-rendering at
+// the target size (sizeScale).
+WidgetCard {
     id: root
 
-    property bool showBackground: true
-    property real sizeScale: 1
     readonly property string style: GlobalConfig.background.widgets.resources.style
-
-    readonly property real pad: Tokens.padding.large * sizeScale
-
-    implicitWidth: content.implicitWidth + pad * 2
-    implicitHeight: content.implicitHeight + pad * 2
-    radius: Tokens.rounding.large * sizeScale
-    color: showBackground ? Qt.alpha(Colours.palette.m3surfaceContainer, 0.78) : "transparent"
-    border.width: showBackground ? 1 : 0
-    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
 
     Ref {
         service: SystemUsage
@@ -32,60 +24,54 @@ StyledRect {
 
     Loader {
         id: content
-        anchors.centerIn: parent
+
         sourceComponent: {
             switch (root.style) {
             case "compact":
                 return compactStyle;
-            case "rings":
-                return ringsStyle;
-            default:
+            case "bars":
                 return barsStyle;
+            default:
+                return ringsStyle;
             }
         }
     }
 
-    // ── default: labelled rows with progress tracks ──────────────────────────
+    // ── default: labelled rows with gradient progress tracks ─────────────────
     Component {
         id: barsStyle
 
-        Item {
-            implicitWidth: 248 * root.sizeScale
-            implicitHeight: col.implicitHeight
+        ColumnLayout {
+            implicitWidth: 252 * root.sizeScale
+            spacing: Tokens.spacing.normal * root.sizeScale
 
-            ColumnLayout {
-                id: col
-                width: parent.width
-                spacing: Tokens.spacing.normal * root.sizeScale
-
-                Stat {
-                    icon: "memory"
-                    label: qsTr("CPU")
-                    value: SystemUsage.cpuPerc
-                    colour: Colours.palette.m3primary
-                }
-                Stat {
-                    icon: "memory_alt"
-                    label: qsTr("Memory")
-                    value: SystemUsage.memPerc
-                    colour: Colours.palette.m3secondary
-                }
-                Stat {
-                    icon: "hard_disk"
-                    label: qsTr("Disk")
-                    value: SystemUsage.storagePerc
-                    colour: Colours.palette.m3tertiary
-                }
+            Stat {
+                icon: "memory"
+                label: qsTr("CPU")
+                value: SystemUsage.cpuPerc
+                colour: Colours.palette.m3primary
+            }
+            Stat {
+                icon: "memory_alt"
+                label: qsTr("Memory")
+                value: SystemUsage.memPerc
+                colour: Colours.palette.m3secondary
+            }
+            Stat {
+                icon: "hard_disk"
+                label: qsTr("Disk")
+                value: SystemUsage.storagePerc
+                colour: Colours.palette.m3tertiary
             }
         }
     }
 
-    // ── compact: icon + percent rows, no bars ────────────────────────────────
+    // ── compact: accent chip + percent rows ──────────────────────────────────
     Component {
         id: compactStyle
 
         ColumnLayout {
-            spacing: Tokens.spacing.small * root.sizeScale
+            spacing: Tokens.spacing.normal * root.sizeScale
 
             CompactStat {
                 icon: "memory"
@@ -110,23 +96,44 @@ StyledRect {
         id: ringsStyle
 
         RowLayout {
-            spacing: Tokens.spacing.larger * root.sizeScale
+            spacing: Tokens.spacing.large * root.sizeScale
 
             Ring {
+                icon: "memory"
                 value: SystemUsage.cpuPerc
                 colour: Colours.palette.m3primary
                 label: qsTr("CPU")
             }
             Ring {
+                icon: "memory_alt"
                 value: SystemUsage.memPerc
                 colour: Colours.palette.m3secondary
                 label: qsTr("MEM")
             }
             Ring {
+                icon: "hard_disk"
                 value: SystemUsage.storagePerc
                 colour: Colours.palette.m3tertiary
                 label: qsTr("DSK")
             }
+        }
+    }
+
+    component IconChip: StyledRect {
+        required property string icon
+        required property color colour
+
+        implicitWidth: Tokens.font.size.larger * 1.9 * root.sizeScale
+        implicitHeight: implicitWidth
+        radius: Tokens.rounding.small * root.sizeScale
+        color: Qt.alpha(colour, 0.16)
+
+        MaterialIcon {
+            anchors.centerIn: parent
+            text: parent.icon
+            color: parent.colour
+            fill: 1
+            font.pointSize: Tokens.font.size.normal * root.sizeScale
         }
     }
 
@@ -139,36 +146,37 @@ StyledRect {
         required property color colour
 
         Layout.fillWidth: true
-        spacing: Tokens.spacing.smaller * root.sizeScale
+        spacing: Tokens.spacing.small * root.sizeScale
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: Tokens.spacing.small * root.sizeScale
+            spacing: Tokens.spacing.normal * root.sizeScale
 
-            MaterialIcon {
-                text: stat.icon
-                color: stat.colour
-                font.pointSize: Tokens.font.size.normal * root.sizeScale
+            IconChip {
+                icon: stat.icon
+                colour: stat.colour
             }
             StyledText {
                 Layout.fillWidth: true
                 text: stat.label
                 color: Colours.palette.m3onSurface
-                font.pointSize: Tokens.font.size.small * root.sizeScale
+                font.pointSize: Tokens.font.size.normal * root.sizeScale
+                font.weight: Font.Medium
             }
             StyledText {
                 text: Math.round(stat.value * 100) + "%"
-                color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small * root.sizeScale
-                font.weight: Font.DemiBold
+                color: stat.colour
+                font.pointSize: Tokens.font.size.normal * root.sizeScale
+                font.weight: Font.Bold
             }
         }
 
         StyledRect {
             Layout.fillWidth: true
-            implicitHeight: 5 * root.sizeScale
+            implicitHeight: 8 * root.sizeScale
             radius: Tokens.rounding.full
             color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
+            clip: true
 
             StyledRect {
                 anchors.left: parent.left
@@ -176,7 +184,17 @@ StyledRect {
                 anchors.bottom: parent.bottom
                 implicitWidth: Math.max(parent.height, stat.value * parent.width)
                 radius: Tokens.rounding.full
-                color: stat.colour
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop {
+                        position: 0
+                        color: stat.colour
+                    }
+                    GradientStop {
+                        position: 1
+                        color: Qt.lighter(stat.colour, 1.3)
+                    }
+                }
 
                 Behavior on implicitWidth {
                     Anim {
@@ -194,83 +212,69 @@ StyledRect {
         required property real value
         required property color colour
 
-        spacing: Tokens.spacing.small * root.sizeScale
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.normal * root.sizeScale
 
-        MaterialIcon {
-            text: cstat.icon
-            color: cstat.colour
-            font.pointSize: Tokens.font.size.larger * root.sizeScale
+        IconChip {
+            icon: cstat.icon
+            colour: cstat.colour
         }
         StyledText {
+            Layout.fillWidth: true
             text: Math.round(cstat.value * 100) + "%"
             color: Colours.palette.m3onSurface
             font.pointSize: Tokens.font.size.larger * root.sizeScale
-            font.weight: Font.DemiBold
+            font.weight: Font.Bold
         }
     }
 
-    component Ring: Item {
+    component Ring: ColumnLayout {
         id: ring
 
+        required property string icon
         required property real value
         required property color colour
         required property string label
 
-        readonly property real ringSize: 60 * root.sizeScale
+        readonly property real ringSize: 70 * root.sizeScale
 
-        implicitWidth: ringSize
-        implicitHeight: ringSize + lbl.implicitHeight + Tokens.spacing.smaller * root.sizeScale
+        spacing: Tokens.spacing.small * root.sizeScale
 
-        Canvas {
-            id: canvas
-            width: ring.ringSize
-            height: ring.ringSize
-            anchors.top: parent.top
-            anchors.horizontalCenter: parent.horizontalCenter
+        Item {
+            Layout.alignment: Qt.AlignHCenter
+            implicitWidth: ring.ringSize
+            implicitHeight: ring.ringSize
 
-            property real v: ring.value
-            property color fg: ring.colour
-            property color track: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
+            CircularProgress {
+                anchors.fill: parent
+                strokeWidth: 7 * root.sizeScale
+                value: ring.value
+                fgColour: ring.colour
+                bgColour: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
 
-            onVChanged: requestPaint()
-            onFgChanged: requestPaint()
-
-            onPaint: {
-                const ctx = getContext("2d");
-                ctx.reset();
-                const cx = width / 2;
-                const cy = height / 2;
-                const lw = 5 * root.sizeScale;
-                const r = width / 2 - lw;
-                ctx.lineWidth = lw;
-                ctx.lineCap = "round";
-                ctx.beginPath();
-                ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-                ctx.strokeStyle = canvas.track;
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.max(0.001, canvas.v) * 2 * Math.PI);
-                ctx.strokeStyle = canvas.fg;
-                ctx.stroke();
+                Behavior on value {
+                    Anim {
+                        type: Anim.StandardLarge
+                    }
+                }
             }
 
             StyledText {
                 anchors.centerIn: parent
-                text: Math.round(ring.value * 100) + ""
+                text: Math.round(ring.value * 100)
                 color: Colours.palette.m3onSurface
-                font.pointSize: Tokens.font.size.normal * root.sizeScale
-                font.weight: Font.DemiBold
+                font.pointSize: Tokens.font.size.large * root.sizeScale
+                font.weight: Font.Bold
             }
         }
 
         StyledText {
-            id: lbl
-            anchors.bottom: parent.bottom
-            anchors.horizontalCenter: parent.horizontalCenter
+            Layout.alignment: Qt.AlignHCenter
             text: ring.label
             color: ring.colour
             font.pointSize: Tokens.font.size.small * root.sizeScale
-            font.letterSpacing: 1
+            font.weight: Font.Medium
+            font.letterSpacing: 1.5
         }
     }
 }

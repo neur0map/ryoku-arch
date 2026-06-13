@@ -199,7 +199,7 @@ Item {
                 SequentialAnimation {
                     Anim {
                         property: "opacity"
-                        type: Anim.DefaultSpatial
+                        type: Anim.EmphasizedAccel
                     }
                     PropertyAction {
                         property: "active"

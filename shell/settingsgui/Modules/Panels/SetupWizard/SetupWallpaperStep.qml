@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.UI
 import qs.settingsgui.Widgets
@@ -374,8 +375,9 @@ ColumnLayout {
   }
 
   onSelectedDirectoryChanged: {
-    if (typeof Settings !== "undefined" && Settings.data && Settings.data.wallpaper) {
-      Settings.data.wallpaper.directory = selectedDirectory;
+    if (typeof Settings !== "undefined" && Settings.data && GlobalConfig.wallpaper) {
+      GlobalConfig.wallpaper.directory = selectedDirectory;
+      GlobalConfig.save();
     }
     if (typeof WallpaperService !== "undefined" && WallpaperService.refreshWallpapersList) {
       WallpaperService.refreshWallpapersList();
@@ -402,8 +404,8 @@ ColumnLayout {
   }
 
   Component.onCompleted: {
-    if (typeof Settings !== "undefined" && Settings.data && Settings.data.wallpaper && Settings.data.wallpaper.directory) {
-      selectedDirectory = Settings.data.wallpaper.directory;
+    if (typeof Settings !== "undefined" && Settings.data && GlobalConfig.wallpaper && GlobalConfig.wallpaper.directory) {
+      selectedDirectory = GlobalConfig.wallpaper.directory;
     } else {
       selectedDirectory = Quickshell.env("HOME") + "/Pictures/Wallpapers";
     }

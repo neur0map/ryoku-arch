@@ -1,33 +1,25 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
-import Quickshell
 import Ryoku.Config
 import Ryoku.Services
 import qs.components
 import qs.services
 
-// Self-contained desktop now-playing card: album art, track text, transport
-// controls and a thin progress bar. Scales by re-rendering at the target size
-// (sizeScale) rather than an Item transform, so it stays crisp.
-StyledRect {
+// Self-contained desktop now-playing card. The album art bleeds a blurred,
+// colour-rich wash across the whole card (its `backdrop`), so the card adopts the
+// cover's hue while playing; a crisp cover, flip-animated track text, a springy
+// gradient progress bar and a morphing play/pause FAB sit on top.
+WidgetCard {
     id: root
 
-    property bool showBackground: true
-    property real sizeScale: 1
-
-    readonly property real pad: Tokens.padding.large * sizeScale
+    readonly property real contentWidth: 300 * root.sizeScale
     readonly property var active: Players.active
     readonly property bool hasMedia: active ?? false
+    readonly property bool hasArt: root.hasMedia && Players.getArtUrl(root.active) !== ""
     property real progress: active?.length ? (active.position % active.length) / active.length : 0
-
-    implicitWidth: 320 * sizeScale
-    implicitHeight: col.implicitHeight + pad * 2
-    radius: Tokens.rounding.large * sizeScale
-    color: showBackground ? Qt.alpha(Colours.palette.m3surfaceContainer, 0.78) : "transparent"
-    border.width: showBackground ? 1 : 0
-    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
 
     Behavior on progress {
         Anim {
@@ -43,11 +35,43 @@ StyledRect {
         onTriggered: root.active?.positionChanged()
     }
 
-    ColumnLayout {
-        id: col
-
+    // Album-art ambient bleed: a blurred, slightly-zoomed copy of the cover fills
+    // the card and a scrim keeps text legible.
+    backdrop: Item {
         anchors.fill: parent
-        anchors.margins: root.pad
+        visible: root.hasArt
+        opacity: root.hasArt ? 1 : 0
+
+        Behavior on opacity {
+            Anim {}
+        }
+
+        Image {
+            anchors.fill: parent
+            anchors.margins: -parent.width * 0.25
+            source: root.hasArt ? Players.getArtUrl(root.active) : ""
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            cache: true
+            sourceSize.width: 96
+            sourceSize.height: 96
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                blurEnabled: true
+                blur: 1
+                blurMax: 64
+                saturation: 0.25
+            }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            color: Qt.alpha(Colours.palette.m3surface, Colours.light ? 0.4 : 0.5)
+        }
+    }
+
+    ColumnLayout {
+        width: root.contentWidth
         spacing: Tokens.spacing.normal * root.sizeScale
 
         RowLayout {
@@ -59,7 +83,7 @@ StyledRect {
                 implicitWidth: 60 * root.sizeScale
                 implicitHeight: 60 * root.sizeScale
                 radius: Tokens.rounding.normal * root.sizeScale
-                color: Colours.palette.m3surfaceContainerHighest
+                color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.8)
 
                 MaterialIcon {
                     anchors.centerIn: parent
@@ -107,9 +131,10 @@ StyledRect {
 
         StyledRect {
             Layout.fillWidth: true
-            implicitHeight: 4 * root.sizeScale
+            implicitHeight: 5 * root.sizeScale
             radius: Tokens.rounding.full
             color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
+            clip: true
 
             StyledRect {
                 anchors.left: parent.left
@@ -117,7 +142,17 @@ StyledRect {
                 anchors.bottom: parent.bottom
                 implicitWidth: Math.max(parent.height, root.progress * parent.width)
                 radius: Tokens.rounding.full
-                color: Colours.palette.m3primary
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop {
+                        position: 0
+                        color: Colours.palette.m3primary
+                    }
+                    GradientStop {
+                        position: 1
+                        color: Qt.lighter(Colours.palette.m3primary, 1.3)
+                    }
+                }
             }
         }
 
@@ -135,6 +170,7 @@ StyledRect {
                 icon: root.active?.isPlaying ? "pause" : "play_arrow"
                 canUse: root.active?.canTogglePlaying ?? false
                 filled: true
+                playing: root.active?.isPlaying ?? false
                 onActivated: root.active?.togglePlaying()
             }
 
@@ -152,16 +188,24 @@ StyledRect {
         required property string icon
         required property bool canUse
         property bool filled: false
+        property bool playing: false
         signal activated
 
-        implicitWidth: 36 * root.sizeScale
-        implicitHeight: 36 * root.sizeScale
-        radius: Tokens.rounding.full
-        color: filled && canUse ? Colours.palette.m3primary : "transparent"
+        implicitWidth: (control.filled ? 42 : 36) * root.sizeScale
+        implicitHeight: implicitWidth
+        // Play/pause FAB morphs from a circle (paused) to a rounded square (playing).
+        radius: control.filled && control.playing ? Tokens.rounding.normal * root.sizeScale : width / 2
+        color: control.filled && control.canUse ? Colours.palette.m3primary : "transparent"
+
+        Behavior on radius {
+            Anim {
+                type: Anim.EmphasizedLarge
+            }
+        }
 
         StateLayer {
             disabled: !control.canUse
-            radius: Tokens.rounding.full
+            radius: parent.radius
             color: control.filled ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
             onClicked: control.activated()
         }
@@ -169,6 +213,7 @@ StyledRect {
         MaterialIcon {
             anchors.centerIn: parent
             text: control.icon
+            fill: 1
             color: !control.canUse ? Colours.palette.m3outline : control.filled ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
             font.pointSize: Tokens.font.size.large * root.sizeScale
         }

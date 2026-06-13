@@ -26,18 +26,10 @@ Item {
         y: root.position === "top" ? root.implicitHeight - implicitHeight
          : root.position === "bottom" ? 0
          : (root.implicitHeight - implicitHeight) / 2
-        color: Appearance.angelEverywhere ? Appearance.angel.colGlassTooltip
-             : Appearance.inirEverywhere ? Appearance.inir.colLayer2
-             : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipSurface
-             : Appearance.colors.colLayer3
-        radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-             : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
-             : Appearance.rounding.verysmall
-        border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
-        border.color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-                    : Appearance.inirEverywhere ? Appearance.inir.colBorder
-                    : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder
-                    : Appearance.colors.colLayer3Hover
+        color: Appearance.colors.colLayer3
+        radius: Appearance.rounding.verysmall
+        border.width: 1
+        border.color: Appearance.colors.colLayer3Hover
         opacity: shown ? 1 : 0
         scale: shown ? 1 : 0.94
         transformOrigin: root.position === "top" ? Item.Bottom
@@ -76,9 +68,7 @@ Item {
             text: root.text
             font.pixelSize: Appearance.font.pixelSize.smaller
             font.hintingPreference: Font.PreferNoHinting // Prevent shaky text
-            color: Appearance.angelEverywhere ? Appearance.angel.colText
-                : Appearance.inirEverywhere ? Appearance.inir.colText
-                : Appearance.colors.colOnLayer3
+            color: Appearance.colors.colOnLayer3
             wrapMode: Text.Wrap
         }
     }   

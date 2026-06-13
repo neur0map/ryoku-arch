@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.MainScreen
 import qs.settingsgui.Services.Platform
@@ -44,7 +45,7 @@ SmartPanel {
     Component.onCompleted: {
       selectedScaleRatio = Settings.data.general.scaleRatio;
       selectedBarPosition = Settings.data.bar.position;
-      selectedWallpaperDirectory = Settings.data.wallpaper.directory || Settings.defaultWallpapersDirectory;
+      selectedWallpaperDirectory = GlobalConfig.wallpaper.directory || Settings.defaultWallpapersDirectory;
     }
 
     Connections {
@@ -83,8 +84,9 @@ SmartPanel {
         // In telemetry-only mode, we only need to save the telemetry setting
         if (!root.telemetryOnlyMode) {
           if (typeof WallpaperService !== "undefined" && WallpaperService.refreshWallpapersList) {
-            if (selectedWallpaperDirectory !== Settings.data.wallpaper.directory) {
-              Settings.data.wallpaper.directory = selectedWallpaperDirectory;
+            if (selectedWallpaperDirectory !== GlobalConfig.wallpaper.directory) {
+              GlobalConfig.wallpaper.directory = selectedWallpaperDirectory;
+              GlobalConfig.save();
               WallpaperService.refreshWallpapersList();
             }
 
@@ -125,8 +127,9 @@ SmartPanel {
 
     function applyWallpaperSettings() {
       if (typeof WallpaperService !== "undefined" && WallpaperService.refreshWallpapersList) {
-        if (selectedWallpaperDirectory !== Settings.data.wallpaper.directory) {
-          Settings.data.wallpaper.directory = selectedWallpaperDirectory;
+        if (selectedWallpaperDirectory !== GlobalConfig.wallpaper.directory) {
+          GlobalConfig.wallpaper.directory = selectedWallpaperDirectory;
+          GlobalConfig.save();
           WallpaperService.refreshWallpapersList();
         }
 

@@ -5,6 +5,7 @@ import Quickshell
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.Panels.ControlCenter
 import qs.settingsgui.Widgets
+import Ryoku.Config
 
 RowLayout {
   Layout.fillWidth: true
@@ -13,7 +14,7 @@ RowLayout {
   NBox {
     Layout.fillWidth: true
     Layout.preferredHeight: root.shortcutsHeight
-    visible: Settings.data.controlCenter.shortcuts.left.length > 0
+    visible: GlobalConfig.controlCenter.shortcuts.left.length > 0
 
     RowLayout {
       id: leftContent
@@ -25,7 +26,7 @@ RowLayout {
       }
 
       Repeater {
-        model: Settings.data.controlCenter.shortcuts.left
+        model: GlobalConfig.controlCenter.shortcuts.left
         delegate: ControlCenterWidgetLoader {
           required property var modelData
           required property int index
@@ -37,7 +38,7 @@ RowLayout {
             "widgetId": modelData.id,
             "section": "quickSettings",
             "sectionWidgetIndex": index,
-            "sectionWidgetsCount": Settings.data.controlCenter.shortcuts.left.length,
+            "sectionWidgetsCount": GlobalConfig.controlCenter.shortcuts.left.length,
             "widgetSettings": modelData
           }
           Layout.alignment: Qt.AlignVCenter
@@ -53,7 +54,7 @@ RowLayout {
   NBox {
     Layout.fillWidth: true
     Layout.preferredHeight: root.shortcutsHeight
-    visible: Settings.data.controlCenter.shortcuts.right.length > 0
+    visible: GlobalConfig.controlCenter.shortcuts.right.length > 0
 
     RowLayout {
       id: rightContent
@@ -65,7 +66,7 @@ RowLayout {
       }
 
       Repeater {
-        model: Settings.data.controlCenter.shortcuts.right
+        model: GlobalConfig.controlCenter.shortcuts.right
         delegate: ControlCenterWidgetLoader {
           required property var modelData
           required property int index
@@ -77,7 +78,7 @@ RowLayout {
             "widgetId": modelData.id,
             "section": "quickSettings",
             "sectionWidgetIndex": index,
-            "sectionWidgetsCount": Settings.data.controlCenter.shortcuts.right.length,
+            "sectionWidgetsCount": GlobalConfig.controlCenter.shortcuts.right.length,
             "widgetSettings": modelData
           }
           Layout.alignment: Qt.AlignVCenter

@@ -4,6 +4,7 @@ import Qt.labs.folderlistmodel
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.UI
 
@@ -180,24 +181,24 @@ Singleton {
   readonly property real txRatio: txMaxSpeed > 0 ? Math.min(1, txSpeed / txMaxSpeed) : 0
 
   // Color resolution (respects useCustomColors setting)
-  readonly property color warningColor: Settings.data.systemMonitor.useCustomColors ? (Settings.data.systemMonitor.warningColor || Color.mTertiary) : Color.mTertiary
-  readonly property color criticalColor: Settings.data.systemMonitor.useCustomColors ? (Settings.data.systemMonitor.criticalColor || Color.mError) : Color.mError
+  readonly property color warningColor: GlobalConfig.systemMonitor.useCustomColors ? (GlobalConfig.systemMonitor.warningColor || Color.mTertiary) : Color.mTertiary
+  readonly property color criticalColor: GlobalConfig.systemMonitor.useCustomColors ? (GlobalConfig.systemMonitor.criticalColor || Color.mError) : Color.mError
 
   // Threshold values from settings
-  readonly property int cpuWarningThreshold: Settings.data.systemMonitor.cpuWarningThreshold
-  readonly property int cpuCriticalThreshold: Settings.data.systemMonitor.cpuCriticalThreshold
-  readonly property int tempWarningThreshold: Settings.data.systemMonitor.tempWarningThreshold
-  readonly property int tempCriticalThreshold: Settings.data.systemMonitor.tempCriticalThreshold
-  readonly property int gpuWarningThreshold: Settings.data.systemMonitor.gpuWarningThreshold
-  readonly property int gpuCriticalThreshold: Settings.data.systemMonitor.gpuCriticalThreshold
-  readonly property int memWarningThreshold: Settings.data.systemMonitor.memWarningThreshold
-  readonly property int memCriticalThreshold: Settings.data.systemMonitor.memCriticalThreshold
-  readonly property int swapWarningThreshold: Settings.data.systemMonitor.swapWarningThreshold
-  readonly property int swapCriticalThreshold: Settings.data.systemMonitor.swapCriticalThreshold
-  readonly property int diskWarningThreshold: Settings.data.systemMonitor.diskWarningThreshold
-  readonly property int diskCriticalThreshold: Settings.data.systemMonitor.diskCriticalThreshold
-  readonly property int diskAvailWarningThreshold: Settings.data.systemMonitor.diskAvailWarningThreshold
-  readonly property int diskAvailCriticalThreshold: Settings.data.systemMonitor.diskAvailCriticalThreshold
+  readonly property int cpuWarningThreshold: GlobalConfig.systemMonitor.cpuWarningThreshold
+  readonly property int cpuCriticalThreshold: GlobalConfig.systemMonitor.cpuCriticalThreshold
+  readonly property int tempWarningThreshold: GlobalConfig.systemMonitor.tempWarningThreshold
+  readonly property int tempCriticalThreshold: GlobalConfig.systemMonitor.tempCriticalThreshold
+  readonly property int gpuWarningThreshold: GlobalConfig.systemMonitor.gpuWarningThreshold
+  readonly property int gpuCriticalThreshold: GlobalConfig.systemMonitor.gpuCriticalThreshold
+  readonly property int memWarningThreshold: GlobalConfig.systemMonitor.memWarningThreshold
+  readonly property int memCriticalThreshold: GlobalConfig.systemMonitor.memCriticalThreshold
+  readonly property int swapWarningThreshold: GlobalConfig.systemMonitor.swapWarningThreshold
+  readonly property int swapCriticalThreshold: GlobalConfig.systemMonitor.swapCriticalThreshold
+  readonly property int diskWarningThreshold: GlobalConfig.systemMonitor.diskWarningThreshold
+  readonly property int diskCriticalThreshold: GlobalConfig.systemMonitor.diskCriticalThreshold
+  readonly property int diskAvailWarningThreshold: GlobalConfig.systemMonitor.diskAvailWarningThreshold
+  readonly property int diskAvailCriticalThreshold: GlobalConfig.systemMonitor.diskAvailCriticalThreshold
 
   // Computed warning/critical states (uses >= inclusive comparison)
   readonly property bool cpuWarning: cpuUsage >= cpuWarningThreshold
@@ -301,7 +302,7 @@ Singleton {
 
   // Re-run GPU detection when dGPU opt-in setting changes
   Connections {
-    target: Settings.data.systemMonitor
+    target: GlobalConfig.systemMonitor
     function onEnableDgpuMonitoringChanged() {
       Logger.i("SystemStat", "dGPU monitoring opt-in setting changed, re-detecting GPUs");
       restartGpuDetection();
@@ -799,7 +800,7 @@ Singleton {
       if (currentIndex >= 16) {
         // Only check nvidia-smi if user has explicitly enabled dGPU monitoring (opt-in)
         // because nvidia-smi wakes up the dGPU on laptops, draining battery
-        if (Settings.data.systemMonitor.enableDgpuMonitoring) {
+        if (GlobalConfig.systemMonitor.enableDgpuMonitoring) {
           Logger.d("SystemStat", `Found ${root.foundGpuSensors.length} sysfs GPU sensor(s), checking nvidia-smi (dGPU opt-in enabled)`);
           nvidiaSmiCheck.running = true;
         } else {
@@ -1332,7 +1333,7 @@ Singleton {
   // Priority (when dGPU monitoring enabled): NVIDIA > AMD dGPU > Intel Arc > AMD iGPU
   // Priority (when dGPU monitoring disabled): AMD iGPU only (discrete GPUs skipped to preserve D3cold)
   function selectBestGpu() {
-    const dgpuEnabled = Settings.data.systemMonitor.enableDgpuMonitoring;
+    const dgpuEnabled = GlobalConfig.systemMonitor.enableDgpuMonitoring;
 
     if (root.foundGpuSensors.length === 0) {
       // No hwmon GPU sensors found, try thermal_zone fallback

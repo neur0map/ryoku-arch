@@ -11,25 +11,15 @@ RippleButton {
     implicitHeight: 34
     leftPadding: 15
     rightPadding: 15
-    buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
-    colBackground: (urgency == NotificationUrgency.Critical) 
-        ? Appearance.colors.colSecondaryContainer 
-        : Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer3
-        : Appearance.auroraEverywhere ? "transparent" 
+    buttonRadius: Appearance.rounding.small
+    colBackground: (urgency == NotificationUrgency.Critical)
+        ? Appearance.colors.colSecondaryContainer
         : Appearance.colors.colLayer4
-    colBackgroundHover: (urgency == NotificationUrgency.Critical) 
-        ? Appearance.colors.colSecondaryContainerHover 
-        : Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer3Hover
-        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface 
+    colBackgroundHover: (urgency == NotificationUrgency.Critical)
+        ? Appearance.colors.colSecondaryContainerHover
         : Appearance.colors.colLayer4Hover
-    colRipple: (urgency == NotificationUrgency.Critical) 
-        ? Appearance.colors.colSecondaryContainerActive 
-        : Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer3Active
-        : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive 
+    colRipple: (urgency == NotificationUrgency.Critical)
+        ? Appearance.colors.colSecondaryContainerActive
         : Appearance.colors.colLayer4Active
 
     contentItem: StyledText {

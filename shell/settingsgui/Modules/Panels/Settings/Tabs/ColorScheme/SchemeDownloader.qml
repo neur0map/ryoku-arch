@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Theming
 import qs.settingsgui.Services.UI
@@ -48,7 +49,7 @@ Popup {
       var variant = entry;
 
       if (entry.dark || entry.light) {
-        variant = Settings.data.colorSchemes.darkMode ? (entry.dark || entry.light) : (entry.light || entry.dark);
+        variant = GlobalConfig.colorSchemes.darkMode ? (entry.dark || entry.light) : (entry.light || entry.dark);
       }
 
       if (variant && variant[colorKey]) {
@@ -618,7 +619,7 @@ Popup {
 
     Logger.i("ColorSchemeDownload", "Deleting scheme:", schemeName);
 
-    var currentScheme = Settings.data.colorSchemes.predefinedScheme || "";
+    var currentScheme = GlobalConfig.colorSchemes.predefinedScheme || "";
     var deletedSchemeDisplayName = ColorSchemeService.getBasename(schemeName);
     var needsReset = (currentScheme === deletedSchemeDisplayName);
 
@@ -646,7 +647,8 @@ Popup {
         if (needsReset) {
           Logger.i("ColorSchemeDownload", "Deleted scheme was active, resetting to Ryoku (default)");
           // Clear the setting immediately so ColorSchemeService won't try to apply the deleted scheme
-          Settings.data.colorSchemes.predefinedScheme = "Ryoku (default)";
+          GlobalConfig.colorSchemes.predefinedScheme = "Ryoku (default)";
+          GlobalConfig.save();
           ColorSchemeService.setPredefinedScheme("Ryoku (default)");
         }
 

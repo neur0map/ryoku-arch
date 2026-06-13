@@ -4,6 +4,7 @@
 
 #include <qstring.h>
 #include <qstringlist.h>
+#include <qvariant.h>
 
 namespace ryoku::config {
 
@@ -44,6 +45,23 @@ class SessionConfig : public ConfigObject {
     CONFIG_PROPERTY(bool, enabled, true)
     CONFIG_PROPERTY(int, dragThreshold, 30)
     CONFIG_PROPERTY(bool, vimKeybinds, false)
+    CONFIG_PROPERTY(bool, enableCountdown, true)
+    CONFIG_PROPERTY(int, countdownDuration, 10000)
+    CONFIG_PROPERTY(QString, position, u"center"_s)
+    CONFIG_PROPERTY(bool, showHeader, true)
+    CONFIG_PROPERTY(bool, showKeybinds, true)
+    CONFIG_PROPERTY(bool, largeButtonsStyle, true)
+    CONFIG_PROPERTY(QString, largeButtonsLayout, u"single-row"_s)
+    CONFIG_PROPERTY(QVariantList, powerOptions,
+        {
+            vmap({ { u"action"_s, u"lock"_s }, { u"enabled"_s, true }, { u"keybind"_s, u"1"_s } }),
+            vmap({ { u"action"_s, u"suspend"_s }, { u"enabled"_s, true }, { u"keybind"_s, u"2"_s } }),
+            vmap({ { u"action"_s, u"hibernate"_s }, { u"enabled"_s, true }, { u"keybind"_s, u"3"_s } }),
+            vmap({ { u"action"_s, u"reboot"_s }, { u"enabled"_s, true }, { u"keybind"_s, u"4"_s } }),
+            vmap({ { u"action"_s, u"logout"_s }, { u"enabled"_s, true }, { u"keybind"_s, u"5"_s } }),
+            vmap({ { u"action"_s, u"shutdown"_s }, { u"enabled"_s, true }, { u"keybind"_s, u"6"_s } }),
+            vmap({ { u"action"_s, u"rebootToUefi"_s }, { u"enabled"_s, true }, { u"keybind"_s, u"7"_s } }),
+        })
     CONFIG_SUBOBJECT(SessionIcons, icons)
     CONFIG_SUBOBJECT(SessionCommands, commands)
 

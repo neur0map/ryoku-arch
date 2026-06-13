@@ -19,10 +19,19 @@ Item {
     readonly property bool bgEnabled: GlobalConfig.background.desktopClock.background.enabled
     readonly property bool blurEnabled: bgEnabled && GlobalConfig.background.desktopClock.background.blur && !GameMode.enabled
     readonly property bool invertColors: GlobalConfig.background.desktopClock.invertColors
-    readonly property bool useLightSet: Colours.light ? !invertColors : invertColors
+    readonly property bool useLightSet: root.bgEnabled ? false : (Colours.light ? !root.invertColors : root.invertColors)
     readonly property color safePrimary: useLightSet ? Colours.palette.m3primaryContainer : Colours.palette.m3primary
     readonly property color safeSecondary: useLightSet ? Colours.palette.m3secondaryContainer : Colours.palette.m3secondary
     readonly property color safeTertiary: useLightSet ? Colours.palette.m3tertiaryContainer : Colours.palette.m3tertiary
+    // On the frosted plate, digits contrast the PLATE: crisp onSurface text with an
+    // accent colon/divider, not the muted wallpaper-contrast accent set.
+    readonly property color clockText: root.bgEnabled ? Colours.palette.m3onSurface : root.safePrimary
+    readonly property color clockTextDim: root.bgEnabled ? Colours.palette.m3onSurfaceVariant : root.safeSecondary
+    readonly property color clockAccent: root.bgEnabled ? Colours.palette.m3primary : root.safeTertiary
+    readonly property real frostAlpha: {
+        const adverse = Colours.light ? 1 - Colours.wallLuminance : Colours.wallLuminance;
+        return Math.max(0.4, Math.min(0.82, 0.42 + adverse * 0.45));
+    }
 
     implicitWidth: content.implicitWidth + (Tokens.padding.large * 4 * root.clockScale)
     implicitHeight: content.implicitHeight + (Tokens.padding.large * 2 * root.clockScale)
@@ -40,22 +49,31 @@ Item {
             shadowBlur: GlobalConfig.background.desktopClock.shadow.blur
         }
 
-        Loader {
-            asynchronous: true
+        // Blurred wallpaper slice, clipped to the rounded shape (matches the
+        // frosted WidgetCard family).
+        StyledClippingRect {
             anchors.fill: parent
-            active: root.blurEnabled
+            radius: Tokens.rounding.large * root.clockScale
+            color: "transparent"
+            visible: root.blurEnabled
 
-            sourceComponent: MultiEffect {
-                source: ShaderEffectSource {
-                    sourceItem: root.wallpaper
-                    sourceRect: Qt.rect(root.absX, root.absY, root.width, root.height)
+            Loader {
+                anchors.fill: parent
+                active: root.blurEnabled
+                asynchronous: true
+
+                sourceComponent: MultiEffect {
+                    anchors.fill: parent
+                    autoPaddingEnabled: false
+                    blurEnabled: true
+                    blur: 1
+                    blurMax: 48
+                    saturation: -0.1
+                    source: ShaderEffectSource {
+                        sourceItem: root.wallpaper
+                        sourceRect: Qt.rect(root.absX, root.absY, root.width, root.height)
+                    }
                 }
-                maskSource: backgroundPlate
-                maskEnabled: true
-                blurEnabled: true
-                blur: 1
-                blurMax: 64
-                autoPaddingEnabled: false
             }
         }
 
@@ -65,10 +83,41 @@ Item {
             visible: root.bgEnabled
             anchors.fill: parent
             radius: Tokens.rounding.large * root.clockScale
-            opacity: GlobalConfig.background.desktopClock.background.opacity
-            color: Colours.palette.m3surface
+            color: Qt.alpha(Qt.tint(Colours.palette.m3surfaceContainer, Qt.rgba(Colours.palette.m3primary.r, Colours.palette.m3primary.g, Colours.palette.m3primary.b, 0.1)), root.blurEnabled ? root.frostAlpha : GlobalConfig.background.desktopClock.background.opacity)
+            border.width: 1
+            border.color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
+        }
 
-            layer.enabled: root.blurEnabled
+        // Inner top highlight to match the frosted widget family.
+        StyledClippingRect {
+            anchors.fill: backgroundPlate
+            radius: backgroundPlate.radius
+            color: "transparent"
+            visible: root.bgEnabled
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                height: Math.min(parent.height / 2, 16 * root.clockScale)
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0
+                        color: Qt.alpha(Colours.palette.m3onSurface, 0.1)
+                    }
+                    GradientStop {
+                        position: 1
+                        color: "transparent"
+                    }
+                }
+            }
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                height: 1
+                color: Qt.alpha(Colours.palette.m3onSurface, 0.14)
+            }
         }
 
         Loader {
@@ -104,20 +153,37 @@ Item {
                     text: Time.hourStr
                     font.pointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
                     font.weight: Font.Bold
-                    color: root.safePrimary
+                    color: root.clockText
                 }
                 StyledText {
                     text: ":"
                     font.pointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
-                    color: root.safeTertiary
+                    color: root.clockAccent
                     opacity: 0.8
                     Layout.topMargin: -Tokens.padding.large * 1.5 * root.clockScale
+
+                    SequentialAnimation on opacity {
+                        running: !GameMode.enabled
+                        loops: Animation.Infinite
+                        NumberAnimation {
+                            from: 0.85
+                            to: 0.35
+                            duration: 1100
+                            easing.type: Easing.InOutSine
+                        }
+                        NumberAnimation {
+                            from: 0.35
+                            to: 0.85
+                            duration: 1100
+                            easing.type: Easing.InOutSine
+                        }
+                    }
                 }
                 StyledText {
                     text: Time.minuteStr
                     font.pointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
                     font.weight: Font.Bold
-                    color: root.safeSecondary
+                    color: root.clockText
                 }
                 Loader {
                     asynchronous: true
@@ -128,7 +194,7 @@ Item {
                     sourceComponent: StyledText {
                         text: Time.amPmStr
                         font.pointSize: Tokens.font.size.large * root.clockScale
-                        color: root.safeSecondary
+                        color: root.clockTextDim
                     }
                 }
             }
@@ -139,7 +205,7 @@ Item {
                 Layout.topMargin: Tokens.spacing.larger * root.clockScale
                 Layout.bottomMargin: Tokens.spacing.larger * root.clockScale
                 radius: Tokens.rounding.full
-                color: root.safePrimary
+                color: root.clockAccent
                 opacity: 0.8
             }
 
@@ -150,20 +216,20 @@ Item {
                     font.pointSize: Tokens.font.size.large * root.clockScale
                     font.letterSpacing: 4
                     font.weight: Font.Bold
-                    color: root.safeSecondary
+                    color: root.clockTextDim
                 }
                 StyledText {
                     text: Time.format("dd")
                     font.pointSize: Tokens.font.size.extraLarge * root.clockScale
                     font.letterSpacing: 2
                     font.weight: Font.Medium
-                    color: root.safePrimary
+                    color: root.clockText
                 }
                 StyledText {
                     text: Time.format("dddd")
                     font.pointSize: Tokens.font.size.larger * root.clockScale
                     font.letterSpacing: 2
-                    color: root.safeSecondary
+                    color: root.clockTextDim
                 }
             }
         }

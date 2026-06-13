@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Widgets
@@ -56,7 +57,7 @@ Item {
           anchors.fill: parent
           radius: Style.radiusM
           color: Color.mSurface
-          visible: Settings.data.appLauncher.showIconBackground && !modelData.isImage
+          visible: GlobalConfig.launcher.showIconBackground && !modelData.isImage
         }
 
         // Image preview - uses provider's getImageUrl if available
@@ -107,7 +108,7 @@ Item {
           visible: (!modelData.isImage && !modelData.displayString) || (!!modelData.isImage && gridImagePreview.status === Image.Error)
           active: visible
 
-          sourceComponent: Settings.data.appLauncher.iconMode === "tabler" && modelData.isTablerIcon ? gridTablerIconComponent : gridSystemIconComponent
+          sourceComponent: GlobalConfig.launcher.iconMode === "tabler" && modelData.isTablerIcon ? gridTablerIconComponent : gridSystemIconComponent
 
           Component {
             id: gridTablerIconComponent
@@ -115,7 +116,7 @@ Item {
               icon: modelData.icon
               pointSize: Style.fontSizeXXXL
               visible: modelData.icon && !modelData.displayString
-              color: (gridEntryContainer.isSelected && !Settings.data.appLauncher.showIconBackground) ? Color.mOnHover : Color.mOnSurface
+              color: (gridEntryContainer.isSelected && !GlobalConfig.launcher.showIconBackground) ? Color.mOnHover : Color.mOnSurface
             }
           }
 
@@ -248,7 +249,7 @@ Item {
     z: -1
     hoverEnabled: true
     cursorShape: Qt.PointingHandCursor
-    enabled: !Settings.data.appLauncher.ignoreMouseInput
+    enabled: !GlobalConfig.launcher.ignoreMouseInput
 
     onEntered: {
       if (!launcher.ignoreMouseHover) {

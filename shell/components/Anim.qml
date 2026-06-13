@@ -13,12 +13,20 @@ NumberAnimation {
         EmphasizedExtraLarge,
         FastSpatial,
         DefaultSpatial,
-        SlowSpatial
+        SlowSpatial,
+        EmphasizedAccel,
+        EmphasizedDecel
     }
 
     property int type: Anim.Standard
 
     duration: {
+        if (GlobalConfig.appearance.reduceMotion)
+            return 0;
+        if (type == Anim.EmphasizedAccel)
+            return Tokens.anim.durations.small;
+        if (type == Anim.EmphasizedDecel)
+            return Tokens.anim.durations.large;
         if (type < Anim.StandardSmall || type > Anim.SlowSpatial)
             return Tokens.anim.durations.normal;
 
@@ -34,6 +42,10 @@ NumberAnimation {
         return Tokens.anim.durations[types[idx]];
     }
     easing: {
+        if (type == Anim.EmphasizedAccel)
+            return Tokens.anim.emphasizedAccel;
+        if (type == Anim.EmphasizedDecel)
+            return Tokens.anim.emphasizedDecel;
         if (type == Anim.FastSpatial)
             return Tokens.anim.expressiveFastSpatial;
         if (type == Anim.DefaultSpatial)

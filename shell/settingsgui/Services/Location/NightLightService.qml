@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.UI
 
@@ -10,7 +11,7 @@ Singleton {
   id: root
 
   // Night Light properties - directly bound to settings
-  readonly property var params: Settings.data.nightLight
+  readonly property var params: GlobalConfig.nightLight
   property var lastCommand: []
 
   // Crash tracking for auto-restart
@@ -208,16 +209,16 @@ Singleton {
   }
 
   Connections {
-    target: Settings.data.nightLight
+    target: GlobalConfig.nightLight
     function onEnabledChanged() {
       apply();
-      const enabled = !!Settings.data.nightLight.enabled;
+      const enabled = !!GlobalConfig.nightLight.enabled;
       ToastService.showNotice(I18n.tr("common.night-light"), enabled ? I18n.tr("common.enabled") : I18n.tr("common.disabled"), enabled ? "nightlight-on" : "nightlight-off");
     }
     function onForcedChanged() {
       apply();
-      if (Settings.data.nightLight.enabled) {
-        ToastService.showNotice(I18n.tr("common.night-light"), Settings.data.nightLight.forced ? I18n.tr("toast.night-light.forced") : I18n.tr("toast.night-light.normal"), Settings.data.nightLight.forced ? "nightlight-forced" : "nightlight-on");
+      if (GlobalConfig.nightLight.enabled) {
+        ToastService.showNotice(I18n.tr("common.night-light"), GlobalConfig.nightLight.forced ? I18n.tr("toast.night-light.forced") : I18n.tr("toast.night-light.normal"), GlobalConfig.nightLight.forced ? "nightlight-forced" : "nightlight-on");
       }
     }
     function onNightTempChanged() {

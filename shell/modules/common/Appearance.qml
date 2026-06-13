@@ -7,22 +7,22 @@ import Ryoku.Config
 
 // Ryoku Appearance: the shell-wide theme API (colors/rounding/font/animation/sizes
 // + angel/inir/aurora variants) backed by Ryoku's Colours palette and Tokens. The
-// angel/inir/aurora variants are disabled (*Everywhere = false) so the default
-// Material path is taken; their objects are still stubbed so any reference resolves.
+// angel/inir/aurora variant branches were collapsed to the default Material path; the
+// variant style objects remain stubbed (pending removal) so any lingering reference resolves.
 Singleton {
     id: root
 
-    readonly property bool angelEverywhere: false
-    readonly property bool inirEverywhere: false
-    readonly property bool auroraEverywhere: false
     // Game mode freezes every Behavior/animation gated on these. Note the key's
     // polarity: gameMode.shellAnimations names the bundled ACTION ("freeze shell
     // animations"), like its dnd/pauseWallpaper siblings — true ⇒ quiet, NOT
     // "animations stay on".
     readonly property bool _gameModeQuiet: GameMode.enabled && GlobalConfig.gameMode.shellAnimations
-    readonly property bool animationsEnabled: !_gameModeQuiet
+    readonly property bool animationsEnabled: !_gameModeQuiet && !GlobalConfig.appearance.reduceMotion
     readonly property bool effectsEnabled: !_gameModeQuiet
-    readonly property real backgroundTransparency: 0
+    // RYOKU: derive card transparency from the live transparency setting (was hardcoded 0
+    // = always opaque, ignoring appearance.transparency). Consumers apply alpha = 1 - this,
+    // so 1 - base matches the shell's glass; 0 (opaque) when transparency is off.
+    readonly property real backgroundTransparency: Colours.transparency.enabled ? (1 - Colours.transparency.base) : 0
 
     function calcEffectiveDuration(d) {
         return root.animationsEnabled ? d : 0;

@@ -27,7 +27,7 @@ Singleton {
     readonly property bool sourceMuted: !!source?.audio?.muted
     readonly property real sourceVolume: source?.audio?.volume ?? 0
 
-    // --- iNiR overlay compat (vendored volume mixer expects these names) ---
+    // --- overlay compat: ryoku's volume-mixer overlay expects these names ---
     readonly property PwNode defaultSink: sink
     readonly property bool micMuted: sourceMuted
     function _toArray(l): var {

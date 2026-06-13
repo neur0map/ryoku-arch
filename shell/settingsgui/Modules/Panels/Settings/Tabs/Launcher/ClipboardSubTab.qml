@@ -2,11 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Widgets
 import qs.dashboard.modules.services
 
-// RYOKU WIRED: Settings.data.clipboard.* — enforced on the cliphist history (the
+// RYOKU WIRED: GlobalConfig.clipboard.* — enforced on the cliphist history (the
 // Super+V list) by qs.modules.ClipboardMaintenance (size trim + scheduled wipe).
 ColumnLayout {
   id: root
@@ -27,28 +28,33 @@ ColumnLayout {
     Layout.fillWidth: true
     label: qsTr("Manage clipboard history")
     description: qsTr("Apply the size limit and automatic cleanup below. When off, history is left untouched.")
-    checked: Settings.data.clipboard.enabled
-    onToggled: checked => Settings.data.clipboard.enabled = checked
+    checked: GlobalConfig.clipboard.enabled
+    onToggled: checked => {
+      GlobalConfig.clipboard.enabled = checked;
+      GlobalConfig.save();
+    }
   }
 
   NSpinBox {
     Layout.fillWidth: true
-    enabled: Settings.data.clipboard.enabled
+    enabled: GlobalConfig.clipboard.enabled
     label: qsTr("History limit")
     description: qsTr("Keep at most this many entries; older ones are trimmed automatically.")
     from: 10
     to: 1000
     stepSize: 10
-    value: Settings.data.clipboard.maxEntries
+    value: GlobalConfig.clipboard.maxEntries
     onValueChanged: {
-      if (Settings.data.clipboard.maxEntries !== value)
-        Settings.data.clipboard.maxEntries = value;
+      if (GlobalConfig.clipboard.maxEntries !== value) {
+        GlobalConfig.clipboard.maxEntries = value;
+        GlobalConfig.save();
+      }
     }
   }
 
   NComboBox {
     Layout.fillWidth: true
-    enabled: Settings.data.clipboard.enabled
+    enabled: GlobalConfig.clipboard.enabled
     label: qsTr("Automatic cleanup")
     description: qsTr("Wipe the whole history on a schedule.")
     model: [
@@ -65,8 +71,11 @@ ColumnLayout {
         "name": qsTr("Weekly")
       }
     ]
-    currentKey: Settings.data.clipboard.autoCleanup
-    onSelected: key => Settings.data.clipboard.autoCleanup = key
+    currentKey: GlobalConfig.clipboard.autoCleanup
+    onSelected: key => {
+      GlobalConfig.clipboard.autoCleanup = key;
+      GlobalConfig.save();
+    }
   }
 
   NDivider {

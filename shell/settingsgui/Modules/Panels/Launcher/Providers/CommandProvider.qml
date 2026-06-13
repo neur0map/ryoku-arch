@@ -1,11 +1,12 @@
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import qs.settingsgui.Commons
 
 Item {
   property var launcher: null
   property string name: I18n.tr("common.command")
-  property string iconMode: Settings.data.appLauncher.iconMode
+  property string iconMode: GlobalConfig.launcher.iconMode
 
   function handleCommand(query) {
     return query.startsWith(">cmd");

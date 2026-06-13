@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Widgets
 
@@ -33,18 +34,20 @@ ColumnLayout {
   // A second control here would edit the same value, so it is removed.
 
   NValueSlider {
-    // TODO: ryoku has no desktop-dimmer scrim with a configurable opacity yet
-    //   (only the session menu dims, at a fixed level).
+    // RYOKU WIRED: GlobalConfig.appearance.dimmerOpacity drives the dim scrim
+    // behind the session menu / detached popouts (drawers/ContentWindow.qml).
     Layout.fillWidth: true
     label: I18n.tr("panels.user-interface.dimmer-opacity-label")
     description: I18n.tr("panels.user-interface.dimmer-opacity-description")
     from: 0
     to: 1
     stepSize: 0.01
-    value: 0.5
-    text: "50%"
-    enabled: false
-    opacity: 0.45
+    value: GlobalConfig.appearance.dimmerOpacity
+    text: Math.round(GlobalConfig.appearance.dimmerOpacity * 100) + "%"
+    onMoved: value => {
+      GlobalConfig.appearance.dimmerOpacity = value;
+      GlobalConfig.save();
+    }
   }
 
   NDivider {

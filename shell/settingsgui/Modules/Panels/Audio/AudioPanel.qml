@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
@@ -272,7 +273,7 @@ SmartPanel {
                     id: outputVolumeSlider
                     Layout.fillWidth: true
                     from: 0
-                    to: Settings.data.audio.volumeOverdrive ? 1.5 : 1.0
+                    to: GlobalConfig.services.maxVolume
                     value: localOutputVolume
                     stepSize: 0.01
                     heightRatio: 0.5
@@ -347,7 +348,7 @@ SmartPanel {
                     id: inputVolumeSlider
                     Layout.fillWidth: true
                     from: 0
-                    to: Settings.data.audio.volumeOverdrive ? 1.5 : 1.0
+                    to: GlobalConfig.services.maxVolume
                     value: localInputVolume
                     stepSize: 0.01
                     heightRatio: 0.5
@@ -666,7 +667,7 @@ SmartPanel {
                       NValueSlider {
                         Layout.fillWidth: true
                         from: 0
-                        to: Settings.data.audio.volumeOverdrive ? 1.5 : 1.0
+                        to: GlobalConfig.services.maxVolume
                         value: (appBox.appVolume !== undefined) ? appBox.appVolume : 0.0
                         stepSize: 0.01
                         heightRatio: 0.5

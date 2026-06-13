@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Layouts
 import Quickshell
 import qs.settingsgui.Commons
@@ -15,7 +16,7 @@ DraggableDesktopWidget {
     if (!weatherReady)
       return 0;
     var temp = LocationService.data.weather.current_weather.temperature;
-    if (Settings.data.location.useFahrenheit) {
+    if (GlobalConfig.services.useFahrenheit) {
       temp = LocationService.celsiusToFahrenheit(temp);
     }
     return Math.round(temp);
@@ -24,7 +25,7 @@ DraggableDesktopWidget {
     if (!weatherReady || !LocationService.data.weather.daily || LocationService.data.weather.daily.temperature_2m_max.length === 0)
       return 0;
     var temp = LocationService.data.weather.daily.temperature_2m_max[0];
-    if (Settings.data.location.useFahrenheit) {
+    if (GlobalConfig.services.useFahrenheit) {
       temp = LocationService.celsiusToFahrenheit(temp);
     }
     return Math.round(temp);
@@ -33,12 +34,12 @@ DraggableDesktopWidget {
     if (!weatherReady || !LocationService.data.weather.daily || LocationService.data.weather.daily.temperature_2m_min.length === 0)
       return 0;
     var temp = LocationService.data.weather.daily.temperature_2m_min[0];
-    if (Settings.data.location.useFahrenheit) {
+    if (GlobalConfig.services.useFahrenheit) {
       temp = LocationService.celsiusToFahrenheit(temp);
     }
     return Math.round(temp);
   }
-  readonly property string tempUnit: Settings.data.location.useFahrenheit ? "F" : "C"
+  readonly property string tempUnit: GlobalConfig.services.useFahrenheit ? "F" : "C"
   readonly property string locationName: {
     const chunks = Settings.data.location.name.split(",");
     return chunks[0];

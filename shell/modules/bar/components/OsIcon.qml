@@ -14,9 +14,9 @@ Item {
     implicitWidth: logoSize
     implicitHeight: logoSize
 
-    MouseArea {
+    StateLayer {
         anchors.fill: parent
-        cursorShape: Qt.PointingHandCursor
+        radius: Tokens.rounding.full
         onClicked: {
             const visibilities = Visibilities.getForActive();
             visibilities.launcher = !visibilities.launcher;

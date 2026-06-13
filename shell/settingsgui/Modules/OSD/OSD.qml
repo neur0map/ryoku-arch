@@ -9,6 +9,7 @@ import qs.settingsgui.Services.Keyboard
 import qs.settingsgui.Services.Media
 import qs.settingsgui.Services.UI
 import qs.settingsgui.Widgets
+import Ryoku.Config
 
 Variants {
   id: osd
@@ -21,7 +22,7 @@ Variants {
     LockKey
   }
 
-  model: Quickshell.screens.filter(screen => (Settings.data.osd.monitors.includes(screen.name) || Settings.data.osd.monitors.length === 0) && Settings.data.osd.enabled)
+  model: Quickshell.screens.filter(screen => (GlobalConfig.osd.monitors.includes(screen.name) || GlobalConfig.osd.monitors.length === 0) && GlobalConfig.osd.enabled)
 
   delegate: Loader {
     id: root
@@ -45,7 +46,7 @@ Variants {
 
     // LockKey OSD enabled state (reactive to settings)
     readonly property bool lockKeyOSDEnabled: {
-      const enabledTypes = Settings.data.osd.enabledTypes || [];
+      const enabledTypes = GlobalConfig.osd.enabledTypes || [];
       if (enabledTypes.length === 0)
         return false;
       return enabledTypes.includes(OSD.Type.LockKey);
@@ -98,7 +99,7 @@ Variants {
 
     function getMaxValue() {
       if (currentOSDType === OSD.Type.Volume || currentOSDType === OSD.Type.InputVolume) {
-        return Settings.data.audio.volumeOverdrive ? 1.5 : 1.0;
+        return GlobalConfig.services.maxVolume;
       }
       return 1.0;
     }
@@ -111,7 +112,7 @@ Variants {
 
       const value = getCurrentValue();
       const max = getMaxValue();
-      if ((currentOSDType === OSD.Type.Volume || currentOSDType === OSD.Type.InputVolume) && Settings.data.audio.volumeOverdrive) {
+      if ((currentOSDType === OSD.Type.Volume || currentOSDType === OSD.Type.InputVolume) && (GlobalConfig.services.maxVolume > 1.0)) {
         const pct = Math.round(value * 100);
         return pct + "%";
       }
@@ -124,8 +125,8 @@ Variants {
       if (isMutedState) {
         return Color.mError;
       }
-      // When volumeOverdrive is enabled, show error color if volume is above 100%
-      if ((currentOSDType === OSD.Type.Volume || currentOSDType === OSD.Type.InputVolume) && Settings.data.audio.volumeOverdrive) {
+      // When overdrive is enabled (maxVolume > 1.0), show error color if volume is above 100%
+      if ((currentOSDType === OSD.Type.Volume || currentOSDType === OSD.Type.InputVolume) && (GlobalConfig.services.maxVolume > 1.0)) {
         const value = getCurrentValue();
         if (value > 1.0) {
           return Color.mError;
@@ -182,7 +183,7 @@ Variants {
       if (brightnessPanel && brightnessPanel.isPanelOpen)
         return;
       if (controlCenterPanel && controlCenterPanel.isPanelOpen) {
-        var cards = Settings.data.controlCenter.cards || [];
+        var cards = GlobalConfig.controlCenter.cards || [];
         if (cards.some(c => c.enabled && c.id === "brightness-card"))
           return;
       }
@@ -190,7 +191,7 @@ Variants {
     }
 
     function isTypeEnabled(type) {
-      const enabledTypes = Settings.data.osd.enabledTypes || [];
+      const enabledTypes = GlobalConfig.osd.enabledTypes || [];
       // If enabledTypes is empty, no types are enabled (no OSD will be shown)
       if (enabledTypes.length === 0)
         return false;
@@ -212,7 +213,7 @@ Variants {
           return;
         var controlCenterPanel = PanelService.getPanel("controlCenterPanel", root.modelData);
         if (controlCenterPanel && controlCenterPanel.isPanelOpen) {
-          var cards = Settings.data.controlCenter.cards || [];
+          var cards = GlobalConfig.controlCenter.cards || [];
           if (cards.some(c => c.enabled && c.id === "audio-card"))
             return;
         }
@@ -379,7 +380,7 @@ Variants {
       id: panel
       screen: modelData
 
-      readonly property string location: Settings.data.osd?.location || "top_right"
+      readonly property string location: GlobalConfig.osd?.location || "top_right"
       readonly property bool isTop: location === "top" || location.startsWith("top")
       readonly property bool isBottom: location === "bottom" || location.startsWith("bottom")
       readonly property bool isLeft: location.includes("_left") || location === "left"
@@ -509,7 +510,7 @@ Variants {
 
       WlrLayershell.namespace: "ryoku-osd-" + (screen?.name || "unknown")
       WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-      WlrLayershell.layer: Settings.data.osd?.overlayLayer ? WlrLayer.Overlay : WlrLayer.Top
+      WlrLayershell.layer: GlobalConfig.osd?.overlayLayer ? WlrLayer.Overlay : WlrLayer.Top
       WlrLayershell.exclusionMode: ExclusionMode.Ignore
 
       // Click-through — OSD is display-only, no input needed
@@ -538,7 +539,7 @@ Variants {
 
         Timer {
           id: hideTimer
-          interval: Settings.data.osd.autoHideMs
+          interval: GlobalConfig.osd.autoHideMs
           onTriggered: osdItem.hide()
         }
 
@@ -558,8 +559,8 @@ Variants {
           anchors.fill: parent
           anchors.margins: Style.marginM * 1.5
           radius: Style.radiusL
-          color: Qt.alpha(Color.mSurface, Color.adaptiveOpacity(Settings.data.osd.backgroundOpacity) || 1.0)
-          border.color: Qt.alpha(Color.mOutline, Color.adaptiveOpacity(Settings.data.osd.backgroundOpacity) || 1.0)
+          color: Qt.alpha(Color.mSurface, Color.adaptiveOpacity(GlobalConfig.osd.backgroundOpacity) || 1.0)
+          border.color: Qt.alpha(Color.mOutline, Color.adaptiveOpacity(GlobalConfig.osd.backgroundOpacity) || 1.0)
           border.width: {
             const bw = Math.max(2, Style.borderM);
             return bw % 2 === 0 ? bw : bw + 1;

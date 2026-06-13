@@ -9,6 +9,7 @@ import qs.settingsgui.Modules.Panels.Settings
 import qs.settingsgui.Services.System
 import qs.settingsgui.Services.UI
 import qs.settingsgui.Widgets
+import Ryoku.Config
 
 NIconButton {
   id: root
@@ -106,7 +107,7 @@ NIconButton {
 
   onClicked: {
     var controlCenterPanel = PanelService.getPanel("controlCenterPanel", screen);
-    if (Settings.data.controlCenter.position === "close_to_bar_button") {
+    if (GlobalConfig.controlCenter.position === "close_to_bar_button") {
       // Will open the panel next to the bar button.
       controlCenterPanel?.toggle(this);
     } else {

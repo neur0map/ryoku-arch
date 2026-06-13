@@ -1,22 +1,23 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.Dock
 import qs.settingsgui.Modules.MainScreen
 
 SmartPanel {
   id: root
-  panelBackgroundColor: Qt.alpha(Color.mSurface, Settings.data.dock.backgroundOpacity)
+  panelBackgroundColor: Qt.alpha(Color.mSurface, GlobalConfig.dock.backgroundOpacity)
 
-  readonly property string dockPosition: Settings.data.dock.position
+  readonly property string dockPosition: GlobalConfig.dock.position
   readonly property bool isVertical: dockPosition === "left" || dockPosition === "right"
   readonly property bool hasBar: modelData && modelData.name ? (Settings.data.bar.monitors.includes(modelData.name) || (Settings.data.bar.monitors.length === 0)) : false
   readonly property bool barAtSameEdge: hasBar && Settings.getBarPositionForScreen(modelData?.name) === dockPosition
   readonly property bool isFramed: Settings.data.bar.barType === "framed" && hasBar
   property bool isDockHovered: false
   property bool panelHovered: false
-  readonly property int iconSize: Math.round(12 + 24 * (Settings.data.dock.size ?? 1))
+  readonly property int iconSize: Math.round(12 + 24 * (GlobalConfig.dock.size ?? 1))
   readonly property int maxWidth: screen ? screen.width * 0.8 : 1000
   readonly property int maxHeight: screen ? screen.height * 0.8 : 1000
   readonly property bool autoHide: false
@@ -100,7 +101,7 @@ SmartPanel {
     if (!appData)
       return null;
 
-    if (Settings.data.dock.groupApps) {
+    if (GlobalConfig.dock.groupApps) {
       return appData.appId;
     }
 
@@ -160,7 +161,7 @@ SmartPanel {
   }
 
   function savePinnedOrder() {
-    const currentPinned = Settings.data.dock.pinnedApps || [];
+    const currentPinned = GlobalConfig.dock.pinnedApps || [];
     const newPinned = [];
     const seen = new Set();
 
@@ -184,7 +185,8 @@ SmartPanel {
                           });
 
     if (JSON.stringify(currentPinned) !== JSON.stringify(newPinned)) {
-      Settings.data.dock.pinnedApps = newPinned;
+      GlobalConfig.dock.pinnedApps = newPinned;
+      GlobalConfig.save();
     }
   }
 
@@ -267,13 +269,13 @@ SmartPanel {
       return [];
 
     if (appData.toplevels && appData.toplevels.length > 0) {
-      return appData.toplevels.filter(toplevel => toplevel && (!Settings.data.dock.onlySameOutput || !toplevel.screens || toplevel.screens.includes(screen)));
+      return appData.toplevels.filter(toplevel => toplevel && (!GlobalConfig.dock.onlySameOutput || !toplevel.screens || toplevel.screens.includes(screen)));
     }
 
     if (!appData.toplevel)
       return [];
 
-    if (Settings.data.dock.onlySameOutput && appData.toplevel.screens && !appData.toplevel.screens.includes(screen))
+    if (GlobalConfig.dock.onlySameOutput && appData.toplevel.screens && !appData.toplevel.screens.includes(screen))
       return [];
 
     return [appData.toplevel];
@@ -292,7 +294,7 @@ SmartPanel {
 
   // Build grouped render model without mutating the raw toplevel list.
   function buildGroupedDockApps(apps) {
-    if (!Settings.data.dock.groupApps) {
+    if (!GlobalConfig.dock.groupApps) {
       return apps.map(app => {
                         const entry = Object.assign({}, app);
                         entry.toplevels = getToplevelsForEntry(app);
@@ -349,7 +351,7 @@ SmartPanel {
 
   function updateDockApps() {
     const runningApps = ToplevelManager ? (ToplevelManager.toplevels.values || []) : [];
-    const pinnedApps = Settings.data.dock.pinnedApps || [];
+    const pinnedApps = GlobalConfig.dock.pinnedApps || [];
     const combined = [];
     const processedToplevels = new Set();
     const processedPinnedAppIds = new Set();
@@ -363,7 +365,7 @@ SmartPanel {
         if (processedToplevels.has(toplevel)) {
           return;
         }
-        if (Settings.data.dock.onlySameOutput && toplevel.screens && !toplevel.screens.includes(screen)) {
+        if (GlobalConfig.dock.onlySameOutput && toplevel.screens && !toplevel.screens.includes(screen)) {
           return;
         }
         combined.push({
@@ -429,7 +431,7 @@ SmartPanel {
     }
 
     // if pinnedStatic then push all pinned and then all remaining running apps
-    if (Settings.data.dock.pinnedStatic) {
+    if (GlobalConfig.dock.pinnedStatic) {
       pushPinned();
       pushRunning(false);
 
@@ -488,7 +490,7 @@ SmartPanel {
   }
 
   Connections {
-    target: Settings.data.dock
+    target: GlobalConfig.dock
     function onPinnedAppsChanged() {
       updateDockApps();
     }
@@ -544,7 +546,7 @@ SmartPanel {
     id: panelContent
 
     property bool allowAttach: true
-    property real frameThickness: isFramed && !barAtSameEdge && !Settings.data.dock.sitOnFrame ? Settings.data.bar.frameThickness : 0
+    property real frameThickness: isFramed && !barAtSameEdge && !GlobalConfig.dock.sitOnFrame ? Settings.data.bar.frameThickness : 0
     property real contentPreferredWidth: Math.round(dockContainerWrapper.width) - (isVertical ? frameThickness : 0)
     property real contentPreferredHeight: Math.round(dockContainerWrapper.height) - (!isVertical ? frameThickness : 0)
 

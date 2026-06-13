@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Window
 import Quickshell
 import Quickshell.Bluetooth
+import Ryoku.Config
 
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Networking
@@ -28,7 +29,7 @@ Item {
   property string expandedSsid: ""
   property string infoSsid: ""
   property int ipVersion: 4
-  property bool detailsGrid: (Settings.data && Settings.data.network && Settings.data.network.wifiDetailsViewMode === "grid")
+  property bool detailsGrid: (GlobalConfig.network.wifiDetailsViewMode === "grid")
 
   // Freezing models for password entry
   property var cachedNetworks: ({})
@@ -874,7 +875,8 @@ Item {
             baseSize: Style.baseWidgetSize * 0.65
             onClicked: {
               root.detailsGrid = !root.detailsGrid;
-              Settings.data.network.wifiDetailsViewMode = root.detailsGrid ? "grid" : "list";
+              GlobalConfig.network.wifiDetailsViewMode = root.detailsGrid ? "grid" : "list";
+              GlobalConfig.save();
             }
             z: 1
           }

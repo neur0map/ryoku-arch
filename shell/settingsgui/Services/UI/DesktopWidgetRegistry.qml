@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.DesktopWidgets.Widgets
 import qs.settingsgui.Services.Platform
@@ -228,7 +229,7 @@ Singleton {
       return;
     }
 
-    var monitorWidgets = Settings.data.desktopWidgets.monitorWidgets || [];
+    var monitorWidgets = GlobalConfig.background.desktopWidgets.monitorWidgets || [];
     var newMonitorWidgets = monitorWidgets.slice();
 
     for (var i = 0; i < newMonitorWidgets.length; i++) {
@@ -239,7 +240,8 @@ Singleton {
           newMonitorWidgets[i] = Object.assign({}, newMonitorWidgets[i], {
                                                  "widgets": widgets
                                                });
-          Settings.data.desktopWidgets.monitorWidgets = newMonitorWidgets;
+          GlobalConfig.background.desktopWidgets.monitorWidgets = newMonitorWidgets;
+          GlobalConfig.save();
         }
         break;
       }

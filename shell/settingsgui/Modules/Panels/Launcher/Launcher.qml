@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import Quickshell
 
@@ -11,8 +12,8 @@ SmartPanel {
   id: root
 
   // Disable when overlay mode is enabled (LauncherOverlayWindow handles it)
-  enabled: !Settings.data.appLauncher.overviewLayer
-  visible: !Settings.data.appLauncher.overviewLayer
+  enabled: !GlobalConfig.launcher.overviewLayer
+  visible: !GlobalConfig.launcher.overviewLayer
 
   // Reference to core (set after panelContent loads)
   property var launcherCoreRef: null
@@ -37,7 +38,7 @@ SmartPanel {
     var provider = launcherCoreRef.activeProvider;
     if (!provider || !provider.hasPreview)
       return false;
-    if (!Settings.data.appLauncher.enableClipPreview)
+    if (!GlobalConfig.launcher.enableClipPreview)
       return false;
     return selectedIndex >= 0 && results && !!results[selectedIndex];
   }
@@ -53,14 +54,14 @@ SmartPanel {
 
   readonly property string screenBarPosition: Settings.getBarPositionForScreen(screen?.name)
   readonly property string panelPosition: {
-    if (Settings.data.appLauncher.position === "follow_bar") {
+    if (GlobalConfig.launcher.position === "follow_bar") {
       if (screenBarPosition === "left" || screenBarPosition === "right") {
         return `center_${screenBarPosition}`;
       } else {
         return `${screenBarPosition}_center`;
       }
     } else {
-      return Settings.data.appLauncher.position;
+      return GlobalConfig.launcher.position;
     }
   }
   panelAnchorHorizontalCenter: !root.useButtonPosition && (panelPosition === "center" || panelPosition.endsWith("_center"))

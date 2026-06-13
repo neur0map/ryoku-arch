@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Window
 import Quickshell
 import Quickshell.Bluetooth
+import Ryoku.Config
 
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Hardware
@@ -49,7 +50,7 @@ Item {
   readonly property var availableDevices: {
     var list = root.unnamedAvailableDevices;
 
-    if (Settings.data.network.bluetoothHideUnnamedDevices) {
+    if (GlobalConfig.network.bluetoothHideUnnamedDevices) {
       list = list.filter(function (dev) {
         var dn = dev.name || dev.deviceName || "";
         var s = String(dn).trim();
@@ -78,7 +79,7 @@ Item {
 
   // For managing expanded device details
   property string expandedDeviceKey: ""
-  property bool detailsGrid: (Settings.data.network.bluetoothDetailsViewMode === "grid")
+  property bool detailsGrid: (GlobalConfig.network.bluetoothDetailsViewMode === "grid")
 
   // Combined visibility check: tab must be visible AND the window must be visible
   readonly property bool effectivelyVisible: root.visible && Window.window && Window.window.visible
@@ -108,7 +109,7 @@ Item {
       if (!isScanningActive) {
         BluetoothService.setScanActive(true);
       }
-      if (!Settings.data.network.disableDiscoverability && !isDiscoverable) {
+      if (!GlobalConfig.network.disableDiscoverability && !isDiscoverable) {
         BluetoothService.setDiscoverable(true);
       }
     } else {
@@ -315,23 +316,30 @@ Item {
         NToggle {
           label: I18n.tr("panels.connections.bluetooth-auto-connect-label")
           description: I18n.tr("panels.connections.bluetooth-auto-connect-description")
-          checked: Settings.data.network.bluetoothAutoConnect
-          onToggled: checked => Settings.data.network.bluetoothAutoConnect = checked
+          checked: GlobalConfig.network.bluetoothAutoConnect
+          onToggled: checked => {
+                       GlobalConfig.network.bluetoothAutoConnect = checked;
+                       GlobalConfig.save();
+                     }
         }
 
         NToggle {
           label: I18n.tr("panels.connections.hide-unnamed-devices-label")
           description: I18n.tr("panels.connections.hide-unnamed-devices-description")
-          checked: Settings.data.network.bluetoothHideUnnamedDevices
-          onToggled: checked => Settings.data.network.bluetoothHideUnnamedDevices = checked
+          checked: GlobalConfig.network.bluetoothHideUnnamedDevices
+          onToggled: checked => {
+                       GlobalConfig.network.bluetoothHideUnnamedDevices = checked;
+                       GlobalConfig.save();
+                     }
         }
 
         NToggle {
           label: I18n.tr("panels.connections.disable-discoverability-label")
           description: I18n.tr("panels.connections.disable-discoverability-description")
-          checked: Settings.data.network.disableDiscoverability
+          checked: GlobalConfig.network.disableDiscoverability
           onToggled: checked => {
-                       Settings.data.network.disableDiscoverability = checked;
+                       GlobalConfig.network.disableDiscoverability = checked;
+                       GlobalConfig.save();
                        BluetoothService.setDiscoverable(!checked);
                      }
         }
@@ -339,8 +347,11 @@ Item {
         NToggle {
           label: I18n.tr("panels.connections.bluetooth-rssi-polling-label")
           description: I18n.tr("panels.connections.bluetooth-rssi-polling-description")
-          checked: Settings.data.network.bluetoothRssiPollingEnabled
-          onToggled: checked => Settings.data.network.bluetoothRssiPollingEnabled = checked
+          checked: GlobalConfig.network.bluetoothRssiPollingEnabled
+          onToggled: checked => {
+                       GlobalConfig.network.bluetoothRssiPollingEnabled = checked;
+                       GlobalConfig.save();
+                     }
         }
         NSpinBox {
           label: I18n.tr("panels.connections.bluetooth-rssi-polling-interval-label")
@@ -348,12 +359,17 @@ Item {
           from: 10000
           to: 120000
           stepSize: 1000
-          value: Settings.data.network.bluetoothRssiPollIntervalMs
-          defaultValue: Settings.getDefaultValue("network.bluetoothRssiPollIntervalMs")
-          onValueChanged: Settings.data.network.bluetoothRssiPollIntervalMs = value
+          value: GlobalConfig.network.bluetoothRssiPollIntervalMs
+          defaultValue: 60000
+          onValueChanged: {
+            if (GlobalConfig.network.bluetoothRssiPollIntervalMs !== value) {
+              GlobalConfig.network.bluetoothRssiPollIntervalMs = value;
+              GlobalConfig.save();
+            }
+          }
           suffix: " ms"
           Layout.alignment: Qt.AlignVCenter
-          visible: Settings.data.network.bluetoothRssiPollingEnabled
+          visible: GlobalConfig.network.bluetoothRssiPollingEnabled
         }
       }
     }
@@ -556,7 +572,8 @@ Item {
             baseSize: Style.baseWidgetSize * 0.65
             onClicked: {
               root.detailsGrid = !root.detailsGrid;
-              Settings.data.network.bluetoothDetailsViewMode = root.detailsGrid ? "grid" : "list";
+              GlobalConfig.network.bluetoothDetailsViewMode = root.detailsGrid ? "grid" : "list";
+              GlobalConfig.save();
             }
             z: 1
           }
@@ -663,7 +680,7 @@ Item {
               Layout.preferredWidth: 1
               Layout.topMargin: -Style.marginXXS
               spacing: Style.marginXS
-              visible: Settings.data.network.bluetoothAutoConnect
+              visible: GlobalConfig.network.bluetoothAutoConnect
               NIcon {
                 icon: BluetoothService.getDeviceAutoConnect(modelData) ? "repeat" : "repeat-off"
                 pointSize: Style.fontSizeXS

@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import "../../../../Helpers/AdvancedMath.js" as AdvancedMath
 import qs.settingsgui.Commons
@@ -10,7 +11,7 @@ Item {
 
   property string name: I18n.tr("launcher.providers.calculator")
   property var launcher: null
-  property string iconMode: Settings.data.appLauncher.iconMode
+  property string iconMode: GlobalConfig.launcher.iconMode
   property bool handleSearch: true
   property string supportedLayouts: "list"
 

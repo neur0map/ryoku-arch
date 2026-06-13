@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.Notifications
 import Quickshell.Wayland
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.MainScreen
 import qs.settingsgui.Modules.Panels.Settings
@@ -14,8 +15,8 @@ import qs.settingsgui.Widgets
 SmartPanel {
   id: root
 
-  preferredWidth: Math.round((Settings.data.notifications.enableMarkdown ? 540 : 440) * Style.uiScaleRatio)
-  preferredHeight: Math.round((Settings.data.notifications.enableMarkdown ? 640 : 540) * Style.uiScaleRatio)
+  preferredWidth: Math.round((GlobalConfig.notifs.enableMarkdown ? 540 : 440) * Style.uiScaleRatio)
+  preferredHeight: Math.round((GlobalConfig.notifs.enableMarkdown ? 640 : 540) * Style.uiScaleRatio)
 
   onOpened: {
     NotificationService.updateLastSeenTs();
@@ -569,7 +570,7 @@ SmartPanel {
                     readonly property real swipeStartThreshold: Math.round(16 * Style.uiScaleRatio)
                     readonly property real swipeDismissThreshold: Math.max(110, width * 0.3)
                     readonly property int removeAnimationDuration: Style.animationNormal
-                    readonly property int notificationTextFormat: (Settings.data.notifications.enableMarkdown && notificationDelegate.isExpanded) ? Text.MarkdownText : Text.StyledText
+                    readonly property int notificationTextFormat: (GlobalConfig.notifs.enableMarkdown && notificationDelegate.isExpanded) ? Text.MarkdownText : Text.StyledText
                     readonly property real actionButtonSize: Style.baseWidgetSize * 0.7
                     readonly property real buttonClusterWidth: notificationDelegate.actionButtonSize * 2 + Style.marginXS
                     readonly property real iconSize: Math.round(40 * Style.uiScaleRatio)
@@ -583,7 +584,7 @@ SmartPanel {
                     }
 
                     function linkAtPoint(x, y) {
-                      if (!Settings.data.notifications.enableMarkdown || !notificationDelegate.isExpanded)
+                      if (!GlobalConfig.notifs.enableMarkdown || !notificationDelegate.isExpanded)
                         return "";
 
                       if (summaryText) {
@@ -882,7 +883,7 @@ SmartPanel {
                           NText {
                             id: summaryText
                             width: parent.width
-                            text: (Settings.data.notifications.enableMarkdown && notificationDelegate.isExpanded) ? (model.summaryMarkdown || I18n.tr("common.no-summary")) : (model.summary || I18n.tr("common.no-summary"))
+                            text: (GlobalConfig.notifs.enableMarkdown && notificationDelegate.isExpanded) ? (model.summaryMarkdown || I18n.tr("common.no-summary")) : (model.summary || I18n.tr("common.no-summary"))
                             pointSize: Style.fontSizeM
                             color: Color.mOnSurface
                             textFormat: notificationDelegate.notificationTextFormat
@@ -894,7 +895,7 @@ SmartPanel {
                           NText {
                             id: bodyText
                             width: parent.width
-                            text: (Settings.data.notifications.enableMarkdown && notificationDelegate.isExpanded) ? (model.bodyMarkdown || "") : (model.body || "")
+                            text: (GlobalConfig.notifs.enableMarkdown && notificationDelegate.isExpanded) ? (model.bodyMarkdown || "") : (model.body || "")
                             pointSize: Style.fontSizeS
                             color: Color.mOnSurfaceVariant
                             textFormat: notificationDelegate.notificationTextFormat

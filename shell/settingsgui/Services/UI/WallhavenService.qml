@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 
 Singleton {
@@ -28,7 +29,7 @@ Singleton {
   property string colors: "" // Color hex codes
   // API Key Priority: Environment Variable > Local Settings
   readonly property string envApiKey: Quickshell.env("RYOKU_WALLHAVEN_API_KEY") || ""
-  readonly property string apiKey: envApiKey !== "" ? envApiKey : (Settings.data.wallpaper.wallhavenApiKey || "")
+  readonly property string apiKey: envApiKey !== "" ? envApiKey : (GlobalConfig.wallpaper.wallhavenApiKey || "")
   readonly property bool apiKeyManagedByEnv: envApiKey !== ""
 
   signal searchCompleted(var results, var meta)
@@ -193,7 +194,7 @@ Singleton {
 
     var wallpaperId = wallpaper.id;
 
-    var wallpaperDir = Settings.preprocessPath(Settings.data.wallpaper.directory);
+    var wallpaperDir = Settings.preprocessPath(GlobalConfig.wallpaper.directory);
     if (!wallpaperDir || wallpaperDir === "") {
       wallpaperDir = Settings.defaultWallpapersDirectory;
     }

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.Bar.Extras
 import qs.settingsgui.Services.UI
@@ -32,7 +33,7 @@ NIconButton {
 
   readonly property string iconColorKey: widgetSettings.iconColor !== undefined ? widgetSettings.iconColor : widgetMetadata.iconColor
 
-  enabled: Settings.data.wallpaper.enabled
+  enabled: GlobalConfig.wallpaper.enabled
   baseSize: Style.getCapsuleHeightForScreen(screen?.name)
   applyUiScale: false
   customRadius: Style.radiusL
@@ -80,7 +81,7 @@ NIconButton {
 
   onClicked: {
     var wallpaperPanel = PanelService.getPanel("wallpaperPanel", screen);
-    if (Settings.data.wallpaper.panelPosition === "follow_bar") {
+    if (GlobalConfig.wallpaper.panelPosition === "follow_bar") {
       wallpaperPanel?.toggle(this);
     } else {
       wallpaperPanel?.toggle();

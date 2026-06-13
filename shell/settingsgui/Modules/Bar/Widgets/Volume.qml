@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
@@ -151,7 +152,7 @@ Item {
     icon: AudioService.getOutputIcon()
     autoHide: false // Important to be false so we can hover as long as we want
     text: {
-      const maxVolume = Settings.data.audio.volumeOverdrive ? 1.5 : 1.0;
+      const maxVolume = GlobalConfig.services.maxVolume;
       const displayVolume = Math.min(maxVolume, AudioService.volume);
       return Math.round(displayVolume * 100);
     }
@@ -165,7 +166,7 @@ Item {
         const nick = AudioService.sink?.nickname ?? "";
         const volumeText = I18n.tr("tooltips.volume-at", {
                                      "volume": (() => {
-                                                  const maxVolume = Settings.data.audio.volumeOverdrive ? 1.5 : 1.0;
+                                                  const maxVolume = GlobalConfig.services.maxVolume;
                                                   const displayVolume = Math.min(maxVolume, AudioService.volume);
                                                   return Math.round(displayVolume * 100);
                                                 })()
