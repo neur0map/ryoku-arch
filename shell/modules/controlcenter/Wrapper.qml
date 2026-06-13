@@ -27,12 +27,24 @@ Item {
   readonly property real availableHeight: Math.max(root.screen.height - Config.border.thickness * 2 - 24, 0)
   readonly property real windowRadius: 16
 
+  // Origin width: the centre-notch width (wired from Panels as bar.islandWidth),
+  // falling back to full so the panel only grows in height if no notch origin is
+  // set. The panel morphs out of the centre notch and retracts back into it, just
+  // like the island/dashboard dropdowns, so the close collapses into the notch
+  // shape instead of sliding up and fading (which read as a separate window).
+  property real collapsedWidth: 0
+  readonly property real startWidth: collapsedWidth > 0 ? collapsedWidth : implicitWidth
+
   implicitWidth: 900
   implicitHeight: Math.min(950, availableHeight)
 
+  // Morph width notch -> full and height 0 -> full, top pinned at the frame edge
+  // (no opacity fade, no slide). The blob behind it (settingsBg, attachTop +
+  // pinReach) keeps the neck fused to the notch the whole time.
   visible: offsetScale < 1
-  anchors.topMargin: (-implicitHeight - 5) * offsetScale
-  opacity: 1 - offsetScale
+  width: startWidth + (implicitWidth - startWidth) * (1 - offsetScale)
+  height: implicitHeight * (1 - offsetScale)
+  clip: true
 
   Behavior on offsetScale {
     Anim {
@@ -43,7 +55,12 @@ Item {
   Rectangle {
     id: panelBackground
 
-    anchors.fill: parent
+    // Held at full size, top-pinned and centred, so the morphing root clips it in
+    // place (the growing clip reveals the content; the content never rescales).
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    implicitWidth: root.implicitWidth
+    implicitHeight: root.implicitHeight
     radius: root.windowRadius
     // RYOKU: glass panel — container tone keys off transparency.layers (the
     // see-through level), so the panel is translucent + compositor-blurred like

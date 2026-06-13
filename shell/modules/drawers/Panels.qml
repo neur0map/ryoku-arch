@@ -151,6 +151,7 @@ Item {
 
         screen: root.screen
         visibilities: root.visibilities
+        collapsedWidth: root.bar.islandWidth
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top

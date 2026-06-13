@@ -78,6 +78,8 @@ Use token groups instead of literal one-off dimensions:
 - `Tokens.anim.*`
 - `Tokens.colors.*`
 
+Never hardcode animation durations or easing. Use the `Anim` component (or `Tokens.anim.*`) so every animation inherits the user's animation-speed slider under Settings, User Interface: `Tokens.anim.durations` is bound from `GlobalConfig.appearance.anim.durations` (which the slider scales), so a literal `duration: 300` opts out of that control and is wrong. Geometry that drives an animation (a morph progress, a clip size) is fine to compute; only the timing and curve must come from the tokens.
+
 When a global value needs to become user-configurable, add it to the typed config layer under `shell/plugin/src/Ryoku/Config/`, expose it through `GlobalConfig`, and make consumers read the shared value. Settings pages should call `GlobalConfig.saveConfig()` after mutating persistent settings.
 
 ## Layout

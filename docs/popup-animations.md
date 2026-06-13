@@ -125,12 +125,31 @@ override the blob's `implicitWidth` or `x` (e.g. to track a clip), keep the
 
 ## Variants
 
-- **Center dropdowns (island, dashboard).** Origin is the center notch (the clock
-  pill). `Panels.qml` passes `collapsedWidth: bar.islandWidth`
+- **Center dropdowns (island, dashboard, settings/control-centre).** Origin is the
+  center notch (the clock pill). `Panels.qml` passes `collapsedWidth: bar.islandWidth`
   (`BarWrapper.islandWidth` exposes `TopNotch.centerW`, the notch width). Width
   morphs notch to full, height `0` to full, top pinned at the bar inner edge.
   `PanelBg` uses `attachTop: true` and `pinReach: true`. Reads as the clock/notch
-  pill expanding down.
+  pill expanding down. The settings panel (`shell/modules/controlcenter/Wrapper.qml`)
+  is a glass `Rectangle` rather than a blob, so it holds that rectangle at full size,
+  top-pinned and centred, and lets the morphing (clipping) root reveal it; it must
+  NOT fade with `opacity` or slide in with `topMargin` (its previous close, which
+  read as a separate window dropping away instead of retracting into the notch).
+- **Top-right notifications.** `shell/modules/notifications/` hangs a card stack from
+  the top-right. The WHOLE panel merges with the right frame: `Wrapper.qml` slides it
+  out into the right border on close and emerges it from there on open, keyed on
+  `hasPopups` (`Notifs.popups.some(n => !n.closed)`) and driven via
+  `anchors.rightMargin` (`hasPopups ? 0 : -implicitWidth`) - NOT a `transform`, so the
+  panel's real `x` moves and the blob (`notifsBg`, `x = panel.x`) travels with it
+  instead of being left behind. `visible` is kept true through the slide
+  (`hasPopups || anchors.rightMargin > -implicitWidth + 0.5`) so the close is not cut
+  off. Combined with the container height collapse this retracts the panel into the
+  top-right corner. The blob `notifsBg` uses `attachTop: true`, and because the notif
+  wrapper has no `offsetScale`, the blob reach is tied to the panel height
+  (`retractReach = min(maxReach, panel.height)`) so the neck shrinks with the stack on
+  the last notification's collapse instead of leaving a full-width strip flashing at
+  the corner. Do not let the reach stay pinned at `maxReach` here (no pill hides it).
+  Per-card `x` stays reserved for the manual swipe-to-dismiss drag.
 - **Plugin frame popouts and bar/frame additions.** Use
   `shell/modules/drawers/FramePanelWrapper.qml`. It already implements the
   contract: it pins to the manifest `edge` (`y: edge === "bottom" ? parent.height

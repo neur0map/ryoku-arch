@@ -203,6 +203,12 @@ StyledWindow {
             panel: panels.settings
             deformAmount: 0.1
             attachTop: true
+            // Keep the neck pinned to the centre notch the whole time the panel is
+            // open, like islandBg/dashBg, so the settings panel reads as the notch
+            // expanding down and the close retracts into the notch shape instead of
+            // detaching. Without this the reach shrank with open progress and the
+            // panel separated from the notch on close.
+            pinReach: true
         }
 
         Repeater {
@@ -286,6 +292,19 @@ StyledWindow {
 
             panel: panels.notifications
             attachTop: true
+            // Retract the upward reach as the notification stack collapses, instead
+            // of holding it at maxReach the whole time. The base keeps the reach
+            // pinned at maxReach (the notif wrapper has no offsetScale), so when the
+            // last notification's height collapsed to ~0 the blob was left as a
+            // full-width, maxReach-tall strip at the top-right for the final frame
+            // and then snapped to zero: a band that flashed and did not match the
+            // corner (the same close-flicker class as the bar popouts). Tie the
+            // reach to the panel height so the neck shrinks with the panel and the
+            // close collapses cleanly into the bar; full reach is restored as soon
+            // as the panel is taller than the notch interior.
+            readonly property real retractReach: Math.max(0, Math.min(maxReach, panel?.height ?? 0))
+            y: panel ? panel.y + root.barInsetTop - retractReach : 0
+            implicitHeight: panel && (root.barFillsEdge || panel.visible) ? panel.height + retractReach : 0
         }
 
         PanelBg {
