@@ -65,8 +65,12 @@ Singleton {
         })
 
     // Active design id, falling back to sidebar-left for unknown ids so a stale
-    // or hand-typed bar.design can never blank the bar.
-    readonly property string currentId: builtins[GlobalConfig.bar.design] ? GlobalConfig.bar.design : "sidebar-left"
+    // or hand-typed bar.design can never blank the bar. Frozen at startup: switching
+    // the design persists to config and restarts the shell, so the live value must
+    // not change reactively. Otherwise the bar hot-swaps with stale geometry (a
+    // visible glitch in the moment before the restart); the fresh process re-reads it.
+    property string currentId: builtins[GlobalConfig.bar.design] ? GlobalConfig.bar.design : "sidebar-left"
+    Component.onCompleted: currentId = currentId
     readonly property var current: builtins[currentId]
     readonly property string templateId: current.templateId ?? "sidebar-left"
     readonly property string edge: current.edge ?? "left"

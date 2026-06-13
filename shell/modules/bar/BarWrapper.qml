@@ -137,7 +137,10 @@ Item {
         // sidebar-left is the original vertical Bar; unknown design ids fall
         // back to it. New templates add a case here.
         sourceComponent: {
-            switch (Config.bar.design) {
+            // BarDesign.templateId is frozen at startup, so switching the design does
+            // not hot-swap the live bar; the change applies on the shell restart the
+            // picker triggers.
+            switch (BarDesign.templateId) {
             case "top-notch":
                 return topNotchTemplate;
             default:
