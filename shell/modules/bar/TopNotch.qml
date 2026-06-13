@@ -207,13 +207,14 @@ Item {
             spacing: Tokens.spacing.small
 
             StyledText {
-                text: Time.format(GlobalConfig.services.useTwelveHourClock ? "hh:mm A" : "hh:mm")
+                text: Time.format(GlobalConfig.services.useTwelveHourClock ? (Config.bar.topNotch.clock.showSeconds ? "hh:mm:ss A" : "hh:mm A") : (Config.bar.topNotch.clock.showSeconds ? "hh:mm:ss" : "hh:mm"))
                 font.family: Tokens.font.family.mono
                 font.pointSize: Tokens.font.size.large
                 color: Colours.palette.m3primary
             }
 
             StyledText {
+                visible: Config.bar.topNotch.clock.showDate
                 text: Time.format("ddd, d MMM")
                 font.family: Tokens.font.family.sans
                 font.pointSize: Tokens.font.size.small
@@ -280,12 +281,14 @@ Item {
 
             MaterialIcon {
                 readonly property string popoutName: "audio"
+                visible: Config.bar.topNotch.status.audio
                 text: Icons.getVolumeIcon(Audio.volume, Audio.muted)
                 color: root.fg
             }
 
             MaterialIcon {
                 readonly property string popoutName: "network"
+                visible: Config.bar.topNotch.status.network
                 text: Nmcli.active ? Icons.getNetworkIcon(Nmcli.active.strength ?? 0) : "wifi_off"
                 color: root.fg
                 MouseArea {
@@ -299,7 +302,7 @@ Item {
 
             MaterialIcon {
                 readonly property string popoutName: "battery"
-                visible: UPower.displayDevice?.isLaptopBattery ?? false
+                visible: (UPower.displayDevice?.isLaptopBattery ?? false) && Config.bar.topNotch.status.battery
                 fill: 1
                 text: {
                     const p = UPower.displayDevice?.percentage ?? 1;
