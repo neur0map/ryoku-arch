@@ -122,6 +122,12 @@ hl.env("MOZ_ENABLE_WAYLAND", "1")
 hl.env("GDK_SCALE", "1")
 hl.env("GDK_DPI_SCALE", "1")
 
+-- Electron apps (Discord/Vesktop, VS Code, Obsidian, ...) only use the PipeWire
+-- screencast portal when they run on Wayland, so screen sharing works. "auto" picks
+-- Wayland on Hyprland and falls back to X11 elsewhere; apps that need X11 (Helium)
+-- opt in via their own launcher flag, so this is safe as a global default.
+hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
+
 hl.curve("easeOut", { type = "bezier", points = { {0.23, 1}, {0.32, 1} } })
 hl.curve("smoothOpen", { type = "bezier", points = { {0.12, 0}, {0.2, 1} } })
 hl.animation({ leaf = "windows", enabled = true, speed = 4, bezier = "easeOut" })
