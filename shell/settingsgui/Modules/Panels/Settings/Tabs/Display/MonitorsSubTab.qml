@@ -56,6 +56,9 @@ ColumnLayout {
     function onBlocked(reasonKey) {
       ToastService.showWarning(I18n.tr("panels.display.layout-title"), I18n.tr(reasonKey));
     }
+    function onApplyError(message) {
+      ToastService.showWarning(I18n.tr("panels.display.layout-title"), (message && message.length > 0) ? message : I18n.tr("panels.display.apply-failed"));
+    }
   }
 
   // Confirm-or-revert dialog. The apply state + countdown live in DisplayService so they
@@ -258,6 +261,8 @@ ColumnLayout {
             // reset rate to the highest available for the new resolution
             var r = card.ratesFor(key);
             card.pendingRate = r.length > 0 ? r[0].key : card.pendingRate;
+            // keep the scale on a clean pixel divisor for the new resolution
+            card.pendingScale = DisplayService.snapScale(key, card.pendingScale);
           }
         }
 
@@ -272,28 +277,7 @@ ColumnLayout {
         NComboBox {
           Layout.fillWidth: true
           label: I18n.tr("panels.display.scale")
-          model: [
-            {
-              "key": "1",
-              "name": "100%"
-            },
-            {
-              "key": "1.25",
-              "name": "125%"
-            },
-            {
-              "key": "1.5",
-              "name": "150%"
-            },
-            {
-              "key": "1.75",
-              "name": "175%"
-            },
-            {
-              "key": "2",
-              "name": "200%"
-            }
-          ]
+          model: DisplayService.scaleOptions(card.pendingRes, card.pendingScale)
           currentKey: String(card.pendingScale)
           onSelected: key => card.pendingScale = parseFloat(key)
         }
@@ -392,7 +376,7 @@ ColumnLayout {
               "refreshRate": parseInt(card.pendingRate),
               "x": card.pendingX,
               "y": card.pendingY,
-              "scale": card.pendingScale,
+              "scale": DisplayService.snapScale(card.pendingRes, card.pendingScale),
               "transform": card.pendingTransform,
               "mirror": card.pendingMirror,
               "vrr": card.pendingVrr

@@ -16,6 +16,7 @@ Item {
   signal activeWindowChanged
   signal windowListChanged
   signal displayScalesChanged
+  signal monitorApplyFinished(bool success, string message)
 
   property bool initialized: false
   property var workspaceCache: ({})
@@ -151,7 +152,21 @@ Item {
   // Display panel can confirm-or-revert first. ryoku-monitor owns the hyprctl call and
   // the last-active-output backstop.
   function applyMonitorConfig(cfg) {
-    Quickshell.execDetached(["ryoku-monitor", "apply", buildMonitorSpec(cfg)]);
+    monitorApplyProcess.command = ["ryoku-monitor", "apply", buildMonitorSpec(cfg)];
+    monitorApplyProcess.running = true;
+  }
+
+  // Captures the apply result so the Display panel can surface a rejected change (bad
+  // mode, refused last-output disable) instead of silently arming the confirm dialog
+  // over a screen that never changed.
+  Process {
+    id: monitorApplyProcess
+    stdout: StdioCollector {}
+    stderr: StdioCollector {}
+    onExited: function (code) {
+      const err = String(stderr.text || "").trim();
+      root.monitorApplyFinished(code === 0, err);
+    }
   }
 
   // Persist the current live layout via ryoku-monitor (monitors.lua / monitors.conf) + GDK_SCALE sync.

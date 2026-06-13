@@ -72,9 +72,12 @@ Singleton {
   property string pendingMonitor: ""
   property int remaining: confirmTimeout
   property var _prevConfig: null
+  property bool _awaitingApply: false
 
   // Emitted with an i18n KEY when an apply is refused, so the view can toast it.
   signal blocked(string reasonKey)
+  // Emitted with a RAW compositor message (not an i18n key) when a live apply fails.
+  signal applyError(string message)
 
   // Re-query live monitor state (modes/refresh populate asynchronously).
   function refresh() {
@@ -128,10 +131,10 @@ Singleton {
     }
     _prevConfig = prevConfig;
     pendingMonitor = cfg.name;
+    // Don't arm the confirm dialog yet: wait for the apply result so a rejected change
+    // (bad mode, refused disable) surfaces an error instead of a dialog over a no-op.
+    _awaitingApply = true;
     CompositorService.applyMonitorConfig(cfg);
-    remaining = confirmTimeout;
-    pendingActive = true;
-    countdown.restart();
     return true;
   }
 
@@ -162,13 +165,104 @@ Singleton {
       return 1.0;
     var diagIn = Math.sqrt(physicalWidth * physicalWidth + physicalHeight * physicalHeight) / 25.4;
     var dpi = Math.sqrt(w * w + h * h) / diagIn;
-    if (dpi <= 120)
-      return 1.0;
-    if (dpi <= 160)
-      return 1.25;
-    if (dpi <= 200)
-      return 1.5;
-    return 2.0;
+    var raw = dpi <= 120 ? 1.0 : (dpi <= 160 ? 1.25 : (dpi <= 200 ? 1.5 : 2.0));
+    return snapScale(resString, raw);
+  }
+
+  // ── scale validity ──────────────────────────────────────────────────────────
+  // Hyprland quantizes scale to N/120 and only accepts scales that divide the mode
+  // into whole physical pixels; offer/snap to those so a change applies verbatim
+  // instead of being silently rounded (the classic "1.75 does nothing" footgun).
+  readonly property var _scaleCandidates: [1.0, 1.25, 1.5, 1.6, 1.75, 2.0, 2.25, 2.5, 3.0]
+
+  function scaleYieldsIntegerPixels(w, h, scale) {
+    var es = Math.round(scale * 120);
+    if (es <= 0 || !w || !h)
+      return false;
+    return ((w * 120) % es) === 0 && ((h * 120) % es) === 0;
+  }
+
+  // Valid scale options for a resolution, each labelled with the logical resolution it
+  // produces — so a single-mode laptop panel still offers several resolution-like
+  // choices via scaling (the Wayland-correct way to "change resolution").
+  function scaleOptions(resString, currentScale) {
+    var parts = String(resString).split("x");
+    var w = parseInt(parts[0]);
+    var h = parseInt(parts[1]);
+    var cands = _scaleCandidates.slice();
+    if (currentScale && cands.indexOf(currentScale) === -1)
+      cands.push(currentScale);
+    cands.sort(function (a, b) {
+      return a - b;
+    });
+    var out = [];
+    var seen = ({});
+    for (var i = 0; i < cands.length; i++) {
+      var s = cands[i];
+      var ok = scaleYieldsIntegerPixels(w, h, s);
+      if (!ok && s !== currentScale)
+        continue;
+      var key = String(s);
+      if (seen[key])
+        continue;
+      seen[key] = true;
+      var pct = Math.round(s * 100);
+      if (ok && w && h)
+        out.push({
+                   "key": key,
+                   "name": Math.round(w / s) + " × " + Math.round(h / s) + "  ·  " + pct + "%"
+                 });
+      else
+        out.push({
+                   "key": key,
+                   "name": pct + "%"
+                 });
+    }
+    return out;
+  }
+
+  // Nearest valid scale for a resolution, so a suggested/typed scale lands on a clean
+  // divisor Hyprland applies verbatim instead of silently rounding.
+  function snapScale(resString, scale) {
+    var parts = String(resString).split("x");
+    var w = parseInt(parts[0]);
+    var h = parseInt(parts[1]);
+    if (!w || !h || scaleYieldsIntegerPixels(w, h, scale))
+      return scale;
+    var best = 1.0;
+    var bestDiff = Math.abs(scale - 1.0);
+    for (var i = 0; i < _scaleCandidates.length; i++) {
+      var s = _scaleCandidates[i];
+      if (!scaleYieldsIntegerPixels(w, h, s))
+        continue;
+      var d = Math.abs(scale - s);
+      if (d < bestDiff) {
+        best = s;
+        bestDiff = d;
+      }
+    }
+    return best;
+  }
+
+  // Arm the confirm-or-revert countdown only when the live apply actually succeeded;
+  // otherwise surface the compositor's rejection message via applyError.
+  Connections {
+    target: CompositorService
+    function onMonitorApplyFinished(success, message) {
+      if (!root._awaitingApply)
+        return; // ignore revert/persist applies
+      root._awaitingApply = false;
+      if (success) {
+        root.remaining = root.confirmTimeout;
+        root.pendingActive = true;
+        countdown.restart();
+      } else {
+        Logger.w("DisplayService", "Monitor apply rejected:", message);
+        root.pendingMonitor = "";
+        root._prevConfig = null;
+        root.applyError(message || "");
+      }
+    }
   }
 
   Timer {

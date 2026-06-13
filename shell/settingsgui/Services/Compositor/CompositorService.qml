@@ -35,6 +35,7 @@ Singleton {
   signal workspaceChanged
   signal activeWindowChanged
   signal windowListChanged
+  signal monitorApplyFinished(bool success, string message)
 
   property var backend: null
 
@@ -227,6 +228,12 @@ Singleton {
       backend.overviewActiveChanged.connect(() => {
                                               overviewActive = backend.overviewActive;
                                             });
+    }
+
+    // Forward the monitor-apply result (Hyprland backend only) so DisplayService can
+    // confirm or surface a rejected change instead of arming a dialog over a no-op.
+    if (backend.monitorApplyFinished) {
+      backend.monitorApplyFinished.connect((ok, msg) => monitorApplyFinished(ok, msg));
     }
 
     // Initial sync
