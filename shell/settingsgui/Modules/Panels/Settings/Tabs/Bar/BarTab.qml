@@ -3,52 +3,85 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import qs.settingsgui.Commons
 import qs.settingsgui.Widgets
+import qs.services
+import "common"
+import "sidebar"
+import "topnotch"
 
-ColumnLayout {
+Item {
   id: root
-  spacing: 0
 
-  NTabBar {
-    id: subTabBar
-    Layout.fillWidth: true
-    Layout.bottomMargin: Style.marginM
-    distributeEvenly: true
-    currentIndex: tabView.currentIndex
+  // true when the active bar design is the top-notch variant
+  readonly property bool isTopNotch: BarDesign.templateId === "top-notch"
 
-    NTabButton {
-      text: I18n.tr("common.appearance")
-      tabIndex: 0
-      checked: subTabBar.currentIndex === 0
+  implicitHeight: isTopNotch ? notchLayout.implicitHeight : sidebarLayout.implicitHeight
+  Layout.fillWidth: true
+
+  // --- Top-notch layout: Design / Behavior / Monitors / Notch ---
+  ColumnLayout {
+    id: notchLayout
+    anchors.fill: parent
+    spacing: 0
+    visible: root.isTopNotch
+
+    NTabBar {
+      id: notchTabBar
+      Layout.fillWidth: true
+      Layout.bottomMargin: Style.marginM
+      distributeEvenly: true
+      currentIndex: notchTabView.currentIndex
+
+      NTabButton { text: I18n.tr("common.design");   tabIndex: 0; checked: notchTabBar.currentIndex === 0 }
+      NTabButton { text: I18n.tr("common.behavior"); tabIndex: 1; checked: notchTabBar.currentIndex === 1 }
+      NTabButton { text: I18n.tr("common.monitors"); tabIndex: 2; checked: notchTabBar.currentIndex === 2 }
+      NTabButton { text: I18n.tr("common.notch");    tabIndex: 3; checked: notchTabBar.currentIndex === 3 }
     }
-    NTabButton {
-      text: I18n.tr("common.widgets")
-      tabIndex: 1
-      checked: subTabBar.currentIndex === 1
-    }
-    NTabButton {
-      text: I18n.tr("common.behavior")
-      tabIndex: 2
-      checked: subTabBar.currentIndex === 2
-    }
-    NTabButton {
-      text: I18n.tr("common.monitors")
-      tabIndex: 3
-      checked: subTabBar.currentIndex === 3
+
+    Item { Layout.fillWidth: true; Layout.preferredHeight: Style.marginS }
+
+    NTabView {
+      id: notchTabView
+      currentIndex: notchTabBar.currentIndex
+
+      DesignSubTab {}
+      BehaviorSubTab {}
+      MonitorsSubTab {}
+      NotchSubTab {}
     }
   }
 
-  Item {
-    Layout.fillWidth: true
-    Layout.preferredHeight: Style.marginS
-  }
+  // --- Sidebar layout: Design / Behavior / Monitors / Layout / Widgets ---
+  ColumnLayout {
+    id: sidebarLayout
+    anchors.fill: parent
+    spacing: 0
+    visible: !root.isTopNotch
 
-  NTabView {
-    id: tabView
-    currentIndex: subTabBar.currentIndex
+    NTabBar {
+      id: sidebarTabBar
+      Layout.fillWidth: true
+      Layout.bottomMargin: Style.marginM
+      distributeEvenly: true
+      currentIndex: sidebarTabView.currentIndex
 
-    AppearanceSubTab {}
-    WidgetsSubTab {}
-    BehaviorSubTab {}
-    MonitorsSubTab {}
+      NTabButton { text: I18n.tr("common.design");   tabIndex: 0; checked: sidebarTabBar.currentIndex === 0 }
+      NTabButton { text: I18n.tr("common.behavior"); tabIndex: 1; checked: sidebarTabBar.currentIndex === 1 }
+      NTabButton { text: I18n.tr("common.monitors"); tabIndex: 2; checked: sidebarTabBar.currentIndex === 2 }
+      NTabButton { text: I18n.tr("common.layout");   tabIndex: 3; checked: sidebarTabBar.currentIndex === 3 }
+      NTabButton { text: I18n.tr("common.widgets");  tabIndex: 4; checked: sidebarTabBar.currentIndex === 4 }
+    }
+
+    Item { Layout.fillWidth: true; Layout.preferredHeight: Style.marginS }
+
+    NTabView {
+      id: sidebarTabView
+      currentIndex: sidebarTabBar.currentIndex
+
+      DesignSubTab {}
+      BehaviorSubTab {}
+      MonitorsSubTab {}
+      LayoutSubTab {}
+      WidgetsSubTab {}
+    }
   }
 }
