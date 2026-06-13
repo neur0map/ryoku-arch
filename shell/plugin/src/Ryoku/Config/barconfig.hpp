@@ -123,6 +123,49 @@ public:
         : ConfigObject(parent) {}
 };
 
+class BarTopNotchStatus : public ConfigObject {
+    Q_OBJECT
+    QML_ANONYMOUS
+
+    CONFIG_PROPERTY(bool, audio, true)
+    CONFIG_PROPERTY(bool, network, true)
+    CONFIG_PROPERTY(bool, battery, true)
+    CONFIG_PROPERTY(bool, bluetooth, false)
+    CONFIG_PROPERTY(bool, microphone, false)
+    CONFIG_PROPERTY(bool, keyboard, false)
+    CONFIG_PROPERTY(bool, lockStatus, false)
+
+public:
+    explicit BarTopNotchStatus(QObject* parent = nullptr)
+        : ConfigObject(parent) {}
+};
+
+class BarTopNotchClock : public ConfigObject {
+    Q_OBJECT
+    QML_ANONYMOUS
+
+    CONFIG_PROPERTY(bool, showDate, true)
+    CONFIG_PROPERTY(bool, showSeconds, false)
+
+public:
+    explicit BarTopNotchClock(QObject* parent = nullptr)
+        : ConfigObject(parent) {}
+};
+
+class BarTopNotch : public ConfigObject {
+    Q_OBJECT
+    QML_ANONYMOUS
+
+    CONFIG_SUBOBJECT(BarTopNotchStatus, status)
+    CONFIG_SUBOBJECT(BarTopNotchClock, clock)
+
+public:
+    explicit BarTopNotch(QObject* parent = nullptr)
+        : ConfigObject(parent)
+        , m_status(new BarTopNotchStatus(this))
+        , m_clock(new BarTopNotchClock(this)) {}
+};
+
 class BarConfig : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
@@ -139,6 +182,7 @@ class BarConfig : public ConfigObject {
     CONFIG_SUBOBJECT(BarTray, tray)
     CONFIG_SUBOBJECT(BarStatus, status)
     CONFIG_SUBOBJECT(BarClock, clock)
+    CONFIG_SUBOBJECT(BarTopNotch, topNotch)
     CONFIG_PROPERTY(QVariantList, entries,
         {
             vmap({ { u"id"_s, u"logo"_s }, { u"enabled"_s, true } }),
@@ -162,7 +206,8 @@ public:
         , m_activeWindow(new BarActiveWindow(this))
         , m_tray(new BarTray(this))
         , m_status(new BarStatus(this))
-        , m_clock(new BarClock(this)) {}
+        , m_clock(new BarClock(this))
+        , m_topNotch(new BarTopNotch(this)) {}
 };
 
 } // namespace ryoku::config
