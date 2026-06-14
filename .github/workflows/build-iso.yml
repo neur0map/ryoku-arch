@@ -77,6 +77,9 @@ jobs:
       - name: Health VM test (P4/P5)
         run: nix build .#checks.x86_64-linux.health --print-build-logs
 
+      - name: Build the shell
+        run: nix build .#ryoku-shell --print-build-logs
+
       # Pinned entirely by the committed flake.lock. .#iso is the isoImage
       # build product of nixosConfigurations.iso.
       - name: Build ISO
