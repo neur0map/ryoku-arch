@@ -6,4 +6,5 @@ final: prev: {
   ryoku-install = final.callPackage ../pkgs/ryoku-install { };
   ryoku-shell = final.callPackage ../pkgs/ryoku-shell { };
   ryoku-wallpapers = final.callPackage ../pkgs/ryoku-wallpapers { };
+  ryoku-theme-tools = final.callPackage ../pkgs/ryoku-theme-tools { };
 }

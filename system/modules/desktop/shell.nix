@@ -26,11 +26,17 @@ let
   # (fill-if-missing, so a user's own choice is never overwritten) before
   # starting Hyprland; the shell's Wallpapers service watches path.txt.
   ryoku-hypr-session = pkgs.writeShellScriptBin "ryoku-hypr-session" ''
+    export PATH=${pkgs.ryoku-theme-tools}/bin:$PATH
     state="''${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell"
     mkdir -p "$state/wallpaper"
     if [ ! -s "$state/wallpaper/path.txt" ]; then
       printf '%s' "${defaultWall}" > "$state/wallpaper/path.txt"
       printf 'image' > "$state/wallpaper/type.txt"
+    fi
+    # Generate the initial Material You scheme from the wallpaper; the shell
+    # regenerates it on later wallpaper changes. Best-effort.
+    if [ ! -s "$state/scheme.json" ]; then
+      ${shellConfig}/scripts/ryoku scheme from-wallpaper >/dev/null 2>&1 || true
     fi
     exec ${pkgs.hyprland}/bin/Hyprland --config /etc/ryoku/hyprland.conf
   '';
@@ -43,6 +49,7 @@ in
     qs
     shell
     ryoku-hypr-session
+    pkgs.ryoku-theme-tools
   ]
   ++ (with pkgs; [
     wl-clipboard
@@ -66,6 +73,7 @@ in
     env = QML_IMPORT_PATH,${qmlPath}
     env = QML2_IMPORT_PATH,${qmlPath}
     env = RYOKU_SHELL_WALLPAPERS_DIR,${wallsDir}
+    env = RYOKU_SHELL_RUNTIME_DIR,${shellConfig}
 
     exec-once = ${qs}/bin/qs -p ${shellConfig}
 
