@@ -47,9 +47,17 @@ pkgs.testers.runNixOSTest {
   name = "ryoku-install-base";
 
   nodes.machine =
-    { modulesPath, ... }:
+    { pkgs, ... }:
     {
-      imports = [ (modulesPath + "/installer/cd-dvd/installation-cd-minimal.nix") ];
+      # A plain NixOS VM with the install tools. Importing installation-cd-minimal
+      # pulls the installation-device profile, which sets nixpkgs.overlays and
+      # conflicts with runNixOSTest's read-only nixpkgs.
+      environment.systemPackages = with pkgs; [
+        parted
+        dosfstools
+        e2fsprogs
+        nixos-install-tools
+      ];
 
       # Blank target disk (/dev/vdb) the installer partitions; UEFI firmware so
       # the installed system can be booted back in phase 2.

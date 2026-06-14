@@ -70,6 +70,18 @@
         }
       );
 
+      # NixOS VM tests. Heavy (boots VMs); CI runs them via `nix flake check`.
+      # Run one directly: nix build .#checks.x86_64-linux.install-base
+      # Uses a clean (unoverlaid) nixpkgs: the test installs a generic minimal
+      # system, and runNixOSTest locks nixpkgs.overlays read-only.
+      checks = forAllSystems (
+        system:
+        {
+          install-base =
+            (import nixpkgs { inherit system; }).callPackage ./tests/install-base.nix { };
+        }
+      );
+
       # Reusable surface for v2 and external importers.
       nixosModules = {
         base = ./system/roles/base.nix;
