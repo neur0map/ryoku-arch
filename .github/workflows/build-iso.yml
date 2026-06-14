@@ -39,6 +39,12 @@ jobs:
       - name: Build VM host toplevel
         run: nix build .#nixosConfigurations.vm.config.system.build.toplevel --print-build-logs
 
+      # Boots a tiny service-only VM and asserts P4/P5 (no failed units,
+      # NetworkManager active). TCG on hosted runners, but the system is minimal
+      # so it finishes fast. install-base needs KVM and is run on a dev box.
+      - name: Health VM test (P4/P5)
+        run: nix build .#checks.x86_64-linux.health --print-build-logs
+
   build:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -67,6 +73,9 @@ jobs:
 
       - name: Flake check (eval)
         run: nix flake check --no-build --print-build-logs
+
+      - name: Health VM test (P4/P5)
+        run: nix build .#checks.x86_64-linux.health --print-build-logs
 
       # Pinned entirely by the committed flake.lock. .#iso is the isoImage
       # build product of nixosConfigurations.iso.
