@@ -4,4 +4,5 @@
 final: prev: {
   ryoku-cli = final.callPackage ../pkgs/ryoku-cli { };
   ryoku-install = final.callPackage ../pkgs/ryoku-install { };
+  ryoku-shell = final.callPackage ../pkgs/ryoku-shell { };
 }

@@ -65,6 +65,7 @@
         {
           ryoku-cli = pkgs.ryoku-cli;
           ryoku-install = pkgs.ryoku-install;
+          ryoku-shell = pkgs.ryoku-shell;
           iso = self.nixosConfigurations.iso.config.system.build.isoImage;
           default = pkgs.ryoku-cli;
         }
