@@ -1,8 +1,0 @@
-.pragma library
-
-var data = {
-    "enabled": false,
-    "iconSize": 40,
-    "spacingVertical": 16,
-    "textColor": "overBackground"
-}

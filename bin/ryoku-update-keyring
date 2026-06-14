@@ -1,9 +1,0 @@
-#!/bin/bash
-set -e
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Ensure the latest archlinux-keyring so Arch maintainer rotations do not
-# block pacman -Syu.
-echo -e "\e[32m\nUpdate Arch signing keys\e[0m"
-sudo pacman -Sy --noconfirm --needed archlinux-keyring >/dev/null

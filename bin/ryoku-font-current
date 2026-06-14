@@ -1,8 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Returns the name of the current monospace font being used by fontconfig.
-# This can be changed using ryoku-font-set.
-
-fc-match monospace --format='%{family[0]}\n'

@@ -1,8 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Detect whether Vulkan is available.
-
-[[ -d /usr/share/vulkan/icd.d ]] &&
-  find /usr/share/vulkan/icd.d -maxdepth 1 -name "*.json" -print -quit | grep -q .

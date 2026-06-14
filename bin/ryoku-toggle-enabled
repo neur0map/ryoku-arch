@@ -1,6 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Check if a toggle is enabled (flag file exists)
-[[ -f "$RYOKU_STATE_PATH/toggles/$1" ]]

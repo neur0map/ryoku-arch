@@ -1,9 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Match against the computer's DMI product name or product family (case-insensitive).
-# Usage: ryoku-hw-match "XPS" or ryoku-hw-match "ThinkPad"
-
-grep -qi "$1" /sys/class/dmi/id/product_name 2>/dev/null ||
-grep -qi "$1" /sys/class/dmi/id/product_family 2>/dev/null

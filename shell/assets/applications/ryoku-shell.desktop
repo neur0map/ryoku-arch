@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Ryoku Settings
-Comment=Open Ryoku settings
-Exec=ryoku-shell settings
-Icon=ryoku-shell
-Terminal=false
-Categories=Settings;System;

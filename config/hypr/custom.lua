@@ -1,9 +1,0 @@
--- Your personal Hyprland overrides live here. Ryoku never touches this file.
---
--- hyprland.lua require()s this file LAST, so anything you set wins over the shipped
--- Ryoku defaults: rebind keys, add window rules, set env vars, etc.
---
--- Examples:
---   hl.bind("SUPER + Return", hl.dsp.exec_cmd("alacritty"))
---   hl.window_rule({ match = { class = "^(pavucontrol)$" }, float = true })
---   hl.env("MY_VAR", "value")

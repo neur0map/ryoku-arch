@@ -1,1 +1,0 @@
-{{ accent_rgb }}

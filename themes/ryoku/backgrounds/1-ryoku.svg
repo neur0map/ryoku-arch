@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
-  <rect width="1920" height="1080" fill="#171717"/>
-  <rect x="0" y="0" width="1920" height="1080" fill="#1f1f1f" opacity="0.35"/>
-  <path d="M260 860 C500 740 680 800 910 670 C1180 520 1420 580 1660 400" fill="none" stroke="#333333" stroke-width="140" stroke-linecap="round" opacity="0.42"/>
-  <path d="M350 235 C640 340 850 300 1120 220 C1350 150 1550 210 1710 310" fill="none" stroke="#88A57D" stroke-width="72" stroke-linecap="round" opacity="0.24"/>
-  <text x="960" y="585" text-anchor="middle" font-family="Noto Sans CJK JP, Noto Sans, sans-serif" font-size="300" font-weight="800" fill="#F25623">力</text>
-  <text x="960" y="710" text-anchor="middle" font-family="Inter, Noto Sans, sans-serif" font-size="54" font-weight="700" letter-spacing="14" fill="#CCD0CF">RYOKU</text>
-</svg>

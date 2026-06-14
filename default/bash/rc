@@ -1,6 +1,0 @@
-source ~/.local/share/ryoku/default/bash/envs
-source ~/.local/share/ryoku/default/bash/shell
-source ~/.local/share/ryoku/default/bash/aliases
-source ~/.local/share/ryoku/default/bash/functions
-source ~/.local/share/ryoku/default/bash/init
-[[ $- == *i* ]] && bind -f ~/.local/share/ryoku/default/bash/inputrc
