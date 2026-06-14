@@ -192,7 +192,7 @@ PanelWindow {
   }
 
   // Blur behind the bar and open panels — attached to PanelWindow (required by BackgroundEffect API)
-  BackgroundEffect.blurRegion: Settings.data.general.enableBlurBehind ? blurRegion : null
+  BackgroundEffect.blurRegion: GlobalConfig.general.enableBlurBehind ? blurRegion : null
   Region {
     id: blurRegion
     // ── Non-framed bar (simple/floating): single rectangle with bar corner states ──
@@ -570,7 +570,7 @@ PanelWindow {
   // These shortcuts delegate to the opened panel's handler functions
   // Panels can implement: onEscapePressed, onTabPressed, onBackTabPressed,
   Instantiator {
-    model: Settings.data.general.keybinds.keyEscape || []
+    model: GlobalConfig.general.keybinds.keyEscape || []
     Shortcut {
       sequence: modelData
       enabled: root.isPanelOpen && (PanelService.openedPanel.onEscapePressed !== undefined) && !PanelService.isKeybindRecording
@@ -591,7 +591,7 @@ PanelWindow {
   }
 
   Instantiator {
-    model: Settings.data.general.keybinds.keyUp || []
+    model: GlobalConfig.general.keybinds.keyUp || []
     Shortcut {
       sequence: modelData
       enabled: root.isPanelOpen && (PanelService.openedPanel.onUpPressed !== undefined) && !PanelService.isKeybindRecording
@@ -600,7 +600,7 @@ PanelWindow {
   }
 
   Instantiator {
-    model: Settings.data.general.keybinds.keyDown || []
+    model: GlobalConfig.general.keybinds.keyDown || []
     Shortcut {
       sequence: modelData
       enabled: root.isPanelOpen && (PanelService.openedPanel.onDownPressed !== undefined) && !PanelService.isKeybindRecording
@@ -609,7 +609,7 @@ PanelWindow {
   }
 
   Instantiator {
-    model: Settings.data.general.keybinds.keyEnter || []
+    model: GlobalConfig.general.keybinds.keyEnter || []
     Shortcut {
       sequence: modelData
       enabled: root.isPanelOpen && (PanelService.openedPanel.onEnterPressed !== undefined) && !PanelService.isKeybindRecording
@@ -618,7 +618,7 @@ PanelWindow {
   }
 
   Instantiator {
-    model: Settings.data.general.keybinds.keyLeft || []
+    model: GlobalConfig.general.keybinds.keyLeft || []
     Shortcut {
       sequence: modelData
       enabled: root.isPanelOpen && (PanelService.openedPanel.onLeftPressed !== undefined) && !PanelService.isKeybindRecording
@@ -627,7 +627,7 @@ PanelWindow {
   }
 
   Instantiator {
-    model: Settings.data.general.keybinds.keyRight || []
+    model: GlobalConfig.general.keybinds.keyRight || []
     Shortcut {
       sequence: modelData
       enabled: root.isPanelOpen && (PanelService.openedPanel.onRightPressed !== undefined) && !PanelService.isKeybindRecording

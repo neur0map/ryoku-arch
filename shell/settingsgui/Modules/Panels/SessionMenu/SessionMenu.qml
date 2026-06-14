@@ -228,7 +228,7 @@ SmartPanel {
       break;
     case "suspend":
       // Check if we should lock before suspending
-      if (Settings.data.general.lockOnSuspend) {
+      if (GlobalConfig.general.lockOnSuspend) {
         CompositorService.lockAndSuspend();
       } else {
         CompositorService.suspend();

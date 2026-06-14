@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Shapes
 import qs.settingsgui.Commons
 
@@ -32,7 +33,7 @@ Item {
       ShapePath {
         id: cornersPath
 
-        readonly property color cornerColor: Settings.data.general.forceBlackScreenCorners ? "black" : Color.mSurface
+        readonly property color cornerColor: GlobalConfig.general.forceBlackScreenCorners ? "black" : Color.mSurface
         readonly property real cornerRadius: Style.screenRadius
         readonly property real cornerSize: Style.screenRadius
 
@@ -46,7 +47,7 @@ Item {
         readonly property real screenHeight: cornersShape.height
 
         // Only show screen corners if enabled and appropriate conditions are met
-        readonly property bool shouldShow: Settings.data.general.showScreenCorners
+        readonly property bool shouldShow: GlobalConfig.general.showScreenCorners
 
         strokeWidth: -1 // No stroke, fill only
         fillColor: shouldShow ? cornerColor : "transparent"

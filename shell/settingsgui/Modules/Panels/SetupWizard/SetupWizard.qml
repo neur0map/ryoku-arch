@@ -43,7 +43,7 @@ SmartPanel {
     property string selectedBarPosition: "top"
 
     Component.onCompleted: {
-      selectedScaleRatio = Settings.data.general.scaleRatio;
+      selectedScaleRatio = GlobalConfig.general.scaleRatio;
       selectedBarPosition = Settings.data.bar.position;
       selectedWallpaperDirectory = GlobalConfig.wallpaper.directory || Settings.defaultWallpapersDirectory;
     }
@@ -95,7 +95,8 @@ SmartPanel {
             }
           }
 
-          Settings.data.general.scaleRatio = selectedScaleRatio;
+          GlobalConfig.general.scaleRatio = selectedScaleRatio;
+          GlobalConfig.save();
           Settings.data.bar.position = selectedBarPosition;
         }
 
@@ -140,7 +141,8 @@ SmartPanel {
     }
 
     function applyUISettings() {
-      Settings.data.general.scaleRatio = selectedScaleRatio;
+      GlobalConfig.general.scaleRatio = selectedScaleRatio;
+      GlobalConfig.save();
       Settings.data.bar.position = selectedBarPosition;
     }
 

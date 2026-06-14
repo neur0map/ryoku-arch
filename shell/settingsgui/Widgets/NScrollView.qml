@@ -46,7 +46,7 @@ ScrollView {
     const flickable = root._internalFlickable;
     const step = delta * root.wheelScrollMultiplier;
 
-    if (!Settings.data.general.smoothScrollEnabled || GlobalConfig.appearance.reduceMotion) {
+    if (!GlobalConfig.general.smoothScrollEnabled || GlobalConfig.appearance.reduceMotion) {
       flickable.contentY = root.clampScrollY(flickable.contentY - step);
       root._wheelTargetY = flickable.contentY;
       return;

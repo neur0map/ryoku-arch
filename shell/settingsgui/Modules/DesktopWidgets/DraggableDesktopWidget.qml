@@ -306,14 +306,14 @@ Item {
     clip: true
     visible: root.showBackground
 
-    layer.enabled: Settings.data.general.enableShadows && !internal.isDragging && root.showBackground
+    layer.enabled: GlobalConfig.general.enableShadows && !internal.isDragging && root.showBackground
     layer.effect: MultiEffect {
       shadowEnabled: true
       shadowBlur: Style.shadowBlur * 1.5
       shadowOpacity: Style.shadowOpacity * 0.6
       shadowColor: "black"
-      shadowHorizontalOffset: Settings.data.general.shadowOffsetX
-      shadowVerticalOffset: Settings.data.general.shadowOffsetY
+      shadowHorizontalOffset: GlobalConfig.general.shadowOffsetX
+      shadowVerticalOffset: GlobalConfig.general.shadowOffsetY
       blurMax: Style.shadowBlurMax
     }
   }

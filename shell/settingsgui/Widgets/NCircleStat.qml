@@ -100,7 +100,7 @@ Item {
 
       ctx.reset();
       ctx.lineWidth = root._lineWidth;
-      ctx.lineCap = Settings.data.general.iRadiusRatio > 0 ? "round" : "butt";
+      ctx.lineCap = GlobalConfig.general.iRadiusRatio > 0 ? "round" : "butt";
 
       // Track uses outline for contrast against surfaceVariant backgrounds
       ctx.strokeStyle = Color.mSurface;

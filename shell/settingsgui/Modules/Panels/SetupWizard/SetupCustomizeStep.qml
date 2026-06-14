@@ -594,8 +594,11 @@ ColumnLayout {
           }
         }
         NToggle {
-          checked: Settings.data.general.enableShadows
-          onToggled: checked => Settings.data.general.enableShadows = checked
+          checked: GlobalConfig.general.enableShadows
+          onToggled: checked => {
+            GlobalConfig.general.enableShadows = checked;
+            GlobalConfig.save();
+          }
         }
       }
 

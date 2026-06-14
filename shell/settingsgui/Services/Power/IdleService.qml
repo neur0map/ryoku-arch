@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Compositor
@@ -201,7 +202,7 @@ Singleton {
     } else if (stage === "suspend") {
       if (Settings.data.idle.suspendCommand)
         Quickshell.execDetached(["sh", "-c", Settings.data.idle.suspendCommand]);
-      if (Settings.data.general.lockOnSuspend) {
+      if (GlobalConfig.general.lockOnSuspend) {
         CompositorService.lockAndSuspend();
       } else {
         CompositorService.suspend();

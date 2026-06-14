@@ -86,7 +86,7 @@ Item {
 
     const step = delta * root.wheelScrollMultiplier;
 
-    if (!Settings.data.general.smoothScrollEnabled || GlobalConfig.appearance.reduceMotion) {
+    if (!GlobalConfig.general.smoothScrollEnabled || GlobalConfig.appearance.reduceMotion) {
       listView.contentY = root.clampScrollY(listView.contentY - step);
       root._wheelTargetY = listView.contentY;
       return;
@@ -103,7 +103,7 @@ Item {
   function animateToContentY(targetY) {
     const clampedY = root.clampScrollY(targetY);
 
-    if (!Settings.data.general.smoothScrollEnabled || GlobalConfig.appearance.reduceMotion || listView.dragging || listView.flicking) {
+    if (!GlobalConfig.general.smoothScrollEnabled || GlobalConfig.appearance.reduceMotion || listView.dragging || listView.flicking) {
       listView.contentY = clampedY;
       root._wheelTargetY = clampedY;
       return;

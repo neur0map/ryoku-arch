@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
@@ -27,7 +28,7 @@ NBox {
       Layout.preferredWidth: Math.round(Style.baseWidgetSize * 1.25 * Style.uiScaleRatio)
       Layout.preferredHeight: Math.round(Style.baseWidgetSize * 1.25 * Style.uiScaleRatio)
       radius: Layout.preferredWidth / 2
-      imagePath: Settings.preprocessPath(Settings.data.general.avatarImage)
+      imagePath: Settings.preprocessPath(GlobalConfig.general.avatarImage)
       fallbackIcon: "person"
       borderColor: Color.mPrimary
       borderWidth: Style.borderS * 1.5

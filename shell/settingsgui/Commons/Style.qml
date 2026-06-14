@@ -41,7 +41,7 @@ Singleton {
   readonly property int iRadiusM: Math.round(16 * GlobalConfig.appearance.rounding.scale)
   readonly property int iRadiusL: Math.round(20 * GlobalConfig.appearance.rounding.scale)
 
-  readonly property int screenRadius: Math.round(20 * Settings.data.general.screenRadiusRatio)
+  readonly property int screenRadius: Math.round(20 * GlobalConfig.general.screenRadiusRatio)
 
   readonly property int borderS: Math.max(1, Math.round(1 * uiScaleRatio))
   readonly property int borderM: Math.max(1, Math.round(2 * uiScaleRatio))
@@ -77,8 +77,8 @@ Singleton {
   readonly property real shadowOpacity: 0.85
   readonly property real shadowBlur: 1.0
   readonly property int shadowBlurMax: 22
-  readonly property real shadowHorizontalOffset: Settings.data.general.shadowOffsetX
-  readonly property real shadowVerticalOffset: Settings.data.general.shadowOffsetY
+  readonly property real shadowHorizontalOffset: GlobalConfig.general.shadowOffsetX
+  readonly property real shadowVerticalOffset: GlobalConfig.general.shadowOffsetY
 
   // RYOKU: durations scaled by GlobalConfig.appearance.anim.durations.scale (0 = instant)
   readonly property int animationFaster: PowerProfileService.performanceMode ? 0 : Math.round(75 * GlobalConfig.appearance.anim.durations.scale)

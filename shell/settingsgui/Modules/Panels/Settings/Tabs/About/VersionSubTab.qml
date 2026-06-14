@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
@@ -131,7 +132,7 @@ ColumnLayout {
       ramGb: Math.round((root.getModule("Memory")?.result?.total || 0) / root.gigaB),
       monitors: monitors,
       ui: {
-        scaleRatio: Settings.data.general.scaleRatio,
+        scaleRatio: GlobalConfig.general.scaleRatio,
         fontDefaultScale: Settings.data.ui.fontDefaultScale,
         fontFixedScale: Settings.data.ui.fontFixedScale
       }
@@ -195,7 +196,7 @@ ColumnLayout {
     }
     info += "\nSettings\n";
     info += "========\n";
-    info += "UI Scale: " + Settings.data.general.scaleRatio + "\n";
+    info += "UI Scale: " + GlobalConfig.general.scaleRatio + "\n";
     info += "Default Font: " + (Settings.data.ui.fontDefault || "default") + " @ " + Settings.data.ui.fontDefaultScale + "x\n";
     info += "Fixed Font: " + (Settings.data.ui.fontFixed || "default") + " @ " + Settings.data.ui.fontFixedScale + "x\n";
     Quickshell.execDetached(["wl-copy", info]);

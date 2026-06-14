@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Effects
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Power
@@ -9,13 +10,13 @@ Item {
   required property var source
 
   property bool autoPaddingEnabled: false
-  property real shadowHorizontalOffset: Settings.data.general.shadowOffsetX
-  property real shadowVerticalOffset: Settings.data.general.shadowOffsetY
+  property real shadowHorizontalOffset: GlobalConfig.general.shadowOffsetX
+  property real shadowVerticalOffset: GlobalConfig.general.shadowOffsetY
   property real shadowOpacity: Style.shadowOpacity
   property color shadowColor: "black"
   property real shadowBlur: Style.shadowBlur
 
-  layer.enabled: Settings.data.general.enableShadows && !PowerProfileService.performanceMode
+  layer.enabled: GlobalConfig.general.enableShadows && !PowerProfileService.performanceMode
   layer.effect: MultiEffect {
     source: root.source
     shadowEnabled: true

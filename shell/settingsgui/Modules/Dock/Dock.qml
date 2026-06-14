@@ -840,7 +840,7 @@ Loader {
           readonly property real slideY: dockPosition === "top" ? -slideOffset : dockPosition === "bottom" ? slideOffset : 0
 
           // Blur behind dock — offset by slide so it follows the content
-          BackgroundEffect.blurRegion: Settings.data.general.enableBlurBehind ? dockBlurRegion : null
+          BackgroundEffect.blurRegion: GlobalConfig.general.enableBlurBehind ? dockBlurRegion : null
           Region {
             id: dockBlurRegion
             Region {

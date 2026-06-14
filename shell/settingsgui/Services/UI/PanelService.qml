@@ -195,7 +195,7 @@ Singleton {
   function canShowPanelsOnScreen(screen) {
     const name = screen?.name || "";
     const monitors = Settings.data.bar.monitors || [];
-    const allowPanelsOnScreenWithoutBar = Settings.data.general.allowPanelsOnScreenWithoutBar;
+    const allowPanelsOnScreenWithoutBar = GlobalConfig.general.allowPanelsOnScreenWithoutBar;
     return allowPanelsOnScreenWithoutBar || monitors.length === 0 || monitors.includes(name);
   }
 

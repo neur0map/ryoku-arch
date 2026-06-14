@@ -1660,7 +1660,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.general.clockStyle === \"custom\""
+      "GlobalConfig.general.clockStyle === \"custom\""
     ]
   },
   {
@@ -1690,7 +1690,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "!Settings.data.general.compactLockScreen"
+      "!GlobalConfig.general.compactLockScreen"
     ]
   },
   {
@@ -1765,7 +1765,7 @@
     "subTab": 1,
     "subTabLabel": "common.behavior",
     "visibleWhen": [
-      "Settings.data.general.showSessionButtonsOnLockScreen"
+      "GlobalConfig.general.showSessionButtonsOnLockScreen"
     ]
   },
   {
@@ -1777,7 +1777,7 @@
     "subTab": 1,
     "subTabLabel": "common.behavior",
     "visibleWhen": [
-      "Settings.data.general.showSessionButtonsOnLockScreen"
+      "GlobalConfig.general.showSessionButtonsOnLockScreen"
     ]
   },
   {
@@ -1789,7 +1789,7 @@
     "subTab": 1,
     "subTabLabel": "common.behavior",
     "visibleWhen": [
-      "Settings.data.general.showSessionButtonsOnLockScreen && Settings.data.general.enableLockScreenCountdown"
+      "GlobalConfig.general.showSessionButtonsOnLockScreen && GlobalConfig.general.enableLockScreenCountdown"
     ]
   },
   {
@@ -2263,7 +2263,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "Settings.data.general.enableShadows"
+      "GlobalConfig.general.enableShadows"
     ]
   },
   {

@@ -20,7 +20,7 @@ Variants {
       }
 
       let shouldLoad = true;
-      if (!Settings.data.general.allowPanelsOnScreenWithoutBar) {
+      if (!GlobalConfig.general.allowPanelsOnScreenWithoutBar) {
         var monitors = Settings.data.bar.monitors || [];
         shouldLoad = monitors.length === 0 || monitors.includes(modelData?.name);
       }

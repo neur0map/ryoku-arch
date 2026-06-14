@@ -162,7 +162,7 @@ Item {
                        }
                        break;
                        case "suspend":
-                       if (Settings.data.general.lockOnSuspend) {
+                       if (GlobalConfig.general.lockOnSuspend) {
                          CompositorService.lockAndSuspend();
                        } else {
                          CompositorService.suspend();

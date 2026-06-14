@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import Quickshell.Io
 import qs.settingsgui.Commons
@@ -260,7 +261,7 @@ Singleton {
     if (lastSeen === target)
       return;
 
-    if (!Settings.data.general.showChangelogOnStartup) {
+    if (!GlobalConfig.general.showChangelogOnStartup) {
       // user has opted out of seeing changelogs, mark as seen
       markChangelogSeen(target);
       return;

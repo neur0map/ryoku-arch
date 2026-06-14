@@ -101,6 +101,23 @@ public:
         : ConfigObject(parent) {}
 };
 
+class GeneralKeybinds : public ConfigObject {
+    Q_OBJECT
+    QML_ANONYMOUS
+
+    CONFIG_GLOBAL_PROPERTY(QStringList, keyUp, { u"Up"_s })
+    CONFIG_GLOBAL_PROPERTY(QStringList, keyDown, { u"Down"_s })
+    CONFIG_GLOBAL_PROPERTY(QStringList, keyLeft, { u"Left"_s })
+    CONFIG_GLOBAL_PROPERTY(QStringList, keyRight, { u"Right"_s })
+    CONFIG_GLOBAL_PROPERTY(QStringList, keyEnter, { u"Return"_s, u"Enter"_s })
+    CONFIG_GLOBAL_PROPERTY(QStringList, keyEscape, { u"Esc"_s })
+    CONFIG_GLOBAL_PROPERTY(QStringList, keyRemove, { u"Del"_s })
+
+public:
+    explicit GeneralKeybinds(QObject* parent = nullptr)
+        : ConfigObject(parent) {}
+};
+
 class GeneralConfig : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
@@ -112,16 +129,38 @@ class GeneralConfig : public ConfigObject {
     CONFIG_PROPERTY(bool, showOverFullscreen, false)
     CONFIG_PROPERTY(qreal, mediaGifSpeedAdjustment, 300)
     CONFIG_PROPERTY(qreal, sessionGifSpeed, 0.7)
+    // Migrated from the legacy settings-gui general domain (Stage 1 consolidation).
+    CONFIG_GLOBAL_PROPERTY(bool, smoothScrollEnabled, true)
+    CONFIG_GLOBAL_PROPERTY(qreal, scaleRatio, 1.0)
+    CONFIG_GLOBAL_PROPERTY(bool, enableShadows, true)
+    CONFIG_GLOBAL_PROPERTY(int, shadowOffsetX, 2)
+    CONFIG_GLOBAL_PROPERTY(int, shadowOffsetY, 3)
+    CONFIG_GLOBAL_PROPERTY(bool, enableBlurBehind, true)
+    CONFIG_GLOBAL_PROPERTY(qreal, screenRadiusRatio, 1.0)
+    CONFIG_GLOBAL_PROPERTY(qreal, iRadiusRatio, 1.0)
+    CONFIG_GLOBAL_PROPERTY(bool, showScreenCorners, false)
+    CONFIG_GLOBAL_PROPERTY(bool, forceBlackScreenCorners, false)
+    CONFIG_GLOBAL_PROPERTY(bool, lockOnSuspend, true)
+    CONFIG_GLOBAL_PROPERTY(bool, compactLockScreen, false)
+    CONFIG_GLOBAL_PROPERTY(bool, showSessionButtonsOnLockScreen, true)
+    CONFIG_GLOBAL_PROPERTY(bool, enableLockScreenCountdown, true)
+    CONFIG_GLOBAL_PROPERTY(bool, allowPanelsOnScreenWithoutBar, true)
+    CONFIG_GLOBAL_PROPERTY(bool, showChangelogOnStartup, true)
+    CONFIG_GLOBAL_PROPERTY(QString, clockStyle, u"custom"_s)
+    CONFIG_GLOBAL_PROPERTY(QString, language)
+    CONFIG_GLOBAL_PROPERTY(QString, avatarImage)
     CONFIG_SUBOBJECT(GeneralApps, apps)
     CONFIG_SUBOBJECT(GeneralIdle, idle)
     CONFIG_SUBOBJECT(GeneralBattery, battery)
+    CONFIG_SUBOBJECT(GeneralKeybinds, keybinds)
 
 public:
     explicit GeneralConfig(QObject* parent = nullptr)
         : ConfigObject(parent)
         , m_apps(new GeneralApps(this))
         , m_idle(new GeneralIdle(this))
-        , m_battery(new GeneralBattery(this)) {}
+        , m_battery(new GeneralBattery(this))
+        , m_keybinds(new GeneralKeybinds(this)) {}
 };
 
 } // namespace ryoku::config
