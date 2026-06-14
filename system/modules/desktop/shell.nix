@@ -68,6 +68,16 @@ in
     papirus-icon-theme
   ]);
 
+  # Fonts the shell's appearance config names (appearanceconfig.hpp defaults):
+  # the Material Symbols icon font is required, else MaterialIcon falls back to
+  # rendering glyph NAMES as text and the bar overflows. Rubik = clock, the
+  # Caskaydia Nerd Font = monospace.
+  fonts.packages = with pkgs; [
+    material-symbols
+    rubik
+    nerd-fonts.caskaydia-cove
+  ];
+
   environment.etc."ryoku/hyprland.conf".text = ''
     # Plugins + the extra Qt QML modules the shell imports.
     env = QML_IMPORT_PATH,${qmlPath}
