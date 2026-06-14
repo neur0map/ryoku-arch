@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Power
@@ -123,9 +124,9 @@ Singleton {
   function smartAlpha(baseColor, minAlpha = 0.4) {
     if (PowerProfileService.performanceMode)
       return baseColor;
-    if (!Settings.data.ui.translucentWidgets)
+    if (!GlobalConfig.ui.translucentWidgets)
       return baseColor;
-    let alpha = Math.max(adaptiveOpacity(Settings.data.ui.panelBackgroundOpacity), minAlpha);
+    let alpha = Math.max(adaptiveOpacity(GlobalConfig.ui.panelBackgroundOpacity), minAlpha);
     let resultAlpha = Math.max(0, baseColor.a - (1.0 - alpha));
     return Qt.alpha(baseColor, resultAlpha);
   }

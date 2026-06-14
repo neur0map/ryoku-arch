@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.UI
@@ -24,7 +25,7 @@ Singleton {
   signal windowClosed
 
   function openToEntry(entry, screen) {
-    if (Settings.data.ui.settingsPanelMode === "window") {
+    if (GlobalConfig.ui.settingsPanelMode === "window") {
       requestedEntry = entry;
       if (settingsWindow) {
         settingsWindow.visible = true;
@@ -52,7 +53,7 @@ Singleton {
     const tabId = tab !== undefined ? tab : 0;
     const subTabId = subTab !== undefined ? subTab : -1;
 
-    if (Settings.data.ui.settingsPanelMode === "window") {
+    if (GlobalConfig.ui.settingsPanelMode === "window") {
       requestedTab = tabId;
       requestedSubTab = subTabId;
       if (settingsWindow) {
@@ -106,7 +107,7 @@ Singleton {
     const tabId = tab !== undefined ? tab : 0;
     const subTabId = subTab !== undefined ? subTab : -1;
 
-    if (Settings.data.ui.settingsPanelMode === "window") {
+    if (GlobalConfig.ui.settingsPanelMode === "window") {
       if (isWindowOpen) {
         closeWindow();
       } else {
@@ -127,7 +128,7 @@ Singleton {
   }
 
   function close(screen) {
-    if (Settings.data.ui.settingsPanelMode === "window") {
+    if (GlobalConfig.ui.settingsPanelMode === "window") {
       closeWindow();
     } else {
       if (!screen)

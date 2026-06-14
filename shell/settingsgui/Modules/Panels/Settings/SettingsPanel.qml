@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
@@ -14,7 +15,7 @@ SmartPanel {
   preferredHeight: Math.round(910 * Style.uiScaleRatio)
 
   // Settings panel mode: "centered", "attached", "window"
-  readonly property string settingsPanelMode: Settings.data.ui.settingsPanelMode
+  readonly property string settingsPanelMode: GlobalConfig.ui.settingsPanelMode
   readonly property bool isWindowMode: settingsPanelMode === "window"
   readonly property bool attachToBar: settingsPanelMode === "attached"
 

@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.MainScreen
@@ -45,7 +46,7 @@ SmartPanel {
       // the global "attach panels to bar" setting — if that setting is off, panels
       // stay detached regardless of what the plugin requests.
       readonly property bool allowAttach: {
-        var globalAllow = Settings.data.ui.panelsAttachedToBar || root.forceAttachToBar;
+        var globalAllow = GlobalConfig.ui.panelsAttachedToBar || root.forceAttachToBar;
         if (!globalAllow)
           return false;
         if (pluginContentLoader.item && pluginContentLoader.item.allowAttach !== undefined)

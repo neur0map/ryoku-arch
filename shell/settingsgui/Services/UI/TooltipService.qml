@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import qs.settingsgui.Commons
 import qs.settingsgui.Modules.Tooltip
@@ -16,7 +17,7 @@ Singleton {
   }
 
   function show(target, content, direction, delay, fontFamily) {
-    if (!Settings.data.ui.tooltipsEnabled) {
+    if (!GlobalConfig.ui.tooltipsEnabled) {
       return;
     }
 

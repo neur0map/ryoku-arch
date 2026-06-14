@@ -31,6 +31,7 @@ qml_module(ryoku-config
         wallpaperconfig.hpp
         hooksconfig.hpp
         pluginsconfig.hpp
+        uiconfig.hpp
         notifsconfig.hpp
         osdconfig.hpp
         serviceconfig.hpp

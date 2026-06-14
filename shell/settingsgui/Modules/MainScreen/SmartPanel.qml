@@ -770,10 +770,10 @@ Item {
       if (contentLoader.item && contentLoader.item.allowAttach !== undefined) {
         return contentLoader.item.allowAttach;
       }
-      return Settings.data.ui.panelsAttachedToBar || root.forceAttachToBar;
+      return GlobalConfig.ui.panelsAttachedToBar || root.forceAttachToBar;
     }
     readonly property bool allowAttachToBar: {
-      if (!(Settings.data.ui.panelsAttachedToBar || root.forceAttachToBar)) {
+      if (!(GlobalConfig.ui.panelsAttachedToBar || root.forceAttachToBar)) {
         return false;
       }
 

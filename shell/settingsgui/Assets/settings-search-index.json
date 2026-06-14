@@ -470,7 +470,7 @@
     "subTab": 2,
     "subTabLabel": "common.behavior",
     "visibleWhen": [
-      "Settings.data.bar.middleClickAction !== \"none\" && Settings.data.bar.middleClickAction !== \"command\" && !(Settings.data.bar.middleClickAction === \"settings\" && Settings.data.ui.settingsPanelMode === \"window\")"
+      "Settings.data.bar.middleClickAction !== \"none\" && Settings.data.bar.middleClickAction !== \"command\" && !(Settings.data.bar.middleClickAction === \"settings\" && GlobalConfig.ui.settingsPanelMode === \"window\")"
     ]
   },
   {
@@ -503,7 +503,7 @@
     "subTab": 2,
     "subTabLabel": "common.behavior",
     "visibleWhen": [
-      "Settings.data.bar.rightClickAction !== \"none\" && Settings.data.bar.rightClickAction !== \"command\" && !(Settings.data.bar.rightClickAction === \"settings\" && Settings.data.ui.settingsPanelMode === \"window\")"
+      "Settings.data.bar.rightClickAction !== \"none\" && Settings.data.bar.rightClickAction !== \"command\" && !(Settings.data.bar.rightClickAction === \"settings\" && GlobalConfig.ui.settingsPanelMode === \"window\")"
     ]
   },
   {

@@ -31,7 +31,7 @@ Item {
   property bool reserveScrollbarSpace: true
 
   // Keep scrollbars visible whenever overflow exists (without forcing visibility when not scrollable)
-  property bool showScrollbarWhenScrollable: Settings.data.ui.scrollbarAlwaysVisible
+  property bool showScrollbarWhenScrollable: GlobalConfig.ui.scrollbarAlwaysVisible
 
   // Available width for content (excludes scrollbar space when reserveScrollbarSpace is true)
   // Note: Always reserves space when enabled to avoid binding loops with cellWidth calculations

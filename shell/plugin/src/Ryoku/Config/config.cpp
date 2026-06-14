@@ -31,6 +31,7 @@
 #include "wallpaperconfig.hpp"
 #include "hooksconfig.hpp"
 #include "pluginsconfig.hpp"
+#include "uiconfig.hpp"
 
 #include <qqmlengine.h>
 #include <qstandardpaths.h>
@@ -76,7 +77,8 @@ GlobalConfig::GlobalConfig(QObject* parent)
     , m_systemMonitor(new SystemMonitorConfig(this))
     , m_wallpaper(new WallpaperConfig(this))
     , m_hooks(new HooksConfig(this))
-    , m_plugins(new PluginsConfig(this)) {
+    , m_plugins(new PluginsConfig(this))
+    , m_ui(new UiConfig(this)) {
     setupFileBackend(configDir() + QStringLiteral("shell.json"));
 }
 
@@ -111,7 +113,8 @@ GlobalConfig::GlobalConfig(GlobalConfig* fallback, const QString& filePath, cons
     , m_systemMonitor(new SystemMonitorConfig(this))
     , m_wallpaper(new WallpaperConfig(this))
     , m_hooks(new HooksConfig(this))
-    , m_plugins(new PluginsConfig(this)) {
+    , m_plugins(new PluginsConfig(this))
+    , m_ui(new UiConfig(this)) {
     if (!filePath.isEmpty())
         setupFileBackend(filePath, screen);
     if (fallback)

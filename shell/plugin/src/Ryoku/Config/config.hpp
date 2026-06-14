@@ -36,6 +36,7 @@ class SystemMonitorConfig;
 class WallpaperConfig;
 class HooksConfig;
 class PluginsConfig;
+class UiConfig;
 
 class GlobalConfig : public RootConfig {
     Q_OBJECT
@@ -71,6 +72,7 @@ class GlobalConfig : public RootConfig {
     Q_MOC_INCLUDE("wallpaperconfig.hpp")
     Q_MOC_INCLUDE("hooksconfig.hpp")
     Q_MOC_INCLUDE("pluginsconfig.hpp")
+    Q_MOC_INCLUDE("uiconfig.hpp")
 
     CONFIG_PROPERTY(bool, enabled, true)
     CONFIG_SUBOBJECT(AppearanceConfig, appearance)
@@ -103,6 +105,7 @@ class GlobalConfig : public RootConfig {
     CONFIG_SUBOBJECT(WallpaperConfig, wallpaper)
     CONFIG_SUBOBJECT(HooksConfig, hooks)
     CONFIG_SUBOBJECT(PluginsConfig, plugins)
+    CONFIG_SUBOBJECT(UiConfig, ui)
 
 public:
     static GlobalConfig* instance();

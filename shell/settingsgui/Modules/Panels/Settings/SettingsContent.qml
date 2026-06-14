@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
@@ -59,7 +60,7 @@ Item {
   property real _lastMouseY: 0
   property bool _mouseInitialized: false
 
-  readonly property bool sidebarCardStyle: Settings.data.ui.settingsPanelSideBarCardStyle
+  readonly property bool sidebarCardStyle: GlobalConfig.ui.settingsPanelSideBarCardStyle
 
   onSearchResultsChanged: {
     searchSelectedIndex = 0;

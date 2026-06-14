@@ -75,12 +75,15 @@ ColumnLayout {
   }
 
   NToggle {
-    // RYOKU WIRED: Settings.data.ui.settingsPanelSideBarCardStyle — the settings
+    // RYOKU WIRED: GlobalConfig.ui.settingsPanelSideBarCardStyle — the settings
     // panel sidebar (SettingsContent.qml) wraps itself in a filled rounded card
     // when this is on.
     label: I18n.tr("panels.user-interface.settings-panel-sidebar-card-style-label")
     description: I18n.tr("panels.user-interface.settings-panel-sidebar-card-style-description")
-    checked: Settings.data.ui.settingsPanelSideBarCardStyle
-    onToggled: checked => Settings.data.ui.settingsPanelSideBarCardStyle = checked
+    checked: GlobalConfig.ui.settingsPanelSideBarCardStyle
+    onToggled: checked => {
+      GlobalConfig.ui.settingsPanelSideBarCardStyle = checked;
+      GlobalConfig.save();
+    }
   }
 }

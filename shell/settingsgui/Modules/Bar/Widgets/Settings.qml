@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import Quickshell
 import qs.settingsgui.Commons
@@ -74,7 +75,7 @@ NIconButton {
   }
 
   onClicked: {
-    if (Settings.data.ui.settingsPanelMode === "attached") {
+    if (GlobalConfig.ui.settingsPanelMode === "attached") {
       PanelService.getPanel("settingsPanel", screen)?.toggle(this);
     } else {
       PanelService.getPanel("settingsPanel", screen)?.toggle();

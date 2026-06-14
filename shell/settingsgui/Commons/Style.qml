@@ -71,7 +71,7 @@ Singleton {
   readonly property real opacityAlmost: 0.95
   readonly property real opacityFull: 1.0
 
-  readonly property real effectivePanelOpacity: PowerProfileService.performanceMode ? 1.0 : Color.adaptiveOpacity(Settings.data.ui.panelBackgroundOpacity)
+  readonly property real effectivePanelOpacity: PowerProfileService.performanceMode ? 1.0 : Color.adaptiveOpacity(GlobalConfig.ui.panelBackgroundOpacity)
   readonly property real effectiveBarOpacity: PowerProfileService.performanceMode ? 1.0 : Settings.data.bar.backgroundOpacity
 
   readonly property real shadowOpacity: 0.85
@@ -152,7 +152,7 @@ Singleton {
   readonly property color capsuleBorderColor: Settings.data.bar.showOutline ? Color.mPrimary : "transparent"
   readonly property int capsuleBorderWidth: Settings.data.bar.showOutline ? Style.borderS : 0
 
-  readonly property color boxBorderColor: Settings.data.ui.boxBorderEnabled ? Color.mOutline : "transparent"
+  readonly property color boxBorderColor: GlobalConfig.ui.boxBorderEnabled ? Color.mOutline : "transparent"
 
   // Pixel-perfect utility for centering content without subpixel positioning
   function pixelAlignCenter(containerSize, contentSize) {
