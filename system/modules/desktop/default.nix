@@ -9,6 +9,7 @@
     ../../packages/desktop.nix
     ../../packages/fonts.nix
     ../../packages/theming.nix
+    ./shell.nix
   ];
 
   # Hyprland compositor. withUWSM wraps the session in the Universal Wayland
@@ -29,7 +30,7 @@
   services.greetd = {
     enable = true;
     settings.default_session = {
-      command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd Hyprland";
+      command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd ryoku-hypr-session";
       user = "greeter";
     };
   };
