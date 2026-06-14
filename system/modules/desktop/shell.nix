@@ -23,11 +23,30 @@ let
   '';
 in
 {
+  # Wayland tools the shell shells out to at runtime (clipboard, brightness,
+  # screenshots, mpris, sensors, night light, audio visualiser, notifications).
+  # The full ryoku-* CLI port is a later v2 slice; these are the in-nixpkgs deps.
   environment.systemPackages = [
     qs
     shell
     ryoku-hypr-session
-  ];
+  ]
+  ++ (with pkgs; [
+    wl-clipboard
+    cliphist
+    brightnessctl
+    ddcutil
+    wlsunset
+    grim
+    slurp
+    libnotify
+    playerctl
+    lm_sensors
+    cava
+    xdg-utils
+    adwaita-icon-theme
+    papirus-icon-theme
+  ]);
 
   environment.etc."ryoku/hyprland.conf".text = ''
     # Plugins + the extra Qt QML modules the shell imports.
