@@ -30,7 +30,12 @@ let
   # (fill-if-missing, so a user's own choice is never overwritten) before
   # starting Hyprland; the shell's Wallpapers service watches path.txt.
   ryoku-hypr-session = pkgs.writeShellScriptBin "ryoku-hypr-session" ''
-    export PATH=${pkgs.ryoku-theme-tools}/bin:$PATH
+    # The shell shells out to the bundled `ryoku` bridge by bare name (Wallpapers
+    # setWallpaper runs `ryoku wallpaper -f`, the smart-scheme timer runs `ryoku
+    # scheme from-wallpaper`), so its scripts dir must be on PATH or wallpaper
+    # switches neither persist nor re-theme. ryoku-theme-tools carries the
+    # Pillow-backed extractors the bridge calls.
+    export PATH=${shellConfig}/scripts:${pkgs.ryoku-theme-tools}/bin:$PATH
     state="''${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell"
     mkdir -p "$state/wallpaper"
     if [ ! -s "$state/wallpaper/path.txt" ]; then
