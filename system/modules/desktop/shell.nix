@@ -69,14 +69,19 @@ in
     papirus-icon-theme
   ]);
 
-  # Fonts the shell's appearance config names (appearanceconfig.hpp defaults):
-  # the Material Symbols icon font is required, else MaterialIcon falls back to
-  # rendering glyph NAMES as text and the bar overflows. Rubik = clock, the
-  # Caskaydia Nerd Font = monospace.
+  # Fonts the shell's appearance config names (appearanceconfig.hpp defaults).
+  # Material Symbols Rounded is the main-shell icon font; without it MaterialIcon
+  # renders glyph NAMES as text and the bar overflows. Rubik = UI/clock, Caskaydia
+  # Nerd Font = monospace. Iosevka/JetBrainsMono Nerd Fonts cover the dashboard
+  # mono and the MaterialSymbol nerd-glyph fallback; ryoku-fonts adds the
+  # dashboard's Phosphor-Bold icon family (not in nixpkgs).
   fonts.packages = with pkgs; [
     material-symbols
     rubik
     nerd-fonts.caskaydia-cove
+    nerd-fonts.iosevka
+    nerd-fonts.jetbrains-mono
+    ryoku-fonts
   ];
 
   environment.etc."ryoku/hyprland.conf".text = ''
