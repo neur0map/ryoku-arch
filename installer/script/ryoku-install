@@ -3,11 +3,21 @@
 # /etc/ryoku/flake), on a stock NixOS minimal ISO, or on any NixOS with
 # flakes. Everything before the disko-install step is read-only and
 # re-runnable; disko-install is the single destructive action.
+#
+# Two modes:
+#   interactive (default) - a gum TUI prompts for every choice.
+#   unattended (RYOKU_UNATTENDED=1) - every choice comes from the environment,
+#     for CI, the nixos install test, and scripted qemu runs. Variables:
+#       RYOKU_PROFILE   one of amd-nvidia|amd|intel|vm   (required)
+#       RYOKU_DISK      target block device, erased       (required)
+#       RYOKU_HOSTNAME  default ryoku
+#       RYOKU_USERNAME  default ryoku
+#       RYOKU_ROOT_PASSWORD / RYOKU_USER_PASSWORD  default to a dev value
+#       RYOKU_REBOOT    non-empty reboots after install
 set -euo pipefail
 
-# Baked-in flake on the ISO. Override with RYOKU_FLAKE to install from a
-# checkout or, later, a github: reference.
 FLAKE="${RYOKU_FLAKE:-/etc/ryoku/flake}"
+UNATTENDED="${RYOKU_UNATTENDED:-}"
 
 BRAND="#F25623"
 INK="#CCD0CF"
@@ -18,7 +28,7 @@ export GUM_CHOOSE_CURSOR=": " \
        GUM_CONFIRM_SELECTED_BACKGROUND="$BRAND"
 
 die() {
-  gum style --foreground 196 "x $*" >&2
+  printf 'ryoku-install: %s\n' "$*" >&2
   exit 1
 }
 
@@ -30,58 +40,76 @@ header() {
     "For the sake of power and beauty."
 }
 
-# Preflight: read-only checks, safe to repeat.
+valid_profile() { [[ $1 =~ ^(amd-nvidia|amd|intel|vm)$ ]]; }
+valid_hostname() { [[ $1 =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]; }
+valid_username() { [[ $1 =~ ^[a-z_][a-z0-9_-]*$ ]]; }
+
+# Preflight: read-only, safe to repeat.
 [[ $EUID -eq 0 ]] || die "run as root"
 [[ -d /sys/firmware/efi ]] || die "UEFI required (legacy BIOS unsupported in v1)"
-command -v gum >/dev/null || die "gum missing (live ISO bug)"
 command -v disko-install >/dev/null || die "disko-install missing"
 
-header
+encrypt=false
+root_pw=""
+user_pw=""
+do_reboot=""
 
-# 1. Hardware profile. Values are the unprefixed nixosConfigurations keys
-# that disko-install targets with --flake .#<profile>.
-profile=$(gum choose --header "Hardware profile" \
-  "amd-nvidia : AMD + NVIDIA hybrid laptop (Ryzen + RTX)" \
-  "amd        : AMD CPU/iGPU only" \
-  "intel      : Intel CPU/iGPU" \
-  "vm         : virtual machine / qemu")
-profile=${profile%% *}
-[[ -n $profile ]] || die "no profile selected"
-
-# 2. Target disk via lsblk. -e7 drops loop devices; the grep drops
-# remaining loop and optical entries.
-mapfile -t disks < <(lsblk -dpno NAME,SIZE,MODEL -e7 | grep -vE 'loop|/dev/sr')
-[[ ${#disks[@]} -gt 0 ]] || die "no installable disks found"
-disk_line=$(printf '%s\n' "${disks[@]}" | gum choose --header "Target disk (ERASED)")
-disk=$(awk '{print $1}' <<<"$disk_line")
-[[ -b $disk ]] || die "not a block device: $disk"
-
-# 3. Hostname (letters, digits, dashes; RFC-1123 label shape).
-hostname=$(gum input --placeholder "ryoku" --header "Hostname (letters, digits, dashes)")
-hostname=${hostname:-ryoku}
-[[ $hostname =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]] || die "invalid hostname"
-
-# 4. Primary username.
-username=$(gum input --placeholder "you" --header "Primary username")
-[[ $username =~ ^[a-z_][a-z0-9_-]*$ ]] || die "invalid username"
-
-# 5. Encryption toggle. The v1 disko layout is plaintext btrfs; the
-# encrypted variant lands in v2, so this captures intent without changing
-# the destructive step.
-if gum confirm "Encrypt the disk with LUKS? (recommended)"; then
-  encrypt=true
-  lukspass=$(gum input --password --header "Disk encryption passphrase")
-  printf '%s' "$lukspass" >/tmp/disko-luks-key
+if [[ -n $UNATTENDED ]]; then
+  profile="${RYOKU_PROFILE:-}"
+  disk="${RYOKU_DISK:-}"
+  hostname="${RYOKU_HOSTNAME:-ryoku}"
+  username="${RYOKU_USERNAME:-ryoku}"
+  root_pw="${RYOKU_ROOT_PASSWORD:-ryoku}"
+  user_pw="${RYOKU_USER_PASSWORD:-ryoku}"
+  do_reboot="${RYOKU_REBOOT:-}"
+  valid_profile "$profile" || die "RYOKU_PROFILE must be amd-nvidia|amd|intel|vm"
+  [[ -b $disk ]] || die "RYOKU_DISK is not a block device: ${disk:-unset}"
+  valid_hostname "$hostname" || die "invalid RYOKU_HOSTNAME"
+  valid_username "$username" || die "invalid RYOKU_USERNAME"
 else
-  encrypt=false
+  command -v gum >/dev/null || die "gum missing (live ISO bug)"
+  header
+
+  # 1. Hardware profile. Values are the unprefixed nixosConfigurations keys
+  # that disko-install targets with --flake .#<profile>.
+  profile=$(gum choose --header "Hardware profile" \
+    "amd-nvidia : AMD + NVIDIA hybrid laptop (Ryzen + RTX)" \
+    "amd        : AMD CPU/iGPU only" \
+    "intel      : Intel CPU/iGPU" \
+    "vm         : virtual machine / qemu")
+  profile=${profile%% *}
+  valid_profile "$profile" || die "no profile selected"
+
+  # 2. Target disk via lsblk. -e7 drops loop devices; the grep drops
+  # remaining loop and optical entries.
+  mapfile -t disks < <(lsblk -dpno NAME,SIZE,MODEL -e7 | grep -vE 'loop|/dev/sr')
+  [[ ${#disks[@]} -gt 0 ]] || die "no installable disks found"
+  disk_line=$(printf '%s\n' "${disks[@]}" | gum choose --header "Target disk (ERASED)")
+  disk=$(awk '{print $1}' <<<"$disk_line")
+  [[ -b $disk ]] || die "not a block device: $disk"
+
+  # 3. Hostname (RFC-1123 label shape).
+  hostname=$(gum input --placeholder "ryoku" --header "Hostname (letters, digits, dashes)")
+  hostname=${hostname:-ryoku}
+  valid_hostname "$hostname" || die "invalid hostname"
+
+  # 4. Primary username.
+  username=$(gum input --placeholder "you" --header "Primary username")
+  valid_username "$username" || die "invalid username"
+
+  # 5. Encryption toggle. The v1 disko layout is plaintext btrfs; the
+  # encrypted variant lands in v2, so this captures intent only.
+  if gum confirm "Encrypt the disk with LUKS? (recommended)"; then
+    encrypt=true
+  fi
+
+  # 6. Confirm: last safe point before erasing the disk.
+  gum confirm --default=false \
+    "ERASE $disk and install Ryoku ($profile, host=$hostname, encrypt=$encrypt)?" \
+    || die "aborted by user"
 fi
 
-# 6. Confirm: last safe point before erasing the disk.
-gum confirm --default=false \
-  "ERASE $disk and install Ryoku ($profile, host=$hostname, encrypt=$encrypt)?" \
-  || die "aborted by user"
-
-# 7. The install: partition + format + mount + nixos-install in one command.
+# The install: partition + format + mount + nixos-install in one command.
 # disko reads disko.devices.disk.main from the host; --disk main overrides
 # its placeholder device with the chosen disk. --write-efi-boot-entries
 # records the boot entry in NVRAM.
@@ -90,16 +118,30 @@ disko-install \
   --disk main "$disk" \
   --write-efi-boot-entries
 
-# 8. Passwords, set interactively so no plaintext lands in the store.
-gum style --foreground "$BEIGE" "Set the root password:"
-nixos-enter --root /mnt -c 'passwd root'
-gum style --foreground "$BEIGE" "Set the password for $username:"
-nixos-enter --root /mnt -c "passwd $username"
+# Passwords. Unattended uses chpasswd from the environment; interactive
+# prompts so no plaintext lands anywhere.
+if [[ -n $UNATTENDED ]]; then
+  printf 'root:%s\n%s:%s\n' "$root_pw" "$username" "$user_pw" \
+    | nixos-enter --root /mnt -c 'chpasswd'
+else
+  gum style --foreground "$BEIGE" "Set the root password:"
+  nixos-enter --root /mnt -c 'passwd root'
+  gum style --foreground "$BEIGE" "Set the password for $username:"
+  nixos-enter --root /mnt -c "passwd $username"
+fi
 
-# 9. Done.
-gum style --border double --border-foreground "$BRAND" --padding "1 4" \
-  "Ryoku installed. Reboot now?"
-if gum confirm "Reboot?"; then
-  umount -R /mnt 2>/dev/null || true
-  reboot
+# Done.
+if [[ -n $UNATTENDED ]]; then
+  printf 'ryoku-install: done (%s, host=%s)\n' "$profile" "$hostname"
+  if [[ -n $do_reboot ]]; then
+    umount -R /mnt 2>/dev/null || true
+    reboot
+  fi
+else
+  gum style --border double --border-foreground "$BRAND" --padding "1 4" \
+    "Ryoku installed. Reboot now?"
+  if gum confirm "Reboot?"; then
+    umount -R /mnt 2>/dev/null || true
+    reboot
+  fi
 fi
