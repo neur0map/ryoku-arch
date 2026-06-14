@@ -1,0 +1,39 @@
+{
+  "hotspot": {
+    "ssid": "Ryoku Hotspot"
+  },
+  "dock": {
+    "position": "bottom",
+    "hoverToReveal": true,
+    "hoverRegionHeight": 20,
+    "showOnDesktop": false,
+    "pinnedOnStartup": false
+  },
+  "enabledPanels": [
+    "iiBar",
+    "iiBackground",
+    "iiBackdrop",
+    "iiCheatsheet",
+    "iiControlPanel",
+    "iiDock",
+    "iiLock",
+    "iiMediaControls",
+    "iiNotificationPopup",
+    "iiOnScreenDisplay",
+    "iiOnScreenKeyboard",
+    "iiOverlay",
+    "iiOverview",
+    "iiPolkit",
+    "iiRegionSelector",
+    "iiScreenCorners",
+    "iiSessionScreen",
+    "iiSidebarLeft",
+    "iiSidebarRight",
+    "iiTilingOverlay",
+    "iiVerticalBar",
+    "iiWallpaperSelector",
+    "iiCoverflowSelector",
+    "iiClipboard",
+    "iiShellUpdate"
+  ]
+}

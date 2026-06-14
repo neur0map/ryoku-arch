@@ -1,0 +1,28 @@
+{
+    "availableOnFullscreen": false,
+    "barColor": [
+        [
+            "surface",
+            0
+        ]
+    ],
+    "containBar": true,
+    "enableFirefoxPlayer": false,
+    "frameEnabled": true,
+    "frameThickness": 4,
+    "hoverRegionHeight": 8,
+    "hoverToReveal": true,
+    "keepBarBorder": true,
+    "keepBarShadow": true,
+    "launcherIcon": "",
+    "launcherIconFullTint": true,
+    "launcherIconSize": 18,
+    "launcherIconTint": true,
+    "pillStyle": "default",
+    "pinnedOnStartup": true,
+    "position": "bottom",
+    "screenList": [
+    ],
+    "showPinButton": true,
+    "use12hFormat": false
+}

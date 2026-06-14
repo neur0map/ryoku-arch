@@ -1,0 +1,314 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+local_root="$(cd -- "$script_dir/../.." && pwd)"
+runtime_dir="$(cd -- "$script_dir/.." && pwd)"
+source_path_file="$runtime_dir/.ryoku-source-path"
+source_root="$HOME/.local/share/ryoku"
+
+if [[ -r $local_root/lib/runtime-env.sh ]]; then
+  source "$local_root/lib/runtime-env.sh"
+else
+  if [[ -r $source_path_file ]]; then
+    read -r source_root <"$source_path_file"
+  fi
+  source "$source_root/lib/runtime-env.sh"
+fi
+
+profiles_dir="${RYOKU_SHELL_PROFILES_DIR:-$RYOKU_CONFIG_PATH/shell-profiles}"
+shell_config="${RYOKU_SHELL_CONFIG_FILE:-$RYOKU_CONFIG_PATH/shell.json}"
+token_config="${RYOKU_SHELL_TOKEN_FILE:-$RYOKU_CONFIG_PATH/shell-tokens.json}"
+shell_state="${RYOKU_SHELL_STATE_PATH:-${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell}"
+scheme_bridge="${RYOKU_SHELL_RUNTIME_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}/scripts/ryoku"
+
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  ryoku-shell-profile list --json
+  ryoku-shell-profile save NAME
+  ryoku-shell-profile apply PROFILE_ID
+  ryoku-shell-profile rename PROFILE_ID NAME
+  ryoku-shell-profile delete PROFILE_ID
+EOF
+}
+
+profile_id_for() {
+  local name="$1"
+  local id
+
+  id="$(printf '%s' "$name" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g')"
+  if [[ -z $id ]]; then
+    id="profile"
+  fi
+  printf '%s\n' "$id"
+}
+
+profile_dir_for() {
+  local id="$1"
+
+  if [[ ! $id =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+    echo "ryoku-shell-profile: invalid profile id: $id" >&2
+    return 2
+  fi
+
+  printf '%s/%s\n' "$profiles_dir" "$id"
+}
+
+read_meta_field() {
+  local meta="$1"
+  local field="$2"
+  local fallback="$3"
+
+  if [[ -f $meta ]] && ryoku-cmd-present jq; then
+    jq -r --arg field "$field" --arg fallback "$fallback" '.[$field] // $fallback' "$meta"
+  else
+    printf '%s\n' "$fallback"
+  fi
+}
+
+scheme_default() {
+  local key="$1"
+
+  case "$key" in
+  name)
+    printf 'ryoku\n'
+    ;;
+  flavour)
+    printf 'default\n'
+    ;;
+  variant)
+    printf 'tonalspot\n'
+    ;;
+  *)
+    printf 'dark\n'
+    ;;
+  esac
+}
+
+scheme_value() {
+  local key="$1"
+  local default="$2"
+  local path="$shell_state/scheme.$key"
+
+  if [[ -f $path ]]; then
+    tr -d '\n' < "$path"
+  else
+    printf '%s' "$default"
+  fi
+}
+
+write_metadata() {
+  local dir="$1"
+  local id="$2"
+  local name="$3"
+  local created="$4"
+  local updated="$5"
+
+  jq -n \
+    --arg id "$id" \
+    --arg name "$name" \
+    --arg createdAt "$created" \
+    --arg updatedAt "$updated" \
+    '{id:$id,name:$name,createdAt:$createdAt,updatedAt:$updatedAt}' \
+    >"$dir/profile.json"
+}
+
+list_profiles() {
+  local dir id meta name created updated active key
+
+  mkdir -p "$profiles_dir"
+  if ! ryoku-cmd-present jq; then
+    echo "ryoku-shell-profile: jq is required for JSON output" >&2
+    return 127
+  fi
+
+  while IFS= read -r -d '' dir; do
+    id="$(basename "$dir")"
+    meta="$dir/profile.json"
+    name="$(read_meta_field "$meta" name "$id")"
+    created="$(read_meta_field "$meta" createdAt "")"
+    updated="$(read_meta_field "$meta" updatedAt "")"
+    active=false
+    if [[ -f $shell_config && -f $dir/shell.json ]] && cmp -s "$shell_config" "$dir/shell.json"; then
+      active=true
+      if [[ -f $token_config && -f $dir/shell-tokens.json ]] && ! cmp -s "$token_config" "$dir/shell-tokens.json"; then
+        active=false
+      fi
+      for key in name flavour variant mode; do
+        if [[ -f $dir/scheme/$key && $(scheme_value "$key" "$(scheme_default "$key")") != "$(<"$dir/scheme/$key")" ]]; then
+          active=false
+        fi
+      done
+    fi
+    jq -cn \
+      --arg id "$id" \
+      --arg name "$name" \
+      --arg createdAt "$created" \
+      --arg updatedAt "$updated" \
+      --argjson active "$active" \
+      '{id:$id,name:$name,createdAt:$createdAt,updatedAt:$updatedAt,active:$active}'
+  done < <(find "$profiles_dir" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null | sort -z) \
+    | jq -sc 'sort_by(.updatedAt) | reverse'
+}
+
+save_profile() {
+  local name="$1"
+  local id dir created updated key
+
+  id="$(profile_id_for "$name")"
+  dir="$(profile_dir_for "$id")"
+  mkdir -p "$dir"
+
+  if [[ ! -f $shell_config ]]; then
+    echo "ryoku-shell-profile: shell config does not exist yet: $shell_config" >&2
+    return 1
+  fi
+
+  cp "$shell_config" "$dir/shell.json"
+  if [[ -f $token_config ]]; then
+    cp "$token_config" "$dir/shell-tokens.json"
+  fi
+
+  mkdir -p "$dir/scheme"
+  for key in name flavour variant mode; do
+    printf '%s\n' "$(scheme_value "$key" "$(scheme_default "$key")")" >"$dir/scheme/$key"
+  done
+
+  created=""
+  if [[ -f $dir/profile.json ]]; then
+    created="$(read_meta_field "$dir/profile.json" createdAt "")"
+  fi
+  updated="$(date -Iseconds)"
+  if [[ -z $created ]]; then
+    created="$updated"
+  fi
+  write_metadata "$dir" "$id" "$name" "$created" "$updated"
+  printf '%s\n' "$id"
+}
+
+apply_profile() {
+  local id="$1"
+  local dir key name flavour variant mode
+
+  dir="$(profile_dir_for "$id")"
+  if [[ ! -d $dir || ! -f $dir/shell.json ]]; then
+    echo "ryoku-shell-profile: unknown profile: $id" >&2
+    return 1
+  fi
+
+  mkdir -p "$(dirname "$shell_config")"
+  cp "$dir/shell.json" "$shell_config"
+  if [[ -f $dir/shell-tokens.json ]]; then
+    cp "$dir/shell-tokens.json" "$token_config"
+  fi
+
+  mkdir -p "$shell_state"
+  for key in name flavour variant mode; do
+    if [[ -f $dir/scheme/$key ]]; then
+      cp "$dir/scheme/$key" "$shell_state/scheme.$key"
+    fi
+  done
+
+  name="$(scheme_value name ryoku)"
+  flavour="$(scheme_value flavour default)"
+  variant="$(scheme_value variant tonalspot)"
+  mode="$(scheme_value mode dark)"
+  if [[ -x $scheme_bridge ]]; then
+    "$scheme_bridge" scheme set --notify -n "$name" -f "$flavour" -v "$variant" -m "$mode" >/dev/null
+  fi
+}
+
+rename_profile() {
+  local id="$1"
+  local new_name="$2"
+  local dir created
+
+  dir="$(profile_dir_for "$id")"
+  if [[ ! -d $dir || ! -f $dir/profile.json ]]; then
+    echo "ryoku-shell-profile: unknown profile: $id" >&2
+    return 1
+  fi
+  if [[ -z $new_name ]]; then
+    echo "ryoku-shell-profile: profile name cannot be empty" >&2
+    return 2
+  fi
+  if ! ryoku-cmd-present jq; then
+    echo "ryoku-shell-profile: jq is required for rename" >&2
+    return 127
+  fi
+
+  created="$(read_meta_field "$dir/profile.json" createdAt "")"
+  if [[ -z $created ]]; then
+    created="$(date -Iseconds)"
+  fi
+  # Display-name rename only: the directory/id is preserved so active-state
+  # detection (which compares config contents, not the name) keeps working.
+  write_metadata "$dir" "$id" "$new_name" "$created" "$(date -Iseconds)"
+  printf '%s\n' "$id"
+}
+
+delete_profile() {
+  local id="$1"
+  local dir
+
+  dir="$(profile_dir_for "$id")"
+  if [[ ! -d $dir ]]; then
+    echo "ryoku-shell-profile: unknown profile: $id" >&2
+    return 1
+  fi
+
+  rm -rf -- "$dir"
+}
+
+main() {
+  local command="${1:-}"
+  shift || true
+
+  case "$command" in
+  list)
+    if (( $# != 1 )) || [[ ${1:-} != "--json" ]]; then
+      usage
+      return 2
+    fi
+    list_profiles
+    ;;
+  save)
+    if (( $# != 1 )); then
+      usage
+      return 2
+    fi
+    save_profile "$1"
+    ;;
+  apply)
+    if (( $# != 1 )); then
+      usage
+      return 2
+    fi
+    apply_profile "$1"
+    ;;
+  rename)
+    if (( $# != 2 )); then
+      usage
+      return 2
+    fi
+    rename_profile "$1" "$2"
+    ;;
+  delete)
+    if (( $# != 1 )); then
+      usage
+      return 2
+    fi
+    delete_profile "$1"
+    ;;
+  *)
+    usage
+    return 2
+    ;;
+  esac
+}
+
+main "$@"

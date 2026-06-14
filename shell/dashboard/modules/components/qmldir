@@ -1,0 +1,8 @@
+module qs.dashboard.modules.components
+CircularSeekBar 1.0 CircularSeekBar.qml
+SearchInput 1.0 SearchInput.qml
+Separator 1.0 Separator.qml
+Shadow 1.0 Shadow.qml
+StyledRect 1.0 StyledRect.qml
+StyledToolTip 1.0 StyledToolTip.qml
+WavyLine 1.0 WavyLine.qml

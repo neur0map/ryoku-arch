@@ -1,0 +1,2 @@
+module qs.dashboard.modules.widgets.dashboard.metrics
+MetricsTab 1.0 MetricsTab.qml

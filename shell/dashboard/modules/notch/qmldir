@@ -1,0 +1,2 @@
+module qs.dashboard.modules.notch
+NotchAnimationBehavior 1.0 NotchAnimationBehavior.qml

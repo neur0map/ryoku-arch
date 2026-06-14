@@ -1,0 +1,19 @@
+assets/applications/ryoku-shell.desktop	Name=Ryoku Settings	Name=Ryoku Settings
+assets/applications/ryoku-shell.desktop	Comment=Open Ryoku settings	Comment=Open Ryoku settings
+assets/applications/ryoku-shell.desktop	Icon=ryoku-shell	Icon=ryoku
+assets/systemd/ryoku-shell.service	Description=Ryoku shell	Description=Ryoku shell
+assets/systemd/ryoku-shell.service	# Lifecycle: stop/restart Ryoku shell when the graphical session stops/restarts.	# Lifecycle: stop/restart Ryoku shell when the graphical session stops/restarts.
+assets/systemd/ryoku-shell.service	# Ryoku shell is a session consumer, not a producer	# Ryoku shell is a session consumer, not a producer
+assets/systemd/ryoku-shell.service	# No [Install] section	# No [Install] section
+assets/systemd/ryoku-shell.service	# Ryoku shell only starts under the correct compositor	# Ryoku shell only starts under the correct compositor
+dots/sddm/pixel/metadata.desktop	Name=ii-pixel	Name=Ryoku Pixel
+dots/sddm/pixel/metadata.desktop	{{UPSTREAM_DISPLAY_NAME}} SDDM login screen	Ryoku SDDM login screen
+dots/sddm/pixel/metadata.desktop	{{UPSTREAM_DISPLAY_NAME}} project	Ryoku project
+dots/sddm/pixel/metadata.desktop	{{UPSTREAM_REPO_URL}}	https://github.com/neur0map/ryoku-arch
+dots/sddm/pixel/theme.conf	Name=ii-pixel	Name=Ryoku Pixel
+dots/sddm/pixel/theme.conf	{{UPSTREAM_DISPLAY_NAME}} SDDM login screen	Ryoku SDDM login screen
+dots/sddm/pixel/theme.conf	{{UPSTREAM_DISPLAY_NAME}} project	Ryoku project
+dots/sddm/pixel/theme.conf	{{UPSTREAM_REPO_URL}}	https://github.com/neur0map/ryoku-arch
+dots/sddm/pixel/theme.conf	# {{UPSTREAM_DISPLAY_NAME}} Material You colors	# Ryoku Material You colors
+dots/sddm/pixel/Main.qml	// {{UPSTREAM_DISPLAY_NAME}} SDDM pixel theme	// Ryoku SDDM pixel theme
+dots/sddm/pixel/VirtualKeyboard.qml	// {{UPSTREAM_DISPLAY_NAME}} SDDM pixel theme	// Ryoku SDDM pixel theme

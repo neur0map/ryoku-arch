@@ -1,0 +1,246 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls
+import Quickshell
+import Quickshell.Widgets
+import Ryoku.Config
+import qs.components
+import qs.components.controls
+import qs.services
+
+Item {
+    id: root
+
+    required property real nonAnimWidth
+    required property DashboardState dashState
+    required property var tabs
+
+    readonly property alias count: bar.count
+    readonly property int clampedCurrentIndex: Math.max(0, Math.min(dashState.currentTab, Math.max(0, count - 1)))
+
+    implicitHeight: bar.implicitHeight + indicator.implicitHeight + indicator.anchors.topMargin + separator.implicitHeight
+
+    TabBar {
+        id: bar
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+
+        currentIndex: root.clampedCurrentIndex
+        background: null
+
+        onCurrentIndexChanged: {
+            if (count > 0 && currentIndex >= 0 && root.dashState.currentTab !== currentIndex)
+                root.dashState.currentTab = currentIndex;
+        }
+
+        Repeater {
+            model: ScriptModel {
+                values: root.tabs
+            }
+
+            delegate: Tab {
+                required property var modelData
+
+                iconName: modelData.iconName
+                text: modelData.text
+            }
+        }
+    }
+
+    Item {
+        id: indicator
+
+        anchors.top: bar.bottom
+        anchors.topMargin: 5
+
+        implicitWidth: {
+            const tab = bar.currentItem;
+            if (tab)
+                return tab.implicitWidth;
+            const width = (root.nonAnimWidth - bar.spacing * (bar.count - 1)) / bar.count;
+            return width;
+        }
+        implicitHeight: 3
+
+        x: {
+            const tab = bar.currentItem;
+            const width = (root.nonAnimWidth - bar.spacing * (bar.count - 1)) / bar.count;
+            const tabWidth = tab?.implicitWidth ?? width;
+            return width * bar.currentIndex + (width - tabWidth) / 2;
+        }
+
+        clip: true
+
+        StyledRect {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            implicitHeight: parent.implicitHeight * 2
+
+            color: Colours.palette.m3primary
+            radius: Tokens.rounding.full
+        }
+
+        Behavior on x {
+            Anim {}
+        }
+
+        Behavior on implicitWidth {
+            Anim {}
+        }
+    }
+
+    StyledRect {
+        id: separator
+
+        anchors.top: indicator.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+
+        implicitHeight: 1
+        color: Colours.palette.m3outlineVariant
+    }
+
+    component Tab: TabButton {
+        id: tab
+
+        required property string iconName
+        readonly property bool current: TabBar.tabBar && TabBar.tabBar.currentItem === this
+
+        background: null
+
+        contentItem: CustomMouseArea {
+            id: mouse
+
+            function onWheel(event: WheelEvent): void {
+                if (event.angleDelta.y < 0)
+                    root.dashState.currentTab = Math.min(root.dashState.currentTab + 1, bar.count - 1);
+                else if (event.angleDelta.y > 0)
+                    root.dashState.currentTab = Math.max(root.dashState.currentTab - 1, 0);
+            }
+
+            implicitWidth: Math.max(icon.width, label.width)
+            implicitHeight: icon.height + label.height
+
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+
+            onPressed: event => {
+                root.dashState.currentTab = tab.TabBar.index;
+
+                const stateY = stateWrapper.y;
+                rippleAnim.x = event.x;
+                rippleAnim.y = event.y - stateY;
+
+                const dist = (ox, oy) => ox * ox + oy * oy;
+                rippleAnim.radius = Math.sqrt(Math.max(dist(event.x, event.y + stateY), dist(event.x, stateWrapper.height - event.y), dist(width - event.x, event.y + stateY), dist(width - event.x, stateWrapper.height - event.y)));
+
+                rippleAnim.restart();
+            }
+
+            SequentialAnimation {
+                id: rippleAnim
+
+                property real x
+                property real y
+                property real radius
+
+                PropertyAction {
+                    target: ripple
+                    property: "x"
+                    value: rippleAnim.x
+                }
+                PropertyAction {
+                    target: ripple
+                    property: "y"
+                    value: rippleAnim.y
+                }
+                PropertyAction {
+                    target: ripple
+                    property: "opacity"
+                    value: 0.08
+                }
+                Anim {
+                    target: ripple
+                    properties: "implicitWidth,implicitHeight"
+                    from: 0
+                    to: rippleAnim.radius * 2
+                    duration: Tokens.anim.durations.normal
+                    easing: Tokens.anim.standardDecel
+                }
+                Anim {
+                    target: ripple
+                    property: "opacity"
+                    to: 0
+                }
+            }
+
+            ClippingRectangle {
+                id: stateWrapper
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                implicitHeight: parent.height + Tokens.sizes.dashboard.tabIndicatorSpacing * 2
+
+                color: "transparent"
+                radius: Tokens.rounding.small
+
+                StyledRect {
+                    id: stateLayer
+
+                    anchors.fill: parent
+
+                    color: tab.current ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                    opacity: mouse.pressed ? 0.1 : mouse.containsMouse ? 0.08 : 0
+
+                    Behavior on opacity {
+                        Anim {}
+                    }
+                }
+
+                StyledRect {
+                    id: ripple
+
+                    radius: Tokens.rounding.full
+                    color: tab.current ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                    opacity: 0
+
+                    transform: Translate {
+                        x: -ripple.width / 2
+                        y: -ripple.height / 2
+                    }
+                }
+            }
+
+            MaterialIcon {
+                id: icon
+
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: label.top
+
+                text: tab.iconName
+                color: tab.current ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                fill: tab.current ? 1 : 0
+                font.pointSize: Tokens.font.size.large
+
+                Behavior on fill {
+                    Anim {}
+                }
+            }
+
+            StyledText {
+                id: label
+
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+
+                text: tab.text
+                color: tab.current ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+            }
+        }
+    }
+}

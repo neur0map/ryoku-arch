@@ -1,0 +1,3 @@
+module qs.dashboard.modules.widgets.dashboard
+Dashboard 1.0 Dashboard.qml
+DashboardView 1.0 DashboardView.qml

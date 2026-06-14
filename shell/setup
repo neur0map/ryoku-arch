@@ -1,0 +1,249 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+runtime_dir="${RYOKU_SHELL_RUNTIME_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
+bin_dir="${XDG_BIN_HOME:-$HOME/.local/bin}"
+applications_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+icon_dir="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell"
+wallpaper_state_dir="$state_dir/wallpaper"
+lib_dir="${RYOKU_SHELL_LIB_DIR:-$HOME/.local/lib/ryoku-shell}"
+qml_dir="${RYOKU_SHELL_QML_DIR:-$HOME/.local/lib/qt6/qml}"
+build_dir="${RYOKU_SHELL_BUILD_DIR:-$script_dir/build}"
+skip_build=false
+
+usage() {
+  cat <<'EOF'
+Usage: ./setup [install|reinstall|status|doctor] [options]
+
+Options accepted for Ryoku installer compatibility:
+  -y, -q, --skip-deps, --skip-setups, --skip-sysupdate
+
+Ryoku-specific:
+  --skip-build    Copy the QML runtime without building native modules
+EOF
+}
+
+command_present() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+cleanup_legacy_shell_env() {
+  local fish_env="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d/ryoku-shell-env.fish"
+  local stale_env="ILLOGICAL_IMPULSE_VIRTUAL_ENV"
+
+  [[ -f $fish_env ]] || return 0
+  grep -qF "$stale_env" "$fish_env" || return 0
+
+  sed -i "/$stale_env/d" "$fish_env"
+  if [[ ! -s $fish_env ]] || ! grep -qF "RYOKU_SHELL_VENV" "$fish_env"; then
+    rm -f "$fish_env"
+  fi
+}
+
+install_runtime_files() {
+  local source_root
+  local source_path_file="$script_dir/.ryoku-source-path"
+  local target_path_file="$runtime_dir/.ryoku-source-path"
+
+  mkdir -p "$runtime_dir" "$config_dir" "$bin_dir" "$applications_dir" "$icon_dir"
+
+  # Purge stale build artifacts at the destination before sync. The rsync
+  # excludes below skip transferring build/, CMakeCache.txt, etc. from the
+  # source - but without --delete-excluded they also skip *deleting* those
+  # paths if they already exist at the destination. That left fresh installs
+  # carrying the dev box's CMakeCache.txt and binaries pinned to absolute
+  # paths under /home/<dev-user>/..., which then made the rebuild fail with
+  # "source does not match" and the native plugin never landed.
+  rm -rf "$runtime_dir/build" "$runtime_dir/CMakeFiles" "$runtime_dir/CMakeCache.txt"
+
+  if command_present rsync; then
+    rsync -a --delete \
+      --exclude='.git' \
+      --exclude='build' \
+      --exclude='CMakeFiles' \
+      --exclude='CMakeCache.txt' \
+      "$script_dir/." "$runtime_dir/"
+  else
+    rm -rf "$runtime_dir"
+    mkdir -p "$runtime_dir"
+    cp -a "$script_dir/." "$runtime_dir/"
+    rm -rf "$runtime_dir/build"
+  fi
+
+  if source_root="$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null)"; then
+    :
+  elif [[ -r $source_path_file ]] \
+    && read -r source_root <"$source_path_file" \
+    && [[ -d $source_root/.git ]]; then
+    :
+  elif [[ -r $target_path_file ]] \
+    && read -r source_root <"$target_path_file" \
+    && [[ -d $source_root/.git ]]; then
+    :
+  elif [[ -n ${RYOKU_DEV_PATH:-} && -d $RYOKU_DEV_PATH/.git ]]; then
+    source_root="$RYOKU_DEV_PATH"
+  elif [[ -n ${RYOKU_PATH:-} && -d $RYOKU_PATH/.git ]]; then
+    source_root="$RYOKU_PATH"
+  else
+    source_root="$(cd -- "$script_dir/.." && pwd)"
+  fi
+  printf '%s\n' "$source_root" >"$target_path_file"
+
+  install -m 0755 "$script_dir/scripts/ryoku-shell" "$bin_dir/ryoku-shell"
+  [[ -f $script_dir/scripts/ryoku ]] && install -m 0755 "$script_dir/scripts/ryoku" "$bin_dir/ryoku"
+  [[ -x $source_root/bin/ryoku-obsidian-notes ]] && install -m 0755 "$source_root/bin/ryoku-obsidian-notes" "$bin_dir/ryoku-obsidian-notes"
+  rm -f "$bin_dir/ryoku-keybinds"
+  [[ -f $script_dir/assets/logo.svg ]] && install -m 0644 "$script_dir/assets/logo.svg" "$icon_dir/ryoku-shell.svg"
+  [[ -f $script_dir/assets/applications/ryoku-shell.desktop ]] && \
+    install -m 0644 "$script_dir/assets/applications/ryoku-shell.desktop" "$applications_dir/ryoku-shell.desktop"
+}
+
+install_first_run_state() {
+  mkdir -p "$HOME" "$state_dir" "$wallpaper_state_dir"
+
+  if [[ ! -s $HOME/.face && -f $script_dir/assets/logo.svg ]]; then
+    install -m 0644 "$script_dir/assets/logo.svg" "$HOME/.face"
+  fi
+
+  [[ -f $wallpaper_state_dir/path.txt ]] || : >"$wallpaper_state_dir/path.txt"
+
+  if [[ ! -f $state_dir/scheme.json && -x $bin_dir/ryoku ]]; then
+    "$bin_dir/ryoku" scheme get >/dev/null
+  fi
+
+}
+
+install_service() {
+  "$bin_dir/ryoku-shell" service install
+
+  service_file="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/ryoku-shell.service"
+  if [[ -f $service_file ]] && ! grep -Fq "ryoku-shell-cleanup-orphans" "$service_file"; then
+    legacy_cleanup="ryoku-shell cleanup-orphans"
+    if grep -Fq "$legacy_cleanup" "$service_file"; then
+      sed -i "\\|$legacy_cleanup|c\\ExecStopPost=-%h/.local/share/ryoku/bin/ryoku-shell-cleanup-orphans --quiet" "$service_file"
+    else
+      printf '\nExecStopPost=-%%h/.local/share/ryoku/bin/ryoku-shell-cleanup-orphans --quiet\n' >>"$service_file"
+    fi
+  fi
+
+  if [[ ${RYOKU_COMPOSITOR:-} == "hyprland" || -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+    "$bin_dir/ryoku-shell" service enable
+  fi
+}
+
+build_native_modules() {
+  local _dbg="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"
+  mkdir -p "$(dirname "$_dbg")" 2>/dev/null || true
+  _dlog() { printf '%s\n' "$*" >>"$_dbg" 2>/dev/null || true; }
+  _dlog "=== build_native_modules $(date 2>/dev/null) ==="
+  _dlog "skip_build=$skip_build script_dir=$script_dir build_dir=$build_dir qml_dir=$qml_dir"
+  _dlog "HOME=$HOME PATH=$PATH"
+  _dlog "cmake=$(command -v cmake || echo MISSING) ninja=$(command -v ninja || echo MISSING)"
+
+  if [[ $skip_build == true ]]; then
+    _dlog "RESULT: skipped (skip_build)"
+    return 0
+  fi
+
+  # cmake + ninja are install-time build deps for the native QML plugins. If
+  # they are not on PATH yet (e.g. the shell config step ran before they were
+  # installed), pull them - a silent skip here ships a shell that cannot load
+  # its Ryoku.* modules and crash-loops on boot.
+  if ! command_present cmake || ! command_present ninja; then
+    if command_present ryoku-pkg-add; then
+      ryoku-pkg-add cmake ninja >/dev/null 2>&1 || true
+    fi
+  fi
+  if ! command_present cmake || ! command_present ninja; then
+    _dlog "RESULT: skipped (cmake/ninja still missing after pkg-add)"
+    echo "setup: cmake or ninja missing and could not be installed; copied QML runtime only" >&2
+    return 0
+  fi
+
+  # A build/ tree from the dev box can ride along (it is gitignored but the
+  # --local-source ISO build copies the working tree). Its CMakeCache.txt pins
+  # INSTALL_QMLDIR to the dev user's $HOME, so reusing it makes cmake --install
+  # deploy the Ryoku QML plugins to /home/<devuser>/... instead of the install
+  # user's import path - the shell then fails with `module "Ryoku.Config" is
+  # not installed`. --fresh discards any stale cache so the paths below win.
+  cmake --fresh -S "$script_dir" -B "$build_dir" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DVERSION="${RYOKU_SHELL_VERSION:-0.1.0}" \
+    -DGIT_REVISION="${RYOKU_SHELL_GIT_REVISION:-$(git -C "$script_dir" rev-parse --short HEAD 2>/dev/null || printf unknown)}" \
+    -DDISTRIBUTOR="ryoku" \
+    -DINSTALL_LIBDIR="$lib_dir" \
+    -DINSTALL_QMLDIR="$qml_dir" \
+    -DINSTALL_QSCONFDIR="$runtime_dir"
+  _dlog "configure rc=$? (after cmake --fresh)"
+  cmake --build "$build_dir" >>"$_dbg" 2>&1
+  _dlog "build rc=$?"
+  cmake --install "$build_dir" >>"$_dbg" 2>&1
+  _dlog "install rc=$? -> $qml_dir"
+}
+
+install_shell() {
+  install_runtime_files
+  install_first_run_state
+  cleanup_legacy_shell_env
+  build_native_modules
+  install_service
+  printf 'Ryoku shell runtime: %s\n' "$runtime_dir"
+}
+
+status_shell() {
+  printf 'Source: %s\n' "$script_dir"
+  printf 'Runtime: %s\n' "$runtime_dir"
+  printf 'Launcher: %s/ryoku-shell\n' "$bin_dir"
+  [[ -f $runtime_dir/shell.qml ]] && printf 'Runtime shell.qml: present\n' || printf 'Runtime shell.qml: missing\n'
+}
+
+doctor_shell() {
+  "$script_dir/scripts/ryoku-shell-doctor" "$@"
+}
+
+command="${1:-install}"
+(($# == 0)) || shift
+
+remaining=()
+while (($# > 0)); do
+  case "$1" in
+    --skip-build)
+      skip_build=true
+      ;;
+    -y|-q|--skip-deps|--skip-setups|--skip-sysupdate)
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      remaining+=("$1")
+      ;;
+  esac
+  shift
+done
+set -- "${remaining[@]}"
+
+case "$command" in
+  install|reinstall)
+    install_shell "$@"
+    ;;
+  status)
+    status_shell
+    ;;
+  doctor)
+    doctor_shell "$@"
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    echo "setup: unknown command: $command" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
