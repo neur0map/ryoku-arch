@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
@@ -541,9 +542,12 @@ ColumnLayout {
             from: 0
             to: 1
             stepSize: 0.01
-            value: Settings.data.general.dimmerOpacity
-            onMoved: value => Settings.data.general.dimmerOpacity = value
-            text: Math.floor(Settings.data.general.dimmerOpacity * 100) + "%"
+            value: GlobalConfig.appearance.dimmerOpacity
+            onMoved: value => {
+              GlobalConfig.appearance.dimmerOpacity = value;
+              GlobalConfig.save();
+            }
+            text: Math.floor(GlobalConfig.appearance.dimmerOpacity * 100) + "%"
           }
         }
       }

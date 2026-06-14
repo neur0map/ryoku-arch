@@ -99,7 +99,7 @@ Variants {
       // Dimmer background (click to close)
       Rectangle {
         anchors.fill: parent
-        color: Qt.alpha(Color.mSurface, Settings.data.general.dimmerOpacity)
+        color: Qt.alpha(Color.mSurface, GlobalConfig.appearance.dimmerOpacity)
 
         MouseArea {
           anchors.fill: parent

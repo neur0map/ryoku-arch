@@ -626,7 +626,7 @@ SmartPanel {
                       isRemoving = true;
                       isSwiping = false;
 
-                      if (Settings.data.general.animationDisabled) {
+                      if (GlobalConfig.appearance.reduceMotion) {
                         NotificationService.removeFromHistory(notificationId);
                         return;
                       }
@@ -644,7 +644,7 @@ SmartPanel {
                     }
 
                     Behavior on swipeOffset {
-                      enabled: !Settings.data.general.animationDisabled && !notificationDelegate.isSwiping
+                      enabled: !GlobalConfig.appearance.reduceMotion && !notificationDelegate.isSwiping
                       NumberAnimation {
                         duration: notificationDelegate.removeAnimationDuration
                         easing.type: Easing.OutCubic
@@ -652,7 +652,7 @@ SmartPanel {
                     }
 
                     Behavior on opacity {
-                      enabled: !Settings.data.general.animationDisabled && notificationDelegate.isRemoving
+                      enabled: !GlobalConfig.appearance.reduceMotion && notificationDelegate.isRemoving
                       NumberAnimation {
                         duration: notificationDelegate.removeAnimationDuration
                         easing.type: Easing.OutCubic
@@ -660,7 +660,7 @@ SmartPanel {
                     }
 
                     Behavior on height {
-                      enabled: !Settings.data.general.animationDisabled && notificationDelegate.isRemoving
+                      enabled: !GlobalConfig.appearance.reduceMotion && notificationDelegate.isRemoving
                       NumberAnimation {
                         duration: notificationDelegate.removeAnimationDuration
                         easing.type: Easing.OutCubic
@@ -668,7 +668,7 @@ SmartPanel {
                     }
 
                     Behavior on y {
-                      enabled: !Settings.data.general.animationDisabled && notificationDelegate.isRemoving
+                      enabled: !GlobalConfig.appearance.reduceMotion && notificationDelegate.isRemoving
                       NumberAnimation {
                         duration: notificationDelegate.removeAnimationDuration
                         easing.type: Easing.OutCubic
@@ -693,7 +693,7 @@ SmartPanel {
                       border.width: notificationDelegate.isFocused ? Style.borderM : Style.borderS
 
                       Behavior on color {
-                        enabled: !Settings.data.general.animationDisabled
+                        enabled: !GlobalConfig.appearance.reduceMotion
                         ColorAnimation {
                           duration: Style.animationFast
                         }

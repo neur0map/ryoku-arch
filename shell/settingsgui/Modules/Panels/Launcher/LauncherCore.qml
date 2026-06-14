@@ -45,7 +45,7 @@ Rectangle {
   property bool globalMouseInitialized: false
   property bool mouseTrackingReady: false // Delay tracking until panel is settled
 
-  readonly property bool animationsDisabled: Settings.data.general.animationDisabled
+  readonly property bool animationsDisabled: GlobalConfig.appearance.reduceMotion
 
   Timer {
     id: mouseTrackingDelayTimer

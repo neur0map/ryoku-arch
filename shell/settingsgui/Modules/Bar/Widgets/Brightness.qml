@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import Quickshell
 import qs.settingsgui.Commons
@@ -38,7 +39,7 @@ Item {
   readonly property string iconColorKey: widgetSettings.iconColor !== undefined ? widgetSettings.iconColor : widgetMetadata.iconColor
   readonly property string textColorKey: widgetSettings.textColor !== undefined ? widgetSettings.textColor : widgetMetadata.textColor
   readonly property bool applyToAllMonitors: widgetSettings.applyToAllMonitors !== undefined ? widgetSettings.applyToAllMonitors : widgetMetadata.applyToAllMonitors
-  readonly property bool reverseScroll: Settings.data.general.reverseScroll
+  readonly property bool reverseScroll: GlobalConfig.general.reverseScroll
 
   // Used to avoid opening the pill on Quickshell startup
   property bool firstBrightnessReceived: false

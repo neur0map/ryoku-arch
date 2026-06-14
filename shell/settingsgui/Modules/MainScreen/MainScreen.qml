@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Effects
 import Quickshell
@@ -73,7 +74,7 @@ PanelWindow {
   }
 
   // Desktop dimming when panels are open
-  property real dimmerOpacity: Settings.data.general.dimmerOpacity ?? 0.8
+  property real dimmerOpacity: GlobalConfig.appearance.dimmerOpacity ?? 0.8
   property bool isPanelOpen: (PanelService.openedPanel !== null) && (PanelService.openedPanel.screen === screen)
   property bool isPanelClosing: (PanelService.openedPanel !== null) && PanelService.openedPanel.isClosing
   property bool isAnyPanelOpen: PanelService.openedPanel !== null

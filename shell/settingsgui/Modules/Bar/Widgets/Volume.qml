@@ -40,7 +40,7 @@ Item {
   readonly property string middleClickCommand: (widgetSettings.middleClickCommand !== undefined) ? widgetSettings.middleClickCommand : widgetMetadata.middleClickCommand
   readonly property string iconColorKey: widgetSettings.iconColor !== undefined ? widgetSettings.iconColor : widgetMetadata.iconColor
   readonly property string textColorKey: widgetSettings.textColor !== undefined ? widgetSettings.textColor : widgetMetadata.textColor
-  readonly property bool reverseScroll: Settings.data.general.reverseScroll
+  readonly property bool reverseScroll: GlobalConfig.general.reverseScroll
 
   // Used to avoid opening the pill on Quickshell startup
   property bool firstVolumeReceived: false

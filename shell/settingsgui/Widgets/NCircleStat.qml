@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Layouts
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.UI
@@ -35,7 +36,7 @@ Item {
   property real animatedRatio: ratio
 
   Behavior on animatedRatio {
-    enabled: !Settings.data.general.animationDisabled
+    enabled: !GlobalConfig.appearance.reduceMotion
     NumberAnimation {
       duration: Style.animationNormal
       easing.type: Easing.OutCubic

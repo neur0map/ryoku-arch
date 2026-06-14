@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Layouts
 import qs.settingsgui.Commons
 import qs.settingsgui.Widgets
@@ -80,7 +81,7 @@ Item {
   property real animatedPercentage: percentage
 
   Behavior on animatedPercentage {
-    enabled: !Settings.data.general.animationDisabled
+    enabled: !GlobalConfig.appearance.reduceMotion
     NumberAnimation {
       duration: Style.animationNormal
       easing.type: Easing.OutCubic
@@ -156,7 +157,7 @@ Item {
     lineHeightMode: Text.ProportionalHeight
 
     Behavior on opacity {
-      enabled: !Settings.data.general.animationDisabled
+      enabled: !GlobalConfig.appearance.reduceMotion
       NumberAnimation {
         duration: Style.animationFast
         easing.type: Easing.InOutQuad
@@ -175,7 +176,7 @@ Item {
     color: Qt.alpha(root.textColor, 0.75)
 
     Behavior on opacity {
-      enabled: !Settings.data.general.animationDisabled
+      enabled: !GlobalConfig.appearance.reduceMotion
       NumberAnimation {
         duration: Style.animationFast
         easing.type: Easing.InOutQuad

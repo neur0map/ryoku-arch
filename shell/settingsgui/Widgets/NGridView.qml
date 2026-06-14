@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Templates as T
 import qs.settingsgui.Commons
@@ -95,7 +96,7 @@ Item {
 
     const step = delta * root.wheelScrollMultiplier;
 
-    if (!Settings.data.general.smoothScrollEnabled || Settings.data.general.animationDisabled) {
+    if (!Settings.data.general.smoothScrollEnabled || GlobalConfig.appearance.reduceMotion) {
       gridView.contentY = root.clampScrollY(gridView.contentY - step);
       root._wheelTargetY = gridView.contentY;
       return;
@@ -112,7 +113,7 @@ Item {
   function animateToContentY(targetY) {
     const clampedY = root.clampScrollY(targetY);
 
-    if (!Settings.data.general.smoothScrollEnabled || Settings.data.general.animationDisabled || gridView.dragging || gridView.flicking) {
+    if (!Settings.data.general.smoothScrollEnabled || GlobalConfig.appearance.reduceMotion || gridView.dragging || gridView.flicking) {
       gridView.contentY = clampedY;
       root._wheelTargetY = clampedY;
       return;

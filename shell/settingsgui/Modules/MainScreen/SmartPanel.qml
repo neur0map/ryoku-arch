@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.UI
@@ -68,7 +69,7 @@ Item {
   property bool cachedAnimateFromLeft: false
   property bool cachedAnimateFromRight: false
 
-  readonly property bool animationsDisabled: Settings.data.general.animationDisabled
+  readonly property bool animationsDisabled: GlobalConfig.appearance.reduceMotion
   property bool cachedShouldAnimateWidth: false
   property bool cachedShouldAnimateHeight: false
 

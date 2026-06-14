@@ -2311,7 +2311,7 @@
     "subTab": 0,
     "subTabLabel": "common.appearance",
     "visibleWhen": [
-      "!Settings.data.general.animationDisabled"
+      "!GlobalConfig.appearance.reduceMotion"
     ]
   },
   {
