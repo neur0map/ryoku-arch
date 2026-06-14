@@ -5,12 +5,18 @@
 # (HYPRLAND_INSTANCE_SIGNATURE, WAYLAND_DISPLAY). greetd launches the session
 # script ryoku-hypr-session (see modules/desktop). The full rice (keybinds,
 # theming, the ryoku-* runtime) lands in later v2 slices.
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
   shell = pkgs.ryoku-shell;
   qs = pkgs.quickshell;
   shellConfig = "${shell}/etc/xdg/quickshell/ryoku-shell";
-  qmlPath = "${shell}/lib/qt6/qml";
+  # ryoku-shell installs its native plugins under lib/qt6/qml; the extra Qt QML
+  # modules the shell imports beyond quickshell's base Qt (Qt5Compat.GraphicalEffects
+  # and QtMultimedia) live under each package's lib/qt-6/qml.
+  qmlPath = lib.concatStringsSep ":" (
+    [ "${shell}/lib/qt6/qml" ]
+    ++ map (p: "${p}/lib/qt-6/qml") [ pkgs.qt6.qt5compat pkgs.qt6.qtmultimedia pkgs.kdePackages.kirigami.unwrapped ]
+  );
 
   ryoku-hypr-session = pkgs.writeShellScriptBin "ryoku-hypr-session" ''
     exec ${pkgs.hyprland}/bin/Hyprland --config /etc/ryoku/hyprland.conf
@@ -24,8 +30,7 @@ in
   ];
 
   environment.etc."ryoku/hyprland.conf".text = ''
-    # Minimal Ryoku session: bring up the Quickshell shell. The Ryoku.* QML
-    # plugins live in ryoku-shell's qml dir; qs runs the installed config tree.
+    # Plugins + the extra Qt QML modules the shell imports.
     env = QML_IMPORT_PATH,${qmlPath}
     env = QML2_IMPORT_PATH,${qmlPath}
 
