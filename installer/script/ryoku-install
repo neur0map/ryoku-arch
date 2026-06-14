@@ -103,13 +103,17 @@ else
     || die "aborted by user"
 fi
 
+# Record the chosen profile so ryoku-update can target the right host config
+# (the running hostname is user-chosen and does not name the profile).
+printf '%s\n' "$profile" >/tmp/ryoku-profile
+
 # The install: partition + format + mount + nixos-install in one command.
-# disko reads disko.devices.disk.main from the host; --disk main overrides
-# its placeholder device with the chosen disk. --write-efi-boot-entries
-# records the boot entry in NVRAM.
+# disko reads disko.devices.disk.main from the host; --disk main overrides its
+# placeholder device; --extra-files records the profile in the installed system.
 disko-install \
   --flake "${FLAKE}#${profile}" \
   --disk main "$disk" \
+  --extra-files /tmp/ryoku-profile /etc/ryoku/profile \
   --write-efi-boot-entries
 
 # Initial credentials are declarative: the host's users.users.<name>.initialPassword

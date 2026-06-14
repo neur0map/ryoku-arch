@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Thin wrapper around nixos-rebuild switch against the Ryoku flake. The
-# host config is keyed by hostname; override the flake source with
-# RYOKU_FLAKE. Extra arguments pass straight through to nixos-rebuild.
+# Rebuild Ryoku from the flake. The installed profile (amd-nvidia|amd|intel) is
+# recorded at /etc/ryoku/profile by the installer; the running hostname does not
+# name the config. Override the flake source with RYOKU_FLAKE or the profile
+# with RYOKU_PROFILE. Extra arguments pass through to nixos-rebuild.
 set -euo pipefail
 
-FLAKE="${RYOKU_FLAKE:-/etc/ryoku/flake}"
-host="$(hostname)"
+FLAKE="${RYOKU_FLAKE:-github:neur0map/ryoku-arch/nixos}"
 
 # --rollback short-circuits to the previous generation and exits.
 if [[ "${1:-}" == "--rollback" ]]; then
@@ -13,6 +13,12 @@ if [[ "${1:-}" == "--rollback" ]]; then
   exit 0
 fi
 
-sudo nixos-rebuild switch --flake "${FLAKE}#${host}" "$@"
+profile="${RYOKU_PROFILE:-$(cat /etc/ryoku/profile 2>/dev/null || true)}"
+if [[ -z $profile ]]; then
+  echo "ryoku-update: unknown profile; set RYOKU_PROFILE or /etc/ryoku/profile" >&2
+  exit 1
+fi
 
-echo "Updated $host. To revert: ryoku-update --rollback (or nixos-rebuild switch --rollback)."
+sudo nixos-rebuild switch --flake "${FLAKE}#${profile}" "$@"
+
+echo "Updated ${profile}. To revert: ryoku-update --rollback."
