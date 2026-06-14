@@ -124,6 +124,7 @@ in
     bind = SUPER, Tab, exec, ${qsipc} drawers toggle dashboard
     bind = SUPER, A, exec, ${qsipc} controlCenter toggle
     bind = SUPER, V, exec, ${qsipc} clipboard toggle
+    bind = SUPER, Escape, exec, ${qsipc} drawers toggle session
     # Lock runs qylock's lock.sh directly: the shell's LockBridge lockCommand
     # self-terminates under quickshell Process (its `pkill -f org.ryoku.screensaver`
     # matches the `sh -c <cmd>` wrapper's own argv), so the IPC path never reaches
