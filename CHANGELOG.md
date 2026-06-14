@@ -39,10 +39,10 @@
   native Wayland surfaces, so screen sharing (Discord/Meet/OBS) showed a black
   screen for windows and the whole desktop. Chromium runs on Wayland and drives
   the PipeWire screencast portal, so screen sharing works. Fresh installs get
-  Chromium; existing installs that still default to Helium are offered the switch
-  on update (a browser you chose yourself is left untouched), and `SUPER+B` plus
-  the xdg/mimetype defaults follow. Helium stays available via
-  `ryoku-install-helium-browser`.
+  Chromium; on existing installs the update installs Chromium, switches the default
+  and rebinds `SUPER+B` to it (a browser you chose yourself is left untouched). Your
+  existing Helium is kept installed so you can export bookmarks/passwords from it;
+  fresh installs can add it back via `ryoku-install-helium-browser`.
 - **Popups now read as frosted glass.** Hyprland `decoration:blur:popups` is enabled,
   so tray menus, context menus and dropdowns inherit the blur of the surface they
   open from instead of rendering as flat opaque rectangles (existing installs get it
