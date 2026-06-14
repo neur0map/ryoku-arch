@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# Ryoku NixOS installer. Runs on the Ryoku live ISO (baked flake at
+# /etc/ryoku/flake), on a stock NixOS minimal ISO, or on any NixOS with
+# flakes. Everything before the disko-install step is read-only and
+# re-runnable; disko-install is the single destructive action.
+set -euo pipefail
+
+# Baked-in flake on the ISO. Override with RYOKU_FLAKE to install from a
+# checkout or, later, a github: reference.
+FLAKE="${RYOKU_FLAKE:-/etc/ryoku/flake}"
+
+BRAND="#F25623"
+INK="#CCD0CF"
+BEIGE="#aeab94"
+export GUM_CHOOSE_CURSOR=": " \
+       GUM_CHOOSE_CURSOR_FOREGROUND="$BRAND" \
+       GUM_INPUT_PROMPT_FOREGROUND="$BRAND" \
+       GUM_CONFIRM_SELECTED_BACKGROUND="$BRAND"
+
+die() {
+  gum style --foreground 196 "x $*" >&2
+  exit 1
+}
+
+header() {
+  clear
+  gum style --border double --border-foreground "$BRAND" \
+    --align center --padding "1 4" --foreground "$INK" \
+    "Ryoku NixOS Installer" \
+    "For the sake of power and beauty."
+}
+
+# Preflight: read-only checks, safe to repeat.
+[[ $EUID -eq 0 ]] || die "run as root"
+[[ -d /sys/firmware/efi ]] || die "UEFI required (legacy BIOS unsupported in v1)"
+command -v gum >/dev/null || die "gum missing (live ISO bug)"
+command -v disko-install >/dev/null || die "disko-install missing"
+
+header
+
+# 1. Hardware profile. Values are the unprefixed nixosConfigurations keys
+# that disko-install targets with --flake .#<profile>.
+profile=$(gum choose --header "Hardware profile" \
+  "amd-nvidia : AMD + NVIDIA hybrid laptop (Ryzen + RTX)" \
+  "amd        : AMD CPU/iGPU only" \
+  "intel      : Intel CPU/iGPU" \
+  "vm         : virtual machine / qemu")
+profile=${profile%% *}
+[[ -n $profile ]] || die "no profile selected"
+
+# 2. Target disk via lsblk. -e7 drops loop devices; the grep drops
+# remaining loop and optical entries.
+mapfile -t disks < <(lsblk -dpno NAME,SIZE,MODEL -e7 | grep -vE 'loop|/dev/sr')
+[[ ${#disks[@]} -gt 0 ]] || die "no installable disks found"
+disk_line=$(printf '%s\n' "${disks[@]}" | gum choose --header "Target disk (ERASED)")
+disk=$(awk '{print $1}' <<<"$disk_line")
+[[ -b $disk ]] || die "not a block device: $disk"
+
+# 3. Hostname (letters, digits, dashes; RFC-1123 label shape).
+hostname=$(gum input --placeholder "ryoku" --header "Hostname (letters, digits, dashes)")
+hostname=${hostname:-ryoku}
+[[ $hostname =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]] || die "invalid hostname"
+
+# 4. Primary username.
+username=$(gum input --placeholder "you" --header "Primary username")
+[[ $username =~ ^[a-z_][a-z0-9_-]*$ ]] || die "invalid username"
+
+# 5. Encryption toggle. The v1 disko layout is plaintext btrfs; the
+# encrypted variant lands in v2, so this captures intent without changing
+# the destructive step.
+if gum confirm "Encrypt the disk with LUKS? (recommended)"; then
+  encrypt=true
+  lukspass=$(gum input --password --header "Disk encryption passphrase")
+  printf '%s' "$lukspass" >/tmp/disko-luks-key
+else
+  encrypt=false
+fi
+
+# 6. Confirm: last safe point before erasing the disk.
+gum confirm --default=false \
+  "ERASE $disk and install Ryoku ($profile, host=$hostname, encrypt=$encrypt)?" \
+  || die "aborted by user"
+
+# 7. The install: partition + format + mount + nixos-install in one command.
+# disko reads disko.devices.disk.main from the host; --disk main overrides
+# its placeholder device with the chosen disk. --write-efi-boot-entries
+# records the boot entry in NVRAM.
+disko-install \
+  --flake "${FLAKE}#${profile}" \
+  --disk main "$disk" \
+  --write-efi-boot-entries
+
+# 8. Passwords, set interactively so no plaintext lands in the store.
+gum style --foreground "$BEIGE" "Set the root password:"
+nixos-enter --root /mnt -c 'passwd root'
+gum style --foreground "$BEIGE" "Set the password for $username:"
+nixos-enter --root /mnt -c "passwd $username"
+
+# 9. Done.
+gum style --border double --border-foreground "$BRAND" --padding "1 4" \
+  "Ryoku installed. Reboot now?"
+if gum confirm "Reboot?"; then
+  umount -R /mnt 2>/dev/null || true
+  reboot
+fi

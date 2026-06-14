@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Thin wrapper around nixos-rebuild switch against the Ryoku flake. The
+# host config is keyed by hostname; override the flake source with
+# RYOKU_FLAKE. Extra arguments pass straight through to nixos-rebuild.
+set -euo pipefail
+
+FLAKE="${RYOKU_FLAKE:-/etc/ryoku/flake}"
+host="$(hostname)"
+
+# --rollback short-circuits to the previous generation and exits.
+if [[ "${1:-}" == "--rollback" ]]; then
+  sudo nixos-rebuild switch --rollback
+  exit 0
+fi
+
+sudo nixos-rebuild switch --flake "${FLAKE}#${host}" "$@"
+
+echo "Updated $host. To revert: ryoku-update --rollback (or nixos-rebuild switch --rollback)."

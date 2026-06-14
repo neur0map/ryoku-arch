@@ -4,11 +4,25 @@
 result
 result-*
 
-# Editor / direnv
+# Editor, tooling, and agent-harness metadata (never commit)
+.claude/
+.cursor/
+.factory/
+.helix/
+.omp/
+.prowl/
+.vscode/
 .direnv/
-.pre-commit-config.yaml
+.mcp.json
+opencode.json
 
-# Local VM / test artifacts
+# Build artifacts and vendored deps
+build/
+**/build/
+node_modules/
+**/node_modules/
+
+# Local VM and test artifacts
 *.qcow2
 *.img
 boot.log
