@@ -81,6 +81,7 @@ pkgs.testers.runNixOSTest {
     machine.succeed("udevadm settle")
     machine.succeed("mkfs.fat -F32 -n ESP /dev/vdb1")
     machine.succeed("mkfs.ext4 -L root /dev/vdb2")
+    machine.succeed("mkdir -p /mnt")
     machine.succeed("mount /dev/vdb2 /mnt")
     machine.succeed("mkdir -p /mnt/boot")
     machine.succeed("mount /dev/vdb1 /mnt/boot")
