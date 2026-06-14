@@ -50,8 +50,10 @@
   # upstream installer image autologs in as the unprivileged "nixos" user.
   services.getty.autologinUser = lib.mkForce "root";
 
-  # Auto-run the installer on the primary VT and the serial console.
-  programs.bash.loginShellInit = ''[[ $(tty) =~ tty1|ttyS0 ]] && exec ryoku-install'';
+  # Auto-run the installer on the primary framebuffer VT only. Restricting to
+  # tty1 avoids a second instance racing on the serial console (both gettys
+  # autologin root); headless installs run ryoku-install by hand.
+  programs.bash.loginShellInit = ''[[ $(tty) == /dev/tty1 ]] && exec ryoku-install'';
 
   nix.settings.experimental-features = [
     "nix-command"
