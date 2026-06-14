@@ -42,7 +42,7 @@
             ];
         };
 
-      ryokuLib = import ./lib { inherit inputs; };
+      ryokuLib = import ./lib { inherit inputs self; };
       inherit (ryokuLib) mkHost;
     in
     {

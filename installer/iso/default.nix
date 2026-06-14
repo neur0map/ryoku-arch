@@ -24,6 +24,15 @@
   # over the network or a substituter; fully-offline media is a v2 task.
   environment.etc."ryoku/flake".source = lib.cleanSource ../..;
 
+  # Bake the amd-nvidia system closure into the ISO read-only store so the
+  # installer copies it from the squashfs instead of staging a large download
+  # in the RAM-backed live store. This lets installs run on low-RAM machines
+  # and mostly offline (only the small flake-eval fetch remains). Other
+  # profiles still resolve from a substituter.
+  isoImage.storeContents = lib.optionals (self != null) [
+    self.nixosConfigurations.amd-nvidia.config.system.build.toplevel
+  ];
+
   # Installer toolchain available in the live session.
   environment.systemPackages =
     (with pkgs; [

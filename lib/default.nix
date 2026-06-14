@@ -1,5 +1,5 @@
 # Ryoku Nix helpers. Kept tiny: mkHost is the only v1 export.
-{ inputs }:
+{ inputs, self }:
 {
   # Build a NixOS system from a module list, exposing flake inputs to every
   # module via specialArgs (so hardware profiles can import nixos-hardware
@@ -11,6 +11,6 @@
     }:
     inputs.nixpkgs.lib.nixosSystem {
       inherit system modules;
-      specialArgs = { inherit inputs; };
+      specialArgs = { inherit inputs self; };
     };
 }
