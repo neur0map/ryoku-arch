@@ -18,7 +18,20 @@ let
     ++ map (p: "${p}/lib/qt-6/qml") [ pkgs.qt6.qt5compat pkgs.qt6.qtmultimedia pkgs.kdePackages.kirigami.unwrapped ]
   );
 
+  wallpapers = pkgs.ryoku-wallpapers;
+  wallsDir = "${wallpapers}/share/ryoku/wallpapers";
+  defaultWall = "${wallsDir}/ryoku-default.png";
+
+  # greetd launches this. Seed the default wallpaper into user state
+  # (fill-if-missing, so a user's own choice is never overwritten) before
+  # starting Hyprland; the shell's Wallpapers service watches path.txt.
   ryoku-hypr-session = pkgs.writeShellScriptBin "ryoku-hypr-session" ''
+    state="''${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell"
+    mkdir -p "$state/wallpaper"
+    if [ ! -s "$state/wallpaper/path.txt" ]; then
+      printf '%s' "${defaultWall}" > "$state/wallpaper/path.txt"
+      printf 'image' > "$state/wallpaper/type.txt"
+    fi
     exec ${pkgs.hyprland}/bin/Hyprland --config /etc/ryoku/hyprland.conf
   '';
 in
@@ -52,6 +65,7 @@ in
     # Plugins + the extra Qt QML modules the shell imports.
     env = QML_IMPORT_PATH,${qmlPath}
     env = QML2_IMPORT_PATH,${qmlPath}
+    env = RYOKU_SHELL_WALLPAPERS_DIR,${wallsDir}
 
     exec-once = ${qs}/bin/qs -p ${shellConfig}
 
