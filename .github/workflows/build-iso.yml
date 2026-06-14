@@ -29,8 +29,12 @@ jobs:
           name: ryoku
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Flake check
-        run: nix flake check --print-build-logs
+      # --no-build: evaluate every output (incl. the nixosTest in checks) without
+      # running VM tests. Hosted runners lack KVM; the ISO boot smoke-test below
+      # is the automated install gate. Run the VM test on KVM with
+      # nix build .#checks.x86_64-linux.install-base
+      - name: Flake check (eval)
+        run: nix flake check --no-build --print-build-logs
 
       - name: Build VM host toplevel
         run: nix build .#nixosConfigurations.vm.config.system.build.toplevel --print-build-logs
@@ -61,8 +65,8 @@ jobs:
                       /usr/local/lib/android /usr/local/share/boost
           df -h /
 
-      - name: Flake check
-        run: nix flake check --print-build-logs
+      - name: Flake check (eval)
+        run: nix flake check --no-build --print-build-logs
 
       # Pinned entirely by the committed flake.lock. .#iso is the isoImage
       # build product of nixosConfigurations.iso.

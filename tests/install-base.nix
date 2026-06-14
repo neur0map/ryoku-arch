@@ -9,6 +9,11 @@
 # is the qemu boot smoke-test in CI; P6/P7 are build-only / physical hardware.
 #
 # Run: nix build .#checks.x86_64-linux.install-base
+#
+# NOTE: this needs REAL nix (CI / GH Actions). Under rootless nix-portable the
+# offline closure copy hits a nested-store hash mismatch (a known closureInfo
+# determinism quirk, also worked around inside disko-install) - an environment
+# limit, not a test bug. Locally, install-test.py is the verified e2e check.
 {
   pkgs ? import <nixpkgs> { },
 }:
