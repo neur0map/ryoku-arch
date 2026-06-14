@@ -14,7 +14,7 @@
 {
   # Fixed name and label. self may be unavailable at eval, so the image
   # name is a stable constant rather than a flake rev.
-  isoImage.isoName = lib.mkDefault "ryoku.iso";
+  image.fileName = lib.mkDefault "ryoku.iso";
   isoImage.volumeID = lib.mkDefault "RYOKU";
   isoImage.squashfsCompression = "zstd -Xcompression-level 6";
 
@@ -41,6 +41,9 @@
     "console=ttyS0,115200"
     "console=tty0"
   ];
+
+  # Adopt the 26.11 default early: silences the warning and avoids risky imports.
+  boot.zfs.forceImportRoot = false;
 
   services.getty.autologinUser = lib.mkDefault "root";
 

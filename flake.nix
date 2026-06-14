@@ -79,7 +79,7 @@
 
       overlays.default = import ./overlays/default.nix;
 
-      formatter = forAllSystems (system: (pkgsFor system).nixfmt-rfc-style);
+      formatter = forAllSystems (system: (pkgsFor system).nixfmt);
 
       devShells = forAllSystems (
         system:
@@ -89,7 +89,7 @@
         {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              nixfmt-rfc-style
+              nixfmt
               nil
               disko
               git
