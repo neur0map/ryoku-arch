@@ -10,6 +10,7 @@ let
   shell = pkgs.ryoku-shell;
   qs = pkgs.quickshell;
   shellConfig = "${shell}/etc/xdg/quickshell/ryoku-shell";
+  qsipc = "${qs}/bin/qs -p ${shellConfig} ipc call";
   # ryoku-shell installs its native plugins under lib/qt6/qml; the extra Qt QML
   # modules the shell imports beyond quickshell's base Qt (Qt5Compat.GraphicalEffects
   # and QtMultimedia) live under each package's lib/qt-6/qml.
@@ -87,7 +88,42 @@ in
 
     exec-once = ${qs}/bin/qs -p ${shellConfig}
 
-    # A terminal keybind keeps the session usable for manual testing.
+    # Window management.
     bind = SUPER, Return, exec, ${pkgs.foot}/bin/foot
+    bind = SUPER, Q, killactive
+    bind = SUPER, M, exit
+    bind = SUPER, F, fullscreen
+    bind = SUPER, E, togglefloating
+    bind = SUPER, left, movefocus, l
+    bind = SUPER, right, movefocus, r
+    bind = SUPER, up, movefocus, u
+    bind = SUPER, down, movefocus, d
+
+    # Ryoku shell surfaces (Quickshell IPC).
+    bind = SUPER, Space, exec, ${qsipc} drawers toggle launcher
+    bind = SUPER, Tab, exec, ${qsipc} drawers toggle dashboard
+    bind = SUPER, A, exec, ${qsipc} controlCenter toggle
+    bind = SUPER, V, exec, ${qsipc} clipboard toggle
+    bind = SUPER, Backspace, exec, ${qsipc} lockscreen lock
+    bind = , Print, exec, ${qsipc} picker openFreeze
+
+    # Workspaces.
+    bind = SUPER, 1, workspace, 1
+    bind = SUPER, 2, workspace, 2
+    bind = SUPER, 3, workspace, 3
+    bind = SUPER, 4, workspace, 4
+    bind = SUPER, 5, workspace, 5
+    bind = SUPER SHIFT, 1, movetoworkspace, 1
+    bind = SUPER SHIFT, 2, movetoworkspace, 2
+    bind = SUPER SHIFT, 3, movetoworkspace, 3
+    bind = SUPER SHIFT, 4, movetoworkspace, 4
+    bind = SUPER SHIFT, 5, movetoworkspace, 5
+
+    # Media and brightness keys.
+    bindel = , XF86AudioRaiseVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
+    bindel = , XF86AudioLowerVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+    bindl = , XF86AudioMute, exec, ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+    bindel = , XF86MonBrightnessUp, exec, ${pkgs.brightnessctl}/bin/brightnessctl set 5%+
+    bindel = , XF86MonBrightnessDown, exec, ${pkgs.brightnessctl}/bin/brightnessctl set 5%-
   '';
 }
