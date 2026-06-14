@@ -8,7 +8,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/ryoku-update-
 # Branded, clean update confirmation. Falls back to a plain prompt when gum is
 # unavailable so the flow never stalls on a missing dependency.
 
-version="$(cat "$RYOKU_PATH/version" 2>/dev/null || printf 'unknown')"
+version="$(cat "$RYOKU_PATH/VERSION" 2>/dev/null || printf 'unknown')"
 channel="$(ryoku_resolve_channel 2>/dev/null || printf 'main')"
 releases_url="https://github.com/neur0map/ryoku-arch/releases"
 
