@@ -40,12 +40,15 @@
   boot.kernelParams = [
     "console=ttyS0,115200"
     "console=tty0"
+    "consoleblank=0"
   ];
 
   # Adopt the 26.11 default early: silences the warning and avoids risky imports.
   boot.zfs.forceImportRoot = false;
 
-  services.getty.autologinUser = lib.mkDefault "root";
+  # Force root so the auto-started installer has the privileges it needs; the
+  # upstream installer image autologs in as the unprivileged "nixos" user.
+  services.getty.autologinUser = lib.mkForce "root";
 
   # Auto-run the installer on the primary VT and the serial console.
   programs.bash.loginShellInit = ''[[ $(tty) =~ tty1|ttyS0 ]] && exec ryoku-install'';
