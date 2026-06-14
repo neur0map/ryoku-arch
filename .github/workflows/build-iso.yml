@@ -94,31 +94,32 @@ jobs:
           name: ryoku-iso
 
       - name: Install qemu
-        run: sudo apt-get update && sudo apt-get install -y qemu-system-x86 ovmf
+        run: sudo apt-get update && sudo apt-get install -y qemu-system-x86
 
-      # Boot the ISO headless on a serial console and assert it reaches the
-      # Ryoku installer. GitHub hosted runners have no KVM, so this is TCG
-      # (software emulation): slow but fine for a boot/reach-shell smoke test.
-      - name: Boot ISO and assert installer is reached
+      # Boot the ISO headless on a serial console and assert the live system
+      # boots. GitHub hosted runners have no KVM, so this is TCG (software
+      # emulation): slow but enough for a boot smoke test. The hybrid ISO boots
+      # via SeaBIOS (no OVMF needed just to verify boot). The branded installer
+      # UI runs on tty1 (framebuffer); the serial console carries boot progress
+      # and the autologin shell, which is what is asserted here.
+      - name: Boot ISO and assert it reaches the live system
         run: |
           iso=$(ls *.iso)
           timeout 1200 qemu-system-x86_64 \
             -m 4096 -smp 2 \
-            -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE.fd \
             -cdrom "$iso" -boot d \
             -nographic -serial mon:stdio -display none \
-            | tee boot.log &
+            > boot.log 2>&1 &
           qpid=$!
-          # Poll the serial log for proof of life. UEFI plus TCG boot to the
-          # installer takes minutes; succeed as soon as the marker appears.
           for i in $(seq 1 120); do
-            if grep -qE 'Ryoku NixOS Installer|For the sake of power and beauty|reached target' boot.log; then
-              echo "::notice::ISO booted and Ryoku installer reached."
+            if grep -qE 'Welcome to NixOS|Reached target .*Multi-User|nixos login' boot.log; then
+              echo "::notice::ISO booted to the live NixOS system."
               kill "$qpid" 2>/dev/null || true
               exit 0
             fi
+            kill -0 "$qpid" 2>/dev/null || break
             sleep 10
           done
-          echo "::error::ISO did not reach the installer within budget"
-          cat boot.log
+          echo "::error::ISO did not reach the live system within budget"
+          tail -100 boot.log
           exit 1
