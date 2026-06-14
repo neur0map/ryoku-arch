@@ -85,6 +85,7 @@ in
     cava
     xdg-utils
     psmisc
+    glib # gdbus: the GameMode service monitors com.feralinteractive.GameMode over D-Bus
     adwaita-icon-theme
     papirus-icon-theme
   ]);

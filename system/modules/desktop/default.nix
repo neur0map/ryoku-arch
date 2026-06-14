@@ -46,4 +46,10 @@
 
   # Input handling for the Wayland session.
   services.libinput.enable = true;
+
+  # Power management. The shell's battery indicator and power-profile switcher
+  # talk to UPower and power-profiles-daemon over D-Bus; without them the qs log
+  # reports both as ServiceUnknown and those widgets have no data.
+  services.upower.enable = true;
+  services.power-profiles-daemon.enable = true;
 }
