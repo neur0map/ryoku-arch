@@ -23,6 +23,9 @@ let
   wallsDir = "${wallpapers}/share/ryoku/wallpapers";
   defaultWall = "${wallsDir}/ryoku-default.png";
 
+  qylock = pkgs.ryoku-qylock;
+  qylockDir = "${qylock}/share/ryoku/qylock";
+
   # greetd launches this. Seed the default wallpaper into user state
   # (fill-if-missing, so a user's own choice is never overwritten) before
   # starting Hyprland; the shell's Wallpapers service watches path.txt.
@@ -38,6 +41,17 @@ let
     # regenerates it on later wallpaper changes. Best-effort.
     if [ ! -s "$state/scheme.json" ]; then
       ${shellConfig}/scripts/ryoku scheme from-wallpaper >/dev/null 2>&1 || true
+    fi
+    # qylock lockscreen: the shell's LockBridge execs
+    # $HOME/.local/share/quickshell-lockscreen/lock.sh. Point that path at the
+    # store tree (refreshed each session) and seed the default theme if unset.
+    lockdir="$HOME/.local/share/quickshell-lockscreen"
+    mkdir -p "$HOME/.local/share"
+    [ -L "$lockdir" ] || rm -rf "$lockdir"
+    ln -sfn ${qylockDir} "$lockdir"
+    mkdir -p "$HOME/.config/qylock"
+    if [ ! -s "$HOME/.config/qylock/theme" ]; then
+      printf 'clockwork/orbital' > "$HOME/.config/qylock/theme"
     fi
     exec ${pkgs.hyprland}/bin/Hyprland --config /etc/ryoku/hyprland.conf
   '';
@@ -65,6 +79,7 @@ in
     lm_sensors
     cava
     xdg-utils
+    psmisc
     adwaita-icon-theme
     papirus-icon-theme
   ]);
@@ -109,7 +124,11 @@ in
     bind = SUPER, Tab, exec, ${qsipc} drawers toggle dashboard
     bind = SUPER, A, exec, ${qsipc} controlCenter toggle
     bind = SUPER, V, exec, ${qsipc} clipboard toggle
-    bind = SUPER, Backspace, exec, ${qsipc} lockscreen lock
+    # Lock runs qylock's lock.sh directly: the shell's LockBridge lockCommand
+    # self-terminates under quickshell Process (its `pkill -f org.ryoku.screensaver`
+    # matches the `sh -c <cmd>` wrapper's own argv), so the IPC path never reaches
+    # lock.sh. Calling the script directly avoids the self-match.
+    bind = SUPER, Backspace, exec, ${qylockDir}/lock.sh
     bind = , Print, exec, ${qsipc} picker openFreeze
 
     # Workspaces.

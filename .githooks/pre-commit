@@ -33,8 +33,8 @@ staged=$(git diff --cached --name-only --diff-filter=ACM || true)
 
 # 2. em-dash scan
 # Files/trees that are vendored upstream content and exempt from the
-# em-dash policy.
-emdash_allowlist_pattern='^shell/'
+# em-dash policy (shell/ is adapted-upstream; vendor/ is faithful-upstream).
+emdash_allowlist_pattern='^(shell|vendor)/'
 
 for f in $staged; do
   [[ -f $f ]] || continue

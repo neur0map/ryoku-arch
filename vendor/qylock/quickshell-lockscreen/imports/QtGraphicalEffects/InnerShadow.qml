@@ -1,0 +1,1 @@
+/usr/lib/qt6/qml/Qt5Compat/GraphicalEffects/InnerShadow.qml
