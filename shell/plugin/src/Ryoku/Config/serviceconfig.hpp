@@ -37,6 +37,10 @@ class ServiceConfig : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(bool, brightnessDdc, true)
     // Clamp the lowest brightness to 1% so panels that switch off at 0% stay lit.
     CONFIG_GLOBAL_PROPERTY(bool, brightnessEnforceMin, false)
+    // Manual output->backlight device overrides set in the brightness card
+    // (format: [{ "output": "...", "device": "..." }]). Runtime-discovered
+    // mappings are persisted here so user choices survive restarts.
+    CONFIG_GLOBAL_PROPERTY(QVariantList, backlightDeviceMappings, {})
     CONFIG_GLOBAL_PROPERTY(qreal, maxVolume, 1.0)
     CONFIG_GLOBAL_PROPERTY(bool, smartScheme, true)
     // Mirror the active light/dark theme to the system (GNOME/GTK) toolkit theme.

@@ -82,7 +82,7 @@ Singleton {
     if (normalizedOutput === "")
       return "";
 
-    var mappings = Settings.data.brightness.backlightDeviceMappings || [];
+    var mappings = GlobalConfig.services.backlightDeviceMappings || [];
     for (var i = 0; i < mappings.length; i++) {
       var mapping = mappings[i];
       if (!mapping || typeof mapping !== "object")
@@ -101,7 +101,7 @@ Singleton {
     return;
 
     var normalizedDevicePath = normalizeBacklightDevicePath(devicePath);
-    var mappings = Settings.data.brightness.backlightDeviceMappings || [];
+    var mappings = GlobalConfig.services.backlightDeviceMappings || [];
     var nextMappings = [];
     var replaced = false;
 
@@ -138,7 +138,8 @@ Singleton {
                         });
     }
 
-    Settings.data.brightness.backlightDeviceMappings = nextMappings;
+    GlobalConfig.services.backlightDeviceMappings = nextMappings;
+    GlobalConfig.save();
   }
 
   function scanBacklightDevices(): void {
@@ -174,10 +175,6 @@ Singleton {
         ddcMonitors = [];
       }
     }
-  }
-
-  Connections {
-    target: Settings.data.brightness
     function onBacklightDeviceMappingsChanged() {
       scanBacklightDevices();
       for (var i = 0; i < monitors.length; i++) {

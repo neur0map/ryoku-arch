@@ -37,7 +37,7 @@ Item {
   readonly property string displayMode: (widgetSettings.displayMode !== undefined) ? widgetSettings.displayMode : widgetMetadata.displayMode
   readonly property string iconColorKey: widgetSettings.iconColor !== undefined ? widgetSettings.iconColor : widgetMetadata.iconColor
   readonly property string textColorKey: widgetSettings.textColor !== undefined ? widgetSettings.textColor : widgetMetadata.textColor
-  readonly property bool applyToAllMonitors: widgetSettings.applyToAllMonitors !== undefined ? widgetSettings.applyToAllMonitors : (Settings.data.brightness.syncAllMonitors !== undefined ? Settings.data.brightness.syncAllMonitors : widgetMetadata.applyToAllMonitors)
+  readonly property bool applyToAllMonitors: widgetSettings.applyToAllMonitors !== undefined ? widgetSettings.applyToAllMonitors : widgetMetadata.applyToAllMonitors
   readonly property bool reverseScroll: Settings.data.general.reverseScroll
 
   // Used to avoid opening the pill on Quickshell startup
