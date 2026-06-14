@@ -6,7 +6,7 @@
 {
   imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
-  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usb_storage" "sd_mod" ];
+  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usb_storage" "sd_mod" "virtio_pci" "virtio_blk" "virtio_scsi" "virtio_net" ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
