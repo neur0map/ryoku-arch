@@ -11,7 +11,7 @@
     ../../modules/hardware/profiles/generic.nix
   ];
 
-  networking.hostName = "ryoku-vm";
+  networking.hostName = lib.mkDefault "ryoku-vm";
 
   virtualisation.vmVariant = {
     virtualisation.memorySize = 4096;

@@ -2,7 +2,7 @@
 # Machine specifics (real hardware-configuration, PRIME busIds) are resolved at
 # install time by ryoku-install; the committed busIds in the profile are dev-box
 # defaults the installer overrides per machine.
-{ inputs, ... }:
+{ inputs, lib, ... }:
 {
   imports = [
     inputs.disko.nixosModules.disko
@@ -13,7 +13,7 @@
     ../../modules/hardware/profiles/nvidia-hybrid.nix
   ];
 
-  networking.hostName = "ryoku";
+  networking.hostName = lib.mkDefault "ryoku";
 
   # Set ONCE at install; never bump. Tracks the install release, not the running version.
   system.stateVersion = "26.05";

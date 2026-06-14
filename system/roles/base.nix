@@ -1,8 +1,9 @@
 # Always-on baseline role: nix/boot/services modules + core/networking packages,
 # plus locale, timezone, console, and the default distro user.
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 {
   imports = [
+    ../modules/ryoku
     ../modules/nix
     ../modules/boot
     ../modules/services
@@ -17,7 +18,7 @@
 
   # Default distro user. wheel grants sudo. The installer (or first login) MUST
   # change initialPassword: it is a known bootstrap secret, not a real password.
-  users.users.ryoku = {
+  users.users.${config.ryoku.username} = {
     isNormalUser = true;
     description = "Ryoku";
     extraGroups = [ "wheel" "networkmanager" "video" "audio" ];

@@ -107,12 +107,19 @@ fi
 # (the running hostname is user-chosen and does not name the profile).
 printf '%s\n' "$profile" >/tmp/ryoku-profile
 
-# The install: partition + format + mount + nixos-install in one command.
-# disko reads disko.devices.disk.main from the host; --disk main overrides its
-# placeholder device; --extra-files records the profile in the installed system.
+# Apply the chosen hostname and username into the installed config. The host
+# sets these at mkDefault priority, so this normal-priority injection wins.
+sysconfig=$(printf '{"networking":{"hostName":"%s"},"ryoku":{"username":"%s"}}' \
+  "$hostname" "$username")
+
+# The install: partition + format + mount + nixos-install in one command. disko
+# reads disko.devices.disk.main from the host; --disk main overrides its
+# placeholder device; --system-config merges the chosen identity; --extra-files
+# records the profile in the installed system.
 disko-install \
   --flake "${FLAKE}#${profile}" \
   --disk main "$disk" \
+  --system-config "$sysconfig" \
   --extra-files /tmp/ryoku-profile /etc/ryoku/profile \
   --write-efi-boot-entries
 
