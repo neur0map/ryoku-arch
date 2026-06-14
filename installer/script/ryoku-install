@@ -12,7 +12,6 @@
 #       RYOKU_DISK      target block device, erased       (required)
 #       RYOKU_HOSTNAME  default ryoku
 #       RYOKU_USERNAME  default ryoku
-#       RYOKU_ROOT_PASSWORD / RYOKU_USER_PASSWORD  default to a dev value
 #       RYOKU_REBOOT    non-empty reboots after install
 set -euo pipefail
 
@@ -21,7 +20,6 @@ UNATTENDED="${RYOKU_UNATTENDED:-}"
 
 BRAND="#F25623"
 INK="#CCD0CF"
-BEIGE="#aeab94"
 export GUM_CHOOSE_CURSOR=": " \
        GUM_CHOOSE_CURSOR_FOREGROUND="$BRAND" \
        GUM_INPUT_PROMPT_FOREGROUND="$BRAND" \
@@ -50,8 +48,6 @@ valid_username() { [[ $1 =~ ^[a-z_][a-z0-9_-]*$ ]]; }
 command -v disko-install >/dev/null || die "disko-install missing"
 
 encrypt=false
-root_pw=""
-user_pw=""
 do_reboot=""
 
 if [[ -n $UNATTENDED ]]; then
@@ -59,8 +55,6 @@ if [[ -n $UNATTENDED ]]; then
   disk="${RYOKU_DISK:-}"
   hostname="${RYOKU_HOSTNAME:-ryoku}"
   username="${RYOKU_USERNAME:-ryoku}"
-  root_pw="${RYOKU_ROOT_PASSWORD:-ryoku}"
-  user_pw="${RYOKU_USER_PASSWORD:-ryoku}"
   do_reboot="${RYOKU_REBOOT:-}"
   valid_profile "$profile" || die "RYOKU_PROFILE must be amd-nvidia|amd|intel|vm"
   [[ -b $disk ]] || die "RYOKU_DISK is not a block device: ${disk:-unset}"
@@ -118,17 +112,10 @@ disko-install \
   --disk main "$disk" \
   --write-efi-boot-entries
 
-# Passwords. Unattended uses chpasswd from the environment; interactive
-# prompts so no plaintext lands anywhere.
-if [[ -n $UNATTENDED ]]; then
-  printf 'root:%s\n%s:%s\n' "$root_pw" "$username" "$user_pw" \
-    | nixos-enter --root /mnt -c 'chpasswd'
-else
-  gum style --foreground "$BEIGE" "Set the root password:"
-  nixos-enter --root /mnt -c 'passwd root'
-  gum style --foreground "$BEIGE" "Set the password for $username:"
-  nixos-enter --root /mnt -c "passwd $username"
-fi
+# Initial credentials are declarative: the host's users.users.<name>.initialPassword
+# (base role) gives a first-login account, which the user changes afterwards.
+# disko-install unmounts the target after installing, so there is no mounted root
+# to run passwd against here; baking a chosen password into a host fragment is v1.x.
 
 # Done.
 if [[ -n $UNATTENDED ]]; then
