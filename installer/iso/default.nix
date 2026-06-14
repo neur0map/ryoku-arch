@@ -18,14 +18,11 @@
   isoImage.volumeID = lib.mkDefault "RYOKU";
   isoImage.squashfsCompression = "zstd -Xcompression-level 6";
 
-  # Bake the repo into the live image so the installer can build offline
-  # from /etc/ryoku/flake (RYOKU_FLAKE default in ryoku-install).
-  isoImage.contents = [
-    {
-      source = ../..;
-      target = "/etc/ryoku/flake";
-    }
-  ];
+  # Bake the flake SOURCE into the live system at /etc/ryoku/flake (the
+  # RYOKU_FLAKE default), so the installer can target .#<profile>. cleanSource
+  # drops .git and build outputs. Flake inputs and the system closure resolve
+  # over the network or a substituter; fully-offline media is a v2 task.
+  environment.etc."ryoku/flake".source = lib.cleanSource ../..;
 
   # Installer toolchain available in the live session.
   environment.systemPackages =
