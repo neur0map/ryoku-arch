@@ -1,47 +1,14 @@
-# Ryoku Arch: developer-local session notes.
-# Individual session logs stay out of the repo; only the README and
-# TEMPLATE ship.
-/logs/*.md
-!/logs/README.md
-!/logs/TEMPLATE.md
-/.worktrees/
+# Nix build outputs
+/result
+/result-*
+result
+result-*
 
-# ISO build artifacts.
-/iso/out/
-/iso/work/
+# Editor / direnv
+.direnv/
+.pre-commit-config.yaml
 
-# Editor / agent metadata
-/.claude/
-/.codex
-# Local editor / AI-tooling configs (per-developer, wire up MCP servers; not shell source)
-/.cursor/
-/.factory/
-/.helix/
-/.omp/
-/.vscode/
-/.mcp.json
-/opencode.json
-
-# LSP / language-server config stays developer-local
-.luarc.json
-.luarc.jsonc
-
-# Superpowers brainstorming session artifacts
-.superpowers/
-.specs
-docs/superpowers/
-docs/_archive/
-# Per-run ISO build logs
-tests/logs/
-
-# makepkg working directories + build outputs under distro/arch/*/.
-# We commit PKGBUILDs only; everything makepkg generates (src/, pkg/,
-# downloaded tarballs, built .pkg.tar.* artifacts) stays local.
-distro/arch/*/src/
-distro/arch/*/pkg/
-distro/arch/*/*.pkg.tar.*
-distro/arch/*/*.tar.gz
-distro/arch/*/*.tar.xz
-distro/arch/*/*.tar.zst
-!distro/arch/cava-ryoku/cava-ryoku-[0-9]*.pkg.tar.zst
-.prowl/
+# Local VM / test artifacts
+*.qcow2
+*.img
+boot.log
