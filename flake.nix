@@ -79,6 +79,8 @@
         {
           install-base =
             (import nixpkgs { inherit system; }).callPackage ./tests/install-base.nix { };
+          health =
+            (import nixpkgs { inherit system; }).callPackage ./tests/health.nix { };
         }
       );
 
