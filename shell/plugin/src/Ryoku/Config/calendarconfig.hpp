@@ -15,6 +15,12 @@ class CalendarConfig : public ConfigObject {
 
     // Format: [{ "id": "calendar-header-card", "enabled": true }, ...]
     CONFIG_PROPERTY(QVariantList, cards)
+    // Calendar display options (migrated from the legacy settings-gui location domain).
+    CONFIG_PROPERTY(bool, showWeekNumberInCalendar, false)
+    CONFIG_PROPERTY(bool, showCalendarEvents, true)
+    CONFIG_PROPERTY(bool, showCalendarWeather, true)
+    CONFIG_PROPERTY(bool, analogClockInCalendar, false)
+    CONFIG_PROPERTY(int, firstDayOfWeek, -1)
 
 public:
     explicit CalendarConfig(QObject* parent = nullptr)

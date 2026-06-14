@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
@@ -415,7 +416,7 @@ Item {
       fillColor: Color.mPrimary
       opacity: 0.4
       barPosition: root.barPosition
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 
@@ -427,7 +428,7 @@ Item {
       values: SpectrumService.values
       fillColor: Color.mPrimary
       opacity: 0.4
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 
@@ -439,7 +440,7 @@ Item {
       values: SpectrumService.values
       fillColor: Color.mPrimary
       opacity: 0.4
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 

@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import Quickshell
 import qs.settingsgui.Commons
@@ -84,7 +85,7 @@ Item {
   }
 
   // Store visualizer type to force re-evaluation
-  readonly property string currentVisualizerType: Settings.data.audio.visualizerType
+  readonly property string currentVisualizerType: GlobalConfig.services.visualizerType
 
   Rectangle {
     id: background
@@ -146,7 +147,8 @@ Item {
                      const types = ["linear", "mirrored", "wave"];
                      const currentIndex = types.indexOf(currentVisualizerType);
                      const nextIndex = (currentIndex + 1) % types.length;
-                     Settings.data.audio.visualizerType = types[nextIndex];
+                     GlobalConfig.services.visualizerType = types[nextIndex];
+                     GlobalConfig.save();
                    } else if (action === "widget-settings" && screen) {
                      BarService.openWidgetSettings(screen, section, sectionWidgetIndex, widgetId, widgetSettings);
                    }
@@ -169,7 +171,8 @@ Item {
                    const types = ["linear", "mirrored", "wave"];
                    const currentIndex = types.indexOf(currentVisualizerType);
                    const nextIndex = (currentIndex + 1) % types.length;
-                   Settings.data.audio.visualizerType = types[nextIndex];
+                   GlobalConfig.services.visualizerType = types[nextIndex];
+                   GlobalConfig.save();
                  }
                }
   }
@@ -183,7 +186,7 @@ Item {
       showMinimumSignal: true
       vertical: root.isVerticalBar
       barPosition: root.barPosition
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 
@@ -195,7 +198,7 @@ Item {
       fillColor: root.fillColor
       showMinimumSignal: true
       vertical: root.isVerticalBar
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 
@@ -207,7 +210,7 @@ Item {
       fillColor: root.fillColor
       showMinimumSignal: true
       vertical: root.isVerticalBar
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 }

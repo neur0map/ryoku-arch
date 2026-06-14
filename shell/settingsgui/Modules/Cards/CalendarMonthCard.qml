@@ -17,7 +17,7 @@ NBox {
   readonly property var now: Time.now
   property int calendarMonth: now.getMonth()
   property int calendarYear: now.getFullYear()
-  readonly property int firstDayOfWeek: Settings.data.location.firstDayOfWeek === -1 ? I18n.locale.firstDayOfWeek : Settings.data.location.firstDayOfWeek
+  readonly property int firstDayOfWeek: GlobalConfig.calendar.firstDayOfWeek === -1 ? I18n.locale.firstDayOfWeek : GlobalConfig.calendar.firstDayOfWeek
 
   // Helper function to calculate ISO week number
   function getISOWeekNumber(date) {
@@ -129,7 +129,7 @@ NBox {
       spacing: 0
 
       Item {
-        visible: Settings.data.location.showWeekNumberInCalendar
+        visible: GlobalConfig.calendar.showWeekNumberInCalendar
         Layout.preferredWidth: visible ? Style.baseWidgetSize * 0.7 : 0
       }
 
@@ -211,7 +211,7 @@ NBox {
       }
 
       ColumnLayout {
-        visible: Settings.data.location.showWeekNumberInCalendar
+        visible: GlobalConfig.calendar.showWeekNumberInCalendar
         Layout.preferredWidth: visible ? Style.baseWidgetSize * 0.7 : 0
         Layout.alignment: Qt.AlignTop
         spacing: Style.marginXXS
@@ -347,7 +347,7 @@ NBox {
               }
 
               Row {
-                visible: Settings.data.location.showCalendarEvents && parent.parent.parent.parent.hasEventsOnDate(modelData.year, modelData.month, modelData.day)
+                visible: GlobalConfig.calendar.showCalendarEvents && parent.parent.parent.parent.hasEventsOnDate(modelData.year, modelData.month, modelData.day)
                 spacing: 2
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
@@ -368,7 +368,7 @@ NBox {
               MouseArea {
                 anchors.fill: parent
                 hoverEnabled: true
-                enabled: Settings.data.location.showCalendarEvents
+                enabled: GlobalConfig.calendar.showCalendarEvents
 
                 onEntered: {
                   const events = parent.parent.parent.parent.getEventsForDate(modelData.year, modelData.month, modelData.day);

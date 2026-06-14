@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Effects
 import QtQuick.Layouts
@@ -534,7 +535,7 @@ SmartPanel {
       fillColor: Color.mPrimary
       opacity: 0.4
       barPosition: Settings.getBarPositionForScreen(root.screen?.name)
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 
@@ -546,7 +547,7 @@ SmartPanel {
       values: SpectrumService.values
       fillColor: Color.mPrimary
       opacity: 0.4
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 
@@ -558,7 +559,7 @@ SmartPanel {
       values: SpectrumService.values
       fillColor: Color.mPrimary
       opacity: 0.4
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 }

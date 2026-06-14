@@ -1154,7 +1154,7 @@ Singleton {
       return;
     }
 
-    if (!Settings.data.audio.volumeFeedback) {
+    if (!GlobalConfig.services.volumeFeedback) {
       return;
     }
 
@@ -1165,7 +1165,7 @@ Singleton {
     lastVolumeFeedbackTime = now;
 
     const feedbackVolume = currentVolume;
-    const configuredSoundFile = Settings.data.audio.volumeFeedbackSoundFile;
+    const configuredSoundFile = GlobalConfig.services.volumeFeedbackSoundFile;
     const soundFile = (configuredSoundFile && configuredSoundFile.trim() !== "") ? configuredSoundFile : "volume-change.wav";
 
     SoundService.playSound(soundFile, {

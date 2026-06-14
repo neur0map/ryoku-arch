@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Effects
 import Quickshell
 import qs.settingsgui.Commons
@@ -91,7 +92,7 @@ DraggableDesktopWidget {
       values: SpectrumService.values
       fillColor: root.fillColor
       showMinimumSignal: true
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 
@@ -102,7 +103,7 @@ DraggableDesktopWidget {
       values: SpectrumService.values
       fillColor: root.fillColor
       showMinimumSignal: true
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 
@@ -113,7 +114,7 @@ DraggableDesktopWidget {
       values: SpectrumService.values
       fillColor: root.fillColor
       showMinimumSignal: true
-      mirrored: Settings.data.audio.spectrumMirrored
+      mirrored: GlobalConfig.services.spectrumMirrored
     }
   }
 }

@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
@@ -115,7 +116,7 @@ DraggableDesktopWidget {
         values: SpectrumService.values
         fillColor: Color.mPrimary
         opacity: 0.5
-        mirrored: Settings.data.audio.spectrumMirrored
+        mirrored: GlobalConfig.services.spectrumMirrored
       }
     }
 
@@ -126,7 +127,7 @@ DraggableDesktopWidget {
         values: SpectrumService.values
         fillColor: Color.mPrimary
         opacity: 0.5
-        mirrored: Settings.data.audio.spectrumMirrored
+        mirrored: GlobalConfig.services.spectrumMirrored
       }
     }
 
@@ -137,7 +138,7 @@ DraggableDesktopWidget {
         values: SpectrumService.values
         fillColor: Color.mPrimary
         opacity: 0.5
-        mirrored: Settings.data.audio.spectrumMirrored
+        mirrored: GlobalConfig.services.spectrumMirrored
       }
     }
   }

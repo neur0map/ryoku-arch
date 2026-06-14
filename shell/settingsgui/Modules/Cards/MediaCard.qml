@@ -16,7 +16,7 @@ NBox {
   readonly property bool hasActivePlayer: MediaService.currentPlayer && MediaService.canPlay
 
   // SpectrumService registration for visualizer
-  readonly property bool needsSpectrum: Settings.data.audio.visualizerType !== "" && Settings.data.audio.visualizerType !== "none"
+  readonly property bool needsSpectrum: GlobalConfig.services.visualizerType !== "" && GlobalConfig.services.visualizerType !== "none"
 
   onNeedsSpectrumChanged: {
     if (root.needsSpectrum) {
@@ -133,10 +133,10 @@ NBox {
 
     Loader {
       anchors.fill: parent
-      active: Settings.data.audio.visualizerType !== "" && Settings.data.audio.visualizerType !== "none"
+      active: GlobalConfig.services.visualizerType !== "" && GlobalConfig.services.visualizerType !== "none"
 
       sourceComponent: {
-        switch (Settings.data.audio.visualizerType) {
+        switch (GlobalConfig.services.visualizerType) {
         case "linear":
           return linearComponent;
         case "mirrored":
@@ -155,7 +155,7 @@ NBox {
           values: SpectrumService.values
           fillColor: Color.mPrimary
           opacity: 0.8
-          mirrored: Settings.data.audio.spectrumMirrored
+          mirrored: GlobalConfig.services.spectrumMirrored
         }
       }
 
@@ -166,7 +166,7 @@ NBox {
           values: SpectrumService.values
           fillColor: Color.mPrimary
           opacity: 0.8
-          mirrored: Settings.data.audio.spectrumMirrored
+          mirrored: GlobalConfig.services.spectrumMirrored
         }
       }
 
@@ -177,7 +177,7 @@ NBox {
           values: SpectrumService.values
           fillColor: Color.mPrimary
           opacity: 0.8
-          mirrored: Settings.data.audio.spectrumMirrored
+          mirrored: GlobalConfig.services.spectrumMirrored
         }
       }
     }

@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import qs.settingsgui.Commons
 
 Item {
@@ -17,7 +18,7 @@ Item {
   readonly property int valuesCount: (values && values.length !== undefined) ? values.length : 0
   readonly property int totalBars: mirrored ? valuesCount * 2 : valuesCount
   readonly property real barSlotSize: totalBars > 0 ? (vertical ? height : width) / totalBars : 0
-  readonly property bool highQuality: (Settings.data.audio.visualizerType === "low") ? false : true
+  readonly property bool highQuality: (GlobalConfig.services.visualizerType === "low") ? false : true
 
   Repeater {
     model: root.totalBars

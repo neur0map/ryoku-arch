@@ -4,6 +4,7 @@
 
 #include <qstring.h>
 #include <qvariant.h>
+#include <qstringlist.h>
 
 namespace ryoku::config {
 
@@ -49,6 +50,14 @@ class ServiceConfig : public ConfigObject {
         { vmap({ { u"from"_s, u"com.github.th_ch.youtube_music"_s }, { u"to"_s, u"YT Music"_s } }) })
     CONFIG_GLOBAL_PROPERTY(bool, showLyrics, false)
     CONFIG_GLOBAL_PROPERTY(QString, lyricsBackend, u"Auto"_s)
+    // Bar audio-visualiser widget style + spectrum rendering, plus volume-change
+    // feedback (migrated from the legacy settings-gui audio domain).
+    CONFIG_GLOBAL_PROPERTY(QString, visualizerType, u"linear"_s)
+    CONFIG_GLOBAL_PROPERTY(bool, spectrumMirrored, true)
+    CONFIG_GLOBAL_PROPERTY(int, spectrumFrameRate, 30)
+    CONFIG_GLOBAL_PROPERTY(QStringList, mprisBlacklist, {})
+    CONFIG_GLOBAL_PROPERTY(bool, volumeFeedback, false)
+    CONFIG_GLOBAL_PROPERTY(QString, volumeFeedbackSoundFile)
 
 public:
     explicit ServiceConfig(QObject* parent = nullptr)

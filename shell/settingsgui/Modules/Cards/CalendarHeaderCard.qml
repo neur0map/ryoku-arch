@@ -1,4 +1,5 @@
 import QtQuick
+import Ryoku.Config
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
@@ -119,7 +120,7 @@ Rectangle {
     anchors.right: parent.right
     anchors.rightMargin: Style.marginXL
     anchors.verticalCenter: parent.verticalCenter
-    clockStyle: Settings.data.location.analogClockInCalendar ? "analog" : "digital"
+    clockStyle: GlobalConfig.calendar.analogClockInCalendar ? "analog" : "digital"
     progressColor: Color.mOnPrimary
     Layout.alignment: Qt.AlignVCenter
     now: root.now

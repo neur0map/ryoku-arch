@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Ryoku.Config
 import Quickshell
 import Quickshell.Io
 import qs.settingsgui.Commons
@@ -104,7 +105,7 @@ Singleton {
   }
 
   function checkAvailability() {
-    if (!Settings.data.location.showCalendarEvents) {
+    if (!GlobalConfig.calendar.showCalendarEvents) {
       root.available = false;
       return;
     }
