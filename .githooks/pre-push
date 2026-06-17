@@ -9,10 +9,7 @@
 
 set -euo pipefail
 
-remote="$1"
-
 zero='0000000000000000000000000000000000000000'
-repo_root="$(git rev-parse --show-toplevel)"
 push_updates="$(mktemp)"
 trap 'rm -f "$push_updates"' EXIT
 
@@ -54,6 +51,25 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   esac
 done
 
-"$repo_root/bin/ryoku-dev-shellcheck-changed" --push-stdin "$remote" <"$push_updates"
+# 3. ShellCheck shell scripts included in the push (skipped if shellcheck absent).
+if command -v shellcheck >/dev/null 2>&1; then
+	empty_tree=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+	files=()
+	while read -r _ local_sha _ remote_sha; do
+		[[ $local_sha == "$zero" ]] && continue
+		base=$remote_sha
+		[[ $base == "$zero" || -z $base ]] && base=$empty_tree
+		while IFS= read -r f; do
+			[[ -f $f ]] || continue
+			case "$f" in
+				*.sh | *.bash) files+=("$f") ;;
+				*) [[ $(head -n1 "$f") == '#!'*bash* ]] && files+=("$f") ;;
+			esac
+		done < <(git diff --name-only --diff-filter=ACM "$base" "$local_sha")
+	done <"$push_updates"
+	if ((${#files[@]} > 0)); then
+		printf '%s\n' "${files[@]}" | sort -u | xargs -r shellcheck -x || fail "ShellCheck failed on pushed shell files."
+	fi
+fi
 
 exit 0

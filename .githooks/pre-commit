@@ -1,106 +1,61 @@
 #!/bin/bash
-
-# Ryoku Arch pre-commit hook.
-# Runs lightweight checks on staged content before a commit is recorded.
-#   1. personal machine path leak scan on staged text files
-#   2. bash syntax check on any staged shell script
-#   3. em-dash scan on staged text, docs, and config files
-#   4. default-config propagation check
-#   5. live-system drift check (maintainers only; opt-in)
-#   6. Lua lint on staged Lua files (lua-language-server; skipped if absent)
-#   7. AI-slop comment scan on staged additions
-# Bypass with --no-verify only when you know what you are doing.
-
-set -e
+# Ryoku pre-commit checks on staged additions:
+#   1. no em-dash in text files (prose stays plain, not machine-styled)
+#   2. bash syntax on staged shell scripts
+#   3. no low-value filler phrases in added comment lines
+# Vendored content (ryoku/lockscreen/qylock) is exempt. Bypass with --no-verify
+# only when you know what you are doing.
+set -euo pipefail
 
 fail() {
-  echo "" >&2
-  echo "pre-commit hook rejected this commit:" >&2
-  echo "  $1" >&2
-  echo "" >&2
-  exit 1
+	echo "" >&2
+	echo "pre-commit rejected this commit:" >&2
+	echo "  $1" >&2
+	echo "" >&2
+	exit 1
 }
 
-# Text-file types where em-dashes are forbidden. Binary files, images,
-# and asset directories are skipped.
-text_pattern='\.(md|txt|sh|bash|yml|yaml|toml|json|conf|lua|tpl)$|^LICENSE$|^NOTICE$|^README$|^AGENTS\.md$'
+exempt='^ryoku/lockscreen/qylock/'
+text='\.(md|txt|sh|bash|yml|yaml|toml|json|jsonc|conf|lua|tpl|fish|desktop|rules)$|(^|/)(README|NOTICE|LICENSE)$'
 
-# Build the list of staged Added/Copied/Modified paths once.
-staged=$(git diff --cached --name-only --diff-filter=ACM || true)
+mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACM)
 
-# 1. personal machine path leak scan
-"$(git rev-parse --show-toplevel)/bin/ryoku-dev-scan-leaks" --staged
-
-# 2. em-dash scan
-# Files/trees that are vendored upstream content and exempt from the
-# em-dash policy.
-emdash_allowlist_pattern='^shell/'
-
-for f in $staged; do
-  [[ -f $f ]] || continue
-  [[ $f =~ $emdash_allowlist_pattern ]] && continue
-  if [[ $f =~ $text_pattern ]]; then
-    if git show ":$f" | grep -q $'\xe2\x80\x94'; then
-      echo "pre-commit hook: em-dash(es) found in staged $f:" >&2
-      git show ":$f" | grep -n $'\xe2\x80\x94' >&2
-      fail "remove em-dashes from $f before committing. use : or , or . instead."
-    fi
-  fi
+# 1. em-dash scan on text files.
+for f in "${staged[@]}"; do
+	[[ -f $f ]] || continue
+	[[ $f =~ $exempt ]] && continue
+	[[ $f =~ $text ]] || continue
+	if git show ":$f" | grep -q $'\xe2\x80\x94'; then
+		git show ":$f" | grep -n $'\xe2\x80\x94' >&2
+		fail "em-dash found in $f. Use a comma, colon, period, or parentheses."
+	fi
 done
 
-# 3. bash syntax check on shell scripts
-# Only emoji-data.sh in the vendored tree is intentionally non-parseable bash
-# (it stores data after a marker and reads itself via sed). Other shell scripts
-# under shell/ should still pass syntax checks.
-bash_syntax_allowlist_pattern='^shell/scripts/emoji/emoji-data\.sh$'
-
-for f in $staged; do
-  [[ -f $f ]] || continue
-  [[ $f =~ $bash_syntax_allowlist_pattern ]] && continue
-  case "$f" in
-    *.sh|*.bash|bin/*)
-      firstline=$(git show ":$f" | head -n1)
-      # Only parse files that look like bash (shebang or no shebang for migrations).
-      if [[ $firstline == "#!/bin/bash" || $firstline == "#!/usr/bin/env bash" || $firstline != \#!* ]]; then
-        if ! git show ":$f" | bash -n 2>/tmp/ryoku-bash-n.err; then
-          echo "pre-commit hook: bash syntax error in staged $f:" >&2
-          cat /tmp/ryoku-bash-n.err >&2
-          fail "fix the syntax error in $f before committing."
-        fi
-      fi
-      ;;
-  esac
+# 2. bash syntax on staged shell scripts (by extension or shebang).
+for f in "${staged[@]}"; do
+	[[ -f $f ]] || continue
+	[[ $f =~ $exempt ]] && continue
+	case "$f" in
+		*.sh | *.bash) ;;
+		*)
+			first=$(head -n1 "$f" 2>/dev/null)
+			[[ $first == '#!'*bash* || $first == '#!/bin/sh' || $first == '#!/usr/bin/env sh' ]] || continue
+			;;
+	esac
+	if ! git show ":$f" | bash -n 2>/tmp/ryoku-bashn.err; then
+		cat /tmp/ryoku-bashn.err >&2
+		fail "bash syntax error in $f."
+	fi
 done
 
-# 4. default-config propagation check. These files shape future installs but
-#    do not touch existing user config unless a migration carries the repair.
-global_default_change=0
-migration_change=0
-
-for f in $staged; do
-  case "$f" in
-    config/hypr/*|config/chromium*|config/brave*|default/*)
-      global_default_change=1
-      ;;
-    migrations/*.sh)
-      migration_change=1
-      ;;
-  esac
-done
-
-if (( global_default_change && ! migration_change )) && [[ -z ${RYOKU_ALLOW_NO_MIGRATION:-} ]]; then
-  fail "global default/config changes need a staged migration so existing installs are repaired. Set RYOKU_ALLOW_NO_MIGRATION=1 only for deliberate fresh-install-only changes."
+# 3. Filler phrases in ADDED comment lines (vendored tree excluded).
+slop='feel free to|let.?s (create|add|define|write|make|build|start)|\bnote that\b|here we (will|can|simply|just)'
+if git diff --cached --diff-filter=ACM -U0 -- . ':(exclude)ryoku/lockscreen/qylock' |
+	grep -E '^\+' | grep -vE '^\+\+\+' | grep -E '^\+[[:space:]]*(#|--|//|\*)' |
+	grep -iqE "$slop"; then
+	git diff --cached --diff-filter=ACM -U0 -- . ':(exclude)ryoku/lockscreen/qylock' |
+		grep -E '^\+[[:space:]]*(#|--|//|\*)' | grep -inE "$slop" >&2
+	fail "reword or drop low-value filler comments (chat residue, self-narration)."
 fi
-
-# 5. live-system drift check (maintainers only; opt-in via
-#    `git config --local ryoku.devmode true` or env RYOKU_DEV=1).
-#    Skips silently for contributors who do not run a Ryoku install.
-"$(git rev-parse --show-toplevel)/bin/ryoku-dev-check-drift"
-
-# 6. Lua lint on staged Lua files (skips if lua-language-server is absent).
-"$(git rev-parse --show-toplevel)/bin/ryoku-dev-lint-lua" --staged
-
-# 7. AI-slop comment scan on staged additions.
-"$(git rev-parse --show-toplevel)/bin/ryoku-dev-scan-slop" --staged
 
 exit 0

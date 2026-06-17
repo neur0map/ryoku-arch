@@ -28,8 +28,8 @@ fi
 case "$subject" in
   Merge\ *|Revert\ *|fixup!\ *|squash!\ *) ;;
   *)
-    if [[ ! $subject =~ ^\[(global|system|shell|docs|test|tooling|release)\][[:space:]]+ ]]; then
-      fail "commit subject must start with one impact label: [global], [system], [shell], [docs], [test], [tooling], or [release]."
+    if [[ ! $subject =~ ^\[(global|installation|system|ryoku|docs|test|tooling|release)\][[:space:]]+ ]]; then
+      fail "commit subject must start with one impact label: [global], [installation], [system], [ryoku], [docs], [test], [tooling], or [release]."
     fi
     ;;
 esac
