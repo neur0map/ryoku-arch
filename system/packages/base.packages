@@ -33,10 +33,16 @@ wireplumber
 mesa
 vulkan-icd-loader
 
-# Desktop: plain Hyprland + portals
+# Desktop: plain Hyprland, Xwayland, portals, polkit agent, Qt/GTK runtime
 hyprland
+xorg-xwayland
+hyprpolkit-agent
 xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
 xdg-user-dirs
+qt6-wayland
+qt6ct
+adwaita-icon-theme
 
 # Login + lockscreen (SDDM greeter + qylock clockwork)
 sddm

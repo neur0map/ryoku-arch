@@ -26,3 +26,10 @@
   per-vendor, hardware-gated, idempotent install scripts with a `RYOKU_DRYRUN=1`
   print mode. NVIDIA uses the open modules on Turing and newer and the
   proprietary modules otherwise.
+
+### Fixed
+- `drivers/nvidia.sh`: also write the early-KMS modprobe option
+  (`nvidia_drm modeset=1`) and the initramfs `MODULES`, which are mandatory for a
+  working NVIDIA Wayland session. Detection-gated, so they apply whenever an
+  NVIDIA GPU is present, not only on the amd-nvidia profile.
+- `gpu/ryoku-gpu`: let shellcheck follow the sourced detect helper from any cwd.

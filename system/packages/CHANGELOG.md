@@ -8,3 +8,9 @@
   come from `system/hardware/drivers/*.sh`, which the installer runs in the target.
 - `aur.packages`: AUR add-ons (Limine hooks, Bibata cursors, AUR helper).
 - `dev.packages`: optional developer toolchains.
+
+### Fixed
+- `base.packages`: add the desktop session pieces a plain Hyprland needs to render
+  and function: `xorg-xwayland`, `hyprpolkit-agent`, `qt6-wayland`, `qt6ct`,
+  `xdg-desktop-portal-gtk`, and `adwaita-icon-theme`. Without them the installed
+  desktop failed (no Xwayland binary, no polkit agent, unthemed Qt/GTK apps).

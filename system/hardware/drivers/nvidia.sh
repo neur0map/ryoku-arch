@@ -38,6 +38,16 @@ run() {
   "$@"
 }
 
+write_root() {
+  local path=$1
+  if [[ $RYOKU_DRYRUN == 1 ]]; then
+    printf 'DRYRUN: write %s\n' "$path"
+    cat >/dev/null
+    return 0
+  fi
+  if (( EUID == 0 )); then cat >"$path"; else sudo tee "$path" >/dev/null; fi
+}
+
 PM=(pacman)
 (( EUID == 0 )) || PM=(sudo pacman)
 
@@ -86,3 +96,14 @@ else
 fi
 
 install_pkgs "${pkgs[@]}"
+
+# Early KMS: the DRM modeset is mandatory for a working NVIDIA Wayland session, and
+# the modules must load in the initramfs (rebuilt by the bootloader step, which
+# runs after this). Detection-gated, so it applies whenever an NVIDIA GPU is present.
+echo "nvidia.sh: writing modeset + initramfs module config"
+write_root /etc/modprobe.d/nvidia.conf <<'EOF'
+options nvidia_drm modeset=1 fbdev=1
+EOF
+write_root /etc/mkinitcpio.conf.d/nvidia.conf <<'EOF'
+MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
+EOF
