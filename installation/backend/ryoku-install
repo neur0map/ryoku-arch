@@ -97,13 +97,18 @@ main() {
   step bootloader
   ryoku_bootloader
 
+  log "flushing the target to disk"
+  run sync
+  if [[ -z $RYOKU_DRYRUN ]]; then
+    swapoff -a 2>/dev/null || true
+    umount -R /mnt 2>/dev/null || true
+  fi
+
   printf '@@RYOKU_DONE\n'
   log "install complete"
 
   if [[ -n $RYOKU_REBOOT ]]; then
     log "rebooting"
-    run swapoff -a
-    run umount -R /mnt
     run reboot
   fi
 }
