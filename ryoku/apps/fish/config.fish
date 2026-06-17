@@ -12,6 +12,11 @@ if status is-interactive
   set -gx EDITOR nvim
   set -gx VISUAL nvim
 
+  # Make the command-line autosuggestion readable on the dark theme: fish's
+  # default is a near-background gray that vanishes under the wallust palette.
+  # Set unconditionally so it wins over fish's default-theme color application.
+  set -g fish_color_autosuggestion 949699
+
   # Branded system readout when a terminal opens.
   if command -v ryoku-fastfetch >/dev/null 2>&1
     ryoku-fastfetch
