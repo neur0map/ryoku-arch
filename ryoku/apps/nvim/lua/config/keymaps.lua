@@ -1,0 +1,3 @@
+-- Custom keymaps live here. LazyVim loads this file automatically; the leader
+-- keys are set in init.lua before lazy.nvim bootstraps. Add mappings with
+-- `vim.keymap.set` as needed.

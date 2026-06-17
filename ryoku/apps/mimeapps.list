@@ -1,0 +1,20 @@
+[Default Applications]
+text/plain=ryoku-nvim.desktop
+text/markdown=ryoku-nvim.desktop
+application/json=ryoku-nvim.desktop
+text/xml=ryoku-nvim.desktop
+application/xml=ryoku-nvim.desktop
+text/x-shellscript=ryoku-nvim.desktop
+application/x-shellscript=ryoku-nvim.desktop
+text/x-python=ryoku-nvim.desktop
+text/x-lua=ryoku-nvim.desktop
+text/css=ryoku-nvim.desktop
+text/html=ryoku-nvim.desktop
+text/x-csrc=ryoku-nvim.desktop
+text/x-chdr=ryoku-nvim.desktop
+text/x-c++src=ryoku-nvim.desktop
+text/x-go=ryoku-nvim.desktop
+application/toml=ryoku-nvim.desktop
+text/x-toml=ryoku-nvim.desktop
+application/x-yaml=ryoku-nvim.desktop
+text/yaml=ryoku-nvim.desktop

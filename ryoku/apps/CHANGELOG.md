@@ -12,6 +12,11 @@
 - `starship/` prompt (directory, git branch, command duration) on a fixed
   Ryoku palette.
 - `nautilus/` notes on xdg-user-dirs home folders and optional GSettings defaults.
+- `nvim/` LazyVim-based Neovim config with the custom Ryoku startup dashboard
+  logo (snacks.nvim header), tokyonight default, plus `ryoku-nvim.desktop` that
+  registers it for text files.
+- `yazi/` file manager config; its editor opener is Neovim (blocking).
+- `mimeapps.list` makes Neovim the default application for text and code files.
 
 ### Changed
 - `fish/`: put `~/.local/bin` on `PATH` for every shell (not only interactive),
