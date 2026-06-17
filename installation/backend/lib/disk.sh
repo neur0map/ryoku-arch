@@ -28,8 +28,17 @@ ryoku_partition() {
 
   # Let the kernel re-read the new table before we touch the partitions.
   run partprobe "$disk"
+  run_sh 'udevadm settle || true'
 
   ESP_DEV=$(part_dev "$disk" 1)
   ROOT_PART=$(part_dev "$disk" 2)
+
+  # A fresh GPT can lay these partitions over an older layout, so a stale signature
+  # (an old LUKS2 header, a previous btrfs) may still sit at the start of each one.
+  # The whole-disk wipefs above does not reach into partition space, so clear the
+  # new partitions directly. Otherwise blkid reports the old type (e.g. crypto_LUKS)
+  # and the later mount fails with "unknown filesystem type".
+  run wipefs --all "$ESP_DEV"
+  run wipefs --all "$ROOT_PART"
   log "ESP=$ESP_DEV root partition=$ROOT_PART"
 }

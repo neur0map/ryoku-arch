@@ -28,3 +28,11 @@
 - `lib/deploy.sh`: deploy the Hyprland config as `*.lua` (it moved to Lua).
 - `lib/bootloader.sh`: set EFI BootNext to the installed system so the first
   reboot boots it even if the USB installer is still plugged in.
+- `ryoku-install`: sync and unmount the target before printing `@@RYOKU_DONE`, so
+  the bootloader and config writes are flushed to disk. Without this an abrupt
+  power-off after a non-reboot finish could leave a 0-byte `limine.efi` and an
+  unbootable disk.
+- `lib/disk.sh`: settle udev and wipe filesystem signatures on the freshly created
+  partitions, so an old LUKS2 header left at the same offset by a previous install
+  can no longer make the root mount fail with "unknown filesystem type
+  crypto_LUKS".
