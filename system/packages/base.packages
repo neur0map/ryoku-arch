@@ -36,7 +36,7 @@ vulkan-icd-loader
 # Desktop: plain Hyprland, Xwayland, portals, polkit agent, Qt/GTK runtime
 hyprland
 xorg-xwayland
-hyprpolkit-agent
+hyprpolkitagent
 xdg-desktop-portal-hyprland
 xdg-desktop-portal-gtk
 xdg-user-dirs
