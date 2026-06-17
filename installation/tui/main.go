@@ -789,8 +789,10 @@ func (m *model) loadStep() {
 	case kNet:
 		m.netOnline = netOnline()
 		m.netStage, m.input = 0, ""
-		m.pick = newPicker(ssids(), true)
-		m.pick.height = 5
+		if !m.netOnline {
+			m.pick = newPicker(ssids(), true)
+			m.pick.height = 5
+		}
 	default:
 		m.input, m.yes = "", false
 		m.inputErr, m.encStage, m.pass1, m.encErr = "", 0, "", ""

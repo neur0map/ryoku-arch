@@ -34,3 +34,5 @@
 - Force a truecolor TUI and quiet the boot: the session exports
   `COLORTERM=truecolor`, and the kernel cmdline gains `quiet loglevel=3` to hide
   amdgpu link-training console spam before the installer.
+- Add `xorg-xwayland` to the live image so cage can start its Xwayland server
+  (removes the "cannot create xwayland server" error).

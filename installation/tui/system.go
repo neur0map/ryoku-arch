@@ -219,9 +219,11 @@ func sysDiskSize(dev string) int {
 	return int(n / (1024 * 1024 * 1024))
 }
 
-// sysSSIDs scans nearby Wi-Fi networks via nmcli. WIRE target.
+// sysSSIDs lists the cached nearby Wi-Fi networks via nmcli. It uses --rescan no
+// so it never blocks the UI on a scan; NetworkManager refreshes the cache on its
+// own, and the picker's r key relists it. WIRE target.
 func sysSSIDs() []item {
-	out, ok := run("nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY", "dev", "wifi", "list")
+	out, ok := run("nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY", "dev", "wifi", "list", "--rescan", "no")
 	if !ok {
 		return nil
 	}

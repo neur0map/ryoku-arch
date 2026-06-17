@@ -115,6 +115,13 @@ ryoku_boot_install_efi() {
   run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/boot/EFI/BOOT/BOOTX64.EFI
   run arch-chroot /mnt efibootmgr --create --disk "$RYOKU_DISK" --part 1 \
     --label Ryoku --loader '\EFI\limine\limine.efi' --unicode
+  # Boot the installed system on the next reboot even if the USB installer is still
+  # plugged in (firmware often prefers removable media otherwise).
+  if [[ -z "${RYOKU_DRYRUN:-}" ]]; then
+    local num
+    num=$(efibootmgr 2>/dev/null | awk '/[[:space:]]Ryoku$/{n=$1; gsub(/Boot|\*/, "", n); print n; exit}')
+    [[ -n $num ]] && run efibootmgr --bootnext "$num"
+  fi
 }
 
 ryoku_builtin_default_limine() {

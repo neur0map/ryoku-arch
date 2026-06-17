@@ -22,3 +22,7 @@
 - The live ISO now autostarts the installer instead of the stock Arch first-boot
   prompt, pacstrap has working mirrors and a populated keyring, and the boot
   console is quiet. See the `iso/` and `backend/` changelogs for detail.
+- The installed desktop now ships the packages and NVIDIA KMS config it needs to
+  render (Xwayland, the polkit agent, the Qt/GTK runtime), and the first reboot
+  targets the installed disk via EFI BootNext. See `system/` and the iso/backend
+  changelogs.

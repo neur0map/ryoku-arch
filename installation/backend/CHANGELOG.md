@@ -26,3 +26,5 @@
 - `lib/deploy.sh`: own the user home before installing qylock, so its per-user
   files (the lockscreen under `~/.local/share`) are writable.
 - `lib/deploy.sh`: deploy the Hyprland config as `*.lua` (it moved to Lua).
+- `lib/bootloader.sh`: set EFI BootNext to the installed system so the first
+  reboot boots it even if the USB installer is still plugged in.

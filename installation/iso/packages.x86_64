@@ -45,6 +45,7 @@ kbd
 # kernel VT's 16-color ASCII fallback.
 cage
 foot
+xorg-xwayland
 ttf-jetbrains-mono-nerd
 
 # Small CLI tools the TUI and backend shell out to.
