@@ -1,0 +1,20 @@
+font-family = JetBrainsMono Nerd Font
+font-size = 12
+adjust-cell-height = 8%
+
+window-padding-x = 14
+window-padding-y = 12
+window-padding-balance = true
+window-decoration = none
+
+background-opacity = 0.85
+
+cursor-style = block
+cursor-style-blink = false
+mouse-hide-while-typing = true
+
+copy-on-select = clipboard
+keybind = ctrl+v=paste_from_clipboard
+confirm-close-surface = false
+
+config-file = /home/erik/.cache/wallust/ghostty-colors

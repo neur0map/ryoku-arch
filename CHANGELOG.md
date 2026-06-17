@@ -13,6 +13,10 @@ for finer detail.
   and sets up Limine.
 - A plain Hyprland desktop with kitty, fastfetch, fish, and nautilus, an SDDM
   greeter using the qylock clockwork theme, and Limine with Ryoku branding.
+- A `shell/` tree: the full Ryoku shell (a Quickshell bar, panels, launcher, lock,
+  and screenshot tool) driven by one Go IPC daemon, `ryoku-shell`, that supervises
+  the components and handles every shell control command. Imported and de-branded
+  as a base; not yet wired into the installer.
 
 ### Notes
 - The previous Arch tree stays on the `main` branch as reference. The NixOS work

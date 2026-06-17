@@ -1,0 +1,4 @@
+return {
+    active = "{{color4}}",
+    inactive = "{{background}}",
+}

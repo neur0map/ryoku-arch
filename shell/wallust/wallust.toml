@@ -1,0 +1,4 @@
+[templates]
+ghostty = { src = "ghostty-colors.tmpl", dst = "~/.cache/wallust/ghostty-colors" }
+hypr    = { src = "hypr-colors.lua.tmpl", dst = "~/.cache/wallust/hypr-colors.lua" }
+fastfetch = { src = "fastfetch.jsonc.tmpl", dst = "~/.config/fastfetch/config.jsonc" }

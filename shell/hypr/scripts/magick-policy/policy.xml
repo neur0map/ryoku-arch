@@ -1,0 +1,18 @@
+<!--
+  Thumbnail decode cage: clipboard bytes and wallpaper files are untrusted
+  input to ImageMagick. Only plain raster coders may run; delegates, the
+  MVG/MSL/PS/text family and indirect @file reads are the historical RCE
+  vectors and stay off. Activated via MAGICK_CONFIGURE_PATH in
+  cliphist-thumbs.sh and wallpaper-thumbs.sh.
+-->
+<policymap>
+  <policy domain="delegate" rights="none" pattern="*"/>
+  <policy domain="filter" rights="none" pattern="*"/>
+  <policy domain="coder" rights="none" pattern="*"/>
+  <policy domain="coder" rights="read | write" pattern="{PNG,JPEG,JPG,GIF,WEBP,BMP,TIFF}"/>
+  <policy domain="path" rights="none" pattern="@*"/>
+  <policy domain="resource" name="memory" value="256MiB"/>
+  <policy domain="resource" name="map" value="512MiB"/>
+  <policy domain="resource" name="disk" value="1GiB"/>
+  <policy domain="resource" name="time" value="30"/>
+</policymap>

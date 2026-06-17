@@ -1,0 +1,44 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "file",
+    "source": "/home/erik/Ryoku/configs/fastfetch/lantern.txt",
+    "color": {
+      "1": "38;2;224;86;59",
+      "2": "38;2;239;106;79",
+      "3": "38;2;51;55;63",
+      "4": "38;2;63;69;80",
+      "5": "38;2;139;145;156",
+      "6": "38;2;91;102;120",
+      "7": "38;2;196;204;218"
+    },
+    "padding": { "top": 1, "left": 2, "right": 6 }
+  },
+  "display": {
+    "separator": "  ",
+    "color": {
+      "keys": "38;2;{{color3 | red}};{{color3 | green}};{{color3 | blue}}"
+    },
+    "key": { "width": 10 }
+  },
+  "modules": [
+    "break",
+    { "type": "custom", "format": "\u001b[38;2;{{color8 | red}};{{color8 | green}};{{color8 | blue}}m── system ──────────────" },
+    { "type": "os", "key": "  os", "format": "{pretty-name}" },
+    { "type": "kernel", "key": "  kernel", "format": "{release}" },
+    { "type": "uptime", "key": "  up" },
+    { "type": "packages", "key": " 󰏖 pkgs", "format": "{all}" },
+    "break",
+    { "type": "custom", "format": "\u001b[38;2;{{color8 | red}};{{color8 | green}};{{color8 | blue}}m── rice ────────────────" },
+    { "type": "wm", "key": "  wm", "format": "{pretty-name}" },
+    { "type": "shell", "key": "  shell", "format": "{exe-name}" },
+    { "type": "terminal", "key": "  term", "format": "{pretty-name}" },
+    { "type": "custom", "key": " 󰂜 bar", "format": "pill (quickshell)" },
+    { "type": "custom", "key": " 󰄀 shot", "format": "ryoshot" },
+    { "type": "custom", "key": "  font", "format": "JetBrains Mono Nerd" },
+    { "type": "command", "key": " 󰸉 wall", "text": "basename \"$(cat ${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-wallpaper)\"" },
+    "break",
+    { "type": "colors", "symbol": "block", "block": { "width": 3, "range": [2, 7] }, "paddingLeft": 2 },
+    "break"
+  ]
+}
