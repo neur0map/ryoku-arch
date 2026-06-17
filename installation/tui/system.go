@@ -389,6 +389,18 @@ func summarizeGPU(lines []string) string {
 // in that layout. Best effort. WIRE target.
 func applyKeymap(code string) { _ = exec.Command("loadkeys", code).Run() }
 
+// applyExit runs the post-install action chosen on the done screen. reboot and
+// poweroff hand off to systemd; anything else just returns so the live session
+// ends and drops to a shell.
+func applyExit(action string) {
+	switch action {
+	case "reboot":
+		_ = exec.Command("systemctl", "reboot").Run()
+	case "poweroff":
+		_ = exec.Command("systemctl", "poweroff").Run()
+	}
+}
+
 // autoTimezone resolves a time zone from the public IP. WIRE target.
 func autoTimezone() string {
 	if out, ok := run("curl", "-s", "--max-time", "3", "https://ipinfo.io/timezone"); ok {

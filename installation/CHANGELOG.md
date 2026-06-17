@@ -30,3 +30,7 @@
   disk bar, so increasing swap now reduces the usable root instead of leaving the
   total unchanged. Root always takes the rest of the disk (the backend uses 100%),
   so the misleading editable root-size slider and the fake free-space line are gone.
+- TUI done screen: "Reboot now" and "Power off" now actually run `systemctl
+  reboot` / `systemctl poweroff` on Enter; before, every choice just quit the
+  installer and the machine stayed in the live session. "Exit to a shell" still
+  drops to a prompt.

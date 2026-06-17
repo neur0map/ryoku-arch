@@ -684,9 +684,10 @@ type model struct {
 	frame int
 	help  bool
 
-	hwOK     bool // hardware detected & classified
-	hwHybrid bool // hybrid iGPU+dGPU present → ask GPU mode
-	doneSel  int  // reboot / poweroff / shell
+	hwOK       bool   // hardware detected & classified
+	hwHybrid   bool   // hybrid iGPU+dGPU present → ask GPU mode
+	doneSel    int    // reboot / poweroff / shell
+	exitAction string // done screen choice: "reboot" | "poweroff" | "" (exit to shell)
 
 	diskDev                                      string // chosen target disk
 	diskTotal                                    int    // its size in GiB
@@ -930,8 +931,11 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 			m.doneSel = 1
 		case "3":
 			m.doneSel = 2
-		case "enter", "q":
-			return m, tea.Quit // WIRE: doneSel 0=reboot · 1=poweroff · 2=exit to shell
+		case "enter":
+			m.exitAction = []string{"reboot", "poweroff", "shell"}[m.doneSel]
+			return m, tea.Quit
+		case "q":
+			return m, tea.Quit
 		}
 		return m, nil
 	case "failed":
@@ -2276,9 +2280,13 @@ func main() {
 		snapshot()
 		return
 	}
-	if _, err := tea.NewProgram(newModel()).Run(); err != nil {
+	fm, err := tea.NewProgram(newModel()).Run()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
+	}
+	if m, ok := fm.(model); ok {
+		applyExit(m.exitAction)
 	}
 }
 
