@@ -1,0 +1,55 @@
+# Ryoku live ISO package set.
+#
+# These packages make up the LIVE installer environment only. The packages for
+# the target system are installed by the backend with pacstrap from
+# system/packages at install time, so they are deliberately absent here. `go` is
+# also absent: the TUI ships prebuilt (see build.sh), not compiled on the ISO.
+
+# Base system and kernel for the live image.
+base
+linux
+linux-firmware
+mkinitcpio
+mkinitcpio-archiso          # archiso initramfs hooks: locate and mount the squashfs
+amd-ucode                   # early microcode; the archiso initramfs HOOKS load it
+intel-ucode
+
+# Bootloaders baked onto the ISO. systemd-boot (uefi.systemd-boot) ships with the
+# systemd package already in base; syslinux covers BIOS (bios.syslinux).
+syslinux
+
+# Backend install toolchain: partition, encrypt, format, pacstrap, bootloader.
+arch-install-scripts        # pacstrap + genfstab + arch-chroot
+parted
+gptfdisk
+btrfs-progs
+dosfstools
+cryptsetup
+e2fsprogs
+efibootmgr
+limine
+
+# Networking. The TUI scans and joins Wi-Fi with nmcli; NetworkManager drives
+# iwd as its Wi-Fi backend (configured in airootfs).
+networkmanager
+iwd
+wireless-regdb
+
+# Console keymaps for the keyboard step (localectl list-keymaps + loadkeys).
+kbd
+
+# Installer session: a minimal Wayland kiosk (cage) running a truecolor terminal
+# (foot) so the TUI renders with full color and Nerd Font glyphs instead of the
+# kernel VT's 16-color ASCII fallback.
+cage
+foot
+ttf-jetbrains-mono-nerd
+
+# Small CLI tools the TUI and backend shell out to.
+git
+curl
+jq
+openssl
+sudo
+less
+vim

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# PATH wrapper for the install backend.
+#
+# The real script and its lib/ live under /usr/local/lib/ryoku/backend so the
+# backend can find its lib (it resolves it via `realpath` of its own path, so the
+# lib must sit next to the real script, not next to this wrapper). exec keeps the
+# argument list and exit status intact.
+exec /usr/local/lib/ryoku/backend/ryoku-install "$@"

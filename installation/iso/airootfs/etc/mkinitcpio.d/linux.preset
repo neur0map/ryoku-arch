@@ -1,0 +1,8 @@
+# mkinitcpio preset for the 'linux' package on the Ryoku live ISO.
+
+PRESETS=('archiso')
+
+ALL_kver='/boot/vmlinuz-linux'
+archiso_config='/etc/mkinitcpio.conf.d/archiso.conf'
+
+archiso_image="/boot/initramfs-linux.img"

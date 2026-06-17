@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Ryoku live installer session.
+#
+# Started by /root/.zlogin on tty1 only. Runs the installer TUI inside cage (a
+# minimal Wayland kiosk compositor) and foot (a truecolor terminal). The kernel
+# VT only has 16 colors and no Nerd Font glyphs, so the TUI would drop to its
+# ASCII fallback there; cage + foot give it the terminal it expects.
+
+# Where the backend reads the baked repo payload, and which backend the TUI runs.
+export RYOKU_REPO=/usr/share/ryoku
+export RYOKU_BACKEND=ryoku-install
+
+# Software (pixman) rendering. The session only ever draws text, and many VMs and
+# headless GPUs have no working GL, where a GPU compositor would refuse to start.
+export WLR_RENDERER=pixman
+
+# Always present the graphical TUI; relaunch it if it crashes so the console never
+# drops to a bare prompt mid-install. A clean quit ends the loop and returns to
+# the login shell.
+while ! cage -- foot -o term=xterm-256color -f 'JetBrainsMono Nerd Font:size=14' -e ryoku-tui; do
+  sleep 1
+done

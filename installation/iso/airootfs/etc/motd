@@ -1,0 +1,7 @@
+
+Ryoku Linux installer (live)
+
+The graphical installer starts automatically on the first console. This serial
+or secondary console is a plain root shell. To run the installer here, set the
+RYOKU_* answers and run `ryoku-install` (see /usr/share/ryoku for the payload).
+

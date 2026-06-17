@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
+#
+# ryoku-install: the Ryoku Arch install backend.
+#
+# Reads its answers from RYOKU_* environment variables (set by the installer TUI,
+# documented in installation/backend/README.md) and performs a direct Arch
+# install: partition, optional LUKS, format, mount, pacstrap, configure, Limine.
+#
+# Progress is reported to the TUI with sentinel lines:
+#   @@RYOKU_STEP <id>   printed when a stage begins
+#   @@RYOKU_DONE        printed once after the last stage succeeds
+# Any failure exits non-zero (set -e) without printing @@RYOKU_DONE.
+#
+# Set RYOKU_DRYRUN=1 to print every destructive command (prefixed "DRYRUN: ")
+# instead of running it, so the whole flow can be exercised without a disk.
+
+set -euo pipefail
+
+SELF=$(realpath "${BASH_SOURCE[0]}")
+BACKEND_DIR=$(dirname "$SELF")
+LIB_DIR="$BACKEND_DIR/lib"
+
+# shellcheck source=lib/common.sh
+source "$LIB_DIR/common.sh"
+# shellcheck source=lib/preflight.sh
+source "$LIB_DIR/preflight.sh"
+# shellcheck source=lib/disk.sh
+source "$LIB_DIR/disk.sh"
+# shellcheck source=lib/luks.sh
+source "$LIB_DIR/luks.sh"
+# shellcheck source=lib/filesystem.sh
+source "$LIB_DIR/filesystem.sh"
+# shellcheck source=lib/pacstrap.sh
+source "$LIB_DIR/pacstrap.sh"
+# shellcheck source=lib/chroot.sh
+source "$LIB_DIR/chroot.sh"
+# shellcheck source=lib/deploy.sh
+source "$LIB_DIR/deploy.sh"
+# shellcheck source=lib/bootloader.sh
+source "$LIB_DIR/bootloader.sh"
+
+# Defaults for the optional parts of the contract.
+: "${RYOKU_HOSTNAME:=ryoku}"
+: "${RYOKU_USERNAME:=ryoku}"
+: "${RYOKU_KEYMAP:=us}"
+: "${RYOKU_LOCALE:=en_US.UTF-8}"
+: "${RYOKU_TIMEZONE:=UTC}"
+: "${RYOKU_PROFILE:=vm}"
+: "${RYOKU_DISK_STRATEGY:=whole}"
+: "${RYOKU_ESP_GIB:=1}"
+: "${RYOKU_SWAP_GIB:=0}"
+: "${RYOKU_SUBVOL_SNAPSHOTS:=1}"
+: "${RYOKU_SUBVOL_HOME:=1}"
+: "${RYOKU_SUBVOL_BACKUPS:=0}"
+: "${RYOKU_REPO:=/run/ryoku}"
+: "${RYOKU_ONLINE:=1}"
+# Normalize the env-only switches so set -u and shellcheck stay happy.
+: "${RYOKU_DISK:=}"
+: "${RYOKU_PASSWORD_HASH:=}"
+: "${RYOKU_ENCRYPT:=}"
+: "${RYOKU_LUKS_PASSPHRASE:=}"
+: "${RYOKU_GPU_MODE:=}"
+: "${RYOKU_REBOOT:=}"
+: "${RYOKU_DRYRUN:=}"
+
+# Required answers.
+[[ -n $RYOKU_DISK ]] || die "RYOKU_DISK is required"
+[[ -n $RYOKU_PASSWORD_HASH ]] || die "RYOKU_PASSWORD_HASH is required"
+
+main() {
+  [[ -n $RYOKU_DRYRUN ]] && log "DRY RUN: no disk is touched; commands are printed only"
+  log "Ryoku install: disk=$RYOKU_DISK host=$RYOKU_HOSTNAME user=$RYOKU_USERNAME profile=$RYOKU_PROFILE"
+
+  ryoku_preflight
+
+  step partition
+  ryoku_partition
+  ryoku_luks
+
+  step filesystems
+  ryoku_filesystems
+
+  step mount
+  ryoku_mount
+
+  step pacstrap
+  ryoku_pacstrap
+
+  step configure
+  ryoku_configure
+  ryoku_deploy
+
+  step bootloader
+  ryoku_bootloader
+
+  printf '@@RYOKU_DONE\n'
+  log "install complete"
+
+  if [[ -n $RYOKU_REBOOT ]]; then
+    log "rebooting"
+    run swapoff -a
+    run umount -R /mnt
+    run reboot
+  fi
+}
+
+main "$@"

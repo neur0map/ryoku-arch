@@ -1,0 +1,4 @@
+# archiso build artifacts and the build.sh staging tree.
+/work/
+/out/
+/staging/

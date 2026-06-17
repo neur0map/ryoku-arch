@@ -1,0 +1,2350 @@
+// ryoku-tui is the Ryoku installer: a full-screen Bubble Tea v2 TUI that collects
+// the install choices and hands them to the ryoku-install backend. The partition
+// step is a guided layout: it creates the ESP and a btrfs root, and lets you set
+// the ESP and swap sizes and toggle optional subvolumes (snapshots, /home,
+// backups). Snapshots and backups are btrfs subvolumes, not partitions. The live
+// system glue (data lists, hardware detection, the backend handoff) lives in
+// system.go.
+package main
+
+import (
+	"fmt"
+	"image/color"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/harmonica"
+	"github.com/mdp/qrterminal/v3"
+	"github.com/sahilm/fuzzy"
+)
+
+// WIRE: point this at the real Ryoku install-help / support URL (Omarchy uses a
+// Discord invite). The failure screen renders it as a scannable QR code.
+const ryokuSupportURL = "https://ryoku.sh/install-help"
+
+// Ryoku community links shown on the welcome screen (logos, press 's' for QR).
+const (
+	discordURL  = "https://discord.gg/8KjBmUEyKA"
+	redditURL   = "https://www.reddit.com/r/RyokuArch"
+	xURL        = "https://x.com/neur0map"
+	iconDiscord = "" // nf-fa-discord
+	iconReddit  = "" // nf-fa-reddit
+	iconX       = "𝕏"
+)
+
+// ───────────────────────── palette ─────────────────────────
+var (
+	cBg    = lipgloss.Color("#16161e")
+	cText  = lipgloss.Color("#c0caf5")
+	cSub   = lipgloss.Color("#7079b3")
+	cDim   = lipgloss.Color("#3b4261")
+	cBrand = lipgloss.Color("#F25623")
+	cBlue  = lipgloss.Color("#7aa2f7")
+	cGreen = lipgloss.Color("#9ece6a")
+	cYell  = lipgloss.Color("#e0af68")
+	cMauve = lipgloss.Color("#bb9af7")
+	cRed   = lipgloss.Color("#f7768e")
+)
+
+func sty() lipgloss.Style                 { return lipgloss.NewStyle() }
+func fg(c color.Color, s string) string   { return sty().Foreground(c).Render(s) }
+func bold(c color.Color, s string) string { return sty().Foreground(c).Bold(true).Render(s) }
+func dw(s string) int                     { return lipgloss.Width(s) }
+
+func truncW(s string, w int) string {
+	if w <= 0 {
+		return ""
+	}
+	if dw(s) <= w {
+		return s
+	}
+	r := []rune(s)
+	for len(r) > 0 && dw(string(r))+1 > w {
+		r = r[:len(r)-1]
+	}
+	return string(r) + "…"
+}
+func padTo(s string, w int) string {
+	if d := dw(s); d < w {
+		return s + strings.Repeat(" ", w-d)
+	}
+	return s
+}
+func padLines(s string, w int) string {
+	ls := strings.Split(s, "\n")
+	for i := range ls {
+		ls[i] = padTo(ls[i], w)
+	}
+	return strings.Join(ls, "\n")
+}
+func clamp(v, lo, hi int) int {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}
+
+// ───────────────────────── glyphs / fallback ─────────────────────────
+// lipgloss v2 (colorprofile) auto-downsamples truecolor → 256/16/none, so colors
+// need no manual fallback. Glyphs do: `ascii` swaps box-drawing/blocks/markers to
+// plain ASCII for dumb/no-UTF8 consoles; `nerd` gates Private-Use icons.
+var ascii bool
+var nerd = true
+var (
+	gCheck   = "✓"
+	gPend    = "·"
+	gCurStep = "▸ "
+	gSelCur  = "▌ "
+	gPrompt  = "❯ "
+	gCaret   = "▏"
+	gMark    = "▲"
+	gOn      = "● on "
+	gOff     = "○ off"
+	gFull    = "█"
+	gEmpty   = "░"
+	gOKtxt   = "✓"
+	gBad     = "✗"
+)
+var asciiBorder = lipgloss.Border{Top: "-", Bottom: "-", Left: "|", Right: "|", TopLeft: "+", TopRight: "+", BottomLeft: "+", BottomRight: "+"}
+
+func ruleCh() string {
+	if ascii {
+		return "-"
+	}
+	return "─"
+}
+func border() lipgloss.Border {
+	if ascii {
+		return asciiBorder
+	}
+	return lipgloss.RoundedBorder()
+}
+func borderDouble() lipgloss.Border {
+	if ascii {
+		return asciiBorder
+	}
+	return lipgloss.DoubleBorder()
+}
+func initGlyphs() {
+	t := os.Getenv("TERM")
+	ascii = os.Getenv("RYOKU_ASCII") != "" || t == "dumb" || t == "vt100" || t == ""
+	nerd = !ascii && t != "linux" // Linux fb console renders boxes/blocks but not PUA icons
+	if !ascii {
+		return
+	}
+	gCheck, gPend, gCurStep = "+", ".", "> "
+	gSelCur, gPrompt, gCaret = "> ", "> ", "_"
+	gMark, gOn, gOff = "^", "[x]on ", "[ ]off"
+	gFull, gEmpty = "#", "-"
+	gOKtxt, gBad = "OK", "x"
+	spinFrames = []string{"|", "/", "-", "\\"}
+}
+
+var gradA = [3]int{0xF2, 0x56, 0x23}
+var gradB = [3]int{0xFF, 0xD2, 0x4A}
+
+func gradColor(t float64) color.Color {
+	if t < 0 {
+		t = 0
+	}
+	if t > 1 {
+		t = 1
+	}
+	r := int(float64(gradA[0]) + float64(gradB[0]-gradA[0])*t)
+	g := int(float64(gradA[1]) + float64(gradB[1]-gradA[1])*t)
+	b := int(float64(gradA[2]) + float64(gradB[2]-gradA[2])*t)
+	return lipgloss.Color(fmt.Sprintf("#%02x%02x%02x", r, g, b))
+}
+
+// ───────────────────────── banners ─────────────────────────
+var smallRows = []string{
+	"█▀▄ █ █ █▀█ █▄▀ █ █",
+	"█▀▄ ▀█▀ █ █ █▀▄ █ █",
+	"▀ ▀ ░█░ ▀▀▀ ▀ ▀ ▀▀▀",
+}
+
+const smallW = 19
+
+func wordmark(dim bool) string { // ASCII-fallback wordmark
+	w := []rune("R Y O K U")
+	var b strings.Builder
+	for i, ch := range w {
+		if dim {
+			b.WriteString(fg(cDim, string(ch)))
+		} else {
+			b.WriteString(fg(gradColor(float64(i)/float64(len(w)-1)), string(ch)))
+		}
+	}
+	return b.String()
+}
+
+func smallBanner(phase int) []string {
+	if ascii {
+		return []string{wordmark(false)}
+	}
+	out := make([]string, 0, 3)
+	for _, row := range smallRows {
+		var b strings.Builder
+		for i, ch := range []rune(row) {
+			idx := (i + phase) % smallW
+			b.WriteString(fg(gradColor(float64(idx)/float64(smallW-1)), string(ch)))
+		}
+		out = append(out, b.String())
+	}
+	return out
+}
+
+var bigLetters = [][]string{
+	{"████ ", "█  █ ", "████ ", "█ █  ", "█  █ "},
+	{"█   █", " █ █ ", "  █  ", "  █  ", "  █  "},
+	{"█████", "█   █", "█   █", "█   █", "█████"},
+	{"█  █ ", "█ █  ", "██   ", "█ █  ", "█  █ "},
+	{"█   █", "█   █", "█   █", "█   █", "█████"},
+}
+
+func bigRows() []string {
+	rows := make([]string, 5)
+	for r := 0; r < 5; r++ {
+		parts := make([]string, len(bigLetters))
+		for i := range bigLetters {
+			parts[i] = bigLetters[i][r]
+		}
+		rows[r] = strings.Join(parts, " ")
+	}
+	return rows
+}
+
+func bigBanner(reveal float64, phase int) []string {
+	if ascii {
+		w := []rune("R Y O K U")
+		cut := int(reveal * float64(len(w)+1))
+		var b strings.Builder
+		for i, ch := range w {
+			if i <= cut {
+				b.WriteString(fg(gradColor(float64(i)/float64(len(w)-1)), string(ch)))
+			} else {
+				b.WriteString(fg(cDim, string(ch)))
+			}
+		}
+		return []string{"", b.String(), ""}
+	}
+	rows := bigRows()
+	total := dw(rows[0])
+	cut := int(reveal * float64(total+3))
+	out := make([]string, 0, len(rows))
+	for _, row := range rows {
+		var b strings.Builder
+		for i, ch := range []rune(row) {
+			if ch == ' ' {
+				b.WriteString(" ")
+				continue
+			}
+			if i <= cut {
+				idx := (i + phase) % total
+				b.WriteString(fg(gradColor(float64(idx)/float64(total-1)), string(ch)))
+			} else {
+				b.WriteString(fg(cDim, string(ch)))
+			}
+		}
+		out = append(out, b.String())
+	}
+	return out
+}
+
+// faintBig renders the wordmark as a dim, slowly-shimmering watermark for the
+// welcome screen backdrop (the bright text sits in front of it).
+func faintBig(phase int) []string {
+	if ascii {
+		return []string{"", wordmark(true), ""}
+	}
+	rows := bigRows()
+	total := dw(rows[0])
+	out := make([]string, 0, len(rows))
+	for _, row := range rows {
+		var b strings.Builder
+		for i, ch := range []rune(row) {
+			if ch == ' ' {
+				b.WriteString(" ")
+				continue
+			}
+			t := float64((i+phase)%total) / float64(total-1)
+			r := int(0x39 + (0x52-0x39)*t)
+			g := int(0x2c + (0x3e-0x2c)*t)
+			bl := int(0x24 + (0x2a-0x24)*t)
+			b.WriteString(fg(lipgloss.Color(fmt.Sprintf("#%02x%02x%02x", r, g, bl)), string(ch)))
+		}
+		out = append(out, b.String())
+	}
+	return out
+}
+
+// ───────────────────────── picker ─────────────────────────
+type item struct{ key, label, hint string }
+type itemSource []item
+
+func (s itemSource) String(i int) string { return s[i].label }
+func (s itemSource) Len() int            { return len(s) }
+
+type picker struct {
+	items     []item
+	matches   []int
+	cursor    int
+	offset    int
+	height    int
+	query     string
+	searching bool
+	numbered  bool
+}
+
+func newPicker(items []item, numbered bool) picker {
+	p := picker{items: items, numbered: numbered, height: 8}
+	p.refilter()
+	return p
+}
+func (p *picker) refilter() {
+	p.matches = p.matches[:0]
+	if p.query == "" {
+		for i := range p.items {
+			p.matches = append(p.matches, i)
+		}
+	} else {
+		for _, r := range fuzzy.FindFrom(p.query, itemSource(p.items)) {
+			p.matches = append(p.matches, r.Index)
+		}
+	}
+	if p.cursor >= len(p.matches) {
+		p.cursor = max(0, len(p.matches)-1)
+	}
+	p.fixScroll()
+}
+func (p *picker) move(d int) {
+	if len(p.matches) == 0 {
+		return
+	}
+	p.cursor = clamp(p.cursor+d, 0, len(p.matches)-1)
+	p.fixScroll()
+}
+func (p *picker) fixScroll() {
+	if p.cursor < p.offset {
+		p.offset = p.cursor
+	}
+	if p.cursor >= p.offset+p.height {
+		p.offset = p.cursor - p.height + 1
+	}
+	if p.offset < 0 {
+		p.offset = 0
+	}
+}
+func (p *picker) update(key string) (bool, int) {
+	if p.searching {
+		switch key {
+		case "esc":
+			p.searching, p.query = false, ""
+			p.refilter()
+		case "enter":
+			if len(p.matches) > 0 {
+				return true, p.matches[p.cursor]
+			}
+		case "backspace":
+			if len(p.query) > 0 {
+				p.query = p.query[:len(p.query)-1]
+				p.refilter()
+			}
+		case "up", "ctrl+p":
+			p.move(-1)
+		case "down", "ctrl+n":
+			p.move(1)
+		case "space":
+			p.query += " "
+			p.refilter()
+		default:
+			if r := []rune(key); len(r) == 1 && r[0] >= 0x20 {
+				p.query += key
+				p.refilter()
+			}
+		}
+		return false, -1
+	}
+	switch key {
+	case "up", "k":
+		p.move(-1)
+	case "down", "j":
+		p.move(1)
+	case "pgup", "ctrl+u":
+		p.move(-p.height)
+	case "pgdown", "ctrl+d":
+		p.move(p.height)
+	case "home", "g":
+		p.cursor = 0
+		p.fixScroll()
+	case "end", "G":
+		p.cursor = max(0, len(p.matches)-1)
+		p.fixScroll()
+	case "/":
+		p.searching = true
+	case "enter":
+		if len(p.matches) > 0 {
+			return true, p.matches[p.cursor]
+		}
+	default:
+		if p.numbered && len(key) == 1 && key[0] >= '1' && key[0] <= '9' {
+			if n := int(key[0] - '1'); n < len(p.matches) {
+				return true, p.matches[n]
+			}
+		}
+	}
+	return false, -1
+}
+
+func (p picker) view(w, phase int) string {
+	var b strings.Builder
+	end := min(len(p.matches), p.offset+p.height)
+	if len(p.matches) == 0 {
+		b.WriteString(fg(cSub, "no matches"))
+	}
+	for vi := p.offset; vi < end; vi++ {
+		it := p.items[p.matches[vi]]
+		sel := vi == p.cursor
+		num := ""
+		if p.numbered {
+			if vi < 9 {
+				num = fmt.Sprintf("%d ", vi+1)
+			} else {
+				num = "  "
+			}
+		}
+		var left string
+		if sel {
+			left = bold(gradColor(float64(phase)/float64(smallW-1)), gSelCur) + fg(cDim, num) + bold(cText, it.label)
+		} else {
+			left = "  " + fg(cDim, num) + fg(cSub, it.label)
+		}
+		gut := 2 + dw(num)
+		line := left
+		if it.hint != "" {
+			if avail := w - gut - dw(it.label) - 1; avail >= 6 {
+				h := truncW(it.hint, avail)
+				pad := w - gut - dw(it.label) - dw(h)
+				if pad < 1 {
+					pad = 1
+				}
+				hc := cDim
+				if sel {
+					hc = cSub
+				}
+				line = left + strings.Repeat(" ", pad) + fg(hc, h)
+			}
+		}
+		b.WriteString(line + "\n")
+	}
+	for i := end - p.offset; i < p.height; i++ {
+		b.WriteString("\n")
+	}
+	if p.searching || p.query != "" {
+		b.WriteString("\n" + fg(cBrand, "/"+p.query+"▏") + "  " + fg(cDim, fmt.Sprintf("%d/%d", p.cursor+1, len(p.matches))))
+	} else {
+		b.WriteString("\n" + fg(cDim, fmt.Sprintf("%d/%d   · / filter", p.cursor+1, len(p.matches))))
+	}
+	return b.String()
+}
+
+// ───────────────────────── steps ─────────────────────────
+type kind int
+
+const (
+	kSelect kind = iota
+	kInput
+	kConfirm
+	kPartition
+	kInfo
+	kPass // password + confirm
+	kNet  // connectivity / Wi-Fi
+)
+
+const minDiskGiB = 32 // installer floor: 16G swap + 1G ESP + system closure
+const minTermW = 80   // below this the layout can't lay out cleanly
+const minTermH = 20
+
+type step struct {
+	key, title  string
+	desc        []string
+	kind        kind
+	items       []item
+	numbered    bool
+	password    bool
+	placeholder string
+	deflt       string
+}
+
+func steps() []step {
+	return []step{
+		{key: "keyboard", title: "Keyboard layout", kind: kSelect, items: keymaps(),
+			desc: []string{"Type to filter · j/k or ↑↓ to move.", "Sets console.keyMap + xkb.layout."}},
+		{key: "locale", title: "System locale", kind: kSelect, items: locales(),
+			desc: []string{"Language & formats. Sets i18n.defaultLocale."}},
+		{key: "timezone", title: "Time zone", kind: kSelect, items: timezones(),
+			desc: []string{"Used for the clock & logs. Sets time.timeZone."}},
+		{key: "network", title: "Network", kind: kNet, desc: []string{}},
+		{key: "hardware", title: "Hardware", kind: kInfo, desc: []string{}},
+		{key: "profile", title: "Hardware profile", kind: kSelect, items: profiles(), numbered: true,
+			desc: []string{"Confirm or change the suggested profile.", "Press 1-4 or pick below."}},
+		{key: "gpu", title: "Graphics mode", kind: kSelect, items: gpuModes(), numbered: true,
+			desc: []string{"Hybrid GPU (iGPU + NVIDIA) detected.", "How should displays & apps use them?"}},
+		{key: "diskpick", title: "Target disk", kind: kSelect, items: disks(), numbered: true,
+			desc: []string{"Pick the disk to install onto.", "Everything after this applies to it."}},
+		{key: "disk", title: "Disk strategy", kind: kSelect, items: diskStrategies(), numbered: true,
+			desc: []string{"Nothing is erased until you confirm."}},
+		{key: "partitions", title: "Disk layout", kind: kPartition, desc: []string{}},
+		{key: "hostname", title: "Hostname", kind: kInput, placeholder: "ryoku", deflt: "ryoku",
+			desc: []string{"Letters, digits and dashes."}},
+		{key: "username", title: "Primary user", kind: kInput, placeholder: "you", deflt: "you",
+			desc: []string{"Your login account name. Lowercase."}},
+		{key: "password", title: "User password", kind: kPass,
+			desc: []string{"Set a password for your account."}},
+		{key: "encryption", title: "Disk encryption", kind: kConfirm,
+			desc: []string{"Encrypt the root with LUKS?", "Installs the -luks host variant."}},
+		{key: "review", title: "Review", kind: kConfirm,
+			desc: []string{"Last safe point, nothing written yet."}},
+	}
+}
+
+func keymaps() []item {
+	if r := sysKeymaps(); len(r) > 0 {
+		return r
+	}
+	return []item{
+		{"us", "US (QWERTY)", ""}, {"uk", "United Kingdom", ""}, {"de", "German", ""},
+		{"fr", "French (AZERTY)", ""}, {"es", "Spanish", ""}, {"it", "Italian", ""},
+		{"dvorak", "Dvorak", ""}, {"colemak", "Colemak", ""},
+	}
+}
+func locales() []item {
+	if r := sysLocales(); len(r) > 0 {
+		return r
+	}
+	return []item{
+		{"en_US.UTF-8", "English (US)", ""}, {"en_GB.UTF-8", "English (UK)", ""},
+		{"de_DE.UTF-8", "German", ""}, {"fr_FR.UTF-8", "French", ""}, {"es_ES.UTF-8", "Spanish", ""},
+	}
+}
+func timezones() []item {
+	if r := sysTimezones(); len(r) > 0 {
+		return r
+	}
+	return []item{
+		{"auto", "Detect automatically", "via IP, also sets the clock"},
+		{"America/New_York", "US Eastern", ""}, {"America/Los_Angeles", "US Pacific", ""},
+		{"Europe/London", "UK / Ireland", ""}, {"Europe/Berlin", "Germany", ""},
+		{"Europe/Madrid", "Spain", ""}, {"Asia/Tokyo", "Japan", ""}, {"UTC", "UTC", ""},
+	}
+}
+func profiles() []item {
+	all := []item{
+		{"amd-nvidia", "amd-nvidia", "AMD or Intel CPU with an NVIDIA GPU"},
+		{"amd", "amd", "AMD CPU and GPU"},
+		{"intel", "intel", "Intel CPU and GPU"},
+		{"vm", "vm", "virtual machine"},
+	}
+	return promote(all, []string{ensureHW().profile})
+}
+func diskStrategies() []item {
+	return []item{
+		{"whole", "Erase whole disk", "wipe & auto-layout"},
+		{"existing", "Keep / edit existing", "reclaim · resize · or wipe"},
+	}
+}
+
+// WIRE: real list from `lsblk -dpno NAME,SIZE,MODEL,TRAN,ROTA`; size via blockdev.
+func disks() []item {
+	if r := sysDisks(); len(r) > 0 {
+		return r
+	}
+	return []item{{"/dev/vda", "/dev/vda", "virtual disk"}}
+}
+func diskSizeOf(dev string) int {
+	if g := sysDiskSize(dev); g > 0 {
+		return g
+	}
+	return 0
+}
+
+// WIRE: real scan via `nmcli dev wifi list` / iwctl.
+func ssids() []item {
+	if r := sysSSIDs(); len(r) > 0 {
+		return r
+	}
+	return []item{{"", "No networks found", "move closer or use ethernet"}}
+}
+
+func gpuModes() []item {
+	return []item{
+		{"offload", "Hybrid (recommended)", "iGPU display · dGPU on-demand"},
+		{"sync", "dGPU performance", "NVIDIA drives everything"},
+		{"vfio", "iGPU + dGPU for VM", "reserve dGPU for passthrough"},
+	}
+}
+
+// gpuDetails returns the pros and cons shown for the highlighted graphics mode.
+// offload uses the iGPU for display and the dGPU on demand, sync drives everything
+// from the dGPU, and vfio reserves the dGPU for a virtual machine.
+func gpuDetails(key string) []string {
+	switch key {
+	case "offload":
+		return []string{
+			fg(cGreen, "+ ") + fg(cText, "best battery, the dGPU sleeps until an app needs it"),
+			fg(cGreen, "+ ") + fg(cText, "dGPU still available for games and VMs"),
+			fg(cRed, "- ") + fg(cSub, "launch heavy apps with the prime-run wrapper"),
+		}
+	case "sync":
+		return []string{
+			fg(cGreen, "+ ") + fg(cText, "maximum performance, simplest for gaming"),
+			fg(cGreen, "+ ") + fg(cText, "best for external displays driven by the dGPU"),
+			fg(cRed, "- ") + fg(cSub, "dGPU always on, more heat and battery drain"),
+		}
+	case "vfio":
+		return []string{
+			fg(cGreen, "+ ") + fg(cText, "best battery, full dGPU inside a VM (passthrough)"),
+			fg(cRed, "- ") + fg(cSub, "no dGPU acceleration on the host desktop"),
+			fg(cRed, "- ") + fg(cSub, "advanced, needs vfio binding and Looking Glass"),
+		}
+	}
+	return nil
+}
+
+// ───────────────────────── partition (guided NixOS layout) ─────────────────────────
+// A bar segment (for the disk graph) reuses this; the editor itself is a small set
+// of adjustable rows, not raw partitions.
+type part struct {
+	dev    string
+	size   int
+	fs     string
+	mount  string
+	flags  string
+	status string // keep | new | free
+}
+
+func partColor(p part) color.Color {
+	switch {
+	case p.status == "free":
+		return cDim
+	case strings.Contains(p.flags, "esp"):
+		return cBlue
+	case p.mount == "/":
+		return cGreen
+	case p.fs == "swap":
+		return cMauve
+	case p.status == "new":
+		return cGreen
+	case p.status == "keep":
+		return cYell
+	}
+	return cText
+}
+
+type lrow struct{ kind, key, label, sub, tag string } // kind: size|toggle|keep ; tag: required|recommended|optional|keep
+
+func tagStyle(t string) string {
+	switch t {
+	case "required":
+		return fg(cGreen, "required")
+	case "recommended":
+		return fg(cBlue, "recommended")
+	case "optional":
+		return fg(cDim, "optional")
+	}
+	return ""
+}
+
+// ───────────────────────── model ─────────────────────────
+type frameMsg time.Time
+
+type model struct {
+	w, h     int
+	flow     []step
+	idx      int
+	pick     picker
+	input    string
+	yes      bool
+	inputErr string
+	encStage int    // 0 ask · 1 passphrase · 2 confirm
+	pass1    string // first passphrase entry (mock; never persisted)
+	encErr   string
+	picks    map[string]string
+
+	state string // intro|transition|wizard|install|done|failed
+	phase int
+	frame int
+	help  bool
+
+	hwOK     bool // hardware detected & classified
+	hwHybrid bool // hybrid iGPU+dGPU present → ask GPU mode
+	doneSel  int  // reboot / poweroff / shell
+
+	diskDev                                      string // chosen target disk
+	diskTotal                                    int    // its size in GiB
+	netOnline                                    bool
+	netStage                                     int    // 0 pick SSID · 1 Wi-Fi password (offline only)
+	pwStage                                      int    // 0 enter · 1 confirm
+	pw1                                          string // first password entry (mock; never persisted)
+	pwErr                                        string
+	failStep                                     string
+	logPath                                      string
+	qrStr                                        string
+	pwHash                                       string
+	luksPass                                     string
+	netSSID                                      string
+	istream                                      *installStream
+	hwCPU, hwGPU, hwMem, hwFW, hwDisk, hwProfile string
+
+	showSocialQR             bool
+	qrDiscord, qrReddit, qrX string
+
+	introSpr           harmonica.Spring
+	introPos, introVel float64
+	introHold          int
+	transSpr           harmonica.Spring
+	transPos, transVel float64
+	enterSpr           harmonica.Spring
+	enterPos, enterVel float64
+	progSpr            harmonica.Spring
+	progress, progVel  float64
+	installAt          int
+	installLog         []string // granular, scrolling command output
+
+	// guided partition layout
+	diskG                       int
+	kept                        []part // existing partitions (reclaimable)
+	wipeConfirm                 bool
+	espG, swapG, rootG          int
+	snapshots, sepHome, backups bool
+	lsel                        int
+	sAnim, sVel                 float64
+	sSpr                        harmonica.Spring
+}
+
+var spinFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+var installSteps = []string{
+	"Partitioning the disk", "Creating filesystems and btrfs subvolumes",
+	"Mounting the target", "Installing the base system",
+	"Configuring the system", "Installing the Limine bootloader",
+}
+
+func newModel() model {
+	m := model{
+		flow:     steps(),
+		picks:    map[string]string{},
+		state:    "intro",
+		introSpr: harmonica.NewSpring(harmonica.FPS(30), 3.4, 1.0),
+		transSpr: harmonica.NewSpring(harmonica.FPS(30), 5.5, 0.85),
+		enterSpr: harmonica.NewSpring(harmonica.FPS(30), 7.0, 0.9),
+		progSpr:  harmonica.NewSpring(harmonica.FPS(30), 6.0, 0.7),
+		sSpr:     harmonica.NewSpring(harmonica.FPS(30), 9.0, 0.8),
+		enterPos: 1,
+	}
+	hw := ensureHW()
+	m.hwOK, m.hwHybrid = hw.ok, hw.hybrid
+	m.hwCPU, m.hwGPU, m.hwMem = hw.cpu, hw.gpu, hw.mem
+	m.hwFW, m.hwDisk, m.hwProfile = hw.fw, hw.disk, hw.profile
+	if d := sysDisks(); len(d) > 0 {
+		m.diskDev, m.diskTotal = d[0].key, sysDiskSize(d[0].key)
+	}
+	m.netOnline = netOnline()
+	m.loadStep()
+	return m
+}
+
+func (m *model) cur() step { return m.flow[m.idx] }
+
+func (m *model) loadStep() {
+	m.enterPos, m.enterVel = 0, 0
+	s := m.cur()
+	switch s.kind {
+	case kSelect:
+		m.pick = newPicker(s.items, s.numbered)
+		m.pick.height = m.listRows()
+	case kPartition:
+		m.diskG = m.diskTotal
+		m.espG, m.swapG = 1, 16
+		m.snapshots, m.sepHome, m.backups = true, true, false
+		m.lsel, m.sAnim, m.wipeConfirm = 0, 0, false
+		if m.picks["disk"] == "whole" || m.diskTotal < 700 {
+			m.kept = nil // small disk or full wipe → no existing partitions
+		} else { // existing Windows install: keep or reclaim per-partition
+			m.kept = []part{
+				{"Windows ESP", 1, "vfat", "/boot", "esp", "keep"},
+				{"Windows (C:)", 600, "ntfs", "Windows", "-", "keep"},
+			}
+		}
+		m.rootG = m.availRoot()
+	case kPass:
+		m.pwStage, m.pw1, m.pwErr, m.input = 0, "", "", ""
+	case kNet:
+		m.netStage, m.input = 0, ""
+		m.pick = newPicker(ssids(), true)
+		m.pick.height = 5
+	default:
+		m.input, m.yes = "", false
+		m.inputErr, m.encStage, m.pass1, m.encErr = "", 0, "", ""
+	}
+}
+
+// validation mirrors installer/script/ryoku-install (valid_hostname / valid_username)
+var hostRe = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$`)
+var userRe = regexp.MustCompile(`^[a-z_][a-z0-9_-]*$`)
+
+func validInput(key, v string) (bool, string) {
+	switch key {
+	case "hostname":
+		if hostRe.MatchString(v) {
+			return true, ""
+		}
+		return false, "letters, digits, dashes, no leading or trailing dash"
+	case "username":
+		if userRe.MatchString(v) {
+			return true, ""
+		}
+		return false, "lowercase; start with a letter or _"
+	}
+	return true, ""
+}
+
+func (m model) tickCmd() tea.Cmd {
+	d := 80 * time.Millisecond
+	fast := m.state == "intro" || m.state == "transition" || m.state == "install" ||
+		(m.state == "wizard" && (m.enterPos < 0.99 || m.cur().kind == kPartition))
+	if fast {
+		d = 33 * time.Millisecond
+	}
+	return tea.Tick(d, func(t time.Time) tea.Msg { return frameMsg(t) })
+}
+
+func (m model) Init() tea.Cmd { return m.tickCmd() }
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.w, m.h = msg.Width, msg.Height
+		if m.cur().kind == kSelect {
+			m.pick.height = m.listRows()
+		}
+		return m, nil
+	case frameMsg:
+		m.frame++
+		m.phase = (m.phase + 1) % smallW
+		switch m.state {
+		case "intro":
+			m.introPos, m.introVel = m.introSpr.Update(m.introPos, m.introVel, 1.0)
+			if m.introPos > 0.995 {
+				if m.introHold++; m.introHold > 14 {
+					m.state, m.transPos, m.transVel, m.enterPos = "transition", 0, 0, 1
+				}
+			}
+		case "transition":
+			m.transPos, m.transVel = m.transSpr.Update(m.transPos, m.transVel, 1.0)
+			if m.transPos > 0.99 {
+				m.state = "welcome"
+			}
+		case "wizard":
+			m.enterPos, m.enterVel = m.enterSpr.Update(m.enterPos, m.enterVel, 1.0)
+			if m.cur().kind == kPartition {
+				rows := m.layoutRows()
+				tgt := m.sAnim
+				if r := rows[m.lsel]; r.kind == "size" {
+					if v, _, mx, _, _ := m.rowSpec(r.key); mx > 0 {
+						tgt = float64(v) / float64(mx)
+					}
+				}
+				m.sAnim, m.sVel = m.sSpr.Update(m.sAnim, m.sVel, tgt)
+			}
+		case "install":
+			m.progress, m.progVel = m.progSpr.Update(m.progress, m.progVel, float64(m.installAt)/float64(len(installSteps)))
+		}
+		return m, m.tickCmd()
+	case installStepMsg:
+		m.installAt = int(msg)
+		if m.istream != nil {
+			return m, m.istream.wait()
+		}
+		return m, nil
+	case installLineMsg:
+		m.installLog = append(m.installLog, string(msg))
+		if m.istream != nil {
+			return m, m.istream.wait()
+		}
+		return m, nil
+	case installDoneMsg:
+		if msg.err != nil {
+			m.failInstall(installSteps[clamp(m.installAt, 0, len(installSteps)-1)])
+		} else {
+			m.installAt, m.progress, m.state = len(installSteps), 1, "done"
+		}
+		return m, nil
+	case tea.KeyPressMsg:
+		return m.onKey(msg.String())
+	case tea.MouseWheelMsg: // scroll wheel moves the active selection
+		switch msg.Button {
+		case tea.MouseWheelUp:
+			return m.onKey("up")
+		case tea.MouseWheelDown:
+			return m.onKey("down")
+		}
+	}
+	return m, nil
+}
+
+func (m model) onKey(k string) (tea.Model, tea.Cmd) {
+	if k == "ctrl+c" {
+		return m, tea.Quit
+	}
+	if m.help { // help overlay open
+		if k == "?" || k == "esc" || k == "q" || k == "enter" {
+			m.help = false
+		}
+		return m, nil
+	}
+	switch m.state {
+	case "intro":
+		m.state, m.transPos, m.transVel, m.enterPos = "transition", 0, 0, 1
+		return m, m.tickCmd()
+	case "install":
+		return m, nil
+	case "done":
+		switch k {
+		case "up", "k":
+			m.doneSel = clamp(m.doneSel-1, 0, 2)
+		case "down", "j":
+			m.doneSel = clamp(m.doneSel+1, 0, 2)
+		case "1":
+			m.doneSel = 0
+		case "2":
+			m.doneSel = 1
+		case "3":
+			m.doneSel = 2
+		case "enter", "q":
+			return m, tea.Quit // WIRE: doneSel 0=reboot · 1=poweroff · 2=exit to shell
+		}
+		return m, nil
+	case "failed":
+		switch k {
+		case "r":
+			m.state, m.installAt, m.installLog = "install", 0, nil
+			m.progress, m.progVel = 0, 0
+			return m, tea.Batch(m.tickCmd(), m.startInstall())
+		case "q":
+			return m, tea.Quit
+		}
+		return m, nil
+	case "welcome":
+		if m.showSocialQR {
+			if k == "s" || k == "esc" || k == "enter" || k == "q" {
+				m.showSocialQR = false
+			}
+			return m, nil
+		}
+		switch k {
+		case "enter":
+			m.state, m.enterPos, m.enterVel = "wizard", 0, 0
+			return m, m.tickCmd()
+		case "s":
+			m.ensureSocialQR()
+			m.showSocialQR = true
+		case "q":
+			return m, tea.Quit
+		}
+		return m, nil
+	case "transition":
+		m.state, m.transPos = "welcome", 1
+		return m, nil
+	}
+
+	s := m.cur()
+	typing := s.kind == kInput || (s.kind == kSelect && m.pick.searching) ||
+		(s.kind == kPartition && m.wipeConfirm) ||
+		(s.kind == kConfirm && s.key == "encryption" && m.encStage > 0) ||
+		s.kind == kPass || (s.kind == kNet && m.netStage == 1)
+	if k == "?" && !typing {
+		m.help = true
+		return m, nil
+	}
+	if k == "q" && !typing {
+		return m, tea.Quit
+	}
+	if k == "esc" && !typing {
+		m.back()
+		return m, nil
+	}
+
+	switch s.kind {
+	case kSelect:
+		if done, sel := m.pick.update(k); done {
+			m.picks[s.key] = s.items[sel].key
+			if s.key == "diskpick" { // WIRE: real device + size from lsblk/blockdev
+				m.diskDev = s.items[sel].key
+				m.diskTotal = diskSizeOf(m.diskDev)
+			}
+			if s.key == "timezone" && m.picks["timezone"] == "auto" {
+				m.picks["timezone"] = autoTimezone()
+			}
+			if s.key == "keyboard" {
+				applyKeymap(m.picks["keyboard"])
+			}
+			m.advance()
+		}
+	case kPass:
+		switch k {
+		case "esc":
+			if m.pwStage == 1 {
+				m.pwStage, m.input, m.pwErr = 0, "", ""
+			} else {
+				m.back()
+			}
+		case "enter":
+			if m.pwStage == 0 {
+				if m.input == "" {
+					m.pwErr = "password cannot be empty"
+				} else {
+					m.pw1, m.input, m.pwStage, m.pwErr = m.input, "", 1, ""
+				}
+			} else if m.input != m.pw1 {
+				m.pw1, m.input, m.pwStage, m.pwErr = "", "", 0, "did not match, try again"
+			} else {
+				m.pwHash = hashPassword(m.pw1)
+				m.picks["password"], m.pw1, m.input, m.pwStage = "set", "", "", 0
+				m.advance()
+			}
+		default:
+			m.editInput(k, &m.input)
+		}
+	case kNet:
+		if m.netOnline {
+			if k == "enter" {
+				m.picks["network"] = "online"
+				m.advance()
+			}
+		} else if m.netStage == 1 { // WIRE: iwctl/nmcli connect with this passphrase
+			switch k {
+			case "esc":
+				m.netStage, m.input = 0, ""
+			case "enter":
+				wifiConnect(m.netSSID, m.input)
+				m.netOnline, m.picks["network"], m.input = true, "wifi", ""
+				m.advance()
+			default:
+				m.editInput(k, &m.input)
+			}
+		} else if done, sel := m.pick.update(k); done {
+			if l := ssids(); sel < len(l) {
+				m.netSSID = l[sel].key
+			}
+			m.netStage, m.input = 1, ""
+		}
+	case kInput:
+		if k == "enter" {
+			v := m.input
+			if v == "" {
+				v = s.deflt
+			}
+			if ok, msg := validInput(s.key, v); !ok {
+				m.inputErr = msg // block advance on invalid input
+				return m, nil
+			}
+			m.inputErr, m.picks[s.key] = "", v
+			m.advance()
+		} else {
+			m.inputErr = ""
+			m.editInput(k, &m.input)
+		}
+	case kConfirm:
+		if s.key == "encryption" && m.encStage > 0 { // passphrase entry
+			if k == "esc" {
+				m.encStage, m.input, m.encErr = 0, "", ""
+				return m, nil
+			}
+			m.editInput(k, &m.input)
+			if k == "enter" {
+				if m.encStage == 1 {
+					if m.input == "" {
+						m.encErr = "passphrase cannot be empty"
+					} else {
+						m.pass1, m.input, m.encStage, m.encErr = m.input, "", 2, ""
+					}
+				} else { // confirm
+					if m.input != m.pass1 {
+						m.pass1, m.input, m.encStage, m.encErr = "", "", 1, "did not match, try again"
+					} else {
+						m.luksPass = m.pass1
+						m.picks["encryption"], m.pass1, m.input, m.encStage = "LUKS", "", "", 0
+						m.advance()
+					}
+				}
+			}
+			return m, nil
+		}
+		switch k {
+		case "left", "right", "h", "l", "tab":
+			m.yes = !m.yes
+		case "y":
+			m.yes = true
+		case "n":
+			m.yes = false
+		case "enter":
+			if s.key == "encryption" {
+				if m.yes {
+					m.encStage, m.input, m.encErr = 1, "", "" // collect a passphrase
+				} else {
+					m.picks["encryption"] = "none"
+					m.advance()
+				}
+			} else if m.yes {
+				m.state, m.installAt, m.installLog = "install", 0, nil
+				m.progress, m.progVel = 0, 0
+				return m, tea.Batch(m.tickCmd(), m.startInstall())
+			} else {
+				return m, tea.Quit
+			}
+		default:
+			if s.key == "review" && len(k) == 1 && k[0] >= '1' && k[0] <= '9' {
+				m.jumpToActive(int(k[0] - '1')) // edit a step from Review
+			}
+		}
+	case kPartition:
+		m.partKey(k)
+	case kInfo:
+		if k == "enter" {
+			m.advance()
+		}
+	}
+	return m, nil
+}
+
+func (m *model) editInput(k string, dst *string) {
+	switch k {
+	case "backspace":
+		if len(*dst) > 0 {
+			*dst = (*dst)[:len(*dst)-1]
+		}
+	case "enter", "space":
+	default:
+		if r := []rune(k); len(r) == 1 && r[0] >= 0x20 {
+			*dst += k
+		}
+	}
+}
+
+func (m *model) advance() {
+	for m.idx < len(m.flow)-1 {
+		m.idx++
+		if m.stepActive(m.idx) {
+			m.loadStep()
+			return
+		}
+	}
+}
+
+func (m *model) back() {
+	for m.idx > 0 {
+		m.idx--
+		if m.stepActive(m.idx) {
+			m.loadStep()
+			return
+		}
+	}
+}
+
+// jumpToActive jumps to the n-th active step (0-based), used from Review to edit.
+func (m *model) jumpToActive(n int) {
+	c := 0
+	for i := range m.flow {
+		if !m.stepActive(i) {
+			continue
+		}
+		if c == n {
+			m.idx = i
+			m.loadStep()
+			return
+		}
+		c++
+	}
+}
+
+// stepActive lets steps be skipped: the GPU-mode screen only shows on a hybrid
+// iGPU+dGPU machine.
+func (m model) stepActive(i int) bool {
+	if m.flow[i].key == "gpu" {
+		p := m.picks["profile"]
+		return m.hwHybrid && (p == "amd-nvidia" || p == "intel-nvidia")
+	}
+	return true
+}
+
+// failInstall writes the captured install output to a stable log path and renders
+// a QR to the support URL so the user can read it or share it.
+func (m *model) failInstall(step string) {
+	m.state, m.failStep = "failed", step
+	m.logPath = "/var/log/ryoku-install.log"
+	var b strings.Builder
+	for _, l := range m.installLog {
+		b.WriteString(l + "\n")
+	}
+	if err := os.WriteFile(m.logPath, []byte(b.String()), 0o644); err != nil {
+		dir := filepath.Join(os.TempDir(), "ryoku-install")
+		_ = os.MkdirAll(dir, 0o755)
+		m.logPath = filepath.Join(dir, "install.log")
+		_ = os.WriteFile(m.logPath, []byte(b.String()), 0o644)
+	}
+	var q strings.Builder
+	qrterminal.GenerateHalfBlock(ryokuSupportURL, qrterminal.L, &q)
+	m.qrStr = q.String()
+}
+
+// ───────────────────────── guided layout logic ─────────────────────────
+func (m model) keptG() int {
+	n := 0
+	for _, k := range m.kept {
+		n += k.size
+	}
+	return n
+}
+func (m model) hasKeptESP() bool {
+	for _, k := range m.kept {
+		if strings.Contains(k.flags, "esp") {
+			return true
+		}
+	}
+	return false
+}
+func (m model) needNewESP() bool { return !m.hasKeptESP() }
+
+// availRoot is the space the new btrfs root (plus any leftover free) can use.
+func (m model) availRoot() int {
+	a := m.diskG - m.keptG()
+	if m.needNewESP() {
+		a -= m.espG
+	}
+	if a < 0 {
+		a = 0
+	}
+	return a
+}
+
+func (m model) layoutRows() []lrow {
+	var rows []lrow
+	for i, k := range m.kept {
+		rows = append(rows, lrow{"keep", fmt.Sprintf("keep%d", i), k.dev, "", "keep"})
+	}
+	if m.needNewESP() {
+		rows = append(rows, lrow{"size", "esp", "ESP size", "/boot · fat32", "required"})
+	}
+	rows = append(rows,
+		lrow{"size", "root", "Root size", "btrfs / · @ @nix …", "required"},
+		lrow{"size", "swap", "Swap (swapfile)", "@swap · 0 = none", "optional"},
+		lrow{"toggle", "snap", "Snapshots & rollbacks", "@snapshots → /.snapshots", "recommended"},
+		lrow{"toggle", "home", "Separate /home", "@home → /home", "optional"},
+		lrow{"toggle", "backups", "Backups", "@backups → /.backups", "optional"},
+	)
+	return rows
+}
+
+func (m model) rowSpec(key string) (int, int, int, int, int) {
+	switch key {
+	case "esp":
+		return m.espG, 1, 4, 1, 1
+	case "root":
+		return m.rootG, 8, m.availRoot(), 5, 25
+	case "swap":
+		return m.swapG, 0, 64, 2, 8
+	}
+	return 0, 0, 1, 1, 1
+}
+func (m *model) setRow(key string, v int) {
+	_, mn, mx, _, _ := m.rowSpec(key)
+	v = clamp(v, mn, mx)
+	switch key {
+	case "esp":
+		m.espG = v
+		m.rootG = clamp(m.rootG, 8, m.availRoot()) // ESP eats from root space
+	case "root":
+		m.rootG = v
+	case "swap":
+		m.swapG = v
+	}
+}
+func (m *model) toggle(key string) {
+	switch key {
+	case "snap":
+		m.snapshots = !m.snapshots
+	case "home":
+		m.sepHome = !m.sepHome
+	case "backups":
+		m.backups = !m.backups
+	}
+}
+func (m model) toggleOn(key string) bool {
+	switch key {
+	case "snap":
+		return m.snapshots
+	case "home":
+		return m.sepHome
+	case "backups":
+		return m.backups
+	}
+	return false
+}
+func (m model) keepIndex(key string) int {
+	var i int
+	fmt.Sscanf(key, "keep%d", &i)
+	return i
+}
+func (m *model) reclaim(idx int) { // WIRE: parted rm of the existing partition
+	if idx < 0 || idx >= len(m.kept) {
+		return
+	}
+	m.kept = append(m.kept[:idx], m.kept[idx+1:]...)
+	m.rootG = m.availRoot() // hand the reclaimed space to root by default
+	m.lsel = clamp(m.lsel, 0, len(m.layoutRows())-1)
+}
+
+func (m *model) partKey(k string) {
+	if m.wipeConfirm {
+		switch k {
+		case "y", "enter":
+			m.kept = nil // WIRE: wipe whole disk (parted mklabel gpt)
+			m.rootG = m.availRoot()
+			m.lsel, m.wipeConfirm = 0, false
+		case "n", "esc":
+			m.wipeConfirm = false
+		}
+		return
+	}
+	rows := m.layoutRows()
+	r := rows[m.lsel]
+	switch k {
+	case "up", "k":
+		m.lsel = clamp(m.lsel-1, 0, len(rows)-1)
+	case "down", "j":
+		m.lsel = clamp(m.lsel+1, 0, len(rows)-1)
+	case "w": // full wipe, only if there is something kept to erase
+		if len(m.kept) > 0 {
+			m.wipeConfirm = true
+		}
+	case "left", "h":
+		if r.kind == "size" {
+			v, _, _, st, _ := m.rowSpec(r.key)
+			m.setRow(r.key, v-st)
+		}
+	case "right", "l":
+		if r.kind == "size" {
+			v, _, _, st, _ := m.rowSpec(r.key)
+			m.setRow(r.key, v+st)
+		}
+	case "shift+left", "H":
+		if r.kind == "size" {
+			v, _, _, _, bg := m.rowSpec(r.key)
+			m.setRow(r.key, v-bg)
+		}
+	case "shift+right", "L":
+		if r.kind == "size" {
+			v, _, _, _, bg := m.rowSpec(r.key)
+			m.setRow(r.key, v+bg)
+		}
+	case "d":
+		if r.kind == "keep" {
+			m.reclaim(m.keepIndex(r.key))
+		}
+	case "enter", "space":
+		switch r.kind {
+		case "keep":
+			m.reclaim(m.keepIndex(r.key))
+		case "toggle":
+			m.toggle(r.key)
+		}
+	case "a": // reset to recommended (keeps current kept set)
+		m.espG, m.swapG = 1, 16
+		m.snapshots, m.sepHome, m.backups = true, true, false
+		m.rootG = m.availRoot()
+	case "tab":
+		if m.diskG < minDiskGiB { // too-small guard, mirrors the installer preflight
+			return
+		}
+		m.picks["partitions"] = m.layoutSummary() // WIRE: emit disko config from this plan
+		m.advance()
+	}
+}
+
+func (m model) layoutSummary() string {
+	n := 2 // @, @nix always
+	if m.sepHome {
+		n++
+	}
+	if m.snapshots {
+		n++
+	}
+	if m.backups {
+		n++
+	}
+	if len(m.kept) == 0 {
+		return fmt.Sprintf("wiped · btrfs %dsv", n)
+	}
+	return fmt.Sprintf("alongside · btrfs %dsv", n)
+}
+
+// layoutSegs builds the disk-bar segments: kept + (new ESP) + root + free.
+func (m model) layoutSegs() []part {
+	segs := append([]part(nil), m.kept...)
+	if m.needNewESP() {
+		segs = append(segs, part{"ESP", m.espG, "vfat", "/boot", "esp", "new"})
+	}
+	segs = append(segs, part{"root", m.rootG, "btrfs", "/", "-", "new"})
+	if rem := m.availRoot() - m.rootG; rem > 0 {
+		segs = append(segs, part{"(free)", rem, "-", "-", "-", "free"})
+	}
+	return segs
+}
+
+// selSeg maps the selected editable row to a disk-bar segment (for the ▲ marker).
+func (m model) selSeg() int {
+	rows := m.layoutRows()
+	if m.lsel >= len(rows) {
+		return -1
+	}
+	r := rows[m.lsel]
+	segs := m.layoutSegs()
+	switch {
+	case r.kind == "keep":
+		return m.keepIndex(r.key) // kept come first in segs
+	case r.key == "esp":
+		for i, s := range segs {
+			if strings.Contains(s.flags, "esp") && s.status == "new" {
+				return i
+			}
+		}
+	case r.key == "root":
+		for i, s := range segs {
+			if s.mount == "/" {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+// ───────────────────────── sizing ─────────────────────────
+func (m model) innerW() int   { return clamp(m.w-30, 42, 72) }
+func (m model) listRows() int { return clamp(m.h-14, 6, 16) }
+
+// ───────────────────────── view ─────────────────────────
+func (m model) View() tea.View {
+	if m.w == 0 {
+		return tea.NewView("")
+	}
+	if m.w < minTermW || m.h < minTermH { // resize guard
+		msg := lipgloss.JoinVertical(lipgloss.Center,
+			bold(cYell, "↔  Please enlarge your terminal"), "",
+			fg(cText, fmt.Sprintf("Ryoku's installer needs at least %d × %d.", minTermW, minTermH)),
+			fg(cSub, fmt.Sprintf("Current size: %d × %d.", m.w, m.h)))
+		v := tea.NewView(lipgloss.Place(m.w, m.h, lipgloss.Center, lipgloss.Center, msg))
+		v.AltScreen, v.BackgroundColor, v.ForegroundColor = true, cBg, cText
+		return v
+	}
+	if m.help {
+		foot := lipgloss.PlaceHorizontal(m.w, lipgloss.Center, keyHint("?", "close")+fg(cDim, "    ")+keyHint("esc", "close"))
+		v := tea.NewView(m.frameWithFooter(m.helpBody(), "\n"+foot))
+		v.AltScreen, v.BackgroundColor, v.ForegroundColor = true, cBg, cText
+		return v
+	}
+	var frame string
+	switch m.state {
+	case "intro":
+		frame = lipgloss.Place(m.w, m.h, lipgloss.Center, lipgloss.Center, m.viewIntro())
+	case "transition":
+		a := frameLines(lipgloss.Place(m.w, m.h, lipgloss.Center, lipgloss.Center, m.viewIntro()), m.h)
+		b := frameLines(m.welcomeFrame(), m.h)
+		off := clamp(int(m.transPos*float64(m.h)), 0, m.h)
+		frame = strings.Join(append(a, b...)[off:off+m.h], "\n")
+	case "welcome":
+		if m.showSocialQR {
+			frame = m.welcomeQR()
+		} else {
+			frame = m.welcomeFrame()
+		}
+	case "install", "done", "failed":
+		frame = m.frameWithFooter(m.viewCentered(), "")
+	default:
+		frame = m.frameWizard()
+	}
+	v := tea.NewView(frame)
+	v.AltScreen = true
+	v.MouseMode = tea.MouseModeCellMotion
+	v.BackgroundColor = cBg
+	v.ForegroundColor = cText
+	v.WindowTitle = "Ryoku installer"
+	return v
+}
+
+func frameLines(s string, h int) []string {
+	ls := strings.Split(s, "\n")
+	for len(ls) < h {
+		ls = append(ls, "")
+	}
+	return ls[:h]
+}
+
+func (m model) frameWizard() string { return m.frameWithFooter(m.viewWizard(), m.footer()) }
+
+func (m model) frameWithFooter(body, footer string) string {
+	hdr := m.header()
+	foot := footer
+	if foot == "" {
+		switch m.state {
+		case "install":
+			foot = lipgloss.PlaceHorizontal(m.w, lipgloss.Center, fg(cDim, "installing…"))
+		case "done":
+			foot = lipgloss.PlaceHorizontal(m.w, lipgloss.Center, keyHint("↑↓", "choose")+fg(cDim, "    ")+keyHint("enter", "confirm")+fg(cDim, "    ")+keyHint("q", "quit"))
+		case "failed":
+			foot = lipgloss.PlaceHorizontal(m.w, lipgloss.Center, keyHint("r", "retry")+fg(cDim, "    ")+keyHint("q", "quit"))
+		}
+	}
+	bodyH := m.h - lipgloss.Height(hdr) - lipgloss.Height(foot)
+	if bodyH < 1 {
+		bodyH = 1
+	}
+	mid := lipgloss.Place(m.w, bodyH, lipgloss.Center, lipgloss.Center, body)
+	return lipgloss.JoinVertical(lipgloss.Left, hdr, mid, foot)
+}
+
+func (m model) header() string {
+	b := lipgloss.JoinVertical(lipgloss.Center, smallBanner(m.phase)...)
+	b = lipgloss.JoinVertical(lipgloss.Center, b, fg(cSub, "for the sake of power & beauty"))
+	if m.state == "wizard" {
+		b = lipgloss.JoinVertical(lipgloss.Center, b, m.headerProgress())
+	}
+	return lipgloss.PlaceHorizontal(m.w, lipgloss.Center, b) + "\n"
+}
+
+func (m model) headerProgress() string {
+	total, cur := m.activeTotal(), m.activePos()
+	w := 28
+	filled := clamp((cur+1)*w/total, 0, w)
+	bar := fg(cBrand, strings.Repeat(gFull, filled)) + fg(cDim, strings.Repeat(gEmpty, w-filled))
+	return bar + fg(cDim, fmt.Sprintf("  %d/%d", cur+1, total))
+}
+
+func (m *model) ensureSocialQR() {
+	if m.qrDiscord != "" {
+		return
+	}
+	gen := func(u string) string {
+		var b strings.Builder
+		qrterminal.GenerateHalfBlock(u, qrterminal.L, &b)
+		return b.String()
+	}
+	m.qrDiscord, m.qrReddit, m.qrX = gen(discordURL), gen(redditURL), gen(xURL)
+}
+
+func (m model) welcomeFrame() string {
+	logo := lipgloss.JoinVertical(lipgloss.Center, faintBig(m.phase)...)
+	card := sty().Border(border()).BorderForeground(cBlue).Padding(1, 3).Render(
+		bold(cBrand, "Thank you for installing Ryoku") + "\n\n" +
+			fg(cText, "There is no try-before-you-install demo. You are running") + "\n" +
+			fg(cText, "the live Arch image now, and this installer turns it into") + "\n" +
+			fg(cText, "Ryoku in a single pass. Nothing is written until you") + "\n" +
+			fg(cText, "confirm on the review screen."))
+	di, ri := iconDiscord+" ", iconReddit+" "
+	if !nerd { // Private-Use logo glyphs won't render; drop to labels
+		di, ri = "", ""
+	}
+	socials := fg(cBlue, di+"Discord") + fg(cDim, "      ") +
+		fg(cBrand, ri+"r/RyokuArch") + fg(cDim, "      ") +
+		fg(cText, iconX+" @neur0map")
+	block := lipgloss.JoinVertical(lipgloss.Center, logo, "", "", card, "", socials)
+	foot := lipgloss.PlaceHorizontal(m.w, lipgloss.Center, keyHint("enter", "continue")+fg(cDim, "      ")+keyHint("s", "socials & QR"))
+	return lipgloss.JoinVertical(lipgloss.Left, lipgloss.Place(m.w, m.h-2, lipgloss.Center, lipgloss.Center, block), "\n"+foot)
+}
+
+func (m model) welcomeQR() string {
+	if ascii { // QR needs block glyphs, fall back to a plain link list
+		block := lipgloss.JoinVertical(lipgloss.Center, bold(cBrand, "Join the Ryoku community"), "",
+			fg(cBlue, "Discord  ")+fg(cText, discordURL),
+			fg(cBrand, "Reddit   ")+fg(cText, redditURL),
+			fg(cText, "X        ")+fg(cText, xURL))
+		foot := lipgloss.PlaceHorizontal(m.w, lipgloss.Center, keyHint("s / esc", "back"))
+		return lipgloss.JoinVertical(lipgloss.Left, lipgloss.Place(m.w, m.h-2, lipgloss.Center, lipgloss.Center, block), "\n"+foot)
+	}
+	qst := sty().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#ffffff"))
+	tile := func(icon, label, url, q string) string {
+		var b strings.Builder
+		for _, ln := range strings.Split(strings.TrimRight(q, "\n"), "\n") {
+			b.WriteString(qst.Render(ln) + "\n")
+		}
+		head := label
+		if nerd {
+			head = icon + " " + label
+		}
+		return lipgloss.JoinVertical(lipgloss.Center, bold(cText, head), "",
+			strings.TrimRight(b.String(), "\n"), "", fg(cDim, url))
+	}
+	d := tile(iconDiscord, "Discord", discordURL, m.qrDiscord)
+	r := tile(iconReddit, "Reddit", redditURL, m.qrReddit)
+	x := tile(iconX, "X", xURL, m.qrX)
+	var row string
+	if m.w >= 88 {
+		row = lipgloss.JoinHorizontal(lipgloss.Top, d, "   ", r, "   ", x)
+	} else {
+		row = lipgloss.JoinVertical(lipgloss.Center, d, "", r, "", x)
+	}
+	block := lipgloss.JoinVertical(lipgloss.Center, bold(cBrand, "Join the Ryoku community"), "", row)
+	foot := lipgloss.PlaceHorizontal(m.w, lipgloss.Center, keyHint("s / esc", "back"))
+	return lipgloss.JoinVertical(lipgloss.Left, lipgloss.Place(m.w, m.h-2, lipgloss.Center, lipgloss.Center, block), "\n"+foot)
+}
+
+func (m model) viewIntro() string {
+	banner := lipgloss.JoinVertical(lipgloss.Center, bigBanner(m.introPos, m.phase)...)
+	tag := ""
+	if m.introPos > 0.45 {
+		tag = fg(cSub, "for the sake of power & beauty")
+	}
+	bw := 34
+	fill := clamp(int(m.introPos*float64(bw)), 0, bw)
+	bar := fg(cBrand, strings.Repeat(gFull, fill)) + fg(cDim, strings.Repeat(gEmpty, bw-fill))
+	status := fg(cSub, "preparing installer"+strings.Repeat(".", (m.frame/4)%4))
+	if m.introPos > 0.995 {
+		status = fg(cGreen, "ready")
+	}
+	return lipgloss.JoinVertical(lipgloss.Center, banner, "", tag, "", "", bar, "", status)
+}
+
+func (m model) viewWizard() string {
+	s := m.cur()
+	inner := m.innerW()
+
+	var c strings.Builder
+	c.WriteString(bold(cBrand, s.title) + "\n\n")
+	switch {
+	case s.kind == kConfirm && s.key == "review":
+		c.WriteString(m.reviewBody(inner) + "\n\n" + m.confirmButtons() + "\n" + fg(cDim, "press 1-9 to edit a step (numbered in the rail)"))
+	case s.kind == kPartition:
+		c.WriteString(m.partBody(inner))
+	case s.kind == kInfo:
+		c.WriteString(m.infoBody(inner))
+	case s.kind == kNet:
+		c.WriteString(m.netBody(inner))
+	case s.kind == kPass:
+		c.WriteString(m.passBody(inner))
+	case s.kind == kSelect && s.key == "gpu":
+		for _, d := range s.desc {
+			c.WriteString(fg(cSub, truncW(d, inner)) + "\n")
+		}
+		c.WriteString("\n" + m.pick.view(inner, m.phase) + "\n")
+		if len(m.pick.matches) > 0 {
+			for _, ln := range gpuDetails(m.pick.items[m.pick.matches[m.pick.cursor]].key) {
+				c.WriteString(ln + "\n")
+			}
+		}
+		c.WriteString(fg(cDim, "↺ changeable later, re-run the GPU setup after install"))
+	default:
+		for _, d := range s.desc {
+			c.WriteString(fg(cSub, truncW(d, inner)) + "\n")
+		}
+		c.WriteString("\n")
+		switch s.kind {
+		case kSelect:
+			c.WriteString(m.pick.view(inner, m.phase))
+		case kInput:
+			c.WriteString(inputBox(m.input, s.placeholder, s.password) + "\n")
+			if m.inputErr != "" {
+				c.WriteString(fg(cRed, "⚠ "+m.inputErr) + "\n")
+			} else {
+				c.WriteString(fg(cDim, "enter to accept") + "\n")
+			}
+		case kConfirm:
+			if s.key == "encryption" && m.encStage > 0 {
+				label := "Set a LUKS passphrase:"
+				if m.encStage == 2 {
+					label = "Confirm passphrase:"
+				}
+				c.WriteString(fg(cText, label) + "\n" + inputBox(m.input, "", true) + "\n")
+				if m.encErr != "" {
+					c.WriteString(fg(cRed, "⚠ "+m.encErr) + "\n")
+				}
+				c.WriteString(fg(cDim, "enter to continue · esc cancel"))
+			} else {
+				c.WriteString(m.confirmButtons())
+			}
+		}
+	}
+
+	lines := strings.Split(padLines(c.String(), inner), "\n")
+	show := clamp(int(m.enterPos*float64(len(lines))+0.5), 0, len(lines))
+	for i := show; i < len(lines); i++ {
+		lines[i] = strings.Repeat(" ", inner)
+	}
+	card := sty().Border(border()).BorderForeground(cBlue).Padding(1, 2).Render(strings.Join(lines, "\n"))
+	return lipgloss.JoinHorizontal(lipgloss.Top, m.rail(), "  ", card)
+}
+
+// ───────────────────────── guided partition view ─────────────────────────
+func (m model) partBody(inner int) string {
+	var b strings.Builder
+	b.WriteString(fg(cSub, fmt.Sprintf("%s · %d GiB · UEFI · ", m.diskDev, m.diskG)) +
+		fg(cText, "systemd-boot") + fg(cDim, " (Limine in v2)") + "\n")
+	b.WriteString(m.diskBar(m.layoutSegs(), inner, m.selSeg()) + "\n\n")
+
+	if m.diskG < minDiskGiB { // WIRE: real size from blockdev --getsize64
+		b.WriteString(bold(cRed, fmt.Sprintf("⚠ disk is %dG, Ryoku needs at least %dG. Use a larger disk.", m.diskG, minDiskGiB)) + "\n\n")
+	}
+	if m.wipeConfirm {
+		b.WriteString(bold(cRed, "⚠  Erase the ENTIRE disk, including Windows?") + "\n")
+		b.WriteString(fg(cSub, "   This removes every kept partition. Nothing is written until you confirm install.") + "\n\n")
+		b.WriteString("   " + bold(cRed, "y") + fg(cSub, " wipe    ") + bold(cText, "n") + fg(cSub, " cancel"))
+		return b.String()
+	}
+
+	rows := m.layoutRows()
+	knobW := clamp(inner-46, 8, 20)
+	for i, r := range rows {
+		sel := i == m.lsel
+		prefix := "  "
+		if sel {
+			prefix = bold(gradColor(float64(m.phase)/float64(smallW-1)), gSelCur)
+		}
+		switch r.kind {
+		case "keep":
+			p := m.kept[m.keepIndex(r.key)]
+			sw := sty().Foreground(partColor(p)).Render(gFull + gFull)
+			info := fmt.Sprintf("%4dG %-5s", p.size, p.fs)
+			b.WriteString(prefix + sw + " " + labelStyled(sel, r.label, 16) + " " + fg(cText, info) + " " + fg(cYell, "keep") + fg(cDim, " · enter/d reclaim") + "\n")
+		case "size":
+			v, _, mx, _, _ := m.rowSpec(r.key)
+			frac := 0.0
+			if mx > 0 {
+				frac = float64(v) / float64(mx)
+			}
+			if sel {
+				frac = m.sAnim
+			}
+			fill := clamp(int(frac*float64(knobW)+0.5), 0, knobW)
+			knob := fg(cBrand, strings.Repeat(gFull, fill)) + fg(cDim, strings.Repeat(gEmpty, knobW-fill))
+			val := fmt.Sprintf("%dG", v)
+			if r.key == "swap" && v == 0 {
+				val = "none"
+			}
+			b.WriteString(prefix + "   " + labelStyled(sel, r.label, 16) + " [" + knob + "] " + padTo(bold(cText, val), 6) + "  " + tagStyle(r.tag) + "\n")
+		default: // toggle
+			mark := fg(cDim, gOff)
+			if m.toggleOn(r.key) {
+				mark = fg(cGreen, gOn)
+			}
+			used := 2 + 3 + 16 + 1 + 5 + 2 + 11 + 2
+			sub := truncW(r.sub, max(0, inner-used))
+			b.WriteString(prefix + "   " + labelStyled(sel, r.label, 16) + " " + mark + "  " + padTo(tagStyle(r.tag), 11) + "  " + fg(cDim, sub) + "\n")
+		}
+	}
+	note := fg(cSub, "@ / and @nix always included")
+	if free := m.availRoot() - m.rootG; free > 0 {
+		note += fg(cDim, fmt.Sprintf("  ·  %dG left free", free))
+	}
+	if len(m.kept) > 0 {
+		note += fg(cDim, "  ·  ") + bold(cBrand, "w") + fg(cSub, " wipe disk")
+	}
+	b.WriteString("\n" + note)
+	return strings.TrimRight(b.String(), "\n")
+}
+
+func (m model) netBody(inner int) string {
+	if m.netOnline { // WIRE: detect via `ip -4 route` / ping; show iface + speed
+		return strings.Join([]string{
+			fg(cGreen, gOKtxt+" Connected") + fg(cSub, "   eth0 · 1000 Mb/s"), "",
+			fg(cSub, "An internet connection is required to download and build"),
+			fg(cSub, "the system. You're good to go."),
+			"", fg(cDim, "enter to continue · esc back"),
+		}, "\n")
+	}
+	if m.netStage == 1 {
+		return fg(cRed, gBad+" Not connected") + "\n\n" +
+			fg(cText, "Wi-Fi password:") + "\n" + inputBox(m.input, "", true) + "\n\n" +
+			fg(cDim, "enter to connect · esc back")
+	}
+	return fg(cRed, gBad+" Not connected") + fg(cSub, "   pick a Wi-Fi network") + "\n\n" + m.pick.view(inner, m.phase)
+}
+
+func strength(s string) string {
+	var lower, upper, digit, sym bool
+	for _, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z':
+			lower = true
+		case r >= 'A' && r <= 'Z':
+			upper = true
+		case r >= '0' && r <= '9':
+			digit = true
+		default:
+			sym = true
+		}
+	}
+	classes := 0
+	for _, b := range []bool{lower, upper, digit, sym} {
+		if b {
+			classes++
+		}
+	}
+	switch {
+	case len(s) >= 12 && classes >= 3:
+		return fg(cGreen, "strong")
+	case len(s) >= 8 && classes >= 2:
+		return fg(cYell, "ok")
+	default:
+		return fg(cRed, "weak")
+	}
+}
+
+func (m model) passBody(inner int) string {
+	label := "Set a password:"
+	if m.pwStage == 1 {
+		label = "Confirm password:"
+	}
+	b := fg(cText, label) + "\n" + inputBox(m.input, "", true) + "\n"
+	if m.pwStage == 0 && m.input != "" {
+		b += fg(cSub, "strength: ") + strength(m.input) + "\n"
+	} else {
+		b += "\n"
+	}
+	if m.pwErr != "" {
+		b += fg(cRed, "⚠ "+m.pwErr) + "\n"
+	}
+	b += "\n" + fg(cDim, "used at login; change it anytime · esc back")
+	return b
+}
+
+func labelStyled(sel bool, s string, w int) string {
+	s = truncW(s, w)
+	if sel {
+		return padTo(bold(cText, s), w)
+	}
+	return padTo(fg(cSub, s), w)
+}
+
+// diskBar: proportional 2-row graph; selIdx<0 means no selection marker.
+func (m model) diskBar(parts []part, w, selIdx int) string {
+	total := 0
+	for _, p := range parts {
+		total += p.size
+	}
+	if total <= 0 {
+		total = 1
+	}
+	widths := make([]int, len(parts))
+	rema := make([]float64, len(parts))
+	used := 0
+	for i, p := range parts {
+		f := float64(p.size) / float64(total) * float64(w)
+		iw := int(f)
+		if p.size > 0 && iw < 1 {
+			iw = 1
+		}
+		widths[i], rema[i] = iw, f-float64(int(f))
+		used += iw
+	}
+	for used < w {
+		mi, mx := -1, -1.0
+		for i := range rema {
+			if rema[i] > mx {
+				mx, mi = rema[i], i
+			}
+		}
+		if mi < 0 {
+			break
+		}
+		widths[mi]++
+		rema[mi] = -1
+		used++
+	}
+	for used > w {
+		mi := 0
+		for i := range widths {
+			if widths[i] > widths[mi] {
+				mi = i
+			}
+		}
+		if widths[mi] <= 0 {
+			break
+		}
+		widths[mi]--
+		used--
+	}
+	var bar strings.Builder
+	start, selStart := 0, 0
+	for i, p := range parts {
+		s := sty().Foreground(partColor(p))
+		if i == selIdx {
+			selStart = start
+		} else if selIdx >= 0 {
+			s = s.Faint(true)
+		}
+		bar.WriteString(s.Render(strings.Repeat(gFull, widths[i])))
+		start += widths[i]
+	}
+	row := bar.String()
+	out := row + "\n" + row
+	if selIdx >= 0 && selIdx < len(parts) {
+		mk := []rune(strings.Repeat(" ", w))
+		if c := selStart + widths[selIdx]/2; c >= 0 && c < w {
+			mk[c] = []rune(gMark)[0]
+		}
+		out += "\n" + fg(cBrand, string(mk))
+	}
+	return out
+}
+
+// infoBody is the hardware-detection card built from detectHardware().
+func (m model) infoBody(inner int) string {
+	if !m.hwOK {
+		return strings.Join([]string{
+			bold(cYell, "⚠  Could not fully classify this hardware"), "",
+			fg(cText, "That is fine. Ryoku runs on any x86_64 UEFI machine and"),
+			fg(cText, "loads open kernel drivers (amdgpu, i915, nouveau) for"),
+			fg(cText, "unknown GPUs. You can tune drivers after install."),
+			"",
+			fg(cSub, "Firmware ") + fg(cGreen, m.hwFW),
+			fg(cSub, "GPU      ") + fg(cText, def(m.hwGPU, "unclassified")),
+			"",
+			fg(cSub, "Suggested profile  ") + bold(cBrand, "vm") + fg(cDim, "  (safe generic, pick yours next)"),
+			"", fg(cDim, "enter to continue, esc to go back"),
+		}, "\n")
+	}
+	hybrid := ""
+	if m.hwHybrid {
+		hybrid = fg(cYell, "  hybrid")
+	}
+	return strings.Join([]string{
+		bold(cBrand, "Detected hardware"), "",
+		fg(cSub, "CPU      ") + fg(cText, def(m.hwCPU, "unknown")),
+		fg(cSub, "GPU      ") + fg(cText, def(m.hwGPU, "unknown")) + hybrid,
+		fg(cSub, "Memory   ") + fg(cText, def(m.hwMem, "unknown")),
+		fg(cSub, "Firmware ") + fg(cGreen, m.hwFW),
+		fg(cSub, "Disk     ") + fg(cText, def(m.hwDisk, m.diskDev)),
+		"",
+		fg(cSub, "Suggested profile  ") + bold(cBrand, def(m.hwProfile, "vm")),
+		"", fg(cDim, "enter to continue, esc to go back"),
+	}, "\n")
+}
+
+func (m model) helpBody() string {
+	return strings.Join([]string{
+		bold(cBrand, "Keys"), "",
+		fg(cSub, "move       ") + fg(cText, "↑↓ / j k"),
+		fg(cSub, "filter     ") + fg(cText, "/  then type   (long lists)"),
+		fg(cSub, "quick pick ") + fg(cText, "1-9   (numbered menus)"),
+		fg(cSub, "adjust     ") + fg(cText, "←/→ · shift = ±big   (sliders)"),
+		fg(cSub, "toggle     ") + fg(cText, "space / enter   (on/off rows)"),
+		fg(cSub, "partitions ") + fg(cText, "enter/d reclaim · w wipe disk"),
+		fg(cSub, "confirm    ") + fg(cText, "enter        ") + fg(cSub, "back ") + fg(cText, "esc"),
+		fg(cSub, "quit       ") + fg(cText, "q  /  ctrl+c"),
+		"", fg(cDim, "Nothing is written until the final Review step."),
+	}, "\n")
+}
+
+// Nerd-font icons per step (gated on `nerd`; plain markers otherwise).
+var stepIcon = map[string]string{
+	"keyboard": "", "locale": "", "timezone": "", "network": "",
+	"hardware": "", "profile": "", "gpu": "", "diskpick": "",
+	"disk": "", "partitions": "", "hostname": "", "username": "",
+	"password": "", "encryption": "", "review": "",
+}
+
+func (m model) activeTotal() int {
+	n := 0
+	for i := range m.flow {
+		if m.stepActive(i) {
+			n++
+		}
+	}
+	return n
+}
+func (m model) activePos() int { // 0-based index among active steps
+	n := 0
+	for i := 0; i < m.idx; i++ {
+		if m.stepActive(i) {
+			n++
+		}
+	}
+	return n
+}
+
+func (m model) rail() string {
+	const inner = 18
+	num := m.cur().key == "review" // number steps so 1-9 can jump to edit them
+	lines := []string{fg(cSub, "install steps"), ""}
+	n := 0
+	for i, s := range m.flow {
+		if !m.stepActive(i) {
+			continue
+		}
+		n++
+		g := ""
+		if nerd {
+			g = stepIcon[s.key]
+		}
+		lead := func(c color.Color, fallback string) string {
+			p := ""
+			if num {
+				p = fg(cDim, fmt.Sprintf("%d ", n))
+			}
+			if g != "" {
+				return p + fg(c, g+" ")
+			}
+			return p + fg(c, fallback)
+		}
+		switch {
+		case i < m.idx:
+			l := lead(cGreen, gCheck+" ") + fg(cText, s.key)
+			if v := m.picks[s.key]; v != "" && !num {
+				l += " " + fg(cDim, truncW(v, 14-len(s.key)))
+			}
+			lines = append(lines, l)
+		case i == m.idx && (m.state == "wizard" || m.state == "transition"):
+			lines = append(lines, lead(cBrand, gCurStep)+bold(cBrand, s.key))
+		default:
+			lines = append(lines, lead(cDim, gPend+" ")+fg(cDim, s.key))
+		}
+	}
+	return sty().Border(border()).BorderForeground(cDim).Padding(0, 1).
+		Render(padLines(strings.Join(lines, "\n"), inner))
+}
+
+func inputBox(val, placeholder string, pw bool) string {
+	shown := val
+	if pw {
+		shown = strings.Repeat("•", len(val))
+	}
+	caret := sty().Foreground(cBrand).Render(gCaret)
+	if val == "" && placeholder != "" {
+		return fg(cBrand, gPrompt) + fg(cDim, placeholder) + caret
+	}
+	return fg(cBrand, gPrompt) + fg(cText, shown) + caret
+}
+
+func (m model) confirmButtons() string {
+	yes, no := sty().Padding(0, 3), sty().Padding(0, 3)
+	if m.yes {
+		yes = yes.Background(cBrand).Foreground(cBg).Bold(true)
+		no = no.Foreground(cSub)
+	} else {
+		no = no.Background(cBrand).Foreground(cBg).Bold(true)
+		yes = yes.Foreground(cSub)
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, yes.Render("Yes"), "  ", no.Render("No")) + "\n\n" + fg(cDim, "←/→ or y/n · enter")
+}
+
+func (m model) reviewBody(w int) string {
+	row := func(k, v string) string { return fg(cSub, fmt.Sprintf("%-11s", k)) + fg(cText, truncW(v, w-12)) }
+	subs := "@ @log @pkg"
+	if m.sepHome {
+		subs += " @home"
+	}
+	if m.snapshots {
+		subs += " @snapshots"
+	}
+	if m.backups {
+		subs += " @backups"
+	}
+	swap := fmt.Sprintf("%dG", m.swapG)
+	if m.swapG == 0 {
+		swap = "none"
+	}
+	esp := fmt.Sprintf("%dG", m.espG)
+	if m.hasKeptESP() {
+		esp = "reuse"
+	}
+	lines := []string{
+		bold(cBrand, "Review, then confirm to install"), "",
+		fg(cRed, "⚠ this writes the layout below to "+m.diskDev), "",
+		row("keyboard", m.picks["keyboard"]), row("locale", m.picks["locale"]),
+		row("time zone", m.picks["timezone"]), row("profile", m.picks["profile"]),
+		row("disk", m.diskDev), row("hostname", m.picks["hostname"]),
+		row("user", m.picks["username"]), row("password", m.picks["password"]),
+		row("encryption", m.picks["encryption"]), "",
+		fg(cSub, "layout     ") + fg(cText, fmt.Sprintf("ESP %s · root %dG · swap %s", esp, m.rootG, swap)),
+		fg(cSub, "subvols    ") + fg(cText, subs),
+	}
+	if len(m.kept) > 0 {
+		lines = append(lines, fg(cSub, "kept       ")+fg(cYell, fmt.Sprintf("%d existing partition(s)", len(m.kept))))
+	}
+	return strings.Join(lines, "\n")
+}
+
+// stepLog is sample command output per step, used by the snapshot layout preview.
+// Live installs stream the real backend output instead.
+func (m model) stepLog(i int) []string {
+	d := m.diskDev
+	switch i {
+	case 0:
+		return []string{"sgdisk --zap-all " + d, "parted -s " + d + " mklabel gpt"}
+	case 1:
+		return []string{"mkfs.vfat -F32 -n BOOT " + d + "p1", "mkfs.btrfs -f -L ryoku " + d + "p2", "btrfs subvolume create @ @home @log @pkg @snapshots"}
+	case 2:
+		return []string{"mount -o subvol=@,compress=zstd,noatime " + d + "p2 /mnt", "mount " + d + "p1 /mnt/boot"}
+	case 3:
+		return []string{"pacstrap -K /mnt base linux linux-firmware ...", "genfstab -U /mnt >> /mnt/etc/fstab"}
+	case 4:
+		return []string{"arch-chroot /mnt (locale, timezone, hostname, user)", "mkinitcpio -P"}
+	case 5:
+		return []string{"limine install + Ryoku branding", "wrote /boot/limine.conf"}
+	}
+	return nil
+}
+
+func (m model) viewCentered() string {
+	switch m.state {
+	case "done":
+		return m.viewDone()
+	case "failed":
+		return m.viewFailed()
+	}
+	// Responsive panel: wide enough for real log lines; long lines truncate cleanly.
+	iw := clamp(m.w-12, 56, 100) // inner content width
+	bw := clamp(iw-10, 30, 70)
+	logRows := clamp(m.h-18, 5, 14)
+
+	fill := clamp(int(m.progress*float64(bw)), 0, bw)
+	bar := fg(cBrand, strings.Repeat(gFull, fill)) + fg(cDim, strings.Repeat(gEmpty, bw-fill)) +
+		fg(cSub, fmt.Sprintf(" %3.0f%%", m.progress*100))
+
+	var b strings.Builder
+	b.WriteString(bold(cBrand, "Installing Ryoku") + "\n\n")
+	b.WriteString(bar + "\n\n")
+	for i := range installSteps {
+		switch {
+		case i < m.installAt:
+			b.WriteString(fg(cGreen, gCheck+" ") + fg(cSub, installSteps[i]) + "\n")
+		case i == m.installAt:
+			b.WriteString(fg(cBrand, spinFrames[m.frame%len(spinFrames)]) + " " + fg(cText, installSteps[i]) + "\n")
+		default:
+			b.WriteString(fg(cDim, gPend+" "+installSteps[i]) + "\n")
+		}
+	}
+	b.WriteString(fg(cDim, strings.Repeat(ruleCh(), iw)) + "\n")
+	tail := m.installLog
+	if len(tail) > logRows {
+		tail = tail[len(tail)-logRows:]
+	}
+	for _, ln := range tail {
+		b.WriteString(fg(cDim, truncW(ln, iw)) + "\n")
+	}
+	for i := len(tail); i < logRows; i++ { // fixed-height log pane (no jitter)
+		b.WriteString("\n")
+	}
+	return sty().Border(border()).BorderForeground(cBrand).Padding(1, 2).
+		Render(padLines(strings.TrimRight(b.String(), "\n"), iw))
+}
+
+func (m model) viewDone() string {
+	user := m.picks["username"]
+	if user == "" {
+		user = "you"
+	}
+	card := sty().Border(borderDouble()).BorderForeground(cGreen).Padding(1, 3).Align(lipgloss.Center).
+		Render(bold(cGreen, gCheck+"  Ryoku installed") + "\n\n" +
+			fg(cText, m.picks["hostname"]+" · "+m.picks["username"]+" · "+m.picks["profile"]) + "\n" +
+			fg(cSub, "encryption: "+m.picks["encryption"]+" · "+m.picks["timezone"]) + "\n\n" +
+			fg(cSub, "what's next") + "\n" +
+			fg(cDim, "log in as "+user+"  ·  your configs live in ~/.config") + "\n" +
+			fg(cDim, "snapshots and rollback from the Limine boot menu"))
+	// WIRE: doneSel 0 → systemctl reboot · 1 → systemctl poweroff · 2 → exit to a shell
+	opts := []struct{ label, hint string }{
+		{"Reboot now", "recommended"},
+		{"Power off", ""},
+		{"Exit to a shell", "poke around first"},
+	}
+	var b strings.Builder
+	for i, o := range opts {
+		if i == m.doneSel {
+			b.WriteString(bold(gradColor(float64(m.phase)/float64(smallW-1)), gPrompt) + bold(cText, o.label))
+		} else {
+			b.WriteString("  " + fg(cSub, o.label))
+		}
+		if o.hint != "" {
+			b.WriteString("  " + fg(cDim, o.hint))
+		}
+		b.WriteString("\n")
+	}
+	return lipgloss.JoinVertical(lipgloss.Center, card, "", strings.TrimRight(b.String(), "\n"))
+}
+
+func (m model) viewFailed() string {
+	// QR rendered black-on-white so it scans on the dark theme background.
+	qst := sty().Foreground(lipgloss.Color("#000000")).Background(lipgloss.Color("#ffffff"))
+	var qb strings.Builder
+	for _, ln := range strings.Split(strings.TrimRight(m.qrStr, "\n"), "\n") {
+		qb.WriteString(qst.Render(ln) + "\n")
+	}
+	tail := "Scan for help (and to share this log):"
+	if ascii {
+		tail = "For help, visit:"
+	}
+	card := sty().Border(border()).BorderForeground(cRed).Padding(1, 3).
+		Render(bold(cRed, gBad+"  Installation failed") + "\n\n" +
+			fg(cSub, "step  ") + fg(cText, m.failStep) + "\n" +
+			fg(cSub, "log   ") + fg(cText, m.logPath) + "\n\n" +
+			fg(cSub, tail))
+	if ascii { // QR needs block glyphs
+		return lipgloss.JoinVertical(lipgloss.Center, card, "", fg(cBlue, ryokuSupportURL))
+	}
+	return lipgloss.JoinVertical(lipgloss.Center, card, "", strings.TrimRight(qb.String(), "\n"), "", fg(cDim, ryokuSupportURL))
+}
+
+func (m model) footer() string {
+	s := m.cur()
+	var parts []string
+	switch {
+	case s.kind == kPartition:
+		switch {
+		case m.wipeConfirm:
+			parts = []string{keyHint("y", "wipe"), keyHint("n", "cancel")}
+		case m.layoutRows()[m.lsel].kind == "keep":
+			parts = []string{keyHint("enter/d", "reclaim"), keyHint("w", "wipe disk"), keyHint("↑↓", "move"), keyHint("tab", "done"), keyHint("esc", "back")}
+		case m.layoutRows()[m.lsel].kind == "size":
+			parts = []string{keyHint("←/→", "adjust"), keyHint("shift", "±big"), keyHint("↑↓", "move"), keyHint("tab", "done"), keyHint("esc", "back")}
+		default:
+			parts = []string{keyHint("space", "toggle"), keyHint("↑↓", "move"), keyHint("a", "reset"), keyHint("tab", "done"), keyHint("esc", "back")}
+		}
+	case s.kind == kInfo:
+		parts = []string{keyHint("enter", "continue"), keyHint("esc", "back"), keyHint("?", "help"), keyHint("q", "quit")}
+	case s.kind == kPass:
+		parts = []string{keyHint("type", "password"), keyHint("enter", "continue"), keyHint("esc", "back")}
+	case s.kind == kNet:
+		switch {
+		case m.netOnline:
+			parts = []string{keyHint("enter", "continue"), keyHint("esc", "back"), keyHint("q", "quit")}
+		case m.netStage == 1:
+			parts = []string{keyHint("type", "password"), keyHint("enter", "connect"), keyHint("esc", "back")}
+		default:
+			parts = []string{keyHint("↑↓", "move"), keyHint("enter", "connect"), keyHint("esc", "back")}
+		}
+	case s.kind == kSelect:
+		parts = []string{keyHint("↑↓/jk", "move"), keyHint("/", "filter")}
+		if s.numbered {
+			parts = append(parts, keyHint("1-9", "quick"))
+		}
+		parts = append(parts, keyHint("enter", "select"), keyHint("?", "help"), keyHint("esc", "back"), keyHint("q", "quit"))
+	case s.kind == kInput:
+		parts = []string{keyHint("type", "edit"), keyHint("enter", "accept"), keyHint("esc", "back"), keyHint("q", "quit")}
+	case s.kind == kConfirm && s.key == "encryption" && m.encStage > 0:
+		parts = []string{keyHint("type", "passphrase"), keyHint("enter", "next"), keyHint("esc", "cancel")}
+	case s.kind == kConfirm:
+		parts = []string{keyHint("←/→", "choose"), keyHint("enter", "confirm"), keyHint("esc", "back"), keyHint("q", "quit")}
+	}
+	bar := strings.Join(parts, fg(cDim, "  ·  ")) // step count now lives in the header progress bar
+	return "\n" + lipgloss.PlaceHorizontal(m.w, lipgloss.Center, bar)
+}
+
+func keyHint(k, desc string) string { return bold(cBrand, k) + " " + fg(cSub, desc) }
+
+func main() {
+	initGlyphs()
+	if len(os.Args) > 1 && os.Args[1] == "snapshot" {
+		snapshot()
+		return
+	}
+	if _, err := tea.NewProgram(newModel()).Run(); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+}
+
+func snapshot() {
+	picks := map[string]string{"keyboard": "us", "locale": "en_US.UTF-8", "timezone": "Europe/Madrid",
+		"profile": "amd-nvidia", "gpu": "offload", "disk": "existing", "hostname": "ryoku", "username": "carlos", "encryption": "LUKS"}
+	mk := func() model { m := newModel(); m.w, m.h, m.enterPos, m.state = 112, 42, 1, "wizard"; return m }
+	sep := strings.Repeat("─", 112)
+	render := func(m model) string {
+		if m.state == "done" || m.state == "failed" || m.state == "install" {
+			return m.frameWithFooter(m.viewCentered(), "")
+		}
+		return m.frameWizard()
+	}
+	show := func(t string, m model) { fmt.Println("### " + t + " ###\n" + render(m) + "\n" + sep) }
+
+	wm := mk()
+	wm.state = "welcome"
+	fmt.Println("### welcome ###\n" + wm.welcomeFrame() + "\n" + sep)
+	wm = mk()
+	wm.state = "welcome"
+	wm.ensureSocialQR()
+	fmt.Println("### welcome: social QR ###\n" + wm.welcomeQR() + "\n" + sep)
+
+	m := mk()
+	m.idx, m.picks = 3, picks // network (online)
+	m.loadStep()
+	m.enterPos = 1
+	show("network: connected", m)
+
+	m = mk()
+	m.idx, m.picks, m.netOnline = 3, picks, false // network offline → Wi-Fi list
+	m.loadStep()
+	m.enterPos = 1
+	show("network: offline (Wi-Fi)", m)
+
+	m = mk()
+	m.idx, m.picks = 4, picks // hardware detected
+	m.loadStep()
+	m.enterPos = 1
+	show("hardware: detected", m)
+
+	m = mk()
+	m.idx, m.picks, m.hwOK, m.hwHybrid = 4, picks, false, false
+	m.loadStep()
+	m.enterPos = 1
+	show("hardware: not detected (graceful fallback)", m)
+
+	m = mk()
+	m.idx, m.picks = 6, picks // graphics mode (hybrid)
+	m.loadStep()
+	m.enterPos = 1
+	show("graphics mode (hybrid GPU)", m)
+
+	m = mk()
+	m.idx, m.picks = 7, picks // target-disk picker
+	m.loadStep()
+	m.enterPos = 1
+	show("target disk", m)
+
+	m = mk()
+	m.idx, m.picks = 9, picks // partitions
+	m.picks["disk"] = "whole"
+	m.loadStep()
+	m.enterPos, m.lsel = 1, 0
+	show("partitions: required and optional", m)
+
+	m = mk()
+	m.idx, m.picks = 12, picks // user password
+	m.loadStep()
+	m.enterPos, m.input = 1, "Hunter2!"
+	show("user password (+ strength)", m)
+
+	m = mk()
+	m.picks, m.state, m.doneSel = picks, "done", 0
+	show("done: reboot / poweroff / shell", m)
+
+	m = mk()
+	m.picks, m.state, m.installAt, m.progress = picks, "install", 5, 0.62
+	for i := 0; i < 5; i++ {
+		m.installLog = append(m.installLog, m.stepLog(i)...)
+	}
+	show("install: wide scrolling log", m)
+
+	m = mk()
+	m.picks, m.installAt = picks, 3
+	for i := 0; i < 4; i++ {
+		m.installLog = append(m.installLog, m.stepLog(i)...)
+	}
+	m.failInstall("Installing the base system")
+	fmt.Println("### failed: fail-safe log + QR ###\n" + render(m))
+}
