@@ -102,7 +102,7 @@ require("keybinds")
 -- the XDG user dirs, and a best-effort hardware autoscale and GPU pin.
 hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_TYPE 2>/dev/null; command -v dbus-update-activation-environment >/dev/null 2>&1 && dbus-update-activation-environment --systemd WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_TYPE 2>/dev/null; systemctl --user start hyprland-session.target 2>/dev/null")
-    hl.exec_cmd("command -v hyprpolkit-agent >/dev/null 2>&1 && hyprpolkit-agent || /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
+    hl.exec_cmd("systemctl --user start hyprpolkitagent.service")
     hl.exec_cmd("xdg-user-dirs-update")
     hl.exec_cmd("command -v ryoku-monitor >/dev/null 2>&1 && ryoku-monitor autoscale")
     hl.exec_cmd("command -v ryoku-gpu >/dev/null 2>&1 && ryoku-gpu persist")
