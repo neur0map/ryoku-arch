@@ -10,3 +10,7 @@ hl.env("__GL_VRR_ALLOWED",          "0")
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 
 hl.env("QT_QPA_PLATFORMTHEME", "kde")
+
+
+hl.env("EDITOR", "nvim")
+hl.env("VISUAL", "nvim")

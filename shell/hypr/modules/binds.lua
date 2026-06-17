@@ -10,6 +10,8 @@ hl.bind(mod .. " + SHIFT + A", hl.dsp.window.float({ action = "disable" }))     
 hl.bind(mod .. " + Return",    hl.dsp.exec_cmd("kitty"))
 hl.bind(mod .. " + E",         hl.dsp.exec_cmd("nautilus"))
 hl.bind(mod .. " + B",         hl.dsp.exec_cmd("chromium"))
+hl.bind(mod .. " + N",         hl.dsp.exec_cmd("kitty -e nvim"))                -- neovim
+hl.bind(mod .. " + ALT + E",   hl.dsp.exec_cmd("kitty -e yazi"))               -- yazi file manager
 
 -- Shell surfaces and tools
 hl.bind(mod .. " + Space",     hl.dsp.exec_cmd("ryoku-shell launcher"))

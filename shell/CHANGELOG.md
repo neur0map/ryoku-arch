@@ -48,6 +48,7 @@
   chromium, `A`/`SHIFT+A` float (compact) / tile (restore) the window, and `S`
   takes a ryoshot screenshot; dropped the SUPER-tap launcher and `SUPER+T` float.
   `SUPER+[1..0]` focus workspaces, `SUPER+SHIFT+[1..0]` move the window there.
+  `SUPER+N` opens Neovim, `SUPER+ALT+E` opens yazi; `EDITOR`/`VISUAL` are nvim.
 - `input.lua`: matched the upstream Ryoku input, `sensitivity` 0, no explicit
   `accel_profile` (libinput's adaptive default), `touchpad.natural_scroll` false,
   and hardware cursors. The shell's reversed scroll and a positive sensitivity
