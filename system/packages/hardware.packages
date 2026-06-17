@@ -1,29 +1,24 @@
-# Per-profile hardware packages (official Arch repos), grouped into sections.
+# Per-profile CPU microcode (official Arch repos), grouped into sections.
 # The installer selects sections by RYOKU_PROFILE:
 #   amd         -> [amd]
 #   intel       -> [intel]
 #   vm          -> [vm]
 #   amd-nvidia  -> [amd] + [nvidia]
-# Base mesa and the vulkan loader live in base.packages (always installed); these
-# sections add only the vendor-specific microcode and drivers.
-# '#' and blank lines inside a section are ignored.
+# Base mesa and the vulkan loader live in base.packages (always installed). GPU
+# drivers are NOT listed here: the installer runs system/hardware/drivers/*.sh in
+# the target, which pick the generation-correct driver per detected GPU (for
+# example nvidia-open vs nvidia for pre-Turing cards). These sections add only the
+# vendor microcode. '#' and blank lines inside a section are ignored.
 
 [amd]
 amd-ucode
-vulkan-radeon
 
 [intel]
 intel-ucode
-vulkan-intel
-intel-media-driver
-libva-intel-driver
-vpl-gpu-rt
 
 [nvidia]
-nvidia-open-dkms
-nvidia-utils
-libva-nvidia-driver
-linux-headers
+# NVIDIA is a GPU vendor; its driver comes from drivers/nvidia.sh. CPU microcode
+# for this profile comes from the [amd] section (amd-nvidia = [amd] + [nvidia]).
 
 [vm]
-# VMs use mesa (virtio-gpu / virgl) and vulkan-icd-loader from base.packages.
+# VMs use mesa (virtio-gpu) and vulkan-icd-loader from base.packages.

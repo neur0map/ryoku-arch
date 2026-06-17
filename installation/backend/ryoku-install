@@ -37,6 +37,8 @@ source "$LIB_DIR/pacstrap.sh"
 source "$LIB_DIR/chroot.sh"
 # shellcheck source=lib/deploy.sh
 source "$LIB_DIR/deploy.sh"
+# shellcheck source=lib/drivers.sh
+source "$LIB_DIR/drivers.sh"
 # shellcheck source=lib/bootloader.sh
 source "$LIB_DIR/bootloader.sh"
 
@@ -90,6 +92,7 @@ main() {
   step configure
   ryoku_configure
   ryoku_deploy
+  ryoku_drivers
 
   step bootloader
   ryoku_bootloader
