@@ -119,8 +119,8 @@ ryoku_boot_install_efi() {
   # plugged in (firmware often prefers removable media otherwise).
   if [[ -z "${RYOKU_DRYRUN:-}" ]]; then
     local num
-    num=$(efibootmgr 2>/dev/null | awk '/[[:space:]]Ryoku$/{n=$1; gsub(/Boot|\*/, "", n); print n; exit}')
-    [[ -n $num ]] && run efibootmgr --bootnext "$num"
+    num=$(efibootmgr 2>/dev/null | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\*\? Ryoku\b.*/\1/p' | head -1)
+    if [[ -n $num ]]; then run efibootmgr --bootnext "$num"; fi
   fi
 }
 
