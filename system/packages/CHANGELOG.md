@@ -11,6 +11,7 @@
 - `base.packages`: the Ryoku shell runtime (`quickshell`, `awww`, `cliphist`,
   `hyprpicker`, `imagemagick`, `jq`) and the `yazi` file manager. `aur.packages`
   gains `wallust` (palette); `quickshell` moved from AUR to base (now official).
+- `aur.packages`: add `gpk-bin` (GlazePKG), the RyokuArch package manager.
 
 ### Fixed
 - `base.packages`: add the desktop session pieces a plain Hyprland needs to render

@@ -15,3 +15,6 @@ bibata-cursor-theme
 
 # Palette generator for the shell: wallpaper to terminal and Hyprland colors.
 wallust
+
+# RyokuArch package manager (GlazePKG): every package manager in one view
+gpk-bin
