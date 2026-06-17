@@ -43,6 +43,8 @@ source "$LIB_DIR/network.sh"
 source "$LIB_DIR/drivers.sh"
 # shellcheck source=lib/bootloader.sh
 source "$LIB_DIR/bootloader.sh"
+# shellcheck source=lib/aur.sh
+source "$LIB_DIR/aur.sh"
 
 # Defaults for the optional parts of the contract.
 : "${RYOKU_HOSTNAME:=ryoku}"
@@ -99,6 +101,8 @@ main() {
 
   step bootloader
   ryoku_bootloader
+
+  ryoku_aur || true
 
   log "flushing the target to disk"
   run sync

@@ -63,12 +63,15 @@ EOF
 ryoku_cfg_user() {
   log "user: $RYOKU_USERNAME (wheel, shell /usr/bin/fish)"
   run arch-chroot /mnt useradd -m -G wheel -s /usr/bin/fish "$RYOKU_USERNAME"
-  # Password hash on stdin (chpasswd -e reads user:hash), never logged.
+  # Set the same password on the user and root so both sudo (wheel) and su work
+  # with the password chosen at install. Hashes go in on stdin (chpasswd -e reads
+  # name:hash) and are never logged.
   printf '%s:%s\n' "$RYOKU_USERNAME" "$RYOKU_PASSWORD_HASH" | run_secret \
     "arch-chroot /mnt chpasswd -e (user:hash via stdin)" \
     arch-chroot /mnt chpasswd -e
-  # Root stays locked; administration goes through wheel + sudo.
-  run arch-chroot /mnt passwd -l root
+  printf 'root:%s\n' "$RYOKU_PASSWORD_HASH" | run_secret \
+    "arch-chroot /mnt chpasswd -e (root:hash via stdin)" \
+    arch-chroot /mnt chpasswd -e
 }
 
 ryoku_cfg_sudo() {

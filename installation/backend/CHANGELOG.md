@@ -24,8 +24,16 @@
   Hyprland config (superseding the plain set), the quickshell UI, wallust, the
   qt/kde theme, the user session target, the prebuilt `ryoku-shell` daemon, the
   Neovim (LazyVim) and yazi configs, and Neovim as the default text editor.
+- `lib/aur.sh`: after the bootloader step, bootstrap the `yay` AUR helper (AUR
+  clone, GitHub release binary as a fallback) and build the `aur.packages` set
+  as the user with a temporary passwordless-sudo grant. Online-gated and
+  best-effort: an offline install or a failed build logs a warning and the
+  install still completes.
 
 ### Fixed
+- `lib/chroot.sh`: set the root password to the chosen install password instead
+  of locking the root account, so `su` works alongside `sudo`. A locked root
+  made `su` reject the user's password even though `sudo` worked.
 - `lib/pacstrap.sh`: ensure the live pacman keyring is ready before pacstrap. It
   waits for `pacman-init.service` to settle, then populates the keyring if it is
   still empty, so the install no longer races the boot service and fails with
