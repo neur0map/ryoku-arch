@@ -89,6 +89,15 @@ ripgrep
 starship
 zoxide
 
+# Ryoku shell (quickshell desktop), its runtime helpers, and the yazi file manager
+quickshell
+awww
+cliphist
+hyprpicker
+imagemagick
+jq
+yazi
+
 # Fonts
 noto-fonts
 noto-fonts-emoji

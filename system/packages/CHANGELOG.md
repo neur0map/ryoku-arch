@@ -8,6 +8,9 @@
   come from `system/hardware/drivers/*.sh`, which the installer runs in the target.
 - `aur.packages`: AUR add-ons (Limine hooks, Bibata cursors, AUR helper).
 - `dev.packages`: optional developer toolchains.
+- `base.packages`: the Ryoku shell runtime (`quickshell`, `awww`, `cliphist`,
+  `hyprpicker`, `imagemagick`, `jq`) and the `yazi` file manager. `aur.packages`
+  gains `wallust` (palette); `quickshell` moved from AUR to base (now official).
 
 ### Fixed
 - `base.packages`: add the desktop session pieces a plain Hyprland needs to render

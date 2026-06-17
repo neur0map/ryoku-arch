@@ -13,6 +13,5 @@ limine-snapper-sync
 # Cursor theme (XCURSOR_THEME=Bibata-Modern-Classic)
 bibata-cursor-theme
 
-# In-session lockscreen runtime (qylock lock.sh). The SDDM greeter does not need it;
-# it is only used by the Super+Alt+L lock and is installed post-install.
-quickshell
+# Palette generator for the shell: wallpaper to terminal and Hyprland colors.
+wallust
