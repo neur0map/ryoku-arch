@@ -26,6 +26,8 @@
 - `fastfetch/`: color the keys and percentages with fixed brand truecolor
   instead of palette slots, so the readout stays legible under any wallust theme
   (themed `red`/`green` could fall to near-background contrast and vanish).
-- `fish/`: set `fish_color_autosuggestion` to a readable mid-gray, so the
-  command-line history suggestion stays legible on the dark theme instead of
-  fish's near-background default (which vanishes under the wallust palette).
+- `fish/`: ship a fixed, legible syntax-highlight color scheme set
+  unconditionally in `config.fish`. fish applied a palette-tied default theme
+  before `config.fish` that rendered typed input in a near-background color
+  (invisible as you type); pinning command, param, error, comment, and
+  autosuggestion colors keeps the command line readable under any wallust theme.

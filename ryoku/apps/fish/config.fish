@@ -12,9 +12,22 @@ if status is-interactive
   set -gx EDITOR nvim
   set -gx VISUAL nvim
 
-  # Make the command-line autosuggestion readable on the dark theme: fish's
-  # default is a near-background gray that vanishes under the wallust palette.
-  # Set unconditionally so it wins over fish's default-theme color application.
+  # Readable fish syntax colors. fish applies a palette-tied default theme before
+  # config.fish (here with a malformed flag that left typed input the same color
+  # as the background). Pin a fixed, legible scheme unconditionally so it always
+  # wins and stays readable under any wallust palette.
+  set -g fish_color_normal         F1F3E4
+  set -g fish_color_command        F25623
+  set -g fish_color_keyword        F56E0F
+  set -g fish_color_param          F1F3E4
+  set -g fish_color_option         CCD0CF
+  set -g fish_color_quote          A3C293
+  set -g fish_color_redirection    8AA9CC
+  set -g fish_color_end            F56E0F
+  set -g fish_color_error          FF6B6B
+  set -g fish_color_comment        949699
+  set -g fish_color_operator       93D4E0
+  set -g fish_color_escape         93D4E0
   set -g fish_color_autosuggestion 949699
 
   # Branded system readout when a terminal opens.
