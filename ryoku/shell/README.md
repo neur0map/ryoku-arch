@@ -1,11 +1,8 @@
-# shell/
+# ryoku/shell/
 
-The Ryoku desktop shell: the bar, panels, launcher, and the Hyprland
-glue around them. `ryoku/` ships the plain desktop; this tree is the full shell
-that sits on top of it.
-
-This is a starting base. It is in the repo, de-branded, and reorganized, but not
-yet wired into the installer. The pieces are here to build on.
+The Ryoku desktop shell: the bar, panels, launcher, and screenshot tool that run
+on top of the Hyprland config in `ryoku/hyprland`. The installer deploys all of
+it to `~/.config` (see `installation/backend/lib/deploy.sh`).
 
 ## Layout
 
@@ -16,13 +13,13 @@ yet wired into the installer. The pieces are here to build on.
 - `quickshell/` The UI, hand-written Quickshell (QML): `pill` (the morphing bar),
   `sidebar`, `topbar`, `launcher`, and `ryoshot` (screenshot and annotation).
   These render the shell; they hold no daemon logic.
-- `hypr/` The Hyprland config in Lua (`hyprland.lua` plus `modules/`), and the few
-  leaf scripts the UI still calls directly (`scripts/`: clipboard and wallpaper
-  thumbnailers, the imagemagick policy).
 - `wallust/` Palette generation from the current wallpaper (the kitty palette and
   the Hyprland colors).
-- `fish/`, `kde/`, `brave-theme/` Per-app config.
+- `kde/`, `brave-theme/` Per-app config.
 - `systemd/` The user session target.
+
+The Hyprland config that hosts this shell lives at `ryoku/hyprland`; its
+`scripts/` holds the clipboard and wallpaper thumbnailers the UI calls directly.
 
 ## The IPC
 
@@ -56,15 +53,16 @@ Mono Nerd and Noto; cursor: Bibata. The lock is qylock, from `ryoku/`.
 Run the shell straight from this checkout on a running Hyprland session, no
 install required:
 
-    shell/dev-run.sh        # build ryoku-shell, then run it with RYOKU_SHELL_DIR set
-    shell/dev-binds.sh on   # optional: bind the shell keys for this session
-    shell/dev-stop.sh       # stop it (restore your keys with: hyprctl reload)
+    ryoku/shell/dev-run.sh       # build ryoku-shell, then run it with RYOKU_SHELL_DIR set
+    ryoku/shell/dev-binds.sh on  # optional: bind the shell keys for this session
+    ryoku/shell/dev-stop.sh      # stop it (restore your keys with: hyprctl reload)
 
 The daemon launches each component with `qs -p`, so your own `~/.config` is never
 touched, and quickshell hot-reloads QML edits, so changes show as you save.
 
-## Not wired yet
+## Install
 
-Installing the configs to `~/.config` and building `ryoku-shell` into the image is
-the deployment step, not part of this pass. The lock screen is qylock, shipped by
-`ryoku/`; the shell does not replace it.
+The installer deploys this tree to `~/.config` and the prebuilt `ryoku-shell` to
+`/usr/local/bin`: `installation/iso/build.sh` builds the daemon into the image and
+`installation/backend/lib/deploy.sh` lays down the configs. The lock screen is
+qylock, shipped by `ryoku/lockscreen`; the shell does not replace it.
