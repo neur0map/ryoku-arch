@@ -17,6 +17,9 @@
   the `ryoku-shell` Go control-plane daemon (`ipc/`).
 
 ### Changed
+- Tuned Hyprland window decoration and motion for the Ryoku shell: stronger
+  shadows, softer translucency, wider breathing room, and branded open/close
+  curves.
 - Consolidated everything under a single `ryoku/` tree: the former top-level
   `shell/` now lives at `ryoku/shell/`, its modular Hyprland config replaced the
   old flat `ryoku/hyprland` (one Hyprland config now), and the duplicate

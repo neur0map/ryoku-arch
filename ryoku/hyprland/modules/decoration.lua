@@ -12,24 +12,24 @@ local inactive = border(wc and wc.inactive, "#313a4d")
 
 hl.config({
     general = {
-        gaps_in     = 6,
-        gaps_out    = 12,
-        border_size = 2,
+        gaps_in     = 7,
+        gaps_out    = 16,
+        border_size = 3,
         layout      = "dwindle",
         resize_on_border = true,
         ["col.active_border"]   = active,
         ["col.inactive_border"] = inactive,
     },
     decoration = {
-        rounding         = 12,
+        rounding         = 16,
         rounding_power   = 4,
-        active_opacity   = 1.0,
-        inactive_opacity = 1.0,
+        active_opacity   = 0.96,
+        inactive_opacity = 0.90,
         shadow = {
             enabled      = true,
-            range        = 12,
-            render_power = 3,
-            color        = 0xaa14110f,
+            range        = 30,
+            render_power = 4,
+            color        = 0xd10a0807,
         },
         blur = {
             enabled           = true,
