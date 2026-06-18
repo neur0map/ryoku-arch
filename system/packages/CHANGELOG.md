@@ -13,6 +13,8 @@
   `hyprpicker`, `imagemagick`, `jq`) and the `yazi` file manager. `aur.packages`
   gains `wallust` (palette); `quickshell` moved from AUR to base (now official).
 - `aur.packages`: add `gpk-bin` (GlazePKG), the RyokuArch package manager.
+- `base.packages`: add `hypridle` for laptop dim/lock/suspend timeouts and
+  `upower` for the shell battery surface.
 
 ### Fixed
 - `base.packages`: add the desktop session pieces a plain Hyprland needs to render

@@ -10,7 +10,7 @@
 #   gpu_records   one strength-sorted TSV row per real DRM GPU
 #   classify      label a GPU egpu | discrete | integrated and give it a weight
 #   analyze       turn gpu_records into ordered slot/class arrays plus counts
-#   is_desktop    decide desktop vs laptop (chassis type, like ryoku-hw-laptop)
+#   is_desktop    decide desktop vs laptop (delegates to ryoku-hw-laptop)
 #
 # Optional host tools: lspci (model names), nvidia-smi (NVIDIA VRAM size). Both
 # only improve display; ranking works without them because NVIDIA is always
@@ -177,21 +177,38 @@ analyze() {
 }
 
 is_laptop() {
-  # Laptop vs desktop, ported from ryoku-hw-laptop. DMI chassis type is
-  # authoritative; a lid switch is the fallback when firmware misreports it.
+  # Prefer the shared hardware helper when it is installed; keep the inline path
+  # for tests and partial checkouts where only the GPU detector is present.
+  if command -v ryoku-hw-laptop >/dev/null 2>&1; then
+    ryoku-hw-laptop is-laptop && return 0
+    return 1
+  fi
+
+  local detect_dir
+  detect_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+  if [[ -x $detect_dir/../power/ryoku-hw-laptop ]]; then
+    "$detect_dir/../power/ryoku-hw-laptop" is-laptop && return 0
+    return 1
+  fi
+
   case "${RYOKU_ASSUME_LAPTOP:-}" in
     1) return 0 ;;
     0) return 1 ;;
   esac
   local chassis_file="${RYOKU_CHASSIS_TYPE_FILE:-/sys/class/dmi/id/chassis_type}"
   if [[ -r $chassis_file ]]; then
-    # SMBIOS portable types: 8 Portable, 9 Laptop, 10 Notebook, 11 Hand Held,
-    # 14 Sub Notebook, 30 Tablet, 31 Convertible, 32 Detachable.
     case "$(<"$chassis_file")" in
       8 | 9 | 10 | 11 | 14 | 30 | 31 | 32) return 0 ;;
       3 | 4 | 5 | 6 | 7 | 13 | 23 | 24 | 25) return 1 ;;
     esac
   fi
+  local ps_dir="${RYOKU_POWER_SUPPLY_DIR:-/sys/class/power_supply}"
+  local ps
+  for ps in "$ps_dir"/BAT*; do
+    [[ -e $ps ]] || continue
+    [[ -r $ps/type ]] || continue
+    [[ $(<"$ps/type") == "Battery" ]] && return 0
+  done
   if grep -qsi 'Lid Switch' /sys/class/input/event*/device/name 2>/dev/null; then
     return 0
   fi

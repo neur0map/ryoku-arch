@@ -22,6 +22,10 @@
   agrees on a whole scale of 2 or more, else 1). `autoscale` applies live through
   `hyprctl` and writes `~/.config/hypr/monitors.lua`; `persist` saves the current
   layout. Catch-all monitor rule written last for hotplug.
+- `power/ryoku-hw-laptop`: shared laptop/desktop detector using DMI chassis type,
+  battery presence, and lid switches.
+- `power/ryoku-idle`: laptop-only `hypridle` launcher for Ryoku's dim, lock,
+  display-off, and suspend policy.
 - `drivers/nvidia.sh`, `drivers/intel.sh`, `drivers/amd.sh`, `drivers/vulkan.sh`:
   per-vendor, hardware-gated, idempotent install scripts with a `RYOKU_DRYRUN=1`
   print mode. NVIDIA uses the open modules on Turing and newer and the
@@ -33,3 +37,5 @@
   working NVIDIA Wayland session. Detection-gated, so they apply whenever an
   NVIDIA GPU is present, not only on the amd-nvidia profile.
 - `gpu/ryoku-gpu`: let shellcheck follow the sourced detect helper from any cwd.
+- `power/ryoku-idle`: ignore defunct `hypridle` zombies when deciding whether the
+  idle daemon is already running, so a dead first start cannot block a restart.

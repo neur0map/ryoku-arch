@@ -20,6 +20,11 @@ in the machine.
     dense laptop panel is zoomed and a normal external screen is left alone.
     `autoscale` applies it live and saves it; `persist` just saves the current
     layout.
+- `power/`
+  - `ryoku-hw-laptop` Classifies the host as laptop or desktop from DMI chassis
+    type, battery presence, and lid switches. It is shared by GPU and idle policy.
+  - `ryoku-idle` Starts `hypridle` only on laptops, using Ryoku's dim/lock/DPMS/
+    suspend timeouts.
 - `drivers/` One install script per vendor: `nvidia.sh`, `intel.sh`, `amd.sh`,
   and `vulkan.sh`. Each one checks whether its hardware is present and installs
   only what that hardware needs.
@@ -45,6 +50,14 @@ physical size) and picks a scale from a small set of steps, from 1x for normal
 screens up to 2x for very dense panels. Nothing is hardcoded per model, so a new
 monitor is handled sensibly the first time it is plugged in. GTK and older apps
 get a matching `GDK_SCALE` so they stay crisp too.
+
+## Laptop idle policy
+
+`ryoku-idle start` is launched from Hyprland autostart. On desktops it exits
+without starting anything. On laptops it starts `hypridle` with
+`~/.config/hypr/hypridle.conf`: 5 minutes dims, 10 minutes locks, 11 minutes
+powers displays down, and 30 minutes suspends. The shell's Keep Awake toggle uses
+Wayland idle inhibition, so hypridle stays paused while that toggle is on.
 
 ## Per-vendor drivers
 

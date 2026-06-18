@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+is_laptop() {
+  case "${RYOKU_ASSUME_LAPTOP:-}" in
+    1) return 0 ;;
+    0) return 1 ;;
+  esac
+
+  local chassis_file="${RYOKU_CHASSIS_TYPE_FILE:-/sys/class/dmi/id/chassis_type}"
+  if [[ -r $chassis_file ]]; then
+    case "$(<"$chassis_file")" in
+      8 | 9 | 10 | 11 | 14 | 30 | 31 | 32) return 0 ;;
+      3 | 4 | 5 | 6 | 7 | 13 | 23 | 24 | 25) return 1 ;;
+    esac
+  fi
+
+  local ps_dir="${RYOKU_POWER_SUPPLY_DIR:-/sys/class/power_supply}"
+  local ps
+  for ps in "$ps_dir"/BAT*; do
+    [[ -e $ps ]] || continue
+    [[ -r $ps/type ]] || continue
+    [[ $(<"$ps/type") == "Battery" ]] && return 0
+  done
+
+  local input_glob="${RYOKU_INPUT_NAME_GLOB:-/sys/class/input/event*/device/name}"
+  grep -qsi 'Lid Switch' $input_glob 2>/dev/null && return 0
+
+  local lid_dir="${RYOKU_LID_DIR:-/proc/acpi/button/lid}"
+  [[ -d $lid_dir ]] && compgen -G "$lid_dir/*" >/dev/null && return 0
+
+  return 1
+}
+
+usage() {
+  cat <<'USAGE'
+Usage: ryoku-hw-laptop [is-laptop|is-desktop|status]
+
+Exit status is the API:
+  is-laptop   0 on laptop, 1 otherwise (default)
+  is-desktop  0 on desktop, 1 otherwise
+  status      print laptop or desktop
+
+Env overrides for tests and one-off policy:
+  RYOKU_ASSUME_LAPTOP=1|0
+  RYOKU_CHASSIS_TYPE_FILE=/path/to/chassis_type
+  RYOKU_POWER_SUPPLY_DIR=/path/to/power_supply
+  RYOKU_INPUT_NAME_GLOB='/path/event*/device/name'
+  RYOKU_LID_DIR=/path/to/lid
+USAGE
+}
+
+cmd="${1:-is-laptop}"
+case "$cmd" in
+  is-laptop|detect)
+    is_laptop
+    ;;
+  is-desktop)
+    ! is_laptop
+    ;;
+  status)
+    if is_laptop; then
+      printf 'laptop\n'
+    else
+      printf 'desktop\n'
+    fi
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    printf 'ryoku-hw-laptop: unknown command: %s\n' "$cmd" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

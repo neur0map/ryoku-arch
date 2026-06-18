@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+IDLE_CONF="${RYOKU_HYPRIDLE_CONF:-${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hypridle.conf}"
+
+hw_laptop() {
+  if command -v ryoku-hw-laptop >/dev/null 2>&1; then
+    ryoku-hw-laptop is-laptop
+  elif [[ -x $SCRIPT_DIR/ryoku-hw-laptop ]]; then
+    "$SCRIPT_DIR/ryoku-hw-laptop" is-laptop
+  else
+    printf 'ryoku-idle: ryoku-hw-laptop not found\n' >&2
+    return 1
+  fi
+}
+
+hypridle_pids() {
+  local proc state uid key value self_uid
+  self_uid="$(id -u)"
+
+  for proc in /proc/[0-9]*; do
+    [[ -r $proc/comm && -r $proc/status ]] || continue
+    [[ $(<"$proc/comm") == "hypridle" ]] || continue
+
+    state=""
+    uid=""
+    while read -r key value _; do
+      case "$key" in
+        State:) state="$value" ;;
+        Uid:) uid="$value" ;;
+      esac
+    done < "$proc/status"
+
+    [[ $uid == "$self_uid" ]] || continue
+    [[ $state == "Z" ]] && continue
+    printf '%s\n' "${proc##*/}"
+  done
+}
+
+hypridle_running() {
+  [[ -n $(hypridle_pids) ]]
+}
+
+usage() {
+  cat <<'USAGE'
+Usage: ryoku-idle [start|status|is-laptop]
+
+start      launch hypridle only when this host is detected as a laptop
+status     print device class, hypridle availability/running state, and config
+is-laptop  return ryoku-hw-laptop's laptop detection status
+
+Env:
+  RYOKU_HYPRIDLE_CONF=/path/to/hypridle.conf
+  RYOKU_IDLE_VERBOSE=1   print why start exits without launching hypridle
+USAGE
+}
+
+cmd="${1:-start}"
+case "$cmd" in
+  start)
+    if ! hw_laptop; then
+      [[ ${RYOKU_IDLE_VERBOSE:-0} == 1 ]] && printf 'ryoku-idle: desktop detected; laptop idle policy disabled\n'
+      exit 0
+    fi
+    if ! command -v hypridle >/dev/null 2>&1; then
+      printf 'ryoku-idle: hypridle is not installed\n' >&2
+      exit 0
+    fi
+    if [[ ! -r $IDLE_CONF ]]; then
+      printf 'ryoku-idle: config not readable: %s\n' "$IDLE_CONF" >&2
+      exit 1
+    fi
+    hypridle_running && exit 0
+    exec hypridle -c "$IDLE_CONF"
+    ;;
+  status)
+    if hw_laptop; then
+      printf 'device=laptop\n'
+    else
+      printf 'device=desktop\n'
+    fi
+    if command -v hypridle >/dev/null 2>&1; then
+      printf 'hypridle=installed\n'
+    else
+      printf 'hypridle=missing\n'
+    fi
+    if hypridle_running; then
+      printf 'running=yes\n'
+    else
+      printf 'running=no\n'
+    fi
+    printf 'config=%s\n' "$IDLE_CONF"
+    ;;
+  is-laptop)
+    hw_laptop
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    printf 'ryoku-idle: unknown command: %s\n' "$cmd" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

@@ -8,8 +8,9 @@ time (`RYOKU_REPO/system/packages/`).
 
 - `base.packages` The set every machine gets, installed by `pacstrap`. Core
   system, the boot chain, networking, audio, plain Hyprland, the SDDM greeter and
-  qylock dependencies, the terminal apps (kitty, nautilus, chromium, mpv), the
-  shell stack (fish, starship, fastfetch and friends), and fonts.
+  qylock dependencies, laptop idle/battery support (`hypridle`, `upower`), the
+  terminal apps (kitty, nautilus, chromium, mpv), the shell stack (fish, starship,
+  fastfetch and friends), and fonts.
 - `hardware.packages` Per-profile microcode and GPU drivers, grouped into
   `[amd]`, `[intel]`, `[nvidia]`, and `[vm]` sections. The installer picks the
   section(s) for the chosen `RYOKU_PROFILE` (`amd-nvidia` takes `[amd]` and
