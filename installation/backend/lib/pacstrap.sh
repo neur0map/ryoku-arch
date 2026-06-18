@@ -2,7 +2,8 @@
 # shellcheck shell=bash
 # Install the base system with pacstrap, then write the fstab. The package set is
 # system/packages/base.packages plus the per-profile section(s) of
-# system/packages/hardware.packages (microcode + GPU drivers).
+# system/packages/hardware.packages (microcode + GPU drivers) and the developer
+# toolchains in system/packages/dev.packages.
 
 # read_section prints the package lines under [section] in an INI-style file,
 # skipping comments and blank lines, stopping at the next [section].
@@ -53,6 +54,12 @@ ryoku_pacstrap() {
     [[ -f $hw_file ]] && mapfile -t -O "${#hw[@]}" hw < <(read_section "$hw_file" "$sec")
   done
   (( ${#hw[@]} )) && pkgs+=("${hw[@]}")
+
+  # Developer toolchains ship with every machine (Go, Node/npm, Rust, Python, mise).
+  local dev_file="$RYOKU_REPO/system/packages/dev.packages"
+  local -a dev=()
+  [[ -f $dev_file ]] && mapfile -t dev < <(grep -vE '^[[:space:]]*(#|$)' "$dev_file")
+  (( ${#dev[@]} )) && pkgs+=("${dev[@]}")
 
   ryoku_ensure_keyring
   log "installing ${#pkgs[@]} packages (profile=$RYOKU_PROFILE)"

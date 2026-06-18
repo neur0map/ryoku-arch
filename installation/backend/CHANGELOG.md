@@ -31,6 +31,8 @@
   install still completes.
 - `lib/deploy.sh`: read the desktop payload from the consolidated tree, the shell
   from `ryoku/shell/*` and the Hyprland config from `ryoku/hyprland`.
+- `lib/pacstrap.sh`: also install `system/packages/dev.packages`, so every machine
+  ships the Go, Node/npm, Rust, Python, and mise toolchains.
 
 ### Fixed
 - `lib/chroot.sh`: set the root password to the chosen install password instead
