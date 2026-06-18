@@ -5,6 +5,10 @@
 # Here `edit` runs Neovim directly with `block = true`, so nvim takes over
 # yazi's terminal until you quit it.
 
+[mgr]
+# Show dotfiles (e.g. ~/.config) in listings.
+show_hidden = true
+
 [opener]
 edit = [
   { run = 'nvim "$@"', block = true, desc = 'Edit with Neovim', for = 'unix' },

@@ -40,9 +40,10 @@ if status is-interactive
     starship init fish | source
   end
 
-  # Directory jumper (z / zi).
+  # Directory jumper: hook cd into zoxide so plain `cd` learns and jumps to
+  # frecent directories (use `cdi` for an interactive pick).
   if command -v zoxide >/dev/null 2>&1
-    zoxide init fish | source
+    zoxide init fish --cmd cd | source
   end
 
   # Let fzf walk the tree with fd when present.

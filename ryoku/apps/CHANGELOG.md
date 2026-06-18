@@ -31,3 +31,7 @@
   before `config.fish` that rendered typed input in a near-background color
   (invisible as you type); pinning command, param, error, comment, and
   autosuggestion colors keeps the command line readable under any wallust theme.
+- `fish/`: hook `cd` into zoxide (`zoxide init fish --cmd cd`), so plain `cd`
+  learns and jumps to frecent directories (`cdi` for an interactive pick).
+- `yazi/`: show hidden files by default (`[mgr] show_hidden = true`), so dotfile
+  trees like `~/.config` are visible.
