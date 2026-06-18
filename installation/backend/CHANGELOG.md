@@ -35,6 +35,8 @@
   ships the Go, Node/npm, Rust, Python, and mise toolchains.
 - `lib/deploy.sh`: ship `~/.npmrc` and `~/.config/pip/pip.conf`, so `npm i -g` and
   `pip install --user` work without root out of the box.
+- `lib/deploy.sh`: installs `ryoku-hw-laptop` and `ryoku-idle` into the target so
+  laptop idle policy is available on first login.
 
 ### Fixed
 - `lib/chroot.sh`: set the root password to the chosen install password instead

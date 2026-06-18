@@ -65,6 +65,8 @@ ryoku_deploy_bin() {
   install_bin "$RYOKU_REPO/system/hardware/gpu/ryoku-gpu" ryoku-gpu
   install_bin "$RYOKU_REPO/system/hardware/gpu/ryoku-gpu-detect" ryoku-gpu-detect
   install_bin "$RYOKU_REPO/system/hardware/display/ryoku-monitor" ryoku-monitor
+  install_bin "$RYOKU_REPO/system/hardware/power/ryoku-hw-laptop" ryoku-hw-laptop
+  install_bin "$RYOKU_REPO/system/hardware/power/ryoku-idle" ryoku-idle
   install_bin "$RYOKU_REPO/ryoku/apps/fastfetch/ryoku-fastfetch" ryoku-fastfetch
   install_bin "$RYOKU_REPO/ryoku/shell/ipc/ryoku-shell" ryoku-shell
   deploy_file "$RYOKU_REPO/system/hardware/gpu/90-ryoku-gpu.rules" \
