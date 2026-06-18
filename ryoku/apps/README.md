@@ -17,17 +17,28 @@ maps to a place under `~/.config` (except the small helper script noted below).
   few eza listing aliases (each guarded so a missing tool is harmless).
 - `starship/` The prompt: current directory, git branch, and command duration on
   a fixed Ryoku palette.
-- `nautilus/` The file manager. No config to ship; see its README for how the
-  home folders and optional defaults work.
+- `nvim/` The editor (LazyVim seed) plus `ryoku-nvim.desktop`, which registers
+  neovim as the default text handler.
+- `yazi/` The terminal file manager (`yazi.toml`).
+- `npm/` (`npmrc`) and `pip/` (`pip.conf`) keep each package manager writing under
+  the home, so neither needs root.
+- `nautilus/` The graphical file manager. No config to ship; see its README for
+  how the home folders and optional defaults work.
+- `mimeapps.list` The default-application map (text files route to neovim).
 
 ## Install paths
 
-| Folder       | Destination                                   |
-| ------------ | --------------------------------------------- |
-| `kitty/`     | `~/.config/kitty/`                            |
-| `fastfetch/` | `~/.config/fastfetch/` (config + wrapper)     |
-| `fish/`      | `~/.config/fish/config.fish`                  |
-| `starship/`  | `~/.config/starship.toml`                     |
+| Folder          | Destination                               |
+| --------------- | ----------------------------------------- |
+| `kitty/`        | `~/.config/kitty/`                        |
+| `fastfetch/`    | `~/.config/fastfetch/` (config + wrapper) |
+| `fish/`         | `~/.config/fish/config.fish`              |
+| `starship/`     | `~/.config/starship.toml`                 |
+| `nvim/`         | `~/.config/nvim/`                         |
+| `yazi/`         | `~/.config/yazi/`                         |
+| `npm/`          | `~/.npmrc`                                 |
+| `pip/`          | `~/.config/pip/pip.conf`                  |
+| `mimeapps.list` | `~/.config/mimeapps.list`                 |
 
 The `ryoku-fastfetch` wrapper must also land on `PATH` (for example
 `~/.local/bin/ryoku-fastfetch`) so fish can call it on terminal start. It expects
