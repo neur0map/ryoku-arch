@@ -86,6 +86,8 @@ ryoku_deploy_configs() {
   deploy_file "$RYOKU_REPO/ryoku/apps/starship/starship.toml" "$h/.config/starship.toml"
   deploy_dir "$RYOKU_REPO/ryoku/apps/nvim" "$h/.config/nvim"
   deploy_dir "$RYOKU_REPO/ryoku/apps/yazi" "$h/.config/yazi"
+  deploy_file "$RYOKU_REPO/ryoku/apps/npm/npmrc" "$h/.npmrc"
+  deploy_file "$RYOKU_REPO/ryoku/apps/pip/pip.conf" "$h/.config/pip/pip.conf"
 }
 
 # ryoku_deploy_shell installs the Ryoku shell components: the quickshell UI, the
