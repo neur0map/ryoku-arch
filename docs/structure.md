@@ -29,8 +29,9 @@ truth for the live desktop.
   `install-qylock`, and `sddm/` (the greeter setup).
 - `shell/` the desktop shell subsystem: `quickshell/` (the QML UI: `pill`,
   `sidebar`, `topbar`, `launcher`, `ryoshot`), `wallust/` (palette from the
-  wallpaper), `kde/` (`kdeglobals`), `systemd/` (the user session target), `ipc/`
-  (`ryoku-shell`, the Go control-plane daemon), `brave-theme/`. `deploy.sh` and
+  wallpaper), `kde/` (`kdeglobals`), `systemd/` (the
+  user session target), `ipc/` (`ryoku-shell`, the Go control-plane daemon).
+  `deploy.sh` and
   `dev-*.sh` are the live dev-loop tools.
 - `assets/` `brand/` the 力 logo and icons, and `wallpapers/` the shipped
   wallpaper set (installs to `~/Pictures/Wallpapers`).

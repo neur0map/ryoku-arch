@@ -19,6 +19,9 @@
   the `ryoku-shell` Go control-plane daemon (`ipc/`).
 - `hyprland/` autostart and `shell/ipc`: apply wallust colors to
   OpenRGB-compatible keyboards and lighting devices through `ryoku-leds`.
+- `hyprland/` autostart: set GTK apps to dark through `gsettings`
+  (`color-scheme` prefer-dark, `gtk-theme` Adwaita-dark), so nautilus and other
+  GTK apps match the dark Qt and kitty theme.
 
 ### Changed
 - Tuned Hyprland window decoration and motion for the Ryoku shell: stronger

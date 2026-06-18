@@ -73,6 +73,8 @@
 - The shell reads wallpapers from `~/Pictures/Wallpapers` (the XDG Pictures home,
   was `~/Ryoku/wallpapers`); the random picker, the picker strip, and the
   thumbnailer accept `.webp` alongside `.jpg`/`.jpeg`/`.png`.
+- Removed the orphaned `brave-theme/`: the shipped browser is chromium (`Super+B`)
+  and the theme was deployed by neither the dev nor the install path.
 
 ### Fixed
 - `ipc/wallpaper.go`: resolve a symlinked wallpaper directory (`EvalSymlinks`)

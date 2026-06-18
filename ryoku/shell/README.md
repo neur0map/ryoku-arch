@@ -15,7 +15,8 @@ it to `~/.config` (see `installation/backend/lib/deploy.sh`).
   These render the shell; they hold no daemon logic.
 - `wallust/` Palette generation from the current wallpaper (the kitty palette and
   the Hyprland colors).
-- `kde/`, `brave-theme/` Per-app config.
+- `kde/` The Qt/KDE platform theme (`kdeglobals`). GTK apps are themed by the
+  Hyprland autostart (`gsettings color-scheme`), not a shipped file.
 - `systemd/` The user session target.
 
 The Hyprland config that hosts this shell lives at `ryoku/hyprland`; its

@@ -1,5 +1,7 @@
 hl.on("hyprland.start", function()
     hl.exec_cmd("hyprctl setcursor Bibata-Modern-Ice 24")
+    hl.exec_cmd("gsettings set org.gnome.desktop.interface color-scheme prefer-dark")
+    hl.exec_cmd("gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark")
     hl.exec_cmd("systemctl --user start hyprland-session.target")
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("command -v ryoku-monitor >/dev/null 2>&1 && ryoku-monitor autoscale")
