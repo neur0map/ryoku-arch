@@ -1,39 +1,46 @@
-# Ryoku prompt: directory, git branch, command duration.
 add_newline = false
-palette = "ryoku"
+palette = "mythos"
 
+# Modern Floating Pill layout?
 format = """
 $directory$git_branch$cmd_duration
 $character"""
 
-[palettes.ryoku]
-accent = "#F25623"
-fg = "#CCD0CF"
-muted = "#7A7A7A"
-green = "#88A57D"
-red = "#C0392B"
+[palettes.mythos]
+# Pill Backgrounds (Dark, muted cinematic shades to complement Noir)
+dir_bg = "#23252E"   # Deep Slate
+git_bg = "#1A272D"   # Dark Aegean Blue/Grey
+time_bg = "#2B1E22"  # Shadowy Tyrian Purple/Wine
+
+# Foregrounds (Bright 'eye-candy' accents that pop against terminal blacks)
+dir_fg = "#ECA75B"   # Olympian Gold / Bronze
+git_fg = "#70C2A3"   # Oxidized Patina Green
+time_fg = "#E27B75"  # Terracotta / Clay red
+crimson = "#E64553"  # Standard high-alert error
 
 [directory]
-style = "bold fg:accent"
-truncation_length = 4
+style = "fg:dir_fg bg:dir_bg bold"
+truncation_length = 3
 truncation_symbol = "…/"
 read_only = " 󰌾"
-read_only_style = "fg:red"
-format = "[󰉋 $path]($style)[$read_only]($read_only_style) "
+read_only_style = "fg:crimson bg:dir_bg bold"
+# Uses Nerd Font half-circles for the pill effect
+format = "[](fg:dir_bg)[󰉋 $path ]($style)[$read_only]($read_only_style)[](fg:dir_bg) "
 
 [git_branch]
-symbol = "󰘬 "
-style = "fg:green"
-format = "[$symbol$branch]($style) "
+symbol = "󰊢 "
+style = "fg:git_fg bg:git_bg bold"
+format = "[](fg:git_bg)[$symbol$branch ]($style)[](fg:git_bg) "
 
 [cmd_duration]
 min_time = 500
-style = "fg:muted"
-format = "[󰪢 $duration]($style) "
+style = "fg:time_fg bg:time_bg bold"
+format = "[](fg:time_bg)[󰔚 $duration ]($style)[](fg:time_bg) "
 
 [character]
-success_symbol = "[❯](bold fg:accent)"
-error_symbol = "[❯](bold fg:red)"
+# Lambda (Greek) instead of standard chevron
+success_symbol = "[λ ](bold fg:dir_fg)"
+error_symbol = "[λ ](bold fg:crimson)"
 
 [package]
 disabled = true
