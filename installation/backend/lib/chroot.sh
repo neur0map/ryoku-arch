@@ -41,7 +41,13 @@ ryoku_cfg_timezone() {
     else
       # The configure stage runs with the network up, so geolocation resolves
       # here even when the installer's timezone screen ran before Wi-Fi joined.
-      tz=$(curl -fsSL --max-time 10 https://ipinfo.io/timezone | tr -d '[:space:]') || tz=""
+      # Two providers for resilience; the first that returns a known zone wins.
+      local url
+      for url in "https://ipinfo.io/timezone" "http://ip-api.com/line?fields=timezone"; do
+        tz=$(curl -fsSL --max-time 10 "$url" 2>/dev/null | tr -d '[:space:]') || tz=""
+        if [[ -n $tz && -e /mnt/usr/share/zoneinfo/$tz ]]; then break; fi
+        tz=""
+      done
     fi
   fi
   if [[ -z ${RYOKU_DRYRUN:-} && ( -z $tz || ! -e /mnt/usr/share/zoneinfo/$tz ) ]]; then

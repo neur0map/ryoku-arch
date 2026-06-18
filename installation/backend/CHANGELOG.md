@@ -42,9 +42,9 @@
 - `lib/chroot.sh` and the TUI: fix timezone detection. The timezone screen runs
   before the network step, so a Wi-Fi install geolocated with no connection and
   silently fell back to UTC. The TUI no longer resolves the zone itself; the
-  backend resolves it during the configure stage (network up), validates it
-  against the zoneinfo database (UTC fallback with a warning), and enables
-  systemd-timesyncd so the installed clock syncs and self-corrects.
+  backend resolves it from two geolocation providers during the configure stage
+  (network up), validates it against the zoneinfo database (UTC fallback with a
+  warning), and enables systemd-timesyncd so the installed clock self-corrects.
 - `lib/chroot.sh`: set the root password to the chosen install password instead
   of locking the root account, so `su` works alongside `sudo`. A locked root
   made `su` reject the user's password even though `sudo` worked.
