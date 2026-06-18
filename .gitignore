@@ -20,7 +20,6 @@
 /.mcp.json
 /opencode.json
 /.prowl/
-/AGENTS.md
 
 # Language-server config stays developer-local
 .luarc.json
