@@ -18,8 +18,8 @@ time (`RYOKU_REPO/system/packages/`).
 - `aur.packages` Things that come from the AUR. These are not installed by
   pacstrap (the base system has no AUR helper yet); they are built later during
   post-install. Includes the Limine integration hooks and the Bibata cursors.
-- `dev.packages` Optional developer toolchains (Go, Node, Rust, mise). Not part
-  of the base install; offered as an add-on.
+- `dev.packages` Developer toolchains (Go, Node/npm, Rust, Python/pip, mise),
+  installed by `pacstrap` with the base set so every machine is dev-ready.
 
 ## Adding a package
 

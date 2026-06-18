@@ -7,7 +7,8 @@
 - `hardware.packages`: per-profile CPU microcode (`[amd]`, `[intel]`). GPU drivers
   come from `system/hardware/drivers/*.sh`, which the installer runs in the target.
 - `aur.packages`: AUR add-ons (Limine hooks, Bibata cursors, AUR helper).
-- `dev.packages`: optional developer toolchains.
+- `dev.packages`: the developer toolchains shipped with every machine (Go,
+  Node/npm, Rust, Python/pip, mise).
 - `base.packages`: the Ryoku shell runtime (`quickshell`, `awww`, `cliphist`,
   `hyprpicker`, `imagemagick`, `jq`) and the `yazi` file manager. `aur.packages`
   gains `wallust` (palette); `quickshell` moved from AUR to base (now official).

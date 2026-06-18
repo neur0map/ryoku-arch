@@ -1,9 +1,11 @@
-# Optional developer toolchains. Not part of the base install; offered as an
-# add-on for machines that want language runtimes out of the box.
-# One package per line; '#' and blank lines are ignored.
+# Developer toolchains, installed by pacstrap with the base set so every Ryoku
+# machine has the language runtimes out of the box. One package per line;
+# '#' and blank lines are ignored.
 
 go
 nodejs
 npm
 rust
+python
+python-pip
 mise
