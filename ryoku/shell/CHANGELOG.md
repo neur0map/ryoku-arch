@@ -20,6 +20,8 @@
   source) and `ryoku-shell` onto `PATH`. Pauses Hyprland auto-reload across the
   `~/.config/hypr` swap so the missing-file window cannot trip emergency mode;
   `--no-reload` stages the files for the next login.
+- Hyprland autostart now launches `ryoku-idle start`; that helper starts
+  `hypridle` on laptops only.
 
 ### Changed
 - Relocated from the top-level `shell/` to `ryoku/shell/` as part of folding the

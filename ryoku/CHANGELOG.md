@@ -5,7 +5,8 @@
 ### Added
 - `hyprland/`: the Hyprland config in Lua, modular (entrypoint plus modules for
   input, decoration, animations, binds, window rules, ryoshot, and autostart)
-  with hardware-managed gpu/keyboard/monitors. Launches the Ryoku shell.
+  with hardware-managed gpu/keyboard/monitors. Launches the Ryoku shell and the
+  laptop-only idle policy.
 - `lockscreen/`: the vendored qylock clockwork theme, its installer, and the SDDM
   setup.
 - `apps/`: kitty, fastfetch (with the branded wrapper), fish (greeting off),

@@ -64,6 +64,9 @@ func activeMonitor() string {
 // lockSession locks the screen with qylock, the in-session lock Ryoku ships. The
 // shell has no lock of its own.
 func lockSession() string {
+	if pgrepRunning("quickshell.*quickshell-lockscreen.*/lock_shell.qml") {
+		return "ok"
+	}
 	lock := filepath.Join(os.Getenv("HOME"), ".local", "share", "quickshell-lockscreen", "lock.sh")
 	cmd := exec.Command(lock)
 	if err := cmd.Start(); err != nil {

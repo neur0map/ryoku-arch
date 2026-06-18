@@ -20,6 +20,8 @@ it to `~/.config` (see `installation/backend/lib/deploy.sh`).
 
 The Hyprland config that hosts this shell lives at `ryoku/hyprland`; its
 `scripts/` holds the clipboard and wallpaper thumbnailers the UI calls directly.
+Its autostart also runs `ryoku-idle start`, which enables dim/lock/display-off/
+suspend timeouts only on detected laptops.
 
 ## The IPC
 
@@ -44,6 +46,7 @@ dumb. Build it with `go build` in `ipc/`; the binary belongs on `PATH` as
 Beyond Hyprland, quickshell, and `go` (to build `ryoku-shell`), the shell calls at
 runtime: `awww` (wallpaper daemon), `wallust` (palette), `cliphist` and
 `wl-clipboard`, `imagemagick` (clipboard and wallpaper thumbnails), `hyprpicker`,
+`hypridle` and `brightnessctl` (laptop idle/dim), `upower` (battery state),
 `wireplumber` (`wpctl`) and `playerctl` (media keys), `jq`, and `glib2` (`gio`).
 The keybinds open `kitty` (terminal) and `nautilus` (files). Fonts: JetBrains
 Mono Nerd and Noto; cursor: Bibata. The lock is qylock, from `ryoku/`.

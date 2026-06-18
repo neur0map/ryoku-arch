@@ -34,6 +34,9 @@ say "building ryoku-shell"
 mkdir -p "$bindir"
 install -m755 "$here/ipc/ryoku-shell" "$bindir/ryoku-shell"
 say "installed $bindir/ryoku-shell"
+install -m755 "$here/../../system/hardware/power/ryoku-hw-laptop" "$bindir/ryoku-hw-laptop"
+install -m755 "$here/../../system/hardware/power/ryoku-idle" "$bindir/ryoku-idle"
+say "installed laptop idle helpers"
 
 # Quickshell components: a deployed daemon runs `qs -c <name>`, reading
 # ~/.config/quickshell/<name>.
