@@ -996,9 +996,6 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 				m.diskDev = s.items[sel].key
 				m.diskTotal = diskSizeOf(m.diskDev)
 			}
-			if s.key == "timezone" && m.picks["timezone"] == "auto" {
-				m.picks["timezone"] = autoTimezone()
-			}
 			if s.key == "keyboard" {
 				applyKeymap(m.picks["keyboard"])
 			}

@@ -39,13 +39,19 @@ ryoku_cfg_timezone() {
       printf 'DRYRUN: curl -fsSL https://ipinfo.io/timezone\n'
       tz='<auto-timezone>'
     else
-      tz=$(curl -fsSL https://ipinfo.io/timezone) || die "could not resolve timezone via ipinfo.io"
-      [[ -n $tz ]] || die "ipinfo.io returned an empty timezone"
+      # The configure stage runs with the network up, so geolocation resolves
+      # here even when the installer's timezone screen ran before Wi-Fi joined.
+      tz=$(curl -fsSL --max-time 10 https://ipinfo.io/timezone | tr -d '[:space:]') || tz=""
     fi
+  fi
+  if [[ -z ${RYOKU_DRYRUN:-} && ( -z $tz || ! -e /mnt/usr/share/zoneinfo/$tz ) ]]; then
+    log "warn: timezone '${tz:-empty}' is empty or unknown; falling back to UTC"
+    tz=UTC
   fi
   log "timezone: $tz"
   run ln -sf "/usr/share/zoneinfo/$tz" /mnt/etc/localtime
   run arch-chroot /mnt hwclock --systohc
+  run arch-chroot /mnt systemctl enable systemd-timesyncd.service
 }
 
 ryoku_cfg_hostname() {

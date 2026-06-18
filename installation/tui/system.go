@@ -401,16 +401,6 @@ func applyExit(action string) {
 	}
 }
 
-// autoTimezone resolves a time zone from the public IP. WIRE target.
-func autoTimezone() string {
-	if out, ok := run("curl", "-s", "--max-time", "3", "https://ipinfo.io/timezone"); ok {
-		if tz := strings.TrimSpace(out); tz != "" {
-			return tz
-		}
-	}
-	return "UTC"
-}
-
 // hashPassword produces a sha512-crypt hash for useradd. WIRE target.
 func hashPassword(pw string) string {
 	cmd := exec.Command("openssl", "passwd", "-6", "-stdin")
