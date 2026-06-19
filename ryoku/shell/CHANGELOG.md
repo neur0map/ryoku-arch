@@ -54,6 +54,13 @@
   LocalSend; and current weather (`Singletons/Weather`, from wttr.in) shows in the
   calendar surface and the hover clock. The card and stash open from new hover-row
   glyphs, and the stash also rides the activity strip as a live chip.
+- `quickshell/pill`: the STASH gains an action rail down its left edge: send the
+  whole stash over LocalSend, install dropped AppImages and tarballs into the app
+  launcher (Super+Space), compress videos and images through ffmpeg, and pull
+  media in from the clipboard with yt-dlp. Adds `StashRail`, `StashTaskOverlay`,
+  the `send`/`install`/`compress`/`download` `GlyphIcon` glyphs, `Singletons/Stash`
+  actions, and the `hyprland/scripts/stash-install.sh`, `stash-compress.sh`,
+  `stash-download.sh` helpers (plus a `send-all` mode on `localsend.sh`) behind them.
 
 ### Changed
 - Relocated from the top-level `shell/` to `ryoku/shell/` as part of folding the
@@ -109,6 +116,11 @@
   appended to every preset), so only the shape varies. Border colors follow the
   wallpaper via `hyprctl reload config-only` (Hyprland's new parser rejects runtime
   `keyword`, and `config-only` leaves the monitors untouched).
+- `quickshell/pill`: the STASH signs itself with a `WaveMeter` house mark under
+  the header that fills on open, dropping the Ame bead that used to dock in its
+  centre; the surface is wider and taller so the rail and a two-row grid have room.
+- `quickshell/pill`: the music island opens the file stash on tap (was the media
+  surface); the transport controls it reveals on hover already cover playback.
 
 ### Fixed
 - `ipc/wallpaper.go`: resolve a symlinked wallpaper directory (`EvalSymlinks`)
@@ -132,6 +144,10 @@
   returns (~150ms); the palette+border reload and the slow LED pass run on
   coalescing background workers, so rapid presses stay smooth and the settled
   wallpaper still themes once.
+- `quickshell/pill`: the island wake-wave streak no longer repeats while hovering.
+  It keyed off the un-latched `hoverArrived`, so every in-hover geometry twitch
+  re-fired it; a one-shot `islandWoken` latch now plays it once per open and clears
+  only on the return to rest.
 
 ### Not included
 - The GRUB theme (the system boots with Limine) and the SDDM theme (a 38 MB

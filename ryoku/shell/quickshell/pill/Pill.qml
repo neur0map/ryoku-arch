@@ -78,7 +78,7 @@ Item {
     readonly property real mediaH: 150 * s
     readonly property real batteryW: 316 * s
     readonly property real sysinfoW: 360 * s
-    readonly property real stashW: 360 * s
+    readonly property real stashW: 420 * s
     readonly property real toastW: 342 * s
     readonly property real restCorner: 18 * s
     readonly property real openCorner: 22 * s
@@ -193,12 +193,19 @@ Item {
      * icons appearing) don't flicker the bead off.
      */
     property bool hoverSoulGate: false
+    // One-shot wake latch: the WakeWave flourish fires exactly once per open
+    // cycle. Set when the hover morph first settles, cleared only on return to
+    // rest -- so in-hover geometry twitches, surface hops and toast/osd
+    // interruptions never restart the streak (the "wave repeats" glitch).
+    property bool islandWoken: false
     readonly property bool hoverArrived: mode === "hover" && morphCloseness > 0.55
-    onHoverArrivedChanged: if (hoverArrived) hoverSoulGate = true
+    onHoverArrivedChanged: if (hoverArrived) { hoverSoulGate = true; islandWoken = true; }
     onModeChanged: if (mode !== "hover") {
         hoverSoulGate = false;
         soulTarget = "";
         soulWsIndex = -1;
+        if (mode === "rest")
+            islandWoken = false;
     }
     onHoverSoulGateChanged: if (hoverSoulGate) kanjiFlashAnim.restart()
 
@@ -226,10 +233,6 @@ Item {
         var dx = px - cx;
         var dy = py - cy;
         return dx * dx + dy * dy <= rr * rr + 0.01;
-    }
-
-    HoverHandler {
-        onHoveredChanged: pill.hovered = hovered
     }
 
     Rectangle {
@@ -674,7 +677,7 @@ Item {
         WakeWave {
             anchors.fill: parent
             s: pill.s
-            live: pill.hoverArrived
+            live: pill.islandWoken
         }
     }
 

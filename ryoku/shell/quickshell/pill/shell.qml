@@ -229,9 +229,9 @@ ShellRoot {
                 readonly property real baseX: pill.x + (pill.width - baseW) / 2
                 readonly property real musicPad: musicIsland.visible ? Math.max(0, musicIsland.x + musicIsland.width - (baseX + baseW)) : 0
                 x: baseX
-                y: pill.y
+                y: 0
                 width: baseW + musicPad
-                height: Math.max(pill.height, pill.targetH)
+                height: pill.y + Math.max(pill.height, pill.targetH) + 6 * pill.s
                 // Edge popouts grab input at the frame edges (their trigger) and
                 // over the open body, so hovering the centre-left/right border
                 // opens them while the rest of the screen stays click-through.
@@ -403,6 +403,16 @@ ShellRoot {
                     onEntered: (drag) => root.show(overlay.modelData.name, "stash")
                 }
 
+                Item {
+                    // Hover zone that opens the island: the whole blob -- the neck up
+                    // into the frame and a margin below the clock -- not just the clock.
+                    x: pill.x
+                    y: 0
+                    width: pill.width
+                    height: pill.y + pill.height + 6 * overlay.s
+                    HoverHandler { onHoveredChanged: pill.hovered = hovered }
+                }
+
                 Pill {
                     id: pill
                     anchors.top: parent.top
@@ -449,7 +459,7 @@ ShellRoot {
                     }
                     y: Math.max(pill.y + pill.height / 2 - height / 2, 22)
                     onHoveredChanged: if (hovered) pill.hovered = false
-                    onActivated: root.toggleSurface(overlay.modelData.name, "media")
+                    onActivated: root.toggleSurface(overlay.modelData.name, "stash")
                 }
 
                 ActivityStrip {

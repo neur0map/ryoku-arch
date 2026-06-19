@@ -21,9 +21,9 @@ PillSurface {
     mRight: 16
     mBottom: 14
 
-    implicitHeight: 150 * s
+    implicitHeight: 236 * s
 
-    ameForm: open ? "dock" : "off"
+    ameForm: "off"
 
     // ── Header ──────────────────────────────────────────────────────────
     Item {
@@ -73,18 +73,31 @@ PillSurface {
         }
     }
 
+    // Ryoku wave signature: a house mark under the header that fills on open,
+    // standing in for the bead that used to dock in the centre.
+    WaveMeter {
+        id: waveSig
+        anchors.top: header.bottom
+        anchors.topMargin: 7 * root.s
+        anchors.left: parent.left
+        anchors.right: parent.right
+        s: root.s
+        frac: root.open ? 1 : 0
+    }
+
     // ── File grid ───────────────────────────────────────────────────────
     GridView {
         id: grid
-        anchors.top: header.bottom
+        anchors.top: waveSig.bottom
         anchors.topMargin: 10 * root.s
-        anchors.left: parent.left
+        anchors.left: rail.right
+        anchors.leftMargin: 12 * root.s
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         clip: true
         visible: Stash.count > 0
-        cellWidth: 92 * root.s
-        cellHeight: 92 * root.s
+        cellWidth: 85 * root.s
+        cellHeight: 85 * root.s
         model: Stash.files
         boundsBehavior: Flickable.StopAtBounds
 
@@ -293,6 +306,29 @@ PillSurface {
                 Stash.addUrl(drop.urls[i]);
             drop.accept();
         }
+    }
+
+    // ── Action rail ─────────────────────────────────────────────────────
+    StashRail {
+        id: rail
+        anchors.left: parent.left
+        anchors.top: waveSig.bottom
+        anchors.topMargin: 10 * root.s
+        s: root.s
+        hasFiles: Stash.count > 0
+        onSendAll: Stash.openSendAll()
+        onInstall: Stash.installStash()
+        onCompress: Stash.compressStash()
+        onDownload: Stash.downloadFromClipboard()
+    }
+
+    StashTaskOverlay {
+        anchors.top: waveSig.bottom
+        anchors.topMargin: 10 * root.s
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        s: root.s
     }
 
     // ── Device-picker overlay ───────────────────────────────────────────

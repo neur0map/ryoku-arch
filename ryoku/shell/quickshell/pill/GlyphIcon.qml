@@ -56,7 +56,11 @@ Item {
         "snow": { d: "M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25 M8 16h.01 M8 20h.01 M12 18h.01 M12 22h.01 M16 16h.01 M16 20h.01", fill: false },
         "fog": { d: "M4 9h16 M4 13h16 M7 17h10", fill: false },
         "storm": { d: "M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9 M13 11l-4 6h6l-4 6", fill: false },
-        "hotspot": { d: "M12 12a1.3 1.3 0 1 0 0.01 0 M8.8 8.5A5 5 0 0 0 8.8 15.5 M15.2 8.5A5 5 0 0 1 15.2 15.5 M6 6A9 9 0 0 0 6 18 M18 6A9 9 0 0 1 18 18", fill: false }
+        "hotspot": { d: "M12 12a1.3 1.3 0 1 0 0.01 0 M8.8 8.5A5 5 0 0 0 8.8 15.5 M15.2 8.5A5 5 0 0 1 15.2 15.5 M6 6A9 9 0 0 0 6 18 M18 6A9 9 0 0 1 18 18", fill: false },
+        "send": { d: "M22 2L11 13M22 2L15 22L11 13L2 9Z", fill: false },
+        "install": { d: "M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8 M3 8l9-5 9 5 M9 11l3 3 3-3 M12 14V5", fill: false },
+        "compress": { d: "M4 14h6v6 M20 10h-6V4 M14 10l7-7 M3 21l7-7", fill: false },
+        "download": { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3", fill: false }
     })
 
     readonly property var g: glyphs[name] !== undefined ? glyphs[name] : ({ d: "", fill: false })
