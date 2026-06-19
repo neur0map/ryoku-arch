@@ -20,6 +20,9 @@ Quickshell (QML) in `ryoku/shell/quickshell/`, driven by the `ryoku-shell` daemo
 
 Each is its own directory under `quickshell/`, each component its own `.qml`:
 
+- `frame` the rounded screen border and the popouts that melt into it; the
+  desktop's signature surface and the chrome the others sit in. See
+  `docs/frame.md`.
 - `pill` the morphing top bar and its popouts (the centerpiece; it grows and
   reshapes between states). This is the reference for the project's motion.
 - `topbar` the static status row.

@@ -27,12 +27,14 @@ truth for the live desktop.
   directory deploys to `~/.config/hypr/`.
 - `lockscreen/` `qylock/` (the lock theme and its quickshell lockscreen),
   `install-qylock`, and `sddm/` (the greeter setup).
-- `shell/` the desktop shell subsystem: `quickshell/` (the QML UI: `pill`,
-  `sidebar`, `topbar`, `launcher`, `ryoshot`), `wallust/` (palette from the
-  wallpaper), `kde/` (`kdeglobals`), `systemd/` (the
-  user session target), `ipc/` (`ryoku-shell`, the Go control-plane daemon).
-  `deploy.sh` and
-  `dev-*.sh` are the live dev-loop tools.
+- `shell/` the desktop shell subsystem: `quickshell/` (the QML UI: `pill` (the
+  morphing top island, which also draws the screen frame and hosts the edge
+  popouts under `pill/popouts/`), `sidebar`, `topbar`, `launcher`, `ryoshot`),
+  `plugin/` (`Ryoku.Blobs`, the C++/QML SDF metaball module the frame renders
+  with; `build.sh` builds it, and it ships prebuilt), `wallust/` (palette from
+  the wallpaper), `kde/` (`kdeglobals`),
+  `systemd/` (the user session target), `ipc/` (`ryoku-shell`, the Go
+  control-plane daemon). `deploy.sh` and `dev-*.sh` are the live dev-loop tools.
 - `assets/` `brand/` the 力 logo and icons, and `wallpapers/` the shipped
   wallpaper set (installs to `~/Pictures/Wallpapers`).
 
@@ -67,8 +69,9 @@ System-level definition installed into the target.
 - `installation/backend/lib/deploy.sh` copies the `ryoku/` payload into the
   target home and a few system paths.
 - `installation/iso/build.sh` bakes every git-tracked file at
-  `/usr/share/ryoku` and prebuilds the Go binaries (the TUI and `ryoku-shell`),
-  because the target has no build toolchain.
+  `/usr/share/ryoku`, prebuilds the Go binaries (the TUI and `ryoku-shell`), and
+  prebuilds the `Ryoku.Blobs` QML plugin into the payload, because the target has
+  no build toolchain.
 - It only ever flows **repo to system**. A change starts in the repo and is
   deployed; nothing is harvested back from a live machine.
 
