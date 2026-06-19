@@ -1,0 +1,324 @@
+#!/bin/bash
+# Stash app installer for the Ryoku shell file stash: makes dropped AppImages and
+# tarballs discoverable in the launcher by emitting XDG desktop entries.
+# Usage: stash-install.sh [file]   (no arg: install every AppImage/tarball in $STASH)
+set -u
+
+STASH="${STASH_DIR:-$HOME/Downloads/Stash}"
+APPSTORE="$HOME/.local/share/ryoku-apps"        # installed payloads live here
+APPDIR="$HOME/.local/share/applications"         # launcher reads .desktop from here
+ICONDIR="$HOME/.local/share/icons"
+mkdir -p "$APPSTORE" "$APPDIR" "$ICONDIR"
+
+LAST_NAME=""
+
+# --- helpers ---------------------------------------------------------------
+
+# slug: reduce a name to filesystem/desktop-id-safe characters.
+slug() { printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '_'; }
+
+classify() {
+  case "$1" in
+    *.AppImage|*.appimage) printf 'appimage' ;;
+    *.tar|*.tar.gz|*.tgz|*.tar.xz|*.tar.zst|*.tar.bz2) printf 'tarball' ;;
+    *) printf 'unknown' ;;
+  esac
+}
+
+strip_appimage_ext() {
+  case "$1" in
+    *.AppImage) printf '%s' "${1%.AppImage}" ;;
+    *.appimage) printf '%s' "${1%.appimage}" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+strip_tar_ext() {
+  case "$1" in
+    *.tar.gz)  printf '%s' "${1%.tar.gz}" ;;
+    *.tgz)     printf '%s' "${1%.tgz}" ;;
+    *.tar.xz)  printf '%s' "${1%.tar.xz}" ;;
+    *.tar.zst) printf '%s' "${1%.tar.zst}" ;;
+    *.tar.bz2) printf '%s' "${1%.tar.bz2}" ;;
+    *.tar)     printf '%s' "${1%.tar}" ;;
+    *)         printf '%s' "$1" ;;
+  esac
+}
+
+# desktop_get FILE KEY: first value of an unlocalized key from [Desktop Entry].
+# Restricting to that group avoids picking up Name=/Icon= from Desktop Action groups.
+desktop_get() {
+  awk -v k="$2" '
+    /^\[/ { inentry = ($0 == "[Desktop Entry]"); next }
+    inentry {
+      eq = index($0, "=")
+      if (eq > 0) {
+        key = substr($0, 1, eq - 1)
+        gsub(/^[ \t]+|[ \t]+$/, "", key)
+        if (key == k) { print substr($0, eq + 1); exit }
+      }
+    }
+  ' "$1" 2>/dev/null
+}
+
+# exec_field PATH: double-quote the program token if it contains whitespace,
+# as required by the desktop entry Exec syntax.
+exec_field() {
+  case "$1" in
+    *[[:space:]]*) printf '"%s"' "$1" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+# find_icon_file ROOT ICONVALUE: best-effort locate an icon file for ICONVALUE
+# under ROOT, preferring scalable SVG then the highest-resolution themed PNG.
+find_icon_file() {
+  local root="$1" icon="$2" bn found=""
+  [ -n "$icon" ] || { printf ''; return; }
+  [ -f "$icon" ] && { printf '%s' "$icon"; return; }   # value is already a path
+  bn=$(basename "$icon"); bn="${bn%.*}"
+  found=$(find "$root" -type f -ipath '*/icons/*' -iname "$bn.svg" 2>/dev/null | head -n1)
+  [ -z "$found" ] && found=$(find "$root" -type f -ipath '*/icons/*' -iname "$bn.png" 2>/dev/null \
+    | awk '{ n=$0; sz=0; if (match(n, /\/[0-9]+x[0-9]+\//)) { s=substr(n, RSTART+1, RLENGTH-2); split(s, a, "x"); sz=a[1] } print sz"\t"n }' \
+    | sort -rn | head -n1 | cut -f2-)
+  [ -z "$found" ] && found=$(find "$root" -maxdepth 4 -type f \( -iname "$bn.png" -o -iname "$bn.svg" -o -iname "$bn.xpm" \) 2>/dev/null | head -n1)
+  printf '%s' "$found"
+}
+
+# install_icon SRC APPNAME: copy SRC into the icon dir as APPNAME.<ext>; prints
+# the installed path on success.
+install_icon() {
+  local src="$1" appname="$2" ext
+  [ -n "$src" ] && [ -f "$src" ] || { printf ''; return; }
+  case "$src" in
+    *.png) ext=png ;; *.svg) ext=svg ;; *.xpm) ext=xpm ;;
+    *) ext=png ;;   # .DirIcon and friends are conventionally PNG
+  esac
+  cp -f "$src" "$ICONDIR/$appname.$ext" 2>/dev/null && printf '%s' "$ICONDIR/$appname.$ext"
+}
+
+# write_desktop OUT NAME EXEC ICON COMMENT CATEGORIES
+write_desktop() {
+  local out="$1" nm="$2" ex="$3" ic="$4" cm="$5" cat="$6"
+  case "${cat:-}" in
+    "") cat="Utility;" ;;
+    *\;) ;;
+    *) cat="$cat;" ;;   # Categories must be a semicolon-terminated list
+  esac
+  {
+    printf '[Desktop Entry]\n'
+    printf 'Type=Application\n'
+    printf 'Version=1.0\n'
+    printf 'Name=%s\n' "$nm"
+    [ -n "$cm" ] && printf 'Comment=%s\n' "$cm"
+    printf 'Exec=%s\n' "$ex"
+    printf 'Icon=%s\n' "${ic:-$nm}"
+    printf 'Terminal=false\n'
+    printf 'Categories=%s\n' "$cat"
+    printf 'X-Ryoku-Stash=true\n'
+  } > "$out"
+}
+
+extract_tar() {
+  local src="$1" dst="$2"
+  mkdir -p "$dst"
+  if command -v bsdtar >/dev/null 2>&1; then
+    bsdtar -xf "$src" -C "$dst"
+  else
+    tar -xf "$src" -C "$dst"   # GNU tar auto-detects gz/xz/zst/bz2
+  fi
+}
+
+# pick_executable ROOT WANT: an executable file named WANT, else the sole
+# executable in the tree, else empty (ambiguous).
+pick_executable() {
+  local root="$1" want="$2" list match
+  list=$(find "$root" -type f -perm -u+x ! -iname '*.desktop' 2>/dev/null)
+  [ -n "$list" ] || { printf ''; return; }
+  match=$(printf '%s\n' "$list" | while IFS= read -r f; do
+            [ "$(basename "$f")" = "$want" ] && { printf '%s' "$f"; break; }
+          done)
+  [ -n "$match" ] && { printf '%s' "$match"; return; }
+  [ "$(printf '%s\n' "$list" | wc -l)" -eq 1 ] && printf '%s' "$list"
+}
+
+# install_appimage PATH: extract embedded metadata from the executable AppImage at
+# PATH and emit a cleaned desktop entry (Exec points at PATH). Sets LAST_NAME.
+install_appimage() {
+  local app="$1" appname out tmp squash="" edesk="" icv="" iconfile="" iconinstalled=""
+  local nm="" cm="" cat=""
+  appname=$(slug "$(strip_appimage_ext "$(basename "$app")")")
+  [ -n "$appname" ] || appname="app"
+  out="$APPDIR/$appname.desktop"
+
+  # Type-2 AppImages self-extract via --appimage-extract (no FUSE); it dumps
+  # squashfs-root into the CWD, so run it inside a throwaway temp dir.
+  tmp=$(mktemp -d 2>/dev/null) || tmp=""
+  if [ -n "$tmp" ]; then
+    if ( cd "$tmp" && "$app" --appimage-extract >/dev/null 2>&1 ) && [ -d "$tmp/squashfs-root" ]; then
+      squash="$tmp/squashfs-root"
+      edesk=$(find "$squash" -maxdepth 1 -name '*.desktop' -type f 2>/dev/null | head -n1)
+      if [ -n "$edesk" ]; then
+        nm=$(desktop_get "$edesk" Name)
+        cm=$(desktop_get "$edesk" Comment)
+        cat=$(desktop_get "$edesk" Categories)
+        icv=$(desktop_get "$edesk" Icon)
+      fi
+      iconfile=$(find_icon_file "$squash" "$icv")
+      [ -z "$iconfile" ] && [ -f "$squash/.DirIcon" ] && iconfile="$squash/.DirIcon"
+      [ -n "$iconfile" ] && iconinstalled=$(install_icon "$iconfile" "$appname")
+    fi
+    rm -rf "$tmp"
+  fi
+
+  # Even when extraction fails (squash empty) this yields the required minimal entry.
+  write_desktop "$out" "${nm:-$appname}" "$(exec_field "$app") %U" "${iconinstalled:-$appname}" "$cm" "$cat"
+  LAST_NAME="$appname"
+}
+
+# install_tar_desktop ROOT DESKTOP FALLBACK: install a desktop file found in an
+# extracted tree, rewriting Exec to the absolute binary path inside the tree.
+install_tar_desktop() {
+  local root="$1" ed="$2" fallback="$3" appname nm cm cat icv oexec
+  appname=$(slug "$(basename "$ed" .desktop)")
+  [ -n "$appname" ] || appname="$fallback"
+  nm=$(desktop_get "$ed" Name)
+  cm=$(desktop_get "$ed" Comment)
+  cat=$(desktop_get "$ed" Categories)
+  icv=$(desktop_get "$ed" Icon)
+  oexec=$(desktop_get "$ed" Exec)
+
+  local tok rest="" binbase abs="" execval
+  if [ -n "$oexec" ]; then
+    tok=${oexec%% *}                                   # program token
+    case "$oexec" in *" "*) rest=${oexec#* } ;; esac   # preserve %U/%F and flags
+    binbase=$(basename "$tok")
+    abs=$(find "$root" -type f -name "$binbase" 2>/dev/null | head -n1)
+    [ -z "$abs" ] && abs="$tok"                        # keep original if not bundled
+  else
+    abs=$(pick_executable "$root" "$fallback")
+  fi
+  [ -f "$abs" ] && chmod +x "$abs" 2>/dev/null
+  execval="$(exec_field "$abs")"
+  [ -n "$rest" ] && execval="$execval $rest"
+
+  local iconfile iconinstalled=""
+  iconfile=$(find_icon_file "$root" "$icv")
+  [ -n "$iconfile" ] && iconinstalled=$(install_icon "$iconfile" "$appname")
+
+  write_desktop "$APPDIR/$appname.desktop" "${nm:-$fallback}" "$execval" "${iconinstalled:-${icv:-$appname}}" "$cm" "$cat"
+  LAST_NAME="$appname"
+}
+
+# install_tarball SRC: extract and dispatch on contents. Sets LAST_NAME on success.
+install_tarball() {
+  local src base rawname name dst ai ed exe
+  src="$1"
+  base=$(basename "$src")
+  rawname=$(strip_tar_ext "$base")
+  name=$(slug "$rawname")
+  [ -n "$name" ] || name="app"
+  dst="$APPSTORE/$name"
+
+  rm -rf "$dst"; mkdir -p "$dst"
+  extract_tar "$src" "$dst" >/dev/null 2>&1 || return 1
+
+  # (1) bundled AppImage wins.
+  ai=$(find "$dst" -type f \( -iname '*.AppImage' -o -iname '*.appimage' \) 2>/dev/null | head -n1)
+  if [ -n "$ai" ]; then
+    chmod +x "$ai" 2>/dev/null
+    install_appimage "$ai"
+    return 0
+  fi
+  # (2) shipped desktop file: reuse it, rewriting Exec to the bundled binary.
+  ed=$(find "$dst" -type f -name '*.desktop' 2>/dev/null | head -n1)
+  if [ -n "$ed" ]; then
+    install_tar_desktop "$dst" "$ed" "$rawname"
+    return 0
+  fi
+  # (3) fall back to a bundled executable.
+  exe=$(pick_executable "$dst" "$rawname")
+  if [ -n "$exe" ]; then
+    chmod +x "$exe" 2>/dev/null
+    write_desktop "$APPDIR/$name.desktop" "$rawname" "$(exec_field "$exe")" "$name" "" "Utility;"
+    LAST_NAME="$name"
+    return 0
+  fi
+  return 1
+}
+
+# install_one FILE: returns 0 success, 1 failure, 2 unsupported extension.
+install_one() {
+  local f="$1" kind appname dest
+  LAST_NAME=""
+  [ -f "$f" ] || return 1
+  kind=$(classify "$f")
+  case "$kind" in
+    appimage)
+      appname=$(slug "$(strip_appimage_ext "$(basename "$f")")")
+      [ -n "$appname" ] || appname="app"
+      dest="$APPSTORE/$appname.AppImage"
+      cp -f "$f" "$dest" 2>/dev/null || return 1
+      chmod +x "$dest" 2>/dev/null
+      install_appimage "$dest"
+      ;;
+    tarball)
+      install_tarball "$f" || return 1
+      ;;
+    *)
+      return 2
+      ;;
+  esac
+}
+
+# --- main ------------------------------------------------------------------
+
+single=0
+targets=()
+if [ "$#" -ge 1 ]; then
+  single=1
+  targets=("$1")
+else
+  shopt -s nullglob
+  for f in "$STASH"/*; do
+    [ -f "$f" ] || continue
+    case "$(classify "$f")" in appimage|tarball) targets+=("$f") ;; esac
+  done
+  shopt -u nullglob
+fi
+
+NAMES=()
+attempted=0
+if [ "${#targets[@]}" -gt 0 ]; then
+  for t in "${targets[@]}"; do
+    install_one "$t"; rc=$?
+    if [ "$rc" -eq 0 ]; then
+      attempted=$((attempted + 1))
+      NAMES+=("$LAST_NAME")
+      echo "OK $LAST_NAME"
+    elif [ "$rc" -eq 2 ]; then
+      # Unsupported extension: a hard error only when the user named the file
+      # explicitly; silently skipped during a whole-stash sweep.
+      [ "$single" -eq 1 ] && attempted=$((attempted + 1))
+    else
+      attempted=$((attempted + 1))
+    fi
+  done
+fi
+
+if [ "${#NAMES[@]}" -gt 0 ]; then
+  update-desktop-database "$APPDIR" 2>/dev/null || true
+  names_str=$(printf '%s, ' "${NAMES[@]}"); names_str=${names_str%, }
+  notify-send "Stash" "Installed $names_str" -i emblem-ok-symbolic
+  echo "Installed $names_str"
+  exit 0
+fi
+
+if [ "$attempted" -gt 0 ]; then
+  notify-send "Stash" "Install failed" -i dialog-error
+  echo "Install failed" >&2
+  exit 1
+fi
+
+echo "Nothing to install"
+exit 0

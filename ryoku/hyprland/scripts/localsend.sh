@@ -1,7 +1,29 @@
 #!/bin/bash
 # LocalSend helper for the Ryoku shell file stash: LAN device discovery and send.
-# Usage: localsend.sh discover | send <file> <target-ip>
+# Usage: localsend.sh discover | send <file> <ip> | send-all <dir> <ip>
 set -u
+
+# Upload one file to a LocalSend peer; returns 0 on success, no notification of
+# its own so callers (single send vs send-all) can report once.
+do_send() {
+  local FILE="$1" TARGET="$2"
+  [ -f "$FILE" ] || return 1
+  [ -n "$TARGET" ] || return 1
+  local PORT=53317 FILENAME FILESIZE FILETYPE FILE_ID FP_FILE FINGERPRINT BODY RESP SESSION TOKEN
+  FILENAME=$(basename "$FILE"); FILESIZE=$(stat -c%s "$FILE"); FILETYPE=$(file -b --mime-type "$FILE"); FILE_ID="qs_$(date +%s%N | md5sum | head -c8)"
+  FP_FILE="$HOME/.cache/ryoku_localsend_fp"; [ -f "$FP_FILE" ] || openssl rand -hex 16 > "$FP_FILE"; FINGERPRINT=$(cat "$FP_FILE")
+  BODY=$(python3 - "$FILENAME" "$FILESIZE" "$FILETYPE" "$FILE_ID" "$FINGERPRINT" "$PORT" <<'PYEOF'
+import json,sys
+fn,sz,ft,fid,fp,port=sys.argv[1],int(sys.argv[2]),sys.argv[3],sys.argv[4],sys.argv[5],int(sys.argv[6])
+print(json.dumps({"info":{"alias":"Ryoku Stash","version":"2.1","deviceModel":None,"deviceType":"headless","fingerprint":fp,"port":port,"protocol":"https","download":False},"files":{fid:{"id":fid,"fileName":fn,"size":sz,"fileType":ft,"sha256":None,"preview":None,"metadata":None}}}))
+PYEOF
+)
+  RESP=$(curl -sk --max-time 30 -X POST "https://$TARGET:$PORT/api/localsend/v2/prepare-upload" -H "Content-Type: application/json" -d "$BODY")
+  SESSION=$(python3 -c "import sys,json; print(json.loads(sys.argv[1]).get('sessionId',''))" "$RESP" 2>/dev/null)
+  TOKEN=$(python3 -c "import sys,json; d=json.loads(sys.argv[1]); print(d.get('files',{}).get('$FILE_ID',''))" "$RESP" 2>/dev/null)
+  [ -n "$SESSION" ] && [ -n "$TOKEN" ] || return 1
+  curl -sk --max-time 120 -X POST "https://$TARGET:$PORT/api/localsend/v2/upload?sessionId=$SESSION&fileId=$FILE_ID&token=$TOKEN" -H "Content-Type: $FILETYPE" --data-binary @"$FILE" >/dev/null
+}
 cmd="${1:-}"
 case "$cmd" in
 discover)
@@ -63,19 +85,21 @@ send)
   FILE="$2"; TARGET="$3"
   [ -f "$FILE" ] || { notify-send "LocalSend" "File not found" -i dialog-error; exit 1; }
   [ -n "$TARGET" ] || { notify-send "LocalSend" "No target device" -i dialog-error; exit 1; }
-  PORT=53317; FILENAME=$(basename "$FILE"); FILESIZE=$(stat -c%s "$FILE"); FILETYPE=$(file -b --mime-type "$FILE"); FILE_ID="qs_$(date +%s%N | md5sum | head -c8)"
-  FP_FILE="$HOME/.cache/ryoku_localsend_fp"; [ -f "$FP_FILE" ] || openssl rand -hex 16 > "$FP_FILE"; FINGERPRINT=$(cat "$FP_FILE")
-  BODY=$(python3 - "$FILENAME" "$FILESIZE" "$FILETYPE" "$FILE_ID" "$FINGERPRINT" "$PORT" <<'PYEOF'
-import json,sys
-fn,sz,ft,fid,fp,port=sys.argv[1],int(sys.argv[2]),sys.argv[3],sys.argv[4],sys.argv[5],int(sys.argv[6])
-print(json.dumps({"info":{"alias":"Ryoku Stash","version":"2.1","deviceModel":None,"deviceType":"headless","fingerprint":fp,"port":port,"protocol":"https","download":False},"files":{fid:{"id":fid,"fileName":fn,"size":sz,"fileType":ft,"sha256":None,"preview":None,"metadata":None}}}))
-PYEOF
-)
-  RESP=$(curl -sk --max-time 30 -X POST "https://$TARGET:$PORT/api/localsend/v2/prepare-upload" -H "Content-Type: application/json" -d "$BODY")
-  SESSION=$(python3 -c "import sys,json; print(json.loads(sys.argv[1]).get('sessionId',''))" "$RESP" 2>/dev/null)
-  TOKEN=$(python3 -c "import sys,json; d=json.loads(sys.argv[1]); print(d.get('files',{}).get('$FILE_ID',''))" "$RESP" 2>/dev/null)
-  [ -n "$SESSION" ] && [ -n "$TOKEN" ] || { notify-send "LocalSend" "Rejected or timed out" -i dialog-error; exit 1; }
-  curl -sk --max-time 120 -X POST "https://$TARGET:$PORT/api/localsend/v2/upload?sessionId=$SESSION&fileId=$FILE_ID&token=$TOKEN" -H "Content-Type: $FILETYPE" --data-binary @"$FILE" >/dev/null && notify-send "LocalSend" "Sent: $FILENAME" -i emblem-ok-symbolic || notify-send "LocalSend" "Upload failed" -i dialog-error
+  if do_send "$FILE" "$TARGET"; then notify-send "LocalSend" "Sent: $(basename "$FILE")" -i emblem-ok-symbolic; else notify-send "LocalSend" "Upload failed" -i dialog-error; exit 1; fi
   ;;
-*) echo "usage: localsend.sh discover | send <file> <ip>" >&2; exit 2 ;;
+send-all)
+  DIR="$2"; TARGET="$3"
+  [ -d "$DIR" ] || { notify-send "LocalSend" "Stash folder missing" -i dialog-error; exit 1; }
+  [ -n "$TARGET" ] || { notify-send "LocalSend" "No target device" -i dialog-error; exit 1; }
+  count=0; ok=0
+  shopt -s nullglob
+  for f in "$DIR"/*; do
+    [ -f "$f" ] || continue
+    count=$((count+1))
+    do_send "$f" "$TARGET" && ok=$((ok+1))
+  done
+  [ "$count" -gt 0 ] || { notify-send "LocalSend" "Stash is empty" -i dialog-error; exit 1; }
+  notify-send "LocalSend" "Sent $ok of $count files" -i emblem-ok-symbolic
+  ;;
+*) echo "usage: localsend.sh discover | send <file> <ip> | send-all <dir> <ip>" >&2; exit 2 ;;
 esac
