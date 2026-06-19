@@ -13,9 +13,10 @@ import "../Singletons"
  * into the overlay input mask.
  *
  * Opening is a curtain: the body grows inward from the border (a clip widens), so
- * the fixed-size content reveals edge-first without ever resizing. The close is a
- * lightly-damped spring (it melts flush into the border, then springs back a
- * touch). The blob body, the neck into the border, and the reveal all live here;
+ * the fixed-size content reveals edge-first without ever resizing. The close eases
+ * cleanly into the border with no overshoot, so the body never re-grows under a
+ * pointer that just left and sticks the popout open. The blob body, the neck into
+ * the border, and the reveal all live here;
  * each popup file only supplies its content.
  *
  *   Popout { group: blobGroup; frameThickness: 16; radius: 16; smoothing: 30
@@ -79,12 +80,10 @@ Item {
         },
         Transition {
             from: "open"
-            SpringAnimation {
+            NumberAnimation {
                 property: "prog"
-                spring: 5.0
-                damping: 0.22
-                mass: 1.0
-                epsilon: 0.005
+                duration: Motion.morph
+                easing.type: Easing.OutCubic
             }
         }
     ]
