@@ -58,6 +58,8 @@ type daemon struct {
 	quit           chan struct{}
 	closed         bool
 	ln             net.Listener
+	voiceMu        sync.Mutex // serializes voice (Super+`) toggles
+	voiceOn        bool       // dictation active; guarded by voiceMu
 }
 
 func runDaemon() error {
@@ -274,7 +276,7 @@ func (d *daemon) dispatch(line string) string {
 
 	switch cmd {
 	case "voice":
-		return d.voice(args)
+		return d.voice()
 	case "lock":
 		return lockSession()
 	case "wallpaper":
@@ -308,25 +310,23 @@ func (d *daemon) dispatch(line string) string {
 	}
 }
 
-// voice drives the Super+` push-to-talk hold: it toggles Handy's transcription
-// and opens or closes the pill voice surface (the live mic wave). "start" is the
-// key press, "stop" the release.
-func (d *daemon) voice(args []string) string {
-	action := "start"
-	if len(args) > 0 {
-		action = args[0]
-	}
-	switch action {
-	case "start":
+// voice toggles dictation on the Super+` tap: it flips Handy's transcription and
+// the pill voice surface (the live mic wave) together. The first tap starts
+// recording and shows the wave; the next stops, transcribes, and hides it.
+// Tap-to-toggle uses only the reliable key-press edge, because Hyprland cannot
+// deliver a key release once its modifier is released first, which would leave a
+// hold-to-talk recording stuck on.
+func (d *daemon) voice() string {
+	d.voiceMu.Lock()
+	defer d.voiceMu.Unlock()
+	d.voiceOn = !d.voiceOn
+	if d.voiceOn {
 		d.ensure("pill")
 		toggleHandy()
 		return ipcCall("pill", "pill", "voiceShow", activeMonitor())
-	case "stop":
-		toggleHandy()
-		return ipcCall("pill", "pill", "voiceHide", "")
-	default:
-		return "err voice: unknown action " + action
 	}
+	toggleHandy()
+	return ipcCall("pill", "pill", "voiceHide", "")
 }
 
 // reload restarts every supervised component by terminating it; the supervisor

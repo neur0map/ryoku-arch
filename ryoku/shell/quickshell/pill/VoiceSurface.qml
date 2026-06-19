@@ -4,12 +4,11 @@ import QtQuick
 import "Singletons"
 
 /**
- * Voice dictation surface grown from the pill centre (hold Super+`). While the
- * key is held, ryoku-shell starts Handy's push-to-talk transcription and opens
- * this surface; VoiceBars runs cava on the default microphone. The Ryoku wave
- * lies flat while the mic is silent and swells into highs and lows as the user
- * speaks, mapping the live mic spectrum onto the brand wave, so the island reads
- * as listening. Releasing the key stops Handy and closes the surface.
+ * Voice dictation surface grown from the pill centre. Tapping Super+` starts
+ * Handy's transcription and opens this surface; tapping again stops it. VoiceBars
+ * runs cava on the default microphone, and the Ryoku wave lies flat while the mic
+ * is silent and swells into highs and lows as the user speaks, mapping the live
+ * mic spectrum onto the brand wave, so the island reads as listening.
  *
  * The surface is deliberately non-focus-grabbing in the shell, so the keystrokes
  * Handy types land in the app the user is dictating into, not the pill.
@@ -25,6 +24,11 @@ PillSurface {
     ameForm: "off"
 
     implicitHeight: 30 * root.s
+
+    // Reveal the wave as soon as the surface opens rather than waiting for the
+    // morph to finish (the base gates content on morph progress), so the tap
+    // feels immediate. The base opacity Behavior still eases the fade.
+    opacity: root.open ? 1 : 0
 
     // Drive cava only while the surface is live, and never leave it running.
     onOpenChanged: VoiceBars.active = root.open

@@ -78,8 +78,8 @@ func lockSession() string {
 	return "ok"
 }
 
-// toggleHandy flips Handy's push-to-talk transcription on the running instance
-// (the Super+` hold). Handy is an optional AUR app (handy-bin); when it is not
+// toggleHandy flips Handy's transcription on the running instance
+// (the Super+` tap). Handy is an optional AUR app (handy-bin); when it is not
 // installed this is a no-op, so the voice visualizer still works as a plain mic
 // meter. The flag is forwarded to the already-running instance via Handy's
 // single-instance plugin, so the process started here exits at once.

@@ -42,7 +42,7 @@ socket and one place that knows how to talk to the components:
 | `sidebar` | toggle the sidebar |
 | `lock` | lock the screen with qylock (the shell ships no lock of its own) |
 | `wallpaper [next\|init\|set <path>]` | change the wallpaper and retheme |
-| `voice <start\|stop>` | hold ``Super+` ``: toggle Handy push-to-talk transcription and the live mic wave surface |
+| `voice` | tap ``Super+` `` to toggle Handy transcription and the live mic wave surface (tap again to stop) |
 | `reload`, `status`, `ping`, `quit` | manage the daemon |
 
 The daemon resolves the active monitor itself, so the client and the keybinds stay
