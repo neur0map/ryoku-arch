@@ -28,6 +28,9 @@
   refreshes the launcher's desktop database.
 - `base.packages`: add `tesseract` and `tesseract-data-eng` for the pill's Super+D
   toolkit OCR (recognize text in a screen region to the clipboard).
+- `base.packages`: add `gpu-screen-recorder` and `wf-recorder` for the pill's
+  Super+U utilities Screen Recorder (gpu-screen-recorder, with a wf-recorder
+  fallback on multi-GPU machines).
 
 ### Fixed
 - `base.packages`: add the desktop session pieces a plain Hyprland needs to render

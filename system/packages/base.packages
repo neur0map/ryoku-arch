@@ -117,6 +117,11 @@ desktop-file-utils
 tesseract
 tesseract-data-eng
 
+# Screen recorder (pill Super+U utilities): gpu-screen-recorder, with a
+# wf-recorder fallback for multi-GPU machines, driven by ryoku-cmd-screenrecord.
+gpu-screen-recorder
+wf-recorder
+
 # Fonts
 noto-fonts
 noto-fonts-cjk
