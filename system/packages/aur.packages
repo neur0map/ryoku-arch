@@ -19,5 +19,5 @@ wallust
 # RyokuArch package manager (GlazePKG): every package manager in one view
 gpk-bin
 
-# Speech-to-text for the pill Super+` voice dictation (push-to-talk + mic wave).
+# Speech-to-text for the pill Super+` voice dictation (tap-to-toggle + mic wave).
 handy-bin
