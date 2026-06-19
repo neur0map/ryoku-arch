@@ -170,8 +170,8 @@ PillSurface {
                     anchors.centerIn: parent
                     anchors.verticalCenterOffset: -7 * root.s
                     visible: !tile.isImage
-                    width: 28 * root.s
-                    height: 28 * root.s
+                    width: 34 * root.s
+                    height: 34 * root.s
                     name: root.catGlyph(tile.ext)
                     color: tile.hovered ? Theme.cream : Theme.iconDim
                     stroke: 1.5
