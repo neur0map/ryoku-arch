@@ -40,6 +40,10 @@
   `shell/fish` (with its non-brand greeting) was dropped for `ryoku/apps/fish`.
 
 ### Fixed
+- Hyprland: the NVIDIA VA-API/GLX env hints (`LIBVA_DRIVER_NAME`,
+  `__GLX_VENDOR_LIBRARY_NAME`, the `__GL_*` toggles) were set on every machine,
+  breaking hardware video decode and Xwayland GL on AMD and Intel. They now
+  apply only when the NVIDIA driver is present; mesa auto-detects elsewhere.
 - Hyprland: a window stranded in maximize when a Chromium/Electron app leaves
   page fullscreen (a spurious mode-1 event on exit) is reset to normal, so the
   window returns to its original size instead of staying expanded.
