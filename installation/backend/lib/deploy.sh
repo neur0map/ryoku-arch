@@ -106,6 +106,10 @@ ryoku_deploy_shell() {
   deploy_dir "$RYOKU_REPO/ryoku/shell/wallust" "$h/.config/wallust"
   deploy_file "$RYOKU_REPO/ryoku/shell/kde/kdeglobals" "$h/.config/kdeglobals"
   deploy_dir "$RYOKU_REPO/ryoku/shell/systemd/user" "$h/.config/systemd/user"
+  # The Ryoku.Blobs QML plugin (the frame's blob renderer), prebuilt into the
+  # payload by iso/build.sh, onto the user's Qt QML import path. ryoku-shell
+  # points QML2_IMPORT_PATH here for the quickshell processes it supervises.
+  deploy_dir "$RYOKU_REPO/ryoku/shell/plugin/dist/Ryoku" "$h/.local/lib/qt6/qml/Ryoku"
 }
 
 # ryoku_deploy_editor makes neovim the default text editor: the .desktop entry

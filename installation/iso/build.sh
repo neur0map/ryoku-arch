@@ -82,6 +82,17 @@ log "Building ryoku-shell from $REPO_ROOT/ryoku/shell/ipc"
 install -d "$AIROOTFS/usr/share/ryoku/ryoku/shell/ipc"
 ( cd "$REPO_ROOT/ryoku/shell/ipc" && CGO_ENABLED=0 go build -trimpath -o "$AIROOTFS/usr/share/ryoku/ryoku/shell/ipc/ryoku-shell" . )
 
+# 4c. Prebuild the Ryoku.Blobs QML plugin (the frame's blob renderer) into the
+#     payload, same model as ryoku-shell: the target has no build toolchain, so
+#     the backend's deploy step installs the prebuilt module. Build deps live on
+#     the build host only.
+command -v cmake >/dev/null 2>&1 || die "cmake is required to build the Ryoku.Blobs plugin (pacman -S cmake ninja qt6-shadertools)"
+command -v ninja >/dev/null 2>&1 || die "ninja is required to build the Ryoku.Blobs plugin (pacman -S cmake ninja)"
+log "Building Ryoku.Blobs plugin from $REPO_ROOT/ryoku/shell/plugin"
+RYOKU_BLOBS_BUILD="$STAGE_DIR/blobs-build" \
+  "$REPO_ROOT/ryoku/shell/plugin/build.sh" \
+  "$AIROOTFS/usr/share/ryoku/ryoku/shell/plugin/dist"
+
 # 5. Keep the staged launchers executable (profiledef file_permissions also sets
 #    these at build time; this keeps the staged tree self-consistent meanwhile).
 chmod 0755 \

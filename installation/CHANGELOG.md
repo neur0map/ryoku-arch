@@ -12,6 +12,11 @@
   installs the system end to end. A dry-run mode prints every step.
 - `iso/`: an archiso profile that boots straight into the TUI (cage and foot
   autolaunch), with a `build.sh` wrapper.
+- The `Ryoku.Blobs` QML plugin (the shell's frame renderer) now rides the install
+  path: `iso/build.sh` prebuilds the module into the payload (cmake, ninja, and
+  qt6-shadertools on the build host), and `backend/lib/deploy.sh` installs it onto
+  the user's Qt QML import path, so the installed desktop renders the frame with
+  no build toolchain on the target.
 
 ### Changed
 - TUI: the intro holds the brand about 5 seconds longer before the wizard.
