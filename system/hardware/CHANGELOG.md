@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- `display/ryoku-monitor`: `mirror`, `extend`, and `toggle` subcommands to
+  duplicate displays or lay them side by side (driven by `Super + P`). Live
+  changes now go through `hyprctl eval` (the `hl.monitor` API), since the Lua
+  config manager rejects `hyprctl keyword`; this also makes `autoscale` apply
+  scaling live, including on hotplug, instead of only on the next login.
 - `gpu/ryoku-gpu`: ranks every DRM GPU (eGPU over discrete over integrated, then
   by VRAM) and pins the strongest as Hyprland's primary renderer. Subcommands
   `detect`, `order`, `persist`, `disable`, `install-udev`, `status`. Pins the

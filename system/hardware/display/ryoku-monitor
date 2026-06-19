@@ -86,7 +86,7 @@ sync_gdk_scale() {
   gdk="$(monitors_json | gdk_scale_value 2>/dev/null)"
   [[ $gdk =~ ^[0-9]+$ ]] || gdk=1
   if [[ -z ${RYOKU_MONITOR_JSON:-} ]]; then
-    hyprctl keyword env "GDK_SCALE,$gdk" >/dev/null 2>&1 || true
+    hyprctl eval "hl.env(\"GDK_SCALE\", \"$gdk\")" >/dev/null 2>&1 || true
   fi
   printf '%s\n' "$gdk"
 }
@@ -123,6 +123,13 @@ write_monitors_conf() {
   } >"$monitors_conf"
 }
 
+# Apply a monitor rule live. The Lua config manager rejects `hyprctl keyword`,
+# so live changes go through `hyprctl eval` running the hl.monitor API.
+apply_monitor() {
+  [[ -n ${RYOKU_MONITOR_JSON:-} ]] && return 0
+  hyprctl eval "hl.monitor({ $1 })" >/dev/null 2>&1
+}
+
 cmd_autoscale() {
   require_hyprctl
   require_jq
@@ -131,9 +138,8 @@ cmd_autoscale() {
     [[ -n $name ]] || continue
     # Only re-apply when the scale actually differs (idempotent, avoids a flicker).
     if awk -v a="$current" -v b="$wanted" 'BEGIN { exit (a == b) ? 1 : 0 }'; then
-      if hyprctl keyword monitor "$name, $mode, $pos, $wanted" >/dev/null 2>&1; then
-        echo "ryoku-monitor: $name -> scale $wanted"
-      fi
+      apply_monitor "output = \"$name\", mode = \"$mode\", position = \"$pos\", scale = $wanted"
+      echo "ryoku-monitor: $name -> scale $wanted"
     fi
   done < <(monitors_json | dpi_specs)
   local gdk
@@ -151,6 +157,49 @@ cmd_persist() {
   echo "ryoku-monitor: wrote $monitors_conf (GDK_SCALE=$gdk)"
 }
 
+# Mirror every other enabled monitor onto SRC (default: the focused one) so all
+# displays show the same image, then persist so it survives a relogin.
+cmd_mirror() {
+  require_hyprctl
+  require_jq
+  local src="${1:-}"
+  [[ -n $src ]] || src="$(monitors_json | jq -r 'first(.[] | select(.focused) | .name) // empty')"
+  [[ -n $src ]] || src="$(monitors_json | jq -r 'first(.[] | select(.disabled | not) | .name) // empty')"
+  [[ -n $src ]] || { echo "ryoku-monitor: no monitor to mirror" >&2; return 1; }
+  local name n=0
+  while IFS= read -r name; do
+    [[ -n $name && $name != "$src" ]] || continue
+    if apply_monitor "output = \"$name\", mode = \"preferred\", position = \"auto\", scale = 1, mirror = \"$src\""; then
+      echo "ryoku-monitor: $name mirrors $src"
+      n=$((n + 1))
+    fi
+  done < <(monitors_json | jq -r '.[] | select(.disabled | not) | .name')
+  if (( n > 0 )); then cmd_persist >/dev/null; else echo "ryoku-monitor: only one display; nothing to mirror"; fi
+}
+
+# Clear mirroring and lay the displays side by side again, DPI-scaled.
+cmd_extend() {
+  require_hyprctl
+  require_jq
+  local name
+  while IFS= read -r name; do
+    [[ -n $name ]] || continue
+    apply_monitor "output = \"$name\", mode = \"preferred\", position = \"auto\", scale = 1, mirror = \"none\""
+  done < <(monitors_json | jq -r '.[] | select(.disabled | not) | .name')
+  cmd_autoscale
+}
+
+# Toggle mirror <-> extend (the Super+P display switch).
+cmd_toggle() {
+  require_hyprctl
+  require_jq
+  if monitors_json | jq -e 'any(.[]; (.mirrorOf // "none") != "none")' >/dev/null 2>&1; then
+    cmd_extend
+  else
+    cmd_mirror
+  fi
+}
+
 usage() {
   cat <<'EOF'
 Usage: ryoku-monitor <command>
@@ -158,6 +207,9 @@ Usage: ryoku-monitor <command>
   autoscale   Derive each monitor's scale from its DPI, apply it live, and write
               the monitors drop-in (default ~/.config/hypr/monitors.lua).
   persist     Write the monitors drop-in from the current live layout (no rescale).
+  mirror [SRC] Mirror every other display onto SRC (default: the focused one).
+  extend      Clear mirroring and lay displays side by side, DPI-scaled.
+  toggle      Switch between mirror and extend.
 
 Both sync GDK_SCALE for GTK/XWayland apps. DPI buckets: <=120=1x, <=150=1.25,
 <=230=1.5, <=290=1.75, >290=2x.
@@ -168,6 +220,9 @@ main() {
   case "${1:-}" in
     autoscale) cmd_autoscale ;;
     persist) cmd_persist ;;
+    mirror) cmd_mirror "${2:-}" ;;
+    extend) cmd_extend ;;
+    toggle) cmd_toggle ;;
     -h | --help | help) usage ;;
     *)
       usage >&2
