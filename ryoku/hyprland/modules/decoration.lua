@@ -13,7 +13,9 @@ local inactive = border(wc and wc.inactive, "#313a4d")
 hl.config({
     general = {
         gaps_in     = 7,
-        gaps_out    = 16,
+        -- 8px past the 16px frame thickness, so tiles sit a sliver inside the
+        -- frame border rather than flush against it.
+        gaps_out    = 24,
         border_size = 3,
         layout      = "dwindle",
         resize_on_border = true,
