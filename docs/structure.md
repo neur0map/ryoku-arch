@@ -22,14 +22,17 @@ truth for the live desktop.
   entry point and `require`s each module. `keyboard.lua`, `gpu.lua`,
   `monitors.lua` are hardware-managed seeds. `modules/` is one concern per file
   (`env`, `input`, `decoration`, `animations`, `binds`, `ryoshot`,
-  `window_rules`, `autostart`). `scripts/` holds the few leaf shell helpers the
-  UI calls directly. `hypridle.conf` is the idle daemon's native config. The whole
+  `window_rules`, `autostart`). `scripts/` holds the leaf shell helpers the UI
+  calls directly: the `ryoku-cmd-*` screen tools (lens, OCR, color, QR, webcam
+  mirror, screen record, night light, caffeine) plus the stash and sysinfo
+  helpers. `hypridle.conf` is the idle daemon's native config. The whole
   directory deploys to `~/.config/hypr/`.
 - `lockscreen/` `qylock/` (the lock theme and its quickshell lockscreen),
   `install-qylock`, and `sddm/` (the greeter setup).
 - `shell/` the desktop shell subsystem: `quickshell/` (the QML UI: `pill` (the
-  morphing top island, which also draws the screen frame and hosts the edge
-  popouts under `pill/popouts/`), `sidebar`, `topbar`, `launcher`, `ryoshot`),
+  morphing top island, which also draws the screen frame, hosts the edge popouts
+  under `pill/popouts/`, and grows centre-island surfaces like the Super+D toolkit
+  and the Super+U utilities), `sidebar`, `topbar`, `launcher`, `ryoshot`),
   `plugin/` (`Ryoku.Blobs`, the C++/QML SDF metaball module the frame renders
   with; `build.sh` builds it, and it ships prebuilt), `wallust/` (palette from
   the wallpaper), `kde/` (`kdeglobals`),
