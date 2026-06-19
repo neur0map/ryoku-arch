@@ -22,7 +22,7 @@ built from it; the live machine is only ever a deployment target.
 ## How the parts fit
 
 - **The shell** (`ryoku/shell/`) is the desktop UI. `quickshell/` is the QML
-  front end (the morphing `pill` bar, `sidebar`, `topbar`, `launcher`, and
+  front end (the morphing `pill` bar, `sidebar`, and
   `ryoshot` screenshot tool). `ipc/ryoku-shell` is a single Go daemon that is the
   control plane: it supervises the UI components, owns the wallpaper, clipboard,
   and lock, and answers one socket. Keybinds and the UI talk to it; it decides.

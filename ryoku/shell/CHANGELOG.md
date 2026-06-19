@@ -4,7 +4,7 @@
 
 ### Added
 - The Ryoku desktop shell, imported and reorganized into this tree: the Quickshell
-  UI (`pill` bar, `sidebar`, `topbar`, `launcher`, `ryoshot`), the Hyprland
+  UI (`pill` bar, `sidebar`, `ryoshot`), the Hyprland
   config in Lua, wallust palette generation, and the per-app configs.
 - `plugin/` and the pill-shell frame: the screen frame, brought from the legacy
   shell and reorganized. `plugin/` is `Ryoku.Blobs`, a C++/QML SDF metaball

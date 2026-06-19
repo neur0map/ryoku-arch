@@ -32,7 +32,7 @@ truth for the live desktop.
 - `shell/` the desktop shell subsystem: `quickshell/` (the QML UI: `pill` (the
   morphing top island, which also draws the screen frame, hosts the edge popouts
   under `pill/popouts/`, and grows centre-island surfaces like the Super+D toolkit
-  and the Super+U utilities), `sidebar`, `topbar`, `launcher`, `ryoshot`),
+  and the Super+U utilities), `sidebar`, `ryoshot`),
   `plugin/` (`Ryoku.Blobs`, the C++/QML SDF metaball module the frame renders
   with; `build.sh` builds it, and it ships prebuilt), `wallust/` (palette from
   the wallpaper), `kde/` (`kdeglobals`),

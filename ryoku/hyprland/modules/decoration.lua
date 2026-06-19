@@ -45,24 +45,6 @@ hl.config({
 })
 
 hl.layer_rule({
-    name    = "topbar-power-noanim",
-    match   = { namespace = "topbar-power" },
-    no_anim = true,
-})
-
-hl.layer_rule({
-    name    = "topbar-calendar-noanim",
-    match   = { namespace = "topbar-calendar" },
-    no_anim = true,
-})
-
-hl.layer_rule({
-    name    = "topbar-tray-noanim",
-    match   = { namespace = "topbar-tray" },
-    no_anim = true,
-})
-
-hl.layer_rule({
     name    = "sidebar-noanim",
     match   = { namespace = "sidebar" },
     no_anim = true,

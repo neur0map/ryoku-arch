@@ -12,8 +12,8 @@ it to `~/.config` (see `installation/backend/lib/deploy.sh`).
   thin client that forwards a command to that socket; Hyprland keybinds use it.
 - `quickshell/` The UI, hand-written Quickshell (QML): `pill` (the morphing top
   island; it also draws the screen frame and hosts the edge popouts under
-  `pill/popouts/`, the mixer and power), `sidebar`, `topbar`, and `launcher`, plus
-  `ryoshot` (screenshot and annotation). These render the shell; they hold no
+  `pill/popouts/`, the mixer and power), `sidebar`, and `ryoshot` (screenshot and
+  annotation). These render the shell; they hold no
   daemon logic.
 - `plugin/` `Ryoku.Blobs`, the C++/QML SDF metaball module the frame renders
   with: the border, the pill, and the popouts melt into one blob field. `build.sh`
