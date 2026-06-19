@@ -23,8 +23,12 @@ Singleton {
     property real pulse: 1
     readonly property string elapsedText: fmt(elapsedSec)
 
+    // Full path: ~/.config/hypr/scripts is not on the shell's PATH, so a bare
+    // name would not resolve and recording would silently never start.
+    readonly property string script: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/ryoku-cmd-screenrecord"
+
     function start(extraArgs) {
-        Quickshell.execDetached(["ryoku-cmd-screenrecord", ...(extraArgs || [])]);
+        Quickshell.execDetached([root.script, ...(extraArgs || [])]);
         root.paused = false;
         root.active = true;
         root.startedAt = Math.floor(Date.now() / 1000);
@@ -33,7 +37,7 @@ Singleton {
     }
 
     function stop() {
-        Quickshell.execDetached(["ryoku-cmd-screenrecord", "--stop"]);
+        Quickshell.execDetached([root.script, "--stop"]);
         root.active = false;
         root.paused = false;
     }
@@ -41,7 +45,7 @@ Singleton {
     function togglePause() {
         if (!root.canPause)
             return;
-        Quickshell.execDetached(["ryoku-cmd-screenrecord", "--pause"]);
+        Quickshell.execDetached([root.script, "--pause"]);
         root.paused = !root.paused;
     }
 
