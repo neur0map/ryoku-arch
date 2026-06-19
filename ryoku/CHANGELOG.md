@@ -40,6 +40,9 @@
   `shell/fish` (with its non-brand greeting) was dropped for `ryoku/apps/fish`.
 
 ### Fixed
+- Hyprland: DPI autoscale now re-runs when a display is hotplugged, not only at
+  login, so an external monitor plugged in mid-session is positioned and scaled
+  immediately instead of coming up at 1x until the next relogin.
 - Hyprland: the NVIDIA VA-API/GLX env hints (`LIBVA_DRIVER_NAME`,
   `__GLX_VENDOR_LIBRARY_NAME`, the `__GL_*` toggles) were set on every machine,
   breaking hardware video decode and Xwayland GL on AMD and Intel. They now
