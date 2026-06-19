@@ -100,7 +100,7 @@ PillSurface {
         anchors.left: parent.left
         anchors.right: parent.right
         s: root.s
-        kanji: "控"
+        kanji: "力"
         placeholder: "Search clipboard"
         counterText: root.results.length + " / " + Cliphist.count
         onTextChanged: {
@@ -129,9 +129,9 @@ PillSurface {
 
             Text {
                 anchors.centerIn: parent
-                text: "掃"
+                text: "CLR"
                 color: wipeBtn.holding ? Theme.vermLit : (wipeArea.containsMouse ? Theme.cream : Theme.faint)
-                font.family: Theme.fontJp
+                font.family: Theme.font
                 font.pixelSize: 12 * root.s
                 Behavior on color { ColorAnimation { duration: Motion.fast } }
             }

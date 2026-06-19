@@ -44,27 +44,17 @@ Item {
         return a.length > 0 ? t + " · " + a : t;
     }
 
-    readonly property real desiredW: kind === "track" ? 332 * s : 248 * s
-    readonly property real desiredH: kind === "track" ? 56 * s : 44 * s
+    readonly property real desiredW: 248 * s
+    readonly property real desiredH: 44 * s
 
     function trackEvent() {
-        var line = trackLine;
-        var p = playing;
-        if (line === lastTrackLine && p === lastPlaying)
-            return;
-        lastTrackLine = line;
-        lastPlaying = p;
-        flash("track");
     }
 
     function flash(which) {
         if (!armed || suppressed || cooldownTimer.running)
             return;
-        if (which === "track") {
-            shownTrackLine = trackLine;
-            shownPlaying = playing;
-            shownArtUrl = player && player.trackArtUrl ? player.trackArtUrl : "";
-        }
+        if (which === "track")
+            return;
         kind = which;
         flashing = true;
         hideTimer.restart();

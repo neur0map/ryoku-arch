@@ -34,7 +34,7 @@ PillSurface {
     readonly property real cellH: 24 * s
     readonly property real rowGap: 2 * s
 
-    implicitHeight: grid.y + rows * cellH + (rows - 1) * rowGap
+    implicitHeight: grid.y + rows * cellH + (rows - 1) * rowGap + (Weather.available ? 34 * s : 0)
 
     readonly property bool todayVisible: viewMonth === today.getMonth()
         && viewYear === today.getFullYear()
@@ -96,8 +96,8 @@ PillSurface {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "暦"
-                color: Theme.cream
+                text: "力"
+                color: Theme.brand
                 font.family: Theme.fontJp
                 font.weight: Font.Medium
                 font.pixelSize: 16 * root.s
@@ -261,6 +261,59 @@ PillSurface {
                     hoverEnabled: true
                 }
             }
+        }
+    }
+
+    Item {
+        id: weatherFooter
+        visible: Weather.available
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: grid.bottom
+        anchors.topMargin: 10 * root.s
+        height: 24 * root.s
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 1
+            color: Theme.hair
+        }
+
+        Row {
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+            spacing: 8 * root.s
+
+            GlyphIcon {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 16 * root.s
+                height: 16 * root.s
+                name: Weather.glyph
+                color: Theme.iconDim
+                stroke: 1.7
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: Weather.temp
+                color: Theme.cream
+                font.family: Theme.font
+                font.pixelSize: 13 * root.s
+                font.weight: Font.DemiBold
+                font.features: { "tnum": 1 }
+            }
+        }
+
+        Text {
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 1 * root.s
+            text: Weather.condition
+            color: Theme.subtle
+            font.family: Theme.font
+            font.pixelSize: 10 * root.s
+            font.weight: Font.Medium
         }
     }
 }

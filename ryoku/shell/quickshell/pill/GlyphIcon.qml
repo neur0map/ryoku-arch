@@ -32,7 +32,6 @@ Item {
         "suspend": { d: "M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z", fill: false },
         "reboot": { d: "M21 12a9 9 0 1 1-2.6-6.4 M21 3v5h-5", fill: false },
         "shutdown": { d: "M12 3v9 M7.8 6.3a8 8 0 1 0 8.4 0", fill: false },
-        "mixer": { d: "M6 4v16M12 4v16M18 4v16M3.5 9h5M9.5 15h5M15.5 7h5", fill: false },
         "music": { d: "M9 18V5l12-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0z M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z", fill: false },
         "play": { d: "M7 5l12 7-12 7z", fill: true },
         "pause": { d: "M8 5h3v14H8z M13 5h3v14h-3z", fill: true },
@@ -50,6 +49,13 @@ Item {
         "ethernet": { d: "M5 5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 5z M8 19h8 M12 16v3 M8 8.5v3.5 M12 8.5v3.5 M16 8.5v3.5", fill: false },
         "bluetooth": { d: "M12 2.8v18.4 M12 2.8l5.2 4.6-10.4 9 M12 21.2l5.2-4.6-10.4-9", fill: false },
         "inbox": { d: "M6 16v-5a6 6 0 0 1 12 0v5 M4 16h16 M10.5 20a1.8 1.8 0 0 0 3 0", fill: false },
+        "cpu": { d: "M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z M9 9h6v6H9z M9 2v2 M15 2v2 M9 20v2 M15 20v2 M20 9h2 M20 15h2 M2 9h2 M2 15h2", fill: false },
+        "archive": { d: "M21 8v13H3V8 M1 3h22v5H1z M10 12h4", fill: false },
+        "cloud": { d: "M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z", fill: false },
+        "rain": { d: "M16 13v6 M8 13v6 M12 15v6 M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25", fill: false },
+        "snow": { d: "M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25 M8 16h.01 M8 20h.01 M12 18h.01 M12 22h.01 M16 16h.01 M16 20h.01", fill: false },
+        "fog": { d: "M4 9h16 M4 13h16 M7 17h10", fill: false },
+        "storm": { d: "M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9 M13 11l-4 6h6l-4 6", fill: false },
         "hotspot": { d: "M12 12a1.3 1.3 0 1 0 0.01 0 M8.8 8.5A5 5 0 0 0 8.8 15.5 M15.2 8.5A5 5 0 0 1 15.2 15.5 M6 6A9 9 0 0 0 6 18 M18 6A9 9 0 0 1 18 18", fill: false }
     })
 

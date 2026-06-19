@@ -49,8 +49,8 @@ PillSurface {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "蓄"
-                    color: Theme.cream
+                    text: "力"
+                    color: Theme.brand
                     font.family: Theme.fontJp
                     font.weight: Font.Medium
                     font.pixelSize: 16 * root.s

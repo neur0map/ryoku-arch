@@ -4,6 +4,8 @@
 /installation/iso/staging/
 /installation/tui/ryoku-tui
 /ryoku/shell/ipc/ryoku-shell
+/ryoku/shell/plugin/build/
+/ryoku/shell/plugin/dist/
 *.iso
 
 # Isolated worktrees

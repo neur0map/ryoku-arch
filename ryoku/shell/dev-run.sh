@@ -10,6 +10,10 @@ bin="$here/ipc/ryoku-shell"
 
 (cd "$here/ipc" && go build -o ryoku-shell .)
 
+# The frame component imports the Ryoku.Blobs plugin from the QML import path the
+# daemon sets; build + install it so the dev loop renders the frame like a deploy.
+"$here/plugin/build.sh" "$HOME/.local/lib/qt6/qml"
+
 export RYOKU_SHELL_DIR="$here"
 echo "ryoku-shell dev  (RYOKU_SHELL_DIR=$here)"
 echo "  edit anything under $here/quickshell and it reloads live"

@@ -139,7 +139,7 @@ PillSurface {
         signal activated()
 
         anchors.verticalCenter: parent.verticalCenter
-        font.family: Theme.fontJp
+        font.family: Theme.font
         font.pixelSize: 13 * root.s
         color: skipArea.containsMouse ? Theme.cream : Theme.dim
         opacity: skip.can ? 1 : 0.4
@@ -342,7 +342,7 @@ PillSurface {
             spacing: 14 * root.s
 
             KanjiSkip {
-                text: "前"
+                text: "‹"
                 can: root.hasPlayer && root.player.canGoPrevious
                 onActivated: if (root.player) root.player.previous()
             }
@@ -372,9 +372,9 @@ PillSurface {
 
                 Text {
                     anchors.centerIn: parent
-                    text: root.playing ? "奏" : "休"
+                    text: root.playing ? "▶" : "Ⅱ"
                     color: Theme.bright
-                    font.family: Theme.fontJp
+                    font.family: Theme.font
                     font.pixelSize: 16 * root.s
                     font.weight: Font.DemiBold
                 }
@@ -391,7 +391,7 @@ PillSurface {
             }
 
             KanjiSkip {
-                text: "次"
+                text: "›"
                 can: root.hasPlayer && root.player.canGoNext
                 onActivated: if (root.player) root.player.next()
             }

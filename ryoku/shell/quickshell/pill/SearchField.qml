@@ -25,7 +25,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         text: root.kanji
-        color: Theme.dim
+        color: Theme.brand
         font.family: Theme.fontJp
         font.weight: Font.Medium
         font.pixelSize: 16 * root.s

@@ -6,3 +6,10 @@ singleton Cliphist Cliphist.qml
 singleton Walls Walls.qml
 singleton Devices Devices.qml
 singleton Battery Battery.qml
+singleton Vpn Vpn.qml
+singleton VoiceCall VoiceCall.qml
+singleton Recorder Recorder.qml
+singleton AudioBars AudioBars.qml
+singleton Weather Weather.qml
+singleton SysInfo SysInfo.qml
+singleton Stash Stash.qml

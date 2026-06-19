@@ -10,13 +10,12 @@ import "Singletons"
 
 /**
  * The pill body. One element carries every state. Width/height driven by `state`
- * (rest, hover/pinned, mixer, calendar) with a no-overshoot easing so surfaces
+ * (rest, hover/pinned, calendar) with a no-overshoot easing so surfaces
  * grow out of the pill in place. Surfaces are stacked absolutely and cross-fade.
  *
  * Hover comes from a passive HoverHandler, pin from a passive TapHandler, so
  * neither swallows pointer events from the surfaces stacked above: workspace
- * dots, the clock target, tray icons and the mixer faders get their own clicks
- * and drags.
+ * dots, the clock target and tray icons get their own clicks and drags.
  */
 Item {
     id: pill
@@ -30,16 +29,24 @@ Item {
     property bool pinned: false
     property bool forcePinned: false
 
+    containmentMask: QtObject {
+        function contains(point: point) : bool {
+            if (pill.expanded)
+                return point.x >= 0 && point.y >= 0 && point.x <= pill.width && point.y <= pill.height;
+            return pill.insideRounded(point.x, point.y, pill.width, pill.height, pill.morphRadius);
+        }
+    }
+
     readonly property bool held: pinned || forcePinned
-    readonly property bool mixerOpen: surface === "mixer"
     readonly property bool calendarOpen: surface === "calendar"
     readonly property bool launcherOpen: surface === "launcher"
     readonly property bool clipboardOpen: surface === "clipboard"
     readonly property bool wallpaperOpen: surface === "wallpaper"
-    readonly property bool powerOpen: surface === "power"
     readonly property bool mediaOpen: surface === "media"
     readonly property bool linkOpen: surface === "link"
     readonly property bool batteryOpen: surface === "battery"
+    readonly property bool sysinfoOpen: surface === "sysinfo"
+    readonly property bool stashOpen: surface === "stash"
     readonly property bool hasMedia: Mpris.players.values.length > 0
 
     readonly property var netDevices: (typeof Networking !== "undefined" && Networking && Networking.devices) ? Networking.devices.values : []
@@ -54,13 +61,11 @@ Item {
     readonly property bool toastActive: Notifs.popups.length > 0
     readonly property bool osdActive: osd.flashing
 
-    readonly property real restW: 160 * s
+    readonly property real restW: 108 * s
     readonly property real restH: 38 * s
     readonly property real hoverPad: 20 * s
     readonly property real hoverW: hoverRow.implicitWidth + 2 * hoverPad
     readonly property real hoverH: 58 * s
-    readonly property real mixerW: 93 * Math.max(4, mixer.faderCount) * s
-    readonly property real mixerH: 214 * s
     readonly property real calendarW: 318 * s
     readonly property real calendarH: calendar.implicitHeight + 32 * s
     readonly property real launcherW: 360 * s
@@ -69,11 +74,11 @@ Item {
     readonly property real clipboardH: 332 * s
     readonly property real wallpaperW: 720 * s
     readonly property real wallpaperH: 146 * s
-    readonly property real powerW: 330 * s
-    readonly property real powerH: 150 * s
     readonly property real mediaW: 390 * s
     readonly property real mediaH: 150 * s
     readonly property real batteryW: 316 * s
+    readonly property real sysinfoW: 360 * s
+    readonly property real stashW: 360 * s
     readonly property real toastW: 342 * s
     readonly property real restCorner: 18 * s
     readonly property real openCorner: 22 * s
@@ -82,11 +87,11 @@ Item {
         : (launcherOpen ? "launcher"
         : (clipboardOpen ? "clipboard"
         : (wallpaperOpen ? "wallpaper"
-        : (powerOpen ? "power"
         : (mediaOpen ? "media"
-        : (mixerOpen ? "mixer"
         : (linkOpen ? "link"
         : (batteryOpen ? "battery"
+        : (sysinfoOpen ? "sysinfo"
+        : (stashOpen ? "stash"
         : (osdActive && !held ? "osd"
         : (toastActive && !held ? "toast"
         : (expanded ? "hover" : "rest")))))))))))
@@ -94,22 +99,6 @@ Item {
     signal requestSurface(string name)
     signal requestClose()
 
-    /**
-     * Forward an arrow-key nudge to the open mixer's targeted fader. Returns true
-     * when the mixer is open and a fader consumed the step.
-     */
-    function mixerStep(deltaPct) {
-        return pill.mixerOpen ? mixer.stepFocused(deltaPct) : false;
-    }
-
-    /**
-     * Move the open mixer's keyboard focus across the fader row; `dir` is +1
-     * (right) or -1 (left). No-op unless the mixer is open.
-     */
-    function mixerFocusMove(dir) {
-        if (pill.mixerOpen)
-            mixer.moveFocus(dir);
-    }
 
     /**
      * Pop the open link surface one subview back. Returns true when the step was
@@ -166,11 +155,11 @@ Item {
         launcher:  () => Qt.size(launcherW, launcherH),
         clipboard: () => Qt.size(clipboardW, clipboardH),
         wallpaper: () => Qt.size(wallpaperW, wallpaperH),
-        power:     () => Qt.size(powerW, powerH),
         media:     () => Qt.size(mediaW, mediaH),
-        mixer:     () => Qt.size(mixerW, mixerH),
         link:      () => Qt.size(link.desiredW, link.implicitHeight + 26 * s),
         battery:   () => Qt.size(batteryW, battery.implicitHeight + 26 * s),
+        sysinfo:   () => Qt.size(sysinfoW, sysinfo.implicitHeight + 32 * s),
+        stash:     () => Qt.size(stashW, stash.implicitHeight + 28 * s),
         osd:       () => Qt.size(osd.desiredW, osd.desiredH),
         toast:     () => Qt.size(toastW, toastLoader.item ? toastLoader.item.implicitHeight + 24 * s : restH),
         hover:     () => Qt.size(hoverW, hoverH)
@@ -228,97 +217,30 @@ Item {
     Behavior on height { NumberAnimation { duration: Motion.morph; easing.type: Motion.easeMorph; easing.bezierCurve: Motion.morphCurve } }
     Behavior on morphRadius { NumberAnimation { duration: Motion.morph; easing.type: Motion.easeMorph; easing.bezierCurve: Motion.morphCurve } }
 
-    Rectangle {
-        id: bud
-        readonly property bool shown: pill.mode === "hover" && pill.hasMedia
-        property real budR: (budArea.containsMouse ? 15 : 12) * pill.s
-        width: budR * 2
-        height: budR * 2
-        radius: budR
-        x: pill.width - budR
-        anchors.verticalCenter: parent.verticalCenter
-        visible: opacity > 0.01
-        opacity: shown ? 1 : 0
-        border.width: 1
-        border.color: Theme.border
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.cardTop }
-            GradientStop { position: 1.0; color: Theme.cardBot }
-        }
-        Behavior on budR { NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard } }
-        Behavior on opacity { NumberAnimation { duration: Motion.standard } }
+    function insideRounded(px, py, w, h, r) {
+        if (px < 0 || py < 0 || px > w || py > h)
+            return false;
+        var rr = Math.max(0, Math.min(r, w / 2, h / 2));
+        var cx = px < rr ? rr : (px > w - rr ? w - rr : px);
+        var cy = py < rr ? rr : (py > h - rr ? h - rr : py);
+        var dx = px - cx;
+        var dy = py - cy;
+        return dx * dx + dy * dy <= rr * rr + 0.01;
+    }
 
-        Canvas {
-            id: budBead
-            anchors.centerIn: parent
-            anchors.horizontalCenterOffset: 3 * pill.s
-            width: 18 * pill.s
-            height: 18 * pill.s
-            onPaint: {
-                const ctx = getContext("2d");
-                ctx.reset();
-                const c = width / 2;
-                const R = (budArea.containsMouse ? 5.2 : 4) * pill.s;
-                const hg = ctx.createRadialGradient(c - R * 0.32, c - R * 0.38, 0, c, c, R);
-                hg.addColorStop(0, Theme.flameInk);
-                hg.addColorStop(0.55, Theme.vermLit);
-                hg.addColorStop(0.92, Theme.verm);
-                hg.addColorStop(1, Theme.flameEmber);
-                ctx.beginPath();
-                ctx.arc(c, c, R, 0, 7);
-                ctx.fillStyle = hg;
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(c - R * 0.62, c - R * 0.66, R * 0.6, R * 0.36);
-                ctx.fillStyle = "rgba(255,246,240,0.6)";
-                ctx.fill();
-            }
-        }
-
-        MouseArea {
-            id: budArea
-            anchors.fill: parent
-            enabled: bud.shown
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: pill.requestSurface("media")
-            onContainsMouseChanged: budBead.requestPaint()
-        }
+    HoverHandler {
+        onHoveredChanged: pill.hovered = hovered
     }
 
     Rectangle {
         id: body
         anchors.fill: parent
         radius: pill.morphRadius
-        border.width: 1
-        border.color: Theme.border
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.cardTop }
-            GradientStop { position: 1.0; color: Theme.cardBot }
-        }
-
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            shadowEnabled: true
-            shadowColor: Qt.rgba(0, 0, 0, Theme.shadowOpacity)
-            shadowBlur: 0.7
-            shadowVerticalOffset: 3 * pill.s
-        }
-
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.topMargin: 1
-            anchors.leftMargin: body.radius * 0.6
-            anchors.rightMargin: body.radius * 0.6
-            height: 1
-            color: Theme.sheen
-        }
+        color: "transparent"
     }
 
     /**
-     * Rest anchor for Ame: the 時 kanji centre. The idle outline condenses into
+     * Rest anchor for Ame: the Ryoku mark centre. The idle outline condenses into
      * the bead here before it moves.
      */
     readonly property point wakePoint: {
@@ -344,17 +266,9 @@ Item {
             return batteryIcon.mapToItem(pill, batteryIcon.width / 2, batteryIcon.height + drop * 0.55);
         if (soulTarget === "inbox")
             return inboxIcon.mapToItem(pill, inboxIcon.width / 2, inboxIcon.height + drop * 0.55);
-        if (soulTarget === "mixer")
-            return mixerIcon.mapToItem(pill, mixerIcon.width / 2, mixerIcon.height + drop * 0.55);
-        if (soulTarget === "power")
-            return powerIcon.mapToItem(pill, powerIcon.width / 2, powerIcon.height + drop * 0.55);
-        if (soulTarget === "ws" && soulWsIndex >= 0) {
-            void ws.activeName;
-            void ws.width;
-            const p = ws.mapToItem(pill, ws.slotCenterX(soulWsIndex), ws.height / 2);
-            return Qt.point(p.x, p.y + drop);
-        }
-        return ws.mapToItem(pill, ws.activeDotPoint.x, ws.activeDotPoint.y + drop);
+        if (soulTarget === "sysinfo")
+            return sysinfoIcon.mapToItem(pill, sysinfoIcon.width / 2, sysinfoIcon.height + drop * 0.55);
+        return pill.wakePoint;
     }
 
     /**
@@ -366,35 +280,24 @@ Item {
         : (launcherOpen ? launcher
         : (clipboardOpen ? clip
         : (calendarOpen ? calendar
-        : (mixerOpen ? mixer
-        : (powerOpen ? power
         : (linkOpen ? link
+        : (sysinfoOpen ? sysinfo
+        : (stashOpen ? stash
         : (batteryOpen ? battery : null)))))))
 
     Ame {
         id: ame
         anchors.fill: parent
         s: pill.s
-        heat: pill.powerOpen ? power.holdProgress : 0
+        heat: 0
         wake: pill.wakePoint
-        wickDir: pill.powerOpen ? 1 : -1
-        form: pill.ameSurface ? pill.ameSurface.ameForm
-            : (pill.mode === "hover" && pill.hoverSoulGate ? "soul" : "off")
+        wickDir: -1
+        form: pill.ameSurface ? pill.ameSurface.ameForm : "off"
         point: pill.ameSurface
             ? Qt.point(pill.ameSurface.x + pill.ameSurface.amePoint.x,
                        pill.ameSurface.y + pill.ameSurface.amePoint.y)
             : (pill.mode === "hover" ? pill.soulPoint : pill.wakePoint)
     }
-
-    /**
-     * Extra input width past the pill's right edge while the media bud sticks
-     * out there, so the window mask covers the bud's outer half. pill.hovered is
-     * fed by a window-level HoverHandler in shell.qml: pointer events only exist
-     * inside the input mask, so "window hovered" means "pointer over the pill (or
-     * bud)". That sidesteps the per-item hover flicker the child MouseAreas and
-     * the centred width morph would otherwise cause.
-     */
-    readonly property real inputPadRight: bud.shown ? bud.budR + 2 * s : 0
 
     onHoveredChanged: {
         if (hovered) {
@@ -433,6 +336,7 @@ Item {
         Row {
             id: restRow
             anchors.centerIn: parent
+            anchors.verticalCenterOffset: -5 * pill.s
             spacing: 9 * pill.s
             Item {
                 id: restKanji
@@ -446,14 +350,14 @@ Item {
                     color: "transparent"
                     font: kanjiFill.font
                     style: Text.Outline
-                    styleColor: Qt.alpha(Theme.vermLit,
+                    styleColor: Qt.alpha(Theme.brand,
                         Math.min(1, (pill.mode === "rest" || !pill.hoverSoulGate ? 0.5 : 0) + pill.kanjiFlash))
                 }
 
                 Text {
                     id: kanjiFill
-                    text: "時"
-                    color: Theme.cream
+                    text: "力"
+                    color: Theme.brand
                     font.family: Theme.fontJp
                     font.weight: Font.Medium
                     font.pixelSize: 15 * pill.s
@@ -468,6 +372,14 @@ Item {
                 font.weight: Font.DemiBold
                 font.features: { "tnum": 1 }
             }
+        }
+
+        WorkspaceWave {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: restRow.bottom
+            anchors.topMargin: 3 * pill.s
+            screenName: pill.screenName
+            s: pill.s
         }
     }
 
@@ -484,27 +396,6 @@ Item {
             id: hoverRow
             anchors.centerIn: parent
             spacing: 20 * pill.s
-
-            Workspaces {
-                id: ws
-                anchors.verticalCenter: parent.verticalCenter
-                width: implicitWidth
-                screenName: pill.screenName
-                s: pill.s
-                gap: 8 * pill.s
-                enabled: hover.live
-                onHoverIndexChanged: if (hoverIndex >= 0) {
-                    pill.soulTarget = "ws";
-                    pill.soulWsIndex = hoverIndex;
-                }
-            }
-
-            Rectangle {
-                anchors.verticalCenter: parent.verticalCenter
-                width: 1
-                height: 22 * pill.s
-                color: Theme.hair
-            }
 
             Item {
                 anchors.verticalCenter: parent.verticalCenter
@@ -533,6 +424,29 @@ Item {
                         font.weight: Font.Medium
                         font.capitalization: Font.AllUppercase
                         font.letterSpacing: 1.6 * pill.s
+                    }
+                    Row {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        visible: Weather.available
+                        spacing: 4 * pill.s
+
+                        GlyphIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 11 * pill.s
+                            height: 11 * pill.s
+                            name: Weather.glyph
+                            color: Theme.dim
+                            stroke: 1.6
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: Weather.temp
+                            color: Theme.dim
+                            font.family: Theme.font
+                            font.pixelSize: 9 * pill.s
+                            font.weight: Font.DemiBold
+                            font.features: { "tnum": 1 }
+                        }
                     }
                 }
 
@@ -653,6 +567,8 @@ Item {
                             onClicked: pill.requestSurface("link")
                             onContainsMouseChanged: if (containsMouse) pill.soulTarget = "wifi"
                         }
+
+                        HoverUnderline { on: wifiArea.containsMouse; s: pill.s }
                     }
 
                     Item {
@@ -682,6 +598,8 @@ Item {
                             onClicked: pill.requestSurface("battery")
                             onContainsMouseChanged: if (containsMouse) pill.soulTarget = "battery"
                         }
+
+                        HoverUnderline { on: batteryArea.containsMouse; s: pill.s }
                     }
                 }
 
@@ -720,66 +638,44 @@ Item {
                         onClicked: pill.requestSurface("link")
                         onContainsMouseChanged: if (containsMouse) pill.soulTarget = "inbox"
                     }
+
+                    HoverUnderline { on: inboxArea.containsMouse; s: pill.s }
                 }
 
                 Item {
-                    id: mixerIcon
+                    id: sysinfoIcon
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
 
                     GlyphIcon {
                         anchors.fill: parent
-                        name: "mixer"
-                        color: mixerArea.containsMouse ? Theme.cream : Theme.iconDim
+                        name: "cpu"
+                        color: sysinfoArea.containsMouse ? Theme.cream : Theme.iconDim
                         stroke: 1.7
                     }
 
                     MouseArea {
-                        id: mixerArea
+                        id: sysinfoArea
                         anchors.fill: parent
                         anchors.margins: -6 * pill.s
                         hoverEnabled: true
                         enabled: hover.live
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: pill.requestSurface("mixer")
-                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "mixer"
-                    }
-                }
-
-                Item {
-                    id: powerIcon
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 17 * pill.s
-                    height: 17 * pill.s
-
-                    GlyphIcon {
-                        anchors.fill: parent
-                        name: "shutdown"
-                        color: powerArea.containsMouse ? Theme.cream : Theme.iconDim
-                        stroke: 1.7
+                        onClicked: pill.requestSurface("sysinfo")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "sysinfo"
                     }
 
-                    MouseArea {
-                        id: powerArea
-                        anchors.fill: parent
-                        anchors.margins: -6 * pill.s
-                        hoverEnabled: true
-                        enabled: hover.live
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: pill.requestSurface("power")
-                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "power"
-                    }
+                    HoverUnderline { on: sysinfoArea.containsMouse; s: pill.s }
                 }
             }
         }
-    }
 
-    Mixer {
-        id: mixer
-        s: pill.s
-        open: pill.mixerOpen
-        morphCloseness: pill.morphCloseness
+        WakeWave {
+            anchors.fill: parent
+            s: pill.s
+            live: pill.hoverArrived
+        }
     }
 
     Calendar {
@@ -813,14 +709,6 @@ Item {
         onRequestClose: pill.requestClose()
     }
 
-    Power {
-        id: power
-        s: pill.s
-        open: pill.powerOpen
-        morphCloseness: pill.morphCloseness
-        onRequestClose: pill.requestClose()
-    }
-
     Media {
         id: media
         s: pill.s
@@ -841,6 +729,22 @@ Item {
         id: battery
         s: pill.s
         open: pill.batteryOpen
+        morphCloseness: pill.morphCloseness
+        onRequestClose: pill.requestClose()
+    }
+
+    SysInfoSurface {
+        id: sysinfo
+        s: pill.s
+        open: pill.sysinfoOpen
+        morphCloseness: pill.morphCloseness
+        onRequestClose: pill.requestClose()
+    }
+
+    StashSurface {
+        id: stash
+        s: pill.s
+        open: pill.stashOpen
         morphCloseness: pill.morphCloseness
         onRequestClose: pill.requestClose()
     }

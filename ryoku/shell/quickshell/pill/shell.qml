@@ -6,7 +6,9 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Services.Mpris
+import Ryoku.Blobs
 import "Singletons"
+import "popouts"
 
 /**
  * Washi pill top shell. Each monitor carries two layer-shell windows:
@@ -31,6 +33,11 @@ ShellRoot {
     property string openMon: ""
     property string openSurface: ""
     property string peekMon: ""
+
+    // Which edge popout (mixer/power) is pinned open by IPC, and on which
+    // monitor. Hover is the primary trigger; this just lets a keybind force one.
+    property string popout: ""
+    property string popoutMon: ""
 
     function refresh() {
         Hyprland.refreshMonitors();
@@ -104,16 +111,32 @@ ShellRoot {
         root.openSurface = "";
     }
 
+    function show(mon, surface) {
+        root.openMon = mon;
+        root.openSurface = surface;
+    }
+
     function peek(mon) {
         root.peekMon = root.peekMon === mon ? "" : mon;
     }
 
+    // Pin/unpin an edge popout (mixer/power) on a monitor; re-issuing the same
+    // one clears it. Hover opens them on its own, so this is the IPC/keybind path.
+    function togglePopout(mon, name) {
+        if (root.popout === name && root.popoutMon === mon) {
+            root.popout = "";
+            return;
+        }
+        root.popout = name;
+        root.popoutMon = mon;
+    }
+
     IpcHandler {
         target: "pill"
-        function mixer(mon: string): void { root.toggleSurface(mon, "mixer"); }
+        function mixer(mon: string): void { root.togglePopout(mon, "mixer"); }
         function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
         function launcher(mon: string): void { root.toggleSurface(mon, "launcher"); }
-        function power(mon: string): void { root.toggleSurface(mon, "power"); }
+        function power(mon: string): void { root.togglePopout(mon, "power"); }
         function link(mon: string): void { root.toggleSurface(mon, "link"); }
         function battery(mon: string): void { root.toggleSurface(mon, "battery"); }
         function clipboard(mon: string): void { root.toggleSurface(mon, "clipboard"); }
@@ -122,6 +145,8 @@ ShellRoot {
             if (Mpris.players.values.length > 0)
                 root.toggleSurface(mon, "media");
         }
+        function sysinfo(mon: string): void { root.toggleSurface(mon, "sysinfo"); }
+        function stash(mon: string): void { root.toggleSurface(mon, "stash"); }
         function peek(mon: string): void { root.peek(mon); }
         function hide(): void { root.close(); }
     }
@@ -201,10 +226,19 @@ ShellRoot {
             Region {
                 id: pillRegion
                 readonly property real baseW: Math.max(pill.width, pill.targetW)
-                x: pill.x + (pill.width - baseW) / 2
+                readonly property real baseX: pill.x + (pill.width - baseW) / 2
+                readonly property real musicPad: musicIsland.visible ? Math.max(0, musicIsland.x + musicIsland.width - (baseX + baseW)) : 0
+                x: baseX
                 y: pill.y
-                width: baseW + pill.inputPadRight
+                width: baseW + musicPad
                 height: Math.max(pill.height, pill.targetH)
+                // Edge popouts grab input at the frame edges (their trigger) and
+                // over the open body, so hovering the centre-left/right border
+                // opens them while the rest of the screen stays click-through.
+                Region { x: mixerPop.triggerX; y: mixerPop.triggerY; width: mixerPop.triggerW; height: mixerPop.triggerH }
+                Region { x: mixerPop.bodyX; y: mixerPop.bodyY; width: mixerPop.bodyW; height: mixerPop.bodyH }
+                Region { x: powerPop.triggerX; y: powerPop.triggerY; width: powerPop.triggerW; height: powerPop.triggerH }
+                Region { x: powerPop.bodyX; y: powerPop.bodyY; width: powerPop.bodyW; height: powerPop.bodyH }
             }
             Region {
                 id: fullRegion
@@ -216,7 +250,10 @@ ShellRoot {
                 anchors.fill: parent
                 enabled: overlay.modal
                 acceptedButtons: Qt.AllButtons
-                onPressed: {
+                onPressed: (mouse) => {
+                    if (mouse.x >= pill.x && mouse.x <= pill.x + pill.width
+                            && mouse.y >= pill.y && mouse.y <= pill.y + pill.height)
+                        return;
                     if (overlay.surfaceOpen) root.close();
                     else {
                         pill.pinned = false;
@@ -230,23 +267,141 @@ ShellRoot {
                 anchors.fill: parent
                 focus: overlay.surfaceOpen
 
-                HoverHandler {
-                    onHoveredChanged: pill.hovered = hovered
-                }
                 Keys.onEscapePressed: if (!pill.linkBack()) root.close()
-                Keys.onUpPressed: (e) => { e.accepted = pill.mixerStep(1); }
-                Keys.onDownPressed: (e) => { e.accepted = pill.mixerStep(-1); }
-                Keys.onLeftPressed: (e) => {
-                    if (pill.mixerOpen) { pill.mixerFocusMove(-1); e.accepted = true; }
-                    else if (pill.wallpaperOpen) { pill.wallpaperMove(-1); e.accepted = true; }
-                }
-                Keys.onRightPressed: (e) => {
-                    if (pill.mixerOpen) { pill.mixerFocusMove(1); e.accepted = true; }
-                    else if (pill.wallpaperOpen) { pill.wallpaperMove(1); e.accepted = true; }
-                }
+                Keys.onLeftPressed: (e) => { if (pill.wallpaperOpen) { pill.wallpaperMove(-1); e.accepted = true; } }
+                Keys.onRightPressed: (e) => { if (pill.wallpaperOpen) { pill.wallpaperMove(1); e.accepted = true; } }
                 Keys.onReturnPressed: (e) => { if (pill.wallpaperOpen) { pill.wallpaperActivate(); e.accepted = true; } }
                 Keys.onEnterPressed: (e) => { if (pill.wallpaperOpen) { pill.wallpaperActivate(); e.accepted = true; } }
                 Keys.onSpacePressed: (e) => { if (pill.wallpaperOpen) { pill.wallpaperActivate(); e.accepted = true; } }
+
+                // The screen frame and the pill share one blob field, so the pill
+                // reads as the frame swelling open at top-centre, not a bar on top.
+                BlobGroup {
+                    id: blobGroup
+                    color: Theme.cardTop
+                    smoothing: 30
+                }
+
+                BlobInvertedRect {
+                    // The rounded screen border, sitting in Hyprland's gaps_out ring.
+                    // Oversized by 50px so the outer edge clips off-screen and only the
+                    // inner (window) edge shows; borders grow to keep the hole at gaps_out.
+                    anchors.fill: parent
+                    anchors.margins: -50
+                    group: blobGroup
+                    radius: 16
+                    borderTop: 66
+                    borderBottom: 66
+                    borderLeft: 66
+                    borderRight: 66
+                    visible: !overlay.monFullscreen
+                }
+
+                BlobRect {
+                    // The pill body, in the frame's field. It runs from the screen top
+                    // through the pill so its neck fuses into the top border; the visible
+                    // bottom keeps the pill's morph radius. The pill draws no background.
+                    id: pillBlob
+                    group: blobGroup
+                    x: pill.x
+                    y: 0
+                    width: pill.width
+                    height: pill.y + pill.height
+                    topLeftRadius: 0
+                    topRightRadius: 0
+                    bottomLeftRadius: pill.morphRadius
+                    bottomRightRadius: pill.morphRadius
+                    deformScale: 0
+                    visible: !overlay.monFullscreen
+                }
+
+                // Mixer popout: grows out of the centre-left frame edge on hover,
+                // melting into the border through the frame's shared blob field.
+                Popout {
+                    id: mixerPop
+                    group: blobGroup
+                    frameThickness: 16
+                    radius: 16
+                    smoothing: 30
+                    edge: "left"
+                    s: overlay.s
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "mixer" && root.popoutMon === overlay.modelData.name
+                    openW: (mixerContent.faderCount * 64 + 36) * overlay.s
+                    openH: 214 * overlay.s
+
+                    Mixer {
+                        id: mixerContent
+                        s: overlay.s
+                    }
+                }
+
+                // Power popout: grows out of the centre-right frame edge on hover.
+                Popout {
+                    id: powerPop
+                    group: blobGroup
+                    frameThickness: 16
+                    radius: 16
+                    smoothing: 30
+                    edge: "right"
+                    s: overlay.s
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "power" && root.popoutMon === overlay.modelData.name
+                    openW: 74 * overlay.s
+                    openH: 312 * overlay.s
+
+                    Power {
+                        s: overlay.s
+                    }
+                }
+
+                // The music island buds off the centre island through its own blob
+                // field: a pill-shaped anchor it warps out of and melts back into. A
+                // second field (not the frame's) so the music never fuses the border.
+                BlobGroup {
+                    id: islandGroup
+                    color: Theme.cardTop
+                    smoothing: 24
+                }
+
+                BlobRect {
+                    id: musicAnchor
+                    group: islandGroup
+                    x: pill.x
+                    y: 0
+                    width: pill.width
+                    height: pill.y + pill.height
+                    topLeftRadius: 0
+                    topRightRadius: 0
+                    bottomLeftRadius: pill.morphRadius
+                    bottomRightRadius: pill.morphRadius
+                    deformScale: 0
+                    visible: musicIsland.visible
+                }
+
+                BlobRect {
+                    // Tracks the music island; the smooth-min neck to musicAnchor
+                    // stretches and breaks as it slides out (the warp), and reforms
+                    // as it melts back in on close.
+                    id: musicBlob
+                    group: islandGroup
+                    x: musicIsland.x
+                    y: musicIsland.y
+                    width: musicIsland.width
+                    height: musicIsland.height
+                    radius: musicIsland.height / 2
+                    deformScale: 0
+                    visible: musicIsland.visible
+                }
+
+                DropArea {
+                    // Drag a file onto the island and the stash opens for the drop.
+                    x: pill.x
+                    y: pill.y
+                    width: pill.width
+                    height: pill.height
+                    onEntered: (drag) => root.show(overlay.modelData.name, "stash")
+                }
 
                 Pill {
                     id: pill
@@ -280,6 +435,30 @@ ShellRoot {
 
                     onRequestSurface: (name) => root.toggleSurface(overlay.modelData.name, name)
                     onRequestClose: root.close()
+                }
+
+                MusicIsland {
+                    id: musicIsland
+                    s: overlay.s
+                    live: !overlay.surfaceOpen
+                    open: !overlay.surfaceOpen && !pill.toastActive && !pill.osdActive
+                    x: {
+                        const start = pill.x + pill.width / 2 - width / 2;
+                        const end = pill.x + pill.width + 18 * overlay.s;
+                        return start + (end - start) * reveal;
+                    }
+                    y: Math.max(pill.y + pill.height / 2 - height / 2, 22)
+                    onHoveredChanged: if (hovered) pill.hovered = false
+                    onActivated: root.toggleSurface(overlay.modelData.name, "media")
+                }
+
+                ActivityStrip {
+                    id: activityStrip
+                    s: overlay.s
+                    visible: !overlay.surfaceOpen && !pill.toastActive && !pill.osdActive && width > 1
+                    x: pill.x - width - 18 * overlay.s
+                    y: Math.max(pill.y + pill.height / 2 - height / 2, 22)
+                    onRequestSurface: (name) => root.toggleSurface(overlay.modelData.name, name)
                 }
             }
 

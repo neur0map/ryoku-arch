@@ -6,20 +6,20 @@
 - The Ryoku desktop shell, imported and reorganized into this tree: the Quickshell
   UI (`pill` bar, `sidebar`, `topbar`, `launcher`, `ryoshot`), the Hyprland
   config in Lua, wallust palette generation, and the per-app configs.
-- `plugin/` and the pill-shell frame: the screen frame, brought over from the
-  legacy shell and reorganized. `plugin/` is `Ryoku.Blobs`, a C++/QML SDF
-  metaball module: a rounded border (`BlobInvertedRect`) that popouts
-  (`FramePanel`/`BlobRect`) melt into through one shared smooth-min field, with a
-  velocity spring that squashes them as they move. The pill shell now hosts the
-  field per monitor: a click-through rounded border in Hyprland's outer gap
-  (retracting to nothing on fullscreen) plus the pill itself as a top blob
-  necked into the border, so the island reads as the frame swelling open at
-  top-centre rather than a bar on top; the music and activity islands stay
-  separate. See docs/frame.md. `deploy.sh` builds the module (cmake + ninja +
-  qt6-shadertools) onto `~/.local/lib/qt6/qml` when that toolchain is present
-  (skipping cleanly otherwise), and `ryoku-shell` points the quickshell
-  processes' `QML2_IMPORT_PATH` there. The
-  module ships prebuilt, like the Go binaries.
+- `plugin/` and the pill-shell frame: the screen frame, brought from the legacy
+  shell and reorganized. `plugin/` is `Ryoku.Blobs`, a C++/QML SDF metaball
+  module: a rounded border (`BlobInvertedRect`) and bodies (`BlobRect`) that melt
+  into one shared smooth-min field, with a velocity spring that squashes them as
+  they move. The pill shell hosts the field per monitor: a click-through rounded
+  border in Hyprland's outer gap (retracting to nothing on fullscreen), the pill
+  itself as a top blob necked into the border (the island reads as the frame
+  swelling open at top-centre), and edge popouts under `pill/popouts/` (the mixer
+  left, power right) that grow out of the centre-left/right border on hover and
+  melt back into it; the music and activity islands stay on a separate field. See
+  docs/frame.md. `deploy.sh` builds the module (cmake + ninja + qt6-shadertools)
+  onto `~/.local/lib/qt6/qml` when that toolchain is present (skipping cleanly
+  otherwise), and `ryoku-shell` points the quickshell processes'
+  `QML2_IMPORT_PATH` there. The module ships prebuilt, like the Go binaries.
 - `ipc/`: `ryoku-shell`, a single Go program that is the shell's control plane.
   `ryoku-shell daemon` supervises the Quickshell components (restarting them if
   they exit), brings up the clipboard-history watchers and the wallpaper, and

@@ -370,8 +370,8 @@ PillSurface {
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "繋"
-                        color: Theme.cream
+                        text: "力"
+                        color: Theme.brand
                         font.family: Theme.fontJp
                         font.weight: Font.Medium
                         font.pixelSize: 16 * root.s
@@ -630,8 +630,8 @@ PillSurface {
                     Text {
                         id: inboxKanji
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "報"
-                        color: Theme.dim
+                        text: "力"
+                        color: Theme.brand
                         font.family: Theme.fontJp
                         font.weight: Font.Medium
                         font.pixelSize: 11.5 * root.s
@@ -656,9 +656,9 @@ PillSurface {
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "払"
+                        text: "CLR"
                         color: clearArea.containsMouse ? Theme.vermLit : Theme.vermDim
-                        font.family: Theme.fontJp
+                        font.family: Theme.font
                         font.pixelSize: 9 * root.s
                         font.weight: Font.Bold
                     }
@@ -888,10 +888,10 @@ PillSurface {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "静"
+                    text: "IDLE"
                     color: Theme.ghost
                     opacity: 0.55
-                    font.family: Theme.fontJp
+                    font.family: Theme.font
                     font.weight: Font.Medium
                     font.pixelSize: 32 * root.s
                 }

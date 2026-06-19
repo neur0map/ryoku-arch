@@ -15,6 +15,8 @@ func TestRoute(t *testing.T) {
 		{"mixer", "pill", "pill", "mixer"},
 		{"media", "pill", "pill", "media"},
 		{"hide", "pill", "pill", "hide"},
+		{"sysinfo", "pill", "pill", "sysinfo"},
+		{"stash", "pill", "pill", "stash"},
 		{"sidebar", "sidebar", "sidebar", "toggle"},
 	}
 	for _, c := range cases {

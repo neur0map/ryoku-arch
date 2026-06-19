@@ -60,6 +60,20 @@ install -m755 "$here/../../system/hardware/power/ryoku-idle" "$bindir/ryoku-idle
 install -m755 "$here/../../system/hardware/leds/ryoku-leds" "$bindir/ryoku-leds"
 say "installed Ryoku CLI and hardware helpers"
 
+# Build the Ryoku.Blobs QML plugin (the frame's blob renderer) and install the
+# module onto the user's QML import path. ryoku-shell points QML2_IMPORT_PATH
+# there for the quickshell processes it supervises. Needs cmake + ninja +
+# qt6-shadertools (build-time only); skip cleanly when the toolchain is absent so
+# a plain config deploy still succeeds (the module ships prebuilt on installs).
+qmldir="$HOME/.local/lib/qt6/qml"
+if command -v cmake >/dev/null 2>&1 && command -v ninja >/dev/null 2>&1; then
+  say "building Ryoku.Blobs plugin"
+  "$here/plugin/build.sh" "$qmldir"
+  say "installed Ryoku.Blobs -> $qmldir/Ryoku/Blobs"
+else
+  say "skipping Ryoku.Blobs plugin (cmake/ninja not found)"
+fi
+
 # Quickshell components: a deployed daemon runs `qs -c <name>`, reading
 # ~/.config/quickshell/<name>.
 say "installing quickshell components -> $cfg/quickshell"

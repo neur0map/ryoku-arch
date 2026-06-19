@@ -101,8 +101,8 @@ PillSurface {
         anchors.leftMargin: 20 * root.s
         anchors.verticalCenter: parent.verticalCenter
         z: 0
-        text: "壁"
-        color: Theme.ghost
+        text: "力"
+        color: Theme.brand
         opacity: 0.55
         font.family: Theme.fontJp
         font.weight: Font.Medium

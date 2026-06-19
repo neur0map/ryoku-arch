@@ -10,9 +10,15 @@ it to `~/.config` (see `installation/backend/lib/deploy.sh`).
   it supervises the Quickshell components, starts the clipboard and wallpaper
   helpers, and listens on a single Unix socket. As `ryoku-shell <command>` it is a
   thin client that forwards a command to that socket; Hyprland keybinds use it.
-- `quickshell/` The UI, hand-written Quickshell (QML): `pill` (the morphing bar),
-  `sidebar`, `topbar`, `launcher`, and `ryoshot` (screenshot and annotation).
-  These render the shell; they hold no daemon logic.
+- `quickshell/` The UI, hand-written Quickshell (QML): `pill` (the morphing top
+  island; it also draws the screen frame and hosts the edge popouts under
+  `pill/popouts/`, the mixer and power), `sidebar`, `topbar`, and `launcher`, plus
+  `ryoshot` (screenshot and annotation). These render the shell; they hold no
+  daemon logic.
+- `plugin/` `Ryoku.Blobs`, the C++/QML SDF metaball module the frame renders
+  with: the border, the pill, and the popouts melt into one blob field. `build.sh`
+  builds it with cmake onto a QML import path, and it ships prebuilt. See
+  docs/frame.md.
 - `wallust/` Palette generation from the current wallpaper (the kitty palette and
   the Hyprland colors).
 - `kde/` The Qt/KDE platform theme (`kdeglobals`). GTK apps are themed by the
@@ -44,12 +50,15 @@ dumb. Build it with `go build` in `ipc/`; the binary belongs on `PATH` as
 
 ## Dependencies
 
-Beyond Hyprland, quickshell, and `go` (to build `ryoku-shell`), the shell calls at
+Beyond Hyprland, quickshell, `go` (to build `ryoku-shell`), and cmake + ninja +
+qt6-shadertools (to build the `Ryoku.Blobs` plugin), the shell calls at
 runtime: `awww` (wallpaper daemon), `wallust` (palette), `openrgb` (keyboard and
 LED color), `cliphist` and `wl-clipboard`, `imagemagick` (clipboard and
 wallpaper thumbnails), `hyprpicker`, `hypridle` and `brightnessctl` (laptop
-idle/dim), `upower` (battery state), `wireplumber` (`wpctl`) and `playerctl`
-(media keys), `jq`, and `glib2` (`gio`).
+idle/dim), `upower` (battery state), `wireplumber` (`wpctl`), `pipewire-pulse`
+(`pactl` voice-call state), `cava` (music visualizer), `playerctl` (media keys),
+`jq`, `glib2` (`gio`), `curl` (weather and LocalSend), and `python`/`openssl`/
+`libnotify`/`xdg-utils` (the LocalSend file stash and opening stashed files).
 The keybinds open `kitty` (terminal) and `nautilus` (files). Fonts: JetBrains
 Mono Nerd and Noto; cursor: Bibata. The lock is qylock, from `ryoku/`.
 
@@ -74,6 +83,8 @@ Hyprland and restarts `ryoku-shell`.
 ## Install
 
 The installer deploys this tree to `~/.config` and the prebuilt `ryoku-shell` to
-`/usr/local/bin`: `installation/iso/build.sh` builds the daemon into the image and
-`installation/backend/lib/deploy.sh` lays down the configs. The lock screen is
-qylock, shipped by `ryoku/lockscreen`; the shell does not replace it.
+`/usr/local/bin`: `installation/iso/build.sh` builds the daemon and prebuilds the
+`Ryoku.Blobs` plugin into the image, and `installation/backend/lib/deploy.sh` lays
+down the configs and installs the plugin onto the QML import path (`ryoku-shell`
+points `QML2_IMPORT_PATH` there for the components it supervises). The lock screen
+is qylock, shipped by `ryoku/lockscreen`; the shell does not replace it.

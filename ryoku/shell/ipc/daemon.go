@@ -40,6 +40,8 @@ var pillSurfaces = map[string]string{
 	"media":            "media",
 	"peek":             "peek",
 	"hide":             "hide",
+	"sysinfo":          "sysinfo",
+	"stash":            "stash",
 }
 
 type daemon struct {
