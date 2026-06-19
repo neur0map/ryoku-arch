@@ -48,6 +48,11 @@ ShellRoot {
     Component.onCompleted: {
         refresh();
         Devices.restore();
+        // Re-establish the durable idle inhibitor to match the persisted flag.
+        // On a shell reload the external inhibitor is usually still up (it lives
+        // outside this process), so "start" is an idempotent confirm; "stop"
+        // clears any stray inhibitor when Keep-Awake is off.
+        root.syncCaffeine(Flags.keepAwake ? "start" : "stop");
     }
 
     Binding {
@@ -68,6 +73,25 @@ ShellRoot {
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
         anchors { top: true; left: true }
         IdleInhibitor { window: inhibitWin; enabled: Flags.keepAwake }
+    }
+
+    // Keep-Awake's durable inhibitor lives outside the shell so it survives a
+    // reload/restart: ryoku-cmd-caffeine runs systemd-inhibit via systemd-run
+    // (setsid fallback), independent of this process's lifetime. The Wayland
+    // IdleInhibitor above only gives immediate compositor-level effect and dies
+    // with the pill on every respawn; this bridge keeps Keep-Awake unbroken
+    // across the swap. Every surface toggle still just flips Flags.keepAwake.
+    readonly property string caffeineScript: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/ryoku-cmd-caffeine"
+
+    function syncCaffeine(action) {
+        Quickshell.execDetached([root.caffeineScript, action]);
+    }
+
+    Connections {
+        target: Flags
+        function onKeepAwakeChanged() {
+            root.syncCaffeine(Flags.keepAwake ? "start" : "stop");
+        }
     }
 
     /**

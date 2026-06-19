@@ -155,6 +155,10 @@
   surface); the transport controls it reveals on hover already cover playback.
 
 ### Fixed
+- `quickshell/pill`: Keep-Awake now holds across a shell reload. The in-process
+  Wayland `IdleInhibitor` dies with the pill on every respawn, so a durable
+  `ryoku-cmd-caffeine` systemd-inhibit (launched outside the shell) bridges the
+  swap; toggling any surface still just flips `Flags.keepAwake`.
 - `quickshell/pill`: the Recorder detects gpu-screen-recorder by full command line.
   Linux truncates the process comm name to 15 chars, so `pgrep -x
   gpu-screen-recorder` never matched and a live recording read as stopped.
