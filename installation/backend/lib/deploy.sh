@@ -70,6 +70,7 @@ ryoku_deploy_bin() {
   install_bin "$RYOKU_REPO/system/hardware/leds/ryoku-leds" ryoku-leds
   install_bin "$RYOKU_REPO/ryoku/apps/fastfetch/ryoku-fastfetch" ryoku-fastfetch
   install_bin "$RYOKU_REPO/ryoku/shell/ipc/ryoku-shell" ryoku-shell
+  install_bin "$RYOKU_REPO/ryoku/hub/backend/ryoku-hub" ryoku-hub
   install_bin "$RYOKU_REPO/ryoku/shell/ryoku" ryoku
   deploy_file "$RYOKU_REPO/system/hardware/gpu/90-ryoku-gpu.rules" \
     /mnt/etc/udev/rules.d/90-ryoku-gpu.rules
@@ -103,6 +104,7 @@ ryoku_deploy_shell() {
   local h=$1
   log "deploying the Ryoku shell components into $h"
   deploy_dir "$RYOKU_REPO/ryoku/shell/quickshell" "$h/.config/quickshell"
+  deploy_dir "$RYOKU_REPO/ryoku/hub/quickshell" "$h/.config/quickshell/hub"
   deploy_dir "$RYOKU_REPO/ryoku/shell/wallust" "$h/.config/wallust"
   deploy_file "$RYOKU_REPO/ryoku/shell/kde/kdeglobals" "$h/.config/kdeglobals"
   deploy_dir "$RYOKU_REPO/ryoku/shell/systemd/user" "$h/.config/systemd/user"

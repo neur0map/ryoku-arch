@@ -55,3 +55,11 @@ hl.window_rule({
     float = true,
     size  = { 360, 270 },
 })
+
+hl.window_rule({
+    name   = "float-ryoku-hub",
+    match  = { title = "^(Ryoku Hub)$" },
+    float  = true,
+    size   = { 1360, 880 },
+    center = true,
+})

@@ -82,6 +82,12 @@ log "Building ryoku-shell from $REPO_ROOT/ryoku/shell/ipc"
 install -d "$AIROOTFS/usr/share/ryoku/ryoku/shell/ipc"
 ( cd "$REPO_ROOT/ryoku/shell/ipc" && CGO_ENABLED=0 go build -trimpath -o "$AIROOTFS/usr/share/ryoku/ryoku/shell/ipc/ryoku-shell" . )
 
+# 4d. Build the Ryoku Hub backend (Go), same prebuilt model as ryoku-shell: the
+#     target has no toolchain, so ship it inside the payload for the deploy step.
+log "Building ryoku-hub from $REPO_ROOT/ryoku/hub/backend"
+install -d "$AIROOTFS/usr/share/ryoku/ryoku/hub/backend"
+( cd "$REPO_ROOT/ryoku/hub/backend" && CGO_ENABLED=0 go build -trimpath -o "$AIROOTFS/usr/share/ryoku/ryoku/hub/backend/ryoku-hub" . )
+
 # 4c. Prebuild the Ryoku.Blobs QML plugin (the frame's blob renderer) into the
 #     payload, same model as ryoku-shell: the target has no build toolchain, so
 #     the backend's deploy step installs the prebuilt module. Build deps live on

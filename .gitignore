@@ -4,6 +4,7 @@
 /installation/iso/staging/
 /installation/tui/ryoku-tui
 /ryoku/shell/ipc/ryoku-shell
+/ryoku/hub/backend/ryoku-hub
 /ryoku/shell/plugin/build/
 /ryoku/shell/plugin/dist/
 *.iso

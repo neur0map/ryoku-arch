@@ -17,6 +17,10 @@
   qt6-shadertools on the build host), and `backend/lib/deploy.sh` installs it onto
   the user's Qt QML import path, so the installed desktop renders the frame with
   no build toolchain on the target.
+- Ryoku Hub now rides the install path: `iso/build.sh` prebuilds the `ryoku-hub`
+  Go binary into the payload, and `backend/lib/deploy.sh` installs it onto `PATH`
+  and deploys its quickshell config to `~/.config/quickshell/hub`, so `Super + ,`
+  works on a fresh install with no build toolchain on the target.
 
 ### Changed
 - TUI: the intro holds the brand about 5 seconds longer before the wizard.

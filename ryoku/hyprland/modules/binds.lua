@@ -22,6 +22,7 @@ hl.bind(mod .. " + C",         hl.dsp.exec_cmd("ryoku-shell wallpaper-picker")) 
 hl.bind(mod .. " + D",         hl.dsp.exec_cmd("ryoku-shell toolkit"))           -- screen toolkit (lens, color, ocr, mirror, caffeine)
 hl.bind(mod .. " + Z",         hl.dsp.exec_cmd("ryoku-shell stash"))             -- file stash
 hl.bind(mod .. " + U",         hl.dsp.exec_cmd("ryoku-shell utilities"))         -- utilities (keep-awake, record, toggles, recordings)
+hl.bind(mod .. " + comma",     hl.dsp.exec_cmd("flock -n -o /tmp/ryoku-hub.lock qs -c hub"))     -- ryoku hub
 hl.bind(mod .. " + S",         hl.dsp.exec_cmd("flock -n -o /tmp/ryoshot.lock qs -c ryoshot"))  -- screenshot
 hl.bind(mod .. " + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"))                 -- pick a color
 

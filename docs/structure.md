@@ -38,6 +38,12 @@ truth for the live desktop.
   the wallpaper), `kde/` (`kdeglobals`),
   `systemd/` (the user session target), `ipc/` (`ryoku-shell`, the Go
   control-plane daemon). `deploy.sh` and `dev-*.sh` are the live dev-loop tools.
+- `hub/` Ryoku Hub, the central control-center GUI (`Super + ,`): `backend/`
+  (`ryoku-hub`, the Go data plane that reads the keybind legend from the live
+  Hyprland config and persists hub state as TOML) and `quickshell/` (the native
+  Qt6/QML app, a `FloatingWindow` with Kirigami-style sidebar navigation and a
+  global fuzzy search). Deployed to `~/.config/quickshell/hub`; built by the
+  shell's `deploy.sh`.
 - `assets/` `brand/` the 力 logo and icons, and `wallpapers/` the shipped
   wallpaper set (installs to `~/Pictures/Wallpapers`).
 

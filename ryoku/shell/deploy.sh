@@ -54,6 +54,13 @@ say "building ryoku-shell"
 mkdir -p "$bindir"
 install -m755 "$here/ipc/ryoku-shell" "$bindir/ryoku-shell"
 say "installed $bindir/ryoku-shell"
+
+# Build the Ryoku Hub backend (a separate Go binary; the hub's quickshell config
+# shells out to it for the keybind legend and its TOML config).
+say "building ryoku-hub"
+(cd "$here/../hub/backend" && go build -o ryoku-hub .)
+install -m755 "$here/../hub/backend/ryoku-hub" "$bindir/ryoku-hub"
+say "installed $bindir/ryoku-hub"
 install -m755 "$here/ryoku" "$bindir/ryoku"
 install -m755 "$here/../../system/hardware/power/ryoku-hw-laptop" "$bindir/ryoku-hw-laptop"
 install -m755 "$here/../../system/hardware/power/ryoku-idle" "$bindir/ryoku-idle"
@@ -80,6 +87,10 @@ say "installing quickshell components -> $cfg/quickshell"
 rm -rf "$cfg/quickshell"
 mkdir -p "$cfg/quickshell"
 cp -a "$here/quickshell/." "$cfg/quickshell/"
+
+# Ryoku Hub's quickshell config (qs -c hub), kept beside the shell's components.
+mkdir -p "$cfg/quickshell/hub"
+cp -a "$here/../hub/quickshell/." "$cfg/quickshell/hub/"
 
 # Pause Hyprland's config auto-reload so the hypr swap below never exposes a
 # missing hyprland.lua (which would trip emergency mode).
