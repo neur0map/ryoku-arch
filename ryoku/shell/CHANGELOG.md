@@ -94,6 +94,9 @@
   copying the result and opening URLs).
 
 ### Changed
+- `ryoku-cmd-screenrecord`: starting a recording no longer raises a "recording
+  started" toast. The REC chip on the pill's activity strip is the live indicator,
+  so the toast was redundant noise; the stop and failure notifications stay.
 - `quickshell/pill`: the Stash tiles show a file-type glyph (archive, image, film,
   music, code, document) instead of a large extension label, and the empty state
   is a faint 力 watermark over a minimal prompt, for a less templated look.

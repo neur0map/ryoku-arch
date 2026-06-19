@@ -369,7 +369,6 @@ start_gsr() {
   [[ -n $audio_source ]] && args+=(-a "$audio_source")
   args+=(-o "$output_path")
 
-  notify -u normal "Screen recording started" "$output_path"
   exec "${args[@]}"
 }
 
@@ -413,7 +412,6 @@ start_wf() {
 
   # Explicit codec: skip the hardware/software negotiation entirely.
   if [[ -n ${RYOKU_SCREENRECORD_WF_CODEC:-} ]]; then
-    notify -u normal "Screen recording started" "$output_path"
     exec "$wf_cmd" -r "$fps" "${target_args[@]}" "${audio_args[@]}" \
       -c "$RYOKU_SCREENRECORD_WF_CODEC" -f "$output_path"
   fi
@@ -423,7 +421,6 @@ start_wf() {
   # can't ingest it), fall back to libx264 so a recording is always produced.
   node="$(wf_vaapi_node || true)"
   if [[ -n ${node:-} ]]; then
-    notify -u normal "Screen recording started" "$output_path"
     "$wf_cmd" -r "$fps" "${target_args[@]}" "${audio_args[@]}" \
       -c h264_vaapi -d "$node" -F "scale_vaapi=format=nv12" -f "$output_path" &
     pid=$!
@@ -439,7 +436,6 @@ start_wf() {
     output_path="$(next_recording_path "$output_dir")"
   fi
 
-  notify -u normal "Screen recording started" "$output_path"
   exec "$wf_cmd" -r "$fps" "${target_args[@]}" "${audio_args[@]}" \
     -c libx264 -p preset=veryfast -f "$output_path"
 }
