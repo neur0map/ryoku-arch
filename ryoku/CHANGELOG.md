@@ -38,3 +38,8 @@
   `shell/` now lives at `ryoku/shell/`, its modular Hyprland config replaced the
   old flat `ryoku/hyprland` (one Hyprland config now), and the duplicate
   `shell/fish` (with its non-brand greeting) was dropped for `ryoku/apps/fish`.
+
+### Fixed
+- Hyprland: a window stranded in maximize when a Chromium/Electron app leaves
+  page fullscreen (a spurious mode-1 event on exit) is reset to normal, so the
+  window returns to its original size instead of staying expanded.

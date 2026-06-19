@@ -8,6 +8,7 @@ require("modules.animations")
 require("modules.binds")
 require("modules.ryoshot")
 require("modules.window_rules")
+require("modules.fullscreen")
 require("modules.autostart")
 
 pcall(require, "modules.private")
