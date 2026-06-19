@@ -34,6 +34,7 @@ PillSurface {
         { key: "color",    glyph: "eyedropper", label: "Color",    argv: [root.scripts + "ryoku-cmd-color-picker"] },
         { key: "ocr",      glyph: "ocr",        label: "OCR",      argv: [root.scripts + "ryoku-cmd-ocr"] },
         { key: "mirror",   glyph: "webcam",     label: "Mirror",   argv: [root.scripts + "ryoku-cmd-mirror"] },
+        { key: "qr",       glyph: "qr",         label: "QR",       argv: [root.scripts + "ryoku-cmd-qr-scan"] },
         { key: "caffeine", glyph: "coffee",     label: "Caffeine", toggle: true }
     ]
 
@@ -76,7 +77,7 @@ PillSurface {
         Row {
             id: tileRow
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 40 * root.s
+            spacing: 30 * root.s
 
             Repeater {
                 model: root.tools

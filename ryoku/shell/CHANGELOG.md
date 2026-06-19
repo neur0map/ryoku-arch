@@ -73,11 +73,12 @@
   the `send`/`install`/`compress`/`download` `GlyphIcon` glyphs, `Singletons/Stash`
   actions, and the `hyprland/scripts/stash-install.sh`, `stash-compress.sh`,
   `stash-download.sh` helpers (plus a `send-all` mode on `localsend.sh`) behind them.
-- `quickshell/pill`: a TOOLKIT centre island (Super+D) of four screen tools that
-  grow from the pill and run self-contained `hypr/scripts` helpers: Google Lens
-  (upload a region and open the search), a color picker (hyprpicker to the
-  clipboard), OCR (tesseract on a region to the clipboard), and a webcam Mirror (a
-  flipped mpv picture-in-picture, floated and toggled).
+- `quickshell/pill`: a TOOLKIT centre island (Super+D) of screen tools that grow
+  from the pill and run self-contained `hypr/scripts` helpers: Google Lens (upload
+  a region and open the search), a color picker (hyprpicker to the clipboard), OCR
+  (tesseract on a region to the clipboard), a webcam Mirror (a flipped mpv
+  picture-in-picture, floated and toggled), and a QR scanner (zbar on a region,
+  copying the result and opening URLs).
 
 ### Changed
 - `quickshell/pill`: the Stash tiles show a file-type glyph (archive, image, film,

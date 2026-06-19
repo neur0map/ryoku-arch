@@ -81,7 +81,7 @@ Item {
     readonly property real batteryW: 316 * s
     readonly property real sysinfoW: 360 * s
     readonly property real stashW: 420 * s
-    readonly property real toolkitW: 390 * s
+    readonly property real toolkitW: 418 * s
     readonly property real utilitiesW: 360 * s
     readonly property real toastW: 342 * s
     readonly property real restCorner: 18 * s
