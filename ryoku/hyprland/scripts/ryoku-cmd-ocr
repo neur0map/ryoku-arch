@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Select a screen region, OCR it with tesseract, and copy the recognized text to
+# the clipboard. Self-contained: grim + slurp + tesseract + wl-copy.
+set -euo pipefail
+
+app="OCR"
+need() { command -v "$1" >/dev/null 2>&1 || { notify-send -u normal "$app" "$1 is not installed"; exit 1; }; }
+for c in grim slurp tesseract wl-copy notify-send; do need "$c"; done
+
+tmp="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/ryoku-ocr.XXXXXX.png")"
+trap 'rm -f "$tmp"' EXIT
+
+# slurp non-zero is a cancel (Esc); leave quietly.
+geometry="$(slurp 2>/dev/null)" || exit 130
+[[ -n $geometry ]] || exit 0
+grim -g "$geometry" "$tmp"
+
+# Command substitution trims trailing newlines.
+text="$(tesseract "$tmp" - 2>/dev/null || true)"
+if [[ -z ${text//[[:space:]]/} ]]; then
+  notify-send -u normal "$app" "No text recognized in the selected region"
+  exit 0
+fi
+
+printf '%s' "$text" | wl-copy
+notify-send -u low "$app" "Recognized text copied to clipboard"

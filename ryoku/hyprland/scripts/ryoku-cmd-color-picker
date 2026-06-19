@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Pick a screen color with hyprpicker and copy the hex to the clipboard. With
+# --repeat, keep picking until the picker is cancelled.
+set -euo pipefail
+
+app="Color picker"
+need() { command -v "$1" >/dev/null 2>&1 || { notify-send -u normal "$app" "$1 is not installed"; exit 1; }; }
+
+repeat=false
+case "${1:-}" in
+  "") ;;
+  --repeat) repeat=true ;;
+  *) notify-send -u critical "$app" "Usage: ryoku-cmd-color-picker [--repeat]"; exit 2 ;;
+esac
+
+for c in hyprpicker wl-copy notify-send; do need "$c"; done
+
+while true; do
+  if ! color="$(hyprpicker -f hex -n)"; then
+    [[ $repeat == true ]] && exit 0
+    exit 130
+  fi
+  if [[ -n $color ]]; then
+    # wl-copy forks and persists the selection; hyprpicker -a does not survive
+    # hyprpicker exiting without a clipboard manager.
+    printf '%s' "$color" | wl-copy
+    printf '%s\n' "$color"
+    notify-send -u low "$app" "Copied $color"
+  fi
+  [[ $repeat == true ]] || break
+done

@@ -48,3 +48,10 @@ hl.window_rule({
     size   = { 1500, 850 },
     center = true,
 })
+
+hl.window_rule({
+    name  = "float-webcam-mirror",
+    match = { title = "ryoku-mirror" },
+    float = true,
+    size  = { 360, 270 },
+})

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Webcam mirror: a flipped picture-in-picture self-view via mpv. Re-running it
+# closes the open mirror, so one keybind or button toggles it.
+set -u
+
+app="Mirror"
+title="ryoku-mirror"
+
+# An open mirror closes (toggle): pkill returns 0 when it killed the running mpv.
+if pkill -f -- "--title=$title" 2>/dev/null; then
+  exit 0
+fi
+
+command -v mpv >/dev/null 2>&1 || { notify-send -u normal "$app" "mpv is not installed"; exit 1; }
+
+# First V4L2 capture device. No camera means no blank window.
+dev=""
+for d in /dev/video*; do
+  [ -e "$d" ] || continue
+  dev="$d"; break
+done
+[ -n "$dev" ] || { notify-send -u normal "$app" "No webcam found"; exit 1; }
+
+# hflip reads like a real mirror; no audio, no on-screen controls, borderless.
+# window_rules.lua floats and sizes the "ryoku-mirror" window into a PiP.
+exec mpv "av://v4l2:$dev" \
+  --title="$title" \
+  --profile=low-latency --untimed --no-audio \
+  --vf=hflip --no-osc --no-border --ontop
