@@ -82,6 +82,14 @@ PillSurface {
         micProc.running = true;
     }
 
+    // Pre-warm recordings and toggle state once at startup so the first open is
+    // already at its final size and the panel does not re-morph as polls return.
+    Component.onCompleted: {
+        refreshRecs();
+        wifiProc.running = true;
+        micProc.running = true;
+    }
+
     // Refresh the list shortly after a recording ends so the new file appears.
     Connections {
         target: Recorder
