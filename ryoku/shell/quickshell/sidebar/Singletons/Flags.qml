@@ -35,6 +35,11 @@ Singleton {
         blockLoading: true
         watchChanges: true
         printErrors: false
+        // Atomic writes (temp + rename) so a SIGTERM during a shell refresh, or
+        // the pill and sidebar singletons writing at once, can never leave a torn
+        // half-written file that fails to parse on the next load — which would
+        // silently drop persisted Keep-Awake back to the default off.
+        atomicWrites: true
 
         onFileChanged: reload()
         onAdapterUpdated: writeAdapter()
@@ -47,5 +52,8 @@ Singleton {
         }
     }
 
-    Component.onCompleted: if (!file.loaded) file.writeAdapter();
+    // Seed the file only on a genuine first run (no content to load). Guard on
+    // the loaded text, not file.loaded, so a slow or failed load never overwrites
+    // a present file from defaults and wipes Keep-Awake across a refresh.
+    Component.onCompleted: if (!file.text()) file.writeAdapter();
 }
