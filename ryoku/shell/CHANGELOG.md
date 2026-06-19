@@ -162,18 +162,12 @@
   returns (~150ms); the palette+border reload and the slow LED pass run on
   coalescing background workers, so rapid presses stay smooth and the settled
   wallpaper still themes once.
-- `quickshell/pill`: the island wake-wave streak no longer repeats while hovering.
-  It keyed off the un-latched `hoverArrived`, so every in-hover geometry twitch
-  re-fired it; a one-shot `islandWoken` latch now plays it once per open and clears
-  only on the return to rest.
-- `quickshell/pill`: the wake wave waits for the open morph to fully settle
-  before streaking, instead of drawing over a still-growing island that warped
-  the line.
-- `quickshell/pill`: removed the per-icon hover underline; sweeping the status
-  icons crossfaded a trail of orange marks that read as a glitchy repeating line
-  (the icons still brighten on hover). The hover content now clips to the pill
-  and fades in as the island opens, so it appears immediately instead of staying
-  blank until the morph nearly finishes.
+- `quickshell/pill`: removed the island's on-hover wave animations. Both the
+  per-icon hover underline (a crossfading trail of orange marks across the status
+  row) and the island-open wake-wave streak read as a glitchy wave line on hover;
+  both are gone (WakeWave.qml and its latch deleted), and the icons just brighten
+  on hover. The hover content clips to the pill and fades in as the island opens,
+  so it loads immediately instead of staying blank until the morph settles.
 
 ### Not included
 - The GRUB theme (the system boots with Limine) and the SDDM theme (a 38 MB
