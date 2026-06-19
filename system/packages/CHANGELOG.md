@@ -30,6 +30,8 @@
   toolkit OCR (recognize text in a screen region to the clipboard).
 - `base.packages`: add `zbar` for the Super+D toolkit QR scanner (decode a QR code
   in a screen region, copy it, and open URLs).
+- `base.packages`: add `hyprsunset` for the Super+U utilities night-light toggle
+  (a warm screen color temperature), driven by ryoku-cmd-nightlight.
 - `base.packages`: add `gpu-screen-recorder` and `wf-recorder` for the pill's
   Super+U utilities Screen Recorder (gpu-screen-recorder, with a wf-recorder
   fallback on multi-GPU machines).

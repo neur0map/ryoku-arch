@@ -124,6 +124,10 @@ zbar
 gpu-screen-recorder
 wf-recorder
 
+# Night light (pill Super+U utilities): warm color temperature toggle, driven by
+# ryoku-cmd-nightlight.
+hyprsunset
+
 # Fonts
 noto-fonts
 noto-fonts-cjk
