@@ -112,10 +112,12 @@ ffmpeg
 yt-dlp
 desktop-file-utils
 
-# Screen toolkit (pill Super+D): OCR text recognition. The lens, color picker,
-# and webcam mirror reuse curl/jq/grim/slurp, hyprpicker, and mpv from above.
+# Screen toolkit (pill Super+D): OCR text recognition (tesseract) and QR scanning
+# (zbar). The lens, color picker, and webcam mirror reuse curl/jq/grim/slurp,
+# hyprpicker, and mpv from above.
 tesseract
 tesseract-data-eng
+zbar
 
 # Screen recorder (pill Super+U utilities): gpu-screen-recorder, with a
 # wf-recorder fallback for multi-GPU machines, driven by ryoku-cmd-screenrecord.
