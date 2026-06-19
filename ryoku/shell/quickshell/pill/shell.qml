@@ -220,22 +220,12 @@ ShellRoot {
             readonly property bool focusSurface: surfaceOpen && surface !== "voice"
             readonly property bool modal: focusSurface || pill.held
 
-            /**
-             * True while this monitor's active workspace holds a real
-             * fullscreen window. The pill then retracts off the top edge and
-             * the whole layer becomes click-through so fullscreen content owns
-             * the screen. Maximize is suppressed globally, so only true
-             * fullscreen ever flips this.
-             */
+            // True when this monitor's active workspace has a fullscreen window.
             readonly property bool monFullscreen: {
                 var mons = Hyprland.monitors.values;
-                for (var i = 0; i < mons.length; i++) {
-                    if (mons[i].name === modelData.name) {
-                        var ws = mons[i].activeWorkspace;
-                        var o = ws ? ws.lastIpcObject : null;
-                        return o ? !!o.hasfullscreen : false;
-                    }
-                }
+                for (var i = 0; i < mons.length; i++)
+                    if (mons[i].name === modelData.name)
+                        return mons[i].activeWorkspace ? mons[i].activeWorkspace.hasFullscreen : false;
                 return false;
             }
 
@@ -303,6 +293,8 @@ ShellRoot {
                 id: focusScope
                 anchors.fill: parent
                 focus: overlay.focusSurface
+                // The whole shell hides while a window is fullscreen.
+                visible: !overlay.monFullscreen
 
                 Keys.onEscapePressed: if (!pill.linkBack()) root.close()
                 Keys.onLeftPressed: (e) => { if (pill.wallpaperOpen) { pill.wallpaperMove(-1); e.accepted = true; } }

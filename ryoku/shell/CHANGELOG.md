@@ -183,6 +183,11 @@
   centre; the surface is wider and taller so the rail and a two-row grid have room.
 
 ### Fixed
+- `quickshell/pill`: the shell fully hides while a window is fullscreen. The
+  frame, pill, music island, and edge popouts stayed drawn over fullscreen
+  content; the whole shell layer now gates on the active workspace's fullscreen
+  state (read from the typed `HyprlandWorkspace.hasFullscreen` rather than the
+  workspace's last IPC object, which the monitor refresh could clobber).
 - `quickshell/pill`: the music island's spectrum bars no longer animate without
   audio behind them. When cava sends no frames they settle to a flat resting line
   instead of a synthetic wave, so the bars read as real playback levels or rest
