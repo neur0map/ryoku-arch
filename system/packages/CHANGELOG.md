@@ -19,6 +19,10 @@
   color control through `ryoku-leds`.
 - `base.packages`: add `noto-fonts-cjk` and `inter-font` so Japanese Ryoku shell
   labels, the 力 brand mark, and the configured UI font render on fresh installs.
+- `base.packages`: add `cava` for the pill's separated music visualizer island.
+- `base.packages`: add `curl`, `python`, `libnotify`, and `xdg-utils` for the
+  pill's file stash (LocalSend LAN discovery and send), weather (wttr.in), and
+  opening stashed files with the default app.
 
 ### Fixed
 - `base.packages`: add the desktop session pieces a plain Hyprland needs to render

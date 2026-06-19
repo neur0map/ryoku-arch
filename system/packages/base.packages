@@ -94,12 +94,19 @@ zoxide
 # Ryoku shell (quickshell desktop), its runtime helpers, and the yazi file manager
 quickshell
 awww
+cava
 cliphist
 hyprpicker
 imagemagick
 jq
 openrgb
 yazi
+
+# File stash (LocalSend), weather, and file-open integration for the pill
+curl
+libnotify
+python
+xdg-utils
 
 # Fonts
 noto-fonts
