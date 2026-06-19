@@ -65,6 +65,7 @@ install -m755 "$here/ryoku" "$bindir/ryoku"
 install -m755 "$here/../../system/hardware/power/ryoku-hw-laptop" "$bindir/ryoku-hw-laptop"
 install -m755 "$here/../../system/hardware/power/ryoku-idle" "$bindir/ryoku-idle"
 install -m755 "$here/../../system/hardware/leds/ryoku-leds" "$bindir/ryoku-leds"
+install -m755 "$here/../../system/hardware/audio/ryoku-mic" "$bindir/ryoku-mic"
 say "installed Ryoku CLI and hardware helpers"
 
 # Build the Ryoku.Blobs QML plugin (the frame's blob renderer) and install the
