@@ -161,6 +161,7 @@ var keyNames = map[string]string{
 	"CONTROL": "Ctrl",
 	"Return":  "Enter",
 	"comma":   ",",
+	"grave":   "\u0060",
 	"Left":    "\u2190",
 	"Right":   "\u2192",
 	"Up":      "\u2191",

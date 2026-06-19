@@ -110,3 +110,9 @@ func TestMediaKeyLiteral(t *testing.T) {
 		t.Errorf("media desc = %q, want Volume up", m.Binds[0].Desc)
 	}
 }
+
+func TestPrettyKeyGrave(t *testing.T) {
+	if got := prettyKey("grave"); got != "`" {
+		t.Errorf("grave key = %q, want backtick", got)
+	}
+}
