@@ -1,0 +1,126 @@
+#!/bin/bash
+
+# Keep-Awake's durable idle inhibitor. The shell only flips Flags.keepAwake and
+# calls this helper; the actual inhibitor is a systemd-inhibit process launched
+# OUTSIDE the shell (via systemd-run --user, or setsid as a fallback) so it keeps
+# the screen awake across a shell reload/restart, which would otherwise drop the
+# in-shell Wayland inhibitor and let the session idle during the swap. The user's
+# request is persisted to a state file so a fresh login can restore it.
+
+set -euo pipefail
+
+state_dir="${RYOKU_STATE_PATH:-${XDG_STATE_HOME:-$HOME/.local/state}/ryoku}"
+state_file="${RYOKU_CAFFEINE_STATE_FILE:-$state_dir/caffeine.enabled}"
+lock_file="${RYOKU_CAFFEINE_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/ryoku-caffeine.lock}"
+unit_name="${RYOKU_CAFFEINE_UNIT_NAME:-ryoku-caffeine-inhibit}"
+
+inhibit_pattern="[r]yoku-caffeine-inhibit"
+desired_inhibit_pattern="(^|/)systemd-inhibit --what=idle:sleep --who=Ryoku .*Ryoku caffeine mode"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ryoku-cmd-caffeine status    # exit 0 when the inhibitor is active
+  ryoku-cmd-caffeine start     # persist the request and hold the inhibitor
+  ryoku-cmd-caffeine stop      # clear the request and release the inhibitor
+  ryoku-cmd-caffeine restore   # re-hold the inhibitor iff a request is persisted
+  ryoku-cmd-caffeine hold      # temporary hold without changing the request
+  ryoku-cmd-caffeine release   # drop a temporary hold (keeps a persisted request)
+  ryoku-cmd-caffeine toggle
+EOF
+}
+
+command_present() {
+  local cmd
+  for cmd in "$@"; do
+    command -v "$cmd" >/dev/null 2>&1 || return 1
+  done
+  return 0
+}
+
+helper_inhibitor_active() { pgrep -f "$inhibit_pattern" >/dev/null; }
+desired_inhibitor_active() { pgrep -f "$desired_inhibit_pattern" >/dev/null; }
+caffeine_active() { desired_inhibitor_active || helper_inhibitor_active; }
+caffeine_requested() { [[ -f $state_file ]] && grep -Fxq "enabled" "$state_file"; }
+
+persist_caffeine_state() {
+  mkdir -p "$(dirname "$state_file")"
+  printf '%s\n' "enabled" >"$state_file"
+}
+clear_caffeine_state() { rm -f "$state_file"; }
+
+with_caffeine_lock() {
+  mkdir -p "$(dirname "$lock_file")"
+  (
+    flock -x 9
+    "$@"
+  ) 9>"$lock_file"
+}
+
+caffeine_unit_active() {
+  command_present systemctl || return 1
+  systemctl --user is-active --quiet "$unit_name.service" >/dev/null 2>&1
+}
+
+start_inhibitor_with_systemd() {
+  command_present systemd-run || return 1
+  systemd-run \
+    --user --quiet --collect \
+    --unit="$unit_name" \
+    --description="Ryoku caffeine idle inhibitor" \
+    systemd-inhibit \
+    --what=idle:sleep \
+    --who=Ryoku \
+    --why="Ryoku caffeine mode" \
+    bash -c 'exec -a ryoku-caffeine-inhibit sleep infinity' 9>&- >/dev/null 2>&1
+}
+
+start_inhibitor_with_setsid() {
+  setsid systemd-inhibit \
+    --what=idle:sleep \
+    --who=Ryoku \
+    --why="Ryoku caffeine mode" \
+    bash -c 'exec -a ryoku-caffeine-inhibit sleep infinity' 9>&- >/dev/null 2>&1 &
+}
+
+start_inhibitor() {
+  if desired_inhibitor_active; then
+    if caffeine_unit_active || ! command_present systemd-run systemctl; then
+      return 0
+    fi
+  fi
+  pkill -f "$inhibit_pattern" >/dev/null 2>&1 || true
+  start_inhibitor_with_systemd || start_inhibitor_with_setsid
+}
+
+wait_for_inhibitor() {
+  for _ in {1..20}; do
+    desired_inhibitor_active && return 0
+    sleep 0.05
+  done
+  return 1
+}
+
+stop_inhibitor() {
+  command_present systemctl && systemctl --user stop "$unit_name.service" >/dev/null 2>&1 || true
+  pkill -f "$inhibit_pattern" >/dev/null 2>&1 || true
+}
+
+hold_caffeine() { start_inhibitor; wait_for_inhibitor; }
+release_caffeine() { if caffeine_requested; then restore_caffeine; else stop_inhibitor; fi; }
+start_caffeine() { persist_caffeine_state; hold_caffeine; }
+stop_caffeine() { clear_caffeine_state; stop_inhibitor; }
+restore_caffeine() { caffeine_requested || return 0; start_caffeine; }
+toggle_caffeine() { if caffeine_requested || caffeine_active; then stop_caffeine; else start_caffeine; fi; }
+
+case "${1:-}" in
+  status)  caffeine_active ;;
+  start)   with_caffeine_lock start_caffeine ;;
+  stop)    with_caffeine_lock stop_caffeine ;;
+  restore) with_caffeine_lock restore_caffeine ;;
+  hold)    with_caffeine_lock hold_caffeine ;;
+  release) with_caffeine_lock release_caffeine ;;
+  toggle)  with_caffeine_lock toggle_caffeine ;;
+  --help|-h|"") usage ;;
+  *) echo "ryoku-cmd-caffeine: unknown action: $1" >&2; usage >&2; exit 2 ;;
+esac
