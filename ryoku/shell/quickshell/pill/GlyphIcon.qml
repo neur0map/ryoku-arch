@@ -77,7 +77,8 @@ Item {
         "image": { d: "M4.5 5h15A1.5 1.5 0 0 1 21 6.5v11A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-11A1.5 1.5 0 0 1 4.5 5z M8 11a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2z M21 15.5l-4.5-4.5L7 20.5", fill: false },
         "code": { d: "M9 8l-4 4 4 4 M15 8l4 4-4 4 M13 5l-2 14", fill: false },
         "film": { d: "M4.5 5h15A1.5 1.5 0 0 1 21 6.5v11A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-11A1.5 1.5 0 0 1 4.5 5z M8 5v14 M16 5v14 M3 9h5 M16 9h5 M3 15h5 M16 15h5", fill: false },
-        "qr": { d: "M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h2.5v2.5h-2.5z M17.5 17.5h2.5v2.5h-2.5z M14 18h2v2h-2z M18 14h2v2h-2z", fill: true }
+        "qr": { d: "M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h2.5v2.5h-2.5z M17.5 17.5h2.5v2.5h-2.5z M14 18h2v2h-2z M18 14h2v2h-2z", fill: true },
+        "moon": { d: "M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9z", fill: false }
     })
 
     readonly property var g: glyphs[name] !== undefined ? glyphs[name] : ({ d: "", fill: false })

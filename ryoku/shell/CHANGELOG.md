@@ -40,11 +40,21 @@
   holds `Flags.keepAwake` (and thus the pill and sidebar `IdleInhibitor`) on until
   it is turned back off, so the screen never dims or locks. Unlike the launcher
   tiles it flips in place and stays lit warm while active.
+- Keep-Awake now survives a shell reload/restart. The durable idle inhibitor runs
+  as an external `systemd-inhibit --what=idle:sleep` process outside the shell's
+  process tree (`hyprland/scripts/ryoku-cmd-caffeine`, launched via `systemd-run
+  --user` with a `setsid` fallback), so respawning the pill no longer drops it and
+  the screen can't sleep during the swap. The in-shell Wayland `IdleInhibitor`
+  still provides immediate effect; the pill bridges any `Flags.keepAwake` change to
+  the helper (`start`/`stop`) and reconciles on startup. The helper persists the
+  request to `~/.local/state/ryoku/caffeine.enabled` and exposes
+  `start/stop/restore/hold/release/toggle/status`.
 - `quickshell/pill`: a Utilities surface grown from the pill centre (Super+U), the
   legacy bottom-right panel reworked as a centre island. Keep-Awake with a live
   elapsed counter (shared `Flags.keepAwakeSince`), a Screen Recorder card with a
   record-mode dropdown (display / region / +sound) and running controls
-  (pause/stop, elapsed, REC pulse), quick toggles (wifi / bluetooth / mic / DND),
+  (pause/stop, elapsed, REC pulse), quick toggles (wifi / bluetooth / mic / DND /
+  night light via hyprsunset),
   and a recordings list with play / open-folder / trash. Recording is driven by
   the `Recorder` singleton (`ryoku-cmd-screenrecord`: gpu-screen-recorder with a
   wf-recorder fallback).

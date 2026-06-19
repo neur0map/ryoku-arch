@@ -80,6 +80,7 @@ PillSurface {
         refreshRecs();
         wifiProc.running = true;
         micProc.running = true;
+        nightProc.running = true;
     }
 
     // Pre-warm recordings and toggle state once at startup so the first open is
@@ -88,6 +89,7 @@ PillSurface {
         refreshRecs();
         wifiProc.running = true;
         micProc.running = true;
+        nightProc.running = true;
     }
 
     // Refresh the list shortly after a recording ends so the new file appears.
@@ -130,7 +132,7 @@ PillSurface {
         interval: 4000
         running: root.open
         repeat: true
-        onTriggered: { wifiProc.running = true; micProc.running = true; }
+        onTriggered: { wifiProc.running = true; micProc.running = true; nightProc.running = true; }
     }
 
     readonly property var btAdapter: Bluetooth.defaultAdapter
@@ -139,6 +141,19 @@ PillSurface {
         if (root.btAdapter)
             root.btAdapter.enabled = !root.btAdapter.enabled;
     }
+
+    property bool nightOn: false
+    Process {
+        id: nightProc
+        command: ["sh", "-c", "pgrep -x hyprsunset >/dev/null 2>&1 && echo on || echo off"]
+        stdout: StdioCollector { onStreamFinished: root.nightOn = this.text.trim() === "on" }
+    }
+    function toggleNight() {
+        Quickshell.execDetached([root.scripts + "ryoku-cmd-nightlight"]);
+        root.nightOn = !root.nightOn;
+        nightPoll.restart();
+    }
+    Timer { id: nightPoll; interval: 2000; onTriggered: nightProc.running = true }
 
     // ── Record modes ──────────────────────────────────────────────────────
     readonly property var recModes: [
@@ -526,6 +541,7 @@ PillSurface {
                 QToggle { glyph: "bluetooth"; on: root.btOn; onActed: root.toggleBt() }
                 QToggle { glyph: root.micMuted ? "mic-off" : "mic"; on: !root.micMuted; onActed: root.toggleMic() }
                 QToggle { glyph: "dnd"; on: Flags.dnd; onActed: Flags.dnd = !Flags.dnd }
+                QToggle { glyph: "moon"; on: root.nightOn; onActed: root.toggleNight() }
             }
         }
 
