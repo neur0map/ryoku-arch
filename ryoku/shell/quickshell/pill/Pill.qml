@@ -24,6 +24,7 @@ Item {
     property string screenName: ""
     property var barWindow
     property string surface: ""
+    property string displayedSurface: ""
 
     property bool hovered: false
     property bool pinned: false
@@ -142,6 +143,11 @@ Item {
 
     onSurfaceOpenChanged: if (surfaceOpen) pinned = false
 
+    // Track which surface owns the island. Follows `surface` while open and
+    // lingers through the close morph (so content rides the shrinking shape),
+    // clearing once the pill settles back into a non-surface mode.
+    onSurfaceChanged: if (surface !== "") displayedSurface = surface
+
     QtObject {
         id: clock
         readonly property var loc: Qt.locale("en_US")
@@ -200,6 +206,31 @@ Item {
     readonly property real morphCloseness: {
         const d = Math.max(Math.abs(width - targetW), Math.abs(height - targetH));
         return 1 - Math.min(1, d / (110 * s));
+    }
+
+    onMorphClosenessChanged: if (displayedSurface !== "" && !surfaceOpen && morphCloseness > 0.95) displayedSurface = "";
+
+    /**
+     * How open the island actually is: 0 at rest, 1 at the displayed surface's
+     * full size, read from the live (animating) width. Surface content opacity
+     * rides this, so it grows and shrinks with the shape and cannot fade out of a
+     * still-open island or linger in a closing one.
+     */
+    readonly property real openW: {
+        if (displayedSurface === "")
+            return restW;
+        const f = surfaceSize[displayedSurface];
+        return f ? f().width : restW;
+    }
+    readonly property real openH: {
+        if (displayedSurface === "")
+            return restH;
+        const f = surfaceSize[displayedSurface];
+        return f ? f().height : restH;
+    }
+    readonly property real openProgress: {
+        const span = Math.max(1, openW - restW);
+        return Math.max(0, Math.min(1, (width - restW) / span));
     }
 
     /**
@@ -692,6 +723,10 @@ Item {
         s: pill.s
         open: pill.calendarOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "calendar"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
     }
 
     Launcher {
@@ -699,6 +734,10 @@ Item {
         s: pill.s
         open: pill.launcherOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "launcher"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 
@@ -707,6 +746,10 @@ Item {
         s: pill.s
         open: pill.clipboardOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "clipboard"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 
@@ -715,6 +758,10 @@ Item {
         s: pill.s
         open: pill.wallpaperOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "wallpaper"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 
@@ -723,6 +770,10 @@ Item {
         s: pill.s
         open: pill.mediaOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "media"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 
@@ -731,6 +782,10 @@ Item {
         s: pill.s
         open: pill.linkOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "link"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 
@@ -739,6 +794,10 @@ Item {
         s: pill.s
         open: pill.inboxOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "inbox"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 
@@ -747,6 +806,10 @@ Item {
         s: pill.s
         open: pill.batteryOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "battery"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 
@@ -755,6 +818,10 @@ Item {
         s: pill.s
         open: pill.sysinfoOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "sysinfo"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 
@@ -763,6 +830,10 @@ Item {
         s: pill.s
         open: pill.stashOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "stash"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 
@@ -771,6 +842,10 @@ Item {
         s: pill.s
         open: pill.toolkitOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "toolkit"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 
@@ -779,6 +854,10 @@ Item {
         s: pill.s
         open: pill.utilitiesOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "utilities"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 
@@ -787,6 +866,10 @@ Item {
         s: pill.s
         open: pill.voiceOpen
         morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "voice"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
         onRequestClose: pill.requestClose()
     }
 

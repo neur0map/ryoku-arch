@@ -183,6 +183,11 @@
   centre; the surface is wider and taller so the rail and a two-row grid have room.
 
 ### Fixed
+- `quickshell/pill`: surface content rides the blob morph instead of fading on its
+  own. `PillSurface` faded content over a separate, shorter timeline than the
+  pill's size morph, so on close the content ghosted out while the shape closed;
+  its opacity now animates on the morph's exact duration and curve, growing and
+  shrinking with the island.
 - `quickshell/pill`: the shell fully hides while a window is fullscreen. The
   frame, pill, music island, and edge popouts stayed drawn over fullscreen
   content; the whole shell layer now gates on the active workspace's fullscreen

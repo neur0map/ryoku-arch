@@ -25,11 +25,6 @@ PillSurface {
 
     implicitHeight: 30 * root.s
 
-    // Reveal the wave as soon as the surface opens rather than waiting for the
-    // morph to finish (the base gates content on morph progress), so the tap
-    // feels immediate. The base opacity Behavior still eases the fade.
-    opacity: root.open ? 1 : 0
-
     // Drive cava only while the surface is live, and never leave it running.
     onOpenChanged: VoiceBars.active = root.open
     Component.onDestruction: VoiceBars.active = false
