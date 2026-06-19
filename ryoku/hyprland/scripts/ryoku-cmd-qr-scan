@@ -17,13 +17,11 @@ fi
 for c in zbarimg wl-copy notify-send xdg-open; do need "$c"; done
 
 tmp="$input_file"
-cleanup_tmp=0
 if [[ -z $tmp ]]; then
   for c in grim slurp; do need "$c"; done
   tmp="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/ryoku-qr.XXXXXX.png")"
-  cleanup_tmp=1
+  trap 'rm -f "$tmp"' EXIT
 fi
-trap '(( cleanup_tmp )) && rm -f "$tmp"' EXIT
 
 if [[ -n $input_file ]]; then
   [[ -r $tmp ]] || { notify-send -u critical "$app" "Cannot read image at $tmp"; exit 1; }
