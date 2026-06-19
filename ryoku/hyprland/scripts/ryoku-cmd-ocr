@@ -1,19 +1,38 @@
 #!/usr/bin/env bash
 # Select a screen region, OCR it with tesseract, and copy the recognized text to
-# the clipboard. Self-contained: grim + slurp + tesseract + wl-copy.
+# the clipboard. Self-contained: grim + slurp + tesseract + wl-copy. Optional
+# --file IMAGE skips the region grab and recognizes an existing image.
 set -euo pipefail
 
 app="OCR"
 need() { command -v "$1" >/dev/null 2>&1 || { notify-send -u normal "$app" "$1 is not installed"; exit 1; }; }
-for c in grim slurp tesseract wl-copy notify-send; do need "$c"; done
 
-tmp="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/ryoku-ocr.XXXXXX.png")"
-trap 'rm -f "$tmp"' EXIT
+input_file=""
+if [[ ${1:-} == "--file" ]]; then
+  [[ -n ${2:-} ]] || { notify-send -u critical "$app" "Missing image path"; exit 2; }
+  input_file="$2"; shift 2
+fi
+(( $# == 0 )) || { notify-send -u critical "$app" "Usage: ryoku-cmd-ocr [--file IMAGE]"; exit 2; }
 
-# slurp non-zero is a cancel (Esc); leave quietly.
-geometry="$(slurp 2>/dev/null)" || exit 130
-[[ -n $geometry ]] || exit 0
-grim -g "$geometry" "$tmp"
+for c in tesseract wl-copy notify-send; do need "$c"; done
+
+tmp="$input_file"
+cleanup_tmp=0
+if [[ -z $tmp ]]; then
+  for c in grim slurp; do need "$c"; done
+  tmp="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/ryoku-ocr.XXXXXX.png")"
+  cleanup_tmp=1
+fi
+trap '(( cleanup_tmp )) && rm -f "$tmp"' EXIT
+
+if [[ -n $input_file ]]; then
+  [[ -r $tmp ]] || { notify-send -u critical "$app" "Cannot read image at $tmp"; exit 1; }
+else
+  # slurp non-zero is a cancel (Esc); leave quietly.
+  geometry="$(slurp 2>/dev/null)" || exit 130
+  [[ -n $geometry ]] || exit 0
+  grim -g "$geometry" "$tmp"
+fi
 
 # Command substitution trims trailing newlines.
 text="$(tesseract "$tmp" - 2>/dev/null || true)"
