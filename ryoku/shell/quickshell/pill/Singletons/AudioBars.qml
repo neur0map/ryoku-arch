@@ -13,7 +13,6 @@ Singleton {
     property real b3: 0.28
     property real b4: 0.18
     property real b5: 0.30
-    property real phase: 0
     property real lastReadMs: 0
 
     Process {
@@ -33,20 +32,16 @@ Singleton {
         onTriggered: if (root.active && !cavaProc.running) cavaProc.running = true
     }
 
+    // Cava streams continuously while audio plays; if it stalls (a restart gap or
+    // a missing binary) settle the bars to a flat resting line rather than fake
+    // motion, so the island never animates without real audio behind it.
     Timer {
-        interval: 70
+        interval: 120
         running: root.active
         repeat: true
-        onTriggered: {
-            root.phase += 0.31;
-            if (Date.now() - root.lastReadMs <= 220)
-                return;
-            root.b0 = wave(0);
-            root.b1 = wave(1);
-            root.b2 = wave(2);
-            root.b3 = wave(3);
-            root.b4 = wave(4);
-            root.b5 = wave(5);
+        onTriggered: if (Date.now() - root.lastReadMs > 220) {
+            root.b0 = 0.1; root.b1 = 0.1; root.b2 = 0.1;
+            root.b3 = 0.1; root.b4 = 0.1; root.b5 = 0.1;
         }
     }
 
@@ -54,10 +49,6 @@ Singleton {
         b0 = 0.12; b1 = 0.12; b2 = 0.12; b3 = 0.12; b4 = 0.12; b5 = 0.12;
     } else {
         lastReadMs = 0;
-    }
-
-    function wave(i) {
-        return 0.16 + 0.58 * Math.abs(Math.sin(phase + i * 0.73));
     }
 
     function norm(v) {

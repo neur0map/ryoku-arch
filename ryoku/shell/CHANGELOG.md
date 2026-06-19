@@ -175,6 +175,10 @@
   centre; the surface is wider and taller so the rail and a two-row grid have room.
 
 ### Fixed
+- `quickshell/pill`: the music island's spectrum bars no longer animate without
+  audio behind them. When cava sends no frames they settle to a flat resting line
+  instead of a synthetic wave, so the bars read as real playback levels or rest
+  flat, the way VoiceBars already treats the mic.
 - `quickshell/pill`: the media player surface is reachable from the UI. Tapping
   the now-playing music island opens it; the tap was wired to the file stash, so
   the media surface had no entry point other than the IPC command.
