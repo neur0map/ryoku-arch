@@ -60,7 +60,9 @@ idle/dim), `upower` (battery state), `wireplumber` (`wpctl`), `pipewire-pulse`
 `jq`, `glib2` (`gio`), `curl` (weather and LocalSend), and `python`/`openssl`/
 `libnotify`/`xdg-utils` (the LocalSend file stash and opening stashed files).
 The Super+D screen toolkit reuses `grim`/`slurp`, `hyprpicker`, `curl`/`jq`, and
-`mpv`, and adds `tesseract` for OCR.
+`mpv`, and adds `tesseract` (OCR) and `zbar` (QR scan). The Super+U utilities
+panel adds `gpu-screen-recorder`/`wf-recorder` (screen recording) and
+`hyprsunset` (night light).
 The keybinds open `kitty` (terminal) and `nautilus` (files). Fonts: JetBrains
 Mono Nerd and Noto; cursor: Bibata. The lock is qylock, from `ryoku/`.
 
