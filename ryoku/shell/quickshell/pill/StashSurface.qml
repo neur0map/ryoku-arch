@@ -232,14 +232,13 @@ PillSurface {
 
                         Behavior on color { ColorAnimation { duration: Motion.fast } }
 
-                        Text {
+                        GlyphIcon {
                             anchors.centerIn: parent
-                            text: "↑"
+                            width: 11 * root.s
+                            height: 11 * root.s
+                            name: "send"
                             color: sendArea.containsMouse ? Theme.cream : Theme.iconDim
-                            font.family: Theme.font
-                            font.pixelSize: 12 * root.s
-                            font.weight: Font.Bold
-                            Behavior on color { ColorAnimation { duration: Motion.fast } }
+                            stroke: 1.6
                         }
 
                         MouseArea {
@@ -261,14 +260,13 @@ PillSurface {
 
                         Behavior on color { ColorAnimation { duration: Motion.fast } }
 
-                        Text {
+                        GlyphIcon {
                             anchors.centerIn: parent
-                            text: "✕"
+                            width: 11 * root.s
+                            height: 11 * root.s
+                            name: "trash"
                             color: removeArea.containsMouse ? Theme.cream : Theme.iconDim
-                            font.family: Theme.font
-                            font.pixelSize: 10 * root.s
-                            font.weight: Font.Bold
-                            Behavior on color { ColorAnimation { duration: Motion.fast } }
+                            stroke: 1.6
                         }
 
                         MouseArea {
