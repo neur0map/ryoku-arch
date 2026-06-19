@@ -157,6 +157,11 @@
 - `quickshell/pill`: the wake wave waits for the open morph to fully settle
   before streaking, instead of drawing over a still-growing island that warped
   the line.
+- `quickshell/pill`: removed the per-icon hover underline; sweeping the status
+  icons crossfaded a trail of orange marks that read as a glitchy repeating line
+  (the icons still brighten on hover). The hover content now clips to the pill
+  and fades in as the island opens, so it appears immediately instead of staying
+  blank until the morph nearly finishes.
 
 ### Not included
 - The GRUB theme (the system boots with Limine) and the SDDM theme (a 38 MB

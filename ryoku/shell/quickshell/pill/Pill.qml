@@ -397,7 +397,10 @@ Item {
     Item {
         id: hover
         anchors.fill: parent
-        opacity: pill.mode === "hover" ? Math.pow(pill.morphCloseness, 1.2) : 0
+        // Clip the content to the pill so it can fade in immediately as the island
+        // grows, without spilling past the island edges mid-morph.
+        clip: true
+        opacity: pill.mode === "hover" ? 1 : 0
         visible: true
         Behavior on opacity { NumberAnimation { duration: pill.mode === "hover" ? Motion.fast : 40 } }
 
@@ -579,7 +582,6 @@ Item {
                             onContainsMouseChanged: if (containsMouse) pill.soulTarget = "wifi"
                         }
 
-                        HoverUnderline { on: wifiArea.containsMouse; s: pill.s }
                     }
 
                     Item {
@@ -610,7 +612,6 @@ Item {
                             onContainsMouseChanged: if (containsMouse) pill.soulTarget = "battery"
                         }
 
-                        HoverUnderline { on: batteryArea.containsMouse; s: pill.s }
                     }
                 }
 
@@ -650,7 +651,6 @@ Item {
                         onContainsMouseChanged: if (containsMouse) pill.soulTarget = "inbox"
                     }
 
-                    HoverUnderline { on: inboxArea.containsMouse; s: pill.s }
                 }
 
                 Item {
@@ -677,7 +677,6 @@ Item {
                         onContainsMouseChanged: if (containsMouse) pill.soulTarget = "sysinfo"
                     }
 
-                    HoverUnderline { on: sysinfoArea.containsMouse; s: pill.s }
                 }
             }
         }
