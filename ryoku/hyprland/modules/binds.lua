@@ -5,6 +5,7 @@ hl.bind(mod .. " + Q",         hl.dsp.window.close())                           
 hl.bind(mod .. " + F",         hl.dsp.window.fullscreen())                      -- fullscreen
 hl.bind(mod .. " + A",         hl.dsp.window.float({ action = "enable" }))      -- compact: pop the window out as floating
 hl.bind(mod .. " + SHIFT + A", hl.dsp.window.float({ action = "disable" }))     -- restore: tile it back to normal
+hl.bind(mod .. " + P",         hl.dsp.exec_cmd("ryoku-monitor toggle"))         -- mirror <-> extend displays
 
 -- Apps
 hl.bind(mod .. " + Return",    hl.dsp.exec_cmd("kitty"))

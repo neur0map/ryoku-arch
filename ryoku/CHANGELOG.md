@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- `hyprland/modules/binds`: `Super + P` toggles the displays between mirror
+  (duplicate) and extend, via `ryoku-monitor toggle`.
 - `hyprland/`: the Hyprland config in Lua, modular (entrypoint plus modules for
   input, decoration, animations, binds, window rules, ryoshot, and autostart)
   with hardware-managed gpu/keyboard/monitors. Launches the Ryoku shell and the
