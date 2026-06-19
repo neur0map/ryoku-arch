@@ -24,8 +24,8 @@
 - `hyprland/` autostart: set GTK apps to dark through `gsettings`
   (`color-scheme` prefer-dark, `gtk-theme` Adwaita-dark), so nautilus and other
   GTK apps match the dark Qt and kitty theme.
-- `hyprland/` binds and autostart: hold ``Super+` `` for Handy speech-to-text and the
-  live mic wave (`ryoku-shell voice start|stop`); autostart Handy hidden and
+- `hyprland/` binds and autostart: tap ``Super+` `` to start Handy speech-to-text
+  and the live mic wave, tap again to stop (`ryoku-shell voice`); autostart Handy hidden and
   tray-less (it is keybind-driven and configured from app search) when the
   optional `handy` binary is installed.
 - `hyprland/` autostart: normalize the default microphone to unity gain on login
