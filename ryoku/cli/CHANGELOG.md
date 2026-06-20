@@ -40,8 +40,10 @@
   batch covers swap-out-of-snapshots, snapper config consistency, stale pacman
   lock, the `[ryoku]` channel + keyring, desktop session components, failed
   services, btrfs device health, display backlight (no interface, missing
-  brightnessctl, or a hybrid-GPU firmware-only backlight that will not dim),
-  pending `.pacnew`, and orphaned packages.
+  brightnessctl, or a hybrid-GPU firmware-only backlight that does not dim the
+  panel -- read from the kernel's own "no native backlight" verdict, not a sysfs
+  value the panel ignores, with the route-to-iGPU fix), pending `.pacnew`, and
+  orphaned packages.
 - `doctor --report [file]`: when a problem cannot be auto-fixed (or is unknown),
   doctor writes one shareable `.txt` -- the findings plus system state (btrfs
   usage/errors, swaps, failed units, recent journal errors, pacman and ryoku

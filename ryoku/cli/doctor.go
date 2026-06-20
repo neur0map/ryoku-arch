@@ -650,9 +650,11 @@ func tailLines(s string, n int) string {
 
 // reconcileBacklight flags the common display-brightness failures: no backlight
 // interface at all, a backlight present but no brightnessctl to drive it, and the
-// hybrid-GPU laptop case where the only interface is a firmware backlight that
-// often accepts writes without dimming the panel. These are detect-and-warn: the
-// fixes (kernel parameters, GPU mux) are too machine-specific to apply blindly.
+// hybrid-GPU laptop case where the only interface is a firmware backlight. For the
+// last it reads the kernel's own verdict (the dGPU reporting no native backlight)
+// rather than trusting a sysfs value the panel may ignore. Detect-and-warn only:
+// the fixes (a GPU mux switch, kernel parameters) are too machine-specific to
+// apply blindly.
 func reconcileBacklight(_ bool) recResult {
 	devs := backlightDevices()
 	if len(devs) == 0 {
@@ -667,10 +669,24 @@ func reconcileBacklight(_ bool) recResult {
 			withFix("sudo pacman -S brightnessctl")
 	}
 	if gpus := gpuDriversLoaded(); len(gpus) >= 2 && onlyFirmwareBacklight(devs) {
-		return warnRes("hybrid GPU (%s) with only a firmware backlight (%s); the panel may not dim", strings.Join(gpus, "+"), strings.Join(devs, ",")).
-			withFix("if brightness does not work, see your laptop's Arch wiki page (kernel param, or route the panel to the iGPU)")
+		detail := fmt.Sprintf("hybrid GPU (%s) with only a firmware backlight (%s); the panel may not dim",
+			strings.Join(gpus, "+"), strings.Join(devs, ","))
+		if nvidiaBacklightDead() {
+			detail = fmt.Sprintf("hybrid GPU (%s): the kernel reports the dGPU has no working backlight, and the firmware fallback (%s) does not dim the panel",
+				strings.Join(gpus, "+"), strings.Join(devs, ","))
+		}
+		return warnRes("%s", detail).
+			withFix("route the panel to the iGPU (BIOS GPU/MUX mode -> Hybrid, or `supergfxctl -m Hybrid`, then reboot); a working amdgpu_bl0 then appears")
 	}
 	return okRes("backlight: %s", strings.Join(devs, ", "))
+}
+
+// nvidiaBacklightDead reports the kernel's own tell that the dGPU has no usable
+// backlight and fell back to the frequently non-functional ACPI/EC interface.
+func nvidiaBacklightDead() bool {
+	n := strings.TrimSpace(captureOut("sh", "-c",
+		"journalctl -k -b --no-pager 2>/dev/null | grep -ic 'no NVIDIA native backlight'"))
+	return n != "" && n != "0"
 }
 
 func backlightDevices() []string {
