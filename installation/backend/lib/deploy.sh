@@ -24,8 +24,8 @@ ryoku_deploy() {
   ryoku_deploy_materialize "$u"  # ryoku materialize as the user
   ryoku_deploy_seed "$h"       # unpackaged user-data: brand, wallpapers, ~/.npmrc
   ryoku_deploy_editor "$h"     # neovim default-editor registration (unpackaged)
-  ryoku_deploy_qylock          # qylock lockscreen + SDDM theme (unpackaged)
-  ryoku_deploy_chown "$u"      # own the root-seeded files under /home
+  ryoku_deploy_chown "$u"      # own root-seeded files before the user-context steps
+  ryoku_deploy_qylock          # qylock writes user files as the now-owning user
 }
 
 # deploy_file copies a single config file (mode 644), creating parent dirs.

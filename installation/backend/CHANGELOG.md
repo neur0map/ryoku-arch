@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+- `lib/deploy.sh`: chown the user's home before the qylock step (it ran after),
+  so qylock's user-context writes no longer fail on root-seeded directories like
+  `~/.local/share` (`cp: cannot create directory ...: Permission denied`, which
+  aborted the install). Surfaced by a full qemu install test.
+
 ### Added
 - `ryoku-install` entrypoint: reads the `RYOKU_*` contract, runs the install end
   to end, and prints the `@@RYOKU_STEP` / `@@RYOKU_DONE` progress sentinels.
