@@ -116,8 +116,10 @@ jobs:
 
           # R2_BUCKET is the bucket (or bucket/prefix) backing repo.ryoku.dev.
           # The repo is served from https://repo.ryoku.dev/x86_64/, so publish
-          # the built x86_64/ dir into <bucket>/x86_64/.
+          # the freshly built x86_64/ dir into <bucket>/x86_64/. Use sync, not
+          # copy, so superseded packages and any rotated-out signatures are
+          # pruned from the bucket instead of lingering forever.
           dest="$R2_BUCKET"
           src="$GITHUB_WORKSPACE/release/repo/out/x86_64"
-          rclone copy "$src" "Ryoku:$dest/x86_64/" -P
-          echo "::notice::Published [ryoku] repo to Ryoku:$dest/x86_64/"
+          rclone sync "$src" "Ryoku:$dest/x86_64/" -P
+          echo "::notice::Synced [ryoku] repo to Ryoku:$dest/x86_64/ (stale objects pruned)"

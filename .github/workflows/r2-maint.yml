@@ -1,13 +1,15 @@
 name: R2 maintenance
 
-# Manual R2 housekeeping: list the release bucket, and (in clean mode) remove
-# stale objects and re-upload the current new-key material so no old release key
-# lingers. Dispatch only; never runs on push or tag.
+# Manual R2 housekeeping for the release bucket. Lists every object, reports the
+# fingerprint of each published key file and whether each signed artifact
+# verifies against the CURRENT release key, and (in clean mode) deletes any key
+# file or signed artifact that is NOT the current key, plus orphaned signatures,
+# then re-uploads the current public key. Dispatch only; never on push or tag.
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'list (read-only) or clean (prune + replace keys)'
+        description: 'list (read-only) or clean (delete old-key / stale objects)'
         required: true
         default: 'list'
         type: choice
@@ -50,45 +52,77 @@ jobs:
 
           B="Ryoku:${R2_BUCKET}"
           new_fpr="EB6D3C0F55A7B3CABA6B2838847B274F025DD6E3"
+          tmp="$(mktemp -d)"
 
-          echo "::group::bucket root"
+          # Trust the current key so detached-signature verification means
+          # "signed by the current release key".
+          gpg --batch --import keys/ryoku-release-key.pub.asc
+          echo "${new_fpr}:6:" | gpg --batch --import-ownertrust
+
+          echo "::group::all objects"
           rclone lsl "$B/" 2>&1 || true
           echo "::endgroup::"
-          echo "::group::iso/"
-          rclone lsl "$B/iso/" 2>&1 || true
-          echo "::endgroup::"
-          echo "::group::x86_64/"
-          rclone lsl "$B/x86_64/" 2>&1 || true
-          echo "::endgroup::"
 
-          # Show the fingerprint of every published .pub.asc / keyring blob so old
-          # key material is obvious.
-          echo "::group::key fingerprints in R2"
-          tmp="$(mktemp -d)"
-          for p in $(rclone lsf -R "$B/" 2>/dev/null | grep -iE '\.(asc|gpg)$' || true); do
-            rclone copyto "$B/$p" "$tmp/blob" >/dev/null 2>&1 || continue
-            fpr="$(gpg --show-keys --with-colons "$tmp/blob" 2>/dev/null | awk -F: '/^fpr:/{print $10; exit}')"
-            [ "$fpr" = "$new_fpr" ] && tag="NEW" || tag="OLD-OR-OTHER"
-            echo "$p -> ${fpr:-<not-a-key>} [$tag]"
+          stale_keyfiles=""   # .asc/.gpg whose fingerprint is not the new key
+          stale_signed=""     # base files whose .sig fails new-key verification
+          orphan_sigs=""      # .sig with no corresponding base file
+
+          echo "::group::audit"
+          for p in $(rclone lsf -R "$B/" 2>/dev/null); do
+            case "$p" in
+              */) continue ;;
+              *.asc|*.gpg)
+                rclone copyto "$B/$p" "$tmp/blob" >/dev/null 2>&1 || continue
+                fpr="$(gpg --show-keys --with-colons "$tmp/blob" 2>/dev/null | awk -F: '/^fpr:/{print $10; exit}')"
+                if [ -n "$fpr" ] && [ "$fpr" != "$new_fpr" ]; then
+                  echo "KEYFILE OLD   $p ($fpr)"; stale_keyfiles="$stale_keyfiles $p"
+                else
+                  echo "KEYFILE NEW   $p (${fpr:-<not-a-key>})"
+                fi
+                ;;
+              *.sig)
+                base="${p%.sig}"
+                if ! rclone lsf "$B/$base" >/dev/null 2>&1; then
+                  echo "ORPHAN  SIG   $p"; orphan_sigs="$orphan_sigs $p"; continue
+                fi
+                ;;
+              *)
+                # a base artifact: verify it against its .sig if one exists
+                if rclone lsf "$B/$p.sig" >/dev/null 2>&1; then
+                  rclone copyto "$B/$p"     "$tmp/f"     >/dev/null 2>&1 || continue
+                  rclone copyto "$B/$p.sig" "$tmp/f.sig" >/dev/null 2>&1 || continue
+                  if gpg --verify "$tmp/f.sig" "$tmp/f" >/dev/null 2>&1; then
+                    echo "SIGNED  NEW   $p"
+                  else
+                    echo "SIGNED  OLD   $p (does not verify with current key)"
+                    stale_signed="$stale_signed $p"
+                  fi
+                fi
+                ;;
+            esac
           done
           echo "::endgroup::"
+
+          echo "=== summary ==="
+          echo "old-key key files:      ${stale_keyfiles:-none}"
+          echo "old-key signed objects: ${stale_signed:-none}"
+          echo "orphan signatures:      ${orphan_sigs:-none}"
 
           if [ "$MODE" = "list" ]; then
             echo "::notice::list-only; no changes made"
             exit 0
           fi
 
-          echo "=== CLEAN: removing any published key file whose fingerprint is not the new key ==="
-          for p in $(rclone lsf -R "$B/" 2>/dev/null | grep -iE '\.(asc|gpg)$' || true); do
-            rclone copyto "$B/$p" "$tmp/blob" >/dev/null 2>&1 || continue
-            fpr="$(gpg --show-keys --with-colons "$tmp/blob" 2>/dev/null | awk -F: '/^fpr:/{print $10; exit}')"
-            if [ -n "$fpr" ] && [ "$fpr" != "$new_fpr" ]; then
-              echo "deleting stale key object: $p ($fpr)"
-              rclone deletefile "$B/$p" 2>&1 || true
-            fi
+          echo "=== CLEAN ==="
+          for p in $stale_keyfiles $stale_signed; do
+            echo "deleting $p (+ .sig if present)"
+            rclone deletefile "$B/$p"     2>&1 || true
+            rclone deletefile "$B/$p.sig" 2>&1 || true
           done
-
-          echo "=== CLEAN: re-upload the current new-key public key to iso/ ==="
+          for s in $orphan_sigs; do
+            echo "deleting orphan $s"
+            rclone deletefile "$B/$s" 2>&1 || true
+          done
+          echo "re-uploading current public key to iso/"
           rclone copyto keys/ryoku-release-key.pub.asc "$B/iso/ryoku-release-key.pub.asc" -P 2>&1 || true
-
           echo "::notice::clean complete"
