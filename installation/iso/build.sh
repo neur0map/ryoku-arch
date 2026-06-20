@@ -42,7 +42,7 @@ stage_repo() {
   git -C "$src" archive --format=tar HEAD | tar -C "$dst" -xf -
 }
 
-# 0. Sanity.
+# 0. Preflight checks.
 [[ -f $TUI_DIR/go.mod ]]         || die "installer TUI not found at $TUI_DIR"
 [[ -f $BACKEND_DIR/ryoku-install ]] || die "backend not found at $BACKEND_DIR/ryoku-install"
 [[ -d $BACKEND_DIR/lib ]]        || die "backend lib not found at $BACKEND_DIR/lib"

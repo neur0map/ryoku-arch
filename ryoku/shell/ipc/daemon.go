@@ -193,11 +193,15 @@ func (d *daemon) supervise(name string) {
 		default:
 		}
 		if time.Since(start) < 3*time.Second {
+			// Died fast: likely a broken config. Back off exponentially so a
+			// crash loop cannot spin the CPU.
 			backoff = capDur(backoff*2, 30*time.Second)
+			time.Sleep(backoff)
 		} else {
+			// Healthy run that exited (a reload or SIGTERM): respawn at once so
+			// the surface does not blink out for a backoff interval.
 			backoff = time.Second
 		}
-		time.Sleep(backoff)
 	}
 }
 

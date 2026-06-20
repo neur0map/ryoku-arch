@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Verify every `ryoku-shell <cmd>` that a Hyprland keybind or autostart invokes is
+# a command the ryoku-shell daemon actually handles, so no key is a silent no-op.
+#
+#   ryoku-dev-audit-shell-binds --check     fail on any unhandled command
+#   ryoku-dev-audit-shell-binds --refresh   rewrite ryoku/shell/ipc/ipc-surface.txt
+#
+# The handled set is read from the daemon source (the pillSurfaces map keys and
+# the dispatch/route switch cases) plus the client-only `daemon` mode. Over-
+# capturing a handled command is safe: it can only mark a used command as handled,
+# never the reverse.
+set -euo pipefail
+
+ROOT=${RYOKU_PATH:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}
+ipc_dir="$ROOT/ryoku/shell/ipc"
+hypr_dir="$ROOT/ryoku/hyprland"
+manifest="$ipc_dir/ipc-surface.txt"
+
+daemon_commands() {
+  {
+    grep -hoE '"[a-z][a-z-]*":' "$ipc_dir"/*.go 2>/dev/null | tr -d '":'
+    grep -hoE 'case "[a-z][a-z-]*"' "$ipc_dir"/*.go 2>/dev/null | sed -E 's/^case "//; s/"$//'
+    printf 'daemon\n'
+  } | grep -E '^[a-z][a-z-]*$' | sort -u
+}
+
+used_commands() {
+  grep -rhoE 'ryoku-shell [a-z][a-z-]+' "$hypr_dir" 2>/dev/null \
+    | awk '{ print $2 }' | sort -u
+}
+
+case "${1:-}" in
+  --refresh)
+    daemon_commands >"$manifest"
+    echo "ryoku-dev-audit-shell-binds: wrote $manifest"
+    ;;
+  --check)
+    mapfile -t handled < <(daemon_commands)
+    missing=()
+    while read -r cmd; do
+      [[ -n $cmd ]] || continue
+      found=0
+      for h in "${handled[@]}"; do
+        [[ $h == "$cmd" ]] && { found=1; break; }
+      done
+      (( found )) || missing+=("$cmd")
+    done < <(used_commands)
+
+    if (( ${#missing[@]} )); then
+      echo "ryoku-dev-audit-shell-binds: keybinds dispatch ryoku-shell commands the daemon does not handle:" >&2
+      printf '  %s\n' "${missing[@]}" >&2
+      echo "Add the handler, fix the keybind, or run --refresh if the manifest is stale." >&2
+      exit 1
+    fi
+    echo "ryoku-dev-audit-shell-binds: every invoked ryoku-shell command is handled"
+    ;;
+  *)
+    echo "usage: ryoku-dev-audit-shell-binds --check | --refresh" >&2
+    exit 2
+    ;;
+esac

@@ -16,6 +16,11 @@ bibata-cursor-theme
 # Palette generator for the shell: wallpaper to terminal and Hyprland colors.
 wallust
 
+# Wallpaper daemon the shell drives: ryoku-shell runs `awww`/`awww-daemon` for the
+# animated wallpaper transitions. Upstream renamed swww to awww; it is AUR-only, so
+# it cannot be pacstrapped from base.
+awww-git
+
 # RyokuArch package manager (GlazePKG): every package manager in one view
 gpk-bin
 

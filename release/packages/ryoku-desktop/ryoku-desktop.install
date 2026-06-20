@@ -1,0 +1,14 @@
+_hint() {
+  cat <<'EOF'
+==> Run `ryoku materialize` as your user to lay the Ryoku base configs into
+    ~/.config (login does this automatically; root cannot write a user's home).
+EOF
+}
+
+post_install() {
+  _hint
+}
+
+post_upgrade() {
+  _hint
+}

@@ -12,6 +12,10 @@ Singleton {
     readonly property color ember:     "#ff6a3d"
     readonly property color emberDeep: "#bf3c19"
 
+    // Log status accents (used by the update console).
+    readonly property color ok:        "#7fbf6a"
+    readonly property color bad:       "#e05a5a"
+
     // Canvas and surfaces (flat; depth comes from hairlines, not gradients).
     readonly property color bgTop:    "#1b1612"
     readonly property color bgBot:    "#140f0c"

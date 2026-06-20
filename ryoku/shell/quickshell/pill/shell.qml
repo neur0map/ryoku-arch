@@ -155,6 +155,14 @@ ShellRoot {
         root.popoutMon = mon;
     }
 
+    // Open the Hub on its Updates section. The update island is an entry point to
+    // the surface Super+, opens; binds.lua holds the canonical launcher, so this
+    // mirrors its flock guard to avoid spawning a second Hub instance.
+    function openUpdates() {
+        Quickshell.execDetached(["sh", "-c",
+            "ryoku-hub config set section updates; flock -n -o /tmp/ryoku-hub.lock qs -c hub"]);
+    }
+
     IpcHandler {
         target: "pill"
         function mixer(mon: string): void { root.togglePopout(mon, "mixer"); }
@@ -266,6 +274,10 @@ ShellRoot {
                 // so input must be grabbed over it for its chips (REC stop, stash) to
                 // receive hover and clicks instead of passing through to the window.
                 Region { x: activityStrip.x; y: activityStrip.y; width: activityStrip.width; height: activityStrip.height }
+                // The update island rides the top-right corner, outside the pill
+                // body, so input must be grabbed over it for its hover and the
+                // click that opens the Hub instead of passing through to a window.
+                Region { x: updateIsland.x; y: updateIsland.y; width: updateIsland.width; height: updateIsland.height }
             }
             Region {
                 id: fullRegion
@@ -502,6 +514,16 @@ ShellRoot {
                     x: pill.x - width - 18 * overlay.s
                     y: Math.max(pill.y + pill.height / 2 - height / 2, 22)
                     onRequestSurface: (name) => root.toggleSurface(overlay.modelData.name, name)
+                }
+
+                UpdateIsland {
+                    id: updateIsland
+                    s: overlay.s
+                    active: !overlay.surfaceOpen && !pill.toastActive && !pill.osdActive
+                    anchors.right: parent.right
+                    anchors.rightMargin: 20 * overlay.s
+                    y: overlay.topGap + (pill.restH - height) / 2
+                    onActivated: root.openUpdates()
                 }
             }
 

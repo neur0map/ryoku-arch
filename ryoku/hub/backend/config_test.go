@@ -32,6 +32,22 @@ func TestConfigRoundTrip(t *testing.T) {
 	}
 }
 
+func TestUpdateInterval(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
+	// Missing file yields the default.
+	if c := loadConfig(); c.UI.UpdateInterval != "daily" {
+		t.Fatalf("default update_interval = %q, want daily", c.UI.UpdateInterval)
+	}
+
+	if err := configSet("update_interval", "off"); err != nil {
+		t.Fatal(err)
+	}
+	if v, ok := configGet("update_interval"); !ok || v != "off" {
+		t.Fatalf("after set: got %q ok=%v, want off", v, ok)
+	}
+}
+
 func TestConfigUnknownKey(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	if err := configSet("nope", "x"); err == nil {

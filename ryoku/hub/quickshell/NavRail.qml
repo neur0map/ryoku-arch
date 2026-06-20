@@ -16,7 +16,7 @@ Rectangle {
 
     readonly property int navTop: 96 + 54 + 26
     readonly property int navItemH: 44
-    function indexOf(s) { return s === "shell" ? 0 : (s === "keybinds" ? 1 : 2); }
+    function indexOf(s) { return s === "shell" ? 0 : (s === "keybinds" ? 1 : (s === "updates" ? 2 : 3)); }
 
     color: Theme.rail
 
@@ -177,6 +177,15 @@ Rectangle {
             label: "Keybinds"
             selected: rail.current === "keybinds"
             onClicked: rail.navigate("keybinds")
+        }
+
+        NavButton {
+            width: parent.width
+            icon: "download"
+            label: "Updates"
+            badge: Updates.available ? Updates.behind : 0
+            selected: rail.current === "updates"
+            onClicked: rail.navigate("updates")
         }
 
         NavButton {

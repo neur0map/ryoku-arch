@@ -1,1 +1,2 @@
 singleton Theme Theme.qml
+singleton Updates Updates.qml

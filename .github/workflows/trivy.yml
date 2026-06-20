@@ -36,7 +36,7 @@ jobs:
           format: sarif
           output: trivy-results.sarif
           limit-severities-for-sarif: true
-          skip-dirs: .git,assets,docs/media,tmp,iso/release,shell/docs,shell/sdata,shell/scripts/__pycache__
+          skip-dirs: .git,ryoku/assets,docs/media,installation/iso/out,installation/iso/work,installation/iso/staging
           version: v0.70.0
 
       - name: Upload SARIF report
@@ -55,7 +55,7 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: '1'
           format: table
-          skip-dirs: .git,assets,docs/media,tmp,iso/release,shell/docs,shell/sdata,shell/scripts/__pycache__
+          skip-dirs: .git,ryoku/assets,docs/media,installation/iso/out,installation/iso/work,installation/iso/staging
           skip-setup-trivy: true
 
       - name: Block critical vulnerabilities and misconfigurations
@@ -68,5 +68,5 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
           format: table
-          skip-dirs: .git,assets,docs/media,tmp,iso/release,shell/docs,shell/sdata,shell/scripts/__pycache__
+          skip-dirs: .git,ryoku/assets,docs/media,installation/iso/out,installation/iso/work,installation/iso/staging
           skip-setup-trivy: true

@@ -76,3 +76,7 @@ if status is-interactive
     alias lta 'lt -a'
   end
 end
+
+# User overrides: ~/.config/fish/user.fish is never shipped or touched by updates
+# and loads last, so your settings win.
+test -f $__fish_config_dir/user.fish && source $__fish_config_dir/user.fish

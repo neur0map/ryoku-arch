@@ -9,21 +9,13 @@ name: Install chroot safety
 on:
   pull_request:
     paths:
-      - 'install/preflight/**'
-      - 'install/packaging/**'
-      - 'install/config/**'
-      - 'install/login/**'
-      - 'install/post-install/**'
+      - 'installation/backend/**'
       - 'tests/install-chroot-safety.sh'
   push:
     branches:
       - main
     paths:
-      - 'install/preflight/**'
-      - 'install/packaging/**'
-      - 'install/config/**'
-      - 'install/login/**'
-      - 'install/post-install/**'
+      - 'installation/backend/**'
       - 'tests/install-chroot-safety.sh'
   workflow_dispatch:
 

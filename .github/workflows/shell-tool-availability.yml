@@ -8,17 +8,17 @@ name: Shell tool availability
 on:
   pull_request:
     paths:
-      - 'shell/settingsgui/Services/System/ProgramCheckerService.qml'
-      - 'install/ryoku-base.packages'
-      - 'install/ryoku-aur.packages'
+      - 'system/packages/base.packages'
+      - 'system/packages/aur.packages'
+      - 'system/packages/dev.packages'
       - 'tests/shell-tool-availability.sh'
   push:
     branches:
       - main
     paths:
-      - 'shell/settingsgui/Services/System/ProgramCheckerService.qml'
-      - 'install/ryoku-base.packages'
-      - 'install/ryoku-aur.packages'
+      - 'system/packages/base.packages'
+      - 'system/packages/aur.packages'
+      - 'system/packages/dev.packages'
       - 'tests/shell-tool-availability.sh'
   workflow_dispatch:
 

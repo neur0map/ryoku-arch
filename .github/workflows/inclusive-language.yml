@@ -4,45 +4,33 @@ on:
   pull_request:
     paths:
       - '**/*.bash'
+      - '**/*.conf'
       - '**/*.json'
+      - '**/*.lua'
       - '**/*.md'
-      - '**/*.mdx'
       - '**/*.sh'
       - '**/*.toml'
-      - '**/*.tpl'
       - '**/*.txt'
       - '**/*.yaml'
       - '**/*.yml'
       - '.github/workflows/**'
       - '.woke.yml'
-      - 'bin/**'
-      - 'config/**'
-      - 'default/**'
-      - 'docs/**'
-      - 'install/**'
-      - 'iso/bin/**'
   push:
     branches:
       - main
     paths:
       - '**/*.bash'
+      - '**/*.conf'
       - '**/*.json'
+      - '**/*.lua'
       - '**/*.md'
-      - '**/*.mdx'
       - '**/*.sh'
       - '**/*.toml'
-      - '**/*.tpl'
       - '**/*.txt'
       - '**/*.yaml'
       - '**/*.yml'
       - '.github/workflows/**'
       - '.woke.yml'
-      - 'bin/**'
-      - 'config/**'
-      - 'default/**'
-      - 'docs/**'
-      - 'install/**'
-      - 'iso/bin/**'
   workflow_dispatch:
     inputs:
       scope:
@@ -89,10 +77,10 @@ jobs:
               [[ -f $file ]] || continue
 
               case "$file" in
-                assets/*|docs/media/*|keys/*|shell/*|config/fonts/*|default/plymouth/*|iso/configs/airootfs/etc/modprobe.d/*|iso/release/*|tmp/*)
+                ryoku/assets/*|ryoku/lockscreen/qylock/*|docs/media/*|tmp/*)
                   continue
                   ;;
-                *.bash|*.conf|*.lua|*.css|*.desktop|*.ini|*.json|*.kdl|*.md|*.mdx|*.rules|*.sample|*.service|*.sh|*.timer|*.toml|*.tpl|*.txt|*.xml|*.yaml|*.yml|AGENTS.md|CONTRIBUTING.md|CREDITS.md|README.md|SECURITY.md|bin/*|docs/*|iso/bin/*|.github/workflows/*|.woke.yml)
+                *.bash|*.conf|*.lua|*.css|*.desktop|*.ini|*.json|*.kdl|*.md|*.mdx|*.rules|*.sample|*.service|*.sh|*.timer|*.toml|*.tpl|*.txt|*.xml|*.yaml|*.yml|AGENTS.md|CONTRIBUTING.md|CODE_OF_CONDUCT.md|README.md|SECURITY.md|bin/*|tests/*|docs/*|.github/workflows/*|.woke.yml)
                   mime_type="$(file -b --mime-type "$file")"
                   if [[ $mime_type == text/* || $mime_type == application/json || $mime_type == application/xml || $mime_type == application/x-shellscript || $mime_type == inode/x-empty ]]; then
                     printf '%s\0' "$file" >>"$files"

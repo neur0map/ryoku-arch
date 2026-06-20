@@ -8,15 +8,15 @@ name: Shell IPC parity
 on:
   pull_request:
     paths:
-      - 'config/hypr/**'
-      - 'shell/**'
+      - 'ryoku/hyprland/**'
+      - 'ryoku/shell/ipc/**'
       - 'bin/**'
   push:
     branches:
       - main
     paths:
-      - 'config/hypr/**'
-      - 'shell/**'
+      - 'ryoku/hyprland/**'
+      - 'ryoku/shell/ipc/**'
       - 'bin/**'
   workflow_dispatch:
 
@@ -35,5 +35,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          RYOKU_AUDIT_FORCE_MANIFEST=1 RYOKU_PATH="$PWD" \
-            bin/ryoku-dev-audit-shell-binds --check
+          RYOKU_PATH="$PWD" bin/ryoku-dev-audit-shell-binds --check

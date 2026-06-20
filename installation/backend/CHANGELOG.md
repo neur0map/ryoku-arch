@@ -43,6 +43,28 @@
 - `lib/deploy.sh`: seed `~/Pictures/Wallpapers` from the shipped
   `ryoku/assets/wallpapers`, so a fresh install has a wallpaper set and the first
   login lands on a random one.
+- `lib/snapshots.sh`: after the AUR step, configure Btrfs snapshots: write a
+  snapper `root` config (keep ~10 numbered snapshots, timeline off), register it
+  in `/etc/conf.d/snapper` for snap-pac and the systemd timers, enable
+  `snapper-cleanup.timer`, and enable `limine-snapper-sync.service` (best-effort,
+  AUR-provided) so snapshots appear as Limine boot entries. Gated on the
+  `@snapshots` subvolume and dry-run safe.
+- `lib/common.sh`: `append_file`, a dry-run-safe helper that appends stdin to a
+  file (used to add the `[ryoku]` stanza to the target `pacman.conf`).
+
+### Changed
+- `lib/deploy.sh`: install the Ryoku desktop from the signed `[ryoku]` pacman repo
+  instead of copying files. The configure stage adds `[ryoku]` (`SigLevel =
+  Required`, `Server = https://repo.ryoku.dev/$arch`) to the target, copies the
+  live mirrorlist in, trusts the release key (`pacman-key --populate ryoku`),
+  `pacman -S`es the desktop set (`ryoku-keyring ryoku-shell ryoku-hub ryoku-blobs
+  ryoku ryoku-desktop`), and runs `ryoku materialize` as the user to lay
+  `~/.config` from `/usr/share/ryoku/config`. The per-file binary, dotfile, QML
+  plugin, and udev copies are gone (now package-owned); only the unpackaged
+  user-data (brand assets, wallpapers, `~/.npmrc`), the neovim default-editor
+  registration, and the qylock + SDDM theme are still seeded here. Online-gated
+  and best-effort: an offline or partial install leaves `[ryoku]` configured and
+  recovers on the first `ryoku update`.
 
 ### Fixed
 - `lib/chroot.sh` and the TUI: fix timezone detection. The timezone screen runs

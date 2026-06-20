@@ -1,0 +1,14 @@
+# Inclusive-language (woke) configuration. The built-in default rules apply; the
+# paths below are excluded because they are vendored upstream, binary assets, or
+# verbatim license text that Ryoku does not author.
+ignore_files:
+  - ryoku/lockscreen/qylock/**
+  - ryoku/assets/**
+  - LICENSE
+  - LICENSES/**
+  - NOTICE
+  - "**/*.svg"
+  - "**/*.png"
+  - "**/*.jpg"
+  - "**/*.webp"
+  - "**/*.ttf"

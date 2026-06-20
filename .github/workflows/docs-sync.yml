@@ -1,63 +1,61 @@
-name: Docs Sync
+name: Docs
+
+# This repo's docs are plain Markdown under docs/ plus the top-level READMEs and
+# governance files. This validates that every relative link between them resolves,
+# replacing the Mintlify site validation the sibling repo used.
 
 on:
   pull_request:
     paths:
+      - '**/*.md'
       - '.github/workflows/docs-sync.yml'
-      - '.mintignore'
-      - 'config/hypr/hyprland.lua'
-      - 'docs/**'
-      - 'docs.json'
-      - 'index.mdx'
   push:
     branches:
       - main
     paths:
+      - '**/*.md'
       - '.github/workflows/docs-sync.yml'
-      - '.mintignore'
-      - 'config/hypr/hyprland.lua'
-      - 'docs/**'
-      - 'docs.json'
-      - 'index.mdx'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  docs:
-    name: Validate docs sync
+  links:
+    name: Validate Markdown relative links
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate docs.json
+      - name: Check relative links resolve
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m json.tool docs.json >/dev/null
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+          status=0
+          while IFS= read -r -d '' md; do
+            dir=$(dirname "$md")
+            while IFS= read -r target; do
+              case "$target" in
+                http://*|https://*|mailto:*|\#*|"") continue ;;
+              esac
+              path=${target%%#*}       # drop any #anchor
+              path=${path%% *}         # drop any "title" suffix
+              [[ -n $path ]] || continue
+              if [[ $path == /* ]]; then
+                resolved=".${path}"
+              else
+                resolved="$dir/$path"
+              fi
+              if [[ ! -e $resolved ]]; then
+                echo "::error file=$md::broken relative link: $target"
+                status=1
+              fi
+            done < <(grep -oE '\]\([^)]+\)' "$md" | sed -E 's/^\]\(//; s/\)$//')
+          done < <(git ls-files -z '*.md')
 
-      - name: Install Mintlify CLI
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install -g mint@latest
-
-      - name: Validate Mintlify build
-        shell: bash
-        run: |
-          set -euo pipefail
-          mint validate
-
-      - name: Check Mintlify links
-        shell: bash
-        run: |
-          set -euo pipefail
-          mint broken-links --check-redirects
+          if (( status == 0 )); then
+            echo "All Markdown relative links resolve."
+          fi
+          exit "$status"

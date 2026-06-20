@@ -18,6 +18,9 @@ efibootmgr
 limine
 plymouth
 snapper
+# snap-pac: automatic pre/post snapshots around pacman transactions, wired to the
+# snapper "root" config by the installer.
+snap-pac
 
 # Networking
 networkmanager
@@ -93,7 +96,6 @@ zoxide
 
 # Ryoku shell (quickshell desktop), its runtime helpers, and the yazi file manager
 quickshell
-awww
 cava
 cliphist
 hyprpicker

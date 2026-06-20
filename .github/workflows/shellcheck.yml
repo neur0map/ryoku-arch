@@ -6,9 +6,11 @@ on:
       - '**/*.sh'
       - '**/*.bash'
       - 'bin/**'
-      - 'iso/bin/**'
-      - 'install/**'
-      - 'migrations/**'
+      - 'installation/**'
+      - 'system/**'
+      - 'ryoku/**'
+      - 'tests/**'
+      - '.githooks/**'
       - '.github/workflows/**'
   push:
     branches:
@@ -17,9 +19,11 @@ on:
       - '**/*.sh'
       - '**/*.bash'
       - 'bin/**'
-      - 'iso/bin/**'
-      - 'install/**'
-      - 'migrations/**'
+      - 'installation/**'
+      - 'system/**'
+      - 'ryoku/**'
+      - 'tests/**'
+      - '.githooks/**'
       - '.github/workflows/**'
   workflow_dispatch:
     inputs:
@@ -65,7 +69,7 @@ jobs:
           collect_from_git_stream() {
             while IFS= read -r -d '' file; do
               [[ -f $file ]] || continue
-              [[ $file == shell/scripts/emoji/emoji-data.sh ]] && continue
+              [[ $file == ryoku/lockscreen/qylock/* ]] && continue
 
               # Skip non-shell interpreters that live in the same dirs (e.g.
               # Python tools under bin/). ShellCheck would parse them as bash
@@ -76,7 +80,7 @@ jobs:
               fi
 
               case "$file" in
-                *.sh|*.bash|bin/*|iso/bin/*|migrations/*)
+                *.sh|*.bash|bin/*|tests/*)
                   printf '%s\0' "$file" >>"$files"
                   ;;
                 *)

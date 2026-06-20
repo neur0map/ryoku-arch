@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- `quickshell/pill`: an update island on the top-right of the frame. When a newer
+  build is available it shows a compact chip (a brand download glyph, the target
+  version, and the count of pending commits) that opens the Hub's Updates section.
+  While an update runs it mirrors the Hub's progress as a Ryoku wave, and on
+  success becomes a Refresh shell button (`ryoku-shell reload`) so the update can
+  be applied from here too. The run state is read from a small runtime file the
+  Hub publishes; availability is still mock in `Singletons/Updates.qml`.
 - `quickshell/pill`: a voice dictation surface, toggled with ``Super+` `` (tap to
   start, tap to stop). `ryoku-shell voice` flips Handy's transcription and
   grows a centre-island Ryoku wave driven by the live microphone (`VoiceBars`

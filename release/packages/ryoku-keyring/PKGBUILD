@@ -1,0 +1,22 @@
+# Maintainer: Ryoku <releases@ryoku.dev>
+#
+# Ships the Ryoku release signing key so pacman trusts the [ryoku] repository.
+# The key material lives beside this PKGBUILD (ryoku.gpg + ryoku-trusted), built
+# from keys/ryoku-release-key.pub.asc. To rotate the key, regenerate those two
+# files and bump pkgver.
+pkgname=ryoku-keyring
+pkgver=20260620
+pkgrel=1
+pkgdesc="Ryoku release signing key for the [ryoku] pacman repository"
+arch=('any')
+url="https://ryoku.dev"
+license=('GPL-3.0-or-later')
+install="$pkgname.install"
+source=('ryoku.gpg' 'ryoku-trusted' 'ryoku-revoked')
+sha256sums=('SKIP' 'SKIP' 'SKIP')
+
+package() {
+  install -Dm644 "$srcdir/ryoku.gpg"     "$pkgdir/usr/share/pacman/keyrings/ryoku.gpg"
+  install -Dm644 "$srcdir/ryoku-trusted" "$pkgdir/usr/share/pacman/keyrings/ryoku-trusted"
+  install -Dm644 "$srcdir/ryoku-revoked" "$pkgdir/usr/share/pacman/keyrings/ryoku-revoked"
+}

@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Compute the next Ryoku version from the repo root VERSION file.
+#
+#   ryoku-release-bump <patch|minor|major> <alpha|beta|stable>
+#
+# Prints the bumped version with no leading "v". A stable stage prints the bare
+# semver; alpha/beta append "-<stage>.0".
+set -euo pipefail
+
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+base=$(tr -d '[:space:]' < "$ROOT/VERSION")
+
+bump=${1:?usage: ryoku-release-bump <patch|minor|major> <alpha|beta|stable>}
+stage=${2:?usage: ryoku-release-bump <patch|minor|major> <alpha|beta|stable>}
+
+IFS=. read -r major minor patch <<<"${base%%-*}"
+
+case "$bump" in
+  major) major=$((major + 1)); minor=0; patch=0 ;;
+  minor) minor=$((minor + 1)); patch=0 ;;
+  patch) patch=$((patch + 1)) ;;
+  *) echo "ryoku-release-bump: unknown bump type: $bump" >&2; exit 2 ;;
+esac
+
+next="${major}.${minor}.${patch}"
+
+case "$stage" in
+  stable) printf '%s\n' "$next" ;;
+  alpha|beta) printf '%s-%s.0\n' "$next" "$stage" ;;
+  *) echo "ryoku-release-bump: unknown stage: $stage" >&2; exit 2 ;;
+esac

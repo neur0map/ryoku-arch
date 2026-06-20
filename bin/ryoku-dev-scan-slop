@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Scan added comment lines for low-value filler (chat residue, self-narration),
+# the same rule the pre-commit hook enforces. Comment markers checked: # -- // *.
+# Vendored upstream (ryoku/lockscreen/qylock) is exempt.
+#
+#   ryoku-dev-scan-slop --range <base> <head>   scan added lines in base..head
+#   ryoku-dev-scan-slop --staged                scan staged additions
+#
+# Exit 1 (with the offending lines) when filler is found, 0 when clean.
+set -euo pipefail
+
+slop='feel free to|let.?s (create|add|define|write|make|build|start)|\bnote that\b|here we (will|can|simply|just)'
+empty_tree=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+
+mode=${1:-}
+case "$mode" in
+  --range)
+    base=${2:-}
+    head=${3:?usage: ryoku-dev-scan-slop --range <base> <head>}
+    [[ -n $base ]] || base=$empty_tree
+    diff=$(git diff --diff-filter=ACM -U0 "$base" "$head" -- . ':(exclude)ryoku/lockscreen/qylock')
+    ;;
+  --staged)
+    diff=$(git diff --cached --diff-filter=ACM -U0 -- . ':(exclude)ryoku/lockscreen/qylock')
+    ;;
+  *)
+    echo "usage: ryoku-dev-scan-slop --range <base> <head> | --staged" >&2
+    exit 2
+    ;;
+esac
+
+hits=$(
+  printf '%s\n' "$diff" \
+    | grep -E '^\+' | grep -vE '^\+\+\+' \
+    | grep -E '^\+[[:space:]]*(#|--|//|\*)' \
+    | grep -inE "$slop" || true
+)
+
+if [[ -n $hits ]]; then
+  printf '%s\n' "$hits" >&2
+  echo "ryoku-dev-scan-slop: reword or drop low-value filler comments (chat residue, self-narration)." >&2
+  exit 1
+fi
+
+echo "ryoku-dev-scan-slop: clean"

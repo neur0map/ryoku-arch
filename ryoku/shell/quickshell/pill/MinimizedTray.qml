@@ -41,25 +41,6 @@ Row {
     }
     readonly property int count: items.length
 
-    /**
-     * Resolve an icon path for a toplevel by matching its window class to a
-     * desktop entry id (the class often differs from the icon-theme name), with
-     * a direct icon-theme lookup as fallback.
-     */
-    function iconFor(t) {
-        var cls = (t && t.lastIpcObject && t.lastIpcObject.class) ? t.lastIpcObject.class
-            : (t && t.wayland && t.wayland.appId ? t.wayland.appId : "");
-        if (!cls)
-            return "";
-        var apps = DesktopEntries.applications.values;
-        for (var i = 0; i < apps.length; i++) {
-            var e = apps[i];
-            if (e && e.id && e.id.toLowerCase() === cls.toLowerCase() && e.icon)
-                return Quickshell.iconPath(e.icon, "application-x-executable");
-        }
-        return Quickshell.iconPath(cls, "application-x-executable");
-    }
-
     Repeater {
         model: root.items
 
@@ -69,7 +50,7 @@ Row {
             width: 18 * root.s
             height: 18 * root.s
 
-            readonly property string iconSrc: root.iconFor(chip.modelData)
+            readonly property string iconSrc: Apps.iconFor(chip.modelData)
 
             Image {
                 anchors.fill: parent

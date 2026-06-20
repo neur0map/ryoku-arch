@@ -1,0 +1,30 @@
+# Maintainer: Ryoku <releases@ryoku.dev>
+#
+# Ryoku shell IPC daemon (Go). Supervises the Quickshell desktop components,
+# drives wallpaper + palette, and serves the ryoku-shell control socket.
+#
+# Built from the in-repo source at ryoku/shell/ipc; no tarball is fetched. The
+# publish CI runs makepkg inside this directory in a full checkout, so the repo
+# root is three levels up. The binary is written to $srcdir, leaving the source
+# tree untouched.
+pkgname=ryoku-shell
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Ryoku shell IPC daemon: supervises the Quickshell desktop"
+arch=('x86_64')
+url="https://ryoku.dev"
+license=('GPL-3.0-or-later')
+depends=('quickshell' 'hyprland')
+makedepends=('go')
+source=()
+
+_repo="$startdir/../../.."
+
+build() {
+  cd "$_repo/ryoku/shell/ipc"
+  CGO_ENABLED=0 go build -trimpath -o "$srcdir/ryoku-shell" .
+}
+
+package() {
+  install -Dm755 "$srcdir/ryoku-shell" "$pkgdir/usr/bin/ryoku-shell"
+}

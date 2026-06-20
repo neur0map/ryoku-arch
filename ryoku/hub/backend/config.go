@@ -17,11 +17,12 @@ type Config struct {
 }
 
 type UIConfig struct {
-	Section string `toml:"section"`
+	Section        string `toml:"section"`
+	UpdateInterval string `toml:"update_interval"`
 }
 
 func defaultConfig() Config {
-	return Config{UI: UIConfig{Section: "keybinds"}}
+	return Config{UI: UIConfig{Section: "keybinds", UpdateInterval: "daily"}}
 }
 
 func configPath() string {
@@ -69,6 +70,8 @@ func configGet(key string) (string, bool) {
 	switch key {
 	case "section":
 		return c.UI.Section, true
+	case "update_interval":
+		return c.UI.UpdateInterval, true
 	}
 	return "", false
 }
@@ -78,6 +81,8 @@ func configSet(key, value string) error {
 	switch key {
 	case "section":
 		c.UI.Section = value
+	case "update_interval":
+		c.UI.UpdateInterval = value
 	default:
 		return fmt.Errorf("unknown config key: %s", key)
 	}

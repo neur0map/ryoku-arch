@@ -19,11 +19,13 @@ Rectangle {
     readonly property var sectionDefs: [
         { "key": "shell", "name": "Shell Settings", "icon": "gear" },
         { "key": "keybinds", "name": "Keybinds", "icon": "keyboard" },
+        { "key": "updates", "name": "Updates", "icon": "download" },
         { "key": "extras", "name": "Extras", "icon": "sparkles" }
     ]
 
     readonly property var pageMeta: ({
         "keybinds": { "title": "Keybinds", "subtitle": "Every shortcut in the Ryoku desktop, read live from your Hyprland config." },
+        "updates":  { "title": "Updates", "subtitle": "What\u2019s landed on main since your installed build." },
         "extras":   { "title": "Extras", "subtitle": "Desktop goodies and quick tweaks." },
         "shell":    { "title": "Shell Settings", "subtitle": "Tune the Ryoku shell: the pill, the frame, and its surfaces." }
     })
@@ -64,7 +66,7 @@ Rectangle {
         stdout: StdioCollector {
             onStreamFinished: {
                 var s = this.text.trim();
-                if (s === "keybinds" || s === "extras" || s === "shell")
+                if (s === "keybinds" || s === "extras" || s === "shell" || s === "updates")
                     hub.section = s;
             }
         }
@@ -122,6 +124,7 @@ Rectangle {
 
                 sourceComponent: hub.searching ? searchComp
                     : (hub.section === "keybinds" ? keybindsComp
+                    : hub.section === "updates" ? updatesComp
                     : hub.section === "extras" ? extrasComp : shellComp)
 
                 onLoaded: {
@@ -167,6 +170,11 @@ Rectangle {
     Component {
         id: keybindsComp
         KeybindsPage { categories: hub.keybindsModel }
+    }
+
+    Component {
+        id: updatesComp
+        UpdatesPage {}
     }
 
     Component {

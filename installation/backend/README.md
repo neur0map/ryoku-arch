@@ -91,8 +91,11 @@ at the start of each stage, with `<id>` in order: `partition`, `filesystems`,
 `ryoku-install` is the entrypoint; it sets defaults, validates the required
 variables, prints the sentinels, and calls the stage functions in order. The
 stages live in `lib/`, split by concern (see `lib/README.md`). The `configure`
-stage runs two: the chroot config (`chroot.sh`) then the desktop payload deploy
-(`deploy.sh`), both under the one `configure` sentinel.
+stage runs two: the chroot config (`chroot.sh`) then the desktop install
+(`deploy.sh`: add the `[ryoku]` repo, `pacman -S` the Ryoku packages, then
+`ryoku materialize`), both under the one `configure` sentinel. After the
+bootloader and AUR steps, `snapshots.sh` wires up Btrfs snapshots (snapper
+`root`, snap-pac, `limine-snapper-sync`).
 
 ## What it consumes from the repo
 
@@ -105,16 +108,17 @@ At `$RYOKU_REPO` the backend reads:
   (HOOKS drop-in), and `system/boot/plymouth/ryoku/` (the splash theme). Each
   has a built-in fallback so a dry run works even before those files exist.
 - During the `configure` stage (after the chroot config, no separate sentinel) it
-  also deploys the desktop payload into the new system: the GPU/monitor helper
-  scripts from `system/hardware/`, `ryoku/apps/fastfetch/ryoku-fastfetch`, and the
-  prebuilt `ryoku/shell/ipc/ryoku-shell` into `/usr/local/bin`; the
-  `90-ryoku-gpu.rules` udev rule; the brand assets; the user dotfiles
-  (`ryoku/hyprland` -> `~/.config/hypr`, plus kitty, fastfetch, fish, starship,
-  nvim, yazi, and the mimeapps/`.desktop` editor defaults); and the shell
-  components (`ryoku/shell/{quickshell,wallust,kde,systemd}`). It installs the
-  qylock bundle to `/usr/share/ryoku/qylock` and runs `ryoku/lockscreen/sddm/setup`
-  and `ryoku/lockscreen/install-qylock` in the chroot, then chowns the home.
-  `RYOKU_DRYRUN` is passed through; missing sources are skipped.
+  installs the Ryoku desktop from the signed `[ryoku]` pacman repository: it adds
+  `[ryoku]` to the target `pacman.conf`, copies the live mirrorlist in, imports the
+  release key from `release/packages/ryoku-keyring` (`pacman-key --populate ryoku`),
+  `pacman -S`es the desktop set (`ryoku-keyring ryoku-shell ryoku-hub ryoku-blobs
+  ryoku ryoku-desktop`), then runs `ryoku materialize` as the user to lay
+  `~/.config` from `/usr/share/ryoku/config`. A few unpackaged bits are still
+  seeded from the payload: the brand assets, the wallpaper collection,
+  `ryoku/apps/npm/npmrc`, the neovim `.desktop`/mimeapps editor defaults, and the
+  qylock bundle plus `ryoku/lockscreen/{sddm/setup,install-qylock}` (run in the
+  chroot); the home is then chowned. Online-gated and best-effort; `RYOKU_DRYRUN`
+  is passed through and missing sources are skipped.
 
 The backend enables `sddm` and `NetworkManager`; first-login autostart (from the
 Hyprland config) runs `ryoku-gpu` and `ryoku-monitor`, so those are not run here.

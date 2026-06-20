@@ -21,8 +21,8 @@ truth for the live desktop.
 - `hyprland/` the Hyprland config, authored in **Lua**. `hyprland.lua` is the
   entry point and `require`s each module. `keyboard.lua`, `gpu.lua`,
   `monitors.lua` are hardware-managed seeds. `modules/` is one concern per file
-  (`env`, `input`, `decoration`, `animations`, `binds`, `ryoshot`,
-  `window_rules`, `autostart`). `scripts/` holds the leaf shell helpers the UI
+  (`env`, `input`, `displays`, `decoration`, `animations`, `binds`, `ryoshot`,
+  `window_rules`, `fullscreen`, `autostart`). `scripts/` holds the leaf shell helpers the UI
   calls directly: the `ryoku-cmd-*` screen tools (lens, OCR, color, QR, webcam
   mirror, screen record, night light, caffeine) plus the stash and sysinfo
   helpers. `hypridle.conf` is the idle daemon's native config. The whole
@@ -54,9 +54,10 @@ System-level definition installed into the target.
 - `boot/` the boot chain: `limine/`, `mkinitcpio/`, `plymouth/`.
 - `hardware/` hardware policy and helper scripts (installed to
   `/usr/local/bin`): `gpu/` (`ryoku-gpu`, `ryoku-gpu-detect`, udev rule),
-  `display/` (`ryoku-monitor`), `drivers/` (per-vendor `nvidia`/`intel`/`amd`/
-  `vulkan` install scripts), `power/` (`ryoku-hw-laptop`, the shared laptop
-  detector; `ryoku-idle`, the laptop-gated `hypridle` launcher).
+  `display/` (`ryoku-monitor`), `audio/` (`ryoku-mic`, the mic-gain normalizer),
+  `leds/` (`ryoku-leds`, the OpenRGB accent sync), `drivers/` (per-vendor
+  `nvidia`/`intel`/`amd`/`vulkan` install scripts), `power/` (`ryoku-hw-laptop`,
+  the shared laptop detector; `ryoku-idle`, the laptop-gated `hypridle` launcher).
 - `packages/` the package sets: `base.packages` (every machine, pacstrapped),
   `hardware.packages` (per-profile microcode and GPU drivers), `dev.packages`
   (language toolchains, pacstrapped), `aur.packages` (built post-install).

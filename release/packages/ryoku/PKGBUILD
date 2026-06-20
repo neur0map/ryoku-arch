@@ -1,0 +1,30 @@
+# Maintainer: Ryoku <releases@ryoku.dev>
+#
+# Ryoku control CLI (Go). The single front door to updates, rollback, snapshots,
+# and the config materialize step. It orchestrates pacman, yay, and snapper; it
+# does not reimplement them.
+#
+# Built from the in-repo source at ryoku/cli; no tarball is fetched and there are
+# no external Go modules.
+pkgname=ryoku
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Ryoku control CLI: updates, rollback, snapshots, materialize"
+arch=('x86_64')
+url="https://ryoku.dev"
+license=('GPL-3.0-or-later')
+depends=('pacman' 'snapper')
+optdepends=('yay: AUR package updates during ryoku update')
+makedepends=('go')
+source=()
+
+_repo="$startdir/../../.."
+
+build() {
+  cd "$_repo/ryoku/cli"
+  CGO_ENABLED=0 go build -trimpath -o "$srcdir/ryoku" .
+}
+
+package() {
+  install -Dm755 "$srcdir/ryoku" "$pkgdir/usr/bin/ryoku"
+}

@@ -48,14 +48,9 @@ for f in "${staged[@]}"; do
 	fi
 done
 
-# 3. Filler phrases in ADDED comment lines (vendored tree excluded).
-slop='feel free to|let.?s (create|add|define|write|make|build|start)|\bnote that\b|here we (will|can|simply|just)'
-if git diff --cached --diff-filter=ACM -U0 -- . ':(exclude)ryoku/lockscreen/qylock' |
-	grep -E '^\+' | grep -vE '^\+\+\+' | grep -E '^\+[[:space:]]*(#|--|//|\*)' |
-	grep -iqE "$slop"; then
-	git diff --cached --diff-filter=ACM -U0 -- . ':(exclude)ryoku/lockscreen/qylock' |
-		grep -E '^\+[[:space:]]*(#|--|//|\*)' | grep -inE "$slop" >&2
-	fail "reword or drop low-value filler comments (chat residue, self-narration)."
-fi
+# 3. Filler phrases in ADDED comment lines, via the shared scanner (vendored
+#    tree excluded). The same check runs in CI (.github/workflows/ai-slop.yml).
+bin/ryoku-dev-scan-slop --staged >/dev/null \
+	|| fail "low-value filler comments found (see above); reword or drop them."
 
 exit 0

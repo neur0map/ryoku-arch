@@ -58,7 +58,7 @@ jobs:
 
           event_name="$GITHUB_EVENT_NAME"
           repo="$GITHUB_REPOSITORY"
-          brand_mark_url="https://raw.githubusercontent.com/$repo/main/assets/brand/logo-mark.png"
+          brand_mark_url="https://raw.githubusercontent.com/$repo/main/ryoku/assets/brand/logo-mark.png"
           brand_footer="Ryoku Arch : For the sake of power and beauty."
 
           limit_text() {

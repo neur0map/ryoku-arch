@@ -57,6 +57,19 @@ write_file() {
   printf '%s\n' "$content" >"$path"
 }
 
+# append_file appends stdin to a path. Under dry-run it prints the target and the
+# content instead of touching the filesystem. Parent dirs are not created here.
+append_file() {
+  local path=$1 content
+  content=$(cat)
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    printf 'DRYRUN: append %s:\n' "$path"
+    printf '%s\n' "$content" | sed 's/^/        | /'
+    return 0
+  fi
+  printf '%s\n' "$content" >>"$path"
+}
+
 # deploy_dir copies a source tree into a destination (dir-as-dir contents).
 # Missing sources are skipped with a note in real mode; under dry-run the
 # intended copy is always printed.

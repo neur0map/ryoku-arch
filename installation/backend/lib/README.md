@@ -5,7 +5,7 @@ exposes the functions the entrypoint calls in order.
 
 - `common.sh` Shared helpers: `log` / `step` / `die`, the `run` and `run_sh`
   dry-run wrappers, `run_secret` (redacts stdin secrets), `write_file`,
-  `deploy_dir`, and the `part_dev` / `dev_uuid` device helpers.
+  `append_file`, `deploy_dir`, and the `part_dev` / `dev_uuid` device helpers.
 - `preflight.sh` Root, UEFI, and disk-size (>= 32 GiB) checks.
 - `disk.sh` GPT partitioning: ESP plus a root partition (whole-disk strategy).
 - `luks.sh` Optional LUKS2 encryption of the root partition.
@@ -14,7 +14,12 @@ exposes the functions the entrypoint calls in order.
 - `pacstrap.sh` Installs the base system and writes `fstab`.
 - `chroot.sh` In-target config: locale, keymap, timezone, hostname, user, sudo,
   initramfs HOOKS, and crypttab.
-- `deploy.sh` Desktop payload deploy (runs in the `configure` stage): GPU/monitor
-  helper scripts, the udev rule, user dotfiles, and the qylock + SDDM theme.
+- `deploy.sh` Desktop install (runs in the `configure` stage): add the `[ryoku]`
+  repo, trust its key, `pacman -S` the Ryoku packages, run `ryoku materialize`,
+  then seed the unpackaged bits (brand assets, wallpapers, `~/.npmrc`, the editor
+  defaults, and the qylock + SDDM theme).
 - `bootloader.sh` Limine install and branding, the initramfs build, the kernel
   cmdline, and enabling services.
+- `snapshots.sh` Btrfs snapshots (runs after the AUR step): a snapper `root`
+  config, snap-pac registration, the snapper cleanup timer, and
+  `limine-snapper-sync` for snapshot boot entries.

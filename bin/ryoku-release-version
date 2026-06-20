@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Print the Ryoku version string for a release channel, derived from the repo
+# root VERSION file (base semver X.Y.Z).
+#
+#   --channel main
+#       -> v<VERSION>                       (e.g. v0.1.0)
+#   --channel unstable-dev --build-number <N> --sha <SHA>
+#       -> v<VERSION>.dev.<N>+g<short-sha>  (e.g. v0.1.0.dev.42+gabc1234)
+set -euo pipefail
+
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+version_file="$ROOT/VERSION"
+[[ -f $version_file ]] || { echo "ryoku-release-version: missing $version_file" >&2; exit 1; }
+base=$(tr -d '[:space:]' < "$version_file")
+
+channel=main
+build_number=0
+sha=""
+while (($#)); do
+  case "$1" in
+    --channel) channel=${2:?}; shift 2 ;;
+    --build-number) build_number=${2:?}; shift 2 ;;
+    --sha) sha=${2:-}; shift 2 ;;
+    *) echo "ryoku-release-version: unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+case "$channel" in
+  main)
+    printf 'v%s\n' "$base"
+    ;;
+  unstable-dev)
+    short=${sha:0:7}
+    [[ -n $short ]] || short=0000000
+    printf 'v%s.dev.%s+g%s\n' "$base" "$build_number" "$short"
+    ;;
+  *)
+    echo "ryoku-release-version: unknown channel: $channel" >&2
+    exit 2
+    ;;
+esac

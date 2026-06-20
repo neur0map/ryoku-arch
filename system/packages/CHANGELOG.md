@@ -41,9 +41,14 @@
   `gtk-layer-shell`.
 - `base.packages`: add `wtype` so Handy types the transcription into the focused
   app on Wayland.
+- `base.packages`: add `snap-pac` for automatic pre/post Btrfs snapshots around
+  pacman transactions, wired to the snapper `root` config by the installer.
 
 ### Fixed
 - `base.packages`: add the desktop session pieces a plain Hyprland needs to render
   and function: `xorg-xwayland`, `hyprpolkit-agent`, `qt6-wayland`, `qt6ct`,
   `xdg-desktop-portal-gtk`, and `adwaita-icon-theme`. Without them the installed
   desktop failed (no Xwayland binary, no polkit agent, unthemed Qt/GTK apps).
+- `base.packages`: move the wallpaper daemon `awww` to `aur.packages` as
+  `awww-git`. It is AUR-only (upstream renamed swww to awww), so listing it in the
+  pacstrapped base set aborted the whole install with "target not found: awww".

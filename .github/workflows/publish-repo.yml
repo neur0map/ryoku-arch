@@ -1,0 +1,123 @@
+name: "Publish [ryoku] repo"
+
+# Publishes the signed [ryoku] pacman repo. Triggers ONLY on main release tags
+# (git push tag v*), so a push to unstable-dev (or any branch) never publishes
+# anything user facing. Packages and the db are built from the tagged tree,
+# signed with the release key, and mirrored to https://repo.ryoku.dev/x86_64/.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # makepkg, repo-add, and pacman only exist on Arch, so the whole build runs
+    # inside the official Arch image. Steps run as root; the actual makepkg work
+    # is dropped to an unprivileged user below.
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Verify required secrets are present
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -z "$R2_ACCESS_KEY_ID" ]]     && missing+=("R2_ACCESS_KEY_ID")
+          [[ -z "$R2_SECRET_ACCESS_KEY" ]] && missing+=("R2_SECRET_ACCESS_KEY")
+          [[ -z "$R2_ENDPOINT" ]]          && missing+=("R2_ENDPOINT")
+          [[ -z "$R2_BUCKET" ]]            && missing+=("R2_BUCKET")
+          [[ -z "$GPG_PRIVATE_KEY" ]]      && missing+=("GPG_PRIVATE_KEY")
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Install build toolchain
+        run: |
+          set -euo pipefail
+          # base-devel: makepkg + fakeroot + a C++20 gcc. go/cmake/ninja and the
+          # qt6 modules compile the Ryoku binaries and the Ryoku.Blobs QML plugin
+          # (find_package(Qt6 COMPONENTS Quick ShaderTools)). gnupg signs, rclone
+          # uploads, git backs actions/checkout inside the container.
+          pacman -Syu --noconfirm --needed \
+            base-devel git go cmake ninja qt6-shadertools qt6-declarative gnupg rclone
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build and sign the [ryoku] repo
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          # makepkg refuses to run as root, so build as a throwaway user that
+          # owns the checked-out tree.
+          useradd --create-home builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+
+          # Hand the release private key to the build user through a 0600 file in
+          # RUNNER_TEMP; it never lands in $HOME or persistent storage. Same shape
+          # as build-iso.yml: import into an ephemeral GNUPGHOME, sign, discard.
+          key_file="$RUNNER_TEMP/ryoku-release-key.asc"
+          printf '%s\n' "$GPG_PRIVATE_KEY" > "$key_file"
+          chown builder:builder "$key_file"
+          chmod 600 "$key_file"
+
+          runuser -u builder -- env \
+            KEY_FILE="$key_file" \
+            RYOKU_REPO_OUT="$GITHUB_WORKSPACE/release/repo/out" \
+            bash -euo pipefail -c '
+              export GNUPGHOME="$(mktemp -d)"
+              chmod 700 "$GNUPGHOME"
+              # The release key is passphraseless; allow loopback so gpg never
+              # blocks on a pinentry that a headless runner cannot answer.
+              printf "allow-loopback-pinentry\n" > "$GNUPGHOME/gpg-agent.conf"
+              printf "pinentry-mode loopback\n"   > "$GNUPGHOME/gpg.conf"
+              gpg --batch --import "$KEY_FILE"
+              ./release/repo/build-repo.sh
+            '
+
+          rm -f "$key_file"
+
+      - name: Upload [ryoku] repo to Cloudflare R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [Ryoku]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${R2_ACCESS_KEY_ID}
+          secret_access_key = ${R2_SECRET_ACCESS_KEY}
+          endpoint = ${R2_ENDPOINT}
+          # The scoped R2 token has Object Read+Write only, not bucket-level
+          # perms; without this rclone calls HeadBucket/CreateBucket and 403s.
+          # The bucket already exists, so skip the check (matches build-iso.yml).
+          no_check_bucket = true
+          EOF
+
+          # R2_BUCKET is the bucket (or bucket/prefix) backing repo.ryoku.dev.
+          # The repo is served from https://repo.ryoku.dev/x86_64/, so publish
+          # the built x86_64/ dir into <bucket>/x86_64/.
+          dest="$R2_BUCKET"
+          src="$GITHUB_WORKSPACE/release/repo/out/x86_64"
+          rclone copy "$src" "Ryoku:$dest/x86_64/" -P
+          echo "::notice::Published [ryoku] repo to Ryoku:$dest/x86_64/"

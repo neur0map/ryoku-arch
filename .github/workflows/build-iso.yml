@@ -1,5 +1,12 @@
 name: Build ISO
 
+# Builds the Ryoku live ISO with installation/iso/build.sh, signs it with the
+# release GPG key, and publishes the signed image to Cloudflare R2.
+#
+# Publishing is intentional only: this workflow runs on a v* release tag (cut
+# from main) or a manual dispatch. There is no branch-push trigger, so commits
+# to unstable-dev never publish anything user-facing.
+
 on:
   workflow_dispatch:
     inputs:
@@ -18,6 +25,7 @@ on:
 
 permissions:
   contents: read
+  # Trivy uploads its ISO scan to the Security tab as SARIF.
   security-events: write
 
 jobs:
@@ -25,39 +33,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      CHANNEL: main
-      PUBLIC_CHANNEL: stable
       RELEASE_STAGE: ${{ github.event.inputs.release_stage || 'alpha' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          # build.sh stages the repo payload with `git archive HEAD`, which only
+          # needs the working tree's git objects; full history is cheap here and
+          # keeps tag-described metadata available.
           fetch-depth: 0
-          # Do NOT persist the Actions token into .git/config. --local-source
-          # tars the working tree (including .git) into the ISO, so a persisted
-          # token ships inside every install and then makes `git fetch` prompt
-          # for credentials (401 on the now-expired token) during updates.
+          # Never persist the Actions token into .git/config: the build runs git
+          # inside a container against the checked-out tree.
           persist-credentials: false
-
-      - name: Prepare release metadata
-        run: |
-          short_sha="${GITHUB_SHA::7}"
-          tracking_id="r${GITHUB_RUN_NUMBER}-${short_sha}"
-          build_epoch="$(date -u +%s)"
-          build_date="$(date -u --date="@$build_epoch" +%Y.%m.%d)"
-          {
-            echo "SOURCE_DATE_EPOCH=$build_epoch"
-            echo "RYOKU_ISO_TRACKING_ID=$tracking_id"
-            echo "RYOKU_ISO_COMMIT=$GITHUB_SHA"
-            echo "RYOKU_ISO_RUN_ID=$GITHUB_RUN_ID"
-            echo "RYOKU_ISO_RUN_NUMBER=$GITHUB_RUN_NUMBER"
-            echo "RYOKU_ISO_RUN_URL=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-            echo "RYOKU_ISO_CHANNEL=$PUBLIC_CHANNEL"
-            echo "RYOKU_ISO_BUILD_DATE=$build_date"
-            echo "RYOKU_ISO_BUILD_SHA=$GITHUB_SHA"
-            echo "RYOKU_ISO_BUILD_URL=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          } >> "$GITHUB_ENV"
-          echo "::notice::Ryoku ISO tracking ID: $tracking_id"
 
       - name: Verify required secrets are present
         env:
@@ -76,12 +63,13 @@ jobs:
             echo "See docs/release-pipeline.md for setup."
             exit 1
           fi
+          echo "::notice::Building Ryoku ISO (release stage: $RELEASE_STAGE)"
 
       - name: Free disk space on runner
         run: |
           # ubuntu-latest ships ~14 GB free; the ISO build needs ~10 GB
-          # transient. Strip preinstalled toolchains we do not use to
-          # buy headroom before the docker build runs.
+          # transient. Strip preinstalled toolchains we do not use to buy
+          # headroom before mkarchiso runs inside the Arch container.
           sudo rm -rf /opt/hostedtoolcache /usr/share/dotnet /opt/ghc \
                       /usr/local/lib/android /usr/local/share/boost
           docker system prune -af
@@ -89,13 +77,64 @@ jobs:
 
       - name: Build ISO
         run: |
-          ./iso/bin/ryoku-iso-make --local-source --no-boot-offer
-          ls -la iso/release/
+          set -euo pipefail
+
+          # mkarchiso is Arch-only and needs root plus the build toolchain that
+          # bakes the prebuilt binaries and the Ryoku.Blobs plugin into the
+          # image, so the whole build runs inside a privileged archlinux
+          # container. --privileged lets pacstrap bind-mount /proc /sys /dev into
+          # the airootfs during the build.
+          #
+          # mkarchiso's work/staging trees live on a host bind mount (real ext4
+          # under RUNNER_TEMP) rather than the container's overlay layer, which
+          # cannot back every filesystem operation pacstrap performs. Only the
+          # finished ISO lands back in the workspace at installation/iso/out.
+          work="$RUNNER_TEMP/ryoku-iso-build"
+          mkdir -p "$work" installation/iso/out
+
+          # Reproducible iso_version/iso_label: profiledef.sh and mkarchiso both
+          # read SOURCE_DATE_EPOCH.
+          source_epoch="$(date -u +%s)"
+
+          docker run --rm --privileged \
+            -v "$GITHUB_WORKSPACE":/repo \
+            -v "$work":/work \
+            -w /repo/installation/iso \
+            -e SOURCE_DATE_EPOCH="$source_epoch" \
+            -e RYOKU_ISO_OUT=/repo/installation/iso/out \
+            -e RYOKU_ISO_WORK=/work/work \
+            -e RYOKU_ISO_STAGE=/work/staging \
+            -e HOST_UID="$(id -u)" \
+            -e HOST_GID="$(id -g)" \
+            archlinux:latest \
+            bash -euo pipefail -c '
+              # Refresh the keyring first: a stale base image cannot verify
+              # packages signed by newly-added packager keys, which aborts the
+              # upgrade. Then full upgrade + install (never a partial -Sy alone).
+              pacman -Sy --noconfirm archlinux-keyring
+              pacman -Su --noconfirm --needed \
+                archiso git go base-devel cmake ninja \
+                qt6-base qt6-declarative qt6-shadertools
+              # The checkout is owned by the runner UID, not container root;
+              # build.sh runs `git archive` against it.
+              git config --global --add safe.directory /repo
+              ./build.sh
+              # Hand the finished ISO back to the runner user so the host-side
+              # sign/checksum/upload steps can read and write alongside it.
+              chown -R "$HOST_UID:$HOST_GID" /repo/installation/iso/out
+            '
+
+          ls -la installation/iso/out/
+
+          # mkarchiso's work tree (root-owned, on the RUNNER_TEMP bind mount)
+          # outlives the --rm container; drop it now to free disk for the Trivy
+          # rootfs copy below.
+          sudo rm -rf "$work"
 
       - name: Capture ISO path
         id: iso
         run: |
-          iso=$(ls -t iso/release/*.iso | head -n1)
+          iso=$(ls -t installation/iso/out/*.iso | head -n1)
           echo "path=$iso" >> "$GITHUB_OUTPUT"
           echo "name=$(basename "$iso")" >> "$GITHUB_OUTPUT"
 
@@ -144,7 +183,11 @@ jobs:
           format: sarif
           output: trivy-iso-results.sarif
           limit-severities-for-sarif: true
-          skip-dirs: proc,sys,dev,run,tmp,var/cache/pacman/pkg,var/cache/ryoku/mirror/offline,var/cache/ryoku/uv,var/cache/ryoku/nvim,root/ryoku/.git,root/ryoku/assets,root/ryoku/docs/media,root/ryoku/tmp,root/ryoku/shell/docs,root/ryoku/shell/sdata,root/ryoku/shell/scripts/__pycache__
+          # Skip the runtime mount points (empty in the squashfs), the pacman
+          # package cache, and the baked payload's bulky wallpaper/brand assets
+          # at /usr/share/ryoku/ryoku/assets. The prebuilt Go binaries and the
+          # rest of the payload stay in scope.
+          skip-dirs: proc,sys,dev,run,tmp,var/cache/pacman/pkg,usr/share/ryoku/ryoku/assets
           version: v0.70.0
 
       - name: Upload ISO Trivy SARIF report
@@ -165,7 +208,7 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
           format: table
-          skip-dirs: proc,sys,dev,run,tmp,var/cache/pacman/pkg,var/cache/ryoku/mirror/offline,var/cache/ryoku/uv,var/cache/ryoku/nvim,root/ryoku/.git,root/ryoku/assets,root/ryoku/docs/media,root/ryoku/tmp,root/ryoku/shell/docs,root/ryoku/shell/sdata,root/ryoku/shell/scripts/__pycache__
+          skip-dirs: proc,sys,dev,run,tmp,var/cache/pacman/pkg,usr/share/ryoku/ryoku/assets
           skip-setup-trivy: true
 
       - name: Unmount ISO live root
@@ -192,9 +235,8 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          # Import the private key into a fresh ephemeral keyring.
-          # GNUPGHOME is the runner-local dir we just made; the key
-          # never touches /home or persistent storage.
+          # Import the private key into a fresh ephemeral keyring. GNUPGHOME is a
+          # runner-local temp dir; the key never touches persistent storage.
           export GNUPGHOME="$(mktemp -d)"
           chmod 700 "$GNUPGHOME"
           echo "$GPG_PRIVATE_KEY" | gpg --batch --import
@@ -209,10 +251,9 @@ jobs:
 
           gpg --verify "$iso.sig" "$iso"
 
-          # Export the public key alongside the ISO so testers can fetch it
-          # from the same R2 bucket. This is in addition to the repo-canonical
-          # copy at keys/ryoku-release-key.pub.asc; the R2 copy is a fallback
-          # for users who only have the ISO URL and not the GitHub repo.
+          # Export the public key alongside the ISO so testers can verify it from
+          # the same R2 bucket. This mirrors the repo-canonical copy at
+          # keys/ryoku-release-key.pub.asc for users who only have the ISO URL.
           pubkey="$(dirname "$iso")/ryoku-release-key.pub.asc"
           gpg --armor --export > "$pubkey"
           echo "::notice::Exported public key to $pubkey"
@@ -222,18 +263,6 @@ jobs:
           iso="${{ steps.iso.outputs.path }}"
           (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" "$(basename "$iso").sig" > "$(basename "$iso").sha256")
           cat "$iso.sha256"
-
-      - name: Generate release manifest
-        run: |
-          iso="${{ steps.iso.outputs.path }}"
-          ./iso/bin/ryoku-iso-manifest "$iso"
-          cat "$iso.json"
-
-      - name: Capture previous ISO release
-        id: previous_iso
-        run: |
-          echo "::notice::Public ISO download metadata lookup is paused."
-          echo "commit=" >> "$GITHUB_OUTPUT"
 
       - name: Install rclone
         run: |
@@ -254,193 +283,34 @@ jobs:
           access_key_id = ${R2_ACCESS_KEY_ID}
           secret_access_key = ${R2_SECRET_ACCESS_KEY}
           endpoint = ${R2_ENDPOINT}
-          # The scoped R2 API token has Object Read+Write only, not
-          # bucket-level perms. Without this flag rclone calls
-          # HeadBucket then CreateBucket, both of which 403, and the
-          # upload aborts. The bucket already exists; skip the check.
+          # The scoped R2 API token has Object Read+Write only, not bucket-level
+          # perms. Without this flag rclone calls HeadBucket then CreateBucket,
+          # both of which 403, and the upload aborts. The bucket already exists.
           no_check_bucket = true
           EOF
 
-          # R2_BUCKET secret can be either a plain bucket name (e.g.
-          # "ryoku-iso") or a path-style "bucket/prefix"
-          # (e.g. "ryoku-iso/${PUBLIC_CHANNEL}"). If unset, default to
-          # "ryoku/${PUBLIC_CHANNEL}" for the internal release artifact path.
-          dest="${R2_BUCKET:-ryoku/$PUBLIC_CHANNEL}"
+          # R2_BUCKET is the shared release bucket (its root is served at
+          # repo.ryoku.dev). The [ryoku] pacman repo owns the per-arch prefixes
+          # (x86_64/, aarch64/, ...), so the ISO is namespaced under iso/ to keep
+          # the two artifact sets cleanly separated in the same bucket.
+          dest="${R2_BUCKET:-ryoku}/iso"
 
           iso="${{ steps.iso.outputs.path }}"
           pubkey="$(dirname "$iso")/ryoku-release-key.pub.asc"
-          manifest="$iso.json"
-          manifest_js="$iso.js"
-          latest="$(dirname "$iso")/latest.json"
-          latest_js="$(dirname "$iso")/latest.js"
           rclone copy "$iso"        "Ryoku:$dest/" -P
           rclone copy "$iso.sig"    "Ryoku:$dest/" -P
           rclone copy "$iso.sha256" "Ryoku:$dest/" -P
-          rclone copy "$manifest"   "Ryoku:$dest/" -P
-          rclone copy "$manifest_js" "Ryoku:$dest/" -P
-          rclone copy "$latest"     "Ryoku:$dest/" -P
-          rclone copy "$latest_js"  "Ryoku:$dest/" -P
           rclone copy "$pubkey"     "Ryoku:$dest/" -P
 
-          echo "::notice::Uploaded to R2 path Ryoku:$dest/"
+          echo "::notice::Uploaded ISO to R2 path Ryoku:$dest/"
 
       - name: Upload artifacts to workflow run
         uses: actions/upload-artifact@v4
         with:
-          name: ryoku-iso-${{ env.PUBLIC_CHANNEL }}
+          name: ryoku-iso
           path: |
-            iso/release/*.iso
-            iso/release/*.sig
-            iso/release/*.sha256
-            iso/release/*.json
-            iso/release/*.js
-            iso/release/*.asc
+            installation/iso/out/*.iso
+            installation/iso/out/*.sig
+            installation/iso/out/*.sha256
+            installation/iso/out/*.asc
           retention-days: 14
-
-      - name: Notify Discord of ISO release
-        if: ${{ success() }}
-        env:
-          DISCORD_ISO_WEBHOOK_URL: ${{ secrets.DISCORD_ISO_WEBHOOK_URL }}
-          PREVIOUS_ISO_COMMIT: ${{ steps.previous_iso.outputs.commit }}
-        run: |
-          set -euo pipefail
-
-          if [[ -z $DISCORD_ISO_WEBHOOK_URL ]]; then
-            echo "::notice::DISCORD_ISO_WEBHOOK_URL secret is not configured; skipping Discord ISO notification."
-            exit 0
-          fi
-
-          manifest="${{ steps.iso.outputs.path }}.json"
-          iso_name="${{ steps.iso.outputs.name }}"
-          iso_sha="$(jq -r '.sha256.iso' "$manifest")"
-          build_date="$(jq -r '.date' "$manifest")"
-          tracking_id="$(jq -r '.tracking_id' "$manifest")"
-          build_commit="$(jq -r '.commit' "$manifest")"
-          short_sha="$(git rev-parse --short "$build_commit")"
-          commit_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$build_commit"
-          website_url="https://ryoku.dev"
-          brand_mark_url="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/assets/brand/logo-mark.png"
-          brand_footer="Ryoku Arch : For the sake of power and beauty."
-
-          limit_text() {
-            local max="$1"
-            local value="$2"
-
-            jq -rn --arg value "$value" --argjson max "$max" '
-              $value
-              | gsub("\r"; "")
-              | if length > $max then .[0:($max - 3)] + "..." else . end
-            '
-          }
-
-          compare_url=""
-          change_summary=""
-          previous_commit="$PREVIOUS_ISO_COMMIT"
-
-          if [[ -n $previous_commit ]] && git cat-file -e "$previous_commit^{commit}" 2>/dev/null; then
-            if [[ $previous_commit == $build_commit ]]; then
-              change_summary="- Rebuild of $short_sha; no new commits since the previous ISO."
-              compare_url="$commit_url"
-            else
-              total_changes="$(git rev-list --count "$previous_commit..$build_commit")"
-              change_summary="$(git log --pretty=format:'- %s (%h)' -n 5 "$previous_commit..$build_commit")"
-              compare_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/$previous_commit...$build_commit"
-
-              if (( total_changes > 5 )); then
-                change_summary="$change_summary"$'\n'"- + $(( total_changes - 5 )) more changes"
-              fi
-            fi
-          else
-            change_summary="$(git log --pretty=format:'- %s (%h)' -n 5 "$build_commit")"
-            compare_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commits/main"
-          fi
-
-          if [[ -z $change_summary ]]; then
-            change_summary="- No commit summary available."
-          fi
-
-          download_value="[Open ryoku.dev]($website_url)"$'\n'"Public ISO downloads are paused while beta is prepared."
-          source_value="[$short_sha]($commit_url) from main"
-          release_value="$RELEASE_STAGE build $tracking_id, $build_date"
-          verify_value="SHA256: \`$iso_sha\`"
-          changes_value="$(limit_text 1000 "$change_summary"$'\n\n'"[Full changes]($compare_url)")"
-
-          jq -n \
-            --arg content "Ryoku Arch $RELEASE_STAGE ISO build completed: $iso_name" \
-            --arg title "Ryoku Arch $RELEASE_STAGE ISO build completed" \
-            --arg website_url "$website_url" \
-            --arg description "A signed Ryoku Arch $RELEASE_STAGE ISO from main finished building. Public ISO downloads remain paused." \
-            --arg download_value "$download_value" \
-            --arg release_value "$release_value" \
-            --arg source_value "$source_value" \
-            --arg changes_value "$changes_value" \
-            --arg verify_value "$verify_value" \
-            --arg brand_mark_url "$brand_mark_url" \
-            --arg brand_footer "$brand_footer" \
-            '{
-              username: "Ryoku Releases",
-              avatar_url: $brand_mark_url,
-              content: $content,
-              allowed_mentions: {
-                parse: []
-              },
-              embeds: [
-                {
-                  title: $title,
-                  url: $website_url,
-                  color: 15881763,
-                  description: $description,
-                  thumbnail: {
-                    url: $brand_mark_url
-                  },
-                  fields: [
-                    {
-                      name: "Download",
-                      value: $download_value,
-                      inline: false
-                    },
-                    {
-                      name: "Release",
-                      value: $release_value,
-                      inline: false
-                    },
-                    {
-                      name: "Source",
-                      value: $source_value,
-                      inline: false
-                    },
-                    {
-                      name: "Changes from previous ISO",
-                      value: $changes_value,
-                      inline: false
-                    },
-                    {
-                      name: "Verification",
-                      value: $verify_value,
-                      inline: false
-                    }
-                  ],
-                  footer: {
-                    text: $brand_footer,
-                    icon_url: $brand_mark_url
-                  },
-                  timestamp: (now | todateiso8601)
-                }
-              ]
-            }' > /tmp/discord-iso-payload.json
-
-          http_code="$(
-            curl -sS -o /tmp/discord-iso-response.json -w "%{http_code}" \
-              -H "Content-Type: application/json" \
-              -X POST \
-              --data-binary @/tmp/discord-iso-payload.json \
-              "$DISCORD_ISO_WEBHOOK_URL"
-          )"
-
-          if [[ $http_code != "200" && $http_code != "204" ]]; then
-            echo "Discord ISO webhook returned HTTP $http_code" >&2
-            cat /tmp/discord-iso-response.json >&2
-            exit 1
-          fi
-
-          echo "Discord ISO release notification sent."

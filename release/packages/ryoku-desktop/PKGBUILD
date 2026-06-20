@@ -1,0 +1,144 @@
+# Maintainer: Ryoku <releases@ryoku.dev>
+#
+# The Ryoku desktop umbrella. Pulls the Ryoku components and the user-facing
+# runtime, lays the base configuration under /usr/share/ryoku/config (mirroring
+# the ~/.config layout that `ryoku materialize` copies into a user's home), and
+# installs the helper scripts and the GPU udev rule.
+#
+# Built from the in-repo sources; no tarball is fetched. The publish CI runs
+# makepkg inside this directory in a full checkout, so the repo root is three
+# levels up.
+pkgname=ryoku-desktop
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Ryoku desktop: Hyprland + Quickshell configuration, helpers, and runtime"
+arch=('any')
+url="https://ryoku.dev"
+license=('GPL-3.0-or-later')
+depends=(
+  # Ryoku components
+  'ryoku-shell'
+  'ryoku-hub'
+  'ryoku-blobs'
+  'ryoku'
+  'ryoku-keyring'
+  # Compositor + Wayland session
+  'hyprland'
+  'xorg-xwayland'
+  'qt6-wayland'
+  'qt6-5compat'
+  'qt6-svg'
+  'hyprpolkitagent'
+  'xdg-desktop-portal-hyprland'
+  'xdg-desktop-portal-gtk'
+  # The shell and the apps configured here
+  'quickshell'
+  'kitty'
+  'fish'
+  'starship'
+  'fastfetch'
+  'yazi'
+  'neovim'
+  # Tools the shipped autostart, pill, ryoshot, and helper scripts call by name
+  'hypridle'
+  'brightnessctl'
+  'playerctl'
+  'wl-clipboard'
+  'cliphist'
+  'hyprpicker'
+  'grim'
+  'slurp'
+  'cava'
+  'jq'
+  'imagemagick'
+  # Fonts the shell UI hardcodes (Inter, JetBrainsMono Nerd, Noto Sans CJK)
+  'ttf-jetbrains-mono-nerd'
+  'inter-font'
+  'noto-fonts'
+  'noto-fonts-cjk'
+  'noto-fonts-emoji'
+)
+optdepends=(
+  'wallust: wallpaper-derived color palette (AUR)'
+  'awww: animated wallpaper transitions (AUR)'
+  'tesseract: OCR text grab (pill Super+D)'
+  'tesseract-data-eng: English OCR language data'
+  'zbar: QR code scanning (pill Super+D)'
+  'gpu-screen-recorder: screen recording (pill Super+U)'
+  'wf-recorder: screen-recording fallback for multi-GPU machines'
+  'hyprsunset: night-light color temperature (pill Super+U)'
+  'openrgb: keyboard and LED accent sync via ryoku-leds'
+  'wtype: voice-dictation typing on Wayland (Handy)'
+  'mpv: webcam mirror and media playback'
+  'nautilus: graphical file manager'
+  'chromium: web browser'
+)
+install="$pkgname.install"
+source=()
+
+_repo="$startdir/../../.."
+
+package() {
+  local cfg="$pkgdir/usr/share/ryoku/config"
+
+  # --- Base configs under /usr/share/ryoku/config, mirroring ~/.config. -------
+  # `ryoku materialize` copies this tree verbatim into the user's ~/.config.
+
+  # Hyprland: the whole tree, including scripts/ (the shell calls
+  # ~/.config/hypr/scripts/* by absolute path) and the hardware-managed
+  # gpu/keyboard/monitors drop-ins.
+  install -d "$cfg/hypr"
+  cp -a "$_repo/ryoku/hyprland/." "$cfg/hypr/"
+
+  # Quickshell desktop components, with the Hub's config nested under hub/.
+  install -d "$cfg/quickshell"
+  cp -a "$_repo/ryoku/shell/quickshell/." "$cfg/quickshell/"
+  install -d "$cfg/quickshell/hub"
+  cp -a "$_repo/ryoku/hub/quickshell/." "$cfg/quickshell/hub/"
+
+  # Wallust palette generation (templates feed the kitty + Hyprland colors).
+  install -d "$cfg/wallust"
+  cp -a "$_repo/ryoku/shell/wallust/." "$cfg/wallust/"
+
+  # Per-app configs.
+  install -Dm644 "$_repo/ryoku/apps/fish/config.fish"       "$cfg/fish/config.fish"
+  install -Dm644 "$_repo/ryoku/shell/kde/kdeglobals"        "$cfg/kdeglobals"
+  install -Dm644 "$_repo/ryoku/apps/starship/starship.toml" "$cfg/starship.toml"
+  install -Dm644 "$_repo/ryoku/apps/fastfetch/config.jsonc" "$cfg/fastfetch/config.jsonc"
+  install -Dm644 "$_repo/ryoku/apps/yazi/yazi.toml"         "$cfg/yazi/yazi.toml"
+  install -d "$cfg/kitty"
+  cp -a "$_repo/ryoku/apps/kitty/." "$cfg/kitty/"
+
+  # Neovim (LazyVim seed): the config only, not the repo docs or .desktop handler.
+  install -Dm644 "$_repo/ryoku/apps/nvim/init.lua"       "$cfg/nvim/init.lua"
+  install -Dm644 "$_repo/ryoku/apps/nvim/.ryoku-lazyvim" "$cfg/nvim/.ryoku-lazyvim"
+  cp -a "$_repo/ryoku/apps/nvim/lua" "$cfg/nvim/"
+
+  # User session target.
+  install -Dm644 "$_repo/ryoku/shell/systemd/user/hyprland-session.target" \
+    "$cfg/systemd/user/hyprland-session.target"
+
+  # cp -a preserves source mode bits; normalize so scripts under hypr/scripts
+  # stay executable and the rest is world-readable data.
+  chmod -R u=rwX,go=rX "$pkgdir/usr/share/ryoku"
+
+  # --- Helper scripts on PATH (/usr/bin). ------------------------------------
+  # The pill, Hub, and shell also call the hypr/scripts copies above by absolute
+  # path; these PATH copies serve CLI use and the hardware helpers that Hyprland
+  # autostart invokes by bare name.
+  local s
+  for s in "$_repo"/ryoku/hyprland/scripts/ryoku-cmd-*; do
+    install -Dm755 "$s" "$pkgdir/usr/bin/${s##*/}"
+  done
+  for s in "$_repo"/system/hardware/*/ryoku-*; do
+    install -Dm755 "$s" "$pkgdir/usr/bin/${s##*/}"
+  done
+  install -Dm755 "$_repo/ryoku/apps/fastfetch/ryoku-fastfetch" \
+    "$pkgdir/usr/bin/ryoku-fastfetch"
+
+  # GPU primary-renderer udev rule: boot-stable /dev/dri/ryoku-gpu-* symlinks
+  # that ryoku-gpu pins via AQ_DRM_DEVICES. Vendor location -> active on boot,
+  # so `ryoku-gpu install-udev` is never needed on an installed system.
+  install -Dm644 "$_repo/system/hardware/gpu/90-ryoku-gpu.rules" \
+    "$pkgdir/usr/lib/udev/rules.d/90-ryoku-gpu.rules"
+}

@@ -45,6 +45,8 @@ source "$LIB_DIR/drivers.sh"
 source "$LIB_DIR/bootloader.sh"
 # shellcheck source=lib/aur.sh
 source "$LIB_DIR/aur.sh"
+# shellcheck source=lib/snapshots.sh
+source "$LIB_DIR/snapshots.sh"
 
 # Defaults for the optional parts of the contract.
 : "${RYOKU_HOSTNAME:=ryoku}"
@@ -103,6 +105,8 @@ main() {
   ryoku_bootloader
 
   ryoku_aur || true
+
+  ryoku_snapshots
 
   log "flushing the target to disk"
   run sync

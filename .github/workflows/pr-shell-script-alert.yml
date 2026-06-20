@@ -38,18 +38,15 @@ jobs:
           is_security_sensitive_path() {
             local path="$1"
 
-            [[ $path == "boot.sh" ]] && return 0
-            [[ $path == "install.sh" ]] && return 0
             [[ $path == .github/* ]] && return 0
             [[ $path == .githooks/* ]] && return 0
             [[ $path == bin/* ]] && return 0
-            [[ $path == install/* ]] && return 0
-            [[ $path == lib/* ]] && return 0
-            [[ $path == migrations/* ]] && return 0
-            [[ $path == iso/bin/* ]] && return 0
-            [[ $path == iso/builder/* ]] && return 0
-            [[ $path == shell/scripts/* ]] && return 0
-            [[ $path == default/systemd/system-sleep/* ]] && return 0
+            [[ $path == tests/* ]] && return 0
+            [[ $path == installation/* ]] && return 0
+            [[ $path == system/* ]] && return 0
+            [[ $path == ryoku/shell/ipc/* ]] && return 0
+            [[ $path == ryoku/shell/deploy.sh ]] && return 0
+            [[ $path == ryoku/hyprland/scripts/* ]] && return 0
 
             return 1
           }

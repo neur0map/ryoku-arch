@@ -10,6 +10,7 @@ Item {
     property string label: ""
     property string icon: ""
     property bool soon: false
+    property int badge: 0
     property bool selected: false
     signal clicked()
 
@@ -51,6 +52,27 @@ Item {
         font.pixelSize: 9
         font.weight: Font.DemiBold
         font.letterSpacing: 1.5
+    }
+
+    Rectangle {
+        visible: btn.badge > 0
+        anchors.right: parent.right
+        anchors.rightMargin: 24
+        anchors.verticalCenter: parent.verticalCenter
+        width: Math.max(18, bdg.implicitWidth + 12)
+        height: 18
+        radius: 9
+        color: Theme.ember
+
+        Text {
+            id: bdg
+            anchors.centerIn: parent
+            text: "" + btn.badge
+            color: Theme.onAccent
+            font.family: Theme.font
+            font.pixelSize: 10
+            font.weight: Font.Bold
+        }
     }
 
     HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
