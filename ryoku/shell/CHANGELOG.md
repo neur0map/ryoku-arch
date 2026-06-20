@@ -35,7 +35,9 @@
   attack, slow decay) so motion is smooth at 60fps+ rather than stepping between
   cava frames. A smoothed `activity` signal (fast rise, ~1s release) crossfades
   between the live spectrum and the idle wave, so a quiet gap fades down and back
-  up gracefully instead of snapping off.
+  up gracefully instead of snapping off. With the idle wave disabled the spectrum
+  fades to nothing on silence (the minimum sliver and the wave canvas clear fully)
+  rather than leaving a thin line.
 - `wallust`: a new `shell` template writes the live palette to
   `~/.cache/wallust/colors.json` on every wallpaper change. The visualiser's
   `Wallust` singleton watches it, so the spectrum's colours retune to the

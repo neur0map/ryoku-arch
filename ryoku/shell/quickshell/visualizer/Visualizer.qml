@@ -41,6 +41,8 @@ Item {
     property var levels: []
     property real activity: 0
     property real idlePhase: 0
+    property real maxLevel: 0
+    property bool waveOn: false
 
     function srcIndex(i) {
         if (!root.mirror)
@@ -84,8 +86,18 @@ Item {
             out[i] = cur + (target - cur) * k;
         }
         root.levels = out;
-        if (root.style === "wave" && (Config.idleWave || root.activity > 0.005))
-            wave.requestPaint();
+        var mx = 0;
+        for (var j = 0; j < n; j++)
+            if (out[j] > mx)
+                mx = out[j];
+        root.maxLevel = mx;
+        if (root.style === "wave") {
+            var show = Config.idleWave || mx > 0.003;
+            if (show || root.waveOn) {
+                wave.requestPaint();
+                root.waveOn = show;
+            }
+        }
     }
 
     function bandColor(i) {
@@ -94,7 +106,10 @@ Item {
     function lengthAt(i) {
         var dl = root.levels;
         var v = (dl && i < dl.length) ? dl[i] : 0;
-        return Math.max(2 * root.ui, root.maxBarH * v);
+        // The minimum sliver fades with the spectrum when the idle wave is off, so a
+        // silent desktop clears fully instead of leaving a thin line.
+        var minH = 2 * root.ui * (Config.idleWave ? 1 : root.activity);
+        return Math.max(minH, root.maxBarH * v);
     }
     function barY(len) {
         if (root.position === "top")
@@ -118,7 +133,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: root.maxBarH * 0.7
-        opacity: 0.08 + 0.34 * root.activity
+        opacity: (Config.idleWave ? 0.08 : 0) + 0.34 * root.activity
         gradient: Gradient {
             GradientStop { position: 0.0; color: "transparent" }
             GradientStop { position: 1.0; color: Qt.alpha(Wallust.accent, 0.5) }
@@ -237,7 +252,9 @@ Item {
         var ctx = cv.getContext("2d");
         var w = cv.width;
         ctx.reset();
-        if (root.bands < 2)
+        // Nothing to draw once the spectrum has settled flat: leave the canvas clear
+        // so the wave fully disappears instead of freezing on its last frame.
+        if (root.bands < 2 || root.maxLevel < 0.003)
             return;
 
         var grad = ctx.createLinearGradient(0, 0, w, 0);
