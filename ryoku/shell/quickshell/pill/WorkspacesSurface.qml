@@ -14,6 +14,11 @@ import "Singletons"
  *
  * Windows on inactive workspaces are unmapped in Hyprland, so they cannot be
  * live thumbnails: each is an icon card placed at its real scaled geometry.
+ *
+ * The drag is tracked by hand rather than with Qt's Drag/DropArea: the pill is a
+ * layer-shell surface and reparenting a dragged item into an overlay mid-grab
+ * loses the pointer, so the press-grabbing MouseArea instead drives a cursor
+ * ghost and hit-tests the tile under the pointer on release.
  */
 PillSurface {
     id: root
@@ -58,7 +63,7 @@ PillSurface {
         out.sort(function (a, b) { return a.id - b.id; });
         return out;
     }
-    // The next free workspace id, the drop target of the trailing "+" tile.
+    // The next free workspace id, the target of the trailing "+" tile.
     readonly property int newWsId: {
         var m = 0;
         for (var i = 0; i < root.wsList.length; i++)
@@ -88,6 +93,41 @@ PillSurface {
     onOpenChanged: if (open) {
         Hyprland.refreshWorkspaces();
         Hyprland.refreshToplevels();
+    }
+
+    // ── Drag state (a window card being carried to another tile) ───────────
+    readonly property int noWs: -999
+    property bool dragging: false
+    property string dragAddr: ""
+    property int dragSrcWs: noWs
+    property int dragTargetWs: noWs
+    property real dragX: 0
+    property real dragY: 0
+    property var dragTl: null
+
+    function endDrag() {
+        root.dragging = false;
+        root.dragTargetWs = root.noWs;
+        root.dragSrcWs = root.noWs;
+        root.dragAddr = "";
+        root.dragTl = null;
+    }
+
+    // Which workspace tile sits under a point in `strip` coordinates, or noWs
+    // for a gap / off the strip. The "+" tile (index == wsList.length) targets
+    // a fresh workspace.
+    function tileAt(px, py) {
+        if (py < 0 || py > root.labelH + root.tileH || px < 0)
+            return root.noWs;
+        var unit = root.tileW + root.gap;
+        var i = Math.floor(px / unit);
+        if (px - i * unit > root.tileW)
+            return root.noWs;
+        if (i < root.wsList.length)
+            return root.wsList[i].id;
+        if (i === root.wsList.length)
+            return root.newWsId;
+        return root.noWs;
     }
 
     function normAddr(addr) {
@@ -124,7 +164,7 @@ PillSurface {
 
                 readonly property int wsId: tile.modelData.id
                 readonly property bool active: tile.wsId === root.activeWsId
-                property bool hot: false
+                readonly property bool hot: root.dragging && root.dragTargetWs === tile.wsId && tile.wsId !== root.dragSrcWs
 
                 width: root.tileW
                 height: root.labelH + root.tileH
@@ -176,8 +216,8 @@ PillSurface {
                     font.weight: Font.Medium
                 }
 
-                // Switch-to-workspace on the tile body; the cards above catch
-                // their own clicks, so only empty space falls through to here.
+                // Switch-to-workspace on the tile body; the cards above grab
+                // their own presses, so only empty space falls through to here.
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
@@ -214,89 +254,98 @@ PillSurface {
                     Repeater {
                         model: tile.cards
 
-                        delegate: Item {
-                            id: slot
+                        delegate: Rectangle {
+                            id: card
                             required property var modelData
-                            readonly property string addr: slot.modelData.addr
-                            readonly property int srcWs: tile.wsId
+                            readonly property string addr: card.modelData.addr
 
-                            x: slot.modelData.fx * minimap.width
-                            y: slot.modelData.fy * minimap.height
-                            width: Math.max(16 * root.s, slot.modelData.fw * minimap.width)
-                            height: Math.max(14 * root.s, slot.modelData.fh * minimap.height)
+                            x: card.modelData.fx * minimap.width
+                            y: card.modelData.fy * minimap.height
+                            width: Math.max(16 * root.s, card.modelData.fw * minimap.width)
+                            height: Math.max(14 * root.s, card.modelData.fh * minimap.height)
+                            radius: 5 * root.s
+                            color: ma.containsMouse ? Theme.frameBg : Theme.tileBg
+                            border.width: 1
+                            border.color: ma.containsMouse ? Theme.brand : Theme.border
+                            antialiasing: true
+                            // Fade the carried window in place while it is dragged.
+                            opacity: (root.dragging && card.addr === root.dragAddr) ? 0.3 : 1
 
-                            Rectangle {
-                                id: card
-                                width: slot.width
-                                height: slot.height
-                                radius: 5 * root.s
-                                color: ma.containsMouse ? Theme.frameBg : Theme.tileBg
-                                border.width: 1
-                                border.color: ma.containsMouse ? Theme.brand : Theme.border
-                                antialiasing: true
+                            Behavior on border.color { ColorAnimation { duration: Motion.fast } }
+                            Behavior on opacity { NumberAnimation { duration: Motion.fast } }
 
-                                Behavior on border.color { ColorAnimation { duration: Motion.fast } }
+                            Image {
+                                anchors.centerIn: parent
+                                readonly property real box: Math.min(card.width, card.height) * 0.62
+                                width: Math.max(10 * root.s, Math.min(24 * root.s, box))
+                                height: width
+                                sourceSize.width: Math.round(width * 2)
+                                sourceSize.height: Math.round(width * 2)
+                                fillMode: Image.PreserveAspectFit
+                                asynchronous: true
+                                smooth: true
+                                source: Apps.iconFor(card.modelData.tl)
+                            }
 
-                                Drag.active: ma.drag.active
-                                Drag.keys: ["win"]
-                                Drag.source: slot
-                                Drag.hotSpot.x: card.width / 2
-                                Drag.hotSpot.y: card.height / 2
+                            MouseArea {
+                                id: ma
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                preventStealing: true
+                                cursorShape: Qt.PointingHandCursor
 
-                                Image {
-                                    anchors.centerIn: parent
-                                    readonly property real box: Math.min(card.width, card.height) * 0.62
-                                    width: Math.max(10 * root.s, Math.min(24 * root.s, box))
-                                    height: width
-                                    sourceSize.width: Math.round(width * 2)
-                                    sourceSize.height: Math.round(width * 2)
-                                    fillMode: Image.PreserveAspectFit
-                                    asynchronous: true
-                                    smooth: true
-                                    source: Apps.iconFor(slot.modelData.tl)
+                                property real downX: 0
+                                property real downY: 0
+                                property bool armed: false
+
+                                onPressed: (m) => {
+                                    ma.armed = true;
+                                    ma.downX = m.x;
+                                    ma.downY = m.y;
                                 }
-
-                                // Lift the card out of its clipped tile while
-                                // dragging so it rides over the whole strip.
-                                states: State {
-                                    name: "drag"
-                                    when: ma.drag.active
-                                    ParentChange { target: card; parent: dragLayer }
+                                onPositionChanged: (m) => {
+                                    if (!ma.armed)
+                                        return;
+                                    if (!root.dragging) {
+                                        if (Math.abs(m.x - ma.downX) + Math.abs(m.y - ma.downY) < 6 * root.s)
+                                            return;
+                                        root.dragging = true;
+                                        root.dragAddr = card.addr;
+                                        root.dragSrcWs = tile.wsId;
+                                        root.dragTl = card.modelData.tl;
+                                    }
+                                    var g = ma.mapToItem(dragLayer, m.x, m.y);
+                                    root.dragX = g.x;
+                                    root.dragY = g.y;
+                                    var sp = ma.mapToItem(strip, m.x, m.y);
+                                    root.dragTargetWs = root.tileAt(sp.x, sp.y);
                                 }
-
-                                MouseArea {
-                                    id: ma
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    drag.target: card
-                                    drag.threshold: 4
-                                    onClicked: root.focusWindow(slot.addr)
+                                onReleased: {
+                                    if (root.dragging) {
+                                        if (root.dragTargetWs !== root.noWs && root.dragTargetWs !== root.dragSrcWs)
+                                            root.moveWindow(root.dragAddr, root.dragTargetWs);
+                                        root.endDrag();
+                                    } else if (ma.armed) {
+                                        root.focusWindow(card.addr);
+                                    }
+                                    ma.armed = false;
+                                }
+                                onCanceled: {
+                                    root.endDrag();
+                                    ma.armed = false;
                                 }
                             }
                         }
                     }
                 }
-
-                DropArea {
-                    anchors.fill: parent
-                    keys: ["win"]
-                    onEntered: tile.hot = true
-                    onExited: tile.hot = false
-                    onDropped: (drop) => {
-                        tile.hot = false;
-                        if (drop.source && drop.source.srcWs !== tile.wsId)
-                            root.moveWindow(drop.source.addr, tile.wsId);
-                    }
-                }
             }
         }
 
-        // Trailing tile: drop a window here to send it to a fresh workspace, or
+        // Trailing tile: drag a window here to send it to a fresh workspace, or
         // click to create and switch to one.
         Item {
             id: addTile
-            property bool hot: false
+            readonly property bool hot: root.dragging && root.dragTargetWs === root.newWsId
             width: root.tileW
             height: root.labelH + root.tileH
 
@@ -335,24 +384,40 @@ PillSurface {
                     onClicked: root.switchWs(root.newWsId)
                 }
             }
-
-            DropArea {
-                anchors.fill: parent
-                keys: ["win"]
-                onEntered: addTile.hot = true
-                onExited: addTile.hot = false
-                onDropped: (drop) => {
-                    addTile.hot = false;
-                    if (drop.source)
-                        root.moveWindow(drop.source.addr, root.newWsId);
-                }
-            }
         }
     }
 
-    // Cards reparent here mid-drag so they ride above every tile, unclipped.
+    // The carried window's ghost, riding above the strip and following the
+    // cursor while a drag is in flight.
     Item {
         id: dragLayer
         anchors.fill: parent
+        z: 50
+
+        Rectangle {
+            id: ghost
+            visible: root.dragging
+            width: 56 * root.s
+            height: 42 * root.s
+            x: root.dragX - width / 2
+            y: root.dragY - height / 2
+            radius: 7 * root.s
+            color: Theme.frameBg
+            border.width: 1
+            border.color: Theme.brand
+            antialiasing: true
+            opacity: 0.96
+
+            Image {
+                anchors.centerIn: parent
+                width: 26 * root.s
+                height: 26 * root.s
+                sourceSize.width: Math.round(width * 2)
+                sourceSize.height: Math.round(height * 2)
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                source: (root.dragging && root.dragTl) ? Apps.iconFor(root.dragTl) : ""
+            }
+        }
     }
 }
