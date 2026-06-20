@@ -1,0 +1,94 @@
+name: R2 maintenance
+
+# Manual R2 housekeeping: list the release bucket, and (in clean mode) remove
+# stale objects and re-upload the current new-key material so no old release key
+# lingers. Dispatch only; never runs on push or tag.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'list (read-only) or clean (prune + replace keys)'
+        required: true
+        default: 'list'
+        type: choice
+        options:
+          - list
+          - clean
+
+permissions:
+  contents: read
+
+jobs:
+  r2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: R2 housekeeping
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          MODE: ${{ github.event.inputs.mode }}
+        run: |
+          set -euo pipefail
+          curl -fsSL https://rclone.org/install.sh | sudo bash >/dev/null
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [Ryoku]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${R2_ACCESS_KEY_ID}
+          secret_access_key = ${R2_SECRET_ACCESS_KEY}
+          endpoint = ${R2_ENDPOINT}
+          no_check_bucket = true
+          EOF
+
+          B="Ryoku:${R2_BUCKET}"
+          new_fpr="EB6D3C0F55A7B3CABA6B2838847B274F025DD6E3"
+
+          echo "::group::bucket root"
+          rclone lsl "$B/" 2>&1 || true
+          echo "::endgroup::"
+          echo "::group::iso/"
+          rclone lsl "$B/iso/" 2>&1 || true
+          echo "::endgroup::"
+          echo "::group::x86_64/"
+          rclone lsl "$B/x86_64/" 2>&1 || true
+          echo "::endgroup::"
+
+          # Show the fingerprint of every published .pub.asc / keyring blob so old
+          # key material is obvious.
+          echo "::group::key fingerprints in R2"
+          tmp="$(mktemp -d)"
+          for p in $(rclone lsf -R "$B/" 2>/dev/null | grep -iE '\.(asc|gpg)$' || true); do
+            rclone copyto "$B/$p" "$tmp/blob" >/dev/null 2>&1 || continue
+            fpr="$(gpg --show-keys --with-colons "$tmp/blob" 2>/dev/null | awk -F: '/^fpr:/{print $10; exit}')"
+            [ "$fpr" = "$new_fpr" ] && tag="NEW" || tag="OLD-OR-OTHER"
+            echo "$p -> ${fpr:-<not-a-key>} [$tag]"
+          done
+          echo "::endgroup::"
+
+          if [ "$MODE" = "list" ]; then
+            echo "::notice::list-only; no changes made"
+            exit 0
+          fi
+
+          echo "=== CLEAN: removing any published key file whose fingerprint is not the new key ==="
+          for p in $(rclone lsf -R "$B/" 2>/dev/null | grep -iE '\.(asc|gpg)$' || true); do
+            rclone copyto "$B/$p" "$tmp/blob" >/dev/null 2>&1 || continue
+            fpr="$(gpg --show-keys --with-colons "$tmp/blob" 2>/dev/null | awk -F: '/^fpr:/{print $10; exit}')"
+            if [ -n "$fpr" ] && [ "$fpr" != "$new_fpr" ]; then
+              echo "deleting stale key object: $p ($fpr)"
+              rclone deletefile "$B/$p" 2>&1 || true
+            fi
+          done
+
+          echo "=== CLEAN: re-upload the current new-key public key to iso/ ==="
+          rclone copyto keys/ryoku-release-key.pub.asc "$B/iso/ryoku-release-key.pub.asc" -P 2>&1 || true
+
+          echo "::notice::clean complete"
