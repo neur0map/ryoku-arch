@@ -25,3 +25,11 @@
 - Visual language follows the shell: a deep warm canvas with the brand orange as
   the single deliberate accent, the 力 mark, JetBrains Mono keycaps, and the
   shell's morph motion (a single sliding selection indicator in the rail).
+
+### Fixed
+- Ryoku Hub: `Super + ,` no longer goes dead after the hub is dismissed with the
+  compositor's close (`Super + Q`). The keybind guards against a second instance
+  with `flock` held for the life of the `qs -c hub` process; an external close
+  only hid the window while the process kept running, pinning the lock so further
+  presses silently no-opped. The `FloatingWindow` now quits on its `closed`
+  signal, so every dismissal releases the lock.
