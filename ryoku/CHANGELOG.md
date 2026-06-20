@@ -7,6 +7,9 @@
   (duplicate) and extend, via `ryoku-monitor toggle`.
 - `hyprland/modules/binds`: `Super + Tab` opens the pill's workspace switcher
   overview (`ryoku-shell workspaces`) for moving windows between workspaces.
+- `hyprland/modules/decoration`: a touch more room around tiled windows
+  (`gaps_out` 24 -> 26, `gaps_in` 7 -> 8) for a clear frame-to-window vs
+  window-to-window gap hierarchy that reads with the frame's new contact shadow.
 - `hyprland/`: the Hyprland config in Lua, modular (entrypoint plus modules for
   input, decoration, animations, binds, window rules, ryoshot, and autostart)
   with hardware-managed gpu/keyboard/monitors. Launches the Ryoku shell and the
