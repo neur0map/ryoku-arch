@@ -34,6 +34,8 @@ hl.bind(mod .. " + D",         hl.dsp.exec_cmd("ryoku-shell toolkit"))          
 hl.bind(mod .. " + Z",         hl.dsp.exec_cmd("ryoku-shell stash"))             -- file stash
 hl.bind(mod .. " + U",         hl.dsp.exec_cmd("ryoku-shell utilities"))         -- utilities (keep-awake, record, toggles, recordings)
 hl.bind(mod .. " + Tab",       hl.dsp.exec_cmd("ryoku-shell workspaces"))        -- workspace switcher (drag windows between workspaces)
+hl.bind(mod .. " + M",         hl.dsp.exec_cmd("ryoku-shell visualizer"))        -- toggle the desktop audio visualiser
+hl.bind(mod .. " + SHIFT + M", hl.dsp.exec_cmd("ryoku-shell visualizer-overlay")) -- raise the visualiser over windows (flip back to desktop)
 hl.bind(mod .. " + grave",     hl.dsp.exec_cmd("ryoku-shell voice"))             -- tap: Handy speech-to-text + mic wave (tap again to stop)
 hl.bind(mod .. " + comma",     hl.dsp.exec_cmd("flock -n -o /tmp/ryoku-hub.lock qs -c hub"))     -- ryoku hub
 hl.bind(mod .. " + S",         hl.dsp.exec_cmd("flock -n -o /tmp/ryoshot.lock qs -c ryoshot"))  -- screenshot

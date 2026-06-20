@@ -67,8 +67,8 @@ Item {
     readonly property bool toastActive: Notifs.popups.length > 0
     readonly property bool osdActive: osd.flashing
 
-    readonly property real restW: 108 * s
-    readonly property real restH: 38 * s
+    readonly property real restW: Config.islandWidth * s
+    readonly property real restH: Config.islandHeight * s
     readonly property real hoverPad: 20 * s
     readonly property real hoverW: hoverRow.implicitWidth + 2 * hoverPad
     readonly property real hoverH: 58 * s
@@ -90,8 +90,8 @@ Item {
     readonly property real utilitiesW: 360 * s
     readonly property real voiceW: 320 * s
     readonly property real toastW: 342 * s
-    readonly property real restCorner: 18 * s
-    readonly property real openCorner: 22 * s
+    readonly property real restCorner: Config.islandRestCorner * s
+    readonly property real openCorner: Config.islandOpenCorner * s
 
     readonly property string mode: calendarOpen ? "calendar"
         : (launcherOpen ? "launcher"

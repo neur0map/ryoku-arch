@@ -13,15 +13,15 @@ package as the base config under `/usr/share/ryoku/config`, which
   thin client that forwards a command to that socket; Hyprland keybinds use it.
 - `quickshell/` The UI, hand-written Quickshell (QML): `pill` (the morphing top
   island; it also draws the screen frame and hosts the edge popouts under
-  `pill/popouts/`, the mixer and power), `sidebar`, and `ryoshot` (screenshot and
-  annotation). These render the shell; they hold no
-  daemon logic.
+  `pill/popouts/`, the mixer and power), `sidebar`, `ryoshot` (screenshot and
+  annotation), and `visualizer` (the wallust-tinted desktop audio spectrum).
+  These render the shell; they hold no daemon logic.
 - `plugin/` `Ryoku.Blobs`, the C++/QML SDF metaball module the frame renders
   with: the border, the pill, and the popouts melt into one blob field. `build.sh`
   builds it with cmake onto a QML import path, and it ships prebuilt. See
   docs/frame.md.
-- `wallust/` Palette generation from the current wallpaper (the kitty palette and
-  the Hyprland colors).
+- `wallust/` Palette generation from the current wallpaper (the kitty palette, the
+  Hyprland colors, and the shell visualiser palette at `~/.cache/wallust/colors.json`).
 - `kde/` The Qt/KDE platform theme (`kdeglobals`). GTK apps are themed by the
   Hyprland autostart (`gsettings color-scheme`), not a shipped file.
 - `systemd/` The user session target.
@@ -44,6 +44,7 @@ socket and one place that knows how to talk to the components:
 | `lock` | lock the screen with qylock (the shell ships no lock of its own) |
 | `wallpaper [next\|init\|set <path>]` | change the wallpaper and retheme |
 | `voice` | tap ``Super+` `` to toggle Handy transcription and the live mic wave surface (tap again to stop) |
+| `visualizer` | toggle the desktop audio visualiser (also `Super+M`) |
 | `reload`, `status`, `ping`, `quit` | manage the daemon |
 
 The daemon resolves the active monitor itself, so the client and the keybinds stay
@@ -58,7 +59,7 @@ runtime: `awww` (wallpaper daemon), `wallust` (palette), `openrgb` (keyboard and
 LED color), `cliphist` and `wl-clipboard`, `imagemagick` (clipboard and
 wallpaper thumbnails), `hyprpicker`, `hypridle` and `brightnessctl` (laptop
 idle/dim), `upower` (battery state), `wireplumber` (`wpctl`), `pipewire-pulse`
-(`pactl` voice-call state and mic source), `cava` (music and mic visualizers), `playerctl` (media keys),
+(`pactl` voice-call state and mic source), `cava` (music, mic, and desktop visualizers), `playerctl` (media keys),
 `jq`, `glib2` (`gio`), `curl` (weather and LocalSend), and `python`/`openssl`/
 `libnotify`/`xdg-utils` (the LocalSend file stash and opening stashed files).
 The Super+D screen toolkit reuses `grim`/`slurp`, `hyprpicker`, `curl`/`jq`, and

@@ -1,3 +1,4 @@
 [templates]
 kitty   = { src = "kitty-colors.tmpl", dst = "~/.config/kitty/current-theme.conf" }
 hypr    = { src = "hypr-colors.lua.tmpl", dst = "~/.cache/wallust/hypr-colors.lua" }
+shell   = { src = "colors.json.tmpl", dst = "~/.cache/wallust/colors.json" }

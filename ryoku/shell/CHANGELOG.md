@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Added
+- `quickshell/visualizer`: a desktop audio visualiser. A full-width cava spectrum
+  rises from the bottom of the wallpaper on a click-through `WlrLayer.Bottom`
+  surface, behind every window and per monitor, with vertical-beam bars, a soft
+  bloom, and a fading reflection. It blooms while audio plays and settles to a
+  calm breathing line when the system is silent. On by default and supervised like
+  the pill; `ryoku-shell visualizer` (`Super+M`) toggles it, and cava only runs
+  while it is on. Adds the `Spectrum` (64-band cava on the PipeWire playback
+  monitor) and `Wallust` singletons under `quickshell/visualizer/Singletons`, and
+  the `visualizer` route plus persistent component in `ipc/daemon.go`.
+- `wallust`: a new `shell` template writes the live palette to
+  `~/.cache/wallust/colors.json` on every wallpaper change. The visualiser's
+  `Wallust` singleton watches it, so the spectrum's colours retune to the
+  wallpaper. This is the first QML surface to follow wallust at runtime; the Theme
+  palette stays static.
+
 ### Fixed
 - `quickshell/pill` update island: re-check `ryoku status` on a steady cadence
   (every 5 min) instead of only once at startup, so the island reliably surfaces

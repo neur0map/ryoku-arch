@@ -25,6 +25,7 @@ type component struct {
 var components = []component{
 	{"pill", true},
 	{"sidebar", false},
+	{"visualizer", true},
 }
 
 // pillSurfaces maps a client command to the pill IpcHandler function it toggles.
@@ -253,6 +254,10 @@ func route(cmd string) (config, target, fn string, ok bool) {
 	switch cmd {
 	case "sidebar":
 		return "sidebar", "sidebar", "toggle", true
+	case "visualizer":
+		return "visualizer", "visualizer", "toggle", true
+	case "visualizer-overlay":
+		return "visualizer", "visualizer", "overlay", true
 	}
 	return "", "", "", false
 }

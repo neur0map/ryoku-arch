@@ -1,4 +1,5 @@
 singleton Theme Theme.qml
+singleton Config Config.qml
 singleton Motion Motion.qml
 singleton Flags Flags.qml
 singleton Notifs Notifs.qml

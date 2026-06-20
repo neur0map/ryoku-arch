@@ -196,8 +196,8 @@ ShellRoot {
             id: reserve
             required property var modelData
             readonly property real s: modelData ? modelData.height / 1080 : 1
-            readonly property real topGap: 8 * s
-            readonly property real restHeight: 38 * s
+            readonly property real topGap: Config.islandGap * s
+            readonly property real restHeight: Config.islandHeight * s
 
             screen: modelData
             color: "transparent"
@@ -220,7 +220,7 @@ ShellRoot {
             id: overlay
             required property var modelData
             readonly property real s: modelData ? modelData.height / 1080 : 1
-            readonly property real topGap: 8 * s
+            readonly property real topGap: Config.islandGap * s
             readonly property string surface: root.openMon === modelData.name ? root.openSurface : ""
             readonly property bool surfaceOpen: surface.length > 0
             // Voice dictation must not steal keyboard focus or block the pointer:
@@ -320,10 +320,10 @@ ShellRoot {
                 // reads as the frame swelling open at top-centre, not a bar on top.
                 BlobGroup {
                     id: blobGroup
-                    color: Theme.cardTop
-                    smoothing: 30
-                    shadowStrength: 0.5
-                    shadowSize: 26
+                    color: Config.surfaceColor
+                    smoothing: Config.frameSmoothing
+                    shadowStrength: Config.shadowStrength
+                    shadowSize: Config.shadowSize
                 }
 
                 BlobInvertedRect {
@@ -333,11 +333,12 @@ ShellRoot {
                     anchors.fill: parent
                     anchors.margins: -50
                     group: blobGroup
-                    radius: 16
-                    borderTop: 66
-                    borderBottom: 66
-                    borderLeft: 66
-                    borderRight: 66
+                    radius: Config.frameRadius
+                    borderTop: Config.frameBorder
+                    borderBottom: Config.frameBorder
+                    borderLeft: Config.frameBorder
+                    borderRight: Config.frameBorder
+                    opacity: Config.frameOpacity
                     visible: !overlay.monFullscreen
                 }
 
@@ -356,6 +357,7 @@ ShellRoot {
                     bottomLeftRadius: pill.morphRadius
                     bottomRightRadius: pill.morphRadius
                     deformScale: 0
+                    opacity: Config.islandOpacity
                     visible: !overlay.monFullscreen
                 }
 
@@ -365,8 +367,8 @@ ShellRoot {
                     id: mixerPop
                     group: blobGroup
                     frameThickness: 16
-                    radius: 16
-                    smoothing: 30
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
                     edge: "left"
                     s: overlay.s
                     active: !overlay.surfaceOpen && !overlay.monFullscreen
@@ -385,8 +387,8 @@ ShellRoot {
                     id: powerPop
                     group: blobGroup
                     frameThickness: 16
-                    radius: 16
-                    smoothing: 30
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
                     edge: "right"
                     s: overlay.s
                     active: !overlay.surfaceOpen && !overlay.monFullscreen
@@ -404,8 +406,8 @@ ShellRoot {
                 // second field (not the frame's) so the music never fuses the border.
                 BlobGroup {
                     id: islandGroup
-                    color: Theme.cardTop
-                    smoothing: 24
+                    color: Config.surfaceColor
+                    smoothing: Config.islandSmoothing
                 }
 
                 BlobRect {
@@ -420,6 +422,7 @@ ShellRoot {
                     bottomLeftRadius: pill.morphRadius
                     bottomRightRadius: pill.morphRadius
                     deformScale: 0
+                    opacity: Config.islandOpacity
                     visible: musicIsland.visible
                 }
 
@@ -435,6 +438,7 @@ ShellRoot {
                     height: musicIsland.height
                     radius: musicIsland.height / 2
                     deformScale: 0
+                    opacity: Config.islandOpacity
                     visible: musicIsland.visible
                 }
 

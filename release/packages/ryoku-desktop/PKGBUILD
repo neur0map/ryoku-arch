@@ -96,7 +96,7 @@ package() {
   install -d "$cfg/quickshell/hub"
   cp -a "$_repo/ryoku/hub/quickshell/." "$cfg/quickshell/hub/"
 
-  # Wallust palette generation (templates feed the kitty + Hyprland colors).
+  # Wallust palette generation (templates feed the kitty, Hyprland, and shell colors).
   install -d "$cfg/wallust"
   cp -a "$_repo/ryoku/shell/wallust/." "$cfg/wallust/"
 

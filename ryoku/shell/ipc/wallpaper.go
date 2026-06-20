@@ -165,11 +165,13 @@ func (d *daemon) scheduleTheme() {
 	}
 }
 
-// paintWorker regenerates the wallust palette for the wallpaper on screen and
-// reloads the Hyprland config so the border colors follow it (config-only, so the
-// monitors are left alone), then wakes the LED worker. It reads the state file each
-// pass, so a coalesced burst themes the final wallpaper. Runs for the life of the
-// daemon.
+// paintWorker regenerates the wallust palette for the wallpaper on screen, reloads
+// the Hyprland config so the border colors follow it (config-only, so the monitors
+// are left alone), and wakes the LED worker. `wallust run` rewrites every template
+// in wallust.toml: the kitty and Hyprland colors, and the shell palette at
+// ~/.cache/wallust/colors.json that the desktop visualiser live-watches, so its
+// spectrum retunes to the wallpaper here too. It reads the state file each pass, so
+// a coalesced burst themes the final wallpaper. Runs for the life of the daemon.
 func (d *daemon) paintWorker() {
 	for range d.paintSig {
 		pic := readState()
