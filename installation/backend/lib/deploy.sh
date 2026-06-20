@@ -109,8 +109,9 @@ ryoku_repo_keyring() {
 # ryoku_deploy_packages installs the Ryoku desktop set from [ryoku] in the chroot.
 # The chroot is lent the live resolv.conf for DNS (the target has none yet), exactly
 # like the AUR step; that state is restored afterwards. Needs network, so it is
-# skipped on an offline install. Best-effort: a failure is logged and the install
-# continues (a later `ryoku update` recovers the set).
+# skipped on an offline install. Online, a failure to install the set is fatal:
+# the desktop cannot work without it and there is no ryoku CLI left to recover
+# with, so the install stops loudly instead of booting a half-configured desktop.
 ryoku_deploy_packages() {
   local -a pkgs=(ryoku-keyring ryoku-shell ryoku-hub ryoku-blobs ryoku ryoku-desktop)
 
@@ -131,15 +132,22 @@ ryoku_deploy_packages() {
   fi
 
   log "installing the Ryoku desktop set: ${pkgs[*]}"
+  local rc=0
   if arch-chroot /mnt pacman -Sy; then
-    arch-chroot /mnt pacman -S --noconfirm --needed "${pkgs[@]}" \
-      || log "packages: warning, some Ryoku packages did not install (continuing)"
+    arch-chroot /mnt pacman -S --noconfirm --needed "${pkgs[@]}" || rc=$?
   else
-    log "packages: warning, could not refresh the databases; skipping the Ryoku set"
+    rc=1
   fi
 
   if (( made_resolv == 1 )); then
     rm -f /mnt/etc/resolv.conf
+  fi
+
+  if (( rc != 0 )); then
+    log "ERROR: could not install the Ryoku desktop set from [ryoku]"
+    log "       (https://repo.ryoku.dev/stable). The desktop needs it and there is no"
+    log "       ryoku CLI to recover with; check the network and re-run the installer."
+    return 1
   fi
   return 0
 }
