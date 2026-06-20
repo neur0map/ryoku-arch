@@ -8,12 +8,12 @@
 # no external Go modules.
 pkgname=ryoku
 pkgver=0.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Ryoku control CLI: updates, rollback, snapshots, materialize"
 arch=('x86_64')
 url="https://ryoku.dev"
 license=('GPL-3.0-or-later')
-depends=('pacman' 'snapper')
+depends=('pacman' 'pacman-contrib' 'snapper')
 optdepends=('yay: AUR package updates during ryoku update')
 makedepends=('go')
 source=()

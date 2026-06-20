@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fixed
+- `ryoku` package now depends on `pacman-contrib`: `ryoku status` (the data the
+  Hub and update island read for "check for updates") uses `checkupdates` to
+  detect pending updates, but it was not installed on Ryoku systems, so the
+  update UI silently reported no updates. Bumped `ryoku` to `pkgrel=2`. Surfaced
+  by a full end-to-end qemu desktop update test.
+
 ### Added
 - `release/packages/` PKGBUILDs for the Ryoku desktop, built from the in-repo
   checkout: `ryoku-keyring` (ships the release signing key + trust), `ryoku-shell`,
