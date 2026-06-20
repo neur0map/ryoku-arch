@@ -74,8 +74,6 @@ void main() {
     float dArr[16];
     int owner = -2;
     float minDist = 1e10;
-    float gMinDist = 1e10;
-    int gOwner = -2;
 
     for (int i = 0; i < rectCount; i++) {
         vec4 rect = rectData[i * 5];         // cx, cy, hw, hh
@@ -148,10 +146,6 @@ void main() {
         }
 
         dArr[i] = d;
-        if (d < gMinDist) {
-            gMinDist = d;
-            gOwner = i;
-        }
         if (d < smoothFactor && d < minDist) {
             minDist = d;
             owner = i;
@@ -182,6 +176,7 @@ void main() {
         }
     }
 
+    float frameDist = 1e10;
     if (hasInverted != 0) {
         float dOuter = sdBox(pixel, invertedOuter.xy, invertedOuter.zw) - 1.0;
         float dInner = sdRoundedBox(pixel, invertedInner.xy, invertedInner.zw, invertedRadius);
@@ -257,33 +252,30 @@ void main() {
                              min(innerLeft - outerLeft, outerRight - innerRight));
         float kFrame = clamp(min(smoothFactor, minThick - 1.0), 1.0, smoothFactor);
         float dFrame = smaxSharpA(dOuter, -dInner, kFrame);
+        frameDist = dFrame;
 
         mergedSdf = smin(mergedSdf, dFrame, smoothFactor);
         if (dFrame < minDist) {
             owner = -1;
-        }
-        if (dFrame < gMinDist) {
-            gMinDist = dFrame;
-            gOwner = -1;
         }
     }
 
     float fw = fwidth(mergedSdf);
     float bodyAlpha = 1.0 - smoothstep(-fw, fw, mergedSdf);
 
-    // Contact shadow: a soft dark falloff just inside the frame border, cast only
-    // by the border (myIndex == -1) where the frame is the nearest boundary
-    // (gOwner == -1). The pill and popouts are the frame swelling open, not panels
-    // on top, so they deliberately cast no shadow of their own.
+    // Frame contact shadow: a soft falloff inward from the border, by distance
+    // from the border itself, so it stays uniform along each edge. The pill and
+    // popouts are opaque shapes drawn over it (the frame swelling open, not panels
+    // on top), so they neither cast a halo nor cut the shadow off.
     float shadowAlpha = 0.0;
-    if (shadowStrength > 0.0 && shadowSize > 0.0 && myIndex == -1 && gOwner == -1 && mergedSdf > 0.0) {
-        float t = clamp(1.0 - mergedSdf / shadowSize, 0.0, 1.0);
+    if (shadowStrength > 0.0 && shadowSize > 0.0 && myIndex == -1 && frameDist > 0.0) {
+        float t = clamp(1.0 - frameDist / shadowSize, 0.0, 1.0);
         shadowAlpha = shadowStrength * t * t;
     }
 
     // Owner gate: a renderer paints its own pixels plus the shared blend zone
-    // (mergedSdf <= smoothFactor) to prevent seams; the shadow band outside that
-    // is drawn only by the nearest shape (gOwner).
+    // (mergedSdf <= smoothFactor) to prevent seams; the shadow is added only by
+    // the border renderer.
     bool ownPixel = (owner == myIndex) || (mergedSdf <= smoothFactor);
     if (!ownPixel && shadowAlpha <= 0.0)
         discard;
