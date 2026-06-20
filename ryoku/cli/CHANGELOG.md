@@ -57,6 +57,10 @@
   long tail the rules cannot pre-encode. Strictly advisory and read-only: it never
   executes anything (cognition kept separate from actuation), and it is opt-in --
   nothing is sent unless `RYOKU_AI_KEY` (or `~/.config/ryoku/ai-key`) is set.
+- `doctor` output is styled for the terminal: colored status glyphs in the Ryoku
+  vermilion, terminal-width word-wrap (no more mid-word breaks), and a visible
+  `ryoku doctor --explain` hint when issues are found. Color is suppressed when
+  the output is piped or `NO_COLOR` is set, so the report file stays plain text.
 - `recovery`: a last-resort restore for a broken desktop. It resets a clean
   checkout to `origin/main`, reinstalls the base packages, and rebuilds and
   redeploys the desktop, overwriting the Ryoku configs in `~/.config`. A preflight

@@ -116,6 +116,7 @@ func runReconcilers(checkOnly bool) []finding {
 // it shows only the non-ok lines, matching the "a healthy machine is quiet"
 // convention. It returns the warn and fail counts.
 func printFindings(fs []finding, verbose bool) (warns, fails int) {
+	width := termWidth()
 	printed := 0
 	for _, f := range fs {
 		switch f.res.status {
@@ -127,20 +128,55 @@ func printFindings(fs []finding, verbose bool) (warns, fails int) {
 		if !verbose && f.res.status == recOK {
 			continue
 		}
+		printed++
 		w := os.Stdout
 		if f.res.status == recWarn || f.res.status == recFailed {
 			w = os.Stderr
 		}
-		fmt.Fprintf(w, "  %-5s %s: %s\n", f.res.status.label(), f.name, f.res.detail)
-		if f.res.remedy != "" && f.res.status >= recWouldFix {
-			fmt.Fprintf(w, "        fix: %s\n", f.res.remedy)
+		fmt.Fprintf(w, "  %s %s\n", statusGlyph(f.res.status), statusName(f))
+		if f.res.detail != "" {
+			fmt.Fprintln(w, detailStyle(f.res.status, wrap(f.res.detail, width, "      ")))
 		}
-		printed++
+		if f.res.remedy != "" && f.res.status >= recWouldFix {
+			fmt.Fprintln(w, brand(wrap("↳ "+f.res.remedy, width, "      ")))
+		}
 	}
 	if printed == 0 {
-		fmt.Println("  all checks passed")
+		fmt.Println("  " + green("✓") + " all checks passed")
 	}
 	return warns, fails
+}
+
+func statusGlyph(s recStatus) string {
+	switch s {
+	case recOK, recFixed:
+		return green("✓")
+	case recWouldFix:
+		return amber("›")
+	case recWarn:
+		return amber("!")
+	case recFailed:
+		return red("✗")
+	}
+	return " "
+}
+
+func statusName(f finding) string {
+	if f.res.status == recOK {
+		return f.name
+	}
+	name := bold(f.name)
+	if f.res.status == recFixed {
+		name += dim(" (fixed)")
+	}
+	return name
+}
+
+func detailStyle(s recStatus, text string) string {
+	if s == recOK || s == recFixed {
+		return dim(text)
+	}
+	return text
 }
 
 func doctorUsage() {
@@ -192,18 +228,23 @@ func cmdDoctor(args []string) error {
 		if err != nil {
 			return fmt.Errorf("writing report: %w", err)
 		}
-		fmt.Printf("\n==> Diagnostic report written to %s\n", path)
-		fmt.Println("    Share it with the maintainers: " + ryokuIssuesURL)
+		fmt.Printf("\n  %s diagnostic report written to %s\n", brand("➜"), path)
+		fmt.Println("    " + dim("share it with the maintainers: "+ryokuIssuesURL))
 		return nil
 	}
 
-	// Could not fix everything: gather a report automatically so the user has a
-	// file to hand to the maintainers, no extra steps required.
+	// Could not fix everything: surface the AI option and a saved report so the
+	// user always has a next step and a file to share.
 	if warns+fails > 0 {
-		if path, err := writeReport("", findings); err == nil {
-			fmt.Fprintf(os.Stderr, "\n==> %d issue(s) doctor could not fix automatically.\n", warns+fails)
-			fmt.Fprintf(os.Stderr, "    Saved a diagnostic report for the maintainers:\n      %s\n", path)
-			fmt.Fprintf(os.Stderr, "    Export a copy anywhere with:  ryoku doctor --report ~/ryoku-doctor.txt\n")
+		path, _ := writeReport("", findings)
+		noun := "issue"
+		if warns+fails > 1 {
+			noun = "issues"
+		}
+		fmt.Fprintf(os.Stderr, "\n  %s %s\n", brand("➜"), bold(fmt.Sprintf("found %d %s", warns+fails, noun)))
+		fmt.Fprintf(os.Stderr, "    %s  %s\n", brand("ryoku doctor --explain"), dim("AI diagnosis and a suggested fix"))
+		if path != "" {
+			fmt.Fprintf(os.Stderr, "    %s\n", dim("report saved: "+path))
 		}
 	}
 	if fails > 0 {

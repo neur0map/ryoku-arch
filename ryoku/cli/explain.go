@@ -58,22 +58,21 @@ func envOr(key, def string) string {
 }
 
 func explainSetupHelp() {
-	fmt.Print(`
-ryoku doctor --explain reasons over the report with a cloud model. It needs a
-free API key (your own, opt-in: nothing is sent without it). Groq is recommended,
-fast and free:
-
-  1. get a key at https://console.groq.com/keys
-  2. export RYOKU_AI_KEY=...        (or write it to ~/.config/ryoku/ai-key)
-
-Or use OpenRouter's free models:
-
-  export RYOKU_AI_KEY=...           (from https://openrouter.ai/keys)
-  export RYOKU_AI_URL=https://openrouter.ai/api/v1
-  export RYOKU_AI_MODEL=meta-llama/llama-3.3-70b-instruct:free
-
-Override the model with RYOKU_AI_MODEL (Groq default: ` + defaultAIModel + `).
-`)
+	p := func(f string, a ...any) { fmt.Printf(f+"\n", a...) }
+	fmt.Println()
+	p("  %s reasons over the report with a cloud model.", brand("ryoku doctor --explain"))
+	p("  %s", dim("It needs a free API key (your own, opt-in: nothing is sent without it)."))
+	fmt.Println()
+	p("  %s %s", bold("Groq"), dim("(recommended, fast and free)"))
+	p("    1. get a key:  %s", brand("https://console.groq.com/keys"))
+	p("    2. export RYOKU_AI_KEY=...   %s", dim("or write it to ~/.config/ryoku/ai-key"))
+	fmt.Println()
+	p("  %s %s", bold("OpenRouter"), dim("(free models)"))
+	p("    export RYOKU_AI_KEY=...      %s", dim("from https://openrouter.ai/keys"))
+	p("    export RYOKU_AI_URL=https://openrouter.ai/api/v1")
+	p("    export RYOKU_AI_MODEL=meta-llama/llama-3.3-70b-instruct:free")
+	fmt.Println()
+	p("  %s", dim("Default model: "+defaultAIModel+" (override with RYOKU_AI_MODEL)."))
 }
 
 func explainFindings(findings []finding) error {
@@ -89,13 +88,13 @@ func explainFindings(findings []finding) error {
 	model := envOr("RYOKU_AI_MODEL", defaultAIModel)
 	report := gatherReport(findings)
 
-	fmt.Fprintf(os.Stderr, "\n==> Asking %s (%s) to diagnose. Sends the diagnostic report; advisory only, nothing runs.\n", endpoint, model)
+	fmt.Fprintf(os.Stderr, "\n  %s asking %s to diagnose %s\n", brand("➜"), bold(model), dim("(advisory, read-only; nothing runs)"))
 	answer, err := aiDiagnose(endpoint, key, model, report)
 	if err != nil {
 		path, _ := writeReport("", findings)
 		return fmt.Errorf("AI request failed: %v\n    The report is at %s; paste it into any assistant.", err, path)
 	}
-	fmt.Printf("\n%s\n", answer)
+	fmt.Printf("\n%s\n\n%s\n", brand("➜ AI diagnosis"), answer)
 	return nil
 }
 
