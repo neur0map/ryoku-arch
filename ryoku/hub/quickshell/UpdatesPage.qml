@@ -1,14 +1,15 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import "Singletons"
 
-// The Updates section. The status header, auto-check schedule, and commit
-// timeline are mock-displayed for this beta; "Update now" runs the REAL
-// `ryoku update` in a terminal, and the shell island reflects its live progress
-// (the CLI publishes run-state to the file the island watches). Wiring the
-// display to `ryoku status --json` + a shipped changelog is a follow-up.
+// The Updates section, wired to `ryoku status --json` via the Updates singleton.
+// Idle shows the live status and the real list of pending package updates;
+// "Update now" runs the real `ryoku update` in a terminal and this page mirrors
+// its progress from the run-state file the CLI publishes. When the system is
+// current there are no rows and the top-right island stays hidden.
 Item {
     id: page
 
@@ -54,126 +55,57 @@ Item {
 
     Process { id: saveInterval }
 
-    // --- update run (mock) --------------------------------------------------
-    property string phase: "idle"   // idle | running | success | failed
-    property real progress: 0
-    property var script: []
-    property int runIndex: 0
-    property bool failMode: false   // mock seam: drive the failure path
-    property bool refreshing: false
-    property string exportedPath: ""
-
-    ListModel { id: logModel }
-    FileView { id: logFile }
-
-    // Cross-process run state: the shell's update island mirrors this file (a
-    // wave while running, a refresh affordance on success). In-place writes so the
-    // island's FileView watcher catches every change.
-    readonly property string statePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-update.json"
-    FileView { id: stateFile; path: page.statePath; atomicWrites: false }
-    function publish(o) { stateFile.setText(JSON.stringify(o)); }
-    function goIdle() { page.phase = "idle"; page.publish({ "phase": "idle" }); }
-    Component.onDestruction: if (page.phase === "running") page.publish({ "phase": "idle" });
-
-    function pad(s, n) {
-        s = String(s);
-        while (s.length < n)
-            s += " ";
-        return s;
-    }
-
-    function buildScript(fail) {
-        var s = [];
-        s.push({ "level": "step", "line": "==> Fetching origin/main", "delay": 480 });
-        s.push({ "level": "info", "line": "    remote: counting objects, done", "delay": 240 });
-        s.push({ "level": "info", "line": "    " + Updates.behind + " commits to apply  (" + Updates.currentVersion + ".." + Updates.latestVersion + ")", "delay": 360 });
-        s.push({ "level": "step", "line": "==> Applying commits", "delay": 420 });
-        for (var i = Updates.commits.length - 1; i >= 0; i--) {
-            var c = Updates.commits[i];
-            s.push({ "level": "info", "line": "    " + c.hash + "  " + page.pad(c.area, 13) + c.subject, "delay": 190 });
+    // Re-check on the configured cadence.
+    readonly property int intervalMs: {
+        switch (page.interval) {
+        case "hourly": return 3600 * 1000;
+        case "weekly": return 7 * 24 * 3600 * 1000;
+        default:       return 24 * 3600 * 1000;
         }
-        s.push({ "level": "step", "line": "==> Rebuilding", "delay": 460 });
-        s.push({ "level": "info", "line": "    building ryoku-shell", "delay": 340 });
-        s.push({ "level": "info", "line": "    building ryoku-hub", "delay": 300 });
-        s.push({ "level": "info", "line": "    compiling Ryoku.Blobs", "delay": 460 });
-        if (fail) {
-            s.push({ "level": "bad", "line": "    error: SPIR-V shader stage failed to compile", "delay": 320 });
-            s.push({ "level": "bad", "line": "==> Update aborted; no changes were applied", "delay": 260 });
-            return s;
-        }
-        s.push({ "level": "info", "line": "    installing quickshell components", "delay": 320 });
-        s.push({ "level": "step", "line": "==> Finishing", "delay": 320 });
-        s.push({ "level": "ok",   "line": "    update applied cleanly", "delay": 280 });
-        return s;
-    }
-
-    function startUpdate() {
-        logModel.clear();
-        page.exportedPath = "";
-        page.refreshing = false;
-        page.script = page.buildScript(page.failMode);
-        page.runIndex = 0;
-        page.progress = 0;
-        page.phase = "running";
-        page.publish({ "phase": "running", "progress": 0 });
-        runTimer.interval = 320;
-        runTimer.restart();
-    }
-
-    function refreshShell() {
-        Quickshell.execDetached(["ryoku-shell", "reload"]);
-        page.publish({ "phase": "idle" });
-        page.refreshing = true;
-    }
-
-    function stamp() {
-        function p(n) { return (n < 10 ? "0" : "") + n; }
-        var d = new Date();
-        return "" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate())
-            + "-" + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
-    }
-
-    function exportLogs() {
-        var out = [];
-        out.push("Ryoku update log  " + new Date().toString());
-        out.push("target " + Updates.latestVersion + " (from " + Updates.currentVersion + ", " + Updates.branch + ")");
-        out.push("");
-        for (var i = 0; i < logModel.count; i++)
-            out.push(logModel.get(i).line);
-        var path = Quickshell.env("HOME") + "/ryoku-update-" + page.stamp() + ".log";
-        logFile.path = path;
-        logFile.setText(out.join("\n") + "\n");
-        page.exportedPath = path;
-    }
-
-    function shortPath(p) {
-        var home = Quickshell.env("HOME");
-        return (home && p.indexOf(home) === 0) ? ("~" + p.substring(home.length)) : p;
     }
 
     Timer {
-        id: runTimer
-        repeat: false
-        onTriggered: {
-            var e = page.script[page.runIndex];
-            logModel.append({ "level": e.level, "line": e.line });
-            page.runIndex++;
-            page.progress = page.runIndex / page.script.length;
-            if (page.runIndex < page.script.length) {
-                page.publish({ "phase": "running", "progress": page.progress });
-                runTimer.interval = page.script[page.runIndex].delay;
-                runTimer.restart();
-            } else if (page.failMode) {
-                page.phase = "failed";
-                page.publish({ "phase": "idle" });
-            } else {
-                page.phase = "success";
-                page.publish({ "phase": "success", "version": Updates.latestVersion });
-            }
-        }
+        interval: page.intervalMs
+        running: page.interval !== "off"
+        repeat: true
+        onTriggered: Updates.check()
     }
 
-    // --- idle content -------------------------------------------------------
+    // --- live run state (published by `ryoku update`) -----------------------
+    property string phase: "idle"   // idle | running
+    property real progress: 0
+    readonly property string statePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-update.json"
+
+    FileView {
+        id: stateFile
+        path: page.statePath
+        watchChanges: true
+        atomicWrites: false
+        onLoaded: page.applyState(stateFile.text())
+        onFileChanged: stateFile.reload()
+        onLoadFailed: page.phase = "idle"
+    }
+
+    function applyState(t) {
+        var prev = page.phase;
+        try {
+            var o = JSON.parse(t);
+            page.phase = (o.phase === "running") ? "running" : "idle";
+            page.progress = (typeof o.progress === "number") ? o.progress : 0;
+        } catch (e) {
+            page.phase = "idle";
+            page.progress = 0;
+        }
+        // An update just finished: refresh the status so the list clears.
+        if (prev === "running" && page.phase !== "running")
+            Updates.check();
+    }
+
+    function startUpdate() {
+        Quickshell.execDetached(["kitty", "-e", "ryoku", "update"]);
+    }
+
+    // --- idle content: status + pending updates -----------------------------
     Flickable {
         id: flick
         visible: page.phase === "idle"
@@ -265,7 +197,7 @@ Item {
                         id: secLabel
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "COMMITS"
+                        text: "PENDING UPDATES"
                         color: Theme.dim
                         font.family: Theme.mono
                         font.pixelSize: 11
@@ -284,37 +216,71 @@ Item {
                 }
 
                 Repeater {
-                    model: Updates.commits
+                    model: Updates.updates
 
-                    delegate: CommitRow {
+                    delegate: UpdateRow {
                         required property var modelData
                         required property int index
                         width: col.width
-                        hash: modelData.hash
-                        area: modelData.area
-                        subject: modelData.subject
-                        date: modelData.date
-                        head: index === 0
+                        name: modelData.name
+                        fromVersion: modelData.old
+                        toVersion: modelData.new
                         first: index === 0
-                        last: index === Updates.commits.length - 1
+                        last: index === Updates.updates.length - 1
                     }
+                }
+
+                Text {
+                    visible: Updates.updates.length === 0
+                    text: "Everything is up to date."
+                    color: Theme.faint
+                    font.family: Theme.font
+                    font.pixelSize: 13
+                    topPadding: 6
+                    leftPadding: 40
                 }
             }
         }
     }
 
-    // --- live run console ---------------------------------------------------
-    UpdateConsole {
-        visible: page.phase !== "idle"
+    // --- running panel ------------------------------------------------------
+    Item {
+        visible: page.phase === "running"
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: footer.top
-        anchors.bottomMargin: 10
-        phase: page.phase
-        progress: page.progress
-        logModel: logModel
-        targetVersion: Updates.latestVersion
+
+        Column {
+            anchors.centerIn: parent
+            width: parent.width - 80
+            spacing: 16
+
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 10
+
+                Spinner {
+                    anchors.verticalCenter: parent.verticalCenter
+                    size: 16
+                    tint: Theme.ember
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Applying updates in the terminal\u2026"
+                    color: Theme.cream
+                    font.family: Theme.font
+                    font.pixelSize: 14
+                    font.weight: Font.DemiBold
+                }
+            }
+
+            WaveMeter {
+                width: parent.width
+                frac: page.progress
+            }
+        }
     }
 
     // --- action bar, pinned at the bottom -----------------------------------
@@ -333,38 +299,17 @@ Item {
             color: Theme.line
         }
 
-        Row {
+        Text {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 9
-
-            Spinner {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: page.phase === "running"
-                size: 14
-                tint: Theme.dim
-            }
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: {
-                    if (page.phase === "running")
-                        return "Applying updates\u2026";
-                    if (page.phase === "success")
-                        return page.refreshing ? "Shell restarting\u2026" : ("Updated to " + Updates.latestVersion);
-                    if (page.phase === "failed")
-                        return page.exportedPath ? ("Saved " + page.shortPath(page.exportedPath)) : "Update failed, no changes applied";
-                    return Updates.branch + (Updates.commits.length > 0 ? ("  \u00b7  " + Updates.commits[0].hash) : "");
-                }
-                color: (page.phase === "success" && !page.refreshing) ? Theme.ok
-                    : (page.phase === "failed" && !page.exportedPath) ? Theme.bad
-                    : Theme.faint
-                font.family: (page.phase === "idle" || page.exportedPath !== "") ? Theme.mono : Theme.font
-                font.pixelSize: 12
-            }
+            text: page.phase === "running"
+                ? "Update running"
+                : (Updates.branch + (Updates.currentVersion !== "" ? ("  \u00b7  " + Updates.currentVersion) : ""))
+            color: Theme.faint
+            font.family: Theme.mono
+            font.pixelSize: 12
         }
 
-        // idle actions
         Row {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
@@ -375,7 +320,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 label: "Check again"
                 icon: "refresh"
-                onClicked: {} // a manual check; wired to the updater backend later
+                onClicked: Updates.check()
             }
 
             HubButton {
@@ -383,59 +328,6 @@ Item {
                 visible: Updates.available
                 label: "Update now"
                 icon: "download"
-                primary: true
-                onClicked: Quickshell.execDetached(["kitty", "-e", "ryoku", "update"])
-            }
-        }
-
-        // success actions
-        Row {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 10
-            visible: page.phase === "success"
-
-            HubButton {
-                anchors.verticalCenter: parent.verticalCenter
-                label: "Back"
-                onClicked: page.goIdle()
-            }
-
-            HubButton {
-                anchors.verticalCenter: parent.verticalCenter
-                label: "Refresh shell"
-                icon: "refresh"
-                primary: true
-                enabled: !page.refreshing
-                onClicked: page.refreshShell()
-            }
-        }
-
-        // failure actions
-        Row {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 10
-            visible: page.phase === "failed"
-
-            HubButton {
-                anchors.verticalCenter: parent.verticalCenter
-                label: "Back"
-                onClicked: page.goIdle()
-            }
-
-            HubButton {
-                anchors.verticalCenter: parent.verticalCenter
-                label: "Export logs"
-                icon: "download"
-                enabled: page.exportedPath === ""
-                onClicked: page.exportLogs()
-            }
-
-            HubButton {
-                anchors.verticalCenter: parent.verticalCenter
-                label: "Retry"
-                icon: "refresh"
                 primary: true
                 onClicked: page.startUpdate()
             }

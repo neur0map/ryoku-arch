@@ -50,7 +50,7 @@ Item {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                visible: Updates.available
+                visible: Updates.available && Updates.latestVersion !== "" && Updates.latestVersion !== Updates.currentVersion
                 text: "\u2192"
                 color: Theme.faint
                 font.family: Theme.font
@@ -59,7 +59,7 @@ Item {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                visible: Updates.available
+                visible: Updates.available && Updates.latestVersion !== "" && Updates.latestVersion !== Updates.currentVersion
                 text: Updates.latestVersion
                 color: Theme.bright
                 font.family: Theme.mono
@@ -70,7 +70,7 @@ Item {
 
         Text {
             text: Updates.available
-                ? (Updates.behind + " commit" + (Updates.behind === 1 ? "" : "s") + " behind on " + Updates.branch + "  \u00b7  checked " + Updates.checkedAgo)
+                ? (Updates.behind + " package update" + (Updates.behind === 1 ? "" : "s") + "  \u00b7  checked " + Updates.checkedAgo)
                 : ("on " + Updates.branch + "  \u00b7  checked " + Updates.checkedAgo)
             color: Theme.dim
             font.family: Theme.font

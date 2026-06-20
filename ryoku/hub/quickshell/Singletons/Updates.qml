@@ -1,33 +1,83 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Io
 
 /**
- * Update data for the Hub's Updates section.
+ * Update data for the Hub's Updates section, wired to `ryoku status --json`.
  *
- * MOCK DATA, not wired to a backend yet: the versions, counts, and commit log
- * are placeholders so the section can be designed and reviewed. Wire to a
- * `ryoku-hub updates` subcommand (Go, reading how far the checkout is behind
- * upstream git) later; the page binds only to these properties.
+ * The installed version, the pending-update count, and the list of pending
+ * package updates are all live. When the system is current the list is empty and
+ * the section shows the up-to-date state; `check()` re-runs the check (the CLI
+ * uses checkupdates, which syncs a private database and needs no root).
  */
 Singleton {
     id: root
 
-    readonly property bool available: true
-    readonly property string currentVersion: "2026.06.13"
-    readonly property string latestVersion: "2026.06.20"
+    property bool available: false
+    property string currentVersion: ""
+    property string latestVersion: ""
     readonly property string branch: "main"
-    readonly property string checkedAgo: "12m ago"
-    readonly property int behind: commits.length
+    property int behind: 0
 
-    // Newest first. `area` matches the repo's commit-subject area labels
-    // (global | installation | system | ryoku | docs | tooling | release).
-    readonly property var commits: [
-        { hash: "9f3c1ab", area: "global",       subject: "keep the pill open while hovering the open-app tray icons", date: "2h ago" },
-        { hash: "1d77e02", area: "ryoku",        subject: "hub: quit on window close so Super+, never sticks", date: "3h ago" },
-        { hash: "b42a9c5", area: "system",       subject: "display: prefer the discrete GPU for the compositor", date: "6h ago" },
-        { hash: "7c0e8f1", area: "ryoku",        subject: "pill: fold the weather glyph into the hover clock", date: "yesterday" },
-        { hash: "3aa5d6e", area: "installation", subject: "tui: validate the disk layout before partitioning", date: "yesterday" },
-        { hash: "5e1b240", area: "docs",         subject: "frame: document the blob neck and the reveal curve", date: "2 days ago" }
-    ]
+    // Newest pacman view: [{ name, old, new }]. Empty when the system is current.
+    property var updates: []
+
+    property var lastChecked: null
+    property int tick: 0
+    readonly property string checkedAgo: {
+        root.tick;  // re-evaluate as the clock ticks
+        if (!root.lastChecked)
+            return "not yet";
+        var s = Math.floor((Date.now() - root.lastChecked.getTime()) / 1000);
+        if (s < 10)
+            return "just now";
+        if (s < 60)
+            return s + "s ago";
+        var m = Math.floor(s / 60);
+        if (m < 60)
+            return m + "m ago";
+        var h = Math.floor(m / 60);
+        if (h < 24)
+            return h + "h ago";
+        return Math.floor(h / 24) + "d ago";
+    }
+
+    function check() {
+        statusProc.running = true;
+    }
+
+    function apply(t) {
+        try {
+            var o = JSON.parse(t);
+            root.currentVersion = o.installedVersion || "";
+            root.latestVersion = o.latestVersion || "";
+            root.behind = o.pendingUpdates || 0;
+            root.available = root.behind > 0;
+            root.updates = o.updates || [];
+            root.lastChecked = new Date();
+        } catch (e) {
+            root.available = false;
+            root.behind = 0;
+            root.updates = [];
+        }
+    }
+
+    Process {
+        id: statusProc
+        command: ["ryoku", "status", "--json"]
+        stdout: StdioCollector {
+            onStreamFinished: root.apply(this.text)
+        }
+    }
+
+    // Keep the "checked Xm ago" line live.
+    Timer {
+        interval: 30000
+        running: true
+        repeat: true
+        onTriggered: root.tick++
+    }
+
+    Component.onCompleted: root.check()
 }

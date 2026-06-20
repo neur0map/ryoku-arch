@@ -132,29 +132,33 @@ func cmdStatus(args []string) error {
 	}
 	installed := installedVersion()
 	latest := latestAvailable("ryoku-desktop")
-	pending := 0
-	if has("checkupdates") {
-		out, _ := runOut("checkupdates")
-		pending = countNonEmpty(out)
+	ups := pendingUpdates()
+	for _, u := range ups {
+		if u.Name == "ryoku-desktop" {
+			latest = u.New
+		}
 	}
+	pending := len(ups)
 	snaps := snapshotCount()
-	available := latest != "" && latest != installed
+	available := pending > 0
+	desktopBump := latest != "" && latest != installed
 
 	if jsonOut {
 		b, _ := json.Marshal(struct {
-			InstalledVersion string `json:"installedVersion"`
-			LatestVersion    string `json:"latestVersion"`
-			Available        bool   `json:"available"`
-			PendingUpdates   int    `json:"pendingUpdates"`
-			Snapshots        int    `json:"snapshots"`
-		}{installed, latest, available, pending, snaps})
+			InstalledVersion string      `json:"installedVersion"`
+			LatestVersion    string      `json:"latestVersion"`
+			Available        bool        `json:"available"`
+			PendingUpdates   int         `json:"pendingUpdates"`
+			Updates          []pkgUpdate `json:"updates"`
+			Snapshots        int         `json:"snapshots"`
+		}{installed, latest, available, pending, ups, snaps})
 		fmt.Println(string(b))
 		return nil
 	}
 
 	fmt.Printf("config base:   %s\n", baseConfigDir())
 	fmt.Printf("ryoku-desktop: %s\n", orDash(installed))
-	if available {
+	if desktopBump {
 		fmt.Printf("available:     %s\n", latest)
 	}
 	if has("checkupdates") {
@@ -181,6 +185,31 @@ func latestAvailable(pkg string) string {
 		}
 	}
 	return ""
+}
+
+type pkgUpdate struct {
+	Name string `json:"name"`
+	Old  string `json:"old"`
+	New  string `json:"new"`
+}
+
+// pendingUpdates lists packages with a newer version available, via checkupdates
+// (pacman-contrib), which syncs to a private database and so needs no root. The
+// list is empty when the system is current or checkupdates is absent.
+func pendingUpdates() []pkgUpdate {
+	ups := []pkgUpdate{}
+	if !has("checkupdates") {
+		return ups
+	}
+	out, _ := runOut("checkupdates")
+	sc := bufio.NewScanner(strings.NewReader(out))
+	for sc.Scan() {
+		f := strings.Fields(sc.Text())
+		if len(f) >= 4 && f[2] == "->" {
+			ups = append(ups, pkgUpdate{Name: f[0], Old: f[1], New: f[3]})
+		}
+	}
+	return ups
 }
 
 func snapshotCount() int {
