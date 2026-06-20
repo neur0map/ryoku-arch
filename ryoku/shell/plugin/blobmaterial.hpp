@@ -35,6 +35,8 @@ public:
     QColor m_color{ 0x44, 0x88, 0xff };
     int m_hasInverted = 0;
     float m_invertedRadius = 0;
+    float m_shadowStrength = 0;
+    float m_shadowSize = 0;
     float m_invertedOuter[4] = {};
     float m_invertedInner[4] = {};
     BlobRectData m_rects[16] = {};

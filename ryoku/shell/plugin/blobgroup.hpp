@@ -13,6 +13,8 @@ class BlobGroup : public QObject {
     QML_ELEMENT
     Q_PROPERTY(qreal smoothing READ smoothing WRITE setSmoothing NOTIFY smoothingChanged)
     Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged)
+    Q_PROPERTY(qreal shadowStrength READ shadowStrength WRITE setShadowStrength NOTIFY shadowStrengthChanged)
+    Q_PROPERTY(qreal shadowSize READ shadowSize WRITE setShadowSize NOTIFY shadowSizeChanged)
 
 public:
     explicit BlobGroup(QObject* parent = nullptr);
@@ -25,6 +27,12 @@ public:
     QColor color() const { return m_color; }
 
     void setColor(const QColor& c);
+
+    qreal shadowStrength() const { return m_shadowStrength; }
+    void setShadowStrength(qreal v);
+
+    qreal shadowSize() const { return m_shadowSize; }
+    void setShadowSize(qreal v);
 
     void addShape(BlobShape* shape);
     void removeShape(BlobShape* shape);
@@ -43,10 +51,14 @@ public:
 signals:
     void smoothingChanged();
     void colorChanged();
+    void shadowStrengthChanged();
+    void shadowSizeChanged();
 
 private:
     qreal m_smoothing = 32.0;
     QColor m_color{ 0x44, 0x88, 0xff };
+    qreal m_shadowStrength = 0.0;
+    qreal m_shadowSize = 0.0;
     QList<BlobShape*> m_shapes;
     BlobInvertedRect* m_invertedRect = nullptr;
     bool m_physicsUpdated = false;

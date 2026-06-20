@@ -28,6 +28,22 @@ void BlobGroup::setColor(const QColor& c) {
     markDirty();
 }
 
+void BlobGroup::setShadowStrength(qreal v) {
+    if (m_shadowStrength == v)
+        return;
+    m_shadowStrength = v;
+    emit shadowStrengthChanged();
+    markDirty();
+}
+
+void BlobGroup::setShadowSize(qreal v) {
+    if (m_shadowSize == v)
+        return;
+    m_shadowSize = v;
+    emit shadowSizeChanged();
+    markDirty();
+}
+
 void BlobGroup::addShape(BlobShape* shape) {
     if (!shape || m_shapes.contains(shape))
         return;

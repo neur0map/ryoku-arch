@@ -16,6 +16,8 @@ layout(std140, binding = 0) uniform buf {
     vec4 color;
     int hasInverted;
     float invertedRadius;
+    float shadowStrength;
+    float shadowSize;
     vec4 invertedOuter;
     vec4 invertedInner;
     vec4 rectData[80];
@@ -72,6 +74,8 @@ void main() {
     float dArr[16];
     int owner = -2;
     float minDist = 1e10;
+    float gMinDist = 1e10;
+    int gOwner = -2;
 
     for (int i = 0; i < rectCount; i++) {
         vec4 rect = rectData[i * 5];         // cx, cy, hw, hh
@@ -144,6 +148,10 @@ void main() {
         }
 
         dArr[i] = d;
+        if (d < gMinDist) {
+            gMinDist = d;
+            gOwner = i;
+        }
         if (d < smoothFactor && d < minDist) {
             minDist = d;
             owner = i;
@@ -254,16 +262,33 @@ void main() {
         if (dFrame < minDist) {
             owner = -1;
         }
+        if (dFrame < gMinDist) {
+            gMinDist = dFrame;
+            gOwner = -1;
+        }
     }
 
-    // Each renderer only outputs pixels it owns, but allow rendering
-    // blend zones to prevent gaps (mergedSdf < smoothFactor means in blend)
-    // myIndex == -1: inverted rect renders border-owned pixels
-    // myIndex >= 0: individual rect renders its owned pixels
-    if (owner != myIndex && mergedSdf > smoothFactor)
+    float fw = fwidth(mergedSdf);
+    float bodyAlpha = 1.0 - smoothstep(-fw, fw, mergedSdf);
+
+    // Contact shadow: a soft dark falloff just outside the merged body, cast once
+    // by the shape nearest each outside pixel (gOwner) so the frame, pill and
+    // popouts each shadow their own surroundings without double-darkening overlaps.
+    float shadowAlpha = 0.0;
+    if (shadowStrength > 0.0 && shadowSize > 0.0 && myIndex == gOwner && mergedSdf > 0.0) {
+        float t = clamp(1.0 - mergedSdf / shadowSize, 0.0, 1.0);
+        shadowAlpha = shadowStrength * t * t;
+    }
+
+    // Owner gate: a renderer paints its own pixels plus the shared blend zone
+    // (mergedSdf <= smoothFactor) to prevent seams; the shadow band outside that
+    // is drawn only by the nearest shape (gOwner).
+    bool ownPixel = (owner == myIndex) || (mergedSdf <= smoothFactor);
+    if (!ownPixel && shadowAlpha <= 0.0)
         discard;
 
-    float fw = fwidth(mergedSdf);
-    float alpha = 1.0 - smoothstep(-fw, fw, mergedSdf);
-    fragColor = vec4(color.rgb * alpha, alpha) * qt_Opacity;
+    float bodyA = ownPixel ? bodyAlpha : 0.0;
+    // Body color over the (black) shadow, premultiplied.
+    float outA = bodyA + shadowAlpha * (1.0 - bodyA);
+    fragColor = vec4(color.rgb * bodyA, outA) * qt_Opacity;
 }

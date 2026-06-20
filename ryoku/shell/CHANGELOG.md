@@ -15,6 +15,11 @@
   system update).
 
 ### Added
+- `plugin/` (`Ryoku.Blobs`) and `quickshell/pill`: the frame, pill and popouts cast
+  a soft contact shadow for depth. `BlobGroup` gained `shadowStrength`/`shadowSize`;
+  the SDF shader draws a falloff just outside the merged body, cast once by the
+  shape nearest each pixel so overlapping shapes never double-darken. Tuned to
+  0.5 / 26px on the frame field, 0.5 / 20px on the music island.
 - `quickshell/pill`: a workspace switcher overview grown from the pill centre
   (`Super + Tab`, `ryoku-shell workspaces`). A filmstrip of this monitor's
   workspaces, each a scaled mini-map that draws its windows where they actually
