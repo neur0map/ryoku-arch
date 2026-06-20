@@ -8,7 +8,7 @@
 # no external Go modules.
 pkgname=ryoku
 pkgver=0.1.0
-pkgrel=2
+pkgrel=3
 pkgdesc="Ryoku control CLI: updates, rollback, snapshots, materialize"
 arch=('x86_64')
 url="https://ryoku.dev"

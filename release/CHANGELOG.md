@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+- Rebuilt the `[ryoku]` repo for the new desktop shell work: `ryoku` to
+  `pkgrel=3` (the CLI gains `ryoku recovery`, a last-resort restore) and
+  `ryoku-desktop` to `pkgrel=2` (ships the reworked Hub shell-settings editor
+  and the live, config-driven desktop visualiser). Republished so a fresh
+  install and `ryoku update` both deliver the new shell.
+
 ### Fixed
 - `ryoku` package now depends on `pacman-contrib`: `ryoku status` (the data the
   Hub and update island read for "check for updates") uses `checkupdates` to

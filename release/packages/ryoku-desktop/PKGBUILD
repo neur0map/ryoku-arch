@@ -10,7 +10,7 @@
 # levels up.
 pkgname=ryoku-desktop
 pkgver=0.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Ryoku desktop: Hyprland + Quickshell configuration, helpers, and runtime"
 arch=('any')
 url="https://ryoku.dev"
