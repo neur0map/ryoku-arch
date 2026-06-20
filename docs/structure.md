@@ -43,7 +43,8 @@ truth for the live desktop.
 - `cli/` the user-facing control CLI, one Go program (`ryoku`): `update`,
   `rollback`, `snapshots`, `status`, `materialize` (lay the base configs into
   `~/.config`), and `reload`. It orchestrates pacman, yay, and snapper; it does
-  not reimplement them.
+  not reimplement them. Per-command reference, user- vs developer-facing, in
+  `docs/cli.md`.
 - `hub/` Ryoku Hub, the central control-center GUI (`Super + ,`): `backend/`
   (`ryoku-hub`, the Go data plane that reads the keybind legend from the live
   Hyprland config and persists hub state as TOML) and `quickshell/` (the native
