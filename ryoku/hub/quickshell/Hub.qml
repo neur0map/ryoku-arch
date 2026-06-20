@@ -25,7 +25,7 @@ Rectangle {
 
     readonly property var pageMeta: ({
         "keybinds": { "title": "Keybinds", "subtitle": "Every shortcut in the Ryoku desktop, read live from your Hyprland config." },
-        "updates":  { "title": "Updates", "subtitle": "What\u2019s landed on main since your installed build." },
+        "updates":  { "title": "Updates", "subtitle": "Package updates pending for your Ryoku system." },
         "extras":   { "title": "Extras", "subtitle": "Desktop goodies and quick tweaks." },
         "shell":    { "title": "Shell Settings", "subtitle": "Tune the Ryoku shell: the pill, the frame, and its surfaces." }
     })

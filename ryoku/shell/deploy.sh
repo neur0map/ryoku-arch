@@ -61,7 +61,9 @@ say "building ryoku-hub"
 (cd "$here/../hub/backend" && go build -o ryoku-hub .)
 install -m755 "$here/../hub/backend/ryoku-hub" "$bindir/ryoku-hub"
 say "installed $bindir/ryoku-hub"
-install -m755 "$here/ryoku" "$bindir/ryoku"
+say "building ryoku CLI"
+(cd "$here/../cli" && go build -o ryoku .)
+install -m755 "$here/../cli/ryoku" "$bindir/ryoku"
 install -m755 "$here/../../system/hardware/power/ryoku-hw-laptop" "$bindir/ryoku-hw-laptop"
 install -m755 "$here/../../system/hardware/power/ryoku-idle" "$bindir/ryoku-idle"
 install -m755 "$here/../../system/hardware/leds/ryoku-leds" "$bindir/ryoku-leds"

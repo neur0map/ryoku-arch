@@ -7,6 +7,12 @@
   (every 5 min) instead of only once at startup, so the island reliably surfaces
   updates that appear during a session and recovers if the first check came back
   empty.
+- `deploy.sh` now builds and installs the real Go `ryoku` CLI (`ryoku/cli`) as the
+  `ryoku` command, replacing the old `ryoku/shell/ryoku` dev script (removed). The
+  dev mirror now runs the production update CLI (`ryoku status`/`update`), so the
+  Hub and island read real data; the dev redeploy is now `ryoku deploy` (the old
+  `ryoku update` meant "deploy the mirror"; `ryoku update` is now the real pacman
+  system update).
 
 ### Added
 - `quickshell/pill`: a workspace switcher overview grown from the pill centre

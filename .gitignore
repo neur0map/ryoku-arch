@@ -5,6 +5,7 @@
 /installation/tui/ryoku-tui
 /ryoku/shell/ipc/ryoku-shell
 /ryoku/hub/backend/ryoku-hub
+/ryoku/cli/ryoku
 /ryoku/shell/plugin/build/
 /ryoku/shell/plugin/dist/
 /release/repo/out/
