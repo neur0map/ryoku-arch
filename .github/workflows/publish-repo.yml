@@ -1,13 +1,16 @@
 name: "Publish [ryoku] repo"
 
-# Publishes the signed [ryoku] pacman repo. Triggers ONLY on main release tags
-# (git push tag v*), so a push to unstable-dev (or any branch) never publishes
-# anything user facing. Packages and the db are built from the tagged tree,
-# signed with the release key, and mirrored to https://repo.ryoku.dev/stable/x86_64/.
+# Publishes the signed [ryoku] pacman repo. Triggers on main release tags
+# (git push tag v*) or manual dispatch. The Stable Release workflow dispatches it,
+# because a tag pushed by GITHUB_TOKEN does not fire the tag trigger. A push to
+# unstable-dev never publishes anything user facing. Packages and the db are built
+# from the checked-out tree, signed with the release key, and mirrored to
+# https://repo.ryoku.dev/stable/x86_64/.
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: read
