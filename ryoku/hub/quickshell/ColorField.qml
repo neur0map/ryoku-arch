@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import "Singletons"
 
@@ -98,16 +99,17 @@ Item {
                 model: cf.presets
 
                 delegate: Rectangle {
+                    id: swatchCell
                     required property var modelData
                     width: 22
                     height: 22
                     radius: 7
-                    color: modelData
-                    border.width: cf.hex(cf.value) === modelData ? 2 : 1
-                    border.color: cf.hex(cf.value) === modelData ? Theme.ember : Theme.line
+                    color: swatchCell.modelData
+                    border.width: cf.hex(cf.value) === String(swatchCell.modelData) ? 2 : 1
+                    border.color: cf.hex(cf.value) === String(swatchCell.modelData) ? Theme.ember : Theme.line
 
                     HoverHandler { id: ph; cursorShape: Qt.PointingHandCursor }
-                    TapHandler { onTapped: cf.modified(parent.modelData) }
+                    TapHandler { onTapped: cf.modified(swatchCell.modelData) }
 
                     scale: ph.hovered ? 1.12 : 1
                     Behavior on scale { NumberAnimation { duration: Theme.quick; easing.type: Theme.ease } }

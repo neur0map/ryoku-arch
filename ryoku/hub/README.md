@@ -26,6 +26,14 @@ Ryoku Hub: the desktop's central GUI control center. A native Qt6/QML app
   - `SearchResults` the global search view (shown whenever the sidebar search has
     a query): matching section names plus fuzzy-ranked keybinds, via `fuzzy.js`.
   - `UnderConstruction` the placeholder for sections still being built.
+  - `ShellSettingsPage` + `SettingSection` + `NumberField` + `SliderRow` +
+    `Slider` + `ColorField` + `ToggleRow` + `ChoiceRow` + `VizPreview` the Shell
+    Settings editor: Frame, Island, and Visualizer tabs of grouped controls
+    (steppers for exact pixels, sliders for opacity and feel, a swatch for colour,
+    switches for on/off, segmented choices for style/shape/position) that write
+    `~/.config/ryoku/shell.json` and `~/.config/ryoku/visualizer.json` live. The
+    Visualizer tab also carries a live animated preview, since the real spectrum
+    sits behind your windows.
   - `Icon` the stroked vector icon set; `Singletons/Theme.qml` the palette and
     motion tokens; `PageHeader` the page title block.
 
@@ -33,8 +41,17 @@ Ryoku Hub: the desktop's central GUI control center. A native Qt6/QML app
 
 - **Keybinds** functional: the full shortcut legend, read live from the Hyprland
   config so it never drifts from what is actually bound.
-- **Extras** and **Shell Settings** under construction. Their controls will
-  likely be built with GTK4 + libadwaita through the Kirigami addons.
+- **Shell Settings** functional: a live editor for the screen frame, the top
+  island, and the desktop visualiser (size, rounding, colour, opacity, shadows;
+  spectrum style/position/shape/mirror, bars, height, bloom, reflection). Edits
+  apply to the running shell at once via `~/.config/ryoku/shell.json` and
+  `~/.config/ryoku/visualizer.json` (the shell watches them); the frame and island
+  preview on your actual desktop, the visualiser in a live pane. Save keeps
+  changes, Revert/leaving restores them.
+- **Updates** functional: the commits the checkout is behind on the `main`
+  channel, and the auto-check schedule.
+- **Extras** under construction. Its controls will likely be built with GTK4 +
+  libadwaita through the Kirigami addons.
 
 ## Search
 

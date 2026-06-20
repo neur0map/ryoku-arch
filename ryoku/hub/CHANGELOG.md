@@ -3,6 +3,22 @@
 ## Unreleased
 
 ### Added
+- A **Shell Settings** section: a live editor for the shell's look. **Frame** and
+  **Island** tabs expose the knobs with the control each one wants, steppers with
+  manual entry for exact pixels (radius, border, sizes, corners, gap), sliders for
+  values tuned by eye (opacity, shadow strength, edge/bud melt), and a swatch with
+  hex and dark presets for the surface colour, grouped under section headers. Every
+  edit is applied to the running shell at once by writing `~/.config/ryoku/shell.json`
+  (throttled, atomic), which the shell watches, so the preview is the actual desktop,
+  the frame around the window and the island above it, not a mock pane. The action
+  bar tracks the dirty state; Save keeps the look, Revert and leaving the section put
+  the saved one back, and Reset to defaults restores the shipped values. A
+  **Visualizer** tab tunes the desktop audio spectrum beside a live animated
+  preview window: style (bars, wave, or dots), position (bottom, top, centre),
+  shape (rounded or flat), mirror, on/off, band count, height, bar width, bloom,
+  reflection, and the idle wave, writing `~/.config/ryoku/visualizer.json` the same
+  live way. New `NumberField`, `SliderRow`, `Slider`, `ColorField`, `ToggleRow`,
+  `ChoiceRow`, `SettingSection`, `VizPreview`, and `ShellSettingsPage` components.
 - An Updates section wired to the `ryoku` CLI (`ryoku status --json`): a
   typographic status header (installed version, the pending-update count, and a
   live "checked Xm ago") over the real list of pending package updates (each
@@ -27,8 +43,8 @@
 - `quickshell/` the UI: a `FloatingWindow` with a navigation rail and a content
   area. The **Keybinds** section is functional, rendering the full shortcut
   legend as a flat list (ember section headers with a hairline rule, mechanical
-  keycaps). **Extras** and **Shell Settings** are under construction (their
-  controls will likely use GTK4 + libadwaita through the Kirigami addons).
+  keycaps). **Extras** is under construction (its controls will likely use GTK4 +
+  libadwaita through the Kirigami addons).
 - A global fuzzy finder in the sidebar, focused with `Ctrl + K`. It searches
   content across every section: fuzzy-ranked keybinds (tagged with their
   category) and matching section names you can jump to. The matcher is a small

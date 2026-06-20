@@ -27,7 +27,7 @@ Rectangle {
         "keybinds": { "title": "Keybinds", "subtitle": "Every shortcut in the Ryoku desktop, read live from your Hyprland config." },
         "updates":  { "title": "Updates", "subtitle": "Package updates pending for your Ryoku system." },
         "extras":   { "title": "Extras", "subtitle": "Desktop goodies and quick tweaks." },
-        "shell":    { "title": "Shell Settings", "subtitle": "Tune the Ryoku shell: the pill, the frame, and its surfaces." }
+        "shell":    { "title": "Shell Settings", "subtitle": "Tune the Ryoku shell: the frame, the island, and the desktop visualiser." }
     })
 
     gradient: Gradient {
@@ -188,11 +188,7 @@ Rectangle {
 
     Component {
         id: shellComp
-        UnderConstruction {
-            title: "Shell Settings"
-            icon: "gear"
-            blurb: "Live controls for the Ryoku shell: the pill, the frame, and the popout surfaces. This section is under construction."
-        }
+        ShellSettingsPage {}
     }
 
     Item {
