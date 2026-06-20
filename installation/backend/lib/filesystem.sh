@@ -6,8 +6,9 @@
 # stage. ESP_DEV and ROOT_DEV come from the disk/luks steps.
 #
 # Subvolume layout (@ -> /, @log -> /var/log, @pkg -> /var/cache/pacman/pkg are
-# always created; @home, @snapshots, @backups follow the RYOKU_SUBVOL_* toggles):
-#   @ @home @log @pkg @snapshots @backups
+# always created; @home, @snapshots, @backups follow the RYOKU_SUBVOL_* toggles,
+# and @swap is created when RYOKU_SWAP_GIB > 0 so the swapfile stays out of @):
+#   @ @home @log @pkg @snapshots @backups @swap
 
 RYOKU_BTRFS_OPTS="compress=zstd,noatime"
 
@@ -24,6 +25,10 @@ ryoku_filesystems() {
   run btrfs subvolume create /mnt/@pkg
   [[ ${RYOKU_SUBVOL_SNAPSHOTS:-1} == 1 ]] && run btrfs subvolume create /mnt/@snapshots
   [[ ${RYOKU_SUBVOL_BACKUPS:-0} == 1 ]] && run btrfs subvolume create /mnt/@backups
+  # A swapfile cannot live in @ (or any snapshotted subvolume): btrfs refuses to
+  # snapshot a subvolume that holds an active swapfile, which breaks snapper on
+  # every pacman transaction. Give it its own @swap subvolume.
+  (( ${RYOKU_SWAP_GIB:-0} > 0 )) && run btrfs subvolume create /mnt/@swap
   run umount /mnt
 }
 
@@ -53,9 +58,12 @@ ryoku_swapfile() {
     log "swap: none"
     return 0
   fi
-  log "swap: ${RYOKU_SWAP_GIB}GiB swapfile at /swap/swapfile"
+  # @swap is mounted separately so the swapfile never lands inside a snapshotted
+  # subvolume (see the subvolume creation above). mkswapfile sets NOCOW and the
+  # right permissions; genfstab picks up both the mount and the swap entry later.
+  log "swap: ${RYOKU_SWAP_GIB}GiB swapfile in @swap (kept out of snapshots)"
   run mkdir -p /mnt/swap
-  # mkswapfile sets NOCOW and the right permissions; genfstab picks it up later.
+  run mount -o noatime,subvol=@swap "$ROOT_DEV" /mnt/swap
   run btrfs filesystem mkswapfile --size "${RYOKU_SWAP_GIB}g" /mnt/swap/swapfile
   run swapon /mnt/swap/swapfile
 }

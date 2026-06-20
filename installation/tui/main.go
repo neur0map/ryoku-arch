@@ -2079,6 +2079,9 @@ func (m model) reviewBody(w int) string {
 	if m.backups {
 		subs += " @backups"
 	}
+	if m.swapG > 0 {
+		subs += " @swap"
+	}
 	swap := fmt.Sprintf("%dG", m.swapG)
 	if m.swapG == 0 {
 		swap = "none"

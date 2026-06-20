@@ -20,3 +20,8 @@
 - `deploy`: install the `ryoku-mic` microphone normalizer onto the target. The
   Hyprland autostart runs it on login, but the bin step skipped it, so a fresh
   install lacked the mic-gain capping the live desktop applies.
+- `filesystem`: the swapfile now lives in its own `@swap` subvolume instead of a
+  `/swap` directory inside `@`. btrfs cannot snapshot a subvolume that holds an
+  active swapfile, so the old layout made every snapper snapshot fail (`Creating
+  snapshot failed`, then snap-pac's `Invalid snapshot '--type'`) on a default
+  install with swap. `@swap` is created and mounted only when `RYOKU_SWAP_GIB > 0`.
