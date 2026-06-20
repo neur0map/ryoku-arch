@@ -45,6 +45,7 @@ var pillSurfaces = map[string]string{
 	"stash":            "stash",
 	"toolkit":          "toolkit",
 	"utilities":        "utilities",
+	"workspaces":       "workspaces",
 }
 
 type daemon struct {

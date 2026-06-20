@@ -182,6 +182,7 @@ ShellRoot {
         function stash(mon: string): void { root.toggleSurface(mon, "stash"); }
         function toolkit(mon: string): void { root.toggleSurface(mon, "toolkit"); }
         function utilities(mon: string): void { root.toggleSurface(mon, "utilities"); }
+        function workspaces(mon: string): void { root.toggleSurface(mon, "workspaces"); }
         function voiceShow(mon: string): void { root.show(mon, "voice"); }
         function voiceHide(): void { if (root.openSurface === "voice") root.close(); }
         function peek(mon: string): void { root.peek(mon); }

@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- `quickshell/pill`: a workspace switcher overview grown from the pill centre
+  (`Super + Tab`, `ryoku-shell workspaces`). A filmstrip of this monitor's
+  workspaces, each a scaled mini-map that draws its windows where they actually
+  sit as icon cards (off-workspace windows are unmapped in Hyprland and cannot be
+  live thumbnails, so a faithful card layout stands in). Click a window to focus
+  it, click a tile to switch workspaces, drag a window onto another tile to move
+  it there, or drop it on the trailing `+` tile to send it to a fresh workspace;
+  the active workspace and the current drop target carry the brand accent. Window
+  icon resolution moved to a shared `Singletons/Apps`, so the minimized tray and
+  the switcher resolve icons through one place instead of two copies.
 - `quickshell/pill`: an update island on the top-right of the frame. When a newer
   build is available it shows a compact chip (a brand download glyph, the target
   version, and the count of pending commits) that opens the Hub's Updates section.

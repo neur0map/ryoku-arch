@@ -52,6 +52,7 @@ Item {
     readonly property bool toolkitOpen: surface === "toolkit"
     readonly property bool utilitiesOpen: surface === "utilities"
     readonly property bool voiceOpen: surface === "voice"
+    readonly property bool workspacesOpen: surface === "workspaces"
     readonly property bool hasMedia: Mpris.players.values.length > 0
 
     readonly property var netDevices: (typeof Networking !== "undefined" && Networking && Networking.devices) ? Networking.devices.values : []
@@ -105,9 +106,10 @@ Item {
         : (toolkitOpen ? "toolkit"
         : (utilitiesOpen ? "utilities"
         : (voiceOpen ? "voice"
+        : (workspacesOpen ? "workspaces"
         : (osdActive && !held ? "osd"
         : (toastActive && !held ? "toast"
-        : (expanded ? "hover" : "rest")))))))))))))))
+        : (expanded ? "hover" : "rest"))))))))))))))))
 
     signal requestSurface(string name)
     signal requestClose()
@@ -182,6 +184,7 @@ Item {
         toolkit:   () => Qt.size(toolkitW, toolkit.implicitHeight + 28 * s),
         utilities: () => Qt.size(utilitiesW, utilities.implicitHeight + 30 * s),
         voice:     () => Qt.size(voiceW, voice.implicitHeight + 26 * s),
+        workspaces: () => Qt.size(workspaces.desiredW, workspaces.implicitHeight + 32 * s),
         osd:       () => Qt.size(osd.desiredW, osd.desiredH),
         toast:     () => Qt.size(toastW, toastLoader.item ? toastLoader.item.implicitHeight + 24 * s : restH),
         hover:     () => Qt.size(hoverW, hoverH)
@@ -330,7 +333,8 @@ Item {
         : (toolkitOpen ? toolkit
         : (utilitiesOpen ? utilities
         : (voiceOpen ? voice
-        : (batteryOpen ? battery : null)))))))))))
+        : (workspacesOpen ? workspaces
+        : (batteryOpen ? battery : null))))))))))))
 
     Ame {
         id: ame
@@ -855,6 +859,19 @@ Item {
         open: pill.utilitiesOpen
         morphCloseness: pill.morphCloseness
         shown: pill.displayedSurface === "utilities"
+        openProgress: pill.openProgress
+        openW: pill.openW
+        openH: pill.openH
+        onRequestClose: pill.requestClose()
+    }
+
+    WorkspacesSurface {
+        id: workspaces
+        s: pill.s
+        screenName: pill.screenName
+        open: pill.workspacesOpen
+        morphCloseness: pill.morphCloseness
+        shown: pill.displayedSurface === "workspaces"
         openProgress: pill.openProgress
         openW: pill.openW
         openH: pill.openH

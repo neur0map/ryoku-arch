@@ -5,6 +5,8 @@
 ### Added
 - `hyprland/modules/binds`: `Super + P` toggles the displays between mirror
   (duplicate) and extend, via `ryoku-monitor toggle`.
+- `hyprland/modules/binds`: `Super + Tab` opens the pill's workspace switcher
+  overview (`ryoku-shell workspaces`) for moving windows between workspaces.
 - `hyprland/`: the Hyprland config in Lua, modular (entrypoint plus modules for
   input, decoration, animations, binds, window rules, ryoshot, and autostart)
   with hardware-managed gpu/keyboard/monitors. Launches the Ryoku shell and the
@@ -33,6 +35,14 @@
   or peg the voice wave.
 
 ### Changed
+- `hyprland/modules/binds`: reworked the keymap. `Super + arrow` keys move focus
+  between windows and `Super + Shift + arrow` move the active window; `Super + 1..0`
+  still focus workspaces but moving the active window there is now `Super + Alt + 1..0`.
+  `Super + A` floats and centres the active window as a toggle (press again to tile
+  it back), replacing the old `Super + A` / `Super + Shift + A` float/tile pair.
+  `Super + R` enters a resize mode (`hyprland/modules/resize`, a submap where the
+  arrows resize and Escape exits) and `Super + H` toggles the scratchpad (special
+  workspace). `Super + arrow` no longer cycles workspaces (the number row does).
 - Tuned Hyprland window decoration and motion for the Ryoku shell: stronger
   shadows, softer translucency, wider breathing room, and branded open/close
   curves.

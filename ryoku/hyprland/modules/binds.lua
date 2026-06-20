@@ -3,9 +3,19 @@ local mod = "SUPER"
 -- Windows
 hl.bind(mod .. " + Q",         hl.dsp.window.close())                           -- close active window
 hl.bind(mod .. " + F",         hl.dsp.window.fullscreen())                      -- fullscreen
-hl.bind(mod .. " + A",         hl.dsp.window.float({ action = "enable" }))      -- compact: pop the window out as floating
-hl.bind(mod .. " + SHIFT + A", hl.dsp.window.float({ action = "disable" }))     -- restore: tile it back to normal
+hl.bind(mod .. " + A",         function() hl.dispatch(hl.dsp.window.float({ action = "toggle" })); hl.dispatch(hl.dsp.window.center()) end) -- float + centre the window (press again to tile back)
+hl.bind(mod .. " + R",         hl.dsp.submap("resize"))                         -- resize mode (arrows resize, Esc exits)
 hl.bind(mod .. " + P",         hl.dsp.exec_cmd("ryoku-monitor toggle"))         -- mirror <-> extend displays
+
+-- Focus and move windows
+hl.bind(mod .. " + Left",          hl.dsp.focus({ direction = "left" }))        -- focus left
+hl.bind(mod .. " + Right",         hl.dsp.focus({ direction = "right" }))       -- focus right
+hl.bind(mod .. " + Up",            hl.dsp.focus({ direction = "up" }))          -- focus up
+hl.bind(mod .. " + Down",          hl.dsp.focus({ direction = "down" }))        -- focus down
+hl.bind(mod .. " + SHIFT + Left",  hl.dsp.window.move({ direction = "left" }))  -- move window left
+hl.bind(mod .. " + SHIFT + Right", hl.dsp.window.move({ direction = "right" })) -- move window right
+hl.bind(mod .. " + SHIFT + Up",    hl.dsp.window.move({ direction = "up" }))    -- move window up
+hl.bind(mod .. " + SHIFT + Down",  hl.dsp.window.move({ direction = "down" }))  -- move window down
 
 -- Apps
 hl.bind(mod .. " + Return",    hl.dsp.exec_cmd("kitty"))
@@ -32,15 +42,14 @@ hl.bind(mod .. " + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"))                
 hl.bind(mod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
 hl.bind(mod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
--- Switch workspaces
-hl.bind(mod .. " + Left",       hl.dsp.focus({ workspace = "r-1" }))
-hl.bind(mod .. " + Right",      hl.dsp.focus({ workspace = "r+1" }))
-hl.bind(mod .. " + mouse_up",   hl.dsp.focus({ workspace = "r-1" }))
-hl.bind(mod .. " + mouse_down", hl.dsp.focus({ workspace = "r+1" }))
+-- Workspaces
+hl.bind(mod .. " + H",          hl.dsp.workspace.toggle_special(""))            -- toggle the scratchpad (special workspace)
+hl.bind(mod .. " + mouse_up",   hl.dsp.focus({ workspace = "r-1" }))            -- previous workspace
+hl.bind(mod .. " + mouse_down", hl.dsp.focus({ workspace = "r+1" }))            -- next workspace
 for i = 1, 10 do
     local key = i % 10 -- 10 maps to the 0 key
-    hl.bind(mod .. " + " .. key,          hl.dsp.focus({ workspace = i }))
-    hl.bind(mod .. " + SHIFT + " .. key,  hl.dsp.window.move({ workspace = i }))
+    hl.bind(mod .. " + " .. key,         hl.dsp.focus({ workspace = i }))
+    hl.bind(mod .. " + ALT + " .. key,   hl.dsp.window.move({ workspace = i }))
 end
 
 -- Media and volume keys
