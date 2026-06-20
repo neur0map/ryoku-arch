@@ -2,10 +2,10 @@
 // door to updates, rollback, and the shell. It orchestrates pacman, yay, snapper,
 // and the materialize step; it does not reimplement them.
 //
-//	ryoku update            snapshot -> pacman -Syu + yay -> materialize -> reload
+//	ryoku update            snapshot -> channel pull or pacman -Syu -> deploy -> reload
 //	ryoku rollback [id]     restore a snapper snapshot (or list them)
 //	ryoku snapshots         list snapper snapshots
-//	ryoku status            installed version, pending updates, snapshot count
+//	ryoku status            version, commits behind the channel, snapshot count
 //	ryoku materialize       lay the base configs into ~/.config (override-safe)
 //	ryoku reload            restart the shell + reload Hyprland
 //	ryoku deploy            DEV ONLY: build + materialize from a checkout
@@ -59,24 +59,36 @@ func main() {
 func usage() {
 	fmt.Print(`Usage: ryoku <command>
 
-  update         snapshot, then pacman -Syu + yay, materialize configs, reload
+  update         apply channel commits (or pacman -Syu), redeploy, reload
   rollback [id]  restore a snapper snapshot (no id: list them)
   snapshots      list snapper snapshots
-  status         installed version, pending updates, snapshot count
+  status         version, commits behind the channel, snapshot count
   materialize    lay the base configs into ~/.config (keeps your overrides)
   reload         restart the shell and reload Hyprland
   deploy         DEV ONLY: deploy from a repo checkout (RYOKU_REPO)
 `)
 }
 
-// cmdUpdate runs the full, safe update: a labeled pre-snapshot, the package
-// transactions, the per-user config materialize, a shell reload, then a paired
-// post-snapshot. Snapshots are best-effort so an unconfigured snapper never
-// blocks an update, but a failed package step aborts before anything else.
+// cmdUpdate runs the full, safe update inside a snapper pre/post snapshot pair:
+// the git update channel on a checkout (fast-forward + redeploy), or the package
+// transactions + materialize + reload on a packaged install. Snapshots are
+// best-effort so an unconfigured snapper never blocks an update, but a failed
+// step aborts before anything else.
 func cmdUpdate(_ []string) error {
 	pre := snapperPre("ryoku-update")
 	publishRun("running", 0.05)
 	defer publishRun("idle", 0)
+
+	// A Ryoku checkout updates through its git channel; a packaged install
+	// updates through pacman. channelUpdate handles the former and reports
+	// whether it applied; if not, fall through to the package transactions.
+	if handled, err := channelUpdate(); err != nil {
+		return err
+	} else if handled {
+		snapperPost(pre, "ryoku-update")
+		fmt.Println("==> Update complete")
+		return nil
+	}
 
 	fmt.Println("==> Updating system packages (pacman)")
 	if err := sudo("pacman", "-Syu", "--noconfirm"); err != nil {
@@ -132,6 +144,60 @@ func cmdStatus(args []string) error {
 			jsonOut = true
 		}
 	}
+	r := buildStatus()
+
+	if jsonOut {
+		b, _ := json.Marshal(r)
+		fmt.Println(string(b))
+		return nil
+	}
+
+	fmt.Printf("config base:   %s\n", baseConfigDir())
+	if r.Git {
+		fmt.Printf("channel:       %s\n", r.Channel)
+		fmt.Printf("installed:     %s\n", orDash(r.Installed))
+		if r.Available {
+			fmt.Printf("available:     %s\n", orDash(r.Latest))
+			fmt.Printf("behind:        %d commit(s)\n", r.Behind)
+		} else {
+			fmt.Println("behind:        up to date")
+		}
+	} else {
+		fmt.Printf("ryoku-desktop: %s\n", orDash(r.Installed))
+		if r.Latest != "" && r.Latest != r.Installed {
+			fmt.Printf("available:     %s\n", r.Latest)
+		}
+		if has("checkupdates") {
+			fmt.Printf("pending:       %d package update(s)\n", r.Behind)
+		} else {
+			fmt.Println("pending:       (install pacman-contrib for checkupdates)")
+		}
+	}
+	fmt.Printf("snapshots:     %d\n", r.Snapshots)
+	return nil
+}
+
+// statusReport is the data the Hub and the update island read from
+// `ryoku status --json`: the installed and available versions, how far behind the
+// machine is, and the per-item list. It is sourced from the git update channel on
+// a Ryoku checkout (the live mirror) and from the [ryoku] pacman repo otherwise.
+type statusReport struct {
+	Installed string       `json:"installedVersion"`
+	Latest    string       `json:"latestVersion"`
+	Available bool         `json:"available"`
+	Behind    int          `json:"pendingUpdates"`
+	Updates   []updateItem `json:"updates"`
+	Channel   string       `json:"channel"`
+	Snapshots int          `json:"snapshots"`
+	Git       bool         `json:"-"`
+}
+
+// buildStatus prefers the git update channel (a checkout tracking main); with no
+// checkout it falls back to the pacman view of the [ryoku] repo.
+func buildStatus() statusReport {
+	if r, ok := channelStatus(); ok {
+		return r
+	}
 	installed := installedVersion()
 	latest := latestAvailable("ryoku-desktop")
 	ups := pendingUpdates()
@@ -140,36 +206,14 @@ func cmdStatus(args []string) error {
 			latest = u.New
 		}
 	}
-	pending := len(ups)
-	snaps := snapshotCount()
-	available := pending > 0
-	desktopBump := latest != "" && latest != installed
-
-	if jsonOut {
-		b, _ := json.Marshal(struct {
-			InstalledVersion string      `json:"installedVersion"`
-			LatestVersion    string      `json:"latestVersion"`
-			Available        bool        `json:"available"`
-			PendingUpdates   int         `json:"pendingUpdates"`
-			Updates          []pkgUpdate `json:"updates"`
-			Snapshots        int         `json:"snapshots"`
-		}{installed, latest, available, pending, ups, snaps})
-		fmt.Println(string(b))
-		return nil
+	return statusReport{
+		Installed: installed,
+		Latest:    latest,
+		Available: len(ups) > 0,
+		Behind:    len(ups),
+		Updates:   ups,
+		Snapshots: snapshotCount(),
 	}
-
-	fmt.Printf("config base:   %s\n", baseConfigDir())
-	fmt.Printf("ryoku-desktop: %s\n", orDash(installed))
-	if desktopBump {
-		fmt.Printf("available:     %s\n", latest)
-	}
-	if has("checkupdates") {
-		fmt.Printf("pending:       %d package update(s)\n", pending)
-	} else {
-		fmt.Println("pending:       (install pacman-contrib for checkupdates)")
-	}
-	fmt.Printf("snapshots:     %d\n", snaps)
-	return nil
 }
 
 // latestAvailable returns the version of pkg in the [ryoku] repo, or "" when the
@@ -189,7 +233,10 @@ func latestAvailable(pkg string) string {
 	return ""
 }
 
-type pkgUpdate struct {
+// updateItem is one row in the update list: a package (name, old -> new) on the
+// pacman path, or a commit (subject in Name, short hash in New) on the git
+// channel.
+type updateItem struct {
 	Name string `json:"name"`
 	Old  string `json:"old"`
 	New  string `json:"new"`
@@ -198,8 +245,8 @@ type pkgUpdate struct {
 // pendingUpdates lists packages with a newer version available, via checkupdates
 // (pacman-contrib), which syncs to a private database and so needs no root. The
 // list is empty when the system is current or checkupdates is absent.
-func pendingUpdates() []pkgUpdate {
-	ups := []pkgUpdate{}
+func pendingUpdates() []updateItem {
+	ups := []updateItem{}
 	if !has("checkupdates") {
 		return ups
 	}
@@ -213,7 +260,7 @@ func pendingUpdates() []pkgUpdate {
 	for sc.Scan() {
 		f := strings.Fields(sc.Text())
 		if len(f) >= 4 && f[2] == "->" {
-			ups = append(ups, pkgUpdate{Name: f[0], Old: f[1], New: f[3]})
+			ups = append(ups, updateItem{Name: f[0], Old: f[1], New: f[3]})
 		}
 	}
 	return ups

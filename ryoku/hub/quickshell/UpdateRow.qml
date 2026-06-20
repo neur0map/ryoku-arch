@@ -2,8 +2,8 @@ import QtQuick
 import QtQuick.Layouts
 import "Singletons"
 
-// One pending package update: a node on a vertical rail, the package name, and a
-// right-aligned old -> new version transition. The list mirrors `pacman -Qu`.
+// One incoming commit: a node on a vertical rail, the commit subject, and a
+// right-aligned short hash. The list mirrors `git log <channel>..origin/<channel>`.
 Item {
     id: row
 
@@ -77,7 +77,7 @@ Item {
 
         Text {
             Layout.alignment: Qt.AlignVCenter
-            text: row.fromVersion + "  \u2192  " + row.toVersion
+            text: row.fromVersion !== "" ? (row.fromVersion + "  \u2192  " + row.toVersion) : row.toVersion
             color: Theme.dim
             font.family: Theme.mono
             font.pixelSize: 11

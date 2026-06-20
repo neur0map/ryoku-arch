@@ -42,6 +42,10 @@
   actions like `Super + A`, which floats and centres) in the legend, taking the
   description from the trailing comment, instead of dropping every bind whose
   action is not a bare `hl.dsp` expression.
+- The **Updates** section tracks the git update channel (`main`) instead of pacman
+  packages: the status header, the count badge, and the list show the commits the
+  checkout is behind `origin/main` (subject + short hash), driven by the `channel`
+  field `ryoku status --json` now publishes. "Up to date" shows when current.
 
 ### Fixed
 - Ryoku Hub: `Super + ,` no longer goes dead after the hub is dismissed with the

@@ -70,7 +70,7 @@ Item {
 
         Text {
             text: Updates.available
-                ? (Updates.behind + " package update" + (Updates.behind === 1 ? "" : "s") + "  \u00b7  checked " + Updates.checkedAgo)
+                ? (Updates.behind + " commit" + (Updates.behind === 1 ? "" : "s") + " behind  \u00b7  checked " + Updates.checkedAgo)
                 : ("on " + Updates.branch + "  \u00b7  checked " + Updates.checkedAgo)
             color: Theme.dim
             font.family: Theme.font

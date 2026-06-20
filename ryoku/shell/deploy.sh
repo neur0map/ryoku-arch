@@ -70,6 +70,17 @@ install -m755 "$here/../../system/hardware/leds/ryoku-leds" "$bindir/ryoku-leds"
 install -m755 "$here/../../system/hardware/audio/ryoku-mic" "$bindir/ryoku-mic"
 say "installed Ryoku CLI and hardware helpers"
 
+# Record the checkout this deploy came from and the commit it laid down, so the
+# deployed `ryoku` binary (on PATH, far from the repo) can track the update
+# channel in `ryoku status`: it compares this commit (what is now running)
+# against origin/main. One way, like every step: the repo is the source.
+repo_root="$(cd "$here/../.." && pwd)"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku"
+mkdir -p "$state_dir"
+printf '%s\n' "$repo_root" > "$state_dir/repo"
+git -C "$repo_root" rev-parse HEAD > "$state_dir/deployed" 2>/dev/null || rm -f "$state_dir/deployed"
+say "recorded update-channel checkout -> $state_dir/repo"
+
 # Build the Ryoku.Blobs QML plugin (the frame's blob renderer) and install the
 # module onto the user's QML import path. ryoku-shell points QML2_IMPORT_PATH
 # there for the quickshell processes it supervises. Needs cmake + ninja +

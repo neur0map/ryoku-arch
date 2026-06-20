@@ -6,10 +6,10 @@ import Quickshell.Io
 /**
  * Update data for the Hub's Updates section, wired to `ryoku status --json`.
  *
- * The installed version, the pending-update count, and the list of pending
- * package updates are all live. When the system is current the list is empty and
- * the section shows the up-to-date state; `check()` re-runs the check (the CLI
- * uses checkupdates, which syncs a private database and needs no root).
+ * The installed version, the count of commits behind the channel, and the list
+ * of incoming commits are all live. When the checkout is current the list is
+ * empty and the section shows the up-to-date state; `check()` re-runs the check
+ * (the CLI tracks the git channel, fetching origin/<channel> with no prompt).
  */
 Singleton {
     id: root
@@ -17,7 +17,7 @@ Singleton {
     property bool available: false
     property string currentVersion: ""
     property string latestVersion: ""
-    readonly property string branch: "main"
+    property string branch: "main"
     property int behind: 0
 
     // Newest pacman view: [{ name, old, new }]. Empty when the system is current.
@@ -52,6 +52,7 @@ Singleton {
             var o = JSON.parse(t);
             root.currentVersion = o.installedVersion || "";
             root.latestVersion = o.latestVersion || "";
+            root.branch = o.channel || "main";
             root.behind = o.pendingUpdates || 0;
             root.available = root.behind > 0;
             root.updates = o.updates || [];

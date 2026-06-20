@@ -18,6 +18,11 @@
   wallpaper. This is the first QML surface to follow wallust at runtime; the Theme
   palette stays static.
 
+### Changed
+- `quickshell/pill` update island: surfaces the git update channel it was built
+  for. Its count and target version read the commits the checkout is behind
+  `origin/main` (from `ryoku status --json`) rather than pacman package counts.
+
 ### Fixed
 - `quickshell/pill` update island: re-check `ryoku status` on a steady cadence
   (every 5 min) instead of only once at startup, so the island reliably surfaces

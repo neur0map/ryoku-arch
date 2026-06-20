@@ -6,7 +6,7 @@ import Quickshell.Io
 /**
  * Update state for the top-right update island, wired to `ryoku status --json`.
  *
- * `available`/`behind` come from the live count of pending package updates, so
+ * `available`/`behind` come from the live count of commits behind the channel,
  * the island folds to nothing when the system is current. The run-state fields
  * mirror an in-flight `ryoku update`: the CLI publishes its progress to a small
  * runtime file (a Ryoku wave while it runs), and once it finishes the island
@@ -80,9 +80,9 @@ Singleton {
 
     Component.onCompleted: root.check()
 
-    // checkupdates' first read after boot can be slow or come back empty; re-check
-    // on a steady cadence so the island reliably surfaces updates that appear
-    // during a session and recovers if an early read returned nothing.
+    // The first check after boot can race a slow fetch; re-check on a steady
+    // cadence so the island reliably surfaces commits that land during a session
+    // and recovers if an early read returned nothing.
     Timer {
         interval: 300000
         running: true

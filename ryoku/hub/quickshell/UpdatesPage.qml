@@ -6,7 +6,7 @@ import Quickshell.Io
 import "Singletons"
 
 // The Updates section, wired to `ryoku status --json` via the Updates singleton.
-// Idle shows the live status and the real list of pending package updates;
+// Idle shows the live status and the real list of incoming commits;
 // "Update now" runs the real `ryoku update` in a terminal and this page mirrors
 // its progress from the run-state file the CLI publishes. When the system is
 // current there are no rows and the top-right island stays hidden.
@@ -197,7 +197,7 @@ Item {
                         id: secLabel
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "PENDING UPDATES"
+                        text: "INCOMING COMMITS"
                         color: Theme.dim
                         font.family: Theme.mono
                         font.pixelSize: 11
