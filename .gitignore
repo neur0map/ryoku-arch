@@ -7,6 +7,7 @@
 /ryoku/hub/backend/ryoku-hub
 /ryoku/shell/plugin/build/
 /ryoku/shell/plugin/dist/
+/release/repo/out/
 *.iso
 
 # Isolated worktrees
