@@ -83,9 +83,11 @@ way the rest of the system is.
 Your settings survive every update. The base configs are Ryoku-owned and
 refreshed in place, while your own edits live in override files that are never
 shipped or touched (`hypr/user.lua`, `kitty/user.conf`, `fish/user.fish`); they
-load last, so your changes win. There are no migration scripts: an upgraded
-machine reaches the same state as a fresh install. If an update goes wrong, run
-`ryoku rollback` or pick the previous snapshot from the Limine boot menu.
+load last, so your changes win. There is no ordered migration ledger: the config
+is reconciled to the shipped state on every update, and the rare stateful fix
+(disk layout and the like) is an idempotent `ryoku doctor` reconciler that runs
+inside `ryoku update`. If an update goes wrong, run `ryoku rollback` or pick the
+previous snapshot from the Limine boot menu.
 
 ## Recovery
 

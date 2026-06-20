@@ -40,6 +40,36 @@ Edit the repo, deploy, test on the running system.
   every `system/hardware/*/ryoku-*`), and invoked by name from Lua autostart or
   a keybind.
 
+## How a change reaches users
+
+Where a change lives decides whether, and how, it reaches an installed machine.
+
+- **Desktop config and binaries (`ryoku/`)** reach users through `ryoku update`:
+  config is re-laid by `ryoku materialize` (override-safe), binaries come from the
+  signed `[ryoku]` repo. They land only after a tagged release rebuilds that repo.
+- **The installer (`installation/`)** runs once from the ISO. Fixes here reach
+  only new installs from a new ISO, never an existing machine.
+- **Package-set additions (`system/packages/`)** are pacstrapped at install.
+  `ryoku update` upgrades installed packages; it does not pacstrap newly listed
+  ones, so a new package reaches only fresh installs.
+- **Stateful drift** the declarative layers cannot express (disk layout,
+  subvolumes, swap) is healed by an idempotent `ryoku doctor` reconciler that runs
+  inside `ryoku update`.
+
+There is no ordered migration ledger. Config is reconciled declaratively by
+`materialize`; stateful drift is reconciled by `ryoku doctor`. Reach for a
+reconciler only when a fix must change an existing machine's structure and neither
+a package nor `materialize` can do it.
+
+### Adding a doctor reconciler
+
+A reconciler is one entry in `reconcilers()` in `ryoku/cli/doctor.go`. It must be
+idempotent: report `ok` when the machine already matches the desired state,
+otherwise converge (or, under `--check`, report what it would do). It runs on
+every `ryoku update`, so keep the check cheap and the fix safe to repeat; auto-fix
+only the exact known-safe case and warn on anything unexpected. Retire it once
+every supported install has run it, so the set stays small instead of piling up.
+
 ## Binaries and package managers
 
 - The desktop ships as signed pacman packages from the `[ryoku]` repo

@@ -10,6 +10,7 @@
 //	ryoku reload            restart the shell + reload Hyprland
 //	ryoku deploy            DEV ONLY: build + materialize from a checkout
 //	ryoku recovery          last resort: reset to main + redeploy (overwrites configs)
+//	ryoku doctor            run convergent reconcilers (also runs inside update)
 package main
 
 import (
@@ -49,6 +50,8 @@ func main() {
 		err = cmdDeploy(os.Args[2:])
 	case "recovery":
 		err = cmdRecovery(os.Args[2:])
+	case "doctor":
+		err = cmdDoctor(os.Args[2:])
 	case "-h", "--help", "help", "":
 		usage()
 	default:
@@ -70,6 +73,7 @@ func usage() {
   reload         restart the shell and reload Hyprland
   deploy         DEV ONLY: deploy from a repo checkout (RYOKU_REPO)
   recovery       last resort: reset to main and redeploy (overwrites configs)
+  doctor         run convergent reconcilers (idempotent stateful fixes)
 `)
 }
 
@@ -79,6 +83,12 @@ func usage() {
 // best-effort so an unconfigured snapper never blocks an update, but a failed
 // step aborts before anything else.
 func cmdUpdate(_ []string) error {
+	// Heal stateful drift the package and config layers cannot reach (e.g. a
+	// swapfile stuck inside @) before snapshotting, so the pre-snapshot below can
+	// be taken. Best-effort: a doctor finding never blocks the update.
+	fmt.Println("==> Checking system")
+	runDoctor(false, true)
+
 	pre := snapperPre("ryoku-update")
 	publishRun("running", 0.05)
 	defer publishRun("idle", 0)
@@ -109,15 +119,20 @@ func cmdUpdate(_ []string) error {
 	publishRun("running", 0.7)
 
 	fmt.Println("==> Materializing desktop configs")
+	// Pause Hyprland's Lua auto-reload so the config swap is never observed
+	// half-written, which would trip its emergency error overlay (no keybinds).
+	hyprPauseAutoreload()
 	if err := materialize(); err != nil {
+		hyprReload()
 		return err
 	}
 	publishRun("running", 0.9)
 
-	fmt.Println("==> Reloading shell")
-	if err := run("ryoku-shell", "reload"); err != nil {
-		fmt.Fprintf(os.Stderr, "warning: shell reload failed (changes apply on next login): %v\n", err)
-	}
+	fmt.Println("==> Reloading desktop")
+	// One clean Hyprland reload applies the new config and restores auto-reload;
+	// then restart the shell daemon so the new binary and QML both take effect.
+	hyprReload()
+	restartShell()
 
 	snapperPost(pre, "ryoku-update")
 	fmt.Println("==> Update complete")
@@ -348,6 +363,55 @@ func runOut(name string, args ...string) (string, error) {
 func has(name string) bool { _, err := exec.LookPath(name); return err == nil }
 
 func exists(p string) bool { _, err := os.Stat(p); return err == nil }
+
+// hyprLive reports whether a Hyprland session is reachable for hyprctl.
+func hyprLive() bool {
+	return has("hyprctl") && exec.Command("hyprctl", "version").Run() == nil
+}
+
+// hyprPauseAutoreload stops Hyprland reloading its Lua config mid-swap, which
+// would expose a half-written config and trip the emergency error overlay.
+func hyprPauseAutoreload() {
+	if hyprLive() {
+		_ = exec.Command("hyprctl", "keyword", "misc:disable_autoreload", "true").Run()
+	}
+}
+
+// hyprReload applies the materialized config in one clean pass; the reload also
+// restores auto-reload, since keywords reset from the config.
+func hyprReload() {
+	if hyprLive() {
+		_ = exec.Command("hyprctl", "reload").Run()
+	}
+}
+
+// restartShell brings the shell daemon back on the new binary, recovering one
+// that died across the update. Mirrors deploy.sh: stop the old daemon, clear
+// orphaned surfaces that hold the single-instance lock, then start it detached so
+// it outlives this process.
+func restartShell() {
+	if !has("ryoku-shell") {
+		return
+	}
+	_ = exec.Command("ryoku-shell", "quit").Run()
+	for i := 0; i < 20; i++ {
+		if exec.Command("ryoku-shell", "ping").Run() != nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	for _, c := range []string{"pill", "sidebar", "visualizer"} {
+		_ = exec.Command("pkill", "-f", "qs -c "+c).Run()
+	}
+	time.Sleep(200 * time.Millisecond)
+	cmd := exec.Command("setsid", "ryoku-shell", "daemon")
+	logp := filepath.Join(xdg("XDG_STATE_HOME", ".local/state"), "ryoku-shell.log")
+	_ = os.MkdirAll(filepath.Dir(logp), 0o755)
+	if f, err := os.OpenFile(logp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644); err == nil {
+		cmd.Stdout, cmd.Stderr = f, f
+	}
+	_ = cmd.Start()
+}
 
 func installedVersion() string {
 	out, err := runOut("pacman", "-Q", "ryoku-desktop")

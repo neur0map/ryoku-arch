@@ -31,6 +31,12 @@
   `RYOKU_CHANNEL` overrides the branch.
 
 ### Added
+- `doctor`: convergent reconcilers for stateful drift the package and config
+  layers cannot reach. Each is idempotent (reports `ok`, or converges; `--check`
+  previews), runs inside `ryoku update` so healing is seamless, and is retired
+  once every install has run it, so the set never piles up like ordered
+  migrations. The first reconciler moves a swapfile an older installer left inside
+  `@` into its own btrfs subvolume so snapper can snapshot again.
 - `recovery`: a last-resort restore for a broken desktop. It resets a clean
   checkout to `origin/main`, reinstalls the base packages, and rebuilds and
   redeploys the desktop, overwriting the Ryoku configs in `~/.config`. A preflight

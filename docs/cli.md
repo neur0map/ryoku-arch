@@ -35,6 +35,7 @@ few commands belong to only one world; that is called out per command below.
 |`materialize`|Lay the base configs into `~/.config`|packaged install|the updater/installer|
 |`deploy`|Build and lay the desktop from a checkout|dev checkout|a maintainer|
 |`recovery`|Last resort: reset to main and redeploy|both|you, when broken|
+|`doctor`|Run idempotent reconcilers for stateful drift|both|you, the updater|
 
 ## Everyday commands
 
@@ -121,6 +122,22 @@ checkout to `main` and redeploys, **overwriting configs**. It hands off to
 `bin/ryoku-recovery`, preferring the copy in a local checkout and otherwise
 fetching the canonical script from the repo over the network, so it still works
 when the local build is broken.
+
+## Self-healing
+
+### `ryoku doctor`
+
+Runs the convergent reconcilers: idempotent fixes for stateful drift the package
+and config layers cannot express (disk layout and the like). Each reconciler
+reports `ok` when the machine already matches the desired state, otherwise it
+converges; `--check` reports what it would do without changing anything. `ryoku
+update` runs it first so healing is seamless, and a finding never aborts the
+update.
+
+The reconcilers live in `ryoku/cli/doctor.go`. The first moves a swapfile an
+older installer left inside `@` into its own btrfs subvolume, so snapper can
+snapshot again. Reconcilers retire once every supported install has run them, so
+the set stays small rather than growing like an ordered migration list.
 
 ## Environment and state
 
