@@ -14,7 +14,7 @@ Singleton {
     id: root
 
     property bool active: false
-    readonly property int bars: 64
+    property int bars: 64
 
     // 0..1 per band (length == bars) and the mean energy across all bands.
     property var levels: root.flat(0.02)
@@ -30,7 +30,7 @@ Singleton {
 
     Process {
         id: cavaProc
-        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 || exit 0; cfg=$(mktemp); printf '%s\\n' '[general]' 'framerate = 60' 'bars = 64' '' '[input]' 'method = pipewire' '' '[output]' 'method = raw' 'raw_target = /dev/stdout' 'data_format = ascii' 'ascii_max_range = 100' 'channels = mono' 'mono_option = average' '' '[smoothing]' 'noise_reduction = 45' > \"$cfg\"; cava -p \"$cfg\"; rc=$?; rm -f \"$cfg\"; exit $rc"]
+        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 || exit 0; cfg=$(mktemp); printf '%s\\n' '[general]' 'framerate = 60' 'bars = " + root.bars + "' '' '[input]' 'method = pipewire' '' '[output]' 'method = raw' 'raw_target = /dev/stdout' 'data_format = ascii' 'ascii_max_range = 100' 'channels = mono' 'mono_option = average' '' '[smoothing]' 'noise_reduction = 45' > \"$cfg\"; cava -p \"$cfg\"; rc=$?; rm -f \"$cfg\"; exit $rc"]
         running: root.active
         stdout: SplitParser {
             splitMarker: "\n"
@@ -42,6 +42,13 @@ Singleton {
     Timer {
         id: restartTimer
         interval: 1200
+        onTriggered: if (root.active && !cavaProc.running) cavaProc.running = true
+    }
+
+    // Restart cava when the band count changes so its config picks up the new bars.
+    Timer {
+        id: barsRestart
+        interval: 300
         onTriggered: if (root.active && !cavaProc.running) cavaProc.running = true
     }
 
@@ -61,6 +68,14 @@ Singleton {
         energy = 0;
         if (active)
             lastReadMs = 0;
+    }
+
+    onBarsChanged: {
+        levels = flat(0.02);
+        if (root.active) {
+            cavaProc.running = false;
+            barsRestart.restart();
+        }
     }
 
     function norm(v) {

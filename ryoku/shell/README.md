@@ -16,6 +16,13 @@ package as the base config under `/usr/share/ryoku/config`, which
   `pill/popouts/`, the mixer and power), `sidebar`, `ryoshot` (screenshot and
   annotation), and `visualizer` (the wallust-tinted desktop audio spectrum).
   These render the shell; they hold no daemon logic.
+  The `pill/Singletons/Config` and `visualizer/Singletons/Config` singletons read
+  the live appearance config from `~/.config/ryoku/shell.json` (frame and island
+  size, rounding, colour, opacity, shadows) and `~/.config/ryoku/visualizer.json`
+  (spectrum on/off, style, position, shape, mirror, bars, height, width, bloom,
+  reflection, idle wave), watched so
+  Ryoku Hub's Shell Settings retunes the look with no reload; their defaults are the
+  shipped look and seed the files on first run.
 - `plugin/` `Ryoku.Blobs`, the C++/QML SDF metaball module the frame renders
   with: the border, the pill, and the popouts melt into one blob field. `build.sh`
   builds it with cmake onto a QML import path, and it ships prebuilt. See

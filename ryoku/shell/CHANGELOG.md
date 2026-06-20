@@ -3,15 +3,39 @@
 ## Unreleased
 
 ### Added
+- `quickshell/pill`: the shell's look is now config-driven and live-editable. A
+  new `Config` singleton reads `~/.config/ryoku/shell.json` (watched, atomic
+  writes, defaults seeded on first run), and the frame and island read every
+  appearance value from it: the screen border's corner radius, thickness, surface
+  colour, opacity, edge-melt smoothing, and contact shadow (strength and size),
+  and the top island's width, height, rest/open corner radius, top gap, bud-melt
+  smoothing, and opacity. The mixer/power popouts follow the frame's radius and
+  smoothing. Ryoku Hub's Shell Settings edits this file, so a save retunes the
+  running shell with no reload; the hand-tuned defaults preserve the shipped look.
 - `quickshell/visualizer`: a desktop audio visualiser. A full-width cava spectrum
   rises from the bottom of the wallpaper on a click-through `WlrLayer.Bottom`
   surface, behind every window and per monitor, with vertical-beam bars, a soft
   bloom, and a fading reflection. It blooms while audio plays and settles to a
   calm breathing line when the system is silent. On by default and supervised like
-  the pill; `ryoku-shell visualizer` (`Super+M`) toggles it, and cava only runs
-  while it is on. Adds the `Spectrum` (64-band cava on the PipeWire playback
+  the pill; `ryoku-shell visualizer` (`Super+M`) toggles it, `ryoku-shell
+  visualizer-overlay` (`Super+Shift+M`) raises it over the windows on demand, and
+  cava only runs while it is on. Adds the `Spectrum` (64-band cava on the PipeWire playback
   monitor) and `Wallust` singletons under `quickshell/visualizer/Singletons`, and
   the `visualizer` route plus persistent component in `ipc/daemon.go`.
+- `quickshell/visualizer`: the visualiser is now config-driven and live-editable. A
+  new `Config` singleton reads `~/.config/ryoku/visualizer.json` (watched, atomic,
+  defaults seeded), and the spectrum reads its look from it: on/off (also `Super+M`,
+  which now persists), style (bars, a filled wave, or floating dots), position
+  (bottom, top, or centre), bar/dot shape (rounded or flat), left-right mirroring,
+  band count, bar height and width, bloom, reflection, and the idle breathing wave.
+  Changing the band count restarts cava with the new bars. Ryoku Hub's Shell
+  Settings has a Visualizer tab, with a live preview, that edits this file.
+- `quickshell/visualizer`: every style now animates off one per-frame `FrameAnimation`
+  ticker locked to the display refresh, easing each band toward its target (fast
+  attack, slow decay) so motion is smooth at 60fps+ rather than stepping between
+  cava frames. A smoothed `activity` signal (fast rise, ~1s release) crossfades
+  between the live spectrum and the idle wave, so a quiet gap fades down and back
+  up gracefully instead of snapping off.
 - `wallust`: a new `shell` template writes the live palette to
   `~/.cache/wallust/colors.json` on every wallpaper change. The visualiser's
   `Wallust` singleton watches it, so the spectrum's colours retune to the

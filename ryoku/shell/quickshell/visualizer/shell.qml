@@ -14,15 +14,15 @@ import "Singletons"
 ShellRoot {
     id: root
 
-    property bool enabled: true
+    property bool enabled: Config.enabled
     property bool raised: false
 
     IpcHandler {
         target: "visualizer"
-        function toggle(mon: string): void { root.enabled = !root.enabled; }
-        function show(mon: string): void { root.enabled = true; }
-        function hide(): void { root.enabled = false; }
-        function overlay(mon: string): void { root.raised = !root.raised; if (root.raised) root.enabled = true; }
+        function toggle(mon: string): void { Config.setEnabled(!Config.enabled); }
+        function show(mon: string): void { Config.setEnabled(true); }
+        function hide(): void { Config.setEnabled(false); }
+        function overlay(mon: string): void { root.raised = !root.raised; if (root.raised) Config.setEnabled(true); }
     }
 
     // Run cava only while the visualiser is live on the desktop.
@@ -30,6 +30,13 @@ ShellRoot {
         target: Spectrum
         property: "active"
         value: root.enabled
+    }
+
+    // The configured band count; changing it restarts cava with the new bars.
+    Binding {
+        target: Spectrum
+        property: "bars"
+        value: Config.bars
     }
 
     Variants {

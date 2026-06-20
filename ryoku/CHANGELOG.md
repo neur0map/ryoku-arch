@@ -9,6 +9,8 @@
   overview (`ryoku-shell workspaces`) for moving windows between workspaces.
 - `hyprland/modules/binds`: `Super + M` toggles the desktop audio visualiser
   (`ryoku-shell visualizer`).
+- `hyprland/modules/binds`: `Super + Shift + M` raises the visualiser over the
+  windows on demand (`ryoku-shell visualizer-overlay`), flipping back to the desktop.
 - `hyprland/modules/decoration`: a touch more room around tiled windows
   (`gaps_out` 24 -> 26, `gaps_in` 7 -> 8) for a clear frame-to-window vs
   window-to-window gap hierarchy that reads with the frame's new contact shadow.
