@@ -183,6 +183,12 @@
   centre; the surface is wider and taller so the rail and a two-row grid have room.
 
 ### Fixed
+- `quickshell/pill`: the island stays open while hovering the tray/minimized-app
+  icons. The hover zone that drives `pill.hovered` sat behind the pill, so the
+  icons' own `hoverEnabled` MouseAreas swallowed the hover and the island
+  collapsed the moment the pointer reached one; the zone now sits in front of the
+  pill. It is handler-only (a passive `HoverHandler`), so it reports the hover
+  without blocking the icons' clicks or their own hover highlight.
 - `quickshell/pill`: surface content rides the blob morph instead of fading on its
   own. `PillSurface` faded content over a separate, shorter timeline than the
   pill's size morph, so on close the content ghosted out while the shape closed;

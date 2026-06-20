@@ -432,16 +432,6 @@ ShellRoot {
                     onEntered: (drag) => root.show(overlay.modelData.name, "stash")
                 }
 
-                Item {
-                    // Hover zone that opens the island: the whole blob -- the neck up
-                    // into the frame and a margin below the clock -- not just the clock.
-                    x: pill.x
-                    y: 0
-                    width: pill.width
-                    height: pill.y + pill.height + 6 * overlay.s
-                    HoverHandler { onHoveredChanged: pill.hovered = hovered }
-                }
-
                 Pill {
                     id: pill
                     anchors.top: parent.top
@@ -474,6 +464,20 @@ ShellRoot {
 
                     onRequestSurface: (name) => root.toggleSurface(overlay.modelData.name, name)
                     onRequestClose: root.close()
+                }
+
+                Item {
+                    // Hover zone that opens the island: the whole blob -- the neck up
+                    // into the frame and a margin below the clock -- not just the clock.
+                    // Sits in front of the pill so its passive HoverHandler always
+                    // sees the pointer; the tray icons' own hoverEnabled MouseAreas
+                    // would otherwise swallow the hover and collapse the island when
+                    // crossed. Being handler-only it never blocks their clicks/hover.
+                    x: pill.x
+                    y: 0
+                    width: pill.width
+                    height: pill.y + pill.height + 6 * overlay.s
+                    HoverHandler { onHoveredChanged: pill.hovered = hovered }
                 }
 
                 MusicIsland {
