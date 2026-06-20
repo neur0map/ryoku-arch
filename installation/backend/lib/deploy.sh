@@ -53,7 +53,8 @@ ryoku_deploy_repo() {
 }
 
 # ryoku_repo_pacman_conf appends the [ryoku] stanza to /mnt/etc/pacman.conf once.
-# The single-quoted heredoc keeps $arch literal so pacman expands it per host.
+# The release bucket serves the stable channel under a /stable/ prefix, so the
+# Server carries it; the single-quoted heredoc keeps $arch literal for pacman.
 ryoku_repo_pacman_conf() {
   local conf=/mnt/etc/pacman.conf
   if [[ -z ${RYOKU_DRYRUN:-} ]] && grep -q '^\[ryoku\]' "$conf" 2>/dev/null; then
@@ -65,7 +66,7 @@ ryoku_repo_pacman_conf() {
 
 [ryoku]
 SigLevel = Required
-Server = https://repo.ryoku.dev/$arch
+Server = https://repo.ryoku.dev/stable/$arch
 EOF
 }
 

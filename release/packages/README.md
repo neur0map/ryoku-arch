@@ -1,7 +1,7 @@
 # Ryoku packages
 
 The Ryoku desktop ships as signed pacman packages served from the `[ryoku]`
-repository (`Server = https://repo.ryoku.dev/$arch`). Each directory here is one
+repository (`Server = https://repo.ryoku.dev/stable/$arch`). Each directory here is one
 package; the publish CI builds every `PKGBUILD` and pushes the results to the
 repo. Packages publish only from `main` release tags, never from `unstable-dev`.
 

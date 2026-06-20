@@ -108,4 +108,4 @@ done
 [[ -e $ARCH_DIR/$REPO_NAME.db.sig ]] || die "$REPO_NAME.db.sig missing; signing failed"
 
 log "Repo ready at $ARCH_DIR"
-log "Serves: https://repo.ryoku.dev/$REPO_ARCH/ (Server = https://repo.ryoku.dev/\$arch)"
+log "Serves: https://repo.ryoku.dev/stable/$REPO_ARCH/ (Server = https://repo.ryoku.dev/stable/\$arch)"

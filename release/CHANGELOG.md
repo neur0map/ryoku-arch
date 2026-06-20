@@ -15,7 +15,7 @@
   `ryoku-hub`, `ryoku`, `ryoku-blobs`, and the `ryoku-desktop` umbrella (configs to
   `/usr/share/ryoku/config`, helper scripts to `/usr/bin`, runtime depends).
 - `release/repo/build-repo.sh`: builds + signs every package and assembles the
-  signed `[ryoku]` pacman database, laid out for `https://repo.ryoku.dev/$arch`
+  signed `[ryoku]` pacman database, laid out for `https://repo.ryoku.dev/stable/$arch`
   (real db files, not symlinks, for R2).
 - `.github/workflows/publish-repo.yml`: builds, signs, and publishes the `[ryoku]`
   repo to Cloudflare R2 ONLY on `main` release tags (`v*`); `unstable-dev` never

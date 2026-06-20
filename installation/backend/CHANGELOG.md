@@ -61,7 +61,7 @@
 ### Changed
 - `lib/deploy.sh`: install the Ryoku desktop from the signed `[ryoku]` pacman repo
   instead of copying files. The configure stage adds `[ryoku]` (`SigLevel =
-  Required`, `Server = https://repo.ryoku.dev/$arch`) to the target, copies the
+  Required`, `Server = https://repo.ryoku.dev/stable/$arch`) to the target, copies the
   live mirrorlist in, trusts the release key (`pacman-key --populate ryoku`),
   `pacman -S`es the desktop set (`ryoku-keyring ryoku-shell ryoku-hub ryoku-blobs
   ryoku ryoku-desktop`), and runs `ryoku materialize` as the user to lay

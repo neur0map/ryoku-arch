@@ -3,7 +3,7 @@ name: "Publish [ryoku] repo"
 # Publishes the signed [ryoku] pacman repo. Triggers ONLY on main release tags
 # (git push tag v*), so a push to unstable-dev (or any branch) never publishes
 # anything user facing. Packages and the db are built from the tagged tree,
-# signed with the release key, and mirrored to https://repo.ryoku.dev/x86_64/.
+# signed with the release key, and mirrored to https://repo.ryoku.dev/stable/x86_64/.
 on:
   push:
     tags:
@@ -115,7 +115,7 @@ jobs:
           EOF
 
           # R2_BUCKET is the bucket (or bucket/prefix) backing repo.ryoku.dev.
-          # The repo is served from https://repo.ryoku.dev/x86_64/, so publish
+          # The repo is served from https://repo.ryoku.dev/stable/x86_64/, so publish
           # the freshly built x86_64/ dir into <bucket>/x86_64/. Use sync, not
           # copy, so superseded packages and any rotated-out signatures are
           # pruned from the bucket instead of lingering forever.
