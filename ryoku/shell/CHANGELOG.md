@@ -58,6 +58,11 @@
   Hub and island read real data; the dev redeploy is now `ryoku deploy` (the old
   `ryoku update` meant "deploy the mirror"; `ryoku update` is now the real pacman
   system update).
+- `deploy.sh` clears any orphaned shell surfaces (`qs -c pill`/`sidebar`/
+  `visualizer`) before it restarts the daemon. A crashed or quit daemon left them
+  running holding their single-instance lock, so the freshly restarted pill could
+  not start and the new daemon died with it, leaving a dead shell after a
+  `ryoku update` or `ryoku deploy`. The restart now always comes up clean.
 
 ### Added
 - `plugin/` (`Ryoku.Blobs`) and `quickshell/pill`: the frame border casts a soft
