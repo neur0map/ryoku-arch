@@ -21,8 +21,10 @@ wallust
 # it cannot be pacstrapped from base.
 awww-git
 
-# RyokuArch package manager (GlazePKG): every package manager in one view
-gpk-bin
+# LocalSend: AirDrop-style LAN file sharing; the pill's file stash speaks its protocol.
+localsend-bin
+
+# GlazePKG (gpk) ships first-class from the [ryoku] repo now, not the AUR.
 
 # Speech-to-text for the pill Super+` voice dictation (tap-to-toggle + mic wave).
 handy-bin

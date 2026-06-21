@@ -12,7 +12,9 @@
 - `base.packages`: the Ryoku shell runtime (`quickshell`, `awww`, `cliphist`,
   `hyprpicker`, `imagemagick`, `jq`) and the `yazi` file manager. `aur.packages`
   gains `wallust` (palette); `quickshell` moved from AUR to base (now official).
-- `aur.packages`: add `gpk-bin` (GlazePKG), the RyokuArch package manager.
+- `aur.packages`: add `localsend-bin` for the AirDrop-style LAN file sharing the
+  pill's file stash speaks to. GlazePKG (`gpk`) now ships first-class from the
+  `[ryoku]` repo as a `ryoku-desktop` dependency, so it is no longer in the AUR set.
 - `base.packages`: add `hypridle` for laptop dim/lock/suspend timeouts and
   `upower` for the shell battery surface.
 - `base.packages`: add `openrgb` for wallpaper-driven keyboard and lighting
