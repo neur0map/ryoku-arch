@@ -5,10 +5,10 @@ import Quickshell.Io
 
 /**
  * Live shell appearance config: the single source of truth for the look knobs
- * the Ryoku Hub's Shell Settings edits, and the shipped defaults the shell falls
+ * Ryoku Settings' Shell section edits, and the shipped defaults the shell falls
  * back to. Persisted as JSON at ~/.config/ryoku/shell.json and watched, so a
- * save in the Hub retunes the running shell on the next file event, with no
- * reload. The defaults here are canonical; the Hub mirrors them for its
+ * save in Ryoku Settings retunes the running shell on the next file event, with no
+ * reload. The defaults here are canonical; Ryoku Settings mirrors them for its
  * reset-to-default and seeds nothing of its own.
  *
  * Geometry is unscaled base pixels at 1080p. The island values are multiplied by

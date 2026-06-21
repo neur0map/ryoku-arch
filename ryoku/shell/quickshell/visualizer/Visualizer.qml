@@ -14,7 +14,7 @@ import "Singletons"
  * at the display's refresh rate: each band eases toward its target (fast attack,
  * slow decay) and an `activity` signal eases between the live spectrum and a calm
  * idle wave, so quiet gaps fade in and out smoothly instead of snapping off. The
- * look is read live from the visualiser Config; the Ryoku Hub edits it.
+ * look is read live from the visualiser Config; Ryoku Settings edits it.
  */
 Item {
     id: root

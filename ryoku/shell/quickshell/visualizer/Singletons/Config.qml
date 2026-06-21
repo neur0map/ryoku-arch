@@ -5,10 +5,10 @@ import Quickshell.Io
 
 /**
  * Live config for the desktop visualiser, the single source of truth for the
- * knobs the Ryoku Hub's Shell Settings edits and the shipped defaults it falls
+ * knobs Ryoku Settings' Shell section edits and the shipped defaults it falls
  * back to. Persisted as JSON at ~/.config/ryoku/visualizer.json and watched, so a
- * save in the Hub (or a Super+M toggle) retunes the running spectrum on the next
- * file event, with no reload. The defaults here are canonical; the Hub mirrors
+ * save in Ryoku Settings (or a Super+M toggle) retunes the running spectrum on the next
+ * file event, with no reload. The defaults here are canonical; Ryoku Settings mirrors
  * them for its reset-to-default.
  *
  * Fractions are of the monitor height or the per-band slot, matching how the

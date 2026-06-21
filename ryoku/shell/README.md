@@ -21,7 +21,7 @@ package as the base config under `/usr/share/ryoku/config`, which
   size, rounding, colour, opacity, shadows) and `~/.config/ryoku/visualizer.json`
   (spectrum on/off, style, position, shape, mirror, bars, height, width, bloom,
   reflection, idle wave), watched so
-  Ryoku Hub's Shell Settings retunes the look with no reload; their defaults are the
+  Ryoku Settings' Shell section retunes the look with no reload; their defaults are the
   shipped look and seed the files on first run.
 - `plugin/` `Ryoku.Blobs`, the C++/QML SDF metaball module the frame renders
   with: the border, the pill, and the popouts melt into one blob field. `build.sh`
