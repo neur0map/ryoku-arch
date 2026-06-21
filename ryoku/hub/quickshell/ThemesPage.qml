@@ -1,24 +1,25 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Quickshell.Io
 import "Singletons"
 
-// Themes: full-system "rices". Each is a folder under ~/.config/hypr/themes/ with
-// its look (rounding, gaps, blur, opacity, layout) and, for fixed palettes, a
-// 16-colour scheme. Applying one (ryoku-hub hypr theme <slug>) sets the appearance
-// store so the Look/Borders tabs reflect it, writes the palette every consumer
-// reads (kitty, the visualiser, window borders), and reloads. The shell frame and
-// island keep the Ryoku identity by design.
+// Themes: full-system "rices" as a bento grid, in the Extras catalogue style.
+// Picking one swaps the look and real Hyprland Lua (motion, finish) via
+// `ryoku-hub hypr theme <slug>`. Colours are a separate axis: the toggle decides
+// whether they track the wallpaper or use each theme's own palette, so switching
+// themes never silently changes your colours. The frame and island stay Ryoku.
 //
-// Embedded as an Appearance tab: it has no Flickable of its own and grows by
+// Embedded as an Appearance tab: no Flickable of its own; it grows by
 // implicitHeight so the tab's outer Flickable scrolls it.
-import Quickshell.Io
-
 Item {
     id: page
 
     property var themes: []
+    property bool followWallpaper: true
     property bool loading: true
     property string applying: ""
+
+    readonly property int cols: width >= 1100 ? 3 : (width >= 720 ? 2 : 1)
 
     implicitWidth: 600
     implicitHeight: col.implicitHeight
@@ -30,13 +31,44 @@ Item {
         applyProc.command = ["ryoku-hub", "hypr", "theme", slug];
         applyProc.running = true;
     }
+    function setFollow(on) {
+        page.followWallpaper = on;
+        colorProc.command = ["ryoku-hub", "hypr", "colorsource", on ? "follow" : "fixed"];
+        colorProc.running = true;
+    }
+
+    // Greedy masonry: place each tile in the shortest column (estimated by blurb
+    // length) so the columns stay balanced, like the Extras grid.
+    function buildColumns(list, n) {
+        var c = [], h = [], i;
+        for (i = 0; i < n; i++) { c.push([]); h.push(0); }
+        for (i = 0; i < list.length; i++) {
+            var est = 170 + Math.ceil(((list[i].blurb || "").length) / 30) * 16;
+            var min = 0;
+            for (var j = 1; j < n; j++)
+                if (h[j] < h[min]) min = j;
+            c[min].push(list[i]);
+            h[min] += est + 14;
+        }
+        return c;
+    }
+    readonly property var grouped: buildColumns(page.themes, page.cols)
 
     Process {
         id: listProc
         command: ["ryoku-hub", "hypr", "themes"]
         stdout: StdioCollector {
             onStreamFinished: {
-                try { page.themes = JSON.parse(this.text); } catch (e) { page.themes = []; }
+                try {
+                    var o = JSON.parse(this.text);
+                    var ts = o.themes || [];
+                    for (var i = 0; i < ts.length; i++)
+                        ts[i].ordinal = i + 1;
+                    page.themes = ts;
+                    page.followWallpaper = !!o.followWallpaper;
+                } catch (e) {
+                    page.themes = [];
+                }
                 page.loading = false;
             }
         }
@@ -44,26 +76,76 @@ Item {
     Process {
         id: applyProc
         stdout: StdioCollector {
-            onStreamFinished: {
-                page.applying = "";
-                listProc.running = true;
-            }
+            onStreamFinished: { page.applying = ""; listProc.running = true; }
         }
     }
+    Process { id: colorProc }
 
     Column {
         id: col
         width: page.width
-        spacing: 18
+        spacing: 16
 
-        Text {
+        // colour-source toggle
+        Rectangle {
             width: parent.width
-            wrapMode: Text.WordWrap
-            text: "Full-system looks. A theme restyles your windows, borders, terminal, and palette in one click. The frame and island keep the Ryoku identity."
-            color: Theme.subtle
-            font.family: Theme.font
-            font.pixelSize: 13
-            font.weight: Font.Medium
+            height: 64
+            radius: 14
+            color: Theme.surfaceLo
+            border.width: 1
+            border.color: Theme.line
+
+            Column {
+                anchors.left: parent.left
+                anchors.leftMargin: 18
+                anchors.right: sw.left
+                anchors.rightMargin: 16
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2
+                Text {
+                    text: "Colours follow wallpaper"
+                    color: Theme.bright
+                    font.family: Theme.font
+                    font.pixelSize: 14
+                    font.weight: Font.DemiBold
+                }
+                Text {
+                    width: parent.width
+                    elide: Text.ElideRight
+                    text: page.followWallpaper
+                        ? "Themes change the look; colours come from your wallpaper."
+                        : "Each theme uses its own palette; the wallpaper won't change colours."
+                    color: Theme.dim
+                    font.family: Theme.font
+                    font.pixelSize: 12
+                }
+            }
+
+            Rectangle {
+                id: sw
+                anchors.right: parent.right
+                anchors.rightMargin: 18
+                anchors.verticalCenter: parent.verticalCenter
+                width: 46
+                height: 26
+                radius: 13
+                color: page.followWallpaper ? Theme.ember : Theme.keyTop
+                border.width: 1
+                border.color: page.followWallpaper ? Theme.ember : Theme.line
+                Behavior on color { ColorAnimation { duration: Theme.quick } }
+
+                Rectangle {
+                    width: 20
+                    height: 20
+                    radius: 10
+                    y: 3
+                    x: page.followWallpaper ? parent.width - width - 3 : 3
+                    color: page.followWallpaper ? Theme.onAccent : Theme.dim
+                    Behavior on x { NumberAnimation { duration: Theme.quick; easing.type: Theme.ease } }
+                }
+                HoverHandler { cursorShape: Qt.PointingHandCursor }
+                TapHandler { onTapped: page.setFollow(!page.followWallpaper) }
+            }
         }
 
         Text {
@@ -74,119 +156,31 @@ Item {
             font.pixelSize: 14
         }
 
-        Flow {
+        // bento masonry
+        Row {
+            id: masonry
             width: parent.width
             spacing: 14
+            visible: !page.loading
 
             Repeater {
-                model: page.themes
+                model: page.cols
+                delegate: Column {
+                    id: column
+                    required property int index
+                    width: (masonry.width - (page.cols - 1) * 14) / page.cols
+                    spacing: 14
 
-                delegate: Rectangle {
-                    id: card
-                    required property var modelData
-                    readonly property bool active: !!card.modelData.active
-                    readonly property bool busy: page.applying === card.modelData.slug
-
-                    width: (col.width - 28) / 3
-                    height: 170
-                    radius: 14
-                    color: hov.hovered ? Theme.surface : Theme.surfaceLo
-                    border.width: card.active ? 2 : 1
-                    border.color: card.active ? Theme.ember : Theme.line
-                    scale: hov.hovered && !card.active ? 1.012 : 1
-                    Behavior on border.color { ColorAnimation { duration: Theme.quick } }
-                    Behavior on color { ColorAnimation { duration: Theme.quick } }
-                    Behavior on scale { NumberAnimation { duration: Theme.quick; easing.type: Theme.ease } }
-
-                    HoverHandler { id: hov; cursorShape: Qt.PointingHandCursor }
-                    TapHandler { onTapped: if (!card.active) page.apply(card.modelData.slug) }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 16
-                        spacing: 12
-
-                        Item {
-                            width: parent.width
-                            height: 22
-                            Text {
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: card.modelData.name
-                                color: Theme.bright
-                                font.family: Theme.font
-                                font.pixelSize: 16
-                                font.weight: Font.DemiBold
-                            }
-                            Rectangle {
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                visible: card.active
-                                width: 20; height: 20; radius: 10
-                                color: Theme.ember
-                                Icon { anchors.centerIn: parent; name: "check"; size: 12; tint: Theme.onAccent }
-                            }
-                            Text {
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                visible: card.busy
-                                text: "applying\u2026"
-                                color: Theme.dim
-                                font.family: Theme.font
-                                font.pixelSize: 11
-                            }
-                        }
-
-                        Row {
-                            width: parent.width
-                            spacing: 5
-                            Repeater {
-                                model: card.modelData.swatch || []
-                                delegate: Rectangle {
-                                    required property string modelData
-                                    width: (card.width - 32 - 25) / 6
-                                    height: 22
-                                    radius: 5
-                                    color: modelData
-                                }
-                            }
-                        }
-
-                        Text {
-                            width: parent.width
-                            wrapMode: Text.WordWrap
-                            maximumLineCount: 2
-                            elide: Text.ElideRight
-                            text: card.modelData.blurb
-                            color: Theme.dim
-                            font.family: Theme.font
-                            font.pixelSize: 12
-                        }
-
-                        Row {
-                            width: parent.width
-                            spacing: 6
-                            Repeater {
-                                model: card.modelData.tags || []
-                                delegate: Rectangle {
-                                    required property string modelData
-                                    height: 18
-                                    width: tagText.width + 16
-                                    radius: 9
-                                    color: Theme.keyTop
-                                    border.width: 1
-                                    border.color: Theme.line
-                                    Text {
-                                        id: tagText
-                                        anchors.centerIn: parent
-                                        text: parent.modelData
-                                        color: Theme.subtle
-                                        font.family: Theme.font
-                                        font.pixelSize: 10
-                                        font.weight: Font.Medium
-                                    }
-                                }
-                            }
+                    Repeater {
+                        model: page.grouped[column.index] || []
+                        delegate: ThemeTile {
+                            required property var modelData
+                            width: column.width
+                            theme: modelData
+                            ordinal: modelData.ordinal || 0
+                            active: !!modelData.active
+                            busy: page.applying === modelData.slug
+                            onApplied: page.apply(modelData.slug)
                         }
                     }
                 }

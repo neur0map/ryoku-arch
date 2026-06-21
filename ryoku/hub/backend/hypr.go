@@ -323,6 +323,11 @@ func runHypr(args []string) error {
 			return fmt.Errorf("hypr theme needs a slug")
 		}
 		return applyTheme(args[1])
+	case "colorsource":
+		if len(args) < 2 {
+			return fmt.Errorf("hypr colorsource needs follow|fixed")
+		}
+		return setFollowWallpaper(args[1] == "follow")
 	default:
 		return fmt.Errorf("unknown hypr subcommand: %s", args[0])
 	}

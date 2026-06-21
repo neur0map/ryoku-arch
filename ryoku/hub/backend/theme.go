@@ -10,45 +10,60 @@ import (
 	"strings"
 )
 
-// Themes are full-system "rices": each lives in its own folder under
-// ~/.config/hypr/themes/<slug>/ with a theme.json (metadata + the Hyprland look)
-// and, for fixed-palette themes, a colors.json (the 16-colour scheme). Applying a
-// theme reuses the override engine: it sets the appearance store (so the Look and
-// Borders tabs reflect it and can be fine-tuned on top) and, when the palette is
-// fixed, writes the wallust dsts every consumer already reads (colors.json for the
-// live visualiser, current-theme.conf for kitty) and locks the palette so a
-// wallpaper change does not overwrite it. The shell frame and island keep their
-// own brand look by design.
+// Themes are full-system "rices", each its own folder under ~/.config/hypr/themes/
+// <slug>/:
+//   - theme.json   metadata + the look (the appearance store values).
+//   - init.lua     real Hyprland Lua loaded as the active theme: the motion design
+//                  (bezier curves, per-leaf animation feel) and the decoration
+//                  nuances the store cannot express (rounding power, blur vibrancy,
+//                  shadow). This is the "actual system change", not just colours.
+//   - colors.json  the 16-colour palette, used only when colours do not follow the
+//                  wallpaper.
+//
+// Applying a theme: the look folds onto the appearance store (so the Look/Borders
+// tabs reflect it), init.lua is copied to ~/.config/hypr/theme.lua (loaded by
+// hyprland.lua after the base modules and before settings.lua, so a user knob still
+// wins), and the palette is set per the colour-source toggle. The toggle is global
+// and independent of the theme: colours either track the wallpaper (wallust) or use
+// the theme's fixed palette. The shell frame and island keep the Ryoku identity.
 
 // ThemeFile is themes/<slug>/theme.json.
 type ThemeFile struct {
-	Name   string          `json:"name"`
-	Blurb  string          `json:"blurb"`
-	Tags   []string        `json:"tags"`
-	Fixed  bool            `json:"fixed"`
-	Accent string          `json:"accent"`
-	Swatch []string        `json:"swatch"`
-	Look   json.RawMessage `json:"look"`
+	Name       string          `json:"name"`
+	Blurb      string          `json:"blurb"`
+	Summary    string          `json:"summary"`
+	Tags       []string        `json:"tags"`
+	Accent     string          `json:"accent"`
+	Swatch     []string        `json:"swatch"`
+	HasPalette bool            `json:"hasPalette"`
+	Look       json.RawMessage `json:"look"`
 }
 
 // ThemeListItem is the GUI-facing summary (no look payload).
 type ThemeListItem struct {
-	Slug   string   `json:"slug"`
-	Name   string   `json:"name"`
-	Blurb  string   `json:"blurb"`
-	Tags   []string `json:"tags"`
-	Fixed  bool     `json:"fixed"`
-	Accent string   `json:"accent"`
-	Swatch []string `json:"swatch"`
-	Active bool     `json:"active"`
+	Slug    string   `json:"slug"`
+	Name    string   `json:"name"`
+	Blurb   string   `json:"blurb"`
+	Summary string   `json:"summary"`
+	Tags    []string `json:"tags"`
+	Accent  string   `json:"accent"`
+	Swatch  []string `json:"swatch"`
+	Active  bool     `json:"active"`
+}
+
+// ThemesResponse is `ryoku-hub hypr themes`: the colour-source toggle plus the list.
+type ThemesResponse struct {
+	FollowWallpaper bool            `json:"followWallpaper"`
+	Themes          []ThemeListItem `json:"themes"`
 }
 
 type themeState struct {
-	Slug  string `json:"slug"`
-	Fixed bool   `json:"fixed"`
+	Slug            string `json:"slug"`
+	FollowWallpaper bool   `json:"followWallpaper"`
 }
 
-func themesDir() string { return filepath.Join(hyprConfigDir(), "themes") }
+func themesDir() string          { return filepath.Join(hyprConfigDir(), "themes") }
+func activeThemeLuaPath() string { return filepath.Join(hyprConfigDir(), "theme.lua") }
 
 func wallustCacheDir() string {
 	base := os.Getenv("XDG_CACHE_HOME")
@@ -82,16 +97,25 @@ func wallpaperStatePath() string {
 	return filepath.Join(base, "ryoku-wallpaper")
 }
 
-func activeThemeSlug() string {
-	var s themeState
+// loadThemeState defaults FollowWallpaper to true on a missing/blank file (the
+// shipped behaviour: colours track the wallpaper).
+func loadThemeState() themeState {
+	s := themeState{FollowWallpaper: true}
 	if b, err := os.ReadFile(themeStatePath()); err == nil {
 		_ = json.Unmarshal(b, &s)
 	}
-	return s.Slug
+	return s
+}
+
+func saveThemeState(s themeState) {
+	_ = atomicWrite(themeStatePath(), mustJSON(s), 0o644)
 }
 
 func loadThemeFile(slug string) (ThemeFile, error) {
 	var t ThemeFile
+	if slug == "" {
+		return t, fmt.Errorf("no theme")
+	}
 	b, err := os.ReadFile(filepath.Join(themesDir(), slug, "theme.json"))
 	if err != nil {
 		return t, err
@@ -99,10 +123,10 @@ func loadThemeFile(slug string) (ThemeFile, error) {
 	return t, json.Unmarshal(b, &t)
 }
 
-func listThemes() []ThemeListItem {
-	active := activeThemeSlug()
+func listThemes() ThemesResponse {
+	st := loadThemeState()
 	entries, _ := os.ReadDir(themesDir())
-	out := []ThemeListItem{}
+	items := []ThemeListItem{}
 	for _, e := range entries {
 		if !e.IsDir() {
 			continue
@@ -111,19 +135,17 @@ func listThemes() []ThemeListItem {
 		if err != nil {
 			continue
 		}
-		out = append(out, ThemeListItem{
-			Slug: e.Name(), Name: t.Name, Blurb: t.Blurb, Tags: t.Tags,
-			Fixed: t.Fixed, Accent: t.Accent, Swatch: t.Swatch, Active: e.Name() == active,
+		items = append(items, ThemeListItem{
+			Slug: e.Name(), Name: t.Name, Blurb: t.Blurb, Summary: t.Summary,
+			Tags: t.Tags, Accent: t.Accent, Swatch: t.Swatch, Active: e.Name() == st.Slug,
 		})
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
-	return out
+	sort.Slice(items, func(i, j int) bool { return items[i].Name < items[j].Name })
+	return ThemesResponse{FollowWallpaper: st.FollowWallpaper, Themes: items}
 }
 
-// applyTheme loads the theme, folds its look onto the default appearance, sets the
-// palette (fixed: write the wallust dsts + lock; wallpaper-driven: re-derive from
-// the current wallpaper), persists the store, regenerates settings.lua, and
-// applies live.
+// applyTheme sets the look store, installs the theme's init.lua, applies the
+// palette per the current colour-source toggle, and reloads.
 func applyTheme(slug string) error {
 	dir := filepath.Join(themesDir(), slug)
 	tf, err := loadThemeFile(slug)
@@ -138,31 +160,7 @@ func applyTheme(slug string) error {
 			return fmt.Errorf("theme %q look: %w", slug, err)
 		}
 	}
-
-	if tf.Fixed {
-		pal, err := loadPalette(filepath.Join(dir, "colors.json"))
-		if err != nil {
-			return fmt.Errorf("theme %q palette: %w", slug, err)
-		}
-		app.FollowWallpaper = false
-		if tf.Accent != "" {
-			app.ActiveBorder = tf.Accent
-		}
-		if bg := pal["background"]; bg != "" {
-			app.InactiveBorder = bg
-		}
-		if err := os.MkdirAll(wallustCacheDir(), 0o755); err != nil {
-			return err
-		}
-		_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(pal), 0o644)
-		_ = atomicWrite(kittyThemePath(), []byte(renderKitty(pal)), 0o644)
-	} else {
-		app.FollowWallpaper = true
-		if pic := currentWallpaper(); pic != "" {
-			_ = exec.Command("wallust", "run", pic).Run()
-		}
-	}
-
+	app.FollowWallpaper = true // borders come from the wallust palette, set below
 	o.Appearance = app
 	if err := saveOverrides(o); err != nil {
 		return err
@@ -170,11 +168,71 @@ func applyTheme(slug string) error {
 	if err := writeGeneratedLua(o); err != nil {
 		return err
 	}
-	_ = atomicWrite(themeStatePath(), mustJSON(themeState{Slug: slug, Fixed: tf.Fixed}), 0o644)
+
+	// The real-Lua layer: motion + decoration nuances.
+	if init, err := os.ReadFile(filepath.Join(dir, "init.lua")); err == nil {
+		_ = atomicWrite(activeThemeLuaPath(), init, 0o644)
+	} else {
+		_ = atomicWrite(activeThemeLuaPath(), []byte("-- "+slug+": no extra Lua\n"), 0o644)
+	}
+
+	st := loadThemeState()
+	st.Slug = slug
+	saveThemeState(st)
+	applyPalette(dir, st.FollowWallpaper, tf.HasPalette)
 
 	hyprReload()
 	_ = exec.Command("pkill", "-USR1", "-x", "kitty").Run()
 	return nil
+}
+
+// setFollowWallpaper flips the colour source and re-applies the palette for the
+// active theme.
+func setFollowWallpaper(follow bool) error {
+	st := loadThemeState()
+	st.FollowWallpaper = follow
+	saveThemeState(st)
+	hasPalette := false
+	dir := ""
+	if st.Slug != "" {
+		dir = filepath.Join(themesDir(), st.Slug)
+		if tf, err := loadThemeFile(st.Slug); err == nil {
+			hasPalette = tf.HasPalette
+		}
+	}
+	applyPalette(dir, follow, hasPalette)
+	hyprReload()
+	_ = exec.Command("pkill", "-USR1", "-x", "kitty").Run()
+	return nil
+}
+
+// applyPalette writes the wallust dsts every consumer reads. Following the
+// wallpaper (or a theme with no palette) re-derives them with wallust; otherwise
+// the theme's fixed palette is written and the wallpaper lock keeps it.
+func applyPalette(dir string, follow, hasPalette bool) {
+	if follow || !hasPalette || dir == "" {
+		if pic := currentWallpaper(); pic != "" {
+			_ = exec.Command("wallust", "run", pic).Run()
+		}
+		return
+	}
+	pal, err := loadPalette(filepath.Join(dir, "colors.json"))
+	if err != nil {
+		return
+	}
+	_ = os.MkdirAll(wallustCacheDir(), 0o755)
+	_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(pal), 0o644)
+	_ = atomicWrite(filepath.Join(wallustCacheDir(), "hypr-colors.lua"),
+		[]byte(fmt.Sprintf("return {\n    active = %q,\n    inactive = %q,\n}\n", paletteAccent(pal), pal["background"])), 0o644)
+	_ = atomicWrite(kittyThemePath(), []byte(renderKitty(pal)), 0o644)
+}
+
+// paletteAccent is the active-border colour: color4 by wallust convention.
+func paletteAccent(p map[string]string) string {
+	if c := p["color4"]; c != "" {
+		return c
+	}
+	return p["foreground"]
 }
 
 func loadPalette(path string) (map[string]string, error) {
