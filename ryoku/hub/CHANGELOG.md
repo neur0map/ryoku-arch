@@ -109,3 +109,13 @@
   only hid the window while the process kept running, pinning the lock so further
   presses silently no-opped. The `FloatingWindow` now quits on its `closed`
   signal, so every dismissal releases the lock.
+- Animations: the bezier editor clamps control points to Hyprland's valid range
+  (X in [0,1], Y in [-1,2]) and the canvas spans exactly that, so a handle dragged
+  off-canvas can no longer write an out-of-range curve that broke `settings.lua`
+  on reload (and silently stopped every other override from applying).
+- Displays: Mirror and Extend are disabled with a single monitor, and a failed or
+  empty detection shows a clear message with a Retry button instead of a permanent
+  "Detecting displays" (most often a stale `ryoku-monitor` without the `list`
+  subcommand; see the shell deploy fix).
+- Appearance: the tab content is top-aligned instead of vertically centred, so the
+  shorter tabs (Cursor, Wallpaper, Comfort) no longer open with a large gap.

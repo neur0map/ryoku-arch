@@ -191,7 +191,7 @@ Item {
             id: loader
             width: flick.width - 12
             height: item ? item.implicitHeight : 0
-            y: Math.max(0, (flick.height - loader.height) / 2)
+            y: 0
             sourceComponent: page.group === "look" ? lookComp
                 : page.group === "borders" ? bordersComp
                 : page.group === "cursor" ? cursorComp

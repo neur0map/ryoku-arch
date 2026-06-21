@@ -16,9 +16,12 @@ Item {
     property real y1: 1.0
     signal changed(real x0, real y0, real x1, real y1)
 
+    // Hyprland requires control-point X in [0,1] and Y in [-1,2]; the canvas spans
+    // exactly that range and ux/uy clamp to it, so a handle can never produce an
+    // out-of-range value that breaks the config on reload.
     readonly property real pad: 18
-    readonly property real yMin: -0.45
-    readonly property real yMax: 1.55
+    readonly property real yMin: -1.0
+    readonly property real yMax: 2.0
 
     implicitWidth: 300
     implicitHeight: 280
@@ -26,7 +29,7 @@ Item {
     function px(x) { return ed.pad + x * (ed.width - 2 * ed.pad); }
     function py(y) { return ed.height - ed.pad - (y - ed.yMin) / (ed.yMax - ed.yMin) * (ed.height - 2 * ed.pad); }
     function ux(p) { return Math.max(0, Math.min(1, (p - ed.pad) / (ed.width - 2 * ed.pad))); }
-    function uy(p) { return ed.yMin + (ed.height - ed.pad - p) / (ed.height - 2 * ed.pad) * (ed.yMax - ed.yMin); }
+    function uy(p) { return Math.max(ed.yMin, Math.min(ed.yMax, ed.yMin + (ed.height - ed.pad - p) / (ed.height - 2 * ed.pad) * (ed.yMax - ed.yMin))); }
 
     onX0Changed: cv.requestPaint()
     onY0Changed: cv.requestPaint()

@@ -22,6 +22,8 @@ Item {
     property int tick: 0
     property string committed: "[]"
     property var profiles: []
+    property bool listed: false
+    property bool listFailed: false
 
     property bool dragging: false
     property var frozen: ({ "k": 1, "ox": 0, "oy": 0 })
@@ -37,6 +39,8 @@ Item {
             onStreamFinished: {
                 try {
                     var arr = JSON.parse(this.text);
+                    if (!Array.isArray(arr))
+                        throw "not an array";
                     var d = [];
                     for (var i = 0; i < arr.length; i++)
                         d.push(page.clone(arr[i]));
@@ -45,9 +49,13 @@ Item {
                     page.committed = JSON.stringify(page.specsAll());
                     if (page.selected >= d.length)
                         page.selected = 0;
+                    page.listFailed = false;
+                    page.listed = true;
                     page.tick++;
                 } catch (e) {
-                    console.log("hub: monitor list parse failed: " + e);
+                    page.listFailed = true;
+                    page.listed = true;
+                    console.log("hub: monitor list failed (is ryoku-monitor up to date?): " + e);
                 }
             }
         }
@@ -295,9 +303,9 @@ Item {
         anchors.right: parent.right
         anchors.verticalCenter: detected.verticalCenter
         spacing: 8
-        HubButton { label: "Mirror"; icon: "display"; onClicked: page.quick("mirror") }
-        HubButton { label: "Extend"; icon: "display"; onClicked: page.quick("extend") }
-        HubButton { label: "DPI auto-scale"; icon: "refresh"; onClicked: page.quick("autoscale") }
+        HubButton { label: "Mirror"; icon: "display"; enabled: page.monCount > 1; onClicked: page.quick("mirror") }
+        HubButton { label: "Extend"; icon: "display"; enabled: page.monCount > 1; onClicked: page.quick("extend") }
+        HubButton { label: "DPI auto-scale"; icon: "refresh"; enabled: page.monCount > 0; onClicked: page.quick("autoscale") }
     }
 
     Row {
@@ -357,13 +365,39 @@ Item {
                 }
             }
 
-            Text {
+            Column {
                 anchors.centerIn: parent
                 visible: page.monCount === 0
-                text: "Detecting displays\u2026"
-                color: Theme.dim
-                font.family: Theme.font
-                font.pixelSize: 14
+                spacing: 12
+                width: Math.min(parent.width - 64, 360)
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: !page.listed ? "Detecting displays\u2026"
+                        : page.listFailed ? "Couldn't read your displays."
+                        : "No displays detected."
+                    color: Theme.dim
+                    font.family: Theme.font
+                    font.pixelSize: 14
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width
+                    visible: page.listFailed
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    text: "The ryoku-monitor helper looks out of date. Run 'ryoku deploy' (or update the desktop) and retry."
+                    color: Theme.faint
+                    font.family: Theme.font
+                    font.pixelSize: 12
+                }
+                HubButton {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: page.listed
+                    label: "Retry"
+                    icon: "refresh"
+                    onClicked: page.reload()
+                }
             }
 
             Text {
