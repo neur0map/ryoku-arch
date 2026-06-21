@@ -20,7 +20,8 @@ truth for the live desktop.
   (`pip.conf`). `mimeapps.list` sets default apps.
 - `hyprland/` the Hyprland config, authored in **Lua**. `hyprland.lua` is the
   entry point and `require`s each module. `keyboard.lua`, `gpu.lua`,
-  `monitors.lua` are hardware-managed seeds. `modules/` is one concern per file
+  `monitors.lua` are hardware-managed seeds; `themes/` holds the full-system theme
+  rices Ryoku Settings applies. `modules/` is one concern per file
   (`env`, `input`, `displays`, `decoration`, `animations`, `binds`, `ryoshot`,
   `window_rules`, `fullscreen`, `autostart`). `scripts/` holds the leaf shell helpers the UI
   calls directly: the `ryoku-cmd-*` screen tools (lens, OCR, color, QR, webcam
