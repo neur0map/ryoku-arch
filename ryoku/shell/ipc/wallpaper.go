@@ -193,8 +193,9 @@ func (d *daemon) paintWorker() {
 	}
 }
 
-// themePaletteLocked reports whether a fixed-palette theme (set in Ryoku Settings)
-// owns the colours. State lives at ~/.config/ryoku/theme.json: { "fixed": true }.
+// themePaletteLocked reports whether a Ryoku Settings theme owns the colours, so a
+// wallpaper change keeps them. State at ~/.config/ryoku/theme.json: colours are
+// locked when the colour source does not follow the wallpaper.
 func themePaletteLocked() bool {
 	base := os.Getenv("XDG_CONFIG_HOME")
 	if base == "" {
@@ -204,10 +205,11 @@ func themePaletteLocked() bool {
 	if err != nil {
 		return false
 	}
-	var s struct {
-		Fixed bool `json:"fixed"`
-	}
-	return json.Unmarshal(b, &s) == nil && s.Fixed
+	// Default true when absent (the shipped behaviour follows the wallpaper).
+	s := struct {
+		FollowWallpaper bool `json:"followWallpaper"`
+	}{FollowWallpaper: true}
+	return json.Unmarshal(b, &s) == nil && !s.FollowWallpaper
 }
 
 // ledsWorker pushes the accent color to OpenRGB devices. OpenRGB device detection
