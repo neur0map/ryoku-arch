@@ -1,0 +1,34 @@
+{
+  "name": "Aqua",
+  "blurb": "Apple-style liquid glass: big rounding, heavy frost, translucent.",
+  "tags": [
+    "rounded",
+    "glass",
+    "cool"
+  ],
+  "fixed": true,
+  "accent": "#5ac8fa",
+  "swatch": [
+    "#0d1117",
+    "#5ac8fa",
+    "#58a6ff",
+    "#7ee787",
+    "#ff7b72",
+    "#bc8cff"
+  ],
+  "look": {
+    "rounding": 20,
+    "gapsIn": 10,
+    "gapsOut": 22,
+    "borderSize": 1,
+    "blurEnabled": true,
+    "blurSize": 12,
+    "blurPasses": 4,
+    "shadowEnabled": true,
+    "shadowRange": 40,
+    "activeOpacity": 0.92,
+    "inactiveOpacity": 0.84,
+    "layout": "dwindle",
+    "animations": true
+  }
+}

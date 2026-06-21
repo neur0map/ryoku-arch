@@ -1,0 +1,34 @@
+{
+  "name": "Rosé Pine",
+  "blurb": "Muted, elegant, and a little romantic.",
+  "tags": [
+    "rounded",
+    "muted",
+    "dark"
+  ],
+  "fixed": true,
+  "accent": "#ebbcba",
+  "swatch": [
+    "#191724",
+    "#ebbcba",
+    "#c4a7e7",
+    "#9ccfd8",
+    "#eb6f92",
+    "#f6c177"
+  ],
+  "look": {
+    "rounding": 14,
+    "gapsIn": 8,
+    "gapsOut": 20,
+    "borderSize": 2,
+    "blurEnabled": true,
+    "blurSize": 6,
+    "blurPasses": 2,
+    "shadowEnabled": true,
+    "shadowRange": 26,
+    "activeOpacity": 0.96,
+    "inactiveOpacity": 0.9,
+    "layout": "dwindle",
+    "animations": true
+  }
+}

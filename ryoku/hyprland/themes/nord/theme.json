@@ -1,0 +1,34 @@
+{
+  "name": "Nord",
+  "blurb": "Cool arctic minimalism. Calm frost blues.",
+  "tags": [
+    "cool",
+    "minimal",
+    "dark"
+  ],
+  "fixed": true,
+  "accent": "#88c0d0",
+  "swatch": [
+    "#2e3440",
+    "#88c0d0",
+    "#81a1c1",
+    "#a3be8c",
+    "#bf616a",
+    "#ebcb8b"
+  ],
+  "look": {
+    "rounding": 10,
+    "gapsIn": 8,
+    "gapsOut": 18,
+    "borderSize": 2,
+    "blurEnabled": true,
+    "blurSize": 5,
+    "blurPasses": 2,
+    "shadowEnabled": true,
+    "shadowRange": 22,
+    "activeOpacity": 0.97,
+    "inactiveOpacity": 0.92,
+    "layout": "dwindle",
+    "animations": true
+  }
+}

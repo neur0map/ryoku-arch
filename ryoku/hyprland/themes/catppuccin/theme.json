@@ -1,0 +1,34 @@
+{
+  "name": "Catppuccin",
+  "blurb": "Mocha: soft pastel mauve on a calm dark base.",
+  "tags": [
+    "rounded",
+    "pastel",
+    "dark"
+  ],
+  "fixed": true,
+  "accent": "#cba6f7",
+  "swatch": [
+    "#1e1e2e",
+    "#cba6f7",
+    "#f5c2e7",
+    "#a6e3a1",
+    "#f38ba8",
+    "#fab387"
+  ],
+  "look": {
+    "rounding": 12,
+    "gapsIn": 8,
+    "gapsOut": 18,
+    "borderSize": 2,
+    "blurEnabled": true,
+    "blurSize": 6,
+    "blurPasses": 2,
+    "shadowEnabled": true,
+    "shadowRange": 24,
+    "activeOpacity": 0.96,
+    "inactiveOpacity": 0.9,
+    "layout": "dwindle",
+    "animations": true
+  }
+}

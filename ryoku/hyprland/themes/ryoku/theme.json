@@ -1,0 +1,34 @@
+{
+  "name": "Ryoku",
+  "blurb": "Wallpaper-driven warmth. Borders and accents follow your wallpaper.",
+  "tags": [
+    "warm",
+    "glass",
+    "adaptive"
+  ],
+  "fixed": false,
+  "accent": "#e0563b",
+  "swatch": [
+    "#1a1410",
+    "#e0563b",
+    "#ff7a45",
+    "#f0a868",
+    "#c4411d",
+    "#e8ddd4"
+  ],
+  "look": {
+    "rounding": 16,
+    "gapsIn": 8,
+    "gapsOut": 26,
+    "borderSize": 3,
+    "blurEnabled": true,
+    "blurSize": 8,
+    "blurPasses": 3,
+    "shadowEnabled": true,
+    "shadowRange": 30,
+    "activeOpacity": 0.96,
+    "inactiveOpacity": 0.9,
+    "layout": "dwindle",
+    "animations": true
+  }
+}

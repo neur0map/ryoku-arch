@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- `hyprland/themes/`: full-system theme "rices", one folder each: the look
+  (`theme.json`) and, for a fixed palette, a 16-colour `colors.json`. Ships Tokyo
+  Night, Aqua (glass), Catppuccin, Gruvbox, Nord, Rosé Pine, and the
+  wallpaper-driven Ryoku. Ryoku Settings applies them.
 - `hyprland/hyprland.lua`: loads a generated `settings.lua` after the base modules
   and before `user.lua`, the override file Ryoku Settings writes. Missing by
   default (a `pcall` no-op); the hub creates it on first use. `window_rules` and
