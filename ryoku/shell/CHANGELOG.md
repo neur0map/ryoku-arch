@@ -57,6 +57,12 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- `deploy.sh` preserves the user's own and per-machine generated Hyprland files
+  across a redeploy. The config swap still replaces the shipped base, but now
+  restores `user.lua`, `monitors_user.lua`, `settings.lua`, `theme.lua`,
+  `monitors.lua`, and `gpu.lua` from the backup afterwards, so a dev redeploy (or
+  `ryoku update` on a checkout) never resets your settings, theme, display layout,
+  or GPU pin, matching `ryoku materialize` on a packaged install.
 - `quickshell/pill` update island: re-check `ryoku status` on a steady cadence
   (every 5 min) instead of only once at startup, so the island reliably surfaces
   updates that appear during a session and recovers if the first check came back

@@ -124,7 +124,12 @@ if (( hypr_live )); then
   hyprctl keyword misc:disable_autoreload true >/dev/null 2>&1 || true
 fi
 
-# Hyprland config replaces the base. Back up an existing one first.
+# Hyprland config replaces the base, but the user's own files and the per-machine
+# generated drop-ins must survive a redeploy, exactly as `ryoku materialize`
+# preserves them on a packaged install: ryoku-monitor writes monitors.lua,
+# ryoku-gpu writes gpu.lua, the hub writes settings.lua, theme apply writes
+# theme.lua, and the user may keep user.lua / monitors_user.lua.
+preserve=(user.lua monitors_user.lua settings.lua theme.lua monitors.lua gpu.lua)
 if [[ -d $cfg/hypr ]]; then
   bak="$cfg/hypr.bak-$(date +%Y%m%d%H%M%S)"
   cp -a "$cfg/hypr" "$bak"
@@ -133,6 +138,13 @@ fi
 rm -rf "$cfg/hypr"
 mkdir -p "$cfg/hypr"
 cp -a "$here/../hyprland/." "$cfg/hypr/"
+# Restore the preserved files from the backup so a redeploy never resets a user's
+# settings, theme, display layout, or GPU pin.
+if [[ -n ${bak:-} && -d $bak ]]; then
+  for f in "${preserve[@]}"; do
+    [[ -e "$bak/$f" ]] && cp -a "$bak/$f" "$cfg/hypr/$f"
+  done
+fi
 
 # Palette generation, per-app config, and the user session target.
 mkdir -p "$cfg/wallust";   cp -a "$here/wallust/." "$cfg/wallust/"
