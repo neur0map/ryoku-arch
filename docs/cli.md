@@ -92,7 +92,7 @@ copies every file the package ships under the base config dir (clobbering the
 previous Ryoku copy), prunes files a past release shipped but this one dropped
 (tracked by a manifest at `~/.local/state/ryoku/materialized`), and never touches
 files the package never shipped your own overrides like `hypr/user.lua`,
-`kitty/user.conf`, `fish/user.fish` are left alone.
+`hypr/monitors_user.lua`, `kitty/user.conf`, `fish/user.fish` are left alone.
 
 The base dir is `/usr/share/ryoku/config`, shipped by the `ryoku-desktop`
 package. This command is the packaged-install replacement for `deploy.sh`'s
