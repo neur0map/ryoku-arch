@@ -1,57 +1,91 @@
 # ryoku/hub/
 
-Ryoku Hub: the desktop's central GUI control center. A native Qt6/QML app
-(Quickshell, not a webview) with Kirigami-style sidebar navigation, opened with
-`Super + ,`. It floats and centres on top of the current windows.
+Ryoku Settings: the desktop's central GUI control center. A native Qt6/QML app
+(Quickshell, not a webview) with a grouped, Kirigami-style sidebar and a global
+fuzzy search, opened with `Super + ,`. It floats and centres on top of the
+current windows. The product name is **Ryoku Settings**; the internal binary,
+config directory, and `qs -c hub` invocation keep the original `hub` name.
+
+It is where you edit anything the Hyprland (Lua) config drives, plus the Ryoku
+shell, in one place: monitors, appearance, input, keybinds, window rules,
+autostart, environment, the shell's look, and the update channel.
 
 ## Layout
 
-- `backend/` One Go program, `ryoku-hub`, the hub's data plane. The QML front end
-  shells out to it the same way the rest of the desktop talks to `ryoku-shell`:
+- `backend/` One Go program, `ryoku-hub`, the data plane. The QML front end shells
+  out to it the same way the rest of the desktop talks to `ryoku-shell`:
   - `ryoku-hub keybinds` parses the live Hyprland binds
-    (`~/.config/hypr/modules/binds.lua`, the single source of truth) into
-    categorised, display-ready JSON.
-  - `ryoku-hub config get|set <key> [value]` reads and writes the hub's TOML
-    config at `~/.config/ryoku/hub.toml` (atomic write). Today it persists the
-    last open section.
+    (`~/.config/hypr/modules/binds.lua`) into categorised, display-ready JSON.
+  - `ryoku-hub hypr get|defaults|save|preview|restore` reads and writes the
+    system-settings override document and generates the Lua the live config loads
+    (see "The override model" below). `cursors` and `layouts` enumerate installed
+    cursor themes and X11 keyboard layouts for the pickers.
+  - `ryoku-hub config get|set <key> [value]` persists hub UI state as TOML at
+    `~/.config/ryoku/hub.toml` (last open section, update-check cadence).
 - `quickshell/` The UI, hand-written Quickshell (QML), deployed to
   `~/.config/quickshell/hub` and launched with `qs -c hub`:
-  - `shell.qml` the `FloatingWindow`; `Hub.qml` the app (rail + content + the Go
-    data fetch and config persistence).
-  - `NavRail` the sidebar: brand header, the global `SearchField`, the section
-    list with one sliding selection indicator, and a footer mark.
-  - `KeybindsPage` + `KeybindGroup` + `KeybindRow` + `KeyCap` the keybind legend
-    as a flat list (ember section headers with a hairline rule, mechanical
-    keycaps).
-  - `SearchResults` the global search view (shown whenever the sidebar search has
-    a query): matching section names plus fuzzy-ranked keybinds, via `fuzzy.js`.
-  - `UnderConstruction` the placeholder for sections still being built.
-  - `ShellSettingsPage` + `SettingSection` + `NumberField` + `SliderRow` +
-    `Slider` + `ColorField` + `ToggleRow` + `ChoiceRow` + `VizPreview` the Shell
-    Settings editor: Frame, Island, and Visualizer tabs of grouped controls
-    (steppers for exact pixels, sliders for opacity and feel, a swatch for colour,
-    switches for on/off, segmented choices for style/shape/position) that write
-    `~/.config/ryoku/shell.json` and `~/.config/ryoku/visualizer.json` live. The
-    Visualizer tab also carries a live animated preview, since the real spectrum
-    sits behind your windows.
-  - `Icon` the stroked vector icon set; `Singletons/Theme.qml` the palette and
-    motion tokens; `PageHeader` the page title block.
+  - `shell.qml` the `FloatingWindow`; `Hub.qml` the app (rail + content + the data
+    fetch and section persistence).
+  - `NavRail` the sidebar: brand header, the global `SearchField`, the grouped
+    section list with one sliding selection indicator, and a footer mark.
+  - `HyprStore` the shared engine behind every Lua-editing page: it loads the full
+    override document from the backend, holds an editable draft, previews scalar
+    edits live (flash-free, via `hyprctl eval`), and persists on Save.
+  - Page components, one per file: `DisplaysPage` (+ `MonitorTile`),
+    `AppearancePage`, `InputPage`, `KeybindsPage` (+ `KeybindLegend`,
+    `KeybindsEditor`), `WindowRulesPage`, `AutostartPage`, `EnvironmentPage`,
+    `ShellSettingsPage`, `UpdatesPage`, and the reusable controls
+    (`SettingSection`, `NumberField`, `SliderRow`, `Slider`, `ColorField`,
+    `ToggleRow`, `ChoiceRow`, `Segmented`, `Dropdown`, `HubButton`, `Icon`).
 
 ## Sections
 
-- **Keybinds** functional: the full shortcut legend, read live from the Hyprland
-  config so it never drifts from what is actually bound.
-- **Shell Settings** functional: a live editor for the screen frame, the top
-  island, and the desktop visualiser (size, rounding, colour, opacity, shadows;
-  spectrum style/position/shape/mirror, bars, height, bloom, reflection). Edits
-  apply to the running shell at once via `~/.config/ryoku/shell.json` and
-  `~/.config/ryoku/visualizer.json` (the shell watches them); the frame and island
-  preview on your actual desktop, the visualiser in a live pane. Save keeps
-  changes, Revert/leaving restores them.
-- **Updates** functional: the commits the checkout is behind on the `main`
-  channel, and the auto-check schedule.
-- **Extras** under construction. Its controls will likely be built with GTK4 +
-  libadwaita through the Kirigami addons.
+- **Displays** detect every connected monitor and arrange them on a drag canvas
+  (edges snap), with per-monitor resolution, refresh, scale, rotation, adaptive
+  sync, mirroring, and enable/disable. Apply to the live session, or save a named
+  profile keyed to the connected displays' hardware identity so it returns
+  automatically when you plug them in again. Backed by `ryoku-monitor`.
+- **Appearance** window gaps, rounding, border thickness, active/inactive opacity,
+  blur, shadows, tiling layout, animations, border colours (follow the wallpaper
+  palette or fix them), and the cursor theme and size. A **Wallpaper** tab retheme
+  the desktop (the wallust palette follows the pick, via `ryoku-shell wallpaper`),
+  and a **Comfort** tab controls backlight and the night light.
+- **Animations** the live Hyprland animation tree (read via `hyprctl animations`)
+  with per-leaf enable, speed, and bezier, plus a visual bezier-curve editor that
+  previews as you drag. Curves and overrides persist to `settings.lua` on Save.
+- **Input** keyboard layout/variant/options, pointer sensitivity, follow-mouse,
+  acceleration, touchpad behaviour (including a workspace-swipe gesture), and key repeat.
+- **Keybinds** the full shortcut legend, read live from `binds.lua` so it never
+  drifts, plus a Custom editor for your own shortcuts layered on top.
+- **Window Rules** float, size, pin, place, or restyle windows by class or title.
+- **Autostart** commands run at login, after the base Ryoku autostart.
+- **Environment** environment variables for the Hyprland session.
+- **Shell** the live editor for the screen frame, the top island, and the desktop
+  visualiser (writes `~/.config/ryoku/shell.json` and `visualizer.json`).
+- **Updates** the commits the checkout is behind on its channel, with an
+  auto-check cadence.
+
+## The override model
+
+The Lua-editing sections never touch the shipped Hyprland modules (those are
+re-laid by `ryoku materialize` on update). Instead:
+
+- The editable source of truth is one JSON document at
+  `~/.config/ryoku/hypr.json`, owned by `ryoku-hub`.
+- From it, `ryoku-hub` generates `~/.config/hypr/settings.lua`, written only with
+  the values that diverge from the shipped defaults, so an untouched setting falls
+  through to the base module. `hyprland.lua` `require`s it after the base modules
+  and before `user.lua`, so the GUI's tweaks override the defaults while a
+  hand-written `user.lua` still wins.
+- Editing a scalar (appearance/input/cursor) previews at once through
+  `hyprctl eval` (no reload, no flash). Save persists the JSON, regenerates
+  `settings.lua`, and reloads to lock in list changes (rules, binds, env,
+  autostart) that an eval cannot undo. Revert and leaving a page restore the saved
+  state.
+
+Monitors are the exception: they are owned by `ryoku-monitor`, which writes
+`monitors.lua` and stores profiles under `~/.config/ryoku/monitors/`. Displays
+edits stage in the canvas and only touch the live screens on Apply.
 
 ## Search
 
@@ -63,9 +97,7 @@ is a small subsequence scorer in `quickshell/fuzzy.js`.
 ## Deploy
 
 `ryoku/shell/deploy.sh` builds `ryoku-hub` onto `PATH` and copies the quickshell
-config to `~/.config/quickshell/hub`. The installer
-(`installation/backend/lib/deploy.sh`) installs the prebuilt binary and the
-config; `installation/iso/build.sh` prebuilds the binary into the image payload,
-since the target ships no Go toolchain. The `Super + ,` keybind and the
-float/centre window rule live in `ryoku/hyprland/modules/binds.lua` and
-`window_rules.lua`.
+config to `~/.config/quickshell/hub`. The installer installs the prebuilt binary
+and the config; `installation/iso/build.sh` prebuilds the binary into the image
+payload. The `Super + ,` keybind and the float/centre window rule live in
+`ryoku/hyprland/modules/binds.lua` and `window_rules.lua`.

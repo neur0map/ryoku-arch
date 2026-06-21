@@ -1,16 +1,62 @@
 #!/usr/bin/env bash
-# Night light: toggle a warm screen color temperature via hyprsunset. Re-running
-# turns it back off, since killing hyprsunset reverts the gamma. Optional first
-# argument overrides the temperature in Kelvin (default 4000).
+# Night light: warm the screen colour temperature via hyprsunset.
+#
+#   (no args)      toggle on/off at the saved temperature (the Super+U utility)
+#   <temp>         toggle, using <temp> Kelvin when turning on
+#   on [temp]      ensure on (default: saved temperature, or 4000)
+#   off            ensure off
+#   status         print "on <temp>" or "off"
+#
+# Killing hyprsunset reverts the gamma, so "off" is a plain pkill. The chosen
+# temperature persists, so status reports it and a re-enable reuses it.
 set -u
 
-temp="${1:-4000}"
+state="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-nightlight"
+default_temp=4000
 
-# An active night light turns off (toggle): pkill returns 0 when it killed it.
-if pkill -x hyprsunset 2>/dev/null; then
-  exit 0
-fi
+saved_temp() {
+  if [[ -r $state ]]; then
+    cat "$state"
+  else
+    echo "$default_temp"
+  fi
+}
 
-command -v hyprsunset >/dev/null 2>&1 || { notify-send -u normal "Night light" "hyprsunset is not installed"; exit 1; }
+is_on() { pgrep -x hyprsunset >/dev/null 2>&1; }
 
-exec hyprsunset -t "$temp"
+start() {
+  local temp="$1"
+  if ! command -v hyprsunset >/dev/null 2>&1; then
+    notify-send -u normal "Night light" "hyprsunset is not installed"
+    exit 1
+  fi
+  mkdir -p "$(dirname "$state")" 2>/dev/null || true
+  printf '%s\n' "$temp" >"$state" 2>/dev/null || true
+  pkill -x hyprsunset 2>/dev/null || true
+  # Detach so the night light outlives whatever invoked this (a keybind, the hub).
+  setsid -f hyprsunset -t "$temp" >/dev/null 2>&1
+}
+
+stop() { pkill -x hyprsunset 2>/dev/null || true; }
+
+case "${1:-toggle}" in
+  status)
+    if is_on; then echo "on $(saved_temp)"; else echo "off"; fi
+    ;;
+  off)
+    stop
+    ;;
+  on)
+    start "${2:-$(saved_temp)}"
+    ;;
+  toggle)
+    if is_on; then stop; else start "$(saved_temp)"; fi
+    ;;
+  [0-9]*)
+    if is_on; then stop; else start "$1"; fi
+    ;;
+  *)
+    echo "usage: ryoku-cmd-nightlight [status | on [temp] | off | toggle | <temp>]" >&2
+    exit 1
+    ;;
+esac

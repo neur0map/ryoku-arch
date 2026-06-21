@@ -22,7 +22,7 @@ type UIConfig struct {
 }
 
 func defaultConfig() Config {
-	return Config{UI: UIConfig{Section: "keybinds", UpdateInterval: "daily"}}
+	return Config{UI: UIConfig{Section: "displays", UpdateInterval: "daily"}}
 }
 
 func configPath() string {

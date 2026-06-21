@@ -1,22 +1,44 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import "Singletons"
 
 // The navigation rail: brand header, a global search field (it searches content
-// across every section, not just the open one), the section list with a single
-// sliding selection indicator, and a footer mark.
+// across every section, not just the open one), the grouped section list with a
+// single sliding selection indicator, and a footer mark. The section list is
+// data-driven from `sections` ({ key, name, icon, group }); a header is drawn
+// whenever the group changes.
 Rectangle {
     id: rail
 
-    property string current: "keybinds"
+    property var sections: []
+    property string current: "displays"
     property alias query: search.text
     signal navigate(string section)
     signal escaped()
 
     function focusSearch() { search.focusInput(); }
 
-    readonly property int navTop: 96 + 54 + 26
+    readonly property int navTop: 96 + 54 + 8
     readonly property int navItemH: 44
-    function indexOf(s) { return s === "shell" ? 0 : (s === "keybinds" ? 1 : (s === "updates" ? 2 : 3)); }
+    readonly property int groupHeaderH: 30
+
+    // Absolute y of a section's row, accounting for the group header drawn before
+    // each new group. Drives the single sliding selector.
+    function itemY(key) {
+        var y = rail.navTop;
+        var last = null;
+        for (var i = 0; i < rail.sections.length; i++) {
+            var s = rail.sections[i];
+            if (s.group !== last) {
+                y += rail.groupHeaderH;
+                last = s.group;
+            }
+            if (s.key === key)
+                return y;
+            y += rail.navItemH;
+        }
+        return rail.navTop;
+    }
 
     color: Theme.rail
 
@@ -35,28 +57,13 @@ Rectangle {
         width: rail.width - 24
         height: 42
         radius: 11
-        y: rail.navTop + rail.indexOf(rail.current) * rail.navItemH + (rail.navItemH - height) / 2
+        y: rail.itemY(rail.current) + (rail.navItemH - height) / 2
         color: Theme.keyTop
         border.width: 1
         border.color: Theme.line
         opacity: rail.query.length > 0 ? 0.4 : 1
         Behavior on y { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
         Behavior on opacity { NumberAnimation { duration: Theme.quick } }
-
-        // Lifted keycap feel: a faint top sheen and a darker bottom lip, so the
-        // active section reads as a pressed key rather than a templated accent bar.
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: 1
-            height: parent.height * 0.5
-            radius: parent.radius - 1
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.sheen }
-                GradientStop { position: 1.0; color: "transparent" }
-            }
-        }
 
         Rectangle {
             anchors.left: parent.left
@@ -69,6 +76,7 @@ Rectangle {
         }
     }
 
+    // brand + search
     Column {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -109,7 +117,7 @@ Rectangle {
                     spacing: 2
 
                     Text {
-                        text: "Ryoku Hub"
+                        text: "Ryoku Settings"
                         color: Theme.bright
                         font.family: Theme.font
                         font.pixelSize: 17
@@ -118,7 +126,7 @@ Rectangle {
                     }
 
                     Text {
-                        text: "Control center"
+                        text: "System & shell"
                         color: Theme.dim
                         font.family: Theme.font
                         font.pixelSize: 11
@@ -143,58 +151,55 @@ Rectangle {
                 onEscaped: rail.escaped()
             }
         }
+    }
 
-        Item {
-            width: parent.width
-            height: 26
+    // grouped section list
+    Column {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        y: rail.navTop
+        spacing: 0
 
-            Text {
-                anchors.left: parent.left
-                anchors.leftMargin: 28
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 6
-                text: "SECTIONS"
-                color: Theme.faint
-                font.family: Theme.mono
-                font.pixelSize: 9
-                font.weight: Font.DemiBold
-                font.letterSpacing: 2
+        Repeater {
+            model: rail.sections
+
+            delegate: Column {
+                id: row
+                required property int index
+                required property var modelData
+                readonly property bool firstOfGroup: row.index === 0 || rail.sections[row.index - 1].group !== row.modelData.group
+                width: parent.width
+
+                Item {
+                    width: parent.width
+                    height: row.firstOfGroup ? rail.groupHeaderH : 0
+                    visible: row.firstOfGroup
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 28
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 6
+                        text: row.modelData.group
+                        color: Theme.faint
+                        font.family: Theme.mono
+                        font.pixelSize: 9
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 2
+                        font.capitalization: Font.AllUppercase
+                    }
+                }
+
+                NavButton {
+                    width: parent.width
+                    height: rail.navItemH
+                    icon: row.modelData.icon
+                    label: row.modelData.name
+                    badge: row.modelData.key === "updates" ? (Updates.available ? Updates.behind : 0) : 0
+                    selected: rail.current === row.modelData.key
+                    onClicked: rail.navigate(row.modelData.key)
+                }
             }
-        }
-
-        NavButton {
-            width: parent.width
-            icon: "gear"
-            label: "Shell Settings"
-            soon: true
-            selected: rail.current === "shell"
-            onClicked: rail.navigate("shell")
-        }
-
-        NavButton {
-            width: parent.width
-            icon: "keyboard"
-            label: "Keybinds"
-            selected: rail.current === "keybinds"
-            onClicked: rail.navigate("keybinds")
-        }
-
-        NavButton {
-            width: parent.width
-            icon: "download"
-            label: "Updates"
-            badge: Updates.available ? Updates.behind : 0
-            selected: rail.current === "updates"
-            onClicked: rail.navigate("updates")
-        }
-
-        NavButton {
-            width: parent.width
-            icon: "sparkles"
-            label: "Extras"
-            soon: true
-            selected: rail.current === "extras"
-            onClicked: rail.navigate("extras")
         }
     }
 

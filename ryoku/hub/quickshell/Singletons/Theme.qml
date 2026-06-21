@@ -2,7 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
-// Ryoku Hub palette: a deep, warm near-black canvas so the brand orange reads as
+// Ryoku Settings palette: a deep, warm near-black canvas so the brand orange reads as
 // the single deliberate accent (the 力 mark, the active section, a focused
 // search), never a wash. Warm neutral text, crisp not muddy. Motion follows the
 // shell's morph curve (cubic-bezier 0.16,1,0.3,1, approximated by OutExpo).

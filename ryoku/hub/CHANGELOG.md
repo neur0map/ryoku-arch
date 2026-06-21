@@ -3,6 +3,37 @@
 ## Unreleased
 
 ### Added
+- **Ryoku Settings**: the hub is now a full settings app for everything the
+  Hyprland (Lua) config drives, plus the shell. New sections, each a live editor:
+  **Displays** (detect and arrange monitors on a drag canvas with snapping;
+  per-monitor resolution, refresh, scale, rotation, adaptive sync, mirror, and
+  enable/disable; Apply live or save hardware-keyed layout profiles, via
+  `ryoku-monitor`), **Appearance** (gaps, rounding, borders, opacity, blur,
+  shadows, layout, animations, border colours, cursor theme/size), **Input**
+  (keyboard layout/variant/options, pointer feel, touchpad, key repeat), an
+  editable **Keybinds** Custom tab beside the live legend, and **Window Rules**,
+  **Autostart**, and **Environment** list editors.
+- The override engine: `ryoku-hub hypr get|defaults|save|preview|restore` keeps a
+  single JSON document at `~/.config/ryoku/hypr.json` and generates
+  `~/.config/hypr/settings.lua` (only the values that diverge from the shipped
+  defaults), which `hyprland.lua` loads after the base modules and before
+  `user.lua`. Scalar edits preview at once via `hyprctl eval` (flash-free); Save
+  persists and reloads. `cursors` and `layouts` enumerate installed cursor themes
+  and X11 keyboard layouts. New `HyprStore` engine and `Dropdown`/`MonitorTile`
+  components; new `DisplaysPage`, `AppearancePage`, `InputPage`, `WindowRulesPage`,
+  `AutostartPage`, `EnvironmentPage`, `KeybindLegend`, and `KeybindsEditor`.
+- Appearance also carries a **Wallpaper** tab (a grid that retheme the desktop by
+  routing the pick through `ryoku-shell wallpaper`, so the wallust palette follows
+  it) and a **Comfort** tab (backlight via `brightnessctl`, night light via
+  `ryoku-cmd-nightlight`), both applied at once.
+- An **Animations** section: the live Hyprland animation tree (read via `hyprctl
+  animations -j`, never a hardcoded copy) with per-leaf enable/speed/bezier and a
+  visual bezier-curve editor (drag the two control points, live preview). Curves
+  and per-leaf overrides persist to `settings.lua` (`hl.curve`/`hl.animation`) via
+  a new `anim` domain in the override store. New `AnimationsPage`, `BezierEditor`,
+  and `AnimRow` components.
+- Input gains a touchpad **workspace-swipe** gesture (3 or 4 fingers), emitted as
+  `hl.gesture` and previewed live.
 - A **Shell Settings** section: a live editor for the shell's look. **Frame** and
   **Island** tabs expose the knobs with the control each one wants, steppers with
   manual entry for exact pixels (radius, border, sizes, corners, gap), sliders for
@@ -54,6 +85,11 @@
   shell's morph motion (a single sliding selection indicator in the rail).
 
 ### Changed
+- Renamed the product to **Ryoku Settings** (window title, sidebar, the `Super +
+  ,` legend, and the float/centre window rule), keeping the internal `ryoku-hub`
+  binary, `quickshell/hub` config, and `qs -c hub` invocation. The sidebar is now
+  grouped (Displays & look, Input & shortcuts, Session, Desktop) and the hub opens
+  on Displays by default.
 - `backend/`: the keybind legend parser keeps lambda binds (multi-dispatch
   actions like `Super + A`, which floats and centres) in the legend, taking the
   description from the trailing comment, instead of dropping every bind whose

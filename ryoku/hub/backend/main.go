@@ -1,4 +1,4 @@
-// ryoku-hub is the Go backend for the Ryoku Hub GUI. The Quickshell front end
+// ryoku-hub is the Go backend for the Ryoku Settings GUI. The Quickshell front end
 // (qs -c hub) shells out to it the same way the rest of the desktop talks to
 // ryoku-shell: a subcommand prints data on stdout or mutates persisted state.
 //
@@ -31,6 +31,11 @@ func main() {
 		fmt.Println()
 	case "config":
 		if err := runConfig(args[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
+			os.Exit(1)
+		}
+	case "hypr":
+		if err := runHypr(args[1:]); err != nil {
 			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
 			os.Exit(1)
 		}
@@ -75,6 +80,9 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  ryoku-hub keybinds")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub config get <key>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub config set <key> <value>")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub hypr get|defaults|cursors|layouts")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub hypr save|preview <json>")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub hypr restore")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub extras catalog|cache")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub extras installer <name>")
 }

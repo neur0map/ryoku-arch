@@ -11,15 +11,15 @@ func TestConfigRoundTrip(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", dir)
 
 	// Missing file yields the default.
-	if c := loadConfig(); c.UI.Section != "keybinds" {
-		t.Fatalf("default section = %q, want keybinds", c.UI.Section)
+	if c := loadConfig(); c.UI.Section != "displays" {
+		t.Fatalf("default section = %q, want displays", c.UI.Section)
 	}
 
-	if err := configSet("section", "extras"); err != nil {
+	if err := configSet("section", "appearance"); err != nil {
 		t.Fatal(err)
 	}
-	if v, ok := configGet("section"); !ok || v != "extras" {
-		t.Fatalf("after set: got %q ok=%v, want extras", v, ok)
+	if v, ok := configGet("section"); !ok || v != "appearance" {
+		t.Fatalf("after set: got %q ok=%v, want appearance", v, ok)
 	}
 
 	// It persisted as real TOML on disk.
@@ -27,7 +27,7 @@ func TestConfigRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("config not written: %v", err)
 	}
-	if !contains(string(b), "section = \"extras\"") {
+	if !contains(string(b), "section = \"appearance\"") {
 		t.Errorf("toml missing section line:\n%s", b)
 	}
 }

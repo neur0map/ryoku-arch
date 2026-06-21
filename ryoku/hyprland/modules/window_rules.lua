@@ -57,11 +57,11 @@ hl.window_rule({
 })
 
 hl.window_rule({
-    name   = "float-ryoku-hub",
-    match  = { title = "^(Ryoku Hub)$" },
-    float  = true,
-    size   = { 1360, 880 },
-    center = true,
+	name   = "float-ryoku-settings",
+	match  = { title = "^(Ryoku Settings)$" },
+	float  = true,
+	size   = { 1360, 880 },
+	center = true,
 })
 
 hl.window_rule({

@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- `hyprland/hyprland.lua`: loads a generated `settings.lua` after the base modules
+  and before `user.lua`, the override file Ryoku Settings writes. Missing by
+  default (a `pcall` no-op); the hub creates it on first use. `window_rules` and
+  the `Super + ,` legend now read "Ryoku Settings".
+- `hyprland/scripts/ryoku-cmd-nightlight`: `status`, `on [temp]`, and `off`
+  subcommands (with the saved temperature persisted) so Ryoku Settings' Comfort
+  tab can show and set the night light; the bare call still toggles for Super+U.
 - `hyprland/modules/binds`: `Super + P` toggles the displays between mirror
   (duplicate) and extend, via `ryoku-monitor toggle`.
 - `hyprland/modules/binds`: `Super + Tab` opens the pill's workspace switcher

@@ -1,48 +1,54 @@
+pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls
 import "Singletons"
 
-// The Keybinds section as a flat settings list: each category is an ember header
-// with a trailing hairline rule, then its binds as rows split by faint dividers.
-// Searching is global (the sidebar), handled by SearchResults, so this view only
-// renders the full grouped legend. `categories` is the JSON from the Go backend.
-Flickable {
+// The Keybinds section: the read-live shortcut legend (every bind in the desktop,
+// parsed from binds.lua) alongside a Custom editor for your own shortcuts. The
+// legend is the source of truth for what is bound; custom binds are layered on top
+// and show up in the legend after they are saved and the config reloads.
+Item {
     id: page
 
     property var categories: []
+    property string tab: "all"
 
-    contentHeight: col.implicitHeight
-    clip: true
-    boundsBehavior: Flickable.StopAtBounds
+    Segmented {
+        id: tabs
+        anchors.left: parent.left
+        anchors.top: parent.top
+        model: [
+            { "key": "all", "label": "Shortcuts" },
+            { "key": "custom", "label": "Custom" }
+        ]
+        current: page.tab
+        onSelected: (k) => page.tab = k
+    }
 
-    ScrollBar.vertical: ScrollBar {
-        id: sb
-        policy: ScrollBar.AsNeeded
-        width: 7
-        contentItem: Rectangle {
-            implicitWidth: 4
-            radius: 2
-            color: Theme.line
-            opacity: sb.pressed ? 0.9 : (sb.hovered ? 0.7 : 0.4)
-            Behavior on opacity { NumberAnimation { duration: Theme.quick } }
+    Loader {
+        id: loader
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: tabs.bottom
+        anchors.topMargin: 18
+        anchors.bottom: parent.bottom
+        sourceComponent: page.tab === "all" ? legendComp : customComp
+        onLoaded: {
+            if (!item)
+                return;
+            item.opacity = 0;
+            fade.restart();
         }
     }
 
-    Column {
-        id: col
-        width: page.width - 10
-        spacing: 30
-        topPadding: 6
-        bottomPadding: 18
+    NumberAnimation { id: fade; target: loader.item; property: "opacity"; to: 1; duration: Theme.medium; easing.type: Theme.ease }
 
-        Repeater {
-            model: page.categories
+    Component {
+        id: legendComp
+        KeybindLegend { categories: page.categories }
+    }
 
-            delegate: KeybindGroup {
-                width: col.width
-                name: modelData.name
-                binds: modelData.binds
-            }
-        }
+    Component {
+        id: customComp
+        KeybindsEditor {}
     }
 }

@@ -25,9 +25,11 @@ desktop. See `docs/structure.md` for the repo-wide map.
 - `cli/` The user-facing control CLI (`ryoku`): `update`, `rollback`,
   `snapshots`, `status`, `materialize`, and `reload`. It orchestrates pacman,
   yay, and snapper rather than reimplementing them.
-- `hub/` Ryoku Hub, the control-center GUI (`Super + ,`): `backend/` (`ryoku-hub`,
-  the Go data plane that reads the keybind legend from the live Hyprland config and
-  persists hub state as TOML) and `quickshell/` (the Qt6/QML app).
+- `hub/` Ryoku Settings, the control-center GUI (`Super + ,`): `backend/`
+  (`ryoku-hub`, the Go data plane that reads the keybind legend, generates the
+  Hyprland `settings.lua` override, and persists hub state as TOML) and
+  `quickshell/` (the Qt6/QML app with live editors for displays, appearance,
+  input, keybinds, window rules, autostart, environment, and the shell).
 - `lockscreen/` The login and lock screen: `qylock/` (the lock theme and its
   quickshell lockscreen, vendored), `install-qylock`, and `sddm/` (the greeter
   setup).

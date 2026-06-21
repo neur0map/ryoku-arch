@@ -1,34 +1,57 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell.Io
 import "Singletons"
 
-// The Hub application: the navigation rail (which owns the global search) beside a
-// content area. With no query the content shows the selected section; with a
-// query it shows global results across every section. Data and persisted state
-// come from the ryoku-hub Go backend.
+// Ryoku Settings: the navigation rail (which owns the global search) beside a
+// content area. With no query the content shows the selected section; with a query
+// it shows global results across every section. Data and persisted state come from
+// the ryoku-hub Go backend. Most sections edit the live Hyprland (Lua) config
+// through that backend; Shell tunes the desktop shell; Updates tracks the channel.
 Rectangle {
     id: hub
 
     implicitWidth: 1360
     implicitHeight: 880
 
-    property string section: "keybinds"
+    property string section: "displays"
     property var keybindsModel: []
     readonly property bool searching: navRail.query.length > 0
 
     readonly property var sectionDefs: [
-        { "key": "shell", "name": "Shell Settings", "icon": "gear" },
-        { "key": "keybinds", "name": "Keybinds", "icon": "keyboard" },
-        { "key": "updates", "name": "Updates", "icon": "download" },
-        { "key": "extras", "name": "Extras", "icon": "sparkles" }
+        { "key": "displays",    "name": "Displays",     "icon": "display",  "group": "Displays & look" },
+        { "key": "appearance",  "name": "Appearance",   "icon": "palette",  "group": "Displays & look" },
+        { "key": "animations", "name": "Animations",   "icon": "motion",   "group": "Displays & look" },
+        { "key": "input",       "name": "Input",        "icon": "mouse",    "group": "Input & shortcuts" },
+        { "key": "keybinds",    "name": "Keybinds",     "icon": "keyboard", "group": "Input & shortcuts" },
+        { "key": "windowrules", "name": "Window Rules", "icon": "window",   "group": "Session" },
+        { "key": "autostart",   "name": "Autostart",    "icon": "rocket",   "group": "Session" },
+        { "key": "environment", "name": "Environment",  "icon": "variable", "group": "Session" },
+        { "key": "shell",       "name": "Shell",        "icon": "gear",     "group": "Desktop" },
+        { "key": "updates",     "name": "Updates",      "icon": "download", "group": "Desktop" },
+        { "key": "extras",      "name": "Extras",       "icon": "sparkles", "group": "Desktop" }
     ]
 
     readonly property var pageMeta: ({
-        "keybinds": { "title": "Keybinds", "subtitle": "Every shortcut in the Ryoku desktop, read live from your Hyprland config." },
-        "updates":  { "title": "Updates", "subtitle": "Package updates pending for your Ryoku system." },
-        "extras":   { "title": "Extras", "subtitle": "Curated bundles of extra tools, installed and removed with one click." },
-        "shell":    { "title": "Shell Settings", "subtitle": "Tune the Ryoku shell: the frame, the island, and the desktop visualiser." }
+        "displays":    { "title": "Displays", "subtitle": "Detect and arrange your monitors: resolution, scale, rotation, mirroring, and saved layout profiles." },
+        "appearance":  { "title": "Appearance", "subtitle": "Window look: gaps, rounding, borders, opacity, blur, shadows, animations, and the cursor theme." },
+        "animations":  { "title": "Animations", "subtitle": "Tune Hyprland's animations and edit bezier curves with a live preview." },
+        "input":       { "title": "Input", "subtitle": "Keyboard layout, pointer feel, touchpad behaviour, and key repeat." },
+        "keybinds":    { "title": "Keybinds", "subtitle": "Every shortcut in the Ryoku desktop, read live from your Hyprland config, plus your own custom binds." },
+        "windowrules": { "title": "Window Rules", "subtitle": "Float, size, pin, or place windows by class or title." },
+        "autostart":   { "title": "Autostart", "subtitle": "Commands that run when the session starts." },
+        "environment": { "title": "Environment", "subtitle": "Environment variables for the Hyprland session." },
+        "shell":       { "title": "Shell", "subtitle": "Tune the Ryoku shell: the frame, the island, and the desktop visualiser." },
+        "updates":     { "title": "Updates", "subtitle": "Updates pending for your Ryoku system." },
+        "extras":      { "title": "Extras", "subtitle": "Curated bundles of extra tools, installed and removed with one click." }
     })
+
+    function known(s) {
+        for (var i = 0; i < hub.sectionDefs.length; i++)
+            if (hub.sectionDefs[i].key === s)
+                return true;
+        return false;
+    }
 
     gradient: Gradient {
         GradientStop { position: 0.0; color: Theme.bgTop }
@@ -66,18 +89,26 @@ Rectangle {
         stdout: StdioCollector {
             onStreamFinished: {
                 var s = this.text.trim();
-                if (s === "keybinds" || s === "extras" || s === "shell" || s === "updates")
+                if (hub.known(s))
                     hub.section = s;
             }
         }
     }
 
     Process { id: saveSection }
+    Process { id: restoreProc }
 
     function go(s) {
         navRail.query = "";
         if (hub.section === s)
             return;
+        // Leaving a live-preview page (Appearance, Input) with unsaved edits:
+        // reset the desktop to the saved state. The page's own teardown cannot run
+        // a process reliably, so the persistent hub does it.
+        if (pageLoader.item && pageLoader.item.previewDirty === true) {
+            restoreProc.command = ["ryoku-hub", "hypr", "restore"];
+            restoreProc.running = true;
+        }
         hub.section = s;
         saveSection.command = ["ryoku-hub", "config", "set", "section", s];
         saveSection.running = true;
@@ -90,6 +121,7 @@ Rectangle {
             id: navRail
             width: 252
             height: parent.height
+            sections: hub.sectionDefs
             current: hub.section
             onNavigate: (s) => hub.go(s)
             onEscaped: Qt.quit()
@@ -122,10 +154,7 @@ Rectangle {
                 anchors.topMargin: 14
                 anchors.bottomMargin: 12
 
-                sourceComponent: hub.searching ? searchComp
-                    : (hub.section === "keybinds" ? keybindsComp
-                    : hub.section === "updates" ? updatesComp
-                    : hub.section === "extras" ? extrasComp : shellComp)
+                sourceComponent: hub.searching ? searchComp : hub.pageFor(hub.section)
 
                 onLoaded: {
                     if (!item)
@@ -157,35 +186,34 @@ Rectangle {
         }
     }
 
-    Component {
-        id: searchComp
-        SearchResults {
-            categories: hub.keybindsModel
-            sections: hub.sectionDefs
-            query: navRail.query
-            onNavigate: (s) => hub.go(s)
+    function pageFor(s) {
+        switch (s) {
+        case "displays": return displaysComp;
+        case "appearance": return appearanceComp;
+        case "animations": return animationsComp;
+        case "input": return inputComp;
+        case "keybinds": return keybindsComp;
+        case "windowrules": return windowRulesComp;
+        case "autostart": return autostartComp;
+        case "environment": return environmentComp;
+        case "updates": return updatesComp;
+        case "extras": return extrasComp;
+        default: return shellComp;
         }
     }
 
-    Component {
-        id: keybindsComp
-        KeybindsPage { categories: hub.keybindsModel }
-    }
-
-    Component {
-        id: updatesComp
-        UpdatesPage {}
-    }
-
-    Component {
-        id: extrasComp
-        ExtrasPage {}
-    }
-
-    Component {
-        id: shellComp
-        ShellSettingsPage {}
-    }
+    Component { id: searchComp; SearchResults { categories: hub.keybindsModel; sections: hub.sectionDefs; query: navRail.query; onNavigate: (s) => hub.go(s) } }
+    Component { id: displaysComp; DisplaysPage {} }
+    Component { id: appearanceComp; AppearancePage {} }
+    Component { id: animationsComp; AnimationsPage {} }
+    Component { id: inputComp; InputPage {} }
+    Component { id: keybindsComp; KeybindsPage { categories: hub.keybindsModel } }
+    Component { id: windowRulesComp; WindowRulesPage {} }
+    Component { id: autostartComp; AutostartPage {} }
+    Component { id: environmentComp; EnvironmentPage {} }
+    Component { id: shellComp; ShellSettingsPage {} }
+    Component { id: updatesComp; UpdatesPage {} }
+    Component { id: extrasComp; ExtrasPage {} }
 
     Item {
         id: closeBtn
