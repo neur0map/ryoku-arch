@@ -5,11 +5,10 @@ import Quickshell
 import Quickshell.Io
 import "Singletons"
 
-// The Extras section: curated bundles of tools from the ryoku-extras catalogue,
-// each installed or removed as a whole or item by item. ryoku-hub fetches the
-// catalogue; ryoku-extras-install does the work in a floating terminal (it needs
-// a TTY for the sudo and AUR prompts) and publishes a per-bundle report the cards
-// watch. This page renders the list and routes the buttons.
+// The Extras section: the ryoku-extras bundles as a bento grid of tiles. ryoku-hub
+// fetches the catalogue; opening a tile shows its detail, where ryoku-extras-install
+// installs or removes items in a floating terminal and publishes a per-bundle
+// report the detail watches. This page owns the data and routes the buttons.
 Item {
     id: page
 
@@ -17,8 +16,18 @@ Item {
     property var statusMap: ({})
     property bool loading: true
     property bool loadFailed: false
+    property string selectedId: ""
 
     readonly property string reportDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-extras"
+
+    readonly property int cols: width >= 1180 ? 4 : (width >= 820 ? 3 : (width >= 520 ? 2 : 1))
+
+    readonly property var selectedBundle: {
+        for (var i = 0; i < bundles.length; i++)
+            if (bundles[i].id === selectedId)
+                return bundles[i];
+        return null;
+    }
 
     Component.onCompleted: page.reload()
 
@@ -27,6 +36,35 @@ Item {
         page.loadFailed = false;
         catalogProc.running = true;
     }
+
+    function installedCountFor(id) {
+        var m = page.statusMap[id];
+        if (!m)
+            return 0;
+        var n = 0;
+        for (var k in m)
+            if (m[k] === "present" || m[k] === "installed") n++;
+        return n;
+    }
+
+    // Greedy masonry: place each tile in the currently shortest column, using an
+    // estimated height from the blurb length so the columns end up balanced.
+    function buildColumns(list, n) {
+        var cols = [], heights = [], i;
+        for (i = 0; i < n; i++) { cols.push([]); heights.push(0); }
+        for (i = 0; i < list.length; i++) {
+            var b = list[i];
+            var est = 150 + Math.ceil(((b.description || "").length) / 32) * 17;
+            var min = 0;
+            for (var j = 1; j < n; j++)
+                if (heights[j] < heights[min]) min = j;
+            cols[min].push(b);
+            heights[min] += est + 14;
+        }
+        return cols;
+    }
+
+    readonly property var grouped: buildColumns(page.bundles, page.cols)
 
     Process {
         id: catalogProc
@@ -75,6 +113,9 @@ Item {
         Quickshell.execDetached(["kitty", "--class", "ryoku-extras", "-e"].concat(args));
     }
 
+    function open(id) { page.selectedId = id; }
+    function closeDetail() { page.selectedId = ""; statusProc.running = true; }
+
     // --- loading / empty states --------------------------------------------
     Column {
         anchors.centerIn: parent
@@ -112,12 +153,14 @@ Item {
         }
     }
 
-    // --- bundle list --------------------------------------------------------
+    // --- bento grid ---------------------------------------------------------
     Flickable {
         id: flick
         anchors.fill: parent
-        visible: !page.loading && !page.loadFailed
-        contentHeight: col.implicitHeight
+        visible: !page.loading && !page.loadFailed && page.selectedId === ""
+        opacity: visible ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: Theme.quick } }
+        contentHeight: masonry.implicitHeight + 18
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
@@ -134,28 +177,54 @@ Item {
             }
         }
 
-        Column {
-            id: col
+        Row {
+            id: masonry
             width: flick.width - 10
-            spacing: 14
             topPadding: 4
-            bottomPadding: 16
+            spacing: 14
 
             Repeater {
-                model: page.bundles
-                delegate: ExtraBundleCard {
-                    required property var modelData
-                    width: col.width
-                    bundle: modelData
-                    statuses: page.statusMap[modelData.id] || ({})
-                    reportDir: page.reportDir
-                    onInstallAll: page.runTerminal(["ryoku-extras-install", "install", "bundle", modelData.id])
-                    onRemoveAll: page.runTerminal(["ryoku-extras-install", "remove", "bundle", modelData.id])
-                    onInstallItem: (name) => page.runTerminal(["ryoku-extras-install", "install", "item", modelData.id, name])
-                    onRemoveItem: (name) => page.runTerminal(["ryoku-extras-install", "remove", "item", modelData.id, name])
-                    onRefreshRequested: statusProc.running = true
+                model: page.cols
+
+                delegate: Column {
+                    id: column
+                    required property int index
+                    width: (masonry.width - (page.cols - 1) * 14) / page.cols
+                    spacing: 14
+
+                    Repeater {
+                        model: page.grouped[column.index] || []
+
+                        delegate: ExtraBundleCard {
+                            required property var modelData
+                            width: column.width
+                            bundle: modelData
+                            installedCount: page.installedCountFor(modelData.id)
+                            onOpened: page.open(modelData.id)
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    // --- bundle detail ------------------------------------------------------
+    Loader {
+        anchors.fill: parent
+        active: page.selectedId !== "" && page.selectedBundle !== null
+        visible: active
+        opacity: visible ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+        sourceComponent: ExtraBundleDetail {
+            bundle: page.selectedBundle
+            statuses: page.statusMap[page.selectedId] || ({})
+            reportDir: page.reportDir
+            onBack: page.closeDetail()
+            onInstallAll: page.runTerminal(["ryoku-extras-install", "install", "bundle", page.selectedId])
+            onRemoveAll: page.runTerminal(["ryoku-extras-install", "remove", "bundle", page.selectedId])
+            onInstallItem: (name) => page.runTerminal(["ryoku-extras-install", "install", "item", page.selectedId, name])
+            onRemoveItem: (name) => page.runTerminal(["ryoku-extras-install", "remove", "item", page.selectedId, name])
+            onRefreshRequested: statusProc.running = true
         }
     }
 }
