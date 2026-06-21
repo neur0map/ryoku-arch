@@ -173,15 +173,31 @@ cmd_autoscale() {
       return
     fi
   fi
-  local name mode pos wanted current
-  while IFS='|' read -r name mode pos wanted current; do
+  # Two passes, so the layout matches reality. First apply each monitor's DPI
+  # scale: Hyprland snaps a requested scale to the nearest one that yields whole
+  # logical pixels (e.g. 1.5 on a 2560 panel becomes 1.6), so the accepted scale
+  # is only known after it is applied.
+  local name mode wanted current
+  while IFS='|' read -r name mode _ wanted current; do
     [[ -n $name ]] || continue
-    # Only re-apply when the scale actually differs (idempotent, avoids a flicker).
     if awk -v a="$current" -v b="$wanted" 'BEGIN { exit (a == b) ? 1 : 0 }'; then
-      apply_monitor "output = \"$name\", mode = \"$mode\", position = \"$pos\", scale = $wanted"
+      apply_monitor "output = \"$name\", mode = \"$mode\", scale = $wanted"
       echo "ryoku-monitor: $name -> scale $wanted"
     fi
   done < <(monitors_json | dpi_specs)
+
+  # Then lay the displays in one non-overlapping row, left to right by current x,
+  # advancing by each monitor's real logical width (pixels / accepted scale). A
+  # stale or "auto" x can collide once scales differ, and computing from the
+  # requested scale would leave a gap where Hyprland snapped it; reading the live
+  # scale here keeps the seam exact, so a freshly plugged display sits flush.
+  local w scale curx cury newpos x=0
+  while IFS='|' read -r name w scale curx cury; do
+    [[ -n $name ]] || continue
+    newpos="${x}x0"
+    [[ $newpos != "${curx}x${cury}" ]] && apply_monitor "output = \"$name\", position = \"$newpos\""
+    x=$(awk -v X="$x" -v W="$w" -v S="$scale" 'BEGIN { printf "%d", X + int(W / S + 0.5) }')
+  done < <(monitors_json | jq -r '[ .[] | select(.disabled | not) ] | sort_by(.x) | .[] | "\(.name)|\(.width)|\(.scale)|\(.x)|\(.y)"')
   settle_refresh
   local gdk
   gdk="$(sync_gdk_scale)"

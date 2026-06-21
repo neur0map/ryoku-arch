@@ -59,6 +59,12 @@
   DisplayPort link first comes up at a low refresh (common on a discrete GPU at
   cold boot) no longer has that low rate captured back into the drop-in and locked
   in; every monitor now holds its highest refresh across reboots.
+- `display/ryoku-monitor`: `autoscale` now lays the displays in one flush,
+  non-overlapping row. It applies each scale first (Hyprland snaps a scale to one
+  that yields whole logical pixels, so 1.5 on a 2560 panel becomes 1.6), then
+  positions every output from the accepted logical widths rather than the live or
+  "auto" x. A freshly plugged display lands exactly beside the laptop instead of
+  overlapping it, which a stale position could do once the scales differed.
 - `drivers/nvidia.sh`: also write the early-KMS modprobe option
   (`nvidia_drm modeset=1`) and the initramfs `MODULES`, which are mandatory for a
   working NVIDIA Wayland session. Detection-gated, so they apply whenever an
