@@ -45,12 +45,15 @@ truth for the live desktop.
   `~/.config`), and `reload`. It orchestrates pacman, yay, and snapper; it does
   not reimplement them. Per-command reference, user- vs developer-facing, in
   `docs/cli.md`.
-- `hub/` Ryoku Hub, the central control-center GUI (`Super + ,`): `backend/`
+- `hub/` Ryoku Settings, the central control-center GUI (`Super + ,`): `backend/`
   (`ryoku-hub`, the Go data plane that reads the keybind legend from the live
-  Hyprland config and persists hub state as TOML) and `quickshell/` (the native
-  Qt6/QML app, a `FloatingWindow` with Kirigami-style sidebar navigation and a
-  global fuzzy search). Deployed to `~/.config/quickshell/hub`; built by the
-  shell's `deploy.sh`.
+  Hyprland config, generates the `settings.lua` override from a JSON document, and
+  persists hub state as TOML) and `quickshell/` (the native Qt6/QML app, a
+  `FloatingWindow` with a grouped sidebar and global fuzzy search, with live
+  editors for displays, appearance, input, keybinds, window rules, autostart,
+  environment, and the shell). The product is "Ryoku Settings"; the binary and
+  config keep the internal `hub` name. Deployed to `~/.config/quickshell/hub`;
+  built by the shell's `deploy.sh`.
 - `assets/` `brand/` the 力 logo and icons, and `wallpapers/` the shipped
   wallpaper set (installs to `~/Pictures/Wallpapers`).
 
@@ -65,6 +68,10 @@ System-level definition installed into the target.
   `leds/` (`ryoku-leds`, the OpenRGB accent sync), `drivers/` (per-vendor
   `nvidia`/`intel`/`amd`/`vulkan` install scripts), `power/` (`ryoku-hw-laptop`,
   the shared laptop detector; `ryoku-idle`, the laptop-gated `hypridle` launcher).
+- `extras/` the helpers behind the Hub's Extras section, shipped to `/usr/bin` by
+  `ryoku-desktop`: `ryoku-extras-install` (installs, removes, and reports the
+  optional bundles from the `ryoku-extras` catalogue), the `ryoku-pkg-*` routing
+  wrappers (repo, AUR, remove, multilib), and `ryoku-cmd-present`.
 - `packages/` the package sets: `base.packages` (every machine, pacstrapped),
   `hardware.packages` (per-profile microcode and GPU drivers), `dev.packages`
   (language toolchains, pacstrapped), `aur.packages` (built post-install).
