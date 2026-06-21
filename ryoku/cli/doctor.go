@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -91,6 +92,7 @@ func reconcilers() []reconciler {
 		{"pacman database lock", reconcilePacmanLock},
 		{"ryoku package channel", reconcileRyokuChannel},
 		{"desktop session components", reconcileSessionComponents},
+		{"ryoku shell daemon", reconcileShellDaemon},
 		{"failed services", reconcileFailedUnits},
 		{"btrfs device health", reconcileBtrfsHealth},
 		{"display backlight", reconcileBacklight},
@@ -372,6 +374,92 @@ func reconcileSessionComponents(_ bool) recResult {
 		return okRes("desktop session components present")
 	}
 	return warnRes("missing: %s", strings.Join(missing, "; "))
+}
+
+// ---- reconciler: ryoku shell daemon ------------------------------------------
+
+// reconcileShellDaemon checks the Ryoku shell control plane is alive. The daemon
+// (`ryoku-shell daemon`, autostarted by Hyprland) owns the Unix socket every
+// keybind and quickshell component talks to; if it dies the whole shell is dead
+// while the session target still looks up. Hyprland starts it once at login, so a
+// crash leaves nothing to bring it back -- which is what doctor is for. Inside a
+// live session it restarts the daemon; from a TTY or ssh there is no shell to
+// manage, so it stays quiet.
+func reconcileShellDaemon(checkOnly bool) recResult {
+	if os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") == "" {
+		return okRes("not in a live Hyprland session")
+	}
+	if !has("ryoku-shell") {
+		return warnRes("ryoku-shell is not installed; the desktop shell cannot run").
+			withFix("redeploy the shell: `ryoku update` (or ryoku/shell/deploy.sh from a checkout)")
+	}
+	if shellDaemonReachable() {
+		return okRes("shell daemon reachable")
+	}
+	if checkOnly {
+		return wouldRes("shell daemon is down; the shell, keybinds and panels are dead").
+			withFix("start it with `ryoku-shell daemon` (Hyprland autostarts it at login)")
+	}
+	if err := startShellDaemon(); err != nil {
+		return failRes("shell daemon is down and could not be started: %v", err).
+			withFix("start it in a terminal to see why: `ryoku-shell daemon`")
+	}
+	if waitDaemonReachable(5 * time.Second) {
+		return fixedRes("shell daemon was down; restarted it")
+	}
+	return failRes("started ryoku-shell daemon but it did not come up").
+		withFix("run `ryoku-shell daemon` in a terminal to see why it exits")
+}
+
+// shellDaemonReachable dials the shell control socket and pings it, the same
+// round-trip the keybinds make. A stale socket from a crashed daemon refuses the
+// connection; a hung daemon accepts but never replies, so the read is bounded.
+func shellDaemonReachable() bool {
+	dir := os.Getenv("XDG_RUNTIME_DIR")
+	if dir == "" {
+		dir = "/tmp"
+	}
+	conn, err := net.DialTimeout("unix", filepath.Join(dir, "ryoku-shell.sock"), time.Second)
+	if err != nil {
+		return false
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(2 * time.Second))
+	if _, err := fmt.Fprintln(conn, "ping"); err != nil {
+		return false
+	}
+	buf := make([]byte, 64)
+	n, _ := conn.Read(buf)
+	return strings.TrimSpace(string(buf[:n])) == "ok"
+}
+
+// startShellDaemon launches `ryoku-shell daemon` detached from doctor: its own
+// session so it outlives this process, stdio to /dev/null. The daemon removes a
+// stale socket and refuses to double-start, so this is safe to call only when the
+// socket is already unreachable.
+func startShellDaemon() error {
+	cmd := exec.Command("ryoku-shell", "daemon")
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	if devnull, err := os.OpenFile(os.DevNull, os.O_RDWR, 0); err == nil {
+		cmd.Stdin, cmd.Stdout, cmd.Stderr = devnull, devnull, devnull
+		defer devnull.Close()
+	}
+	return cmd.Start()
+}
+
+// waitDaemonReachable polls until the daemon answers or the deadline passes; the
+// daemon needs a moment to bind the socket and bootstrap.
+func waitDaemonReachable(d time.Duration) bool {
+	deadline := time.Now().Add(d)
+	for {
+		if shellDaemonReachable() {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(150 * time.Millisecond)
+	}
 }
 
 // ---- reconciler: failed systemd units ----------------------------------------

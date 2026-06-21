@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -91,5 +93,42 @@ func TestGatherReportIncludesFindings(t *testing.T) {
 		if !strings.Contains(rep, want) {
 			t.Errorf("report missing %q", want)
 		}
+	}
+}
+
+func TestShellDaemonReachable(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_RUNTIME_DIR", dir)
+	if shellDaemonReachable() {
+		t.Fatal("with no socket the daemon must read as unreachable")
+	}
+	ln, err := net.Listen("unix", filepath.Join(dir, "ryoku-shell.sock"))
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			b := make([]byte, 64)
+			n, _ := c.Read(b)
+			if strings.HasPrefix(strings.TrimSpace(string(b[:n])), "ping") {
+				fmt.Fprintln(c, "ok")
+			}
+			c.Close()
+		}
+	}()
+	if !shellDaemonReachable() {
+		t.Fatal("a daemon answering ping with ok must read as reachable")
+	}
+}
+
+func TestReconcileShellDaemonOutsideSession(t *testing.T) {
+	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "")
+	if r := reconcileShellDaemon(true); r.status != recOK {
+		t.Fatalf("outside a Hyprland session the daemon check must be ok, got %q: %s", r.status.label(), r.detail)
 	}
 }

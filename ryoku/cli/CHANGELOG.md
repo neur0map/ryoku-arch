@@ -44,7 +44,9 @@
   command after it installs the new binary, so it is one command (not a copy
   baked into update) running the reconcilers from the release just installed. The
   batch covers swap-out-of-snapshots, snapper config consistency, stale pacman
-  lock, the `[ryoku]` channel + keyring, desktop session components, failed
+  lock, the `[ryoku]` channel + keyring, desktop session components, the running
+  shell daemon (restarted when its control socket is unreachable, so a crashed
+  shell with dead keybinds and panels heals itself), failed
   services, btrfs device health, display backlight (no interface, missing
   brightnessctl, or a hybrid-GPU firmware-only backlight that does not dim the
   panel -- read from the kernel's own "no native backlight" verdict, not a sysfs
