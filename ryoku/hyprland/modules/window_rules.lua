@@ -63,3 +63,11 @@ hl.window_rule({
     size   = { 1360, 880 },
     center = true,
 })
+
+hl.window_rule({
+    name   = "float-ryoku-extras",
+    match  = { class = "ryoku-extras" },
+    float  = true,
+    size   = { 900, 600 },
+    center = true,
+})
