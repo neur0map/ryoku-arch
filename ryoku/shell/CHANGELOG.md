@@ -48,6 +48,9 @@
 - `quickshell/pill` update island: surfaces the git update channel it was built
   for. Its count and target version read the commits the checkout is behind
   `origin/main` (from `ryoku status --json`) rather than pacman package counts.
+- `ipc/wallpaper.go`: a wallpaper change keeps the palette of a fixed Ryoku
+  Settings theme instead of re-deriving colours from the image (the theme lock at
+  `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
 - `quickshell/pill` update island: re-check `ryoku status` on a steady cadence

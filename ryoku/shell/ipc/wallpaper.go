@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -178,6 +179,11 @@ func (d *daemon) paintWorker() {
 		if pic == "" || !isFile(pic) {
 			continue
 		}
+		// A fixed-palette theme (Ryoku Settings) owns the colours: change the
+		// wallpaper image but keep the theme palette instead of re-deriving it.
+		if themePaletteLocked() {
+			continue
+		}
 		_ = exec.Command("wallust", "run", pic).Run()
 		_ = exec.Command("hyprctl", "reload", "config-only").Run()
 		select {
@@ -185,6 +191,23 @@ func (d *daemon) paintWorker() {
 		default:
 		}
 	}
+}
+
+// themePaletteLocked reports whether a fixed-palette theme (set in Ryoku Settings)
+// owns the colours. State lives at ~/.config/ryoku/theme.json: { "fixed": true }.
+func themePaletteLocked() bool {
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		base = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	b, err := os.ReadFile(filepath.Join(base, "ryoku", "theme.json"))
+	if err != nil {
+		return false
+	}
+	var s struct {
+		Fixed bool `json:"fixed"`
+	}
+	return json.Unmarshal(b, &s) == nil && s.Fixed
 }
 
 // ledsWorker pushes the accent color to OpenRGB devices. OpenRGB device detection
