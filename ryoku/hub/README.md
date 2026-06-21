@@ -58,6 +58,8 @@ autostart, environment, the shell's look, and the update channel.
 - **Keybinds** the full shortcut legend, read live from `binds.lua` so it never
   drifts, plus a Custom editor for your own shortcuts layered on top.
 - **Window Rules** float, size, pin, place, or restyle windows by class or title.
+- **Layer Rules** blur, dim, or disable animations on layer-shell surfaces (bars,
+  launchers, notification daemons) matched by namespace.
 - **Autostart** commands run at login, after the base Ryoku autostart.
 - **Environment** environment variables for the Hyprland session.
 - **Shell** the live editor for the screen frame, the top island, and the desktop

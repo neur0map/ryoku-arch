@@ -25,6 +25,7 @@ Rectangle {
         { "key": "input",       "name": "Input",        "icon": "mouse",    "group": "Input & shortcuts" },
         { "key": "keybinds",    "name": "Keybinds",     "icon": "keyboard", "group": "Input & shortcuts" },
         { "key": "windowrules", "name": "Window Rules", "icon": "window",   "group": "Session" },
+        { "key": "layerrules",  "name": "Layer Rules", "icon": "window",   "group": "Session" },
         { "key": "autostart",   "name": "Autostart",    "icon": "rocket",   "group": "Session" },
         { "key": "environment", "name": "Environment",  "icon": "variable", "group": "Session" },
         { "key": "shell",       "name": "Shell",        "icon": "gear",     "group": "Desktop" },
@@ -39,6 +40,7 @@ Rectangle {
         "input":       { "title": "Input", "subtitle": "Keyboard layout, pointer feel, touchpad behaviour, and key repeat." },
         "keybinds":    { "title": "Keybinds", "subtitle": "Every shortcut in the Ryoku desktop, read live from your Hyprland config, plus your own custom binds." },
         "windowrules": { "title": "Window Rules", "subtitle": "Float, size, pin, or place windows by class or title." },
+        "layerrules":  { "title": "Layer Rules", "subtitle": "Tweak layer-shell surfaces (bars, launchers) by namespace: blur, dim, no animation." },
         "autostart":   { "title": "Autostart", "subtitle": "Commands that run when the session starts." },
         "environment": { "title": "Environment", "subtitle": "Environment variables for the Hyprland session." },
         "shell":       { "title": "Shell", "subtitle": "Tune the Ryoku shell: the frame, the island, and the desktop visualiser." },
@@ -194,6 +196,7 @@ Rectangle {
         case "input": return inputComp;
         case "keybinds": return keybindsComp;
         case "windowrules": return windowRulesComp;
+        case "layerrules": return layerRulesComp;
         case "autostart": return autostartComp;
         case "environment": return environmentComp;
         case "updates": return updatesComp;
@@ -209,6 +212,7 @@ Rectangle {
     Component { id: inputComp; InputPage {} }
     Component { id: keybindsComp; KeybindsPage { categories: hub.keybindsModel } }
     Component { id: windowRulesComp; WindowRulesPage {} }
+    Component { id: layerRulesComp; LayerRulesPage {} }
     Component { id: autostartComp; AutostartPage {} }
     Component { id: environmentComp; EnvironmentPage {} }
     Component { id: shellComp; ShellSettingsPage {} }

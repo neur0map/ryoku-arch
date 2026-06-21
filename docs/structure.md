@@ -50,8 +50,8 @@ truth for the live desktop.
   Hyprland config, generates the `settings.lua` override from a JSON document, and
   persists hub state as TOML) and `quickshell/` (the native Qt6/QML app, a
   `FloatingWindow` with a grouped sidebar and global fuzzy search, with live
-  editors for displays, appearance, animations, input, keybinds, window rules,
-  environment, and the shell). The product is "Ryoku Settings"; the binary and
+  editors for displays, appearance, animations, input, keybinds, window and layer
+  rules, autostart, environment, and the shell). The product is "Ryoku Settings"; the binary and
   config keep the internal `hub` name. Deployed to `~/.config/quickshell/hub`;
   built by the shell's `deploy.sh`.
 - `assets/` `brand/` the 力 logo and icons, and `wallpapers/` the shipped

@@ -34,6 +34,9 @@
   and `AnimRow` components.
 - Input gains a touchpad **workspace-swipe** gesture (3 or 4 fingers), emitted as
   `hl.gesture` and previewed live.
+- A **Layer Rules** editor: blur/dim/no-animation rules on layer-shell surfaces by
+  namespace, emitted as `hl.layer_rule` (new `layerRules` override domain,
+  `LayerRulesPage`).
 - A **Shell Settings** section: a live editor for the shell's look. **Frame** and
   **Island** tabs expose the knobs with the control each one wants, steppers with
   manual entry for exact pixels (radius, border, sizes, corners, gap), sliders for
