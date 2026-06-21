@@ -1,0 +1,34 @@
+# Maintainer: Ryoku <releases@ryoku.dev>
+#
+# GlazePKG (gpk): the official RyokuArch package manager, a terminal dashboard
+# that unifies every package manager on the system into one searchable view.
+# Shipped in the [ryoku] repo and depended on by ryoku-desktop so a fresh install
+# always has it, instead of relying on the best-effort post-install AUR build.
+#
+# Built upstream (github.com/neur0map/glazepkg, Go) and repackaged here from the
+# pinned release binary, which the [ryoku] repo then signs with the release key.
+# `gpk update` self-updates from upstream after install.
+pkgname=gpk
+pkgver=0.5.8
+pkgrel=1
+pkgdesc="GlazePKG: the RyokuArch package manager, every package manager in one view"
+arch=('x86_64' 'aarch64')
+url="https://github.com/neur0map/glazepkg"
+license=('GPL-3.0-or-later')
+depends=('pacman')
+provides=('gpk')
+conflicts=('gpk-bin')
+replaces=('gpk-bin')
+options=('!strip' '!debug')
+source_x86_64=("gpk-$pkgver-x86_64::https://github.com/neur0map/glazepkg/releases/download/v$pkgver/gpk-linux-amd64")
+source_aarch64=("gpk-$pkgver-aarch64::https://github.com/neur0map/glazepkg/releases/download/v$pkgver/gpk-linux-arm64")
+sha256sums_x86_64=('c379780e9b5352a0b1e59f7d391a1c2c01e09ab5257b83712b3d5aaa6acad3ba')
+sha256sums_aarch64=('e31c6553dbc1db21de4e8fdd7615e194e8e2e46682b296a416f520113d8dc8b6')
+
+package() {
+  if [[ $CARCH == aarch64 ]]; then
+    install -Dm755 "$srcdir/gpk-$pkgver-aarch64" "$pkgdir/usr/bin/gpk"
+  else
+    install -Dm755 "$srcdir/gpk-$pkgver-x86_64" "$pkgdir/usr/bin/gpk"
+  fi
+}

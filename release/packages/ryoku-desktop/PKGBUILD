@@ -10,7 +10,7 @@
 # levels up.
 pkgname=ryoku-desktop
 pkgver=0.1.0
-pkgrel=2
+pkgrel=3
 pkgdesc="Ryoku desktop: Hyprland + Quickshell configuration, helpers, and runtime"
 arch=('any')
 url="https://ryoku.dev"
@@ -22,6 +22,8 @@ depends=(
   'ryoku-blobs'
   'ryoku'
   'ryoku-keyring'
+  # The RyokuArch package manager (GlazePKG)
+  'gpk'
   # Compositor + Wayland session
   'hyprland'
   'xorg-xwayland'

@@ -21,6 +21,11 @@
   checkout: `ryoku-keyring` (ships the release signing key + trust), `ryoku-shell`,
   `ryoku-hub`, `ryoku`, `ryoku-blobs`, and the `ryoku-desktop` umbrella (configs to
   `/usr/share/ryoku/config`, helper scripts to `/usr/bin`, runtime depends).
+- `release/packages/gpk/`: ship GlazePKG (`gpk`), the RyokuArch package manager,
+  as a first-class signed `[ryoku]` package (repackaged from the pinned upstream
+  release binary, `provides`/`replaces` the AUR `gpk-bin`). `ryoku-desktop` now
+  depends on it (`pkgrel=3`), so a fresh install and `ryoku update` always deliver
+  `gpk` through pacman instead of the best-effort post-install AUR build.
 - `release/repo/build-repo.sh`: builds + signs every package and assembles the
   signed `[ryoku]` pacman database, laid out for `https://repo.ryoku.dev/stable/$arch`
   (real db files, not symlinks, for R2).
