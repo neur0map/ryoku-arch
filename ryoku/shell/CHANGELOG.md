@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- `ipc/wallpaper`: a `refresh` mode (`ryoku-shell wallpaper refresh`) repaints the
+  current wallpaper on every output with no transition, so a monitor connected
+  mid-session shows the same image without re-animating the displays that already
+  have it. The Hyprland hotplug handler calls it after autoscale.
 - `quickshell/pill`: the shell's look is now config-driven and live-editable. A
   new `Config` singleton reads `~/.config/ryoku/shell.json` (watched, atomic
   writes, defaults seeded on first run), and the frame and island read every

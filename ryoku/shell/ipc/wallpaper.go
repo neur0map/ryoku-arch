@@ -101,6 +101,20 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 		return nil
 	}
 
+	// refresh repaints the current wallpaper on every output with no transition, so
+	// a freshly connected monitor shows the same image without re-animating the
+	// others. The palette already matches, so it skips the retheme and state write.
+	if mode == "refresh" {
+		pic := readState()
+		if pic == "" || !isFile(pic) {
+			pic = popBag()
+		}
+		if pic == "" {
+			return nil
+		}
+		return d.showWallpaperInstant(pic)
+	}
+
 	var pic string
 	switch mode {
 	case "init":
@@ -138,6 +152,13 @@ func (d *daemon) showWallpaper(pic string) error {
 	argv := append([]string{"img", pic}, d.pickTransition()...)
 	argv = append(argv, "--transition-duration", transitionDuration, "--transition-fps", transitionFPS)
 	return exec.Command(wallDaemon, argv...).Run()
+}
+
+// showWallpaperInstant paints the wallpaper on every output with no transition.
+// Used on monitor hotplug to fill a newly connected output without re-animating
+// the displays that already show it.
+func (d *daemon) showWallpaperInstant(pic string) error {
+	return exec.Command(wallDaemon, "img", pic, "--transition-type", "none").Run()
 }
 
 // pickTransition returns a random preset's flags, never the previous one so
