@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
+import Quickshell
+import Quickshell.Io
 import "Singletons"
 
 RowLayout {
@@ -9,6 +11,21 @@ RowLayout {
     property bool opened: false
 
     spacing: 10 * s
+
+    // Night light reflects whether hyprsunset is running, which the script owns;
+    // re-query on open so an external toggle (Super+U, the hub) stays in sync.
+    property bool nightOn: false
+    readonly property string scriptsDir: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/"
+    function refreshNight() { nightStatus.running = true; }
+    onOpenedChanged: if (opened) refreshNight()
+    Component.onCompleted: refreshNight()
+
+    Process {
+        id: nightStatus
+        command: [root.scriptsDir + "ryoku-cmd-nightlight", "status"]
+        stdout: StdioCollector { onStreamFinished: root.nightOn = this.text.trim().indexOf("on") === 0 }
+    }
+    Process { id: nightToggle; command: [root.scriptsDir + "ryoku-cmd-nightlight", "toggle"] }
 
     component Pill: Rectangle {
         property bool active: false
@@ -102,5 +119,12 @@ RowLayout {
         title: "Keep Awake"
         state: Flags.keepAwake ? "On" : "Off"
         onClicked: Flags.keepAwake = !Flags.keepAwake
+    }
+    Pill {
+        active: root.nightOn
+        icon: "sun"
+        title: "Night Light"
+        state: root.nightOn ? "On" : "Off"
+        onClicked: { root.nightOn = !root.nightOn; nightToggle.running = true; }
     }
 }

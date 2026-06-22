@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- `shell/quickshell/sidebar` QuickStrip: a Night Light quick-toggle joins Do Not
+  Disturb and Keep Awake, reading and toggling `hyprsunset` (the warm screen) live
+  via the night-light script, so it stays in sync with the `Super + U` utility and
+  the hub's Comfort tab.
 - `hyprland/binds`: `Super + K` opens the keybind reference, the hub's live
   shortcut legend read from `binds.lua`, so the full shortcut list is one key
   away.
