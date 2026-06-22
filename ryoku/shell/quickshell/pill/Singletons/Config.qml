@@ -48,6 +48,11 @@ Singleton {
     property alias islandStyle:    adapter.islandStyle
     property alias islandAutohide: adapter.islandAutohide
 
+    // Top bar: an opt-in traditional bar (qs -c topbar) shown in place of the
+    // resting island. When on, the island never shows at rest (surfaces and
+    // keybinds still summon the pill); Ryoku Settings -> Shell -> Bar toggles it.
+    property alias barEnabled: adapter.barEnabled
+
     FileView {
         id: file
         path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/shell.json"
@@ -75,6 +80,7 @@ Singleton {
             property real islandOpacity: 1
             property string islandStyle: "island"
             property bool islandAutohide: false
+            property bool barEnabled: false
         }
     }
 

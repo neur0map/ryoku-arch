@@ -45,7 +45,7 @@ Rectangle {
         "layerrules":  { "title": "Layer Rules", "subtitle": "Tweak layer-shell surfaces (bars, launchers) by namespace: blur, dim, no animation." },
         "autostart":   { "title": "Autostart", "subtitle": "Commands that run when the session starts." },
         "environment": { "title": "Environment", "subtitle": "Environment variables for the Hyprland session." },
-        "shell":       { "title": "Shell", "subtitle": "Tune the Ryoku shell: the frame, the island, and the desktop visualiser." },
+        "shell":       { "title": "Shell", "subtitle": "Tune the Ryoku shell: the frame, the island, the bar, and the desktop visualiser." },
         "updates":     { "title": "Updates", "subtitle": "Updates pending for your Ryoku system." },
         "extras":      { "title": "Extras", "subtitle": "Curated bundles of extra tools, installed and removed with one click." }
     })

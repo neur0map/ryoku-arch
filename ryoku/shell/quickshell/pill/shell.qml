@@ -217,7 +217,7 @@ ShellRoot {
             // so tiles sit below it. Floating, none, and any auto-hidden island
             // float over the content instead, so the reserved top collapses to a
             // small even gap that matches the other three frame edges.
-            readonly property bool reservesIsland: Config.islandStyle === "island" && !Config.islandAutohide
+            readonly property bool reservesIsland: Config.islandStyle === "island" && !Config.islandAutohide && !Config.barEnabled
             readonly property real evenTop: 22 * s
             readonly property real zone: reservesIsland ? (restHeight + topGap) : evenTop
 
@@ -251,7 +251,7 @@ ShellRoot {
             //    over the content.
             //  - none: no resting island at all.
             readonly property bool fused: Config.islandStyle === "island"
-            readonly property bool styleNone: Config.islandStyle === "none"
+            readonly property bool styleNone: Config.islandStyle === "none" || Config.barEnabled
             readonly property bool autohide: Config.islandAutohide && !styleNone
             // Where the pill sits below the screen top: fused rides the frame neck,
             // floating/none hang a little lower so they read as detached.

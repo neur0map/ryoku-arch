@@ -19,7 +19,7 @@ Item {
         "frameRadius", "frameBorder", "frameSmoothing", "frameOpacity",
         "shadowStrength", "shadowSize", "surfaceColor",
         "islandWidth", "islandHeight", "islandRestCorner", "islandOpenCorner",
-        "islandGap", "islandSmoothing", "islandOpacity", "islandStyle", "islandAutohide"
+        "islandGap", "islandSmoothing", "islandOpacity", "islandStyle", "islandAutohide", "barEnabled"
     ]
     readonly property var vizKeys: [
         "enabled", "bars", "height", "thickness", "bloom", "reflection", "idleWave",
@@ -34,7 +34,7 @@ Item {
         "shadowStrength": 0.5, "shadowSize": 26, "surfaceColor": "#1a1b26",
         "islandWidth": 108, "islandHeight": 38, "islandRestCorner": 18, "islandOpenCorner": 22,
         "islandGap": 8, "islandSmoothing": 24, "islandOpacity": 1,
-        "islandStyle": "island", "islandAutohide": false,
+        "islandStyle": "island", "islandAutohide": false, "barEnabled": false,
         "enabled": true, "bars": 64, "height": 0.42, "thickness": 0.58,
         "bloom": 0.6, "reflection": 0.1, "idleWave": true,
         "style": "bars", "shape": "rounded", "position": "bottom", "mirror": false
@@ -66,6 +66,7 @@ Item {
         property real islandOpacity: 1
         property string islandStyle: "island"
         property bool islandAutohide: false
+        property bool barEnabled: false
         property bool enabled: true
         property int bars: 64
         property real height: 0.42
@@ -197,6 +198,7 @@ Item {
             property real islandOpacity: 1
             property string islandStyle: "island"
             property bool islandAutohide: false
+            property bool barEnabled: false
         }
     }
 
@@ -246,6 +248,7 @@ Item {
         model: [
             { "key": "frame", "label": "Frame" },
             { "key": "island", "label": "Island" },
+            { "key": "bar", "label": "Bar" },
             { "key": "visualizer", "label": "Visualizer" }
         ]
         current: page.group
@@ -295,7 +298,7 @@ Item {
             width: flick.width - 12
             height: item ? item.implicitHeight : 0
             y: Math.max(0, (flick.height - loader.height) / 2)
-            sourceComponent: page.group === "frame" ? frameComp : (page.group === "island" ? islandComp : vizComp)
+            sourceComponent: page.group === "frame" ? frameComp : (page.group === "island" ? islandComp : (page.group === "bar" ? barComp : vizComp))
             onLoaded: {
                 if (!item)
                     return;
@@ -461,6 +464,39 @@ Item {
                         width: parent.width; label: "Opacity"; percent: true
                         from: 0.2; to: 1; step: 0.01; value: draft.islandOpacity
                         onModified: (v) => page.edit("islandOpacity", v)
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: barComp
+        Row {
+            id: barRow
+            spacing: 56
+            readonly property real colW: (width - spacing) / 2
+
+            Column {
+                width: barRow.colW
+                spacing: 30
+
+                SettingSection {
+                    width: parent.width
+                    title: "TOP BAR"
+                    ToggleRow {
+                        width: parent.width; label: "Enable top bar"
+                        checked: draft.barEnabled
+                        onToggled: (v) => page.edit("barEnabled", v)
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: "A bar across the top of the frame with workspaces, clock, now-playing, tray and power. While it is on, the resting pill island is hidden; the launcher, calendar and other surfaces still open from their keybinds."
+                        color: Theme.faint
+                        font.family: Theme.font
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
                     }
                 }
             }

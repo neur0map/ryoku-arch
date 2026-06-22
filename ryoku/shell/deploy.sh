@@ -40,6 +40,7 @@ restart_shell() {
   pkill -f 'qs -c pill' >/dev/null 2>&1 || true
   pkill -f 'qs -c sidebar' >/dev/null 2>&1 || true
   pkill -f 'qs -c visualizer' >/dev/null 2>&1 || true
+  pkill -f 'qs -c topbar' >/dev/null 2>&1 || true
   sleep 0.2
 
   mkdir -p "$(dirname -- "$log")"
