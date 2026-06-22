@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- `hyprland/binds`: `Super + K` opens the keybind reference, the hub's live
+  shortcut legend read from `binds.lua`, so the full shortcut list is one key
+  away.
 - `shell/quickshell/topbar` + `hub` (Shell -> Bar): an opt-in top bar as an
   alternative to the morphing pill island. A full-width `qs -c topbar` instance
   sits flush to the top of the frame, the warm frame surface thickened into a bar
