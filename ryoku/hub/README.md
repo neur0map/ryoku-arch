@@ -8,7 +8,7 @@ config directory, and `qs -c hub` invocation keep the original `hub` name.
 
 It is where you edit anything the Hyprland (Lua) config drives, plus the Ryoku
 shell, in one place: monitors, appearance, input, keybinds, window rules,
-autostart, environment, the shell's look, and the update channel.
+autostart, environment, the shell's look, the lock screen, and the update channel.
 
 ## Layout
 
@@ -22,6 +22,9 @@ autostart, environment, the shell's look, and the update channel.
     cursor themes and X11 keyboard layouts for the pickers.
   - `ryoku-hub config get|set <key> [value]` persists hub UI state as TOML at
     `~/.config/ryoku/hub.toml` (last open section, update-check cadence).
+  - `ryoku-hub lock list|set <slug>` lists the installed qylock lock skins (the
+    active one, plus each skin's preview gif) and sets the active skin by writing
+    `~/.config/qylock/theme`. It never touches the greeter or the auth flow.
 - `quickshell/` The UI, hand-written Quickshell (QML), deployed to
   `~/.config/quickshell/hub` and launched with `qs -c hub`:
   - `shell.qml` the `FloatingWindow`; `Hub.qml` the app (rail + content + the data
@@ -32,7 +35,7 @@ autostart, environment, the shell's look, and the update channel.
     override document from the backend, holds an editable draft, previews scalar
     edits live (flash-free, via `hyprctl eval`), and persists on Save.
   - Page components, one per file: `DisplaysPage` (+ `MonitorTile`),
-    `AppearancePage`, `InputPage`, `KeybindsPage` (+ `KeybindLegend`,
+    `AppearancePage`, `LockscreenPage` (+ `LockscreenTile`), `InputPage`, `KeybindsPage` (+ `KeybindLegend`,
     `KeybindsEditor`), `WindowRulesPage`, `AutostartPage`, `EnvironmentPage`,
     `ShellSettingsPage`, `UpdatesPage`, and the reusable controls
     (`SettingSection`, `NumberField`, `SliderRow`, `Slider`, `ColorField`,
@@ -50,6 +53,12 @@ autostart, environment, the shell's look, and the update channel.
   palette or fix them), and the cursor theme and size. A **Wallpaper** tab retheme
   the desktop (the wallust palette follows the pick, via `ryoku-shell wallpaper`),
   and a **Comfort** tab controls backlight and the night light.
+- **Lockscreen** the installed qylock lock skins as a bento grid, each tile a
+  looping preview of the real lockscreen. Ryoku ships the clockwork theme;
+  selecting a skin only swaps which one the in-session lock wears (writes
+  `~/.config/qylock/theme`, read by `lock.sh`), never the SDDM greeter or the
+  login flow. **Preview** shows it live; **Refresh** re-scans. Backed by
+  `ryoku-hub lock`.
 - **Animations** the live Hyprland animation tree (read via `hyprctl animations`)
   with per-leaf enable, speed, and bezier, plus a visual bezier-curve editor that
   previews as you drag. Curves and overrides persist to `settings.lua` on Save.

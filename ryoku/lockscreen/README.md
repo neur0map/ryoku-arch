@@ -26,6 +26,11 @@ runs `qylock/quickshell-lockscreen/lock.sh`, which launches Quickshell with the
 same theme. The greeter reads `/etc/sddm.conf.d/99-ryoku.conf`; the in-session
 lock reads `~/.config/qylock/theme` (set to `clockwork/orbital`).
 
+The in-session lock skin is selectable in Ryoku Settings (**Lockscreen**), which
+lists the installed skins with looping previews and, on select, rewrites
+`~/.config/qylock/theme`. It only swaps the skin; the greeter and the login flow
+are untouched.
+
 ## Installing by hand
 
 ```

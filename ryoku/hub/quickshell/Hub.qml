@@ -21,6 +21,7 @@ Rectangle {
     readonly property var sectionDefs: [
         { "key": "displays",    "name": "Displays",     "icon": "display",  "group": "Displays & look" },
         { "key": "appearance",  "name": "Appearance",   "icon": "palette",  "group": "Displays & look" },
+        { "key": "lockscreen",  "name": "Lockscreen",   "icon": "lock",     "group": "Displays & look" },
         { "key": "animations", "name": "Animations",   "icon": "motion",   "group": "Displays & look" },
         { "key": "input",       "name": "Input",        "icon": "mouse",    "group": "Input & shortcuts" },
         { "key": "keybinds",    "name": "Keybinds",     "icon": "keyboard", "group": "Input & shortcuts" },
@@ -36,6 +37,7 @@ Rectangle {
     readonly property var pageMeta: ({
         "displays":    { "title": "Displays", "subtitle": "Detect and arrange your monitors: resolution, scale, rotation, mirroring, and saved layout profiles." },
         "appearance":  { "title": "Appearance", "subtitle": "Window look: gaps, rounding, borders, opacity, blur, shadows, animations, and the cursor theme." },
+        "lockscreen":  { "title": "Lockscreen", "subtitle": "Choose the skin your lock screen wears. Ryoku ships the clockwork theme; picking one only swaps the look, never your login." },
         "animations":  { "title": "Animations", "subtitle": "Tune Hyprland's animations and edit bezier curves with a live preview." },
         "input":       { "title": "Input", "subtitle": "Keyboard layout, pointer feel, touchpad behaviour, and key repeat." },
         "keybinds":    { "title": "Keybinds", "subtitle": "Every shortcut in the Ryoku desktop, read live from your Hyprland config, plus your own custom binds." },
@@ -192,6 +194,7 @@ Rectangle {
         switch (s) {
         case "displays": return displaysComp;
         case "appearance": return appearanceComp;
+        case "lockscreen": return lockscreenComp;
         case "animations": return animationsComp;
         case "input": return inputComp;
         case "keybinds": return keybindsComp;
@@ -208,6 +211,7 @@ Rectangle {
     Component { id: searchComp; SearchResults { categories: hub.keybindsModel; sections: hub.sectionDefs; query: navRail.query; onNavigate: (s) => hub.go(s) } }
     Component { id: displaysComp; DisplaysPage {} }
     Component { id: appearanceComp; AppearancePage {} }
+    Component { id: lockscreenComp; LockscreenPage {} }
     Component { id: animationsComp; AnimationsPage {} }
     Component { id: inputComp; InputPage {} }
     Component { id: keybindsComp; KeybindsPage { categories: hub.keybindsModel } }

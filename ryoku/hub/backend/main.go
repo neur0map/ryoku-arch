@@ -44,6 +44,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
 			os.Exit(1)
 		}
+	case "lock":
+		if err := runLock(args[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(2)
@@ -85,4 +90,6 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  ryoku-hub hypr restore")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub extras catalog|cache")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub extras installer <name>")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub lock list")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub lock set <slug>")
 }
