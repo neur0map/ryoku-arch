@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Changed
+- The desktop packages built from the monorepo (`ryoku-desktop`, `ryoku`,
+  `ryoku-shell`, `ryoku-hub`, `ryoku-blobs`) are now versioned per build as
+  `<core>.r<commit-count>.g<short-sha>`: `bin/ryoku-release-version --pkgver`
+  computes it and `build-repo.sh` injects it as `RYOKU_PKGVER`, which each PKGBUILD
+  reads. Every published build is then a strictly newer, commit-identifiable pacman
+  version, so `ryoku update` (pacman -Syu) delivers commits pushed after a user's
+  ISO instead of seeing a static `0.1.0-3` forever, and `ryoku status` and the Hub
+  show the exact commit. `gpk` and `ryoku-keyring` keep their own versions (pinned
+  upstream release, key-rotation date).
 - Rebuilt the `[ryoku]` repo for the new desktop shell work: `ryoku` to
   `pkgrel=3` (the CLI gains `ryoku recovery`, a last-resort restore) and
   `ryoku-desktop` to `pkgrel=2` (ships the reworked Hub shell-settings editor
@@ -30,8 +39,10 @@
   signed `[ryoku]` pacman database, laid out for `https://repo.ryoku.dev/stable/$arch`
   (real db files, not symlinks, for R2).
 - `.github/workflows/publish-repo.yml`: builds, signs, and publishes the `[ryoku]`
-  repo to Cloudflare R2 ONLY on `main` release tags (`v*`); `unstable-dev` never
-  publishes.
+  repo to Cloudflare R2 on a push to `main` (the user update channel) and on
+  release tags (`v*`), plus manual dispatch; `unstable-dev` never publishes. It
+  checks out full history (fetch-depth: 0) so the package version can carry the
+  commit count.
 - `keys/ryoku-release-key.pub.asc`: the Ryoku release public key
   (`releases@ryoku.dev`, ed25519, fpr `EB6D 3C0F 55A7 B3CA BA6B 2838 847B 274F
   025D D6E3`).

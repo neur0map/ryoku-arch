@@ -1,13 +1,16 @@
 name: "Publish [ryoku] repo"
 
-# Publishes the signed [ryoku] pacman repo. Triggers on main release tags
-# (git push tag v*) or manual dispatch. The Stable Release workflow dispatches it,
-# because a tag pushed by GITHUB_TOKEN does not fire the tag trigger. A push to
-# unstable-dev never publishes anything user facing. Packages and the db are built
-# from the checked-out tree, signed with the release key, and mirrored to
-# https://repo.ryoku.dev/stable/x86_64/.
+# Publishes the signed [ryoku] pacman repo to https://repo.ryoku.dev/stable/x86_64/.
+# Triggers on a push to main (the user update channel), on a release tag
+# (git push tag v*), and on manual dispatch. The Stable Release workflow also
+# dispatches it, because a tag pushed by GITHUB_TOKEN does not fire the tag
+# trigger. A push to unstable-dev never publishes; main only advances when the
+# maintainer fast-forwards it, so each advance rebuilds the repo with a new
+# commit-versioned package set that `ryoku update` (pacman -Syu) upgrades to.
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -59,6 +62,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          # Full history so build-repo.sh can derive the commit-count package
+          # version (bin/ryoku-release-version --pkgver) from `git rev-list`.
+          fetch-depth: 0
 
       - name: Build and sign the [ryoku] repo
         env:

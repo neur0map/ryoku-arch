@@ -7,8 +7,8 @@
 # Built from the in-repo source at ryoku/cli; no tarball is fetched and there are
 # no external Go modules.
 pkgname=ryoku
-pkgver=0.1.0
-pkgrel=3
+pkgver=${RYOKU_PKGVER:-0.1.0}
+pkgrel=1
 pkgdesc="Ryoku control CLI: updates, rollback, snapshots, materialize"
 arch=('x86_64')
 url="https://ryoku.dev"

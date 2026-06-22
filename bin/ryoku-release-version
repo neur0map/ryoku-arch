@@ -16,14 +16,33 @@ base=$(tr -d '[:space:]' < "$version_file")
 channel=main
 build_number=0
 sha=""
+pkgver_mode=0
 while (($#)); do
   case "$1" in
     --channel) channel=${2:?}; shift 2 ;;
     --build-number) build_number=${2:?}; shift 2 ;;
     --sha) sha=${2:-}; shift 2 ;;
+    --pkgver) pkgver_mode=1; shift ;;
     *) echo "ryoku-release-version: unknown argument: $1" >&2; exit 2 ;;
   esac
 done
+
+# --pkgver prints a pacman-valid, strictly increasing, commit-identifiable version
+# for the monorepo packages: the core semver (any -alpha/-beta suffix dropped,
+# since a pacman pkgver cannot contain '-') plus the commit count and the short
+# sha. Every commit yields a higher version that pacman upgrades to, and the gNNNN
+# token lets the Hub and `ryoku status` show the exact commit a machine runs.
+if (( pkgver_mode )); then
+  core=${base%%-*}
+  if [[ -n $sha ]]; then
+    short=${sha:0:7}
+  else
+    short=$(git -C "$ROOT" rev-parse --short=7 HEAD 2>/dev/null || echo 0000000)
+  fi
+  count=$(git -C "$ROOT" rev-list --count HEAD 2>/dev/null || echo 0)
+  printf '%s.r%s.g%s\n' "$core" "$count" "$short"
+  exit 0
+fi
 
 case "$channel" in
   main)

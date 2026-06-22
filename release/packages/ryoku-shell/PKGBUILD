@@ -8,7 +8,7 @@
 # root is three levels up. The binary is written to $srcdir, leaving the source
 # tree untouched.
 pkgname=ryoku-shell
-pkgver=0.1.0
+pkgver=${RYOKU_PKGVER:-0.1.0}
 pkgrel=1
 pkgdesc="Ryoku shell IPC daemon: supervises the Quickshell desktop"
 arch=('x86_64')

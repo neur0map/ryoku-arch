@@ -73,6 +73,16 @@ mkdir -p "$ARCH_DIR"
 #    $srcdir/$pkgdir so the checked-out source tree is left untouched.
 export PKGDEST=$ARCH_DIR
 export PKGEXT='.pkg.tar.zst'
+
+# Per-build version for the monorepo packages: the core semver plus the commit
+# count and short sha (bin/ryoku-release-version --pkgver). Every published build
+# is then a strictly newer, commit-identifiable pacman version, so `ryoku update`
+# (pacman -Syu) actually sees an upgrade after each push and the Hub can show the
+# commit. The monorepo PKGBUILDs read RYOKU_PKGVER; ryoku-keyring and gpk keep
+# their own versions (key-rotation date and upstream GlazePKG release). Overridable.
+: "${RYOKU_PKGVER:=$("$RELEASE_DIR/../bin/ryoku-release-version" --pkgver)}"
+export RYOKU_PKGVER
+log "Monorepo package version -> $RYOKU_PKGVER"
 for pkgbuild in "${pkgbuilds[@]}"; do
   pkgdir=$(dirname "$pkgbuild")
   log "Building $(basename "$pkgdir")"

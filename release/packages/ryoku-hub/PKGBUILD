@@ -8,7 +8,7 @@
 # go build downloads its one module dependency (github.com/BurntSushi/toml,
 # pinned in go.sum), so the build needs network access.
 pkgname=ryoku-hub
-pkgver=0.1.0
+pkgver=${RYOKU_PKGVER:-0.1.0}
 pkgrel=1
 pkgdesc="Ryoku Hub backend: keybind legend and config service"
 arch=('x86_64')

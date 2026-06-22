@@ -9,8 +9,8 @@
 # makepkg inside this directory in a full checkout, so the repo root is three
 # levels up.
 pkgname=ryoku-desktop
-pkgver=0.1.0
-pkgrel=3
+pkgver=${RYOKU_PKGVER:-0.1.0}
+pkgrel=1
 pkgdesc="Ryoku desktop: Hyprland + Quickshell configuration, helpers, and runtime"
 arch=('any')
 url="https://ryoku.dev"

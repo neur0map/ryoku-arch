@@ -9,7 +9,7 @@
 # library), so the whole Ryoku/Blobs directory is relocatable onto any QML import
 # path. No tarball is fetched.
 pkgname=ryoku-blobs
-pkgver=0.1.0
+pkgver=${RYOKU_PKGVER:-0.1.0}
 pkgrel=1
 pkgdesc="Ryoku.Blobs: SDF metaball QML plugin for the screen frame"
 arch=('x86_64')
