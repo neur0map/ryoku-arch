@@ -171,7 +171,6 @@ func (p *prompter) respond(id int, action string, choice bool, secret string) st
 	p.mu.Lock()
 	sess := p.active
 	p.mu.Unlock()
-	log.Printf("DBG respond id=%d active=%v action=%q secretLen=%d", id, sess != nil, action, len(secret))
 	if sess == nil || sess.id != id {
 		return "ok"
 	}
@@ -216,7 +215,6 @@ func (d *daemon) keyringRespond(cmd, secret string) string {
 	if d.prompter == nil {
 		return "err keyring prompter not running"
 	}
-	log.Printf("DBG keyringRespond cmd=%q secretLen=%d", cmd, len(secret))
 	id, action, choice, err := parseKeyringRespond(cmd)
 	if err != nil {
 		return "err " + err.Error()

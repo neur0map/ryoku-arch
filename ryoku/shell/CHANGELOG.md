@@ -3,6 +3,21 @@
 ## Unreleased
 
 ### Added
+- `ipc/ryoku-shell` + `quickshell/pill`: the GNOME keyring password prompt is now
+  a pill island instead of gcr's centred GTK dialog. The daemon registers as the
+  keyring system prompter (`org.gnome.keyring.SystemPrompter`, interface
+  `org.gnome.keyring.internal.Prompter`) on the session bus and reimplements the
+  `sx-aes-1` secret exchange (Diffie-Hellman over the 1536-bit IKE group,
+  HKDF-SHA256, AES-128-CBC) so gnome-keyring is unaware of the swap. The typed
+  secret returns to the daemon over the control socket on its own line, never as
+  a process argument (which would leak through world-readable /proc cmdline). A
+  new `KeyringSurface` grows the prompt out of the pill centre (the unlock ask,
+  the choose-a-new-password ask with a confirm field, and plain confirms), takes
+  exclusive keyboard focus, and treats Escape, the backdrop, and Cancel as a
+  cancellation. `ipc/prompter.go` and `ipc/secretexchange.go` hold the daemon
+  side; `quickshell/pill/Singletons/Keyring.qml` holds the live state. The daemon
+  owns the name from startup, so gcr's own prompter stays as the fallback when the
+  shell is not running.
 - `quickshell/pill`: island appearance styles. The top island now has three
   looks, read from `shell.json` (`islandStyle`) and chosen in Ryoku Settings'
   Shell section: `island` (the classic pill melted into the top frame, the default
