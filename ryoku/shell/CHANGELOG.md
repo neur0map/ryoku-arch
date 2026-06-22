@@ -3,6 +3,31 @@
 ## Unreleased
 
 ### Added
+- `quickshell/pill`: weather now comes from Open-Meteo (no API key) instead of the
+  rate-limited wttr.in scrape, with the resolved location cached at
+  `~/.local/state/ryoku/weather-loc.json` so a restart skips the lookup. The
+  temperature unit follows the locale (Fahrenheit for US/LR/MM, Celsius
+  elsewhere). The pill and calendar readout (`temp`, `condition`, `glyph`) is
+  unchanged; `hourly`, `daily`, `humidity` and `city` are now exposed for a future
+  hourly/5-day pane. The WMO-code mapping, unit logic and parsing live in
+  `lib/weather.js`, unit-tested by `lib/weather.test.mjs` against a captured
+  response.
+- `quickshell/pill`: the Calendar surface gains local events. A new `Events`
+  singleton persists a JSON array at `~/.local/state/ryoku/events.json` (its date
+  logic lives in `lib/events.js`, unit-tested by `lib/events.test.mjs`: coverage,
+  multi-day spans, time ordering, and the `HH:MM` entry parser). Days with events
+  show a dot, clicking a day selects it, and a compact editor under the grid lists
+  that day's events (delete on hover) with a single add field that reads an
+  optional leading `HH:MM` start time. The surface grows downward only, so the
+  pill geometry stays unchanged.
+- `quickshell/pill/lib` + `tests/`: unit-test coverage for the launcher fuzzy
+  ranker (`fuzzy.test.mjs`, 15 assertions over prefix, substring, and subsequence
+  ranking, the usage tiebreak, and `noDisplay` exclusion), plus a
+  `tests/shell-unit-tests.sh` runner and a `Shell unit tests` CI workflow that run
+  every `ryoku/shell/**/*.test.mjs` (the ranker and the ryoshot
+  coords/keymap/annotation libs) on each change. These pure-JS helpers have no
+  Quickshell or display dependency, so unlike the advisory qmllint job this is a
+  real gate.
 - `ipc/ryoku-shell` + `quickshell/pill`: the GNOME keyring password prompt is now
   a pill island instead of gcr's centred GTK dialog. The daemon registers as the
   keyring system prompter (`org.gnome.keyring.SystemPrompter`, interface

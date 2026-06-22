@@ -1,8 +1,10 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import "Singletons"
+import "lib/events.js" as EventsModel
 
 /**
  * Calendar surface content: header with month/year label and prev/next nav,
@@ -26,6 +28,7 @@ PillSurface {
     readonly property date today: sysClock.date
     property int viewYear: today.getFullYear()
     property int viewMonth: today.getMonth()
+    property string selectedKey: ""
 
     readonly property int offset: firstWeekdayOffset(viewYear, viewMonth)
     readonly property int monthLen: daysInMonth(viewYear, viewMonth)
@@ -34,7 +37,7 @@ PillSurface {
     readonly property real cellH: 24 * s
     readonly property real rowGap: 2 * s
 
-    implicitHeight: grid.y + rows * cellH + (rows - 1) * rowGap + (Weather.available ? 34 * s : 0)
+    implicitHeight: grid.y + rows * cellH + (rows - 1) * rowGap + (Weather.available ? 34 * s : 0) + (selectedKey.length > 0 ? 12 * s + editorCol.implicitHeight : 0)
 
     readonly property bool todayVisible: viewMonth === today.getMonth()
         && viewYear === today.getFullYear()
@@ -80,7 +83,14 @@ PillSurface {
         viewMonth = today.getMonth();
     }
 
-    onActiveChanged: if (active) resetToday()
+    function prettyDate(key) {
+        var p = key.split("-");
+        if (p.length !== 3)
+            return "";
+        return root.loc.toString(new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])), "ddd d MMM");
+    }
+
+    onActiveChanged: if (active) { resetToday(); selectedKey = EventsModel.dateKey(today.getFullYear(), today.getMonth(), today.getDate()); }
 
     Item {
         id: header
@@ -217,6 +227,10 @@ PillSurface {
                 readonly property int dayNum: index - root.offset + 1
                 readonly property bool inMonth: dayNum >= 1 && dayNum <= root.monthLen
                 readonly property bool current: inMonth && root.isToday(dayNum)
+                readonly property string key: cell.inMonth
+                    ? EventsModel.dateKey(root.viewYear, root.viewMonth, cell.dayNum) : ""
+                readonly property bool selected: cell.inMonth && cell.key === root.selectedKey
+                readonly property bool hasEv: cell.inMonth && Events.hasEvents(cell.key)
                 readonly property int ghostNum: dayNum < 1
                     ? root.daysInMonth(root.viewYear, root.viewMonth - 1) + dayNum
                     : dayNum - root.monthLen
@@ -241,6 +255,17 @@ PillSurface {
                     border.color: Theme.frameBorder
                 }
 
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 24 * root.s
+                    height: 24 * root.s
+                    radius: Motion.rSmall * root.s
+                    visible: cell.selected && !cell.current
+                    color: "transparent"
+                    border.width: 1
+                    border.color: Theme.hair
+                }
+
                 Text {
                     anchors.centerIn: parent
                     text: cell.inMonth ? cell.dayNum : cell.ghostNum
@@ -255,10 +280,23 @@ PillSurface {
                     font.features: { "tnum": 1 }
                 }
 
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.verticalCenter
+                    anchors.topMargin: 7 * root.s
+                    width: 3 * root.s
+                    height: 3 * root.s
+                    radius: 1.5 * root.s
+                    visible: cell.hasEv
+                    color: cell.current ? Theme.todayWarm : Theme.dim
+                }
+
                 MouseArea {
                     id: cellArea
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: cell.inMonth ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: if (cell.inMonth) root.selectedKey = cell.key
                 }
             }
         }
@@ -303,6 +341,17 @@ PillSurface {
                 font.weight: Font.DemiBold
                 font.features: { "tnum": 1 }
             }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Weather.daily.length > 0
+                text: Weather.daily.length > 0
+                    ? "\u2191" + Weather.daily[0].hi + "\u00b0  \u2193" + Weather.daily[0].lo + "\u00b0" : ""
+                color: Theme.faint
+                font.family: Theme.font
+                font.pixelSize: 10 * root.s
+                font.weight: Font.Medium
+                font.features: { "tnum": 1 }
+            }
         }
 
         Text {
@@ -314,6 +363,133 @@ PillSurface {
             font.family: Theme.font
             font.pixelSize: 10 * root.s
             font.weight: Font.Medium
+        }
+    }
+
+    Item {
+        id: editor
+        visible: root.selectedKey.length > 0
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: weatherFooter.visible ? weatherFooter.bottom : grid.bottom
+        anchors.topMargin: 12 * root.s
+        height: editorCol.implicitHeight
+
+        Column {
+            id: editorCol
+            width: parent.width
+            spacing: 6 * root.s
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: Theme.hair
+            }
+
+            Text {
+                text: root.prettyDate(root.selectedKey)
+                color: Theme.subtle
+                font.family: Theme.font
+                font.pixelSize: 10 * root.s
+                font.weight: Font.DemiBold
+                font.capitalization: Font.AllUppercase
+                font.letterSpacing: 0.8 * root.s
+            }
+
+            Repeater {
+                model: Events.forDate(root.selectedKey)
+
+                Row {
+                    id: evRow
+                    required property var modelData
+                    width: editorCol.width
+                    height: 20 * root.s
+                    spacing: 8 * root.s
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 36 * root.s
+                        text: evRow.modelData.time && evRow.modelData.time.length > 0
+                            ? evRow.modelData.time : "all"
+                        color: Theme.faint
+                        font.family: Theme.font
+                        font.pixelSize: 10 * root.s
+                        font.features: { "tnum": 1 }
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width - 36 * root.s - delBtn.width - 16 * root.s
+                        text: evRow.modelData.text
+                        elide: Text.ElideRight
+                        color: Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 11 * root.s
+                    }
+
+                    Rectangle {
+                        id: delBtn
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 18 * root.s
+                        height: 18 * root.s
+                        radius: Motion.rSmall * root.s
+                        color: delArea.containsMouse ? Theme.frameBg : "transparent"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "\u00d7"
+                            color: delArea.containsMouse ? Theme.verm : Theme.faint
+                            font.family: Theme.font
+                            font.pixelSize: 14 * root.s
+                        }
+
+                        MouseArea {
+                            id: delArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Events.remove(evRow.modelData.id)
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 26 * root.s
+                radius: Motion.rSmall * root.s
+                color: addField.activeFocus ? Theme.frameBg : Qt.rgba(0.94, 0.88, 0.84, 0.03)
+                border.width: 1
+                border.color: addField.activeFocus ? Theme.frameBorder : Theme.hair
+
+                TextField {
+                    id: addField
+                    anchors.fill: parent
+                    anchors.leftMargin: 9 * root.s
+                    anchors.rightMargin: 9 * root.s
+                    verticalAlignment: TextInput.AlignVCenter
+                    background: null
+                    padding: 0
+                    color: Theme.cream
+                    font.family: Theme.font
+                    font.pixelSize: 11 * root.s
+                    placeholderText: "Add for this day (e.g. 09:30 standup)"
+                    placeholderTextColor: Theme.faint
+                    selectByMouse: true
+                    selectionColor: Theme.verm
+                    onAccepted: {
+                        if (Events.addEntry(root.selectedKey, text))
+                            text = "";
+                    }
+                    Keys.onPressed: (e) => {
+                        if (e.key === Qt.Key_Escape) {
+                            addField.text = "";
+                            addField.focus = false;
+                            e.accepted = true;
+                        }
+                    }
+                }
+            }
         }
     }
 }
