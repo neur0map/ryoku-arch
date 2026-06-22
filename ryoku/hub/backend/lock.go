@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,19 +24,23 @@ import (
 
 // LockSkin is one selectable lock skin as the Hub renders it.
 type LockSkin struct {
-	Slug    string   `json:"slug"`    // path under the themes dir, e.g. "clockwork/orbital"
-	Name    string   `json:"name"`    // "Orbital"
-	Theme   string   `json:"theme"`   // "Clockwork"
-	Summary string   `json:"summary"` // one line
-	Blurb   string   `json:"blurb"`   // a sentence
-	Tags    []string `json:"tags"`
-	Preview string   `json:"preview"` // absolute path to preview.gif, "" when none
-	Active  bool     `json:"active"`
+	Slug      string   `json:"slug"`    // path under the themes dir, e.g. "clockwork/orbital"
+	Name      string   `json:"name"`    // "Orbital"
+	Theme     string   `json:"theme"`   // "Clockwork"
+	Summary   string   `json:"summary"` // one line
+	Blurb     string   `json:"blurb"`   // a sentence
+	Tags      []string `json:"tags"`
+	Preview   string   `json:"preview"`   // gif source URI: file://... local, https://... upstream, "" none
+	Installed bool     `json:"installed"` // present under the qylock themes dir
+	Active    bool     `json:"active"`
+	SizeKB    int      `json:"sizeKB"` // upstream install weight; 0 when unknown
 }
 
-// LockResponse is `ryoku-hub lock list`.
+// LockResponse is `ryoku-hub lock catalog` (and `list`): the active skin, the
+// skins, and whether the listing reached the upstream qylock repo.
 type LockResponse struct {
 	Active string     `json:"active"`
+	Online bool       `json:"online"`
 	Skins  []LockSkin `json:"skins"`
 }
 
@@ -75,24 +78,25 @@ func qylockThemePref() string {
 // runLock dispatches `ryoku-hub lock <sub> [arg]`.
 func runLock(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("lock needs list|set")
+		return fmt.Errorf("lock needs catalog|list|set|install")
 	}
 	switch args[0] {
+	case "catalog":
+		return printJSON(lockCatalog())
 	case "list":
-		b, err := json.Marshal(listLockSkins())
-		if err != nil {
-			return err
-		}
-		os.Stdout.Write(b)
-		fmt.Println()
-		return nil
+		return printJSON(listLockSkins())
 	case "set":
 		if len(args) < 2 {
 			return fmt.Errorf("lock set needs a slug")
 		}
 		return setLockSkin(args[1])
+	case "install":
+		if len(args) < 2 {
+			return fmt.Errorf("lock install needs a slug")
+		}
+		return lockInstall(args[1])
 	default:
-		return fmt.Errorf("lock needs list|set")
+		return fmt.Errorf("lock needs catalog|list|set|install")
 	}
 }
 
@@ -151,20 +155,54 @@ func scanLockSlugs(dir string) []string {
 }
 
 func lockSkinFor(dir, slug string) LockSkin {
-	s := LockSkin{Slug: slug}
-	if c, ok := lockCurated[slug]; ok {
-		s.Name, s.Theme, s.Summary, s.Blurb, s.Tags = c.Name, c.Theme, c.Summary, c.Blurb, c.Tags
-	} else {
-		parts := strings.Split(slug, "/")
-		s.Name = titleWord(parts[len(parts)-1])
-		s.Theme = titleWord(parts[0])
-		s.Tags = []string{s.Theme}
-		s.Summary = lockDesktopDescription(filepath.Join(dir, slug, "metadata.desktop"))
-	}
+	s := lockSkinMeta(dir, slug)
+	s.Installed = true
 	if p := filepath.Join(dir, slug, "preview.gif"); fileExists(p) {
-		s.Preview = p
+		s.Preview = "file://" + p
 	}
 	return s
+}
+
+// lockSkinMeta fills a skin's display copy from the curated map, falling back to
+// a name and tag derived from the slug and, for an installed skin, the summary
+// from its metadata.desktop. It sets neither Preview, Installed, nor Active.
+func lockSkinMeta(dir, slug string) LockSkin {
+	if c, ok := lockCurated[slug]; ok {
+		return LockSkin{Slug: slug, Name: c.Name, Theme: c.Theme, Summary: c.Summary, Blurb: c.Blurb, Tags: c.Tags}
+	}
+	s := LockSkin{Slug: slug, Name: lockSkinName(slug), Tags: lockSkinTags(slug)}
+	if len(s.Tags) > 0 {
+		s.Theme = s.Tags[0]
+	}
+	s.Summary = lockDesktopDescription(filepath.Join(dir, slug, "metadata.desktop"))
+	return s
+}
+
+// lockSkinName turns a slug into a display name: the leaf segment with separators
+// spaced out and each word capitalised ("pixel-coffee" -> "Pixel Coffee").
+func lockSkinName(slug string) string {
+	leaf := slug
+	if i := strings.LastIndex(slug, "/"); i >= 0 {
+		leaf = slug[i+1:]
+	}
+	words := strings.Fields(strings.NewReplacer("-", " ", "_", " ").Replace(leaf))
+	for i, w := range words {
+		words[i] = titleWord(w)
+	}
+	return strings.Join(words, " ")
+}
+
+// lockSkinTags groups the obvious qylock families so kindred skins share a label.
+func lockSkinTags(slug string) []string {
+	switch {
+	case strings.HasPrefix(slug, "clockwork"):
+		return []string{"Clockwork"}
+	case strings.HasPrefix(slug, "pixel-"):
+		return []string{"Pixel"}
+	case strings.HasPrefix(slug, "R1999"):
+		return []string{"Reverse 1999"}
+	}
+	return nil
 }
 
 func setLockSkin(slug string) error {

@@ -5,44 +5,54 @@ import Quickshell
 import Quickshell.Io
 import "Singletons"
 
-// The Lockscreen section: the installed qylock lock skins as a bento grid, each
-// tile a looping preview of the real lockscreen. Ryoku ships the "clockwork"
-// theme; selecting a skin only swaps which one the lock wears (ryoku-hub lock
-// set, writing ~/.config/qylock/theme) and never touches the login or auth flow.
-// Preview launches the lock live with that skin without changing the selection.
-// Styled to match the Appearance themes and Extras catalogues.
+// The Lockscreen section: the full qylock theme catalogue as a bento grid, fetched
+// live from upstream (ryoku-hub lock catalog) so new and fixed skins appear without
+// a Ryoku release. Each tile previews the real lockscreen; the two vendored skins
+// (clockwork) are the offline baseline and the rest stream their preview gif from
+// the repo. Selecting an installed skin swaps which one the lock wears
+// (ryoku-hub lock set, writing ~/.config/qylock/theme); selecting one that isn't
+// installed downloads it first (ryoku-hub lock install) then activates it. None of
+// this touches the SDDM greeter or the login flow. Styled to match the Appearance
+// themes and Extras catalogues.
 Item {
     id: page
 
     property var skins: []
     property string active: ""
+    property bool online: true
     property bool loading: true
     property bool loadFailed: false
-    property string applying: ""
+    property string pendingSlug: ""
+    property bool pendingInstall: false
+    property string error: ""
 
     readonly property string lockSh: Quickshell.env("HOME") + "/.local/share/quickshell-lockscreen/lock.sh"
-    readonly property int cols: width >= 1180 ? 3 : (width >= 720 ? 2 : 1)
+    readonly property int cols: width >= 1320 ? 4 : (width >= 980 ? 3 : (width >= 640 ? 2 : 1))
 
     Component.onCompleted: page.reload()
 
     function reload() {
         page.loading = true;
         page.loadFailed = false;
-        listProc.running = true;
+        catalogProc.running = true;
     }
-    function apply(slug) {
-        if (slug === page.active)
+    function select(skin) {
+        if (skin.slug === page.active || page.pendingSlug !== "")
             return;
-        page.applying = slug;
-        applyProc.command = ["ryoku-hub", "lock", "set", slug];
-        applyProc.running = true;
+        page.error = "";
+        page.pendingSlug = skin.slug;
+        page.pendingInstall = !skin.installed;
+        actProc.command = skin.installed
+            ? ["ryoku-hub", "lock", "set", skin.slug]
+            : ["ryoku-hub", "lock", "install", skin.slug];
+        actProc.running = true;
     }
     function preview(slug) {
         Quickshell.execDetached([page.lockSh, slug]);
     }
 
-    // Greedy masonry like the Extras grid: each tile into the currently shortest
-    // column, estimated from the blurb length so the columns stay balanced.
+    // Greedy masonry like the Extras grid: each tile into the shortest column,
+    // estimated from the gif hero plus the blurb length so columns stay balanced.
     function buildColumns(list, n) {
         var c = [], h = [], i;
         for (i = 0; i < n; i++) { c.push([]); h.push(0); }
@@ -59,8 +69,8 @@ Item {
     readonly property var grouped: buildColumns(page.skins, page.cols)
 
     Process {
-        id: listProc
-        command: ["ryoku-hub", "lock", "list"]
+        id: catalogProc
+        command: ["ryoku-hub", "lock", "catalog"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
@@ -70,6 +80,7 @@ Item {
                         ss[i].ordinal = i + 1;
                     page.skins = ss;
                     page.active = o.active || "";
+                    page.online = !!o.online;
                     page.loadFailed = ss.length === 0;
                 } catch (e) {
                     page.skins = [];
@@ -80,9 +91,15 @@ Item {
         }
     }
     Process {
-        id: applyProc
-        stdout: StdioCollector {
-            onStreamFinished: { page.applying = ""; listProc.running = true; }
+        id: actProc
+        stderr: StdioCollector { id: actErr }
+        onExited: (code) => {
+            if (code !== 0)
+                page.error = (page.pendingInstall ? "Install failed: " : "Couldn't switch skin: ")
+                    + (actErr.text.trim() || ("exit " + code));
+            page.pendingSlug = "";
+            page.pendingInstall = false;
+            catalogProc.running = true;
         }
     }
 
@@ -132,16 +149,32 @@ Item {
         height: 40
         visible: !page.loading && !page.loadFailed
 
-        Text {
+        Column {
             anchors.left: parent.left
+            anchors.right: refresh.left
+            anchors.rightMargin: 24
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - refresh.width - 24
-            elide: Text.ElideRight
-            text: "Pick the skin your lock screen wears. Your login stays exactly the same."
-            color: Theme.faint
-            font.family: Theme.font
-            font.pixelSize: 12
-            font.weight: Font.Medium
+            spacing: 2
+
+            Text {
+                width: parent.width
+                elide: Text.ElideRight
+                text: "Browse every qylock skin. Selecting one installs it if needed and swaps the lock's look; your login stays the same."
+                color: Theme.faint
+                font.family: Theme.font
+                font.pixelSize: 12
+                font.weight: Font.Medium
+            }
+            Text {
+                width: parent.width
+                elide: Text.ElideRight
+                visible: !page.online || page.error !== ""
+                text: page.error !== "" ? page.error : "Offline: showing installed skins only."
+                color: page.error !== "" ? Theme.bad : Theme.faint
+                font.family: Theme.font
+                font.pixelSize: 11
+                font.weight: Font.Medium
+            }
         }
         HubButton {
             id: refresh
@@ -149,6 +182,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             label: "Refresh"
             icon: "refresh"
+            enabled: page.pendingSlug === ""
             onClicked: page.reload()
         }
     }
@@ -200,11 +234,14 @@ Item {
                         delegate: LockscreenTile {
                             required property var modelData
                             width: column.width
+                            viewport: flick
                             skin: modelData
                             ordinal: modelData.ordinal || 0
                             active: !!modelData.active
-                            busy: page.applying === modelData.slug
-                            onApplied: page.apply(modelData.slug)
+                            installed: !!modelData.installed
+                            busy: page.pendingSlug === modelData.slug
+                            installing: page.pendingInstall && page.pendingSlug === modelData.slug
+                            onApplied: page.select(modelData)
                             onPreviewed: page.preview(modelData.slug)
                         }
                     }

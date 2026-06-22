@@ -86,8 +86,8 @@ func TestListLockSkinsInDerivesUncurated(t *testing.T) {
 	if s == nil {
 		t.Fatalf("single-level skin not found: %+v", resp.Skins)
 	}
-	if s.Name != "Nier-automata" {
-		t.Errorf("derived name = %q, want Nier-automata", s.Name)
+	if s.Name != "Nier Automata" {
+		t.Errorf("derived name = %q, want Nier Automata", s.Name)
 	}
 	if s.Summary != "A lonely android keeps the time" {
 		t.Errorf("summary not read from metadata.desktop: %q", s.Summary)

@@ -22,9 +22,12 @@ autostart, environment, the shell's look, the lock screen, and the update channe
     cursor themes and X11 keyboard layouts for the pickers.
   - `ryoku-hub config get|set <key> [value]` persists hub UI state as TOML at
     `~/.config/ryoku/hub.toml` (last open section, update-check cadence).
-  - `ryoku-hub lock list|set <slug>` lists the installed qylock lock skins (the
-    active one, plus each skin's preview gif) and sets the active skin by writing
-    `~/.config/qylock/theme`. It never touches the greeter or the auth flow.
+  - `ryoku-hub lock catalog|list|set|install <slug>` drives the lock-skin picker:
+    `catalog` lists the full qylock theme set live from upstream (each skin's
+    preview gif, install size, and installed/active state), `list` is the
+    installed-only offline fallback, `set` writes `~/.config/qylock/theme`, and
+    `install` downloads a theme into `~/.local/share/qylock/themes` then activates
+    it. None of it touches the greeter or the auth flow.
 - `quickshell/` The UI, hand-written Quickshell (QML), deployed to
   `~/.config/quickshell/hub` and launched with `qs -c hub`:
   - `shell.qml` the `FloatingWindow`; `Hub.qml` the app (rail + content + the data
@@ -53,12 +56,14 @@ autostart, environment, the shell's look, the lock screen, and the update channe
   palette or fix them), and the cursor theme and size. A **Wallpaper** tab retheme
   the desktop (the wallust palette follows the pick, via `ryoku-shell wallpaper`),
   and a **Comfort** tab controls backlight and the night light.
-- **Lockscreen** the installed qylock lock skins as a bento grid, each tile a
-  looping preview of the real lockscreen. Ryoku ships the clockwork theme;
-  selecting a skin only swaps which one the in-session lock wears (writes
-  `~/.config/qylock/theme`, read by `lock.sh`), never the SDDM greeter or the
-  login flow. **Preview** shows it live; **Refresh** re-scans. Backed by
-  `ryoku-hub lock`.
+- **Lockscreen** the full qylock theme catalogue as a bento grid, fetched live from
+  upstream so new and fixed skins appear without a Ryoku release. Each tile previews
+  the real lockscreen (a local gif for the two vendored clockwork skins, the upstream
+  Assets gif for the rest). Selecting an installed skin swaps which one the in-session
+  lock wears (writes `~/.config/qylock/theme`, read by `lock.sh`); selecting one not
+  installed downloads it first (size shown up front) then activates it, never touching
+  the SDDM greeter or the login flow. **Preview** shows an installed skin live;
+  **Refresh** re-syncs. Backed by `ryoku-hub lock`.
 - **Animations** the live Hyprland animation tree (read via `hyprctl animations`)
   with per-leaf enable, speed, and bezier, plus a visual bezier-curve editor that
   previews as you drag. Curves and overrides persist to `settings.lua` on Save.

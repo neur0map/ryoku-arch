@@ -2,21 +2,51 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "Singletons"
 
-// One lock-skin tile, in the Extras/Themes catalogue style: a looping preview of
-// the actual qylock lockscreen as the hero, then a big monospace ordinal with an
-// active mark, the theme tag, the skin name, a one-line summary, and a blurb,
-// over a flat warm surface whose hairline warms to ember on hover. Clicking the
-// tile selects the skin (writes the qylock theme preference); the Preview chip
-// shows it live without changing the selection. Mirrors ThemeTile.
+// One lock-skin tile in the catalogue, in the Extras/Themes style: a looping
+// preview of the lockscreen as the hero (a local gif for the vendored skins, the
+// upstream Assets gif for the rest), then a monospace ordinal with a state mark,
+// the theme tag, the skin name, and a one-line summary, over a flat warm surface
+// whose hairline warms to ember on hover. Clicking an installed skin selects it;
+// clicking one that isn't installed downloads it first (the install size is shown
+// up front). Previews load and animate only while the tile is near the viewport,
+// so a long grid of remote gifs stays light. The live Preview chip is offered
+// only for installed skins, since the lock needs the theme's files on disk.
 Rectangle {
     id: tile
 
     property var skin: ({})
     property int ordinal: 0
     property bool active: false
-    property bool busy: false
+    property bool installed: false
+    property bool busy: false       // a set or install is in flight for this skin
+    property bool installing: false // the in-flight op is a download
+    property Flickable viewport: null
     signal applied()
     signal previewed()
+
+    // Near-viewport test: map the tile into the Flickable's visible area and keep
+    // a 600px margin so scrolling preloads just before a tile appears. Reading
+    // contentY/height makes the binding re-evaluate as the list scrolls.
+    readonly property bool onScreen: {
+        if (!viewport)
+            return true;
+        viewport.contentY;
+        viewport.height;
+        var top = tile.mapToItem(viewport, 0, 0).y;
+        return top < viewport.height + 600 && top + tile.height > -600;
+    }
+
+    readonly property string sizeText: {
+        var kb = tile.skin.sizeKB || 0;
+        if (kb <= 0)
+            return "";
+        return kb >= 1024 ? (Math.round(kb / 1024) + " MB") : (kb + " KB");
+    }
+    readonly property string badgeText: tile.busy ? (tile.installing ? "INSTALLING\u2026" : "APPLYING")
+        : tile.active ? "ACTIVE"
+        : tile.installed ? "INSTALLED"
+        : (tile.sizeText !== "" ? "\u2193  " + tile.sizeText : "")
+    readonly property bool badgeAccent: tile.busy || tile.active
 
     implicitHeight: body.implicitHeight + 34
     radius: 16
@@ -34,7 +64,7 @@ Rectangle {
         anchors.margins: 16
         spacing: 0
 
-        // --- preview hero: a looping frame of the actual lockscreen ---
+        // --- preview hero ---
         Rectangle {
             id: media
             width: parent.width
@@ -50,31 +80,31 @@ Rectangle {
                 id: gif
                 anchors.fill: parent
                 anchors.margins: 1
-                source: (tile.skin.preview || "") !== "" ? "file://" + tile.skin.preview : ""
+                source: tile.onScreen ? (tile.skin.preview || "") : ""
                 fillMode: Image.PreserveAspectCrop
                 cache: false
                 asynchronous: true
-                playing: tile.visible
+                playing: tile.onScreen
             }
 
-            // shown when a skin ships no preview, or while it loads
+            // placeholder while the gif loads, or when none resolved
             Icon {
                 anchors.centerIn: parent
                 visible: gif.status !== AnimatedImage.Ready
                 name: "lock"
-                size: 32
+                size: 30
                 tint: Theme.faint
             }
 
-            // live-preview chip: shows the lock full screen without selecting it
+            // live preview chip: installed skins only (the lock needs the files)
             Rectangle {
-                id: previewChip
                 anchors.left: parent.left
                 anchors.bottom: parent.bottom
                 anchors.margins: 10
                 width: pvRow.implicitWidth + 20
                 height: 28
                 radius: 14
+                visible: tile.installed && !tile.busy
                 color: Qt.rgba(0, 0, 0, 0.55)
                 border.width: 1
                 border.color: pvArea.containsMouse ? Theme.ember : Qt.rgba(1, 1, 1, 0.18)
@@ -104,11 +134,31 @@ Rectangle {
                     onClicked: tile.previewed()
                 }
             }
+
+            // download / apply overlay
+            Rectangle {
+                anchors.fill: parent
+                visible: tile.busy
+                color: Qt.rgba(0, 0, 0, 0.6)
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 10
+                    Spinner { anchors.horizontalCenter: parent.horizontalCenter; size: 24 }
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: tile.installing ? ("Downloading\u2026 " + tile.sizeText) : "Applying\u2026"
+                        color: Theme.bright
+                        font.family: Theme.font
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                    }
+                }
+            }
         }
 
         Item { width: 1; height: 16 }
 
-        // --- ordinal + active mark ---
+        // --- ordinal + state mark ---
         Item {
             width: parent.width
             height: number.implicitHeight
@@ -129,19 +179,20 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 7
-                visible: tile.active || tile.busy
+                visible: tile.badgeText !== ""
 
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     width: 7
                     height: 7
                     radius: 3.5
-                    color: Theme.ember
+                    visible: tile.busy || tile.active || tile.installed
+                    color: tile.badgeAccent ? Theme.ember : Theme.faint
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: tile.busy ? "APPLYING" : "ACTIVE"
-                    color: Theme.ember
+                    text: tile.badgeText
+                    color: tile.badgeAccent ? Theme.ember : (tile.installed ? Theme.subtle : Theme.faint)
                     font.family: Theme.mono
                     font.pixelSize: 10
                     font.weight: Font.DemiBold
@@ -153,6 +204,7 @@ Rectangle {
         Text {
             width: parent.width
             topPadding: 14
+            visible: (tile.skin.tags || []).length > 0
             text: (tile.skin.tags || []).join("  \u00b7  ")
             color: Theme.faint
             font.family: Theme.mono
@@ -165,7 +217,7 @@ Rectangle {
 
         Text {
             width: parent.width
-            topPadding: 8
+            topPadding: (tile.skin.tags || []).length > 0 ? 8 : 14
             text: tile.skin.name || ""
             color: Theme.bright
             font.family: Theme.font
@@ -211,10 +263,10 @@ Rectangle {
         weight: 2
         rotation: -90
         tint: Theme.ember
-        opacity: (hover.hovered && !tile.active) ? 1 : 0
+        opacity: (hover.hovered && !tile.active && !tile.busy) ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.quick } }
     }
 
     HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
-    TapHandler { onTapped: if (!tile.active) tile.applied() }
+    TapHandler { onTapped: if (!tile.active && !tile.busy) tile.applied() }
 }

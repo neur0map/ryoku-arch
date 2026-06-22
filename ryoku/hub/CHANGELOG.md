@@ -3,14 +3,18 @@
 ## Unreleased
 
 ### Added
-- A **Lockscreen** section: the installed qylock lock skins as a bento grid in the
-  Appearance/Extras style, each tile a looping preview (an `AnimatedImage` of the
-  real lockscreen) over the warm hairline surface. Ryoku ships the clockwork theme;
-  selecting a skin only swaps which one the lock wears (`ryoku-hub lock set`, which
-  writes `~/.config/qylock/theme`, the user-level preference `lock.sh` reads) and
-  never touches the SDDM greeter or the login flow. **Preview** launches the lock
-  live with that skin without changing the selection; **Refresh** re-scans. Backed
-  by `ryoku-hub lock list|set`.
+- A **Lockscreen** section: the full qylock theme catalogue as a bento grid in the
+  Appearance/Extras style, fetched live from the upstream repo (`ryoku-hub lock
+  catalog`) so new and fixed skins appear without a Ryoku release. Each tile loops
+  a preview of the real lockscreen (a local gif for the two vendored clockwork
+  skins, the upstream `Assets` gif streamed for the rest, loaded only near the
+  viewport). Selecting an installed skin swaps which one the lock wears
+  (`ryoku-hub lock set`, writing `~/.config/qylock/theme`, the preference `lock.sh`
+  reads); selecting one that isn't installed downloads it first (`ryoku-hub lock
+  install`, with the size shown up front) then activates it. None of this touches
+  the SDDM greeter or the login flow. **Preview** launches an installed skin live
+  without changing the selection; **Refresh** re-syncs; offline falls back to the
+  installed skins.
 - Shell Settings, Island tab: an **Appearance** group to choose the island style
   (Island, Floating, None) plus a **Reveal on hover** toggle that hides the island
   at rest and shows it on a top-centre hover. Writes `islandStyle` / `islandAutohide`
