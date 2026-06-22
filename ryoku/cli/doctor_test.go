@@ -132,3 +132,83 @@ func TestReconcileShellDaemonOutsideSession(t *testing.T) {
 		t.Fatalf("outside a Hyprland session the daemon check must be ok, got %q: %s", r.status.label(), r.detail)
 	}
 }
+
+func TestHyprLuaSane(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{"valid monitor", "hl.monitor({ output = \"\", mode = \"highrr\", scale = 1 })\n", true},
+		{"comment only", "-- managed by ryoku-monitor\n", true},
+		{"truncated mid-call", "hl.monitor({ output = \"DP-1\", mode = \"hi", false},
+		{"empty", "   \n\n", false},
+	}
+	for _, c := range cases {
+		if got := hyprLuaSane(c.in); got != c.want {
+			t.Errorf("%s: hyprLuaSane()=%v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+// A crash-truncated generated drop-in is detected and repaired to a parseable
+// safe seed, while a valid sibling is left untouched and the fix is idempotent.
+// PATH is emptied so the test never touches luac/hyprctl/ryoku-monitor: it
+// exercises the structural check and the safe-seed fallback deterministically.
+func TestReconcileHyprlandConfigRepairsCorruptDropin(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("PATH", "")
+
+	hypr := filepath.Join(home, ".config", "hypr")
+	if err := os.MkdirAll(hypr, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	put := func(name, body string) {
+		if err := os.WriteFile(filepath.Join(hypr, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	get := func(name string) string {
+		b, err := os.ReadFile(filepath.Join(hypr, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	put("hyprland.lua", "pcall(require, \"monitors\")\n")
+	put("monitors.lua", "hl.monitor({ output = \"DP-1\", mode = \"hi") // truncated mid-write
+	put("gpu.lua", "-- placeholder\n")                                 // valid
+
+	if r := reconcileHyprlandConfig(true); r.status != recWouldFix {
+		t.Fatalf("check-only: status=%s detail=%q, want todo", r.status.label(), r.detail)
+	}
+	if !strings.Contains(get("monitors.lua"), "mode = \"hi") {
+		t.Fatal("check-only must not modify the drop-in")
+	}
+
+	if r := reconcileHyprlandConfig(false); r.status != recFixed {
+		t.Fatalf("fix: status=%s detail=%q, want fixed", r.status.label(), r.detail)
+	}
+	if got := get("monitors.lua"); !hyprLuaSane(got) {
+		t.Fatalf("monitors.lua not parseable after repair: %q", got)
+	}
+	if got := get("gpu.lua"); got != "-- placeholder\n" {
+		t.Fatalf("valid gpu.lua must be left untouched, got %q", got)
+	}
+
+	if r := reconcileHyprlandConfig(false); r.status != recOK {
+		t.Fatalf("second run: status=%s, want ok", r.status.label())
+	}
+}
+
+func TestReconcileHyprlandConfigNoConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("PATH", "")
+	if r := reconcileHyprlandConfig(false); r.status != recOK {
+		t.Fatalf("no hyprland.lua: status=%s, want ok", r.status.label())
+	}
+}

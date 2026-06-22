@@ -43,6 +43,15 @@
   `RYOKU_CHANNEL` overrides the branch.
 
 ### Added
+- `doctor`: a "Hyprland config integrity" reconciler. It validates that the
+  runtime-generated Hyprland drop-ins (`monitors.lua`, `gpu.lua`) still parse and,
+  in a live session, reads `hyprctl configerrors`. A corrupt drop-in (a crash or a
+  GPU reset that fires monitor events can truncate one mid-write) is regenerated
+  from live state, or reset to a safe seed, then the config is reloaded -- so a
+  desktop wedged in Hyprland's "emergency mode" recovers without a reboot, which
+  `reload`/`update` could not do. Hardware-agnostic. `doctor --report` also gains a
+  gpu/compositor stability section (vendor-agnostic GPU resets/hangs across recent
+  boots, plus compositor coredumps) so a GPU-reset-induced crash is diagnosable.
 - `doctor`: convergent reconcilers for stateful drift the package and config
   layers cannot reach, each idempotent (reports `ok`, converges where safe, or
   proposes the exact fix; `--check` previews) and retireable so the set never

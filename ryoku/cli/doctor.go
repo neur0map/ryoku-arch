@@ -92,6 +92,7 @@ func reconcilers() []reconciler {
 		{"pacman database lock", reconcilePacmanLock},
 		{"ryoku package channel", reconcileRyokuChannel},
 		{"desktop session components", reconcileSessionComponents},
+		{"Hyprland config integrity", reconcileHyprlandConfig},
 		{"ryoku shell daemon", reconcileShellDaemon},
 		{"failed services", reconcileFailedUnits},
 		{"btrfs device health", reconcileBtrfsHealth},
@@ -462,6 +463,177 @@ func waitDaemonReachable(d time.Duration) bool {
 	}
 }
 
+// ---- reconciler: Hyprland config integrity -----------------------------------
+
+// hyprDropin is a runtime-generated Hyprland Lua drop-in. hyprland.lua loads
+// monitors.lua (ryoku-monitor) and gpu.lua (ryoku-gpu); both are rewritten while
+// the session runs (a display hotplug or a GPU reset re-runs the generators), so
+// a crash or a truncated write can leave one unparseable. If Hyprland then
+// reloads, it rejects the whole config and drops into its on-screen emergency
+// mode -- the "reload/doctor/update do nothing, only a reboot fixes it" failure --
+// until the file is repaired.
+type hyprDropin struct {
+	name     string   // file under ~/.config/hypr
+	regen    []string // generator that rewrites it from live state
+	needLive bool     // generator needs a running compositor
+	seed     string   // known-good fallback: always parseable, safe default
+}
+
+func hyprDropins() []hyprDropin {
+	return []hyprDropin{
+		{
+			name:     "monitors.lua",
+			regen:    []string{"ryoku-monitor", "persist"},
+			needLive: true,
+			seed: "-- Reset by ryoku doctor after a corrupt write. Brings every output up at a\n" +
+				"-- safe 1x; `ryoku-monitor autoscale` (runs at the next login) restores scaling.\n" +
+				"hl.monitor({ output = \"\", mode = \"highrr\", position = \"auto\", scale = 1 })\n",
+		},
+		{
+			name:     "gpu.lua",
+			regen:    []string{"ryoku-gpu", "persist"},
+			needLive: false,
+			seed: "-- Reset by ryoku doctor after a corrupt write. Hyprland picks its own GPU;\n" +
+				"-- run `ryoku-gpu persist` to re-pin the primary on a multi-GPU machine.\n",
+		},
+	}
+}
+
+// reconcileHyprlandConfig keeps the Hyprland config loadable, the generic cure for
+// the "desktop dropped into emergency mode and only a reboot helped" report. It
+// validates that the runtime-generated drop-ins still parse (a crash-truncated one
+// would wedge the next reload) and, in a live session, asks Hyprland whether it is
+// currently rejecting its config. A corrupt drop-in is regenerated from live state
+// or reset to a safe seed; in a live session the config is then reloaded so the
+// desktop leaves emergency mode at once instead of needing a reboot. It is
+// hardware-agnostic: it only ever validates and repairs config files.
+func reconcileHyprlandConfig(checkOnly bool) recResult {
+	dir := filepath.Join(configHome(), "hypr")
+	if !exists(filepath.Join(dir, "hyprland.lua")) {
+		return okRes("no Hyprland config present")
+	}
+	live := hyprLive()
+
+	if checkOnly {
+		var broken []string
+		for _, d := range hyprDropins() {
+			p := filepath.Join(dir, d.name)
+			if exists(p) && !hyprLuaParseable(p) {
+				broken = append(broken, d.name)
+			}
+		}
+		if len(broken) > 0 {
+			return wouldRes("corrupt Hyprland drop-in(s) would wedge the next reload into emergency mode: %s", strings.Join(broken, ", ")).
+				withFix("run `ryoku doctor` to regenerate them")
+		}
+		if e := liveConfigErrors(live); e != "" {
+			return wouldRes("Hyprland is rejecting its config (emergency mode): %s", firstLine(e)).
+				withFix("run `ryoku doctor`, then check ~/.config/hypr/user.lua")
+		}
+		return okRes("Hyprland config loads cleanly")
+	}
+
+	var repaired, failed []string
+	for _, d := range hyprDropins() {
+		p := filepath.Join(dir, d.name)
+		if !exists(p) || hyprLuaParseable(p) {
+			continue
+		}
+		if repairHyprDropin(dir, d, live) {
+			repaired = append(repaired, d.name)
+		} else {
+			failed = append(failed, d.name)
+		}
+	}
+
+	// A clean reload pulls a live session out of emergency mode immediately.
+	if live && len(repaired) > 0 {
+		_ = exec.Command("hyprctl", "reload").Run()
+	}
+
+	switch {
+	case len(failed) > 0:
+		return failRes("could not repair Hyprland drop-in(s): %s", strings.Join(failed, ", ")).
+			withFix("inspect ~/.config/hypr/%s by hand", failed[0])
+	case len(repaired) > 0:
+		return fixedRes("regenerated corrupt Hyprland drop-in(s): %s; the config loads cleanly again", strings.Join(repaired, ", "))
+	}
+
+	if e := liveConfigErrors(live); e != "" {
+		return warnRes("Hyprland is rejecting its config: %s", firstLine(e)).
+			withFix("check ~/.config/hypr/user.lua, settings.lua, or theme.lua")
+	}
+	return okRes("Hyprland config loads cleanly")
+}
+
+// repairHyprDropin rewrites a corrupt drop-in: regenerate it from the live machine
+// when its generator is available, else fall back to the safe seed. Both outcomes
+// are re-validated, so even a generator that wrote garbage ends at a parseable file.
+func repairHyprDropin(dir string, d hyprDropin, live bool) bool {
+	p := filepath.Join(dir, d.name)
+	if len(d.regen) > 0 && has(d.regen[0]) && (!d.needLive || live) {
+		if exec.Command(d.regen[0], d.regen[1:]...).Run() == nil && hyprLuaParseable(p) {
+			return true
+		}
+	}
+	if os.WriteFile(p, []byte(d.seed), 0o644) != nil {
+		return false
+	}
+	return hyprLuaParseable(p)
+}
+
+// hyprLuaParseable reports whether a Lua drop-in will load. luac -p is definitive
+// (the lua toolchain ships with Hyprland's config stack); without it, fall back to
+// catching the truncation failure mode -- an empty file or unbalanced brackets,
+// which a whole generated drop-in (no brackets inside its string literals) never
+// has. An unreadable file is left alone rather than clobbered.
+func hyprLuaParseable(path string) bool {
+	if has("luac") {
+		return exec.Command("luac", "-p", path).Run() == nil
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return true
+	}
+	return hyprLuaSane(string(b))
+}
+
+func hyprLuaSane(s string) bool {
+	if strings.TrimSpace(s) == "" {
+		return false
+	}
+	return balancedRunes(s, '(', ')') && balancedRunes(s, '{', '}')
+}
+
+func balancedRunes(s string, open, shut rune) bool {
+	depth := 0
+	for _, r := range s {
+		switch r {
+		case open:
+			depth++
+		case shut:
+			depth--
+			if depth < 0 {
+				return false
+			}
+		}
+	}
+	return depth == 0
+}
+
+// liveConfigErrors returns Hyprland's current config errors (its emergency-mode
+// reason), or "" when the config is clean or no live session is reachable.
+func liveConfigErrors(live bool) string {
+	if !live {
+		return ""
+	}
+	out := strings.TrimSpace(captureOut("hyprctl", "configerrors"))
+	if out == "" || (strings.HasPrefix(out, "(") && strings.HasSuffix(out, ")")) {
+		return ""
+	}
+	return out
+}
+
 // ---- reconciler: failed systemd units ----------------------------------------
 
 func reconcileFailedUnits(_ bool) recResult {
@@ -629,6 +801,19 @@ func gatherReport(findings []finding) string {
 	line("kernel cmdline: %s", readFileSafe("/proc/cmdline"))
 	line("kernel display log (tail):\n%s", captureOut("sh", "-c", "journalctl -k -b --no-pager 2>/dev/null | grep -iE 'backlight|amdgpu|nvidia|i915|drm' | tail -30 || true"))
 
+	section("gpu / compositor stability")
+	// Vendor-agnostic GPU-hang signatures: amdgpu (reset/wedged/VRAM lost/ring),
+	// nvidia (NVRM Xid), i915 (GPU HANG). Bare "Xid" is avoided so an r8169 NIC's
+	// "XID" line is not mistaken for a GPU fault. Search across boots (a crash
+	// needs a reboot, so the evidence is in the previous boot, not the current one).
+	const gpuHang = `GPU reset begin|device wedged|VRAM is lost|ring .* reset failed|NVRM: Xid|GPU HANG`
+	line("GPU resets/hangs (last 14 days): %s", captureOut("sh", "-c",
+		"journalctl --no-pager --since '-14 days' -g '"+gpuHang+"' 2>/dev/null | grep -cE '"+gpuHang+"'"))
+	line("recent GPU reset/hang lines:\n%s", tailLines(captureOut("sh", "-c",
+		"journalctl --no-pager --since '-14 days' -g '"+gpuHang+"' 2>/dev/null || true"), 12))
+	line("compositor/session coredumps:\n%s", captureOut("sh", "-c",
+		"coredumpctl list --no-pager 2>/dev/null | grep -iE 'Hyprland|Xwayland|quickshell|aquamarine' | tail -10 || true"))
+
 	return b.String()
 }
 
@@ -723,6 +908,13 @@ func homeDir() string {
 		return h
 	}
 	return os.Getenv("HOME")
+}
+
+func firstLine(s string) string {
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		return strings.TrimSpace(s[:i])
+	}
+	return strings.TrimSpace(s)
 }
 
 func pkgInstalled(name string) bool {
