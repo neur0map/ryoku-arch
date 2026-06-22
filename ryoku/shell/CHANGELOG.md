@@ -11,9 +11,10 @@
   flag hides the island at rest and reveals it on a hover of the top centre, for
   the `island` and `floating` styles. In every style but the always-shown classic
   island, the reserved top strip collapses so tiled windows rise to the same gap
-  as the other three frame edges, and a hidden island still drops in for an open
-  surface, a notification, an OSD, or a peek, then retracts, so keybinds and
-  notifications stay fully functional. The frame is identical across styles.
+  as the other three frame edges. A hidden island stays out of the way: only an
+  open surface (a keybind), a peek, or (auto-hidden) a top-centre hover summons it,
+  so keybinds stay fully functional while a passing toast or OSD never pops it. The
+  frame is identical across styles.
 - `ipc/wallpaper`: a `refresh` mode (`ryoku-shell wallpaper refresh`) repaints the
   current wallpaper on every output with no transition, so a monitor connected
   mid-session shows the same image without re-animating the displays that already

@@ -243,15 +243,15 @@ ShellRoot {
             readonly property real floatTopGap: (18 + Config.islandGap) * s
             readonly property real pillTop: fused ? topGap : floatTopGap
             // Rest visibility: fused/floating show at rest unless auto-hidden; none
-            // never shows at rest. An open surface, a peek/pin, a notification toast
-            // or an OSD, or (when auto-hidden) a hover of the top centre still bring
-            // the island in, so notifications, surfaces, and keybinds stay fully
-            // functional in every style: a hidden island drops in to show a toast or
-            // a volume change, then retracts.
+            // never shows at rest. Only an explicit summon brings a hidden island in:
+            // an open surface (a keybind), a peek/pin, or (when auto-hidden) a hover of
+            // the top centre. A passing toast or OSD does NOT pop a hidden island, so
+            // none and the auto-hidden styles stay clean; notifications and the volume
+            // OSD still show in the always-on island and floating styles, where the
+            // island is present anyway.
             readonly property bool idleShown: styleNone ? false : !autohide
             readonly property bool islandShown: !monFullscreen
-                && (idleShown || pill.surfaceOpen || pill.held || pill.toastActive
-                    || pill.osdActive || (autohide && pill.hoverLatch))
+                && (idleShown || pill.surfaceOpen || pill.held || (autohide && pill.hoverLatch))
             // The auto-hide reveal trigger: a thin strip under the top frame that
             // brings the hidden island down on hover.
             readonly property real revealTrigger: pillTop + 14 * s
