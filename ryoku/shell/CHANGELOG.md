@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### Added
+- `quickshell/pill`: island appearance styles. The top island now has three
+  looks, read from `shell.json` (`islandStyle`) and chosen in Ryoku Settings'
+  Shell section: `island` (the classic pill melted into the top frame, the default
+  and unchanged), `floating` (a detached pill that hangs just under the frame and
+  floats over the content), and `none` (no resting island). An `islandAutohide`
+  flag hides the island at rest and reveals it on a hover of the top centre, for
+  the `island` and `floating` styles. In every style but the always-shown classic
+  island, the reserved top strip collapses so tiled windows rise to the same gap
+  as the other three frame edges, and a hidden island still drops in for an open
+  surface, a notification, an OSD, or a peek, then retracts, so keybinds and
+  notifications stay fully functional. The frame is identical across styles.
 - `ipc/wallpaper`: a `refresh` mode (`ryoku-shell wallpaper refresh`) repaints the
   current wallpaper on every output with no transition, so a monitor connected
   mid-session shows the same image without re-animating the displays that already

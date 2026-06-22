@@ -25,7 +25,10 @@ each their own directory under `quickshell/`, each component its own `.qml`:
   desktop's signature surface and the chrome the others sit in. See
   `docs/frame.md`.
 - `pill` the morphing top bar and its popouts (the centerpiece; it grows and
-  reshapes between states). This is the reference for the project's motion.
+  reshapes between states). This is the reference for the project's motion. Its
+  island has three styles set in Ryoku Settings (the classic fused island, a
+  floating pill, or none, each optionally revealed on hover); the frame is the
+  same in all.
 - `sidebar` the slide-in panel.
 - `ryoshot` screenshot capture and annotation.
 

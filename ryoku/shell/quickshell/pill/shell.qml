@@ -198,15 +198,22 @@ ShellRoot {
             readonly property real s: modelData ? modelData.height / 1080 : 1
             readonly property real topGap: Config.islandGap * s
             readonly property real restHeight: Config.islandHeight * s
+            // Only the classic fused island, shown at rest, reserves its own strip
+            // so tiles sit below it. Floating, none, and any auto-hidden island
+            // float over the content instead, so the reserved top collapses to a
+            // small even gap that matches the other three frame edges.
+            readonly property bool reservesIsland: Config.islandStyle === "island" && !Config.islandAutohide
+            readonly property real evenTop: 22 * s
+            readonly property real zone: reservesIsland ? (restHeight + topGap) : evenTop
 
             screen: modelData
             color: "transparent"
             exclusionMode: ExclusionMode.Normal
-            exclusiveZone: restHeight + topGap
+            exclusiveZone: zone
             aboveWindows: true
 
             anchors { top: true; left: true; right: true }
-            implicitHeight: restHeight + topGap
+            implicitHeight: zone
 
             mask: emptyReserve
             Region { id: emptyReserve }
@@ -221,6 +228,33 @@ ShellRoot {
             required property var modelData
             readonly property real s: modelData ? modelData.height / 1080 : 1
             readonly property real topGap: Config.islandGap * s
+
+            // Island appearance, read from the live config. The frame is identical
+            // across styles; only the centre island changes.
+            //  - fused: the classic pill, its neck melted into the top frame.
+            //  - floating: a detached pill that hangs below the frame and floats
+            //    over the content.
+            //  - none: no resting island at all.
+            readonly property bool fused: Config.islandStyle === "island"
+            readonly property bool styleNone: Config.islandStyle === "none"
+            readonly property bool autohide: Config.islandAutohide && !styleNone
+            // Where the pill sits below the screen top: fused rides the frame neck,
+            // floating/none hang a little lower so they read as detached.
+            readonly property real floatTopGap: (18 + Config.islandGap) * s
+            readonly property real pillTop: fused ? topGap : floatTopGap
+            // Rest visibility: fused/floating show at rest unless auto-hidden; none
+            // never shows at rest. An open surface, a peek/pin, a notification toast
+            // or an OSD, or (when auto-hidden) a hover of the top centre still bring
+            // the island in, so notifications, surfaces, and keybinds stay fully
+            // functional in every style: a hidden island drops in to show a toast or
+            // a volume change, then retracts.
+            readonly property bool idleShown: styleNone ? false : !autohide
+            readonly property bool islandShown: !monFullscreen
+                && (idleShown || pill.surfaceOpen || pill.held || pill.toastActive
+                    || pill.osdActive || (autohide && pill.hoverLatch))
+            // The auto-hide reveal trigger: a thin strip under the top frame that
+            // brings the hidden island down on hover.
+            readonly property real revealTrigger: pillTop + 14 * s
             readonly property string surface: root.openMon === modelData.name ? root.openSurface : ""
             readonly property bool surfaceOpen: surface.length > 0
             // Voice dictation must not steal keyboard focus or block the pointer:
@@ -253,7 +287,8 @@ ShellRoot {
 
             anchors { top: true; left: true; right: true; bottom: true }
 
-            mask: monFullscreen ? hiddenRegion : (modal ? fullRegion : pillRegion)
+            mask: monFullscreen ? hiddenRegion
+                : (modal ? fullRegion : (islandShown ? pillRegion : idleRegion))
             Region { id: hiddenRegion }
             Region {
                 id: pillRegion
@@ -279,6 +314,23 @@ ShellRoot {
                 // body, so input must be grabbed over it for its hover and the
                 // click that opens the Hub instead of passing through to a window.
                 Region { x: updateIsland.x; y: updateIsland.y; width: updateIsland.width; height: updateIsland.height }
+            }
+            Region {
+                id: idleRegion
+                // The reveal trigger: a thin strip under the top frame, sized to the
+                // rest pill, that catches the hover bringing an auto-hidden island
+                // down. Zero for 'none', which never reveals, so the top centre stays
+                // click-through and fully functional.
+                x: overlay.autohide ? pill.x : 0
+                y: 0
+                width: overlay.autohide ? pill.width : 0
+                height: overlay.autohide ? overlay.revealTrigger : 0
+                // Edge popouts stay part of the frame in every island style, so their
+                // hover triggers and open bodies always catch input.
+                Region { x: mixerPop.triggerX; y: mixerPop.triggerY; width: mixerPop.triggerW; height: mixerPop.triggerH }
+                Region { x: mixerPop.bodyX; y: mixerPop.bodyY; width: mixerPop.bodyW; height: mixerPop.bodyH }
+                Region { x: powerPop.triggerX; y: powerPop.triggerY; width: powerPop.triggerW; height: powerPop.triggerH }
+                Region { x: powerPop.bodyX; y: powerPop.bodyY; width: powerPop.bodyW; height: powerPop.bodyH }
             }
             Region {
                 id: fullRegion
@@ -343,22 +395,33 @@ ShellRoot {
                 }
 
                 BlobRect {
-                    // The pill body, in the frame's field. It runs from the screen top
-                    // through the pill so its neck fuses into the top border; the visible
-                    // bottom keeps the pill's morph radius. The pill draws no background.
+                    // The fused pill body, in the frame's field: it runs from the
+                    // screen top through the pill so its neck melts into the top
+                    // border. A blob leaves the SDF field only by collapsing to zero
+                    // size (the field ignores `visible`), so presence rides `height`:
+                    // `reveal` eases 0..1 to curtain it down out of the frame on show
+                    // and retract it on hide. Present only in the fused style.
                     id: pillBlob
                     group: blobGroup
                     x: pill.x
                     y: 0
+                    readonly property bool present: overlay.fused && overlay.islandShown
+                    property real reveal: present ? 1 : 0
                     width: pill.width
-                    height: pill.y + pill.height
+                    height: (pill.y + pill.height) * reveal
                     topLeftRadius: 0
                     topRightRadius: 0
                     bottomLeftRadius: pill.morphRadius
                     bottomRightRadius: pill.morphRadius
                     deformScale: 0
                     opacity: Config.islandOpacity
-                    visible: !overlay.monFullscreen
+                    Behavior on reveal {
+                        NumberAnimation {
+                            duration: Motion.morph
+                            easing.type: Motion.easeMorph
+                            easing.bezierCurve: Motion.morphCurve
+                        }
+                    }
                 }
 
                 // Mixer popout: grows out of the centre-left frame edge on hover,
@@ -411,23 +474,38 @@ ShellRoot {
                 }
 
                 BlobRect {
-                    id: musicAnchor
+                    // The island body, in the island field (never the frame field, so
+                    // it cannot fuse the border). Fused: it mirrors the pillBlob as the
+                    // anchor the music bud melts into, present only while music shows.
+                    // Detached (floating/none): it IS the visible floating pill, a fully
+                    // rounded rect below the frame that the music buds off. Height
+                    // carries the same reveal curtain as the pillBlob.
+                    id: islandBlob
                     group: islandGroup
                     x: pill.x
-                    y: 0
+                    y: overlay.fused ? 0 : pill.y
+                    readonly property bool present: overlay.fused ? musicIsland.visible
+                                                                  : (overlay.islandShown || musicIsland.visible)
+                    property real reveal: present ? 1 : 0
                     width: pill.width
-                    height: pill.y + pill.height
-                    topLeftRadius: 0
-                    topRightRadius: 0
+                    height: (overlay.fused ? (pill.y + pill.height) : pill.height) * reveal
+                    topLeftRadius: overlay.fused ? 0 : pill.morphRadius
+                    topRightRadius: overlay.fused ? 0 : pill.morphRadius
                     bottomLeftRadius: pill.morphRadius
                     bottomRightRadius: pill.morphRadius
                     deformScale: 0
                     opacity: Config.islandOpacity
-                    visible: musicIsland.visible
+                    Behavior on reveal {
+                        NumberAnimation {
+                            duration: Motion.morph
+                            easing.type: Motion.easeMorph
+                            easing.bezierCurve: Motion.morphCurve
+                        }
+                    }
                 }
 
                 BlobRect {
-                    // Tracks the music island; the smooth-min neck to musicAnchor
+                    // Tracks the music island; the smooth-min neck to islandBlob
                     // stretches and breaks as it slides out (the warp), and reforms
                     // as it melts back in on close.
                     id: musicBlob
@@ -457,7 +535,7 @@ ShellRoot {
                 Pill {
                     id: pill
                     anchors.top: parent.top
-                    anchors.topMargin: overlay.topGap
+                    anchors.topMargin: overlay.pillTop
                     anchors.horizontalCenter: parent.horizontalCenter
                     s: overlay.s
                     screenName: overlay.modelData.name
@@ -465,7 +543,7 @@ ShellRoot {
                     surface: overlay.surface
                     forcePinned: root.peekMon === overlay.modelData.name
 
-                    opacity: overlay.monFullscreen ? 0 : 1
+                    opacity: overlay.islandShown ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: Motion.morph
@@ -474,7 +552,7 @@ ShellRoot {
                         }
                     }
                     transform: Translate {
-                        y: overlay.monFullscreen ? -(pill.height + overlay.topGap) : 0
+                        y: overlay.monFullscreen ? -(pill.height + overlay.pillTop + 10 * overlay.s) : 0
                         Behavior on y {
                             NumberAnimation {
                                 duration: Motion.morph
@@ -495,10 +573,11 @@ ShellRoot {
                     // sees the pointer; the tray icons' own hoverEnabled MouseAreas
                     // would otherwise swallow the hover and collapse the island when
                     // crossed. Being handler-only it never blocks their clicks/hover.
+                    enabled: !overlay.styleNone
                     x: pill.x
                     y: 0
                     width: pill.width
-                    height: pill.y + pill.height + 6 * overlay.s
+                    height: overlay.islandShown ? (pill.y + pill.height + 6 * overlay.s) : overlay.revealTrigger
                     HoverHandler { onHoveredChanged: pill.hovered = hovered }
                 }
 
@@ -506,7 +585,7 @@ ShellRoot {
                     id: musicIsland
                     s: overlay.s
                     live: !overlay.surfaceOpen
-                    open: !overlay.surfaceOpen && !pill.toastActive && !pill.osdActive
+                    open: overlay.islandShown && !overlay.surfaceOpen && !pill.toastActive && !pill.osdActive
                     x: {
                         const start = pill.x + pill.width / 2 - width / 2;
                         const end = pill.x + pill.width + 18 * overlay.s;
@@ -520,7 +599,7 @@ ShellRoot {
                 ActivityStrip {
                     id: activityStrip
                     s: overlay.s
-                    visible: !overlay.surfaceOpen && !pill.toastActive && !pill.osdActive && width > 1
+                    visible: overlay.islandShown && !overlay.surfaceOpen && !pill.toastActive && !pill.osdActive && width > 1
                     x: pill.x - width - 18 * overlay.s
                     y: Math.max(pill.y + pill.height / 2 - height / 2, 22)
                     onRequestSurface: (name) => root.toggleSurface(overlay.modelData.name, name)
@@ -529,10 +608,10 @@ ShellRoot {
                 UpdateIsland {
                     id: updateIsland
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !pill.toastActive && !pill.osdActive
+                    active: overlay.islandShown && !overlay.surfaceOpen && !pill.toastActive && !pill.osdActive
                     anchors.right: parent.right
                     anchors.rightMargin: 20 * overlay.s
-                    y: overlay.topGap + (pill.restH - height) / 2
+                    y: overlay.pillTop + (pill.restH - height) / 2
                     onActivated: root.openUpdates()
                 }
             }

@@ -39,6 +39,15 @@ Singleton {
     property alias islandSmoothing:  adapter.islandSmoothing
     property alias islandOpacity:    adapter.islandOpacity
 
+    // Island appearance variant and its rest visibility:
+    //  - islandStyle: "island" (the pill fused into the top frame, the default),
+    //    "floating" (a detached pill that floats below the frame), or "none"
+    //    (no resting island; surfaces and keybinds still work).
+    //  - islandAutohide: hide the island at rest and reveal it on hover of the
+    //    top centre. Applies to "island" and "floating"; "none" is always hidden.
+    property alias islandStyle:    adapter.islandStyle
+    property alias islandAutohide: adapter.islandAutohide
+
     FileView {
         id: file
         path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/shell.json"
@@ -64,6 +73,8 @@ Singleton {
             property real islandGap: 8
             property real islandSmoothing: 24
             property real islandOpacity: 1
+            property string islandStyle: "island"
+            property bool islandAutohide: false
         }
     }
 
