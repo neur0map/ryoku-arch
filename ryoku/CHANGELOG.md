@@ -19,6 +19,12 @@
   and before `user.lua`, the override file Ryoku Settings writes. Missing by
   default (a `pcall` no-op); the hub creates it on first use. `window_rules` and
   the `Super + ,` legend now read "Ryoku Settings".
+- `hyprland/hyprland.lua`: loads the runtime-generated drop-ins `gpu.lua` and
+  `monitors.lua` with `pcall` (like `settings`, `theme`, and `user` already are),
+  so a half-written or corrupt one -- which a crash or a GPU reset can leave behind,
+  since those fire monitor events that rewrite `monitors.lua` -- falls back to
+  Hyprland's defaults instead of dropping the whole config into emergency mode.
+  `ryoku doctor` repairs the file and autoscale regenerates it on the next login.
 - `hyprland/scripts/ryoku-cmd-nightlight`: `status`, `on [temp]`, and `off`
   subcommands (with the saved temperature persisted) so Ryoku Settings' Comfort
   tab can show and set the night light; the bare call still toggles for Super+U.

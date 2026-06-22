@@ -1,7 +1,12 @@
 require("modules.env")
 require("keyboard")
-require("gpu")
-require("monitors")
+-- Hardware drop-ins, generated at runtime: ryoku-gpu writes gpu.lua, ryoku-monitor
+-- writes monitors.lua, and both are rewritten on a hotplug or a GPU reset. Load
+-- them with pcall so a half-written or corrupt one falls back to Hyprland's
+-- defaults instead of taking the whole config into emergency mode; ryoku doctor
+-- repairs the file and autoscale regenerates it on the next login.
+pcall(require, "gpu")
+pcall(require, "monitors")
 -- Manual monitor overrides: ~/.config/hypr/monitors_user.lua is hand-written and
 -- never shipped or touched by ryoku-monitor. Loaded after the generated
 -- monitors.lua so a hand-set panel (a fake-EDID display that needs a forced mode
