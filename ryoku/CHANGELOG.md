@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- `hyprland/themes/{washi,soft_color,mountains,crt,drift}`: five more theme rices.
+  `washi` (warm vermilion on dark paper, clinical motion), `soft_color` (dreamy
+  peach pastel on slate-blue), `mountains` (desaturated earth tones) and `crt`
+  (cyan phosphor glow on near-black) ship fixed palettes; `drift` is a slow, airy,
+  breathing look-only rice that follows the wallpaper. All opt-in from Ryoku
+  Settings; the frame and island keep the Ryoku identity.
 - `hyprland/themes/compact` and `hyprland/themes/glass`: two look-only rices
   (colours still follow the wallpaper). `compact` is dense and tight (small gaps,
   light rounding, no shadow, a soft pop); `glass` is heavy frosted blur with

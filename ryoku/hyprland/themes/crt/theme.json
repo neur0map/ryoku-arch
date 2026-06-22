@@ -1,0 +1,35 @@
+{
+  "name": "CRT",
+  "blurb": "Cyan phosphor glow on near-black, a retro terminal cabinet vibe.",
+  "summary": "Cyan · glow · retro",
+  "tags": [
+    "retro",
+    "cyan",
+    "dark"
+  ],
+  "accent": "#22dddd",
+  "swatch": [
+    "#050a0a",
+    "#22dddd",
+    "#55ffff",
+    "#aaffff",
+    "#55ff99",
+    "#ff5566"
+  ],
+  "hasPalette": true,
+  "look": {
+    "rounding": 4,
+    "gapsIn": 6,
+    "gapsOut": 16,
+    "borderSize": 2,
+    "blurEnabled": true,
+    "blurSize": 3,
+    "blurPasses": 1,
+    "shadowEnabled": true,
+    "shadowRange": 30,
+    "activeOpacity": 0.92,
+    "inactiveOpacity": 0.85,
+    "layout": "dwindle",
+    "animations": true
+  }
+}

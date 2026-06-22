@@ -1,0 +1,35 @@
+{
+  "name": "Mountains",
+  "blurb": "Desaturated earth tones: stone, moss and bone, calm and neutral.",
+  "summary": "Earthy · stone · calm",
+  "tags": [
+    "earthy",
+    "neutral",
+    "calm"
+  ],
+  "accent": "#7c907a",
+  "swatch": [
+    "#1a1814",
+    "#7c907a",
+    "#c2a86a",
+    "#b06a5a",
+    "#6f8a94",
+    "#e8e9e1"
+  ],
+  "hasPalette": true,
+  "look": {
+    "rounding": 10,
+    "gapsIn": 8,
+    "gapsOut": 20,
+    "borderSize": 2,
+    "blurEnabled": true,
+    "blurSize": 4,
+    "blurPasses": 2,
+    "shadowEnabled": true,
+    "shadowRange": 20,
+    "activeOpacity": 0.97,
+    "inactiveOpacity": 0.92,
+    "layout": "dwindle",
+    "animations": true
+  }
+}

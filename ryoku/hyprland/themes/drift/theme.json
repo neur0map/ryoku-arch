@@ -1,0 +1,35 @@
+{
+  "name": "Drift",
+  "blurb": "Airy and slow: wide gaps, soft blur and a breathing, unhurried motion.",
+  "summary": "Airy · slow · breathing · wallpaper colours",
+  "tags": [
+    "airy",
+    "slow",
+    "ambient"
+  ],
+  "accent": "#7aa2f7",
+  "swatch": [
+    "#1a1b26",
+    "#7aa2f7",
+    "#bb9af7",
+    "#9ece6a",
+    "#7dcfff",
+    "#e0af68"
+  ],
+  "hasPalette": false,
+  "look": {
+    "rounding": 16,
+    "gapsIn": 10,
+    "gapsOut": 28,
+    "borderSize": 2,
+    "blurEnabled": true,
+    "blurSize": 8,
+    "blurPasses": 3,
+    "shadowEnabled": true,
+    "shadowRange": 30,
+    "activeOpacity": 0.96,
+    "inactiveOpacity": 0.88,
+    "layout": "dwindle",
+    "animations": true
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "Soft Color",
+  "blurb": "Warm pastel peach on a calm slate-blue, dreamy and heavily blurred.",
+  "summary": "Pastel · peach · dreamy",
+  "tags": [
+    "pastel",
+    "soft",
+    "warm"
+  ],
+  "accent": "#ff9a8b",
+  "swatch": [
+    "#2b304d",
+    "#ff9a8b",
+    "#ffcf8b",
+    "#a8d8b0",
+    "#8ba6ff",
+    "#fdf0ed"
+  ],
+  "hasPalette": true,
+  "look": {
+    "rounding": 14,
+    "gapsIn": 8,
+    "gapsOut": 24,
+    "borderSize": 2,
+    "blurEnabled": true,
+    "blurSize": 8,
+    "blurPasses": 3,
+    "shadowEnabled": true,
+    "shadowRange": 26,
+    "activeOpacity": 0.94,
+    "inactiveOpacity": 0.86,
+    "layout": "dwindle",
+    "animations": true
+  }
+}

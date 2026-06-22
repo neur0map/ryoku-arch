@@ -1,0 +1,35 @@
+{
+  "name": "Washi",
+  "blurb": "Warm vermilion on dark washi paper, with clinical, snappy motion.",
+  "summary": "Warm · vermilion · clinical",
+  "tags": [
+    "warm",
+    "vermilion",
+    "paper"
+  ],
+  "accent": "#c0442b",
+  "swatch": [
+    "#1c140f",
+    "#c0442b",
+    "#e0563b",
+    "#d99a5b",
+    "#6e8a8f",
+    "#e6d6cb"
+  ],
+  "hasPalette": true,
+  "look": {
+    "rounding": 14,
+    "gapsIn": 8,
+    "gapsOut": 22,
+    "borderSize": 2,
+    "blurEnabled": true,
+    "blurSize": 6,
+    "blurPasses": 2,
+    "shadowEnabled": true,
+    "shadowRange": 24,
+    "activeOpacity": 0.97,
+    "inactiveOpacity": 0.9,
+    "layout": "dwindle",
+    "animations": true
+  }
+}
