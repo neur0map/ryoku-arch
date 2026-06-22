@@ -407,6 +407,7 @@ ShellRoot {
                     y: 0
                     readonly property bool present: overlay.fused && overlay.islandShown
                     property real reveal: present ? 1 : 0
+                    visible: reveal > 0
                     width: pill.width
                     height: (pill.y + pill.height) * reveal
                     topLeftRadius: 0
@@ -487,6 +488,7 @@ ShellRoot {
                     readonly property bool present: overlay.fused ? musicIsland.visible
                                                                   : (overlay.islandShown || musicIsland.visible)
                     property real reveal: present ? 1 : 0
+                    visible: reveal > 0
                     width: pill.width
                     height: (overlay.fused ? (pill.y + pill.height) : pill.height) * reveal
                     topLeftRadius: overlay.fused ? 0 : pill.morphRadius
@@ -512,8 +514,11 @@ ShellRoot {
                     group: islandGroup
                     x: musicIsland.x
                     y: musicIsland.y
-                    width: musicIsland.width
-                    height: musicIsland.height
+                    // Collapse to nothing when hidden: the SDF field ignores `visible`,
+                    // so a sized-but-invisible bud still shows wherever another shape in
+                    // the group paints. Zero size removes it from the field entirely.
+                    width: musicIsland.visible ? musicIsland.width : 0
+                    height: musicIsland.visible ? musicIsland.height : 0
                     radius: musicIsland.height / 2
                     deformScale: 0
                     opacity: Config.islandOpacity
