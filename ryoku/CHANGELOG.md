@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- `hyprland/themes/cassette`: a new flat, sharp, sepia theme rice (no blur or
+  shadow, `rounding 0`, tight gaps) in a muted YoRHa/NieR palette, filling the gap
+  left by the rounded, glassy default set. Opt-in from Ryoku Settings; the frame
+  and island keep the Ryoku identity, and its fixed palette applies when colours
+  are set to the theme rather than the wallpaper.
 - `hyprland/monitors_user.lua.example`: a hand-written manual monitor override.
   `hyprland.lua` now `require`s `monitors_user` (a `pcall`, after the generated
   `monitors.lua`), so `~/.config/hypr/monitors_user.lua` wins and lets you force a

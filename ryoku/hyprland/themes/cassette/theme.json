@@ -1,0 +1,35 @@
+{
+  "name": "Cassette",
+  "blurb": "Flat sepia in a YoRHa key: sharp corners, no blur, ink on bone.",
+  "summary": "Flat · sharp · sepia",
+  "tags": [
+    "flat",
+    "sepia",
+    "retro"
+  ],
+  "accent": "#6e2a2a",
+  "swatch": [
+    "#0b0906",
+    "#6e2a2a",
+    "#c8b89a",
+    "#9a8a5a",
+    "#4a6a7a",
+    "#7a7358"
+  ],
+  "hasPalette": true,
+  "look": {
+    "rounding": 0,
+    "gapsIn": 4,
+    "gapsOut": 8,
+    "borderSize": 1,
+    "blurEnabled": false,
+    "blurSize": 0,
+    "blurPasses": 1,
+    "shadowEnabled": false,
+    "shadowRange": 0,
+    "activeOpacity": 1.0,
+    "inactiveOpacity": 0.95,
+    "layout": "dwindle",
+    "animations": true
+  }
+}
