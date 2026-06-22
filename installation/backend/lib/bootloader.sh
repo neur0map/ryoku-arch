@@ -8,6 +8,8 @@
 ryoku_bootloader() {
   CMDLINE=$(ryoku_cmdline)
   log "kernel cmdline: $CMDLINE quiet splash"
+  [[ $RYOKU_DISK_STRATEGY == alongside ]] && \
+    log "alongside: reusing the existing ESP; a Windows boot manager found there is chained into the Limine menu"
 
   ryoku_boot_plymouth
   ryoku_boot_default_limine
@@ -91,9 +93,10 @@ ryoku_boot_limine_conf() {
   fi
 
   run mkdir -p /mnt/boot/limine
-  if [[ $mode == with_entry ]]; then
-    write_file /mnt/boot/limine/limine.conf <<EOF
-$branding
+  {
+    printf '%s\n' "$branding"
+    if [[ $mode == with_entry ]]; then
+      cat <<EOF
 
 /Ryoku Linux
     protocol: linux
@@ -101,9 +104,25 @@ $branding
     cmdline: $CMDLINE quiet splash
     module_path: boot():/initramfs-linux.img
 EOF
-  else
-    write_file /mnt/boot/limine/limine.conf <<<"$branding"
-  fi
+    fi
+    ryoku_windows_entry
+  } | write_file /mnt/boot/limine/limine.conf
+}
+
+# ryoku_windows_entry prints a Limine chainload entry for an existing Windows
+# install on the reused ESP, or nothing. For 'alongside' the ESP is shared and
+# mounted at /mnt/boot, so the Windows boot manager sits at EFI/Microsoft/Boot/
+# bootmgfw.efi; boot() resolves to that same ESP at boot time. It emits only the
+# entry text (no logging) so it can be piped straight into limine.conf.
+ryoku_windows_entry() {
+  [[ $RYOKU_DISK_STRATEGY == alongside ]] || return 0
+  [[ -f /mnt/boot/EFI/Microsoft/Boot/bootmgfw.efi ]] || return 0
+  cat <<'EOF'
+
+/Microsoft Windows
+    protocol: efi_chainload
+    image_path: boot():/EFI/Microsoft/Boot/bootmgfw.efi
+EOF
 }
 
 # ryoku_boot_install_efi places the Limine EFI binary on the ESP (both the
@@ -113,7 +132,9 @@ ryoku_boot_install_efi() {
   run mkdir -p /mnt/boot/EFI/BOOT /mnt/boot/EFI/limine
   run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/boot/EFI/limine/limine.efi
   run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/boot/EFI/BOOT/BOOTX64.EFI
-  run arch-chroot /mnt efibootmgr --create --disk "$RYOKU_DISK" --part 1 \
+  local esp_partnum
+  esp_partnum=$(part_num "$ESP_DEV"); : "${esp_partnum:=1}"
+  run arch-chroot /mnt efibootmgr --create --disk "$RYOKU_DISK" --part "$esp_partnum" \
     --label Ryoku --loader '\EFI\limine\limine.efi' --unicode
   # Boot the installed system on the next reboot even if the USB installer is still
   # plugged in (firmware often prefers removable media otherwise).

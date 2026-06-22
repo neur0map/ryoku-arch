@@ -27,6 +27,11 @@
 - TUI network step: recheck connectivity on entry (so a late ethernet lease shows
   as connected), show the real interface, and add an `r` rescan to the Wi-Fi picker.
 - TUI: the install-failure screen's support QR now points at `docs.ryoku.dev`.
+- TUI disk step: the second strategy is now "Install alongside Windows" (keep
+  Windows, install into free space). `tui/system.go` reads the disk's real
+  partitions and largest free region (`lsblk` + `parted`) so the layout shows the
+  actual disk, and the step refuses to continue without a reused ESP and enough
+  free space, matching the backend floor.
 
 ### Fixed
 - The live ISO now autostarts the installer instead of the stock Arch first-boot
@@ -36,6 +41,10 @@
   render (Xwayland, the polkit agent, the Qt/GTK runtime), and the first reboot
   targets the installed disk via EFI BootNext. See `system/` and the iso/backend
   changelogs.
+- Dual-boot installs failed at partitioning: the TUI emitted the disk strategy
+  `existing`, which the backend rejected with "disk strategy existing not
+  supported yet (use 'whole')". The TUI now emits `alongside` and the backend
+  implements it, so installing beside Windows works end to end.
 - TUI partition step: the swapfile is carved out of the root size and shown in the
   disk bar, so increasing swap now reduces the usable root instead of leaving the
   total unchanged. Root always takes the rest of the disk (the backend uses 100%),

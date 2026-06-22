@@ -53,7 +53,7 @@ With defaults:
 | `RYOKU_LOCALE`            | `en_US.UTF-8`  | Locale (`locale.gen` + `locale.conf`).   |
 | `RYOKU_TIMEZONE`          | `UTC`          | `Region/City`, or `auto` (ipinfo.io).    |
 | `RYOKU_PROFILE`           | `vm`           | `amd-nvidia` \| `amd` \| `intel` \| `vm`. |
-| `RYOKU_DISK_STRATEGY`     | `whole`        | `whole` (only mode supported so far).    |
+| `RYOKU_DISK_STRATEGY`     | `whole`        | `whole` (wipe disk) \| `alongside` (dual-boot). |
 | `RYOKU_ESP_GIB`           | `1`            | ESP size in GiB.                         |
 | `RYOKU_SWAP_GIB`          | `0`            | Swapfile size in GiB (0 disables it).    |
 | `RYOKU_SUBVOL_SNAPSHOTS`  | `1`            | Create `@snapshots` -> `/.snapshots`.    |

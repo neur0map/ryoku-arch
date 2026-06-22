@@ -219,6 +219,102 @@ func sysDiskSize(dev string) int {
 	return int(n / (1024 * 1024 * 1024))
 }
 
+// espTypeGUID is the GPT partition type for an EFI System Partition.
+const espTypeGUID = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+
+// diskLayout is a disk's real partition layout: the existing partitions (kept for
+// a dual-boot install) and the largest contiguous free region in GiB. It is read
+// from lsblk + parted so the installer shows the actual disk, never a guess.
+type diskLayout struct {
+	parts   []part
+	freeG   int
+	windows bool // an NTFS partition is present (a Windows install)
+	gpt     bool // GPT label (alongside requires it)
+}
+
+// sysDiskLayout reads the existing partitions and largest free region of a disk.
+func sysDiskLayout(disk string) diskLayout {
+	var dl diskLayout
+	if pt, ok := run("blkid", "-o", "value", "-s", "PTTYPE", disk); ok {
+		dl.gpt = strings.TrimSpace(pt) == "gpt"
+	}
+	out, ok := run("lsblk", "-pnbo", "NAME,TYPE,SIZE,FSTYPE,PARTTYPE,PARTLABEL", "-P", disk)
+	if ok {
+		for _, line := range strings.Split(out, "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			r := map[string]string{}
+			for _, tok := range splitPairs(line) {
+				if eq := strings.IndexByte(tok, '='); eq >= 0 {
+					r[tok[:eq]] = strings.Trim(tok[eq+1:], "\"")
+				}
+			}
+			if r["TYPE"] != "part" {
+				continue
+			}
+			sizeB, _ := strconv.ParseInt(r["SIZE"], 10, 64)
+			gib := int((sizeB + (1 << 29)) / (1 << 30)) // round to nearest GiB
+			fs := strings.ToLower(r["FSTYPE"])
+			p := part{size: gib, fs: fs, mount: "-", flags: "-", status: "keep"}
+			switch {
+			case strings.EqualFold(r["PARTTYPE"], espTypeGUID):
+				p.dev, p.fs, p.mount, p.flags = "EFI System", "fat32", "/boot", "esp"
+			case fs == "ntfs":
+				p.dev, p.mount = winLabel(r["PARTLABEL"]), "Windows"
+				dl.windows = true
+			default:
+				p.dev = partLabel(r["PARTLABEL"], fs)
+			}
+			dl.parts = append(dl.parts, p)
+		}
+	}
+	dl.freeG = largestFreeGiB(disk)
+	return dl
+}
+
+func winLabel(lbl string) string {
+	if lbl = strings.TrimSpace(lbl); lbl != "" {
+		return "Windows (" + lbl + ")"
+	}
+	return "Windows (NTFS)"
+}
+
+func partLabel(lbl, fs string) string {
+	if lbl = strings.TrimSpace(lbl); lbl != "" {
+		return lbl
+	}
+	if fs != "" {
+		return strings.ToUpper(fs)
+	}
+	return "partition"
+}
+
+// largestFreeGiB returns the largest contiguous free region on the disk in GiB,
+// parsed from parted's machine-readable free-space listing.
+func largestFreeGiB(disk string) int {
+	out, ok := run("parted", "-ms", disk, "unit", "GiB", "print", "free")
+	if !ok {
+		return 0
+	}
+	best := 0.0
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasSuffix(line, "free;") {
+			continue
+		}
+		f := strings.Split(line, ":")
+		if len(f) < 4 {
+			continue
+		}
+		if v, err := strconv.ParseFloat(strings.TrimSuffix(f[3], "GiB"), 64); err == nil && v > best {
+			best = v
+		}
+	}
+	return int(best)
+}
+
 // sysSSIDs lists the cached nearby Wi-Fi networks via nmcli. It uses --rescan no
 // so it never blocks the UI on a scan; NetworkManager refreshes the cache on its
 // own, and the picker's r key relists it. WIRE target.

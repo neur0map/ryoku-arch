@@ -5,9 +5,12 @@ exposes the functions the entrypoint calls in order.
 
 - `common.sh` Shared helpers: `log` / `step` / `die`, the `run` and `run_sh`
   dry-run wrappers, `run_secret` (redacts stdin secrets), `write_file`,
-  `append_file`, `deploy_dir`, and the `part_dev` / `dev_uuid` device helpers.
+  `append_file`, `deploy_dir`, and the `part_dev` / `part_num` / `dev_uuid`
+  device helpers.
 - `preflight.sh` Root, UEFI, and disk-size (>= 32 GiB) checks.
-- `disk.sh` GPT partitioning: ESP plus a root partition (whole-disk strategy).
+- `disk.sh` GPT partitioning: `whole` (wipe the disk, ESP plus a root that takes
+  the rest) or `alongside` (reuse the existing ESP, root in the largest free
+  region) for dual-booting Windows.
 - `luks.sh` Optional LUKS2 encryption of the root partition.
 - `filesystem.sh` mkfs for the ESP and Btrfs, the subvolume layout, mounting,
   and the optional swapfile.

@@ -469,8 +469,9 @@ const (
 	kNet  // connectivity / Wi-Fi
 )
 
-const minDiskGiB = 32 // installer floor: 16G swap + 1G ESP + system closure
-const minTermW = 80   // below this the layout can't lay out cleanly
+const minDiskGiB = 32          // installer floor: 16G swap + 1G ESP + system closure
+const alongsideMinRootGiB = 15 // alongside: min free space for root (matches backend ryoku_min_root_gib base)
+const minTermW = 80            // below this the layout can't lay out cleanly
 const minTermH = 20
 
 type step struct {
@@ -558,7 +559,7 @@ func profiles() []item {
 func diskStrategies() []item {
 	return []item{
 		{"whole", "Erase whole disk", "wipe & auto-layout"},
-		{"existing", "Keep / edit existing", "reclaim · resize · or wipe"},
+		{"alongside", "Install alongside Windows", "keep Windows · use free space"},
 	}
 }
 
@@ -722,8 +723,8 @@ type model struct {
 
 	// guided partition layout
 	diskG                       int
-	kept                        []part // existing partitions (reclaimable)
-	wipeConfirm                 bool
+	kept                        []part // existing partitions kept on an alongside install
+	freeG                       int    // largest contiguous free region (GiB) for alongside
 	espG, swapG                 int
 	snapshots, sepHome, backups bool
 	lsel                        int
@@ -775,14 +776,12 @@ func (m *model) loadStep() {
 		m.diskG = m.diskTotal
 		m.espG, m.swapG = 1, 16
 		m.snapshots, m.sepHome, m.backups = true, true, false
-		m.lsel, m.sAnim, m.wipeConfirm = 0, 0, false
-		if m.picks["disk"] == "whole" || m.diskTotal < 700 {
-			m.kept = nil // small disk or full wipe → no existing partitions
-		} else { // existing Windows install: keep or reclaim per-partition
-			m.kept = []part{
-				{"Windows ESP", 1, "vfat", "/boot", "esp", "keep"},
-				{"Windows (C:)", 600, "ntfs", "Windows", "-", "keep"},
-			}
+		m.lsel, m.sAnim = 0, 0
+		if m.picks["disk"] == "alongside" {
+			dl := sysDiskLayout(m.diskDev) // real existing partitions + free space
+			m.kept, m.freeG = dl.parts, dl.freeG
+		} else {
+			m.kept, m.freeG = nil, 0
 		}
 	case kPass:
 		m.pwStage, m.pw1, m.pwErr, m.input = 0, "", "", ""
@@ -973,7 +972,6 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 
 	s := m.cur()
 	typing := s.kind == kInput || (s.kind == kSelect && m.pick.searching) ||
-		(s.kind == kPartition && m.wipeConfirm) ||
 		(s.kind == kConfirm && s.key == "encryption" && m.encStage > 0) ||
 		s.kind == kPass || (s.kind == kNet && m.netStage == 1)
 	if k == "?" && !typing {
@@ -1235,6 +1233,13 @@ func (m model) needNewESP() bool { return !m.hasKeptESP() }
 // availRoot is the size of the root partition: the disk minus kept partitions and
 // the ESP. The swapfile is carved out of this, so usable root is availRoot - swap.
 func (m model) availRoot() int {
+	if m.picks["disk"] == "alongside" { // root fills the detected free region; ESP reused
+		a := m.freeG
+		if a < 0 {
+			a = 0
+		}
+		return a
+	}
 	a := m.diskG - m.keptG()
 	if m.needNewESP() {
 		a -= m.espG
@@ -1248,7 +1253,11 @@ func (m model) availRoot() int {
 // swapCeil caps the swapfile size: at most 64 GiB, and always leaving at least
 // 8 GiB of usable root so the swapfile can never claim the whole disk.
 func (m model) swapCeil() int {
-	mx := m.availRoot() - 8
+	floor := 8
+	if m.picks["disk"] == "alongside" {
+		floor = alongsideMinRootGiB // keep >=15GiB of root for the system (matches backend)
+	}
+	mx := m.availRoot() - floor
 	if mx > 64 {
 		mx = 64
 	}
@@ -1321,25 +1330,8 @@ func (m model) keepIndex(key string) int {
 	fmt.Sscanf(key, "keep%d", &i)
 	return i
 }
-func (m *model) reclaim(idx int) { // WIRE: parted rm of the existing partition
-	if idx < 0 || idx >= len(m.kept) {
-		return
-	}
-	m.kept = append(m.kept[:idx], m.kept[idx+1:]...)
-	m.lsel = clamp(m.lsel, 0, len(m.layoutRows())-1)
-}
 
 func (m *model) partKey(k string) {
-	if m.wipeConfirm {
-		switch k {
-		case "y", "enter":
-			m.kept = nil // WIRE: wipe whole disk (parted mklabel gpt)
-			m.lsel, m.wipeConfirm = 0, false
-		case "n", "esc":
-			m.wipeConfirm = false
-		}
-		return
-	}
 	rows := m.layoutRows()
 	r := rows[m.lsel]
 	switch k {
@@ -1347,10 +1339,6 @@ func (m *model) partKey(k string) {
 		m.lsel = clamp(m.lsel-1, 0, len(rows)-1)
 	case "down", "j":
 		m.lsel = clamp(m.lsel+1, 0, len(rows)-1)
-	case "w": // full wipe, only if there is something kept to erase
-		if len(m.kept) > 0 {
-			m.wipeConfirm = true
-		}
 	case "left", "h":
 		if r.kind == "size" {
 			v, _, _, st, _ := m.rowSpec(r.key)
@@ -1371,27 +1359,33 @@ func (m *model) partKey(k string) {
 			v, _, _, _, bg := m.rowSpec(r.key)
 			m.setRow(r.key, v+bg)
 		}
-	case "d":
-		if r.kind == "keep" {
-			m.reclaim(m.keepIndex(r.key))
-		}
 	case "enter", "space":
-		switch r.kind {
-		case "keep":
-			m.reclaim(m.keepIndex(r.key))
-		case "toggle":
+		if r.kind == "toggle" {
 			m.toggle(r.key)
 		}
-	case "a": // reset to recommended (keeps current kept set)
+	case "a": // reset the editable sizes and toggles to recommended
 		m.espG, m.swapG = 1, 16
 		m.snapshots, m.sepHome, m.backups = true, true, false
 	case "tab":
-		if m.diskG < minDiskGiB { // too-small guard, mirrors the installer preflight
+		if !m.partReady() {
 			return
 		}
-		m.picks["partitions"] = m.layoutSummary() // WIRE: emit disko config from this plan
+		m.picks["partitions"] = m.layoutSummary()
 		m.advance()
 	}
+}
+
+// partReady reports whether the chosen layout can be installed: the disk meets
+// the floor, and an alongside install has a reused ESP plus enough free space for
+// the root (kept in step with disk.sh's ryoku_min_root_gib in the backend).
+func (m model) partReady() bool {
+	if m.diskG < minDiskGiB {
+		return false
+	}
+	if m.picks["disk"] == "alongside" {
+		return m.hasKeptESP() && m.freeG >= alongsideMinRootGiB
+	}
+	return true
 }
 
 func (m model) layoutSummary() string {
@@ -1713,17 +1707,11 @@ func (m model) viewWizard() string {
 func (m model) partBody(inner int) string {
 	var b strings.Builder
 	b.WriteString(fg(cSub, fmt.Sprintf("%s · %d GiB · UEFI · ", m.diskDev, m.diskG)) +
-		fg(cText, "systemd-boot") + fg(cDim, " (Limine in v2)") + "\n")
+		fg(cText, "Limine") + "\n")
 	b.WriteString(m.diskBar(m.layoutSegs(), inner, m.selSeg()) + "\n\n")
 
 	if m.diskG < minDiskGiB { // WIRE: real size from blockdev --getsize64
 		b.WriteString(bold(cRed, fmt.Sprintf("⚠ disk is %dG, Ryoku needs at least %dG. Use a larger disk.", m.diskG, minDiskGiB)) + "\n\n")
-	}
-	if m.wipeConfirm {
-		b.WriteString(bold(cRed, "⚠  Erase the ENTIRE disk, including Windows?") + "\n")
-		b.WriteString(fg(cSub, "   This removes every kept partition. Nothing is written until you confirm install.") + "\n\n")
-		b.WriteString("   " + bold(cRed, "y") + fg(cSub, " wipe    ") + bold(cText, "n") + fg(cSub, " cancel"))
-		return b.String()
 	}
 
 	rows := m.layoutRows()
@@ -1739,7 +1727,7 @@ func (m model) partBody(inner int) string {
 			p := m.kept[m.keepIndex(r.key)]
 			sw := sty().Foreground(partColor(p)).Render(gFull + gFull)
 			info := fmt.Sprintf("%4dG %-5s", p.size, p.fs)
-			b.WriteString(prefix + sw + " " + labelStyled(sel, r.label, 16) + " " + fg(cText, info) + " " + fg(cYell, "keep") + fg(cDim, " · enter/d reclaim") + "\n")
+			b.WriteString(prefix + sw + " " + labelStyled(sel, r.label, 16) + " " + fg(cText, info) + " " + fg(cYell, "keep") + fg(cDim, " · kept") + "\n")
 		case "size":
 			v, _, mx, _, _ := m.rowSpec(r.key)
 			frac := 0.0
@@ -1775,9 +1763,6 @@ func (m model) partBody(inner int) string {
 		note += fg(cDim, fmt.Sprintf("  ·  swap %dG", m.swapG))
 	}
 	note += fg(cDim, "  ·  @ / and @nix always included")
-	if len(m.kept) > 0 {
-		note += fg(cDim, "  ·  ") + bold(cBrand, "w") + fg(cSub, " wipe disk")
-	}
 	b.WriteString("\n" + note)
 	return strings.TrimRight(b.String(), "\n")
 }
@@ -1968,7 +1953,7 @@ func (m model) helpBody() string {
 		fg(cSub, "quick pick ") + fg(cText, "1-9   (numbered menus)"),
 		fg(cSub, "adjust     ") + fg(cText, "←/→ · shift = ±big   (sliders)"),
 		fg(cSub, "toggle     ") + fg(cText, "space / enter   (on/off rows)"),
-		fg(cSub, "partitions ") + fg(cText, "enter/d reclaim · w wipe disk"),
+		fg(cSub, "partitions ") + fg(cText, "←/→ size · space toggle · tab done"),
 		fg(cSub, "confirm    ") + fg(cText, "enter        ") + fg(cSub, "back ") + fg(cText, "esc"),
 		fg(cSub, "quit       ") + fg(cText, "q  /  ctrl+c"),
 		"", fg(cDim, "Nothing is written until the final Review step."),
@@ -2233,10 +2218,8 @@ func (m model) footer() string {
 	switch {
 	case s.kind == kPartition:
 		switch {
-		case m.wipeConfirm:
-			parts = []string{keyHint("y", "wipe"), keyHint("n", "cancel")}
 		case m.layoutRows()[m.lsel].kind == "keep":
-			parts = []string{keyHint("enter/d", "reclaim"), keyHint("w", "wipe disk"), keyHint("↑↓", "move"), keyHint("tab", "done"), keyHint("esc", "back")}
+			parts = []string{keyHint("↑↓", "move"), keyHint("tab", "done"), keyHint("esc", "back")}
 		case m.layoutRows()[m.lsel].kind == "size":
 			parts = []string{keyHint("←/→", "adjust"), keyHint("shift", "±big"), keyHint("↑↓", "move"), keyHint("tab", "done"), keyHint("esc", "back")}
 		default:
@@ -2292,7 +2275,7 @@ func main() {
 
 func snapshot() {
 	picks := map[string]string{"keyboard": "us", "locale": "en_US.UTF-8", "timezone": "Europe/Madrid",
-		"profile": "amd-nvidia", "gpu": "offload", "disk": "existing", "hostname": "ryoku", "username": "carlos", "encryption": "LUKS"}
+		"profile": "amd-nvidia", "gpu": "offload", "disk": "alongside", "hostname": "ryoku", "username": "carlos", "encryption": "LUKS"}
 	mk := func() model { m := newModel(); m.w, m.h, m.enterPos, m.state = 112, 42, 1, "wizard"; return m }
 	sep := strings.Repeat("─", 112)
 	render := func(m model) string {

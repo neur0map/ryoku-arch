@@ -9,6 +9,18 @@
   aborted the install). Surfaced by a full qemu install test.
 
 ### Added
+- `lib/disk.sh`: the `alongside` disk strategy for dual-booting. It keeps every
+  existing partition, reuses the disk's EFI System Partition, and creates the
+  Ryoku root in the largest contiguous free region (needs GPT, an ESP, and
+  >= 15GiB + swap free). `whole` still wipes and lays a fresh GPT. Replaces the
+  earlier abort that only accepted `whole`.
+- `lib/bootloader.sh`: under `alongside`, add a Limine `efi_chainload` entry for
+  an existing Windows install on the reused ESP, and register the bootloader
+  with the ESP's real partition number (not a hardcoded 1).
+- `lib/filesystem.sh`: `alongside` reuses the existing ESP instead of formatting
+  it; only the new root is made.
+- `lib/common.sh`: `part_num` helper, the inverse of `part_dev`, returns a
+  partition device's trailing number.
 - `ryoku-install` entrypoint: reads the `RYOKU_*` contract, runs the install end
   to end, and prints the `@@RYOKU_STEP` / `@@RYOKU_DONE` progress sentinels.
 - `lib/` step helpers: `common`, `preflight`, `disk`, `luks`, `filesystem`,

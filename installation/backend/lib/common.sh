@@ -95,6 +95,13 @@ part_dev() {
   fi
 }
 
+# part_num returns the trailing partition number of a partition device
+# (nvme0n1p2 -> 2, sda2 -> 2, mmcblk0p1 -> 1). Inverse of part_dev, used to
+# register the right ESP partition with efibootmgr when its number is not 1.
+part_num() {
+  [[ $1 =~ ([0-9]+)$ ]] && printf '%s' "${BASH_REMATCH[1]}"
+}
+
 # dev_uuid prints the UUID of a block device. Under dry-run the device does not
 # exist, so a readable placeholder is returned in its place.
 dev_uuid() {

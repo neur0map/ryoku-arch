@@ -88,3 +88,56 @@ func TestESPBumpClampsSwap(t *testing.T) {
 		t.Fatalf("swap after esp bump = %d, want 28", m.swapG)
 	}
 }
+
+// alongsideModel builds an alongside (dual-boot) layout: a 256 GiB disk with the
+// given free region, optionally already holding an EFI System Partition to reuse.
+func alongsideModel(freeG, swapG int, withESP bool) model {
+	m := model{picks: map[string]string{"disk": "alongside"}, diskG: 256, freeG: freeG, espG: 1, swapG: swapG}
+	if withESP {
+		m.kept = []part{{dev: "EFI System", size: 1, fs: "fat32", mount: "/boot", flags: "esp", status: "keep"}}
+	} else {
+		m.kept = []part{{dev: "Linux", size: 50, fs: "ext4", mount: "-", flags: "-", status: "keep"}}
+	}
+	return m
+}
+
+// Alongside installs root into the detected free region and reuses the ESP, so the
+// root is the free space (minus the swapfile carved from it), never the whole disk.
+func TestAlongsideRootUsesFreeSpace(t *testing.T) {
+	m := alongsideModel(100, 16, true)
+	if got := m.availRoot(); got != 100 {
+		t.Fatalf("availRoot = %d, want 100 (the free region)", got)
+	}
+	root, ok := segByMount(m.layoutSegs(), "/")
+	if !ok || root.size != 84 {
+		t.Fatalf("root usable = %d (ok=%v), want 84 (100 - 16 swap)", root.size, ok)
+	}
+	for _, s := range m.layoutSegs() {
+		if s.status == "new" && s.flags == "esp" {
+			t.Fatal("alongside added a new ESP instead of reusing the existing one")
+		}
+	}
+}
+
+// Alongside may proceed only with a reused ESP and enough contiguous free space
+// (matching the backend floor), so the TUI never hands the backend a layout it
+// will reject.
+func TestAlongsidePartReady(t *testing.T) {
+	if !alongsideModel(20, 0, true).partReady() {
+		t.Fatal("alongside with an ESP and 20GiB free should be ready")
+	}
+	if alongsideModel(20, 0, false).partReady() {
+		t.Fatal("alongside without an existing ESP must not be ready")
+	}
+	if alongsideModel(10, 0, true).partReady() {
+		t.Fatalf("alongside with only 10GiB free (< %d) must not be ready", alongsideMinRootGiB)
+	}
+}
+
+// Alongside keeps the system base free of swap (matching the backend), so its
+// swapCeil leaves alongsideMinRootGiB rather than the 8 GiB a whole-disk leaves.
+func TestAlongsideSwapCeil(t *testing.T) {
+	if got := alongsideModel(40, 0, true).swapCeil(); got != 40-alongsideMinRootGiB {
+		t.Fatalf("alongside swapCeil = %d, want %d", got, 40-alongsideMinRootGiB)
+	}
+}
