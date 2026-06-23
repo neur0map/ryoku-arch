@@ -250,9 +250,9 @@ PillSurface {
                     height: 24 * root.s
                     radius: Motion.rSmall * root.s
                     visible: cell.current
-                    color: Theme.frameBg
+                    color: Qt.alpha(Theme.verm, 0.18)
                     border.width: 1
-                    border.color: Theme.frameBorder
+                    border.color: Qt.alpha(Theme.verm, 0.55)
                 }
 
                 Rectangle {
@@ -263,7 +263,7 @@ PillSurface {
                     visible: cell.selected && !cell.current
                     color: "transparent"
                     border.width: 1
-                    border.color: Theme.hair
+                    border.color: Qt.alpha(Theme.cream, 0.22)
                 }
 
                 Text {
@@ -288,7 +288,7 @@ PillSurface {
                     height: 3 * root.s
                     radius: 1.5 * root.s
                     visible: cell.hasEv
-                    color: cell.current ? Theme.todayWarm : Theme.dim
+                    color: cell.current ? Theme.flameCore : Theme.verm
                 }
 
                 MouseArea {

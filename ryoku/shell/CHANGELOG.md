@@ -118,6 +118,16 @@
   palette stays static.
 
 ### Changed
+- `quickshell/pill`: the island is reworked into the Ryoku carbon-dossier
+  language (matching the hub Profile). A 力 foundry stamp leads, the clock is
+  tabular over a mono date/weather line, corner registration ticks frame the
+  readout, and hairline rules separate a running-app dock from the status cluster
+  on flat carbon. Wi-Fi is dropped from the island (it lives in the hub
+  Connections section now); battery and notifications stay. New `AppDock` and
+  `BatteryGlyph` components. The battery surface is redesigned: a hero percentage,
+  the Ryoku wave as the charge gauge, and a rate/time/capacity/health stat grid.
+  The pill calendar's today cell is a warm brand marker (vermilion fill, ring,
+  flame lap) instead of the cool frame.
 - `quickshell/pill` stash: the action bar lights only what applies. It reads the
   live file types (`Stash.hasMedia` / `hasInstallable`), so Compress dims unless
   there is a video/image/audio file and Install dims unless there is an AppImage or

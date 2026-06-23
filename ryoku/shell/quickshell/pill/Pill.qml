@@ -5,7 +5,6 @@ import QtQuick.Effects
 import QtQuick.Shapes
 import Quickshell
 import Quickshell.Services.Mpris
-import Quickshell.Networking
 import "Singletons"
 
 /**
@@ -70,12 +69,6 @@ Item {
     readonly property bool keyringOpen: surface === "keyring"
     readonly property bool hasMedia: Mpris.players.values.length > 0
 
-    readonly property var netDevices: (typeof Networking !== "undefined" && Networking && Networking.devices) ? Networking.devices.values : []
-    readonly property var wifiDev: netDevices.find(function(d) { return d && d.type === DeviceType.Wifi }) || null
-    readonly property bool wifiOn: (typeof Networking !== "undefined" && Networking) ? Networking.wifiEnabled : false
-    readonly property var wifiNets: (wifiDev && wifiDev.networks) ? wifiDev.networks.values : []
-    readonly property var wifiActive: wifiNets.find(function(n) { return n && n.connected }) || null
-    readonly property real wifiLevel: (wifiActive && wifiActive.signalStrength) || 0
     readonly property bool surfaceOpen: surface.length > 0
     property bool hoverLatch: false
     readonly property bool expanded: surfaceOpen || held || hoverLatch
@@ -324,14 +317,10 @@ Item {
         void pill.width;
         void pill.height;
         const drop = 12 * pill.s;
-        if (soulTarget === "wifi")
-            return wifiIcon.mapToItem(pill, wifiIcon.width / 2, wifiIcon.height + drop * 0.55);
         if (soulTarget === "battery")
             return batteryIcon.mapToItem(pill, batteryIcon.width / 2, batteryIcon.height + drop * 0.55);
         if (soulTarget === "inbox")
             return inboxIcon.mapToItem(pill, inboxIcon.width / 2, inboxIcon.height + drop * 0.55);
-        if (soulTarget === "sysinfo")
-            return sysinfoIcon.mapToItem(pill, sysinfoIcon.width / 2, sysinfoIcon.height + drop * 0.55);
         return pill.wakePoint;
     }
 
@@ -471,58 +460,123 @@ Item {
 
         readonly property bool live: pill.mode === "hover"
 
+        // Corner registration ticks: frame the readout like a foundry specimen.
+        Repeater {
+            model: 4
+            Item {
+                id: tick
+                required property int index
+                readonly property bool onLeft: index % 2 === 0
+                readonly property bool onTop: index < 2
+                readonly property real len: 9 * pill.s
+                width: len
+                height: len
+                anchors.left: onLeft ? parent.left : undefined
+                anchors.right: onLeft ? undefined : parent.right
+                anchors.top: onTop ? parent.top : undefined
+                anchors.bottom: onTop ? undefined : parent.bottom
+                anchors.margins: 11 * pill.s
+
+                Rectangle {
+                    width: tick.len
+                    height: 1.5 * pill.s
+                    color: Qt.alpha(Theme.cream, 0.22)
+                    anchors.top: tick.onTop ? parent.top : undefined
+                    anchors.bottom: tick.onTop ? undefined : parent.bottom
+                    anchors.left: tick.onLeft ? parent.left : undefined
+                    anchors.right: tick.onLeft ? undefined : parent.right
+                }
+                Rectangle {
+                    width: 1.5 * pill.s
+                    height: tick.len
+                    color: Qt.alpha(Theme.cream, 0.22)
+                    anchors.top: tick.onTop ? parent.top : undefined
+                    anchors.bottom: tick.onTop ? undefined : parent.bottom
+                    anchors.left: tick.onLeft ? parent.left : undefined
+                    anchors.right: tick.onLeft ? undefined : parent.right
+                }
+            }
+        }
+
         Row {
             id: hoverRow
             anchors.centerIn: parent
-            spacing: 20 * pill.s
+            spacing: 14 * pill.s
 
-            Item {
+            // 力 stamp: the foundry seal.
+            Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
-                width: hoverClock.implicitWidth
-                height: hoverClock.implicitHeight
+                width: 28 * pill.s
+                height: 28 * pill.s
+                radius: 6 * pill.s
+                color: Qt.alpha(Theme.brand, 0.10)
+                border.width: 1
+                border.color: Qt.alpha(Theme.brand, 0.6)
+                Text {
+                    anchors.centerIn: parent
+                    text: "力"
+                    color: Theme.brand
+                    font.family: Theme.fontJp
+                    font.weight: Font.Medium
+                    font.pixelSize: 15 * pill.s
+                }
+            }
+
+            // Clock: tabular time over a mono date/weather micro-line.
+            Item {
+                id: clockHero
+                anchors.verticalCenter: parent.verticalCenter
+                width: clockCol.implicitWidth
+                height: clockCol.implicitHeight
 
                 Column {
-                    id: hoverClock
-                    anchors.centerIn: parent
-                    spacing: 2 * pill.s
+                    id: clockCol
+                    spacing: 3 * pill.s
+
                     Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
                         text: clock.hhmm
                         color: Theme.cream
                         font.family: Theme.font
-                        font.pixelSize: 18 * pill.s
-                        font.weight: Font.DemiBold
+                        font.pixelSize: 20 * pill.s
+                        font.weight: Font.Bold
+                        font.letterSpacing: -0.5 * pill.s
                         font.features: { "tnum": 1 }
                     }
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: clock.date
-                        color: Theme.dim
-                        font.family: Theme.font
-                        font.pixelSize: 8.5 * pill.s
-                        font.weight: Font.Medium
-                        font.capitalization: Font.AllUppercase
-                        font.letterSpacing: 1.6 * pill.s
-                    }
                     Row {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        visible: Weather.available
-                        spacing: 4 * pill.s
-
+                        spacing: 6 * pill.s
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: clock.date
+                            color: Theme.faint
+                            font.family: Theme.font
+                            font.pixelSize: 8 * pill.s
+                            font.weight: Font.DemiBold
+                            font.capitalization: Font.AllUppercase
+                            font.letterSpacing: 1.6 * pill.s
+                        }
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: Weather.available
+                            width: 1
+                            height: 8 * pill.s
+                            color: Theme.hair
+                        }
                         GlyphIcon {
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 11 * pill.s
-                            height: 11 * pill.s
+                            visible: Weather.available
+                            width: 10 * pill.s
+                            height: 10 * pill.s
                             name: Weather.glyph
-                            color: Theme.dim
+                            color: Theme.faint
                             stroke: 1.6
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
+                            visible: Weather.available
                             text: Weather.temp
-                            color: Theme.dim
+                            color: Theme.faint
                             font.family: Theme.font
-                            font.pixelSize: 9 * pill.s
+                            font.pixelSize: 8.5 * pill.s
                             font.weight: Font.DemiBold
                             font.features: { "tnum": 1 }
                         }
@@ -530,9 +584,8 @@ Item {
                 }
 
                 MouseArea {
-                    anchors.centerIn: parent
-                    width: hoverClock.implicitWidth + 22 * pill.s
-                    height: hoverClock.implicitHeight + 10 * pill.s
+                    anchors.fill: parent
+                    anchors.margins: -6 * pill.s
                     enabled: hover.live
                     cursorShape: Qt.PointingHandCursor
                     onClicked: pill.requestSurface("calendar")
@@ -541,16 +594,28 @@ Item {
 
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
+                visible: leftZone.has
                 width: 1
-                height: 22 * pill.s
+                height: 24 * pill.s
                 color: Theme.hair
             }
 
+            // Running apps + minimized windows.
             Row {
-                id: statusRow
+                id: leftZone
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 12 * pill.s
+                spacing: 11 * pill.s
+                readonly property bool has: appDock.count > 0 || minimized.count > 0
+                visible: has
 
+                AppDock {
+                    id: appDock
+                    anchors.verticalCenter: parent.verticalCenter
+                    s: pill.s
+                    screenName: pill.screenName
+                    live: hover.live
+                    visible: count > 0
+                }
                 MinimizedTray {
                     id: minimized
                     anchors.verticalCenter: parent.verticalCenter
@@ -558,16 +623,22 @@ Item {
                     screenName: pill.screenName
                     enabled: hover.live
                     visible: count > 0
-                }
-
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: minimized.count > 0
-                    width: 1
-                    height: 14 * pill.s
-                    color: Theme.hair
                     opacity: 0.7
                 }
+            }
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 1
+                height: 24 * pill.s
+                color: Theme.hair
+            }
+
+            // Status: tray · dnd · network · battery · notifications.
+            Row {
+                id: statusRow
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 13 * pill.s
 
                 Tray {
                     anchors.verticalCenter: parent.verticalCenter
@@ -576,123 +647,69 @@ Item {
                     enabled: hover.live
                 }
 
-                Shape {
-                    id: dndIcon
+                GlyphIcon {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: Flags.dnd
                     width: 16 * pill.s
                     height: 16 * pill.s
-                    preferredRendererType: Shape.CurveRenderer
-
-                    ShapePath {
-                        strokeColor: Theme.vermLit
-                        strokeWidth: 1.5 * pill.s
-                        fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
-                        joinStyle: ShapePath.RoundJoin
-                        startX: 5.2 * pill.s; startY: 12.2 * pill.s
-                        PathLine { x: 12.2 * pill.s; y: 12.2 * pill.s }
-                        PathLine { x: 12.2 * pill.s; y: 7.2 * pill.s }
-                        PathCubic {
-                            control1X: 12.2 * pill.s; control1Y: 5.4 * pill.s
-                            control2X: 11.2 * pill.s; control2Y: 4.0 * pill.s
-                            x: 9.5 * pill.s; y: 3.5 * pill.s
-                        }
-                    }
-                    ShapePath {
-                        strokeColor: Theme.vermLit
-                        strokeWidth: 1.5 * pill.s
-                        fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
-                        startX: 6.8 * pill.s; startY: 13.6 * pill.s
-                        PathLine { x: 9.2 * pill.s; y: 13.6 * pill.s }
-                    }
-                    ShapePath {
-                        strokeColor: Theme.vermLit
-                        strokeWidth: 1.6 * pill.s
-                        fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
-                        startX: 3.2 * pill.s; startY: 2.8 * pill.s
-                        PathLine { x: 13.0 * pill.s; y: 13.4 * pill.s }
-                    }
+                    name: "dnd"
+                    color: Theme.vermLit
+                    stroke: 1.6
                 }
 
-                Row {
+                // Battery: cell + percentage.
+                Item {
+                    id: batteryIcon
                     anchors.verticalCenter: parent.verticalCenter
                     visible: Battery.present
-                    spacing: 12 * pill.s
+                    width: battRow.implicitWidth
+                    height: 17 * pill.s
 
-                    Item {
-                        id: wifiIcon
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: pill.wifiDev !== null && pill.wifiOn
-                        width: 17 * pill.s
-                        height: 17 * pill.s
-
-                        WifiGlyph {
-                            anchors.centerIn: parent
+                    Row {
+                        id: battRow
+                        anchors.centerIn: parent
+                        spacing: 6 * pill.s
+                        BatteryGlyph {
+                            anchors.verticalCenter: parent.verticalCenter
                             s: pill.s
-                            level: pill.wifiLevel
-                            on: pill.wifiOn
+                            frac: Battery.frac
+                            charging: Battery.charging
+                            low: Battery.low
                         }
-
-                        MouseArea {
-                            id: wifiArea
-                            anchors.fill: parent
-                            anchors.margins: -6 * pill.s
-                            hoverEnabled: true
-                            enabled: hover.live
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: pill.requestSurface("link")
-                            onContainsMouseChanged: if (containsMouse) pill.soulTarget = "wifi"
-                        }
-
-                    }
-
-                    Item {
-                        id: batteryIcon
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: battPct.implicitWidth
-                        height: 17 * pill.s
-
                         Text {
-                            id: battPct
-                            anchors.centerIn: parent
+                            anchors.verticalCenter: parent.verticalCenter
                             text: Battery.pct + "%"
                             color: Battery.low ? Theme.vermLit : (Battery.charging ? Theme.flameGlow : Theme.subtle)
                             font.family: Theme.font
-                            font.pixelSize: 13 * pill.s
+                            font.pixelSize: 12 * pill.s
                             font.weight: Battery.charging ? Font.DemiBold : Font.Medium
                             font.features: { "tnum": 1 }
                         }
-
-                        MouseArea {
-                            id: batteryArea
-                            anchors.fill: parent
-                            anchors.margins: -6 * pill.s
-                            hoverEnabled: true
-                            enabled: hover.live
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: pill.requestSurface("battery")
-                            onContainsMouseChanged: if (containsMouse) pill.soulTarget = "battery"
-                        }
-
+                    }
+                    MouseArea {
+                        id: batteryArea
+                        anchors.fill: parent
+                        anchors.margins: -6 * pill.s
+                        hoverEnabled: true
+                        enabled: hover.live
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: pill.requestSurface("battery")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "battery"
                     }
                 }
 
+                // Notifications.
                 Item {
                     id: inboxIcon
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
-
                     GlyphIcon {
                         anchors.fill: parent
                         name: "inbox"
                         color: inboxArea.containsMouse ? Theme.cream : Theme.iconDim
                         stroke: 1.7
                     }
-
                     Rectangle {
                         visible: Notifs.unread > 0
                         anchors.top: parent.top
@@ -704,7 +721,6 @@ Item {
                         radius: width / 2
                         color: Theme.flameGlow
                     }
-
                     MouseArea {
                         id: inboxArea
                         anchors.fill: parent
@@ -715,33 +731,6 @@ Item {
                         onClicked: pill.requestSurface("inbox")
                         onContainsMouseChanged: if (containsMouse) pill.soulTarget = "inbox"
                     }
-
-                }
-
-                Item {
-                    id: sysinfoIcon
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 17 * pill.s
-                    height: 17 * pill.s
-
-                    GlyphIcon {
-                        anchors.fill: parent
-                        name: "cpu"
-                        color: sysinfoArea.containsMouse ? Theme.cream : Theme.iconDim
-                        stroke: 1.7
-                    }
-
-                    MouseArea {
-                        id: sysinfoArea
-                        anchors.fill: parent
-                        anchors.margins: -6 * pill.s
-                        hoverEnabled: true
-                        enabled: hover.live
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: pill.requestSurface("sysinfo")
-                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "sysinfo"
-                    }
-
                 }
             }
         }
