@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Extended system read-out for the Ryoku Hub Profile dossier (the stat sheet
+# beside the specimen card). One field per line, in the exact order the hub's
+# SysInfo.qml extended parser expects. Best-effort: each field falls back to a
+# dash or an empty line when its source is missing, so the panel degrades
+# gracefully. Kept separate from ryoku-sysinfo so the pill's 30 s poll stays lean.
+export LC_ALL=C
+
+read -r l1 _ < /proc/loadavg
+
+# CPU package temperature from a known hwmon sensor, if present.
+temp="-"
+for h in /sys/class/hwmon/hwmon*; do
+    n=$(cat "$h/name" 2>/dev/null) || continue
+    if [ "$n" = "k10temp" ] || [ "$n" = "coretemp" ] || [ "$n" = "zenpower" ]; then
+        t=$(cat "$h/temp1_input" 2>/dev/null) && temp="$((t / 1000))°" && break
+    fi
+done
+
+# Battery percentage, if a battery exists.
+bat="-"
+for b in /sys/class/power_supply/BAT*; do
+    [ -e "$b/capacity" ] || continue
+    bat="$(cat "$b/capacity")%"
+    break
+done
+
+# wallust terminal palette, comma-joined, for the swatch strip.
+palette=""
+cj="${XDG_CACHE_HOME:-$HOME/.cache}/wallust/colors.json"
+if [ -s "$cj" ] && command -v jq >/dev/null 2>&1; then
+    palette=$(jq -r '[.color0,.color1,.color2,.color3,.color4,.color5,.color6,.color7,.color8,.color9,.color10,.color11,.color12,.color13,.color14,.color15]|join(",")' "$cj" 2>/dev/null)
+fi
+
+printf '%s\n' "$l1"
+printf '%s\n' "$temp"
+ps -e --no-headers 2>/dev/null | wc -l
+free --si | awk '/Swap:/{ if ($2 > 0) printf "%d%%\n", $3 / $2 * 100; else print "off" }'
+printf '%s\n' "$bat"
+hyprctl version 2>/dev/null | grep -oP 'Hyprland \K[0-9][0-9.]*' | head -1
+hyprctl monitors 2>/dev/null | grep -c '^Monitor'
+pacman -Qen 2>/dev/null | wc -l
+pacman -Qm 2>/dev/null | wc -l
+printf '%s\n' "${XCURSOR_THEME:--}${XCURSOR_SIZE:+ · $XCURSOR_SIZE}"
+printf '%s\n' "$palette"

@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- A **Profile** section: a showcase screen built for sharable rice screenshots. The
+  shell pill's SYSTEM specimen card, reproduced as a hub-palette twin (`ProfileCard`,
+  fed by a hub `SysInfo` reading the shared `ryoku-sysinfo`), sits on the left as the
+  hero; a dossier (`ProfileStats`) sits on the right with a live clock, a vitals
+  strip (load, CPU temp, processes, battery, displays), runtime spec lines
+  (compositor, architecture, swap), a package wave with explicit/AUR/total counts,
+  the look (cursor, fonts), and the wallust palette as a spectrum. Extended values
+  come from a new `ryoku-profile-stats` helper; no addresses are shown, so the shot
+  is safe to post. Drawn entirely in the card's carbon vocabulary (mono labels,
+  hairline type-lines, tabular figures) over an ambient, vignetted backdrop.
 - A **Lockscreen** section: the full qylock theme catalogue as a bento grid in the
   Appearance/Extras style, fetched live from the upstream repo (`ryoku-hub lock
   catalog`) so new and fixed skins appear without a Ryoku release. Each tile loops

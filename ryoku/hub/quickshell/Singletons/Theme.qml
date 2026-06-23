@@ -27,6 +27,13 @@ Singleton {
     readonly property color line:     "#322720"
     readonly property color lineSoft: Qt.rgba(236 / 255, 214 / 255, 198 / 255, 0.06)
 
+    // Profile card specimen: the trading-card surface, in the hub's warm palette.
+    // The twin of the shell card's cool tokens (cardTop/cardBot/frameBg/hair).
+    readonly property color cardTop:  "#241b14"
+    readonly property color cardBot:  "#15100c"
+    readonly property color frameBg:  Qt.rgba(242 / 255, 86 / 255, 35 / 255, 0.10)
+    readonly property color hair:     Qt.rgba(236 / 255, 214 / 255, 198 / 255, 0.12)
+
     // Text (warm neutrals).
     readonly property color bright:   "#f4ece5"
     readonly property color cream:    "#ddccc0"

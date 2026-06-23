@@ -10,11 +10,12 @@ Item {
 
     property real frac: 0
     property color tint: Theme.ember
+    property real s: 1
 
-    readonly property real amp: 3
-    readonly property real wavelength: 12
+    readonly property real amp: 3 * s
+    readonly property real wavelength: 12 * s
 
-    implicitHeight: 12
+    implicitHeight: 12 * s
 
     Behavior on frac { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
 
@@ -31,7 +32,7 @@ Item {
             const k = 6.28318 / root.wavelength;
             const fill = Math.max(0, Math.min(1, root.frac)) * w;
 
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 2 * root.s;
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
 

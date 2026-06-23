@@ -1,2 +1,3 @@
 singleton Theme Theme.qml
 singleton Updates Updates.qml
+singleton SysInfo SysInfo.qml

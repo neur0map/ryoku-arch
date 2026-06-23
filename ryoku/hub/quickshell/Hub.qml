@@ -19,6 +19,7 @@ Rectangle {
     readonly property bool searching: navRail.query.length > 0
 
     readonly property var sectionDefs: [
+        { "key": "profile",     "name": "Profile",      "icon": "user",     "group": "You" },
         { "key": "displays",    "name": "Displays",     "icon": "display",  "group": "Displays & look" },
         { "key": "appearance",  "name": "Appearance",   "icon": "palette",  "group": "Displays & look" },
         { "key": "lockscreen",  "name": "Lockscreen",   "icon": "lock",     "group": "Displays & look" },
@@ -35,6 +36,7 @@ Rectangle {
     ]
 
     readonly property var pageMeta: ({
+        "profile":     { "title": "Profile", "subtitle": "Your machine as a collector's specimen, built to share alongside your rice." },
         "displays":    { "title": "Displays", "subtitle": "Detect and arrange your monitors: resolution, scale, rotation, mirroring, and saved layout profiles." },
         "appearance":  { "title": "Appearance", "subtitle": "Window look: gaps, rounding, borders, opacity, blur, shadows, animations, and the cursor theme." },
         "lockscreen":  { "title": "Lockscreen", "subtitle": "Choose the skin your lock screen wears. Ryoku ships the clockwork theme; picking one only swaps the look, never your login." },
@@ -192,6 +194,7 @@ Rectangle {
 
     function pageFor(s) {
         switch (s) {
+        case "profile": return profileComp;
         case "displays": return displaysComp;
         case "appearance": return appearanceComp;
         case "lockscreen": return lockscreenComp;
@@ -209,6 +212,7 @@ Rectangle {
     }
 
     Component { id: searchComp; SearchResults { categories: hub.keybindsModel; sections: hub.sectionDefs; query: navRail.query; onNavigate: (s) => hub.go(s) } }
+    Component { id: profileComp; ProfilePage {} }
     Component { id: displaysComp; DisplaysPage {} }
     Component { id: appearanceComp; AppearancePage {} }
     Component { id: lockscreenComp; LockscreenPage {} }
