@@ -297,7 +297,6 @@ Item {
             id: loader
             width: flick.width - 12
             height: item ? item.implicitHeight : 0
-            y: Math.max(0, (flick.height - loader.height) / 2)
             sourceComponent: page.group === "frame" ? frameComp : (page.group === "island" ? islandComp : (page.group === "bar" ? barComp : vizComp))
             onLoaded: {
                 if (!item)

@@ -140,3 +140,6 @@
 - Hyprland: a window stranded in maximize when a Chromium/Electron app leaves
   page fullscreen (a spurious mode-1 event on exit) is reset to normal, so the
   window returns to its original size instead of staying expanded.
+- `hub`: the Shell settings subtabs (Frame, Island, Bar, Visualizer) centred their
+  content in the panel, so short tabs dropped their controls into the middle with a
+  large empty gap above. The tab content top-aligns now.
