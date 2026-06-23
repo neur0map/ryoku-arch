@@ -218,16 +218,19 @@ func fetchQylockTree() ([]byte, error) {
 	return io.ReadAll(io.LimitReader(resp.Body, 8<<20))
 }
 
-// lockInstall downloads every file of a theme from upstream into the qylock themes
-// dir, then makes it the active skin.
+// lockInstall downloads every file of a theme from upstream into the qylock
+// themes dir, then activates it as both the in-session lock and the greeter.
 func lockInstall(slug string) error {
-	return lockInstallTo(qylockThemesDir(), qylockThemePref(), slug)
+	if err := lockInstallTo(qylockThemesDir(), slug); err != nil {
+		return err
+	}
+	return setLockSkin(slug)
 }
 
 // lockInstallTo downloads into a sibling temp dir on the same filesystem and moves
 // the theme into place only on full success, so a failed or partial download never
-// leaves a half-written, unbootable theme under the themes dir.
-func lockInstallTo(themesDir, pref, slug string) error {
+// leaves a half-written theme under the themes dir. Activation is the caller's job.
+func lockInstallTo(themesDir, slug string) error {
 	b, err := fetchQylockTree()
 	if err != nil {
 		return fmt.Errorf("reach qylock: %w", err)
@@ -265,7 +268,7 @@ func lockInstallTo(themesDir, pref, slug string) error {
 	if err := os.Rename(tmp, dst); err != nil {
 		return err
 	}
-	return setLockSkinIn(themesDir, pref, slug)
+	return nil
 }
 
 func downloadFile(url, dst string) error {

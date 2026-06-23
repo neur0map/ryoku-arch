@@ -9,8 +9,8 @@
 # fully offline: no git clone, no network.
 #
 # What it does:
-#   1. installs themes/clockwork/orbital to /usr/share/sddm/themes/orbital
-#   2. writes /etc/sddm.conf.d/99-ryoku.conf with [Theme] Current=orbital
+#   1. installs themes/clockwork/orbital to /usr/share/sddm/themes/ryoku
+#   2. writes /etc/sddm.conf.d/99-ryoku.conf with [Theme] Current=ryoku
 #   3. installs quickshell-lockscreen to ~/.local/share/quickshell-lockscreen
 #   4. installs the themes to ~/.local/share/qylock/themes and points
 #      quickshell-lockscreen/themes_link at them
@@ -122,18 +122,19 @@ LOCK_DIR="$TARGET_HOME/.local/share/quickshell-lockscreen"
 
 echo "Installing qylock clockwork/orbital greeter for $TARGET_USER"
 
-# --- 1. SDDM greeter theme (system) ------------------------------------------
-echo "  greeter theme -> /usr/share/sddm/themes/orbital"
+# --- 1. SDDM greeter theme (system). The fixed "ryoku" name is the one the Hub's
+# lock picker overwrites (ryoku-hub lock apply-greeter) when the user changes skins.
+echo "  greeter theme -> /usr/share/sddm/themes/ryoku"
 priv mkdir -p /usr/share/sddm/themes
-priv rm -rf /usr/share/sddm/themes/orbital
-priv cp -a "$BUNDLE/themes/clockwork/orbital" /usr/share/sddm/themes/orbital
+priv rm -rf /usr/share/sddm/themes/ryoku
+priv cp -a "$BUNDLE/themes/clockwork/orbital" /usr/share/sddm/themes/ryoku
 
 # --- 2. point SDDM at it (system) --------------------------------------------
 echo "  greeter selection -> /etc/sddm.conf.d/99-ryoku.conf"
 priv mkdir -p /etc/sddm.conf.d
 write_root /etc/sddm.conf.d/99-ryoku.conf <<'EOF'
 [Theme]
-Current=orbital
+Current=ryoku
 EOF
 
 # --- 3. in-session lock (user) -----------------------------------------------

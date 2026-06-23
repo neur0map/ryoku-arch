@@ -9,6 +9,7 @@ Item {
     property string themePath: ""
     property var config: ({})
     property bool configReady: false
+    property string hostName: "localhost"
 
     function loadConfig(path) {
         if (!path) {
@@ -160,6 +161,11 @@ Item {
     }
 
     property var sddm: QtObject {
+        // Ryoku: report a hostName so skins' isQuickshell test (which keys off
+        // sddm.hostName being undefined) evaluates false. Skins like material-you
+        // and nothing gate login and power behind `!isQuickshell`; since the shim
+        // implements those actions it must present as a capable backend, not a stub.
+        property string hostName: shim.hostName
         signal loginFailed()
         signal loginSucceeded()
 
@@ -171,6 +177,28 @@ Item {
 
         function reboot() { Quickshell.execDetached(["bash", "-c", "if [ -d /run/systemd/system ]; then systemctl reboot; else loginctl reboot; fi"]); }
         function powerOff() { Quickshell.execDetached(["bash", "-c", "if [ -d /run/systemd/system ]; then systemctl poweroff; else loginctl poweroff; fi"]); }
+        function suspend() { Quickshell.execDetached(["bash", "-c", "if [ -d /run/systemd/system ]; then systemctl suspend; else loginctl suspend; fi"]); }
+    }
+
+    // SDDM exposes a writable `keyboard` carrying the lock-key state; skins set
+    // `keyboard.numLock = true` so the numpad works. Provide it so the assignment
+    // resolves instead of raising a ReferenceError.
+    property var keyboard: QtObject {
+        property bool numLock: false
+        property bool capsLock: false
+    }
+
+    // Resolve the real hostname for sddm.hostName; the "localhost" default above
+    // keeps the isQuickshell test correct until this returns.
+    Process {
+        id: hostnameProc
+        command: ["cat", "/etc/hostname"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var h = this.text.trim();
+                if (h !== "") shim.hostName = h;
+            }
+        }
     }
 
     PamContext {
@@ -196,5 +224,5 @@ Item {
     }
 
     onThemePathChanged: loadConfig(themePath)
-    Component.onCompleted: sessionEnumerator.running = true
+    Component.onCompleted: { sessionEnumerator.running = true; hostnameProc.running = true }
 }

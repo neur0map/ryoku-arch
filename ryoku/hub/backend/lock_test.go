@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -112,5 +113,53 @@ func TestSetLockSkinIn(t *testing.T) {
 	}
 	if got := readLockPref(pref); got != "clockwork/orbital" {
 		t.Fatalf("pref changed after a rejected set: %q", got)
+	}
+}
+
+func TestInstallGreeter(t *testing.T) {
+	src := t.TempDir()
+	mkSkin(t, src, "material-you", false)
+	themes := t.TempDir()
+	conf := filepath.Join(t.TempDir(), "sddm.conf.d", "99-ryoku.conf")
+
+	if err := installGreeter(src, themes, conf, "material-you"); err != nil {
+		t.Fatalf("install greeter: %v", err)
+	}
+	if !fileExists(filepath.Join(themes, greeterTheme, "Main.qml")) {
+		t.Fatalf("greeter theme %q not installed under %s", greeterTheme, themes)
+	}
+	b, err := os.ReadFile(conf)
+	if err != nil {
+		t.Fatalf("read conf: %v", err)
+	}
+	if !strings.Contains(string(b), "Current="+greeterTheme) {
+		t.Fatalf("conf does not select the greeter theme: %q", b)
+	}
+
+	// A second skin overwrites the same fixed greeter dir, so nothing orphans.
+	mkSkin(t, src, "clockwork/orbital", false)
+	if err := installGreeter(src, themes, conf, "clockwork/orbital"); err != nil {
+		t.Fatalf("reinstall greeter: %v", err)
+	}
+	if !fileExists(filepath.Join(themes, greeterTheme, "Main.qml")) {
+		t.Fatalf("greeter theme missing after switch")
+	}
+
+	// An unknown skin must error before touching anything privileged.
+	if err := installGreeter(src, themes, conf, "ghost/none"); err == nil {
+		t.Fatalf("installing an unknown skin should error")
+	}
+}
+
+func TestValidSlug(t *testing.T) {
+	for _, ok := range []string{"clockwork/orbital", "material-you", "pixel-coffee"} {
+		if err := validSlug(ok); err != nil {
+			t.Errorf("validSlug(%q) = %v, want nil", ok, err)
+		}
+	}
+	for _, bad := range []string{"", "/etc/passwd", "../../etc", "a/../b"} {
+		if err := validSlug(bad); err == nil {
+			t.Errorf("validSlug(%q) should error", bad)
+		}
 	}
 }

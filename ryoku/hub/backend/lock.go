@@ -4,19 +4,22 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
+	"os/user"
 	"path/filepath"
 	"sort"
 	"strings"
 )
 
-// ryoku-hub lock exposes the qylock in-session lock skins to Ryoku Settings.
-// Ryoku ships the "clockwork" theme; this section only swaps which skin the lock
-// wears, the user-level preference at ~/.config/qylock/theme that lock.sh reads.
-// It never touches the SDDM greeter or the authentication flow, so the login
-// logic stays exactly as installed.
+// ryoku-hub lock exposes the qylock lock skins to Ryoku Settings. Selecting a
+// skin swaps the whole lockscreen: the user-level in-session lock preference at
+// ~/.config/qylock/theme (which lock.sh reads) and the SDDM greeter theme under
+// /usr/share/sddm/themes. The greeter lives on a system path, so that half runs
+// privileged via pkexec (apply-greeter); the login/auth flow itself is untouched.
 //
-//	ryoku-hub lock list          print the installed skins + the active one as JSON
-//	ryoku-hub lock set <slug>    set the active skin (writes ~/.config/qylock/theme)
+//	ryoku-hub lock list           print the installed skins + the active one as JSON
+//	ryoku-hub lock set <slug>     make a skin the lock + greeter (pkexec for the greeter)
+//	ryoku-hub lock apply-greeter  install <slug> as the SDDM greeter (privileged; pkexec runs this)
 //
 // A skin is any folder under the qylock themes dir that holds a Main.qml; its
 // slug is that folder's path under the themes dir (e.g. "clockwork/orbital"),
@@ -95,6 +98,11 @@ func runLock(args []string) error {
 			return fmt.Errorf("lock install needs a slug")
 		}
 		return lockInstall(args[1])
+	case "apply-greeter":
+		if len(args) < 2 {
+			return fmt.Errorf("lock apply-greeter needs a slug")
+		}
+		return applyGreeter(args[1])
 	default:
 		return fmt.Errorf("lock needs catalog|list|set|install")
 	}
@@ -206,7 +214,14 @@ func lockSkinTags(slug string) []string {
 }
 
 func setLockSkin(slug string) error {
-	return setLockSkinIn(qylockThemesDir(), qylockThemePref(), slug)
+	dir := qylockThemesDir()
+	if !fileExists(filepath.Join(dir, slug, "Main.qml")) {
+		return fmt.Errorf("unknown lock skin: %s", slug)
+	}
+	if err := escalateGreeter(slug); err != nil {
+		return err
+	}
+	return setLockSkinIn(dir, qylockThemePref(), slug)
 }
 
 // setLockSkinIn writes slug as the active lock preference, rejecting a slug that
@@ -219,6 +234,102 @@ func setLockSkinIn(dir, pref, slug string) error {
 		return err
 	}
 	return atomicWrite(pref, []byte(slug+"\n"), 0o644)
+}
+
+const greeterTheme = "ryoku"
+
+func sddmThemesDir() string {
+	if v := os.Getenv("RYOKU_SDDM_THEMES_DIR"); v != "" {
+		return v
+	}
+	return "/usr/share/sddm/themes"
+}
+
+func sddmConfPath() string {
+	if v := os.Getenv("RYOKU_SDDM_CONF"); v != "" {
+		return v
+	}
+	return "/etc/sddm.conf.d/99-ryoku.conf"
+}
+
+// validSlug rejects empty, absolute, or traversing slugs before they reach a
+// filesystem path or a privileged copy.
+func validSlug(slug string) error {
+	if slug == "" || strings.HasPrefix(slug, "/") || strings.Contains(slug, "..") {
+		return fmt.Errorf("invalid skin slug: %q", slug)
+	}
+	return nil
+}
+
+// escalateGreeter re-runs this binary under pkexec to install the skin as the
+// SDDM greeter, since /usr/share/sddm and /etc need root. pkexec drives the
+// graphical polkit prompt; a declined prompt surfaces as an error.
+func escalateGreeter(slug string) error {
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("pkexec", self, "lock", "apply-greeter", slug)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("sign-in screen needs admin authentication: %w", err)
+	}
+	return nil
+}
+
+// applyGreeter is the privileged half (run as root by pkexec): it installs the
+// skin the invoking user picked as the SDDM greeter. The source is resolved from
+// the invoking user's home, never a caller-supplied path.
+func applyGreeter(slug string) error {
+	src := os.Getenv("RYOKU_QYLOCK_THEMES")
+	if src == "" {
+		src = invokingUserThemes()
+	}
+	return installGreeter(src, sddmThemesDir(), sddmConfPath(), slug)
+}
+
+// invokingUserThemes resolves the qylock themes dir of the user who called
+// pkexec (PKEXEC_UID) or sudo (SUDO_UID), so root reads the right home.
+func invokingUserThemes() string {
+	uid := os.Getenv("PKEXEC_UID")
+	if uid == "" {
+		uid = os.Getenv("SUDO_UID")
+	}
+	if uid != "" {
+		if u, err := user.LookupId(uid); err == nil {
+			return filepath.Join(u.HomeDir, ".local", "share", "qylock", "themes")
+		}
+	}
+	return qylockThemesDir()
+}
+
+// installGreeter copies the skin at srcThemes/slug into the SDDM themes dir under
+// a fixed name and points the greeter config at it, so the login screen wears the
+// same skin as the in-session lock. Privileged; isolated for testing.
+func installGreeter(srcThemes, themesDir, confPath, slug string) error {
+	if err := validSlug(slug); err != nil {
+		return err
+	}
+	src := filepath.Join(srcThemes, slug)
+	if !fileExists(filepath.Join(src, "Main.qml")) {
+		return fmt.Errorf("not an installed skin: %s", slug)
+	}
+	dst := filepath.Join(themesDir, greeterTheme)
+	if err := os.MkdirAll(themesDir, 0o755); err != nil {
+		return err
+	}
+	if err := os.RemoveAll(dst); err != nil {
+		return err
+	}
+	if out, err := exec.Command("cp", "-a", src, dst).CombinedOutput(); err != nil {
+		return fmt.Errorf("install greeter theme: %v: %s", err, out)
+	}
+	if err := os.MkdirAll(filepath.Dir(confPath), 0o755); err != nil {
+		return err
+	}
+	return atomicWrite(confPath, []byte("[Theme]\nCurrent="+greeterTheme+"\n"), 0o644)
 }
 
 func fileExists(p string) bool {

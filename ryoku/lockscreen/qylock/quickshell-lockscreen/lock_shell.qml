@@ -15,6 +15,7 @@ ShellRoot {
     readonly property var config: sddmShim.config
     readonly property var userModel: sddmShim.userModel
     readonly property var sessionModel: sddmShim.sessionModel
+    readonly property var keyboard: sddmShim.keyboard
     readonly property bool isWayland: Quickshell.env("XDG_SESSION_TYPE") === "wayland"
     property bool authenticated: false
     property bool sessionLocked: true

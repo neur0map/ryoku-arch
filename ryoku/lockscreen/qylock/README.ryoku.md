@@ -13,4 +13,14 @@ One file the upstream skin dirs do not carry is added per skin:
 `themes/clockwork/<skin>/preview.gif`, the looping thumbnail the Ryoku Settings
 lock-screen picker shows. Orbital's is the dark-mode segment of upstream
 `Assets/clockwork.gif`; tape's is rendered from the skin itself (upstream ships
-no tape preview). Everything else here is upstream verbatim.
+no tape preview).
+
+The in-session shim diverges from upstream in one place to keep the lock usable
+with every skin: `quickshell-lockscreen/shim/SddmShim.qml` (plus the matching
+`keyboard` export in `lock_shell.qml`). Upstream omits `sddm.hostName`, so every
+skin's `isQuickshell` test is true; skins like `material-you` and `nothing` gate
+login and power behind `!isQuickshell`, leaving their password field, reboot, and
+shutdown dead under the in-session lock. The shim now reports a real `hostName`
+(making `isQuickshell` false), implements `sddm.suspend()`, and exposes SDDM's
+`keyboard` object (skins assign `keyboard.numLock`). Everything else is upstream
+verbatim.

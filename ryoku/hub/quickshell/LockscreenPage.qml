@@ -9,11 +9,12 @@ import "Singletons"
 // live from upstream (ryoku-hub lock catalog) so new and fixed skins appear without
 // a Ryoku release. Each tile previews the real lockscreen; the two vendored skins
 // (clockwork) are the offline baseline and the rest stream their preview gif from
-// the repo. Selecting an installed skin swaps which one the lock wears
-// (ryoku-hub lock set, writing ~/.config/qylock/theme); selecting one that isn't
-// installed downloads it first (ryoku-hub lock install) then activates it. None of
-// this touches the SDDM greeter or the login flow. Styled to match the Appearance
-// themes and Extras catalogues.
+// the repo. Selecting a skin makes it both the in-session lock (ryoku-hub lock set,
+// writing ~/.config/qylock/theme) and the SDDM greeter; the greeter lives on a
+// system path so that step asks for the password via pkexec. Selecting one not yet
+// installed downloads it first (ryoku-hub lock install) then activates both. The
+// login/auth flow itself is untouched. Styled to match the Appearance themes and
+// Extras catalogues.
 Item {
     id: page
 
@@ -159,7 +160,7 @@ Item {
             Text {
                 width: parent.width
                 elide: Text.ElideRight
-                text: "Browse every qylock skin. Selecting one installs it if needed and swaps the lock's look; your login stays the same."
+                text: "Browse every qylock skin. Selecting one installs it if needed, then applies it to both your lock screen and the sign-in screen; you'll be asked for your password."
                 color: Theme.faint
                 font.family: Theme.font
                 font.pixelSize: 12

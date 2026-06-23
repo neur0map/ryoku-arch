@@ -8,13 +8,14 @@
   catalog`) so new and fixed skins appear without a Ryoku release. Each tile loops
   a preview of the real lockscreen (a local gif for the two vendored clockwork
   skins, the upstream `Assets` gif streamed for the rest, loaded only near the
-  viewport). Selecting an installed skin swaps which one the lock wears
-  (`ryoku-hub lock set`, writing `~/.config/qylock/theme`, the preference `lock.sh`
-  reads); selecting one that isn't installed downloads it first (`ryoku-hub lock
-  install`, with the size shown up front) then activates it. None of this touches
-  the SDDM greeter or the login flow. **Preview** launches an installed skin live
-  without changing the selection; **Refresh** re-syncs; offline falls back to the
-  installed skins.
+  viewport). Selecting a skin makes it both the in-session lock (`ryoku-hub lock
+  set`, writing `~/.config/qylock/theme`, the preference `lock.sh` reads) and the
+  SDDM greeter (`ryoku-hub lock apply-greeter`, reinstalled under the fixed
+  `/usr/share/sddm/themes/ryoku`); the greeter half lives on a system path, so it
+  escalates with pkexec, leaving only the login/auth flow untouched. Skins not yet
+  installed download first (`ryoku-hub lock install`, with the size shown up front).
+  **Preview** launches an installed skin live without changing the selection;
+  **Refresh** re-syncs; offline falls back to the installed skins.
 - Shell Settings, Island tab: an **Appearance** group to choose the island style
   (Island, Floating, None) plus a **Reveal on hover** toggle that hides the island
   at rest and shows it on a top-centre hover. Writes `islandStyle` / `islandAutohide`
