@@ -452,51 +452,64 @@ ShellRoot {
                     onPowerRequested: root.togglePopout(overlay.modelData.name, "power")
                 }
 
-                BlobGroup {
-                    // The bar-mode surface's own field, so the dropdown never fuses
-                    // the bar's border: it hangs as a separate panel below the bar
-                    // and rolls back up to close, leaving the bar's bottom edge
-                    // undeformed (a fused melt would swell it at the top centre).
-                    id: surfaceGroup
-                    color: Config.surfaceColor
-                    smoothing: Config.islandSmoothing
-                }
-
                 BlobRect {
+                    // The fused pill body, in the frame's field: its neck melts into
+                    // the top border. A blob leaves the SDF field only by collapsing
+                    // to zero size (the field ignores `visible`), so presence rides
+                    // geometry. Open is the fused melt out of the frame/bar; the bar
+                    // close fades out in place at full size (no shrink), so a
+                    // retracting content-less blob never swells the bar's edge.
                     id: pillBlob
-                    group: Config.barEnabled ? surfaceGroup : blobGroup
-                    // Island mode: a fused pill, its neck melted into the top frame,
-                    // spanning from the screen top. Bar mode: a non-fused dropdown in
-                    // its own field, hung flush below the bar (flat top, rounded
-                    // bottom) so the bar's edge never deforms; `reveal` rolls it down
-                    // to open and back up behind the bar to close.
+                    group: blobGroup
                     readonly property real dropW: pill.openW
-                    x: Config.barEnabled ? (overlay.width - pillBlob.dropW) / 2 : pill.x
-                    y: Config.barEnabled ? overlay.barVisibleH : 0
-                    readonly property bool present: overlay.fused && overlay.islandShown
+                    // `geo` drives geometry: it grows on open and, on a bar close, is
+                    // held at full then snapped to 0 once invisible (no shrink melt).
+                    // `closeFade` is the bar-close opacity; island mode keeps `reveal`
+                    // for its original melt-shrink close, untouched.
                     property real reveal: 0
-                    visible: reveal > 0
-                    width: Config.barEnabled ? pillBlob.dropW : pill.width
-                    height: Config.barEnabled ? Math.max(0, pill.y + pill.openH - overlay.barVisibleH) * reveal : (pill.y + pill.height) * reveal
+                    property real geo: 0
+                    property real closeFade: 0
+                    x: Config.barEnabled ? (overlay.width - pillBlob.dropW * geo) / 2 : pill.x
+                    y: 0
+                    readonly property bool present: overlay.fused && overlay.islandShown
+                    visible: Config.barEnabled ? geo > 0 : reveal > 0
+                    width: Config.barEnabled ? (pillBlob.dropW * geo) : pill.width
+                    height: Config.barEnabled ? (pill.y + pill.openH) * geo : (pill.y + pill.height) * reveal
                     topLeftRadius: 0
                     topRightRadius: 0
                     bottomLeftRadius: pill.morphRadius
                     bottomRightRadius: pill.morphRadius
                     deformScale: 0
-                    opacity: Config.islandOpacity * (Config.barEnabled ? Math.max(0, Math.min(1, (reveal - 0.35) / 0.4)) : 1)
+                    opacity: Config.islandOpacity * (Config.barEnabled ? Math.max(0, Math.min(1, (geo - 0.35) / 0.4)) * closeFade : 1)
                     states: State {
                         name: "shown"
                         when: pillBlob.present
-                        PropertyChanges { pillBlob.reveal: 1 }
+                        PropertyChanges { pillBlob.reveal: 1; pillBlob.geo: 1; pillBlob.closeFade: 1 }
                     }
                     transitions: [
                         Transition {
                             to: "shown"
-                            NumberAnimation { property: "reveal"; duration: Motion.morph; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.morphCurve }
+                            NumberAnimation { properties: "reveal,geo"; duration: Motion.morph; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.morphCurve }
                         },
                         Transition {
                             from: "shown"
-                            NumberAnimation { property: "reveal"; duration: Motion.morph; easing.type: Easing.OutCubic }
+                            SequentialAnimation {
+                                PropertyAction { property: "geo"; value: 1 }
+                                PropertyAction { property: "closeFade"; value: 1 }
+                                // Bar: hold the panel opaque while its content fades
+                                // out, so the surface's text dissolves against the
+                                // solid panel, never against the busy desktop behind
+                                // it (a translucent panel double-exposes both). Island
+                                // has no panel to hold, so it melt-shrinks here.
+                                ParallelAnimation {
+                                    PauseAnimation { duration: Config.barEnabled ? Motion.morph : 0 }
+                                    NumberAnimation { property: "reveal"; to: 0; duration: Motion.morph; easing.type: Easing.OutCubic }
+                                }
+                                // Bar: the now-empty panel fades quickly; a solid fade
+                                // reads smooth with no text double-exposure.
+                                NumberAnimation { property: "closeFade"; to: 0; duration: Config.barEnabled ? 170 : 0; easing.type: Easing.OutCubic }
+                                PropertyAction { property: "geo"; value: 0 }
+                            }
                         }
                     ]
                 }
