@@ -12,9 +12,16 @@ Row {
 
     property real s: 1
 
+    // The strip counts as island hover so an auto-hidden island stays revealed
+    // while the cursor is on its chips. A passive ancestor handler (like the
+    // pill's own) never blocks the chips' taps.
+    property bool hovered: visible && stripHover.hovered
+
     signal requestSurface(string name)
 
     spacing: 6 * s
+
+    HoverHandler { id: stripHover }
 
     ActivityChip {
         s: root.s

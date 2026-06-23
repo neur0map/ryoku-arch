@@ -35,6 +35,12 @@ Item {
     property bool externalHover: false
     property bool hoverSuppressed: false
     readonly property bool hovered: !hoverSuppressed && (externalHover || bodyHover.hovered)
+
+    // A bud beside the island (music/update island, activity strip) is hovered.
+    // While it is, the pill holds its expand state (see graceTimer) so the bud --
+    // whose x tracks the pill width -- never slides out from under the cursor,
+    // which is what let a revealed auto-hidden island collapse as you reached it.
+    property bool satelliteHover: false
     property bool pinned: false
     property bool forcePinned: false
 
@@ -375,7 +381,9 @@ Item {
         id: graceTimer
         interval: 300
         onTriggered: {
-            if (pill.morphCloseness < 0.95) {
+            // Hold the latch while the pill is mid-morph, or while a bud is hovered
+            // (freezing its size) so the bud never slides out from under the cursor.
+            if (pill.satelliteHover || pill.morphCloseness < 0.95) {
                 graceTimer.restart();
                 return;
             }

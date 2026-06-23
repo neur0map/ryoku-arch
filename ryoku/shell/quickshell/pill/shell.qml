@@ -623,6 +623,7 @@ ShellRoot {
                     barWindow: overlay
                     surface: overlay.surface
                     forcePinned: root.peekMon === overlay.modelData.name
+                    satelliteHover: musicIsland.hovered || updateIsland.hovered || activityStrip.hovered
 
                     opacity: overlay.islandShown ? 1 : 0
                     Behavior on opacity {

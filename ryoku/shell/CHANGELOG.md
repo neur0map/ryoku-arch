@@ -142,6 +142,13 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- `quickshell/pill`: an auto-hidden island no longer collapses while the cursor
+  travels onto its buds (the music/update island and the activity strip). The
+  reveal expands the pill, and a bud's x tracks the pill width, so hovering a bud
+  collapsed the pill (the music island actively suppresses the pill hover), which
+  slid the bud out from under the cursor and hid the island before it could be
+  used. A hovered bud (`satelliteHover`) now freezes the pill's expand state, so
+  it neither collapses nor slides the bud away and the reveal stays put.
 - `quickshell/pill`: hover works again across the whole island. The neck/reveal
   hover zone sitting in front of the pill (added so crossing the tray icons would
   not collapse the island) was a covering sibling holding a `HoverHandler`, which
