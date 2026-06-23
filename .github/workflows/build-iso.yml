@@ -345,3 +345,77 @@ jobs:
             installation/iso/out/*.sha256
             installation/iso/out/*.asc
           retention-days: 14
+
+      - name: Notify Discord of the ISO build
+        # Runs on success and failure; never fails the build itself.
+        if: ${{ always() }}
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          BUILD_STATUS: ${{ job.status }}
+          ISO_NAME: ${{ steps.iso.outputs.name }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${DISCORD_WEBHOOK_URL:-}" ]]; then
+            echo "::notice::DISCORD_WEBHOOK_URL not configured; skipping ISO build notification."
+            exit 0
+          fi
+
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          brand_mark_url="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/ryoku/assets/brand/logo-mark.png"
+
+          case "$BUILD_STATUS" in
+            success) title="Ryoku ISO build succeeded"; color=3066993;  image="${ISO_NAME:-unknown}" ;;
+            failure) title="Ryoku ISO build failed";    color=15158332; image="(no image produced)" ;;
+            *)       title="Ryoku ISO build ${BUILD_STATUS}"; color=10070709; image="${ISO_NAME:-n/a}" ;;
+          esac
+
+          jq -n \
+            --arg title "$title" \
+            --arg url "$run_url" \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --arg tracking "${RYOKU_ISO_TRACKING_ID:-unknown}" \
+            --arg channel "${RYOKU_ISO_CHANNEL:-alpha}" \
+            --arg ref "${GITHUB_REF_NAME:-$GITHUB_SHA}" \
+            --arg image "$image" \
+            --arg brand_mark_url "$brand_mark_url" \
+            --argjson color "$color" \
+            '{
+              username: "Ryoku CI",
+              avatar_url: $brand_mark_url,
+              allowed_mentions: { parse: [] },
+              embeds: [{
+                title: $title,
+                url: $url,
+                color: $color,
+                thumbnail: { url: $brand_mark_url },
+                fields: [
+                  { name: "Repository", value: $repo, inline: true },
+                  { name: "Tracking ID", value: $tracking, inline: true },
+                  { name: "Channel", value: $channel, inline: true },
+                  { name: "Ref", value: $ref, inline: true },
+                  { name: "Image", value: $image, inline: false }
+                ],
+                footer: {
+                  text: "Ryoku Arch : For the sake of power and beauty.",
+                  icon_url: $brand_mark_url
+                },
+                timestamp: (now | todateiso8601)
+              }]
+            }' > /tmp/discord-iso-payload.json
+
+          http_code="$(
+            curl -sS -o /tmp/discord-iso-response.json -w "%{http_code}" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              --data-binary @/tmp/discord-iso-payload.json \
+              "$DISCORD_WEBHOOK_URL"
+          )"
+
+          if [[ "$http_code" != "200" && "$http_code" != "204" ]]; then
+            echo "::warning::Discord webhook returned HTTP $http_code"
+            cat /tmp/discord-iso-response.json >&2
+            exit 1
+          fi
+          echo "ISO build Discord notification sent (status: $BUILD_STATUS)."
