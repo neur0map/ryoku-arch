@@ -149,6 +149,10 @@
   slid the bud out from under the cursor and hid the island before it could be
   used. A hovered bud (`satelliteHover`) now freezes the pill's expand state, so
   it neither collapses nor slides the bud away and the reveal stays put.
+- `quickshell/pill` bar: the bar-mode surface now closes by fading its content
+  out against the still-opaque panel, then fading the empty panel, so the busy
+  desktop behind never shows through a half-faded surface as a doubled overlay.
+  The open and resting looks stay the fused melt; only the bar close changed.
 - `quickshell/pill`: hover works again across the whole island. The neck/reveal
   hover zone sitting in front of the pill (added so crossing the tray icons would
   not collapse the island) was a covering sibling holding a `HoverHandler`, which
