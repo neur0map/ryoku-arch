@@ -219,7 +219,9 @@ ShellRoot {
             // small even gap that matches the other three frame edges.
             readonly property bool reservesIsland: Config.islandStyle === "island" && !Config.islandAutohide && !Config.barEnabled
             readonly property real evenTop: 22 * s
-            readonly property real zone: Config.barEnabled ? 0 : (reservesIsland ? (restHeight + topGap) : evenTop)
+            // The bar swells the frame's top into a band; reserve it so tiles tuck below.
+            readonly property real barBand: 26 * s
+            readonly property real zone: Config.barEnabled ? (evenTop + barBand) : (reservesIsland ? (restHeight + topGap) : evenTop)
 
             screen: modelData
             color: "transparent"
@@ -244,6 +246,14 @@ ShellRoot {
             readonly property real s: modelData ? modelData.height / 1080 : 1
             readonly property real topGap: Config.islandGap * s
 
+            // Bar mode: the frame's top border swells into a band carrying the
+            // options (Bar.qml). The inverted rect is oversized 50px (its
+            // anchors.margins), so the on-screen top is borderTop - 50; the bar
+            // adds `barBand` below that.
+            readonly property real frameTopVisible: Config.frameBorder - 50
+            readonly property real barBand: 26 * s
+            readonly property real barVisibleH: frameTopVisible + barBand
+
             // Island appearance, read from the live config. The frame is identical
             // across styles; only the centre island changes.
             //  - fused: the classic pill, its neck melted into the top frame.
@@ -266,7 +276,9 @@ ShellRoot {
             // island is present anyway.
             readonly property bool idleShown: styleNone ? false : !autohide
             readonly property bool islandShown: !monFullscreen
-                && (idleShown || pill.surfaceOpen || pill.held || (autohide && pill.hoverLatch))
+                && (Config.barEnabled
+                    ? pill.surfaceOpen
+                    : (idleShown || pill.surfaceOpen || pill.held || (autohide && pill.hoverLatch)))
             // The auto-hide reveal trigger: a thin strip under the top frame that
             // brings the hidden island down on hover.
             readonly property real revealTrigger: pillTop + 14 * s
@@ -303,7 +315,9 @@ ShellRoot {
             anchors { top: true; left: true; right: true; bottom: true }
 
             mask: monFullscreen ? hiddenRegion
-                : (modal ? fullRegion : (islandShown ? pillRegion : idleRegion))
+                : (modal ? fullRegion
+                : (Config.barEnabled ? barRegion
+                : (islandShown ? pillRegion : idleRegion)))
             Region { id: hiddenRegion }
             Region {
                 id: pillRegion
@@ -351,6 +365,19 @@ ShellRoot {
                 id: fullRegion
                 width: overlay.width
                 height: overlay.height
+            }
+            Region {
+                id: barRegion
+                // The bar strip catches input for its options; the edge popouts
+                // keep their hover triggers and bodies so mixer/power still open.
+                x: 0
+                y: 0
+                width: overlay.width
+                height: overlay.barVisibleH
+                Region { x: mixerPop.triggerX; y: mixerPop.triggerY; width: mixerPop.triggerW; height: mixerPop.triggerH }
+                Region { x: mixerPop.bodyX; y: mixerPop.bodyY; width: mixerPop.bodyW; height: mixerPop.bodyH }
+                Region { x: powerPop.triggerX; y: powerPop.triggerY; width: powerPop.triggerW; height: powerPop.triggerH }
+                Region { x: powerPop.bodyX; y: powerPop.bodyY; width: powerPop.bodyW; height: powerPop.bodyH }
             }
 
             MouseArea {
@@ -401,12 +428,28 @@ ShellRoot {
                     anchors.margins: -50
                     group: blobGroup
                     radius: Config.frameRadius
-                    borderTop: Config.frameBorder
+                    borderTop: Config.barEnabled ? (Config.frameBorder + overlay.barBand) : Config.frameBorder
                     borderBottom: Config.frameBorder
                     borderLeft: Config.frameBorder
                     borderRight: Config.frameBorder
                     opacity: Config.frameOpacity
                     visible: !overlay.monFullscreen
+                }
+
+                // The options ride the thickened frame top, drawn in the frame's
+                // own scene so there is no separate program and no seam.
+                Bar {
+                    id: topBar
+                    visible: Config.barEnabled && !overlay.monFullscreen
+                    x: 0
+                    y: 0
+                    width: overlay.width
+                    height: overlay.barVisibleH
+                    s: overlay.s
+                    contentTop: 0
+                    trayWindow: overlay
+                    onCalendarRequested: root.toggleSurface(overlay.modelData.name, "calendar")
+                    onPowerRequested: root.togglePopout(overlay.modelData.name, "power")
                 }
 
                 BlobRect {
@@ -418,26 +461,38 @@ ShellRoot {
                     // and retract it on hide. Present only in the fused style.
                     id: pillBlob
                     group: blobGroup
-                    x: pill.x
+                    // In bar mode the surface melts to nothing at the bar centre on
+                    // close: width and height both scale with reveal, so it shrinks
+                    // into the bar instead of leaving a wide content-less stub.
+                    readonly property real dropW: pill.openW
+                    x: Config.barEnabled ? (overlay.width - pillBlob.dropW * reveal) / 2 : pill.x
                     y: 0
                     readonly property bool present: overlay.fused && overlay.islandShown
-                    property real reveal: present ? 1 : 0
+                    property real reveal: 0
                     visible: reveal > 0
-                    width: pill.width
-                    height: (pill.y + pill.height) * reveal
+                    width: Config.barEnabled ? (pillBlob.dropW * reveal) : pill.width
+                    height: (pill.y + (Config.barEnabled ? pill.openH : pill.height)) * reveal
                     topLeftRadius: 0
                     topRightRadius: 0
                     bottomLeftRadius: pill.morphRadius
                     bottomRightRadius: pill.morphRadius
                     deformScale: 0
                     opacity: Config.islandOpacity
-                    Behavior on reveal {
-                        NumberAnimation {
-                            duration: Motion.morph
-                            easing.type: Motion.easeMorph
-                            easing.bezierCurve: Motion.morphCurve
-                        }
+                    states: State {
+                        name: "shown"
+                        when: pillBlob.present
+                        PropertyChanges { pillBlob.reveal: 1 }
                     }
+                    transitions: [
+                        Transition {
+                            to: "shown"
+                            NumberAnimation { property: "reveal"; duration: Motion.morph; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.morphCurve }
+                        },
+                        Transition {
+                            from: "shown"
+                            NumberAnimation { property: "reveal"; duration: Motion.morph; easing.type: Easing.OutCubic }
+                        }
+                    ]
                 }
 
                 // Mixer popout: grows out of the centre-left frame edge on hover,

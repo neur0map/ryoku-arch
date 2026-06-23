@@ -48,9 +48,10 @@ Singleton {
     property alias islandStyle:    adapter.islandStyle
     property alias islandAutohide: adapter.islandAutohide
 
-    // Top bar: an opt-in traditional bar (qs -c topbar) shown in place of the
-    // resting island. When on, the island never shows at rest (surfaces and
-    // keybinds still summon the pill); Ryoku Settings -> Shell -> Bar toggles it.
+    // Top bar: an opt-in bar drawn on the frame's thickened top edge (Bar.qml),
+    // shown in place of the resting island. When on, the island never shows at
+    // rest (surfaces and keybinds still summon the pill); Ryoku Settings ->
+    // Shell -> Bar toggles it.
     property alias barEnabled: adapter.barEnabled
 
     FileView {

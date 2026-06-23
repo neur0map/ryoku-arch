@@ -10,15 +10,14 @@
 - `hyprland/binds`: `Super + K` opens the keybind reference, the hub's live
   shortcut legend read from `binds.lua`, so the full shortcut list is one key
   away.
-- `shell/quickshell/topbar` + `hub` (Shell -> Bar): an opt-in top bar as an
-  alternative to the morphing pill island. A full-width `qs -c topbar` instance
-  sits flush to the top of the frame, the warm frame surface thickened into a bar
-  with no seam: the brand mark and workspace dots on the left, the clock in the
-  centre (it opens the calendar), and now-playing, the system tray and power on
-  the right. The daemon supervises it like the pill and visualiser, but it stays
-  hidden until Ryoku Settings -> Shell -> Bar turns it on, which also hides the
-  resting pill island so the two never overlap. Surfaces still open from their
-  keybinds. Default off.
+- `shell/quickshell/pill/Bar.qml` + `hub` (Shell -> Bar): an opt-in top bar, an
+  alternative to the morphing pill island. The pill draws it inside the frame's
+  own blob field, so the frame's top simply thickens into the bar (no separate
+  program, no seam): the brand mark and workspace dots on the left, the clock in
+  the centre (it opens the calendar), now-playing, the system tray and power on
+  the right. Ryoku Settings -> Shell -> Bar turns it on, which hides the resting
+  pill island so the two never overlap; surfaces still open from their keybinds
+  and melt in and out of the bar centre. Default off.
 - `shell/quickshell/switcher` + `hyprland/binds`: an Alt-Tab window switcher. A
   full-screen overlay (its own `qs -c switcher` instance, like ryoshot) lists the
   open windows in most-recently-used order as app-icon + title cards, opens with
