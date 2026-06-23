@@ -11,12 +11,11 @@ import Quickshell.Io
  * and addUrl drive it through detached coreutils. `hasMedia` / `hasInstallable`
  * read the live file types so the action bar only lights the actions that apply.
  *
- * Flows, all behind helper scripts under ~/.config/hypr/scripts:
- *  - LocalSend send. openSendPicker / openSendAll / openSendText kick a ~2s LAN
- *    discovery (lsState scanning|ready|sending); sendTo uploads the picked file,
- *    the whole stash, or a typed note to the chosen IP.
- *  - LocalSend receive. start/stopReceive run localsend.sh receive, a server that
- *    announces us on the LAN and drops incoming files into the stash.
+ * Flows:
+ *  - LocalSend. Send / receive hand off to the real LocalSend app (`localsend`),
+ *    which owns discovery (multicast + HTTP scan), the device picker, and the
+ *    transfer. A file path pre-populates its send queue, --text opens its text
+ *    share, and a bare launch makes this machine discoverable to receive.
  *  - Install / compress. requestInstall/Compress raise a confirm (taskState
  *    confirm); confirmTask runs the helper (running -> done|error).
  *  - Cobalt download + remux. openDownload raises the cobalt window; enqueue*
@@ -28,13 +27,12 @@ Singleton {
 
     readonly property string home: Quickshell.env("HOME") || ""
     readonly property string dir: home + "/Downloads/Stash"
-    readonly property string script: home + "/.config/hypr/scripts/localsend.sh"
     readonly property string scriptDir: home + "/.config/hypr/scripts"
     readonly property string cobaltScript: scriptDir + "/stash-cobalt.sh"
+    readonly property string lsBin: "localsend"
 
     readonly property alias files: files
     readonly property int count: files.count
-    readonly property alias deviceModel: deviceModel
     readonly property alias queueModel: queueModel
 
     // Live file-type read so the action bar lights only what applies.
@@ -60,18 +58,6 @@ Singleton {
         }
         return false;
     }
-
-    // Send flow.
-    property string lsState: "idle"       // idle | scanning | ready | sending
-    property string sendKind: "file"      // file | all | text
-    property string pendingFile: ""
-    property string composeText: ""
-
-    // Receive flow.
-    property string recvState: "idle"     // idle | listening
-    property string recvAlias: ""
-    property int recvCount: 0
-    property string recvLast: ""
 
     // Install / compress.
     property string task: ""              // "" | install | compress
@@ -102,92 +88,27 @@ Singleton {
         Quickshell.execDetached(["cp", "-n", p, root.dir]);
     }
 
-    // ── Send ────────────────────────────────────────────────────────────
-    function startScan() {
-        deviceModel.clear();
-        root.lsState = "scanning";
-        discoverProc.running = true;
+    // ── LocalSend (real app) ────────────────────────────────────────────
+    // The real app does the discovery and transfer, so these just hand off to it.
+    function sendOne(path) {
+        Quickshell.execDetached([root.lsBin, "" + path]);
     }
 
-    function rescan() {
-        if (root.lsState !== "idle" && root.lsState !== "sending")
-            startScan();
-    }
-
-    function openSendPicker(file) {
-        root.sendKind = "file";
-        root.pendingFile = file;
-        startScan();
-    }
-
-    function openSendAll() {
+    function sendAll() {
         if (root.count === 0)
             return;
-        root.sendKind = "all";
-        root.pendingFile = "";
-        startScan();
+        var argv = [root.lsBin];
+        for (var i = 0; i < files.count; i++)
+            argv.push("" + files.get(i, "filePath"));
+        Quickshell.execDetached(argv);
     }
 
-    function openSendText() {
-        root.sendKind = "text";
-        root.pendingFile = "";
-        root.composeText = "";
-        startScan();
+    function sendText() {
+        Quickshell.execDetached([root.lsBin, "--text"]);
     }
 
-    function cancelSend() {
-        discoverProc.running = false;
-        root.lsState = "idle";
-        root.pendingFile = "";
-        root.composeText = "";
-    }
-
-    function pasteCompose() {
-        pasteProc.running = true;
-    }
-
-    function sendTo(ip) {
-        root.lsState = "sending";
-        if (root.sendKind === "all")
-            sendProc.command = ["bash", root.script, "send-all", root.dir, ip];
-        else if (root.sendKind === "text")
-            // Notes have no file: drop the text into a temp file named note.txt so
-            // the receiver shows a sensible name, send it, then clean up.
-            sendProc.command = ["bash", "-c",
-                "d=$(mktemp -d) && printf '%s' \"$1\" > \"$d/note.txt\" && bash \"$2\" send \"$d/note.txt\" \"$3\"; r=$?; rm -rf \"$d\"; exit $r",
-                "--", root.composeText, root.script, ip];
-        else
-            sendProc.command = ["bash", root.script, "send", root.pendingFile, ip];
-        sendProc.running = true;
-    }
-
-    // ── Receive ─────────────────────────────────────────────────────────
-    function startReceive() {
-        root.recvCount = 0;
-        root.recvLast = "";
-        root.recvAlias = "Ryoku Stash";
-        root.recvState = "listening";
-        recvProc.running = true;
-    }
-
-    function stopReceive() {
-        recvProc.running = false;
-        root.recvState = "idle";
-    }
-
-    function onRecvLine(line) {
-        var t = ("" + line).split("\t");
-        if (t[0] === "READY") {
-            root.recvAlias = t[1] || "Ryoku Stash";
-            root.recvState = "listening";
-        } else if (t[0] === "INCOMING") {
-            root.recvLast = t[1] || "";
-        } else if (t[0] === "SAVED") {
-            root.recvCount += 1;
-            root.recvLast = t[1] || "";
-        } else if (t[0] === "ERROR") {
-            root.recvState = "idle";
-        }
+    function openLocalSend() {
+        Quickshell.execDetached([root.lsBin]);
     }
 
     // ── Install / compress ──────────────────────────────────────────────
@@ -318,51 +239,7 @@ Singleton {
     }
 
     ListModel {
-        id: deviceModel
-    }
-
-    ListModel {
         id: queueModel
-    }
-
-    Process {
-        id: discoverProc
-        command: ["bash", root.script, "discover"]
-        stdout: StdioCollector {
-            id: discoverOut
-        }
-        onExited: {
-            if (root.lsState !== "scanning")
-                return;
-            deviceModel.clear();
-            var ipRe = /^\d{1,3}(\.\d{1,3}){3}$/;
-            var lines = discoverOut.text.split("\n");
-            for (var i = 0; i < lines.length; i++) {
-                var parts = lines[i].split("\t");
-                if (parts.length === 2 && ipRe.test(parts[1].trim()))
-                    deviceModel.append({ alias: parts[0].trim(), ip: parts[1].trim() });
-            }
-            root.lsState = "ready";
-        }
-    }
-
-    Process {
-        id: sendProc
-        onExited: {
-            root.lsState = "idle";
-            root.pendingFile = "";
-            root.composeText = "";
-        }
-    }
-
-    Process {
-        id: recvProc
-        command: ["bash", root.script, "receive"]
-        stdout: SplitParser {
-            splitMarker: "\n"
-            onRead: (line) => root.onRecvLine(line)
-        }
-        onExited: if (root.recvState !== "idle") root.recvState = "idle"
     }
 
     Process {
@@ -378,13 +255,6 @@ Singleton {
             root.taskMsg = last;
             root.taskState = exitCode === 0 ? "done" : "error";
         }
-    }
-
-    Process {
-        id: pasteProc
-        command: ["wl-paste", "-n"]
-        stdout: StdioCollector { id: pasteOut }
-        onExited: root.composeText = ("" + pasteOut.text)
     }
 
     Process {

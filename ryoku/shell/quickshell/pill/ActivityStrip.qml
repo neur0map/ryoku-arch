@@ -53,15 +53,4 @@ Row {
         clickable: true
         onActivated: root.requestSurface("stash")
     }
-
-    ActivityChip {
-        s: root.s
-        active: Stash.recvState !== "idle"
-        label: "RECV"
-        value: Stash.recvCount > 0 ? ("" + Stash.recvCount) : ""
-        accent: Theme.flameGlow
-        dot: true
-        clickable: true
-        onActivated: root.requestSurface("stash")
-    }
 }
