@@ -36,8 +36,10 @@ PillSurface {
 
     implicitHeight: headerH + 12 * s + gridH + 12 * s + actionsH
 
-    // A sheet (the cobalt window or an install/compress task) owns the body below the header.
-    readonly property bool sheetOpen: Stash.dlOpen
+    // An overlay (send / receive / task sheet) owns the body below the header.
+    readonly property bool sheetOpen: Stash.lsState !== "idle"
+        || Stash.recvState !== "idle"
+        || Stash.dlOpen
         || (Stash.task !== "" && Stash.taskState !== "idle")
 
     // File-type category for the non-image tile glyph, by extension.
@@ -103,37 +105,46 @@ PillSurface {
                 font.features: { "tnum": 1 }
             }
 
-            // Open the real LocalSend app: it owns discovery, the device picker,
-            // and receiving, and makes this machine visible to other devices.
+            // Receive switch: flip it and other LocalSend devices can push files
+            // straight into the stash. Lit while listening, with a breathing dot.
             Rectangle {
-                id: lsChip
+                id: recvChip
                 anchors.verticalCenter: parent.verticalCenter
-                width: lsRow.implicitWidth + 18 * root.s
+                readonly property bool on: Stash.recvState !== "idle"
+                width: recvRow.implicitWidth + 18 * root.s
                 height: 20 * root.s
                 radius: height / 2
-                color: lsArea.containsMouse ? Theme.frameBg : Theme.tileBg
+                color: recvChip.on ? Qt.alpha(Theme.flameGlow, 0.16)
+                    : (recvArea.containsMouse ? Theme.frameBg : Theme.tileBg)
                 border.width: 1
-                border.color: lsArea.containsMouse ? Theme.frameBorder : Theme.border
+                border.color: recvChip.on ? Qt.alpha(Theme.flameGlow, 0.55)
+                    : (recvArea.containsMouse ? Theme.frameBorder : Theme.border)
 
                 Behavior on color { ColorAnimation { duration: Motion.fast } }
                 Behavior on border.color { ColorAnimation { duration: Motion.fast } }
 
                 Row {
-                    id: lsRow
+                    id: recvRow
                     anchors.centerIn: parent
                     spacing: 5 * root.s
-                    GlyphIcon {
+
+                    Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 11 * root.s
-                        height: 11 * root.s
-                        name: "hotspot"
-                        color: lsArea.containsMouse ? Theme.cream : Theme.iconDim
-                        stroke: 1.6
+                        width: 6 * root.s
+                        height: 6 * root.s
+                        radius: width / 2
+                        color: recvChip.on ? Theme.flameGlow : Theme.iconDim
+                        SequentialAnimation on opacity {
+                            running: recvChip.on
+                            loops: Animation.Infinite
+                            NumberAnimation { from: 1; to: 0.3; duration: 700; easing.type: Easing.InOutSine }
+                            NumberAnimation { from: 0.3; to: 1; duration: 700; easing.type: Easing.InOutSine }
+                        }
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "LocalSend"
-                        color: lsArea.containsMouse ? Theme.cream : Theme.subtle
+                        text: recvChip.on ? "Listening" : "Receive"
+                        color: recvChip.on ? Theme.flameGlow : (recvArea.containsMouse ? Theme.cream : Theme.subtle)
                         font.family: Theme.font
                         font.pixelSize: 9 * root.s
                         font.weight: Font.DemiBold
@@ -143,11 +154,11 @@ PillSurface {
                 }
 
                 MouseArea {
-                    id: lsArea
+                    id: recvArea
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: Stash.openLocalSend()
+                    onClicked: recvChip.on ? Stash.stopReceive() : Stash.startReceive()
                 }
             }
         }
@@ -341,7 +352,7 @@ PillSurface {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: Stash.sendOne(tile.filePath)
+                                onClicked: Stash.openSendPicker(tile.filePath)
                             }
                         }
 
@@ -520,14 +531,32 @@ PillSurface {
         hasFiles: Stash.count > 0
         hasMedia: Stash.hasMedia
         hasInstallable: Stash.hasInstallable
-        onSendAll: Stash.sendAll()
-        onSendText: Stash.sendText()
+        onSendAll: Stash.openSendAll()
+        onSendText: Stash.openSendText()
         onDownload: Stash.openDownload()
         onCompress: Stash.requestCompress()
         onInstall: Stash.requestInstall()
     }
 
-    // ── Task + cobalt sheets over the body ──────────────────────────────
+    // ── Sheets (send / receive / task) over the body ────────────────────
+    StashSendSheet {
+        anchors.top: headerRule.bottom
+        anchors.topMargin: 6 * root.s
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        s: root.s
+    }
+
+    StashReceive {
+        anchors.top: headerRule.bottom
+        anchors.topMargin: 6 * root.s
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        s: root.s
+    }
+
     StashTaskOverlay {
         anchors.top: headerRule.bottom
         anchors.topMargin: 6 * root.s

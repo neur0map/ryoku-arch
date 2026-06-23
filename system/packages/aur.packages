@@ -21,7 +21,7 @@ wallust
 # it cannot be pacstrapped from base.
 awww-git
 
-# LocalSend: AirDrop-style LAN file sharing; the pill's file stash launches it to send/receive.
+# LocalSend: AirDrop-style LAN file sharing; the pill's file stash speaks its protocol.
 localsend-bin
 
 # GlazePKG (gpk) ships first-class from the [ryoku] repo now, not the AUR.

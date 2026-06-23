@@ -13,12 +13,13 @@
   yt-dlp when none is reachable, so a fresh install still downloads. Remux is a
   local ffmpeg stream copy, the same on-device operation cobalt's own remux does.
   The cobalt credit stays visible in the window since the engine is theirs.
-- `quickshell/pill` stash: send and receive over LocalSend now hand off to the real
-  LocalSend app (`localsend`), which owns discovery (multicast + HTTP scan), the
-  device picker, and the transfer. A tile's Send and the Send all action queue files
-  into it, Text opens its text share (`--text`), and the header's LocalSend chip
-  launches the app to receive and be discoverable. This replaces the earlier in-shell
-  protocol reimplementation, which could not match the app's discovery on real LANs.
+- `quickshell/pill` stash: LocalSend receive and send-a-note. The header's Receive
+  switch runs a LocalSend v2 server (`localsend.sh receive`, a self-signed HTTPS
+  endpoint that announces the machine on the LAN over multicast) which drops any
+  pushed file straight into the stash and shows a live tally; the Text action
+  sends a typed or pasted note (written to a temp file) to a picked device. The
+  `Stash` singleton drives both: the receiver streams `READY`/`INCOMING`/`SAVED`
+  lines parsed by a `SplitParser`, the rest reuses the existing send helpers.
 - `quickshell/pill`: weather now comes from Open-Meteo (no API key) instead of the
   rate-limited wttr.in scrape, with the resolved location cached at
   `~/.local/state/ryoku/weather-loc.json` so a restart skips the lookup. The
@@ -120,15 +121,19 @@
 - `quickshell/pill` stash: the action bar lights only what applies. It reads the
   live file types (`Stash.hasMedia` / `hasInstallable`), so Compress dims unless
   there is a video/image/audio file and Install dims unless there is an AppImage or
-  tarball; a lone note no longer offers to compress or install it.
+  tarball; a lone note no longer offers to compress or install it. The LocalSend
+  send sheet gained a Scan again button (and a header rescan icon) so an empty
+  device list can be refreshed without reopening it.
 - `quickshell/pill` stash: the surface is rebuilt around a full-width file grid
   with a toolkit-style action bar (Send all, Text, Download, Compress, Install) in
-  place of the cramped left rail, plus a header file count and a LocalSend chip.
-  Install and compress open on a confirm step before they run; removing a file
+  place of the cramped left rail, plus a header file count and Receive switch.
+  Sends raise a focused sheet (LAN scan, pick a device, then a confirmation naming
+  exactly what goes where), and every rail job now opens on a confirm step
+  (download shows the clipboard link it found) before it runs; removing a file
   confirms inline on its tile rather than vanishing on a stray click. The look
   follows the Hub's flat tiles, hairline rules, and type tags in the pill palette,
   with a brand drop ring while a drag is over the surface. `StashRail.qml` is
-  retired; `StashActions` and `StashDownload` are new.
+  retired; `StashActions`, `StashSendSheet`, and `StashReceive` are new.
 - `quickshell/pill` update island: surfaces the git update channel it was built
   for. Its count and target version read the commits the checkout is behind
   `origin/main` (from `ryoku status --json`) rather than pacman package counts.

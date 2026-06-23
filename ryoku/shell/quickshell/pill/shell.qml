@@ -461,16 +461,18 @@ ShellRoot {
                     // and retract it on hide. Present only in the fused style.
                     id: pillBlob
                     group: blobGroup
-                    // In bar mode the surface melts to nothing at the bar centre on
-                    // close: width and height both scale with reveal, so it shrinks
-                    // into the bar instead of leaving a wide content-less stub.
+                    // In bar mode the surface is a roller-blind: full open width,
+                    // fixed and centred, with only its height riding `reveal`. It
+                    // retracts straight up into the bar (never narrowing to a
+                    // centred tongue) and the shared blob field melts it into the
+                    // bar's bottom edge, the way edge popouts melt into a side.
                     readonly property real dropW: pill.openW
-                    x: Config.barEnabled ? (overlay.width - pillBlob.dropW * reveal) / 2 : pill.x
+                    x: Config.barEnabled ? (overlay.width - pillBlob.dropW) / 2 : pill.x
                     y: 0
                     readonly property bool present: overlay.fused && overlay.islandShown
                     property real reveal: 0
                     visible: reveal > 0
-                    width: Config.barEnabled ? (pillBlob.dropW * reveal) : pill.width
+                    width: Config.barEnabled ? pillBlob.dropW : pill.width
                     height: (pill.y + (Config.barEnabled ? pill.openH : pill.height)) * reveal
                     topLeftRadius: 0
                     topRightRadius: 0
