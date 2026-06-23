@@ -118,6 +118,35 @@ Rectangle {
         }
 
         Rectangle {
+            id: rescanBtn
+            anchors.right: closeBtn.left
+            anchors.rightMargin: 4 * root.s
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.ready
+            width: 22 * root.s
+            height: 22 * root.s
+            radius: Motion.rSmall * root.s
+            color: rescanHeadArea.containsMouse ? Theme.frameBg : "transparent"
+            border.width: rescanHeadArea.containsMouse ? 1 : 0
+            border.color: Theme.frameBorder
+            Behavior on color { ColorAnimation { duration: Motion.fast } }
+            GlyphIcon {
+                anchors.centerIn: parent
+                width: 12 * root.s; height: 12 * root.s
+                name: "scan"
+                color: rescanHeadArea.containsMouse ? Theme.cream : Theme.iconDim
+                stroke: 1.7
+            }
+            MouseArea {
+                id: rescanHeadArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Stash.rescan()
+            }
+        }
+
+        Rectangle {
             id: closeBtn
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
@@ -362,6 +391,48 @@ Rectangle {
             color: Theme.ghost
             font.family: Theme.font
             font.pixelSize: 9 * root.s
+        }
+
+        Item { width: 1; height: 4 * root.s }
+
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: !root.scanning
+            width: rescanRow.implicitWidth + 26 * root.s
+            height: 28 * root.s
+            radius: Motion.rSmall * root.s
+            color: rescanArea.containsMouse ? Theme.frameBg : Theme.tileBg
+            border.width: 1
+            border.color: rescanArea.containsMouse ? Theme.frameBorder : Theme.border
+            Behavior on color { ColorAnimation { duration: Motion.fast } }
+
+            Row {
+                id: rescanRow
+                anchors.centerIn: parent
+                spacing: 6 * root.s
+                GlyphIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 12 * root.s; height: 12 * root.s
+                    name: "scan"
+                    color: rescanArea.containsMouse ? Theme.cream : Theme.iconDim
+                    stroke: 1.7
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Scan again"
+                    color: rescanArea.containsMouse ? Theme.cream : Theme.subtle
+                    font.family: Theme.font
+                    font.pixelSize: 10 * root.s
+                    font.weight: Font.DemiBold
+                }
+            }
+            MouseArea {
+                id: rescanArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Stash.rescan()
+            }
         }
     }
 

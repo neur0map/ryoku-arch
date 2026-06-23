@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- `quickshell/pill` stash: a cobalt download window. The Download action now opens
+  a paste-the-link panel modelled on cobalt (https://github.com/imputnet/cobalt):
+  auto/audio/mute modes, a Paste button, and a processing queue that runs links in
+  order with per-item progress. A Remux tab rebuilds a media file's container
+  losslessly (no re-encode), and a drop zone takes files straight in. The engine is
+  cobalt: `stash-cobalt.sh` POSTs to a cobalt API instance (set `COBALT_API_URL`,
+  default `http://localhost:9000`; run one per cobalt's docs) and falls back to
+  yt-dlp when none is reachable, so a fresh install still downloads. Remux is a
+  local ffmpeg stream copy, the same on-device operation cobalt's own remux does.
+  The cobalt credit stays visible in the window since the engine is theirs.
 - `quickshell/pill` stash: LocalSend receive and send-a-note. The header's Receive
   switch runs a LocalSend v2 server (`localsend.sh receive`, a self-signed HTTPS
   endpoint that announces the machine on the LAN over multicast) which drops any
@@ -108,6 +118,12 @@
   palette stays static.
 
 ### Changed
+- `quickshell/pill` stash: the action bar lights only what applies. It reads the
+  live file types (`Stash.hasMedia` / `hasInstallable`), so Compress dims unless
+  there is a video/image/audio file and Install dims unless there is an AppImage or
+  tarball; a lone note no longer offers to compress or install it. The LocalSend
+  send sheet gained a Scan again button (and a header rescan icon) so an empty
+  device list can be refreshed without reopening it.
 - `quickshell/pill` stash: the surface is rebuilt around a full-width file grid
   with a toolkit-style action bar (Send all, Text, Download, Compress, Install) in
   place of the cramped left rail, plus a header file count and Receive switch.

@@ -39,6 +39,7 @@ PillSurface {
     // An overlay (send / receive / task sheet) owns the body below the header.
     readonly property bool sheetOpen: Stash.lsState !== "idle"
         || Stash.recvState !== "idle"
+        || Stash.dlOpen
         || (Stash.task !== "" && Stash.taskState !== "idle")
 
     // File-type category for the non-image tile glyph, by extension.
@@ -528,9 +529,11 @@ PillSurface {
         anchors.horizontalCenter: parent.horizontalCenter
         s: root.s
         hasFiles: Stash.count > 0
+        hasMedia: Stash.hasMedia
+        hasInstallable: Stash.hasInstallable
         onSendAll: Stash.openSendAll()
         onSendText: Stash.openSendText()
-        onDownload: Stash.requestDownload()
+        onDownload: Stash.openDownload()
         onCompress: Stash.requestCompress()
         onInstall: Stash.requestInstall()
     }
@@ -555,6 +558,15 @@ PillSurface {
     }
 
     StashTaskOverlay {
+        anchors.top: headerRule.bottom
+        anchors.topMargin: 6 * root.s
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        s: root.s
+    }
+
+    StashDownload {
         anchors.top: headerRule.bottom
         anchors.topMargin: 6 * root.s
         anchors.left: parent.left

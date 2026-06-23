@@ -4,11 +4,10 @@ import QtQuick
 import "Singletons"
 
 /**
- * The rail-job sheet for install / compress / download. It opens on a confirm
- * step that spells out what the job will do (and, for download, the link it
- * pulled from the clipboard), runs the helper once confirmed, then shows the
- * helper's final line as the result until dismissed. The work itself lives in the
- * helper scripts behind the Stash singleton; this is its confirm-run-report face.
+ * The rail-job sheet for install and compress. It opens on a confirm step that
+ * spells out what the job will do, runs the helper once confirmed, then shows the
+ * helper's final line as the result until dismissed. The work lives in the helper
+ * scripts behind the Stash singleton; this is its confirm-run-report face.
  */
 Rectangle {
     id: root
@@ -20,20 +19,13 @@ Rectangle {
     readonly property bool ok: Stash.taskState === "done"
     readonly property bool failed: Stash.taskState === "error"
 
-    readonly property string verb: Stash.task === "install" ? "Install"
-        : Stash.task === "compress" ? "Compress"
-        : Stash.task === "download" ? "Download" : ""
-    readonly property string gerund: Stash.task === "install" ? "Installing"
-        : Stash.task === "compress" ? "Compressing"
-        : Stash.task === "download" ? "Downloading" : ""
-    readonly property string glyph: Stash.task === "install" ? "install"
-        : Stash.task === "compress" ? "compress" : "download"
+    readonly property string verb: Stash.task === "install" ? "Install" : "Compress"
+    readonly property string gerund: Stash.task === "install" ? "Installing" : "Compressing"
+    readonly property string glyph: Stash.task === "install" ? "install" : "compress"
 
     readonly property string prompt: Stash.task === "install"
         ? ("Install " + Stash.count + (Stash.count === 1 ? " file" : " files") + "? AppImages and tarballs become launchable apps.")
-        : Stash.task === "compress"
-        ? ("Compress " + Stash.count + (Stash.count === 1 ? " file" : " files") + "? Smaller copies are written beside the originals.")
-        : "Download this link into the stash?"
+        : ("Compress " + Stash.count + (Stash.count === 1 ? " file" : " files") + "? Smaller copies are written beside the originals.")
 
     radius: Motion.rTile * s
     color: Qt.alpha(Theme.cardTop, 0.98)
@@ -78,30 +70,6 @@ Rectangle {
             textFormat: Text.PlainText
         }
 
-        // The clipboard link, for download.
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            visible: Stash.task === "download" && Stash.downloadUrl.length > 0
-            width: parent.width
-            height: urlText.implicitHeight + 12 * root.s
-            radius: Motion.rSmall * root.s
-            color: Theme.tileBg
-            border.width: 1
-            border.color: Theme.border
-            Text {
-                id: urlText
-                anchors.centerIn: parent
-                width: parent.width - 16 * root.s
-                text: Stash.downloadUrl
-                color: Theme.dim
-                font.family: Theme.font
-                font.pixelSize: 9.5 * root.s
-                horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideMiddle
-                maximumLineCount: 1
-                textFormat: Text.PlainText
-            }
-        }
 
         Row {
             anchors.horizontalCenter: parent.horizontalCenter

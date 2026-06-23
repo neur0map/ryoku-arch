@@ -8,18 +8,20 @@ import Quickshell.Io
  * File stash bridge: a live snapshot of ~/Downloads/Stash and the back-end for
  * the stash surface. The FolderListModel watches the directory (created on first
  * load) so the grid stays current without polling; openFile, removeFile, clearAll
- * and addUrl drive it through detached coreutils.
+ * and addUrl drive it through detached coreutils. `hasMedia` / `hasInstallable`
+ * read the live file types so the action bar only lights the actions that apply.
  *
- * Three flows sit on top, all behind helper scripts under ~/.config/hypr/scripts:
+ * Flows, all behind helper scripts under ~/.config/hypr/scripts:
  *  - LocalSend send. openSendPicker / openSendAll / openSendText kick a ~2s LAN
  *    discovery (lsState scanning|ready|sending); sendTo uploads the picked file,
- *    the whole stash, or a typed note (written to a temp file) to the chosen IP.
+ *    the whole stash, or a typed note to the chosen IP.
  *  - LocalSend receive. start/stopReceive run localsend.sh receive, a server that
- *    announces us on the LAN and drops incoming files into the stash; it streams
- *    READY/INCOMING/SAVED lines that drive recvState / recvAlias / recvCount.
- *  - Rail jobs. requestInstall/Compress/Download raise a confirm (taskState
- *    confirm); confirmTask runs the helper (running -> done|error). Download pulls
- *    its link from the clipboard so it needs no in-surface keyboard grab.
+ *    announces us on the LAN and drops incoming files into the stash.
+ *  - Install / compress. requestInstall/Compress raise a confirm (taskState
+ *    confirm); confirmTask runs the helper (running -> done|error).
+ *  - Cobalt download + remux. openDownload raises the cobalt window; enqueue*
+ *    feed a sequential processing queue driven by stash-cobalt.sh (a cobalt API
+ *    client with a yt-dlp fallback; remux is a local lossless ffmpeg copy).
  */
 Singleton {
     id: root
@@ -28,10 +30,32 @@ Singleton {
     readonly property string dir: home + "/Downloads/Stash"
     readonly property string script: home + "/.config/hypr/scripts/localsend.sh"
     readonly property string scriptDir: home + "/.config/hypr/scripts"
+    readonly property string cobaltScript: scriptDir + "/stash-cobalt.sh"
 
     readonly property alias files: files
     readonly property int count: files.count
     readonly property alias deviceModel: deviceModel
+    readonly property alias queueModel: queueModel
+
+    // Live file-type read so the action bar lights only what applies.
+    readonly property bool hasMedia: {
+        var n = files.count;
+        for (var i = 0; i < n; i++) {
+            var e = ("" + files.get(i, "fileSuffix")).toLowerCase();
+            if (/^(mp4|mkv|webm|mov|avi|m4v|mp3|flac|wav|ogg|opus|m4a|aac|png|jpe?g|webp|gif|bmp|tif|tiff)$/.test(e))
+                return true;
+        }
+        return false;
+    }
+    readonly property bool hasInstallable: {
+        var n = files.count;
+        for (var i = 0; i < n; i++) {
+            var nm = ("" + files.get(i, "fileName")).toLowerCase();
+            if (/\.(appimage|deb|rpm|tar\.gz|tgz|tar\.xz|tar\.bz2|tar\.zst|tar|bin|run|flatpak)$/.test(nm))
+                return true;
+        }
+        return false;
+    }
 
     // Send flow.
     property string lsState: "idle"       // idle | scanning | ready | sending
@@ -45,11 +69,17 @@ Singleton {
     property int recvCount: 0
     property string recvLast: ""
 
-    // Rail jobs.
-    property string task: ""              // "" | install | compress | download
+    // Install / compress.
+    property string task: ""              // "" | install | compress
     property string taskState: "idle"     // idle | confirm | running | done | error
     property string taskMsg: ""
-    property string downloadUrl: ""
+
+    // Cobalt download window.
+    property bool dlOpen: false
+    property string dlTab: "download"     // download | remux
+    property string dlMode: "auto"        // auto | audio | mute
+    property string dlText: ""
+    property int activeJob: -1            // index of the running queue entry, -1 idle
 
     function openFile(path) {
         Quickshell.execDetached(["xdg-open", path]);
@@ -73,6 +103,11 @@ Singleton {
         deviceModel.clear();
         root.lsState = "scanning";
         discoverProc.running = true;
+    }
+
+    function rescan() {
+        if (root.lsState !== "idle" && root.lsState !== "sending")
+            startScan();
     }
 
     function openSendPicker(file) {
@@ -151,9 +186,9 @@ Singleton {
         }
     }
 
-    // ── Rail jobs ───────────────────────────────────────────────────────
+    // ── Install / compress ──────────────────────────────────────────────
     function requestInstall() {
-        if (root.count > 0) {
+        if (root.hasInstallable) {
             root.task = "install";
             root.taskMsg = "";
             root.taskState = "confirm";
@@ -161,21 +196,11 @@ Singleton {
     }
 
     function requestCompress() {
-        if (root.count > 0) {
+        if (root.hasMedia) {
             root.task = "compress";
             root.taskMsg = "";
             root.taskState = "confirm";
         }
-    }
-
-    // The clipboard read settles the confirm: a link enables it, anything else
-    // turns it straight into the "copy a link first" error.
-    function requestDownload() {
-        root.task = "download";
-        root.taskMsg = "";
-        root.downloadUrl = "";
-        root.taskState = "confirm";
-        clipProc.running = true;
     }
 
     function confirmTask() {
@@ -183,8 +208,6 @@ Singleton {
             runTask("install", ["bash", root.scriptDir + "/stash-install.sh"]);
         else if (root.task === "compress")
             runTask("compress", ["bash", root.scriptDir + "/stash-compress.sh"]);
-        else if (root.task === "download" && root.downloadUrl.length > 0)
-            runTask("download", ["bash", root.scriptDir + "/stash-download.sh", root.downloadUrl]);
     }
 
     function runTask(name, cmd) {
@@ -199,7 +222,87 @@ Singleton {
         root.task = "";
         root.taskState = "idle";
         root.taskMsg = "";
-        root.downloadUrl = "";
+    }
+
+    // ── Cobalt download + remux ─────────────────────────────────────────
+    function openDownload() {
+        root.dlTab = "download";
+        root.dlOpen = true;
+    }
+
+    function closeDownload() {
+        root.dlOpen = false;
+    }
+
+    function pasteDownload() {
+        dlPasteProc.running = true;
+    }
+
+    function submitDownload() {
+        if (root.dlText.trim().length > 0) {
+            enqueueDownload(root.dlText, root.dlMode);
+            root.dlText = "";
+        }
+    }
+
+    function enqueueDownload(url, mode) {
+        var u = ("" + url).trim();
+        if (u.length === 0)
+            return;
+        queueModel.append({ kind: "download", arg: u, mode: mode || root.dlMode,
+            name: "link", state: "queued", pct: 0, msg: "" });
+        pumpQueue();
+    }
+
+    function enqueueRemux(file) {
+        queueModel.append({ kind: "remux", arg: file, mode: "",
+            name: ("" + file).split("/").pop(), state: "queued", pct: 0, msg: "" });
+        pumpQueue();
+    }
+
+    // One worker at a time walks the queue, so a burst of links downloads in order
+    // instead of fighting over the network.
+    function pumpQueue() {
+        if (root.activeJob >= 0)
+            return;
+        for (var i = 0; i < queueModel.count; i++) {
+            if (queueModel.get(i).state === "queued") {
+                root.activeJob = i;
+                queueModel.setProperty(i, "state", "running");
+                var e = queueModel.get(i);
+                workerProc.command = e.kind === "remux"
+                    ? ["bash", root.cobaltScript, "remux", e.arg]
+                    : ["bash", root.cobaltScript, "download", e.arg, e.mode];
+                workerProc.running = true;
+                return;
+            }
+        }
+    }
+
+    function onWorkerLine(line) {
+        if (root.activeJob < 0)
+            return;
+        var i = root.activeJob;
+        var t = ("" + line).split("\t");
+        if (t[0] === "START") {
+            if (t[1]) queueModel.setProperty(i, "name", t[1]);
+        } else if (t[0] === "PROGRESS") {
+            queueModel.setProperty(i, "pct", parseInt(t[1]) || 0);
+        } else if (t[0] === "SAVED") {
+            if (t[1]) queueModel.setProperty(i, "name", t[1]);
+            queueModel.setProperty(i, "state", "done");
+        } else if (t[0] === "ERROR") {
+            queueModel.setProperty(i, "msg", t[1] || "failed");
+            queueModel.setProperty(i, "state", "error");
+        }
+    }
+
+    function clearQueueDone() {
+        for (var i = queueModel.count - 1; i >= 0; i--) {
+            var s = queueModel.get(i).state;
+            if (s === "done" || s === "error")
+                queueModel.remove(i);
+        }
     }
 
     FolderListModel {
@@ -212,6 +315,10 @@ Singleton {
 
     ListModel {
         id: deviceModel
+    }
+
+    ListModel {
+        id: queueModel
     }
 
     Process {
@@ -277,17 +384,26 @@ Singleton {
     }
 
     Process {
-        id: clipProc
+        id: dlPasteProc
         command: ["wl-paste", "-n"]
-        stdout: StdioCollector { id: clipOut }
-        onExited: {
-            var u = ("" + clipOut.text).trim();
-            if (/^https?:\/\/\S+/.test(u))
-                root.downloadUrl = u;
-            else {
-                root.taskState = "error";
-                root.taskMsg = "Copy a link first, then tap download";
+        stdout: StdioCollector { id: dlPasteOut }
+        onExited: root.dlText = ("" + dlPasteOut.text).trim()
+    }
+
+    Process {
+        id: workerProc
+        stdout: SplitParser {
+            splitMarker: "\n"
+            onRead: (line) => root.onWorkerLine(line)
+        }
+        onExited: (code) => {
+            if (root.activeJob >= 0) {
+                var st = queueModel.get(root.activeJob).state;
+                if (st === "running")
+                    queueModel.setProperty(root.activeJob, "state", code === 0 ? "done" : "error");
             }
+            root.activeJob = -1;
+            root.pumpQueue();
         }
     }
 

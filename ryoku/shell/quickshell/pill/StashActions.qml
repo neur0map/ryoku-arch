@@ -16,6 +16,8 @@ Row {
 
     property real s: 1
     property bool hasFiles: false
+    property bool hasMedia: false
+    property bool hasInstallable: false
 
     signal sendAll()
     signal sendText()
@@ -127,13 +129,13 @@ Row {
     ActionTile {
         glyph: "compress"
         label: "Compress"
-        active: root.hasFiles
+        active: root.hasMedia
         onTriggered: root.compress()
     }
     ActionTile {
         glyph: "install"
         label: "Install"
-        active: root.hasFiles
+        active: root.hasInstallable
         onTriggered: root.install()
     }
 }
