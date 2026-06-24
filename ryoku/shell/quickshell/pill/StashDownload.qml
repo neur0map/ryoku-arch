@@ -54,7 +54,7 @@ Rectangle {
         }
     }
 
-    // ── Header: cobalt mark + tabs + close ──────────────────────────────
+    // ── Header: back + cobalt mark + tabs ───────────────────────────────
     Item {
         id: head
         anchors.top: parent.top
@@ -65,8 +65,17 @@ Rectangle {
         anchors.rightMargin: 6 * root.s
         height: 24 * root.s
 
-        Row {
+        SheetBack {
+            id: backBtn
             anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            s: root.s
+            onBack: Stash.closeDownload()
+        }
+
+        Row {
+            anchors.left: backBtn.right
+            anchors.leftMargin: 12 * root.s
             anchors.verticalCenter: parent.verticalCenter
             spacing: 12 * root.s
 
@@ -95,32 +104,6 @@ Rectangle {
                 spacing: 4 * root.s
                 Tab { key: "download"; label: "Download" }
                 Tab { key: "remux"; label: "Remux" }
-            }
-        }
-
-        Rectangle {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            width: 22 * root.s
-            height: 22 * root.s
-            radius: Motion.rSmall * root.s
-            color: closeArea.containsMouse ? Theme.frameBg : "transparent"
-            border.width: closeArea.containsMouse ? 1 : 0
-            border.color: Theme.frameBorder
-            Behavior on color { ColorAnimation { duration: Motion.fast } }
-            GlyphIcon {
-                anchors.centerIn: parent
-                width: 12 * root.s; height: 12 * root.s
-                name: "close"
-                color: closeArea.containsMouse ? Theme.cream : Theme.iconDim
-                stroke: 1.7
-            }
-            MouseArea {
-                id: closeArea
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: Stash.closeDownload()
             }
         }
     }

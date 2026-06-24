@@ -118,6 +118,23 @@
   palette stays static.
 
 ### Changed
+- `quickshell/pill`: Stash, Tools, and Utilities are unified into one wide
+  `力 CONTROL DECK` surface instead of three separate pill popouts, opened by
+  `Super+D` (the old `Super+Z` and `Super+U` binds are removed). Single view, no
+  sub-tabs: a 力 masthead over two hairline-split columns (Stash left; Tools over
+  Utilities right), corner registration ticks, mono micro-labels and tabular
+  figures in the hub Profile dossier idiom. Stash drops onto a filling tray with
+  the Profile's square spec grid; its action bar is evenly spaced; the Send,
+  Receive, Download and Task sub-screens share one consistent top-left back
+  control (`SheetBack`). New `DeckSurface`, `DeckStash`, `DeckTools`,
+  `DeckUtilities`, `DeckSegmented`, `SheetBack`, `MicroLabel`, `SpecRow`,
+  `CornerTicks`; the standalone `StashSurface`, `ToolkitSurface`, and
+  `UtilitiesSurface` are retired, and the old Caffeine tile drops out (Keep-Awake
+  covers it).
+- `quickshell/pill`: the battery surface shows real Health now, read from the
+  physical battery device (the synthetic UPower display device reports no
+  capacity), and Rate/Time read `0 W`/`Full` on AC instead of bare dashes. The
+  soul bead no longer docks on the percentage digits.
 - `quickshell/pill`: the island is reworked into the Ryoku carbon-dossier
   language (matching the hub Profile). A 力 foundry stamp leads, the clock is
   tabular over a mono date/weather line, corner registration ticks frame the

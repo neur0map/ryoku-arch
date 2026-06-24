@@ -1,39 +1,39 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import Quickshell.Bluetooth
 import "Singletons"
 
 /**
- * Utilities surface grown from the pill centre (Super+U). Four cards ported from
- * the legacy bottom-right panel: Keep-Awake with a live elapsed counter, a Screen
- * Recorder with a record-mode dropdown (display / region / +sound) plus running
- * controls, quick toggles (wifi / bluetooth / mic / DND), and a recordings list
- * with play / open-folder / trash. Recording is driven by the Recorder singleton
- * (ryoku-cmd-screenrecord); Keep-Awake reuses the shared Flags state.
+ * Utilities section of the 力 deck: a flat-carbon dossier of Recorder,
+ * Keep-Awake, quick toggles and the recordings list, ported from
+ * UtilitiesSurface. Polling is gated on `active` so the wifi / mic / night
+ * probes only run while the deck is open. `requestClose()` dismisses the deck
+ * before any screen-grab action (slurp region, gpu-screen-recorder, xdg-open)
+ * so the panel is never captured. Content is column-wide; `implicitHeight`
+ * sums fixed group heights and is independent of width. The deck renders the
+ * "Utilities" eyebrow above us, so this component is content-only and groups
+ * within carry their own micro-labels.
  */
-PillSurface {
+Item {
     id: root
 
-    mTop: 15
-    mLeft: 15
-    mRight: 15
-    mBottom: 15
+    property real s: 1
+    property bool active: true
+    signal requestClose()
 
-    ameForm: "off"
+    implicitHeight: content.implicitHeight
 
-    implicitHeight: col.implicitHeight
-
+    readonly property string scripts: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/"
     readonly property string recDir: (Quickshell.env("HOME") || "") + "/Videos/Recordings"
 
     // ── Keep-Awake elapsed ────────────────────────────────────────────────
     property int awakeElapsed: 0
     Timer {
         interval: 1000
-        running: root.open && Flags.keepAwake && Flags.keepAwakeSince > 0
+        running: root.active && Flags.keepAwake && Flags.keepAwakeSince > 0
         repeat: true
         triggeredOnStart: true
         onTriggered: root.awakeElapsed = Math.max(0, Math.floor((Date.now() - Flags.keepAwakeSince) / 1000))
@@ -88,7 +88,7 @@ PillSurface {
         return (mb / 1024).toFixed(1) + " GB";
     }
 
-    onOpenChanged: if (open) {
+    onActiveChanged: if (active) {
         refreshRecs();
         wifiProc.running = true;
         micProc.running = true;
@@ -142,7 +142,7 @@ PillSurface {
     Timer { id: micPoll; interval: 600; onTriggered: micProc.running = true }
     Timer {
         interval: 4000
-        running: root.open
+        running: root.active
         repeat: true
         onTriggered: { wifiProc.running = true; micProc.running = true; nightProc.running = true; }
     }
@@ -177,7 +177,7 @@ PillSurface {
     property bool menuOpen: false
 
     // Recording grabs the screen: a region mode runs slurp, and gpu-screen-recorder
-    // would otherwise capture this very panel. Close the surface, let the morph
+    // would otherwise capture this very panel. Close the deck, let the morph
     // settle, then start, so slurp gets a clear screen and the panel stays out of
     // the recording.
     property var pendingRec: null
@@ -208,65 +208,16 @@ PillSurface {
     }
 
     // ── Reusable bits ─────────────────────────────────────────────────────
-    component Card: Rectangle {
-        default property alias kids: inner.data
-        property real ipad: 12
-        width: parent ? parent.width : 0
-        radius: 14 * root.s
-        color: Theme.cardTop
-        border.width: 1
-        border.color: Theme.border
-        implicitHeight: inner.implicitHeight + ipad * 2 * root.s
-        Column {
-            id: inner
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.margins: parent.ipad * root.s
-            spacing: 10 * root.s
-        }
-    }
 
-    component Eyebrow: Text {
-        color: Theme.subtle
-        font.family: Theme.font
-        font.pixelSize: 9.5 * root.s
-        font.weight: Font.DemiBold
-        font.capitalization: Font.AllUppercase
-        font.letterSpacing: 1.4 * root.s
-    }
-
-    component IconChip: Rectangle {
-        property string glyph: ""
-        property bool lit: false
-        width: 34 * root.s
-        height: 34 * root.s
-        radius: width / 2
-        color: lit ? Theme.brand : Theme.tileBg
-        border.width: 1
-        border.color: lit ? Theme.brand : Theme.border
-        Behavior on color { ColorAnimation { duration: Motion.fast } }
-        property alias icon: ic
-        GlyphIcon {
-            id: ic
-            anchors.centerIn: parent
-            width: 17 * root.s
-            height: 17 * root.s
-            name: parent.glyph
-            color: parent.lit ? Theme.cardTop : Theme.iconDim
-            stroke: 1.7
-        }
-    }
-
-    // A flat icon button (play / folder / trash / pause / stop / chevron).
+    // Flat icon button (play / folder / trash / pause / stop). Tints carry the
+    // semantics: vermilion for destructive, cream for neutral, iconDim for rest.
     component IconBtn: Rectangle {
         property string glyph: ""
         property color tint: Theme.iconDim
-        property real box: 30
+        property real box: 26
         signal clicked()
         width: box * root.s
         height: box * root.s
-        radius: 9 * root.s
         color: hov.hovered ? Theme.frameBg : "transparent"
         Behavior on color { ColorAnimation { duration: Motion.fast } }
         GlyphIcon {
@@ -275,217 +226,166 @@ PillSurface {
             height: parent.box * 0.5 * root.s
             name: parent.glyph
             color: parent.tint
-            stroke: 1.7
+            stroke: 1.6
         }
-        HoverHandler { id: hov }
+        HoverHandler { id: hov; cursorShape: Qt.PointingHandCursor }
         TapHandler { onTapped: parent.clicked() }
     }
 
-    component QToggle: Rectangle {
-        id: qt
+    // Flat quick-toggle tile: glyph-only, lights vermilion when on. Square,
+    // hairline-bordered at rest, frameBg on hover.
+    component ToggleTile: Rectangle {
+        id: tt
         property string glyph: ""
         property bool on: false
         signal acted()
-        Layout.fillWidth: true
-        implicitHeight: 42 * root.s
-        radius: 12 * root.s
-        color: qt.on ? Theme.brand : (qhov.hovered ? Theme.frameBg : Theme.tileBg)
+        height: 36 * root.s
+        color: tt.on ? Theme.brand : (tHov.hovered ? Theme.frameBg : "transparent")
         border.width: 1
-        border.color: qt.on ? Theme.brand : (qhov.hovered ? Theme.frameBorder : Theme.border)
+        border.color: tt.on ? Theme.brand : (tHov.hovered ? Theme.frameBorder : Theme.border)
         Behavior on color { ColorAnimation { duration: Motion.fast } }
         Behavior on border.color { ColorAnimation { duration: Motion.fast } }
         GlyphIcon {
             anchors.centerIn: parent
-            width: 18 * root.s
-            height: 18 * root.s
-            name: qt.glyph
-            color: qt.on ? Theme.cardTop : (qhov.hovered ? Theme.cream : Theme.iconDim)
-            stroke: 1.7
+            width: 15 * root.s
+            height: 15 * root.s
+            name: tt.glyph
+            color: tt.on ? Theme.cream : (tHov.hovered ? Theme.cream : Theme.iconDim)
+            stroke: 1.6
         }
-        HoverHandler { id: qhov; cursorShape: Qt.PointingHandCursor }
-        TapHandler { onTapped: qt.acted() }
+        HoverHandler { id: tHov; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: tt.acted() }
     }
 
-    // ── Cards ─────────────────────────────────────────────────────────────
+    // ── Content stack ─────────────────────────────────────────────────────
     Column {
-        id: col
+        id: content
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: 10 * root.s
+        spacing: 14 * root.s
 
-        // 1) KEEP AWAKE
-        Card {
-            Row {
+        // ── RECORD ────────────────────────────────────────────────────────
+        Column {
+            width: parent.width
+            spacing: 9 * root.s
+
+            // Eyebrow + live status pill (right-aligned).
+            Item {
                 width: parent.width
-                spacing: 11 * root.s
+                height: recEyebrow.implicitHeight
 
-                IconChip {
-                    anchors.verticalCenter: parent.verticalCenter
-                    glyph: "coffee"
-                    lit: Flags.keepAwake
-                }
+                MicroLabel { id: recEyebrow; label: "Record"; s: root.s }
 
-                Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - 34 * root.s - 11 * root.s - sw.width - 11 * root.s
-                    spacing: 1 * root.s
-                    Text {
-                        text: "Keep Awake"
-                        color: Theme.cream
-                        font.family: Theme.font
-                        font.pixelSize: 13 * root.s
-                        font.weight: Font.Medium
-                    }
-                    Text {
-                        width: parent.width
-                        elide: Text.ElideRight
-                        text: Flags.keepAwake
-                            ? "Active for " + root.fmtAwake(root.awakeElapsed)
-                            : "Normal power management"
-                        color: Flags.keepAwake ? Theme.brand : Theme.faint
-                        font.family: Theme.font
-                        font.pixelSize: 10 * root.s
-                    }
-                }
-
-                // switch
-                Rectangle {
-                    id: sw
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 40 * root.s
-                    height: 23 * root.s
-                    radius: height / 2
-                    color: Flags.keepAwake ? Theme.brand : Theme.tileBg
-                    border.width: 1
-                    border.color: Flags.keepAwake ? Theme.brand : Theme.border
-                    Behavior on color { ColorAnimation { duration: Motion.fast } }
-                    Rectangle {
-                        width: 17 * root.s
-                        height: 17 * root.s
-                        radius: width / 2
-                        anchors.verticalCenter: parent.verticalCenter
-                        x: Flags.keepAwake ? parent.width - width - 3 * root.s : 3 * root.s
-                        color: Flags.keepAwake ? Theme.cardTop : Theme.iconDim
-                        Behavior on x { NumberAnimation { duration: 130 } }
-                    }
-                    TapHandler { onTapped: Flags.keepAwake = !Flags.keepAwake }
-                }
-            }
-        }
-
-        // 2) SCREEN RECORDER
-        Card {
-            Row {
-                width: parent.width
-                spacing: 11 * root.s
-
-                IconChip {
-                    anchors.verticalCenter: parent.verticalCenter
-                    glyph: "record"
-                    lit: Recorder.active
-                }
-                Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 1 * root.s
-                    Text {
-                        text: "Screen Recorder"
-                        color: Theme.cream
-                        font.family: Theme.font
-                        font.pixelSize: 13 * root.s
-                        font.weight: Font.Medium
-                    }
-                    Text {
-                        text: Recorder.paused ? "Recording paused"
-                            : Recorder.active ? "Recording running"
-                            : "Recording off"
-                        color: Recorder.active ? Theme.brand : Theme.faint
-                        font.family: Theme.font
-                        font.pixelSize: 10 * root.s
-                    }
+                Text {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: recEyebrow.verticalCenter
+                    text: Recorder.paused
+                        ? "PAUSED"
+                        : (Recorder.active ? Recorder.elapsedText : "OFF")
+                    color: Recorder.active ? Theme.brand : Theme.faint
+                    font.family: Theme.mono
+                    font.pixelSize: 10 * root.s
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 1.4 * root.s
+                    font.capitalization: Font.AllUppercase
+                    font.features: { "tnum": 1 }
                 }
             }
 
-            // Running controls
-            Row {
+            // Running controls: a pulsing vermilion REC tag, elapsed time in
+            // tabular figures, then pause + stop on the right.
+            Item {
                 width: parent.width
                 visible: Recorder.active
-                spacing: 9 * root.s
+                height: 30 * root.s
 
-                Rectangle {
+                Row {
+                    anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    width: recPill.implicitWidth + 18 * root.s
-                    height: 24 * root.s
-                    radius: height / 2
-                    color: Recorder.paused ? Theme.faint : Theme.brand
-                    opacity: Recorder.paused ? 1 : Recorder.pulse
+                    spacing: 9 * root.s
+
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: recPillText.implicitWidth + 14 * root.s
+                        height: 20 * root.s
+                        color: Recorder.paused ? Theme.faint : Theme.brand
+                        opacity: Recorder.paused ? 1 : Recorder.pulse
+                        Text {
+                            id: recPillText
+                            anchors.centerIn: parent
+                            text: Recorder.paused ? "PAUSED" : "REC"
+                            color: Theme.cream
+                            font.family: Theme.mono
+                            font.pixelSize: 9.5 * root.s
+                            font.weight: Font.Bold
+                            font.letterSpacing: 1.2 * root.s
+                        }
+                    }
                     Text {
-                        id: recPill
-                        anchors.centerIn: parent
-                        text: Recorder.paused ? "PAUSED" : "REC"
-                        color: Theme.cardTop
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Recorder.elapsedText
+                        color: Theme.cream
                         font.family: Theme.font
-                        font.pixelSize: 10 * root.s
-                        font.weight: Font.Bold
-                        font.letterSpacing: 1 * root.s
+                        font.pixelSize: 13 * root.s
+                        font.features: { "tnum": 1 }
                     }
                 }
-                Text {
+
+                Row {
+                    anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Recorder.elapsedText
-                    color: Theme.cream
-                    font.family: Theme.font
-                    font.pixelSize: 13 * root.s
-                }
-                Item { width: 1; height: 1 }
-                IconBtn {
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: Recorder.canPause
-                    glyph: Recorder.paused ? "play" : "pause"
-                    tint: Theme.cream
-                    onClicked: Recorder.togglePause()
-                }
-                IconBtn {
-                    anchors.verticalCenter: parent.verticalCenter
-                    glyph: "stop"
-                    tint: Theme.vermLit
-                    onClicked: Recorder.stop()
+                    spacing: 0
+                    IconBtn {
+                        visible: Recorder.canPause
+                        glyph: Recorder.paused ? "play" : "pause"
+                        tint: Theme.cream
+                        onClicked: Recorder.togglePause()
+                    }
+                    IconBtn {
+                        glyph: "stop"
+                        tint: Theme.vermLit
+                        onClicked: Recorder.stop()
+                    }
                 }
             }
 
-            // Record button + dropdown (idle)
+            // Idle Record button: a flat tile that opens the mode dropdown.
             Rectangle {
+                id: recBtn
                 width: parent.width
                 visible: !Recorder.active
-                radius: 11 * root.s
+                height: 32 * root.s
                 color: recBtnHov.hovered ? Theme.frameBg : Theme.tileBg
                 border.width: 1
                 border.color: root.menuOpen ? Theme.brand : Theme.border
-                implicitHeight: 38 * root.s
                 Behavior on color { ColorAnimation { duration: Motion.fast } }
+                Behavior on border.color { ColorAnimation { duration: Motion.fast } }
+
                 Row {
                     anchors.centerIn: parent
                     spacing: 8 * root.s
                     GlyphIcon {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 15 * root.s
-                        height: 15 * root.s
+                        width: 13 * root.s
+                        height: 13 * root.s
                         name: "record"
                         color: Theme.brand
                         stroke: 1.7
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "Record"
+                        text: "RECORD"
                         color: Theme.cream
-                        font.family: Theme.font
-                        font.pixelSize: 12.5 * root.s
-                        font.weight: Font.Medium
+                        font.family: Theme.mono
+                        font.pixelSize: 10.5 * root.s
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 1.6 * root.s
                     }
                     GlyphIcon {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 14 * root.s
-                        height: 14 * root.s
+                        width: 11 * root.s
+                        height: 11 * root.s
                         name: "chevron-down"
                         color: Theme.subtle
                         stroke: 1.7
@@ -493,15 +393,15 @@ PillSurface {
                         Behavior on rotation { NumberAnimation { duration: Motion.fast } }
                     }
                 }
-                HoverHandler { id: recBtnHov }
+                HoverHandler { id: recBtnHov; cursorShape: Qt.PointingHandCursor }
                 TapHandler { onTapped: root.menuOpen = !root.menuOpen }
             }
 
-            // Mode menu (inline expand)
+            // Inline mode dropdown: flat rows, hover-highlighted.
             Column {
                 width: parent.width
                 visible: root.menuOpen && !Recorder.active
-                spacing: 4 * root.s
+                spacing: 0
 
                 Repeater {
                     model: root.recModes
@@ -509,8 +409,7 @@ PillSurface {
                         id: mItem
                         required property var modelData
                         width: parent.width
-                        height: 34 * root.s
-                        radius: 9 * root.s
+                        height: 30 * root.s
                         color: mHov.hovered ? Theme.frameBg : "transparent"
                         Behavior on color { ColorAnimation { duration: Motion.fast } }
                         Row {
@@ -520,8 +419,8 @@ PillSurface {
                             spacing: 9 * root.s
                             GlyphIcon {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 15 * root.s
-                                height: 15 * root.s
+                                width: 13 * root.s
+                                height: 13 * root.s
                                 name: mItem.modelData.glyph
                                 color: Theme.iconDim
                                 stroke: 1.6
@@ -531,51 +430,151 @@ PillSurface {
                                 text: mItem.modelData.label
                                 color: Theme.cream
                                 font.family: Theme.font
-                                font.pixelSize: 12 * root.s
+                                font.pixelSize: 11.5 * root.s
                             }
                         }
-                        HoverHandler { id: mHov }
-                        TapHandler {
-                            onTapped: {
-                                root.startRecording(mItem.modelData.args);
-                            }
-                        }
+                        HoverHandler { id: mHov; cursorShape: Qt.PointingHandCursor }
+                        TapHandler { onTapped: root.startRecording(mItem.modelData.args) }
                     }
                 }
             }
         }
 
-        // 3) QUICK TOGGLES
-        Card {
-            Eyebrow { text: "Quick Toggles" }
+        Rectangle { width: parent.width; height: 1; color: Theme.hair }
 
-            RowLayout {
+        // ── KEEP AWAKE ────────────────────────────────────────────────────
+        Column {
+            width: parent.width
+            spacing: 9 * root.s
+
+            MicroLabel { label: "Keep Awake"; s: root.s }
+
+            Item {
                 width: parent.width
-                spacing: 8 * root.s
-                QToggle { glyph: "wifi"; on: root.wifiOn; onActed: root.toggleWifi() }
-                QToggle { glyph: "bluetooth"; on: root.btOn; onActed: root.toggleBt() }
-                QToggle { glyph: root.micMuted ? "mic-off" : "mic"; on: !root.micMuted; onActed: root.toggleMic() }
-                QToggle { glyph: "dnd"; on: Flags.dnd; onActed: Flags.dnd = !Flags.dnd }
-                QToggle { glyph: "moon"; on: root.nightOn; onActed: root.toggleNight() }
+                height: 32 * root.s
+
+                Column {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 2 * root.s
+                    Text {
+                        text: Flags.keepAwake ? root.fmtAwake(root.awakeElapsed) : "OFF"
+                        color: Flags.keepAwake ? Theme.brand : Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 14 * root.s
+                        font.weight: Font.DemiBold
+                        font.features: { "tnum": 1 }
+                    }
+                    Text {
+                        text: Flags.keepAwake ? "ACTIVE" : "NORMAL POWER MANAGEMENT"
+                        color: Theme.faint
+                        font.family: Theme.mono
+                        font.pixelSize: 8.5 * root.s
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 1.4 * root.s
+                        font.capitalization: Font.AllUppercase
+                    }
+                }
+
+                // Flat horizontal switch, lights vermilion when active.
+                Rectangle {
+                    id: sw
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 38 * root.s
+                    height: 20 * root.s
+                    color: Flags.keepAwake ? Theme.brand : "transparent"
+                    border.width: 1
+                    border.color: Flags.keepAwake ? Theme.brand : Theme.border
+                    Behavior on color { ColorAnimation { duration: Motion.fast } }
+                    Behavior on border.color { ColorAnimation { duration: Motion.fast } }
+                    Rectangle {
+                        width: 14 * root.s
+                        height: 14 * root.s
+                        anchors.verticalCenter: parent.verticalCenter
+                        x: Flags.keepAwake ? parent.width - width - 3 * root.s : 3 * root.s
+                        color: Flags.keepAwake ? Theme.cream : Theme.iconDim
+                        Behavior on x { NumberAnimation { duration: 130 } }
+                    }
+                    HoverHandler { cursorShape: Qt.PointingHandCursor }
+                    TapHandler { onTapped: Flags.keepAwake = !Flags.keepAwake }
+                }
             }
         }
 
-        // 4) RECORDINGS
-        Card {
+        Rectangle { width: parent.width; height: 1; color: Theme.hair }
+
+        // ── TOGGLES ───────────────────────────────────────────────────────
+        Column {
+            width: parent.width
+            spacing: 9 * root.s
+
+            MicroLabel { label: "Toggles"; s: root.s }
+
             Row {
+                id: togglesRow
                 width: parent.width
-                spacing: 8 * root.s
-                GlyphIcon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 15 * root.s
-                    height: 15 * root.s
-                    name: "list"
-                    color: Theme.iconDim
-                    stroke: 1.7
+                spacing: 6 * root.s
+                // Evenly divide the column into five tiles; the deck gives us
+                // ~280 scale-units so each tile is ~51 units wide.
+                readonly property real tileW: (width - spacing * 4) / 5
+
+                ToggleTile {
+                    width: togglesRow.tileW
+                    glyph: "wifi"
+                    on: root.wifiOn
+                    onActed: root.toggleWifi()
                 }
-                Eyebrow {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Recordings"
+                ToggleTile {
+                    width: togglesRow.tileW
+                    glyph: "bluetooth"
+                    on: root.btOn
+                    onActed: root.toggleBt()
+                }
+                ToggleTile {
+                    width: togglesRow.tileW
+                    glyph: root.micMuted ? "mic-off" : "mic"
+                    on: !root.micMuted
+                    onActed: root.toggleMic()
+                }
+                ToggleTile {
+                    width: togglesRow.tileW
+                    glyph: "dnd"
+                    on: Flags.dnd
+                    onActed: Flags.dnd = !Flags.dnd
+                }
+                ToggleTile {
+                    width: togglesRow.tileW
+                    glyph: "moon"
+                    on: root.nightOn
+                    onActed: root.toggleNight()
+                }
+            }
+        }
+
+        Rectangle { width: parent.width; height: 1; color: Theme.hair }
+
+        // ── RECORDINGS ────────────────────────────────────────────────────
+        Column {
+            width: parent.width
+            spacing: 9 * root.s
+
+            Item {
+                width: parent.width
+                height: recEye.implicitHeight
+
+                MicroLabel { id: recEye; label: "Recordings"; s: root.s }
+
+                Text {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: recEye.verticalCenter
+                    text: recModel.count < 10 ? "0" + recModel.count : String(recModel.count)
+                    color: Theme.faint
+                    font.family: Theme.mono
+                    font.pixelSize: 10 * root.s
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 1.4 * root.s
+                    font.features: { "tnum": 1 }
                 }
             }
 
@@ -590,10 +589,12 @@ PillSurface {
             ListView {
                 width: parent.width
                 visible: recModel.count > 0
-                implicitHeight: Math.min(recModel.count, 4) * 34 * root.s
+                // Height is a fixed multiple of the row height (cap at 4 rows);
+                // never derived from width, so the column lays out clean.
+                implicitHeight: Math.min(recModel.count, 4) * 30 * root.s
                 clip: true
                 model: recModel
-                spacing: 2 * root.s
+                spacing: 0
                 boundsBehavior: Flickable.StopAtBounds
 
                 delegate: Rectangle {
@@ -602,17 +603,16 @@ PillSurface {
                     required property string label
                     required property string size
                     width: ListView.view.width
-                    height: 32 * root.s
-                    radius: 8 * root.s
+                    height: 30 * root.s
                     color: rHov.hovered ? Theme.frameBg : "transparent"
                     Behavior on color { ColorAnimation { duration: Motion.fast } }
                     HoverHandler { id: rHov }
 
                     Text {
                         anchors.left: parent.left
-                        anchors.leftMargin: 9 * root.s
+                        anchors.leftMargin: 4 * root.s
                         anchors.right: sizeText.left
-                        anchors.rightMargin: 6 * root.s
+                        anchors.rightMargin: 8 * root.s
                         anchors.verticalCenter: parent.verticalCenter
                         text: recItem.label
                         elide: Text.ElideRight
@@ -624,11 +624,11 @@ PillSurface {
                     Text {
                         id: sizeText
                         anchors.right: actions.left
-                        anchors.rightMargin: 8 * root.s
+                        anchors.rightMargin: 6 * root.s
                         anchors.verticalCenter: parent.verticalCenter
                         text: recItem.size
                         color: Theme.faint
-                        font.family: Theme.font
+                        font.family: Theme.mono
                         font.pixelSize: 9.5 * root.s
                         font.features: { "tnum": 1 }
                     }
@@ -636,23 +636,22 @@ PillSurface {
                     Row {
                         id: actions
                         anchors.right: parent.right
-                        anchors.rightMargin: 4 * root.s
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 0
                         IconBtn {
                             glyph: "play"
-                            box: 28
+                            box: 24
                             tint: Theme.cream
                             onClicked: { Quickshell.execDetached(["xdg-open", recItem.path]); root.requestClose(); }
                         }
                         IconBtn {
                             glyph: "folder"
-                            box: 28
+                            box: 24
                             onClicked: { Quickshell.execDetached(["xdg-open", root.recDir]); root.requestClose(); }
                         }
                         IconBtn {
                             glyph: "trash"
-                            box: 28
+                            box: 24
                             tint: Theme.vermLit
                             onClicked: {
                                 Quickshell.execDetached(["sh", "-c", "gio trash \"$1\" 2>/dev/null || rm -f \"$1\"", "_", recItem.path]);

@@ -45,6 +45,7 @@ Singleton {
     readonly property real shadowOpacity: 0.5
     readonly property string font: "Inter"
     readonly property string fontJp: "Noto Sans CJK JP"
+    readonly property string mono: "JetBrainsMono Nerd Font"
 
     /**
      * MPRIS trackArtists arrives as a JS array from some players and as a

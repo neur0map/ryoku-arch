@@ -93,9 +93,7 @@ Item {
     readonly property real batteryW: 316 * s
     readonly property real inboxW: 340 * s
     readonly property real sysinfoW: 360 * s
-    readonly property real stashW: 452 * s
-    readonly property real toolkitW: 418 * s
-    readonly property real utilitiesW: 360 * s
+    readonly property real deckW: 660 * s
     readonly property real voiceW: 320 * s
     readonly property real toastW: 342 * s
     readonly property real keyringW: 380 * s
@@ -190,9 +188,9 @@ Item {
         inbox:     () => Qt.size(inboxW, inbox.implicitHeight + 26 * s),
         battery:   () => Qt.size(batteryW, battery.implicitHeight + 26 * s),
         sysinfo:   () => Qt.size(sysinfoW, sysinfo.implicitHeight + 32 * s),
-        stash:     () => Qt.size(stashW, stash.implicitHeight + 28 * s),
-        toolkit:   () => Qt.size(toolkitW, toolkit.implicitHeight + 28 * s),
-        utilities: () => Qt.size(utilitiesW, utilities.implicitHeight + 30 * s),
+        stash:     () => Qt.size(deckW, deck.implicitHeight + 28 * s),
+        toolkit:   () => Qt.size(deckW, deck.implicitHeight + 28 * s),
+        utilities: () => Qt.size(deckW, deck.implicitHeight + 28 * s),
         keyring:   () => Qt.size(keyringW, keyring.implicitHeight + 32 * s),
         voice:     () => Qt.size(voiceW, voice.implicitHeight + 26 * s),
         workspaces: () => Qt.size(workspaces.desiredW, workspaces.implicitHeight + 32 * s),
@@ -336,9 +334,9 @@ Item {
         : (linkOpen ? link
         : (inboxOpen ? inbox
         : (sysinfoOpen ? sysinfo
-        : (stashOpen ? stash
-        : (toolkitOpen ? toolkit
-        : (utilitiesOpen ? utilities
+        : (stashOpen ? deck
+        : (toolkitOpen ? deck
+        : (utilitiesOpen ? deck
         : (voiceOpen ? voice
         : (workspacesOpen ? workspaces
         : (batteryOpen ? battery : null))))))))))))
@@ -843,36 +841,12 @@ Item {
         onRequestClose: pill.requestClose()
     }
 
-    StashSurface {
-        id: stash
+    DeckSurface {
+        id: deck
         s: pill.s
-        open: pill.stashOpen
+        open: pill.stashOpen || pill.toolkitOpen || pill.utilitiesOpen
         morphCloseness: pill.morphCloseness
-        shown: pill.displayedSurface === "stash"
-        openProgress: pill.openProgress
-        openW: pill.openW
-        openH: pill.openH
-        onRequestClose: pill.requestClose()
-    }
-
-    ToolkitSurface {
-        id: toolkit
-        s: pill.s
-        open: pill.toolkitOpen
-        morphCloseness: pill.morphCloseness
-        shown: pill.displayedSurface === "toolkit"
-        openProgress: pill.openProgress
-        openW: pill.openW
-        openH: pill.openH
-        onRequestClose: pill.requestClose()
-    }
-
-    UtilitiesSurface {
-        id: utilities
-        s: pill.s
-        open: pill.utilitiesOpen
-        morphCloseness: pill.morphCloseness
-        shown: pill.displayedSurface === "utilities"
+        shown: pill.displayedSurface === "stash" || pill.displayedSurface === "toolkit" || pill.displayedSurface === "utilities"
         openProgress: pill.openProgress
         openW: pill.openW
         openH: pill.openH

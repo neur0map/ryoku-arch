@@ -10,7 +10,7 @@ import "Singletons"
  * Ryoku wave is the charge gauge; a 2x2 stat grid (rate / time / capacity /
  * health) reads off mono micro-labels and tabular figures beneath a hairline.
  * Charging warms the percentage, subline and wave to the flame tones. Exposes
- * `implicitHeight` from its content and docks Ame as a soul at the percentage.
+ * `implicitHeight` from its content.
  */
 PillSurface {
     id: root
@@ -22,14 +22,7 @@ PillSurface {
 
     implicitHeight: content.implicitHeight
 
-    readonly property point heroPoint: {
-        void root.width;
-        void root.height;
-        return pctText.mapToItem(root, pctText.width / 2, pctText.height / 2);
-    }
-
-    ameForm: open ? "soul" : "off"
-    amePoint: heroPoint
+    ameForm: "off"
 
     Column {
         id: content
@@ -200,12 +193,12 @@ PillSurface {
                 label: "Rate"
                 value: Math.abs(Battery.rateW) >= 0.05
                     ? (Battery.rateW > 0 ? "+" : "\u2212") + Math.abs(Battery.rateW).toFixed(1) + " W"
-                    : "\u2014"
+                    : "0 W"
                 warm: Battery.charging
             }
             Stat {
                 label: "Time"
-                value: Battery.hasTime ? Battery.timeStr : "\u2014"
+                value: Battery.hasTime ? Battery.timeStr : (Battery.full ? "Full" : "\u2014")
             }
             Stat {
                 label: "Capacity"

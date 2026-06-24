@@ -4,14 +4,14 @@ import QtQuick
 import "Singletons"
 
 /**
- * The stash action bar along the bottom of the surface. Send the whole stash or
- * a typed note over LocalSend, pull a copied link in with yt-dlp, and shrink or
- * install what is already stashed. Actions that act on the files dim when the
- * stash is empty; Text and Download stay live since they bring content in. Tiles
- * lift and light on hover, matching the toolkit surface; a hairline separates the
- * outgoing actions from the ones that manage what is here.
+ * The stash action bar along the bottom of the section: five tiles distributed
+ * evenly across the full width (Send all, Text, Download, Compress, Install), with
+ * a single hairline in the middle gap separating the outgoing actions from the
+ * ones that manage what is already here. Actions that act on the files dim when
+ * the stash is empty; Text and Download stay live since they bring content in.
+ * Tiles lift and light on hover, matching the deck's other tiles.
  */
-Row {
+Item {
     id: root
 
     property real s: 1
@@ -25,7 +25,7 @@ Row {
     signal compress()
     signal install()
 
-    spacing: 6 * s
+    implicitHeight: 50 * s
 
     component ActionTile: Item {
         id: t
@@ -38,7 +38,6 @@ Row {
 
         readonly property bool lit: area.containsMouse && t.active
 
-        width: 56 * root.s
         height: 50 * root.s
         opacity: active ? 1 : 0.3
 
@@ -55,7 +54,7 @@ Row {
             anchors.horizontalCenter: parent.horizontalCenter
             width: 40 * root.s
             height: 34 * root.s
-            radius: Motion.rSmall * root.s
+            radius: 3 * root.s
             color: t.lit ? Theme.frameBg : Theme.tileBg
             border.width: 1
             border.color: t.lit ? Theme.frameBorder : Theme.border
@@ -96,46 +95,51 @@ Row {
         }
     }
 
-    ActionTile {
-        glyph: "send"
-        label: "Send all"
-        active: root.hasFiles
-        onTriggered: root.sendAll()
-    }
-    ActionTile {
-        glyph: "text"
-        label: "Text"
-        onTriggered: root.sendText()
-    }
+    // Five tiles, each an equal fifth of the width, so the chips are evenly spaced.
+    Row {
+        anchors.fill: parent
 
-    // Divider: outgoing on the left, manage-what-is-here on the right.
-    Item {
-        width: 11 * root.s
-        height: 50 * root.s
-        Rectangle {
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -8 * root.s
-            width: 1
-            height: 22 * root.s
-            color: Theme.hair
+        ActionTile {
+            width: root.width / 5
+            glyph: "send"
+            label: "Send all"
+            active: root.hasFiles
+            onTriggered: root.sendAll()
+        }
+        ActionTile {
+            width: root.width / 5
+            glyph: "text"
+            label: "Text"
+            onTriggered: root.sendText()
+        }
+        ActionTile {
+            width: root.width / 5
+            glyph: "download"
+            label: "Download"
+            onTriggered: root.download()
+        }
+        ActionTile {
+            width: root.width / 5
+            glyph: "compress"
+            label: "Compress"
+            active: root.hasMedia
+            onTriggered: root.compress()
+        }
+        ActionTile {
+            width: root.width / 5
+            glyph: "install"
+            label: "Install"
+            active: root.hasInstallable
+            onTriggered: root.install()
         }
     }
 
-    ActionTile {
-        glyph: "download"
-        label: "Download"
-        onTriggered: root.download()
-    }
-    ActionTile {
-        glyph: "compress"
-        label: "Compress"
-        active: root.hasMedia
-        onTriggered: root.compress()
-    }
-    ActionTile {
-        glyph: "install"
-        label: "Install"
-        active: root.hasInstallable
-        onTriggered: root.install()
+    // Hairline in the middle gap: outgoing (Send, Text) | manage (Download, ...).
+    Rectangle {
+        x: root.width * 0.4 - width / 2
+        y: 6 * root.s
+        width: 1
+        height: 22 * root.s
+        color: Theme.hair
     }
 }

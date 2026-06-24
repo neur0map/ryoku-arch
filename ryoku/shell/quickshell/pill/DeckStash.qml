@@ -4,37 +4,39 @@ import QtQuick
 import "Singletons"
 
 /**
- * 力 STASH surface: a drop box over ~/Downloads/Stash that doubles as a LocalSend
- * hub. The grid shows what is stashed (image files render thumbnails, the rest a
- * type glyph); hovering a tile opens, sends, or removes it, and dragging files
- * onto the surface copies them in. The action bar sends the whole stash or a
- * typed note, pulls a copied link in, and shrinks or installs what is here, while
- * the header's Receive switch lets other devices push files straight into the
- * stash. Sending, receiving, and the long-running rail jobs raise focused sheets
- * over the grid; every state lives in the Stash singleton.
+ * Stash section of the 力 deck: a 4-column file board over ~/Downloads/Stash that
+ * doubles as a LocalSend hub. The grid shows what is stashed (image files render
+ * thumbnails, the rest a type glyph); hovering a tile opens, sends, or removes it,
+ * and dragging files onto the section copies them in. The action bar sends the
+ * whole stash or a typed note, pulls a copied link in, and shrinks or installs
+ * what is here, while a compact Receive switch up top lets other devices push
+ * files straight into the stash. Sending, receiving, and the long-running rail
+ * jobs raise focused sheets over the grid; every state lives in the Stash
+ * singleton. Headerless: the deck eyebrow ("Stash") sits above this Item.
  */
-PillSurface {
-    id: root
+Item {
+    id: stash
 
-    mTop: 14
-    mLeft: 18
-    mRight: 18
-    mBottom: 14
+    // Scale + deck activity gate.
+    property real s: 1
+    property bool active: true
 
-    ameForm: "off"
+    // Reserved for any action that needs the deck dismissed (none here:
+    // the stash flows raise their own overlays inside this section).
+    signal requestClose()
 
-    // Fixed cell height and grid height so implicitHeight never depends on the
-    // host-provided openW: the pill derives openW (its width) from this surface's
-    // size, so reading it back here would form a binding loop. Cell WIDTH stays
-    // dynamic (filled to `cols` columns) because that reads the laid-out grid
-    // width, which never flows back into implicitHeight.
+    // Fixed cell + grid height so implicitHeight never depends on the column
+    // width handed down by the deck (a width-driven height would form a loop
+    // with the deck's Math.max(left,right) sizing). Cell WIDTH stays dynamic
+    // (filled to `cols` columns) because that reads the laid-out grid width,
+    // which never flows back into implicitHeight.
     readonly property int cols: 4
     readonly property real cellH: 104 * s
     readonly property real gridH: cellH * 2
-    readonly property real headerH: 22 * s
+    readonly property real headH: 18 * s
     readonly property real actionsH: 50 * s
 
-    implicitHeight: headerH + 12 * s + gridH + 12 * s + actionsH
+    implicitHeight: headH + 6 * s + 1 + 6 * s + gridH + 12 * s + actionsH
 
     // An overlay (send / receive / task sheet) owns the body below the header.
     readonly property bool sheetOpen: Stash.lsState !== "idle"
@@ -54,120 +56,94 @@ PillSurface {
         return "file";
     }
 
-    // ── Header ──────────────────────────────────────────────────────────
+    // ── Header micro-row: count · Receive chip ──────────────────────────
     Item {
         id: header
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: root.headerH
+        height: stash.headH
 
-        Row {
+        // File count, mono caps, tabular figures.
+        Text {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 8 * root.s
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "力"
-                color: Theme.brand
-                font.family: Theme.fontJp
-                font.weight: Font.Medium
-                font.pixelSize: 16 * root.s
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "STASH"
-                color: Theme.subtle
-                font.family: Theme.font
-                font.pixelSize: 10 * root.s
-                font.weight: Font.DemiBold
-                font.capitalization: Font.AllUppercase
-                font.letterSpacing: 1.6 * root.s
-            }
+            text: Stash.count > 0
+                ? Stash.count + (Stash.count === 1 ? " FILE" : " FILES")
+                : "EMPTY"
+            color: Stash.count > 0 ? Theme.dim : Theme.faint
+            font.family: Theme.mono
+            font.pixelSize: 9.5 * stash.s
+            font.weight: Font.DemiBold
+            font.letterSpacing: 2 * stash.s
+            font.capitalization: Font.AllUppercase
+            font.features: { "tnum": 1 }
         }
 
-        Row {
+        // Receive switch: flip it and other LocalSend devices can push files
+        // straight into the stash. Lit while listening, with a breathing dot.
+        Rectangle {
+            id: recvChip
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 10 * root.s
+            readonly property bool on: Stash.recvState !== "idle"
+            width: recvRow.implicitWidth + 16 * stash.s
+            height: 18 * stash.s
+            radius: height / 2
+            color: recvChip.on ? Qt.alpha(Theme.flameGlow, 0.16)
+                : (recvArea.containsMouse ? Theme.frameBg : Theme.tileBg)
+            border.width: 1
+            border.color: recvChip.on ? Qt.alpha(Theme.flameGlow, 0.55)
+                : (recvArea.containsMouse ? Theme.frameBorder : Theme.border)
 
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: Stash.count > 0
-                text: Stash.count + (Stash.count === 1 ? " file" : " files")
-                color: Theme.dim
-                font.family: Theme.font
-                font.pixelSize: 9.5 * root.s
-                font.weight: Font.DemiBold
-                font.capitalization: Font.AllUppercase
-                font.letterSpacing: 1.1 * root.s
-                font.features: { "tnum": 1 }
+            Behavior on color { ColorAnimation { duration: Motion.fast } }
+            Behavior on border.color { ColorAnimation { duration: Motion.fast } }
+
+            Row {
+                id: recvRow
+                anchors.centerIn: parent
+                spacing: 5 * stash.s
+
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 5 * stash.s
+                    height: 5 * stash.s
+                    radius: width / 2
+                    color: recvChip.on ? Theme.flameGlow : Theme.iconDim
+                    SequentialAnimation on opacity {
+                        running: recvChip.on
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 1; to: 0.3; duration: 700; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 0.3; to: 1; duration: 700; easing.type: Easing.InOutSine }
+                    }
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: recvChip.on ? "LISTENING" : "RECEIVE"
+                    color: recvChip.on ? Theme.flameGlow : (recvArea.containsMouse ? Theme.cream : Theme.subtle)
+                    font.family: Theme.mono
+                    font.pixelSize: 8.5 * stash.s
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 1.6 * stash.s
+                    font.capitalization: Font.AllUppercase
+                }
             }
 
-            // Receive switch: flip it and other LocalSend devices can push files
-            // straight into the stash. Lit while listening, with a breathing dot.
-            Rectangle {
-                id: recvChip
-                anchors.verticalCenter: parent.verticalCenter
-                readonly property bool on: Stash.recvState !== "idle"
-                width: recvRow.implicitWidth + 18 * root.s
-                height: 20 * root.s
-                radius: height / 2
-                color: recvChip.on ? Qt.alpha(Theme.flameGlow, 0.16)
-                    : (recvArea.containsMouse ? Theme.frameBg : Theme.tileBg)
-                border.width: 1
-                border.color: recvChip.on ? Qt.alpha(Theme.flameGlow, 0.55)
-                    : (recvArea.containsMouse ? Theme.frameBorder : Theme.border)
-
-                Behavior on color { ColorAnimation { duration: Motion.fast } }
-                Behavior on border.color { ColorAnimation { duration: Motion.fast } }
-
-                Row {
-                    id: recvRow
-                    anchors.centerIn: parent
-                    spacing: 5 * root.s
-
-                    Rectangle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 6 * root.s
-                        height: 6 * root.s
-                        radius: width / 2
-                        color: recvChip.on ? Theme.flameGlow : Theme.iconDim
-                        SequentialAnimation on opacity {
-                            running: recvChip.on
-                            loops: Animation.Infinite
-                            NumberAnimation { from: 1; to: 0.3; duration: 700; easing.type: Easing.InOutSine }
-                            NumberAnimation { from: 0.3; to: 1; duration: 700; easing.type: Easing.InOutSine }
-                        }
-                    }
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: recvChip.on ? "Listening" : "Receive"
-                        color: recvChip.on ? Theme.flameGlow : (recvArea.containsMouse ? Theme.cream : Theme.subtle)
-                        font.family: Theme.font
-                        font.pixelSize: 9 * root.s
-                        font.weight: Font.DemiBold
-                        font.capitalization: Font.AllUppercase
-                        font.letterSpacing: 0.9 * root.s
-                    }
-                }
-
-                MouseArea {
-                    id: recvArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: recvChip.on ? Stash.stopReceive() : Stash.startReceive()
-                }
+            MouseArea {
+                id: recvArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: recvChip.on ? Stash.stopReceive() : Stash.startReceive()
             }
         }
     }
 
+    // Hairline under the header, like the dossier rules elsewhere.
     Rectangle {
         id: headerRule
         anchors.top: header.bottom
-        anchors.topMargin: 6 * root.s
+        anchors.topMargin: 6 * stash.s
         anchors.left: parent.left
         anchors.right: parent.right
         height: 1
@@ -175,21 +151,55 @@ PillSurface {
     }
 
     // ── File grid ───────────────────────────────────────────────────────
-    Item {
+    Rectangle {
         id: content
         anchors.top: headerRule.bottom
-        anchors.topMargin: 6 * root.s
+        anchors.topMargin: 6 * stash.s
         anchors.left: parent.left
         anchors.right: parent.right
-        height: root.gridH
+        anchors.bottom: actions.top
+        anchors.bottomMargin: 12 * stash.s
+        color: Qt.alpha(Theme.cardBot, 0.5)
+        border.width: 1
+        border.color: Theme.hair
+        radius: 3 * stash.s
+        clip: true
+
+        // Square spec grid behind the files: the hub Profile's drop-window texture.
+        Canvas {
+            anchors.fill: parent
+            z: -2
+            property string tint: "rgba(" + Math.round(Theme.cream.r * 255) + ", " + Math.round(Theme.cream.g * 255) + ", " + Math.round(Theme.cream.b * 255) + ", 0.05)"
+            property real step: 30 * stash.s
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onPaint: {
+                let ctx = getContext("2d");
+                ctx.clearRect(0, 0, width, height);
+                ctx.strokeStyle = tint;
+                ctx.lineWidth = 1;
+                for (let x = 0; x <= width; x += step) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y <= height; y += step) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+            }
+        }
 
         GridView {
             id: grid
             anchors.fill: parent
             clip: true
             visible: Stash.count > 0
-            cellWidth: Math.floor(grid.width / root.cols)
-            cellHeight: root.cellH
+            cellWidth: Math.floor(grid.width / stash.cols)
+            cellHeight: stash.cellH
             model: Stash.files
             boundsBehavior: Flickable.StopAtBounds
 
@@ -217,8 +227,8 @@ PillSurface {
                 Rectangle {
                     id: card
                     anchors.fill: parent
-                    anchors.margins: 5 * root.s
-                    radius: Motion.rTile * root.s
+                    anchors.margins: 4 * stash.s
+                    radius: 3 * stash.s
                     clip: true
                     color: (tile.hovered || tile.confirming) ? Theme.frameBg : Theme.tileBg
                     border.width: 1
@@ -229,7 +239,7 @@ PillSurface {
                     Behavior on border.color { ColorAnimation { duration: Motion.fast } }
 
                     transform: Translate {
-                        y: tile.hovered && !tile.confirming ? -3 * root.s : 0
+                        y: tile.hovered && !tile.confirming ? -3 * stash.s : 0
                         Behavior on y { NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard } }
                     }
 
@@ -250,12 +260,12 @@ PillSurface {
 
                     GlyphIcon {
                         anchors.centerIn: parent
-                        anchors.verticalCenterOffset: -8 * root.s
+                        anchors.verticalCenterOffset: -8 * stash.s
                         visible: !tile.isImage
                         opacity: tile.confirming ? 0.4 : 1
-                        width: 30 * root.s
-                        height: 30 * root.s
-                        name: root.catGlyph(tile.ext)
+                        width: 28 * stash.s
+                        height: 28 * stash.s
+                        name: stash.catGlyph(tile.ext)
                         color: tile.hovered ? Theme.cream : Theme.iconDim
                         stroke: 1.5
                         Behavior on opacity { NumberAnimation { duration: Motion.fast } }
@@ -265,14 +275,14 @@ PillSurface {
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.verticalCenter: parent.verticalCenter
-                        anchors.verticalCenterOffset: 12 * root.s
+                        anchors.verticalCenterOffset: 12 * stash.s
                         visible: !tile.isImage && !tile.confirming
                         text: tile.ext
                         color: Theme.faint
-                        font.family: Theme.font
-                        font.pixelSize: 8 * root.s
+                        font.family: Theme.mono
+                        font.pixelSize: 8 * stash.s
                         font.weight: Font.Bold
-                        font.letterSpacing: 1 * root.s
+                        font.letterSpacing: 1 * stash.s
                     }
 
                     // Legibility scrim under the name on image tiles.
@@ -280,7 +290,7 @@ PillSurface {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
-                        height: nameText.height + 12 * root.s
+                        height: nameText.height + 12 * stash.s
                         visible: tile.isImage && !tile.confirming
                         gradient: Gradient {
                             GradientStop { position: 0.0; color: "transparent" }
@@ -293,12 +303,12 @@ PillSurface {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
-                        anchors.margins: 6 * root.s
+                        anchors.margins: 6 * stash.s
                         visible: !tile.confirming
                         text: tile.fileName
                         color: tile.isImage ? Theme.bright : Theme.subtle
                         font.family: Theme.font
-                        font.pixelSize: 9 * root.s
+                        font.pixelSize: 9 * stash.s
                         font.weight: Font.Medium
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideMiddle
@@ -319,8 +329,8 @@ PillSurface {
                     Row {
                         anchors.top: parent.top
                         anchors.right: parent.right
-                        anchors.margins: 5 * root.s
-                        spacing: 5 * root.s
+                        anchors.margins: 5 * stash.s
+                        spacing: 5 * stash.s
                         opacity: tile.hovered && !tile.confirming ? 1 : 0
                         visible: opacity > 0.01
 
@@ -329,8 +339,8 @@ PillSurface {
                         }
 
                         Rectangle {
-                            width: 22 * root.s
-                            height: 22 * root.s
+                            width: 22 * stash.s
+                            height: 22 * stash.s
                             radius: width / 2
                             color: sendArea.containsMouse ? Theme.frameBorder : Qt.alpha(Theme.cardBot, 0.92)
                             border.width: 1
@@ -340,8 +350,8 @@ PillSurface {
 
                             GlyphIcon {
                                 anchors.centerIn: parent
-                                width: 12 * root.s
-                                height: 12 * root.s
+                                width: 12 * stash.s
+                                height: 12 * stash.s
                                 name: "send"
                                 color: sendArea.containsMouse ? Theme.cream : Theme.iconDim
                                 stroke: 1.6
@@ -357,8 +367,8 @@ PillSurface {
                         }
 
                         Rectangle {
-                            width: 22 * root.s
-                            height: 22 * root.s
+                            width: 22 * stash.s
+                            height: 22 * stash.s
                             radius: width / 2
                             color: removeArea.containsMouse ? Theme.vermLit : Qt.alpha(Theme.cardBot, 0.92)
                             border.width: 1
@@ -368,8 +378,8 @@ PillSurface {
 
                             GlyphIcon {
                                 anchors.centerIn: parent
-                                width: 12 * root.s
-                                height: 12 * root.s
+                                width: 12 * stash.s
+                                height: 12 * stash.s
                                 name: "trash"
                                 color: removeArea.containsMouse ? Theme.cream : Theme.iconDim
                                 stroke: 1.6
@@ -388,7 +398,7 @@ PillSurface {
                     // Inline remove confirmation, in place of a modal.
                     Column {
                         anchors.centerIn: parent
-                        spacing: 8 * root.s
+                        spacing: 8 * stash.s
                         visible: tile.confirming
                         opacity: tile.confirming ? 1 : 0
                         Behavior on opacity { NumberAnimation { duration: Motion.fast } }
@@ -398,16 +408,16 @@ PillSurface {
                             text: "Remove?"
                             color: Theme.cream
                             font.family: Theme.font
-                            font.pixelSize: 10 * root.s
+                            font.pixelSize: 10 * stash.s
                             font.weight: Font.DemiBold
                         }
                         Row {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            spacing: 8 * root.s
+                            spacing: 8 * stash.s
 
                             Rectangle {
-                                width: 26 * root.s
-                                height: 26 * root.s
+                                width: 26 * stash.s
+                                height: 26 * stash.s
                                 radius: width / 2
                                 color: yesArea.containsMouse ? Theme.vermLit : Qt.alpha(Theme.vermLit, 0.18)
                                 border.width: 1
@@ -415,7 +425,7 @@ PillSurface {
                                 Behavior on color { ColorAnimation { duration: Motion.fast } }
                                 GlyphIcon {
                                     anchors.centerIn: parent
-                                    width: 13 * root.s; height: 13 * root.s
+                                    width: 13 * stash.s; height: 13 * stash.s
                                     name: "check"
                                     color: yesArea.containsMouse ? Theme.cardBot : Theme.vermLit
                                     stroke: 2
@@ -429,8 +439,8 @@ PillSurface {
                                 }
                             }
                             Rectangle {
-                                width: 26 * root.s
-                                height: 26 * root.s
+                                width: 26 * stash.s
+                                height: 26 * stash.s
                                 radius: width / 2
                                 color: noArea.containsMouse ? Theme.frameBg : "transparent"
                                 border.width: 1
@@ -438,7 +448,7 @@ PillSurface {
                                 Behavior on color { ColorAnimation { duration: Motion.fast } }
                                 GlyphIcon {
                                     anchors.centerIn: parent
-                                    width: 12 * root.s; height: 12 * root.s
+                                    width: 12 * stash.s; height: 12 * stash.s
                                     name: "close"
                                     color: noArea.containsMouse ? Theme.cream : Theme.iconDim
                                     stroke: 1.8
@@ -460,52 +470,53 @@ PillSurface {
         // ── Empty / drop state ──────────────────────────────────────────
         Item {
             anchors.fill: parent
-            visible: Stash.count === 0
+            z: -1
 
             Text {
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: -14 * root.s
+                anchors.verticalCenterOffset: -14 * stash.s
                 text: "力"
                 color: Theme.brand
                 opacity: dropArea.containsDrag ? 0.32 : 0.14
                 font.family: Theme.fontJp
                 font.weight: Font.Medium
-                font.pixelSize: 76 * root.s
+                font.pixelSize: 72 * stash.s
                 Behavior on opacity { NumberAnimation { duration: Motion.fast } }
             }
 
             Column {
+                visible: Stash.count === 0
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 10 * root.s
-                spacing: 4 * root.s
+                anchors.bottomMargin: 10 * stash.s
+                spacing: 4 * stash.s
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: dropArea.containsDrag ? "Release to stash" : "Drop files here"
                     color: dropArea.containsDrag ? Theme.flameGlow : Theme.faint
                     font.family: Theme.font
-                    font.pixelSize: 11.5 * root.s
+                    font.pixelSize: 11 * stash.s
                     font.weight: Font.Medium
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "~/Downloads/Stash"
                     color: Theme.ghost
-                    font.family: Theme.font
-                    font.pixelSize: 9 * root.s
+                    font.family: Theme.mono
+                    font.pixelSize: 8.5 * stash.s
+                    font.letterSpacing: 1.2 * stash.s
                 }
             }
         }
     }
 
-    // Brand ring while a drag hovers the surface, over the whole body.
+    // Brand ring while a drag hovers the section, over the whole body.
     Rectangle {
         anchors.fill: parent
-        anchors.margins: -2 * root.s
-        radius: Motion.rTile * root.s
+        radius: 3 * stash.s
         color: "transparent"
-        border.width: 1.5 * root.s
+        border.width: 1.5 * stash.s
         border.color: Qt.alpha(Theme.brand, 0.55)
         visible: dropArea.containsDrag
         z: 5
@@ -526,8 +537,9 @@ PillSurface {
     StashActions {
         id: actions
         anchors.bottom: parent.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-        s: root.s
+        anchors.left: parent.left
+        anchors.right: parent.right
+        s: stash.s
         hasFiles: Stash.count > 0
         hasMedia: Stash.hasMedia
         hasInstallable: Stash.hasInstallable
@@ -541,37 +553,37 @@ PillSurface {
     // ── Sheets (send / receive / task) over the body ────────────────────
     StashSendSheet {
         anchors.top: headerRule.bottom
-        anchors.topMargin: 6 * root.s
+        anchors.topMargin: 6 * stash.s
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        s: root.s
+        s: stash.s
     }
 
     StashReceive {
         anchors.top: headerRule.bottom
-        anchors.topMargin: 6 * root.s
+        anchors.topMargin: 6 * stash.s
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        s: root.s
+        s: stash.s
     }
 
     StashTaskOverlay {
         anchors.top: headerRule.bottom
-        anchors.topMargin: 6 * root.s
+        anchors.topMargin: 6 * stash.s
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        s: root.s
+        s: stash.s
     }
 
     StashDownload {
         anchors.top: headerRule.bottom
-        anchors.topMargin: 6 * root.s
+        anchors.topMargin: 6 * stash.s
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        s: root.s
+        s: stash.s
     }
 }

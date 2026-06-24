@@ -56,8 +56,17 @@ Rectangle {
         anchors.rightMargin: 6 * root.s
         height: 26 * root.s
 
-        Row {
+        SheetBack {
+            id: backBtn
             anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            s: root.s
+            onBack: Stash.cancelSend()
+        }
+
+        Row {
+            anchors.left: backBtn.right
+            anchors.leftMargin: 10 * root.s
             anchors.verticalCenter: parent.verticalCenter
             spacing: 8 * root.s
 
@@ -111,7 +120,7 @@ Rectangle {
                     font.pixelSize: 8.5 * root.s
                     font.weight: Font.Medium
                     elide: Text.ElideRight
-                    width: head.width - 80 * root.s
+                    width: head.width - 150 * root.s
                     textFormat: Text.PlainText
                 }
             }
@@ -119,8 +128,7 @@ Rectangle {
 
         Rectangle {
             id: rescanBtn
-            anchors.right: closeBtn.left
-            anchors.rightMargin: 4 * root.s
+            anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             visible: root.ready
             width: 22 * root.s
@@ -143,35 +151,6 @@ Rectangle {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: Stash.rescan()
-            }
-        }
-
-        Rectangle {
-            id: closeBtn
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            width: 22 * root.s
-            height: 22 * root.s
-            radius: Motion.rSmall * root.s
-            color: closeArea.containsMouse ? Theme.frameBg : "transparent"
-            border.width: closeArea.containsMouse ? 1 : 0
-            border.color: Theme.frameBorder
-
-            Behavior on color { ColorAnimation { duration: Motion.fast } }
-
-            GlyphIcon {
-                anchors.centerIn: parent
-                width: 12 * root.s; height: 12 * root.s
-                name: "close"
-                color: closeArea.containsMouse ? Theme.cream : Theme.iconDim
-                stroke: 1.7
-            }
-            MouseArea {
-                id: closeArea
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: Stash.cancelSend()
             }
         }
     }

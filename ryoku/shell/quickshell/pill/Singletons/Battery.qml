@@ -15,6 +15,17 @@ Singleton {
 
     readonly property var dev: UPower.displayDevice
 
+    // The synthetic displayDevice omits Capacity (health); read it from the real
+    // physical battery in the device list instead.
+    readonly property var batDev: {
+        var list = UPower.devices ? UPower.devices.values : [];
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && list[i].isLaptopBattery && list[i].isPresent)
+                return list[i];
+        }
+        return dev;
+    }
+
     readonly property bool present: dev !== null && dev.ready && dev.isLaptopBattery && dev.isPresent
     readonly property real frac: dev ? Math.max(0, Math.min(1, dev.percentage)) : 0
     readonly property int pct: Math.round(frac * 100)
@@ -29,8 +40,8 @@ Singleton {
         : (discharging ? -dev.changeRate : (charging ? dev.changeRate : 0))
     readonly property real capacityWh: dev ? dev.energyCapacity : 0
 
-    readonly property bool healthSupported: dev ? dev.healthSupported : false
-    readonly property int health: dev ? Math.round(dev.healthPercentage) : 0
+    readonly property bool healthSupported: batDev ? batDev.healthSupported : false
+    readonly property int health: batDev ? Math.round(batDev.healthPercentage) : 0
 
     readonly property bool hasTime: !dev ? false
         : (charging ? dev.timeToFull > 0 : (discharging ? dev.timeToEmpty > 0 : false))
