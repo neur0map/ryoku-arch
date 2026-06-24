@@ -47,9 +47,10 @@ The desktop, the installer, and the system definition all live in this
 repository, and every machine is built from it; the repository is the single
 source of truth, and a live machine is only ever a deployment target. The
 desktop is a Hyprland Wayland session authored in Lua with the Quickshell-based
-Ryoku shell on top. Its install flow and command shape descend from Omarchy, and
-the shell seed is adapted from the Caelestia project and reworked into Ryoku's
-own surface.
+Ryoku shell on top. The project began as an Omarchy fork, and its command and
+package conventions still descend from it, but the installer, shell, theming, and
+desktop are Ryoku's own. The shell is custom: its frame-blob rendering and some
+animation curves are adapted from Caelestia.
 
 ## What ships
 
@@ -157,10 +158,11 @@ deploy, test, and commit loop.
 
 ## Credits and license
 
-Ryoku began as an Omarchy-derived Arch environment, created by David Heinemeier
-Hansson and contributors. The Ryoku shell seed is adapted from the
-[Caelestia shell](https://github.com/caelestia-dots/shell), and parts of the
-display configuration UI are adapted from
+Ryoku began as a fork of Omarchy, created by David Heinemeier Hansson and
+contributors; its command and package conventions descend from it. The Ryoku
+shell is custom, with its frame-blob rendering and some animations adapted from
+the [Caelestia shell](https://github.com/caelestia-dots/shell), and parts of the
+display configuration UI adapted from
 [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell). Full
 attribution and upstream links are in [`NOTICE`](NOTICE). Ryoku is released under
 the [GNU GPL v3](LICENSE).
