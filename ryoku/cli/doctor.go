@@ -350,19 +350,23 @@ const (
 	snapperWarnNotBtrfs
 	snapperWarnInconsistent
 	snapperCreate
+	snapperWarnMissingPkgs
 )
 
 // snapperState is the slice of the filesystem reconcileSnapper looks at, lifted
 // into a value so planSnapper is unit-testable without touching real /etc or
 // invoking snapper/btrfs.
 type snapperState struct {
-	rootIsBtrfs       bool
-	configExists      bool
-	snapshotsExists   bool
-	snapshotsIsSubvol bool
-	snapshotsMode     os.FileMode
-	confdExists       bool
-	confdContents     string
+	rootIsBtrfs         bool
+	configExists        bool
+	snapshotsExists     bool
+	snapshotsIsSubvol   bool
+	snapshotsMode       os.FileMode
+	confdExists         bool
+	confdContents       string
+	snapperInstalled    bool
+	snapPacInstalled    bool
+	limineSyncInstalled bool
 }
 
 // planSnapper picks the reconcile branch from observable state. Pure: no side
@@ -372,6 +376,9 @@ func planSnapper(s snapperState) (snapperOutcome, []string) {
 	if !s.configExists {
 		if !s.rootIsBtrfs {
 			return snapperWarnNotBtrfs, nil
+		}
+		if !s.snapperInstalled {
+			return snapperWarnMissingPkgs, nil
 		}
 		return snapperCreate, nil
 	}
@@ -385,6 +392,15 @@ func planSnapper(s snapperState) (snapperOutcome, []string) {
 	if s.confdExists && !strings.Contains(s.confdContents, "root") {
 		problems = append(problems, "/etc/conf.d/snapper does not list the root config (timers and hooks will skip it)")
 	}
+	if !s.snapperInstalled {
+		problems = append(problems, "snapper is not installed; the root config exists but cannot be used (sudo pacman -S snapper)")
+	}
+	if !s.snapPacInstalled {
+		problems = append(problems, "snap-pac is not installed, so pacman transactions are not auto-snapshotted (sudo pacman -S snap-pac)")
+	}
+	if !s.limineSyncInstalled {
+		problems = append(problems, "limine-snapper-sync is not installed, so snapshots are not in the Limine boot menu (ryoku-pkg-aur-add limine-snapper-sync)")
+	}
 	if len(problems) == 0 {
 		return snapperOK, nil
 	}
@@ -396,8 +412,11 @@ func planSnapper(s snapperState) (snapperOutcome, []string) {
 // happen later in the create branch, under sudo, like every other reconciler.
 func gatherSnapperState() snapperState {
 	s := snapperState{
-		rootIsBtrfs:  isBtrfs("/"),
-		configExists: exists("/etc/snapper/configs/root"),
+		rootIsBtrfs:         isBtrfs("/"),
+		configExists:        exists("/etc/snapper/configs/root"),
+		snapperInstalled:    has("snapper"),
+		snapPacInstalled:    pkgInstalled("snap-pac"),
+		limineSyncInstalled: pkgInstalled("limine-snapper-sync"),
 	}
 	if fi, err := os.Stat("/.snapshots"); err == nil {
 		s.snapshotsExists = true
@@ -421,6 +440,9 @@ func reconcileSnapper(checkOnly bool) recResult {
 	switch outcome {
 	case snapperWarnNotBtrfs:
 		return warnRes("root filesystem is not btrfs; snapshot and rollback are unavailable on this machine")
+	case snapperWarnMissingPkgs:
+		return warnRes("root is btrfs but snapper is not installed; snapshots and rollback are off").
+			withFix("sudo pacman -S snapper snap-pac, then ryoku doctor")
 	case snapperCreate:
 		if checkOnly {
 			return wouldRes("snapper root config is missing; snapshots and rollback are off").

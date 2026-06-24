@@ -14,6 +14,9 @@
   ownership, the cleanup timer, and limine-snapper-sync), and on a non-btrfs root
   it warns honestly that snapshots are unavailable. `ryoku status` and the
   pre-update note now distinguish "not configured" from an empty snapshot list.
+  When a prerequisite is missing (`snapper` itself, or `snap-pac` and
+  `limine-snapper-sync`), doctor does not write a config nothing can use: it
+  reports the gap and recommends the exact install command instead.
 - `status` no longer escalates to `sudo` unless a real terminal is driving it. The
   Hub and the update island poll `ryoku status --json` on a timer with no
   controlling terminal, but the snapshot count shelled out to interactive

@@ -219,17 +219,22 @@ func TestReconcileHyprlandConfigNoConfig(t *testing.T) {
 // table reconcileSnapper switches on.
 func TestPlanSnapper(t *testing.T) {
 	consistent := snapperState{
-		rootIsBtrfs:       true,
-		configExists:      true,
-		snapshotsExists:   true,
-		snapshotsIsSubvol: true,
-		snapshotsMode:     0o750,
-		confdExists:       true,
-		confdContents:     "SNAPPER_CONFIGS=\"root\"\n",
+		rootIsBtrfs:         true,
+		configExists:        true,
+		snapshotsExists:     true,
+		snapshotsIsSubvol:   true,
+		snapshotsMode:       0o750,
+		confdExists:         true,
+		confdContents:       "SNAPPER_CONFIGS=\"root\"\n",
+		snapperInstalled:    true,
+		snapPacInstalled:    true,
+		limineSyncInstalled: true,
 	}
 	withMode := func(m os.FileMode) snapperState { s := consistent; s.snapshotsMode = m; return s }
 	withConfd := func(c string) snapperState { s := consistent; s.confdContents = c; return s }
 	plainSnapshotsDir := func() snapperState { s := consistent; s.snapshotsIsSubvol = false; return s }
+	noSnapPac := func() snapperState { s := consistent; s.snapPacInstalled = false; return s }
+	noLimineSync := func() snapperState { s := consistent; s.limineSyncInstalled = false; return s }
 
 	cases := []struct {
 		name        string
@@ -237,12 +242,15 @@ func TestPlanSnapper(t *testing.T) {
 		want        snapperOutcome
 		wantProblem string // substring expected in problems, empty when none
 	}{
-		{"missing config + btrfs root converges with create", snapperState{rootIsBtrfs: true}, snapperCreate, ""},
+		{"missing config + btrfs + snapper installed converges with create", snapperState{rootIsBtrfs: true, snapperInstalled: true}, snapperCreate, ""},
+		{"missing config + btrfs + snapper not installed recommends install", snapperState{rootIsBtrfs: true}, snapperWarnMissingPkgs, ""},
 		{"missing config + non-btrfs root warns honestly", snapperState{rootIsBtrfs: false}, snapperWarnNotBtrfs, ""},
 		{"present + consistent reads ok", consistent, snapperOK, ""},
 		{"/.snapshots wrong mode warns inconsistent", withMode(0o755), snapperWarnInconsistent, "mode 0755"},
 		{"conf.d missing root warns inconsistent", withConfd("SNAPPER_CONFIGS=\"home\"\n"), snapperWarnInconsistent, "does not list the root config"},
 		{"/.snapshots is plain dir warns inconsistent", plainSnapshotsDir(), snapperWarnInconsistent, "plain directory"},
+		{"configured but snap-pac missing recommends it", noSnapPac(), snapperWarnInconsistent, "snap-pac"},
+		{"configured but limine-snapper-sync missing recommends it", noLimineSync(), snapperWarnInconsistent, "limine-snapper-sync"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
