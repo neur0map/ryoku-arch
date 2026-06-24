@@ -400,77 +400,80 @@ Item {
         visible: opacity > 0.01
         Behavior on opacity { NumberAnimation { duration: pill.mode === "rest" ? Motion.fast : 260 } }
 
-        Row {
-            id: restRow
+        Column {
             anchors.centerIn: parent
-            anchors.verticalCenterOffset: -5 * pill.s
-            spacing: 9 * pill.s
-            // Clock: tabular HH:MM with a vermilion colon, the dossier accent.
+            spacing: 2 * pill.s
+
+            // Clock + date: tabular HH:MM with a vermilion colon beside a stacked
+            // mono weekday/date, the dossier masthead idiom.
             Row {
-                id: restClock
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 0
+                id: restRow
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 9 * pill.s
 
-                Text {
+                Row {
+                    id: restClock
                     anchors.verticalCenter: parent.verticalCenter
-                    text: clock.hh
-                    color: Theme.cream
-                    font.family: Theme.font
-                    font.pixelSize: 17 * pill.s
-                    font.weight: Font.DemiBold
-                    font.features: { "tnum": 1 }
+                    spacing: 0
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: clock.hh
+                        color: Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 14 * pill.s
+                        font.weight: Font.DemiBold
+                        font.features: { "tnum": 1 }
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: ":"
+                        color: Theme.brand
+                        font.family: Theme.font
+                        font.pixelSize: 14 * pill.s
+                        font.weight: Font.DemiBold
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: clock.mm
+                        color: Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 14 * pill.s
+                        font.weight: Font.DemiBold
+                        font.features: { "tnum": 1 }
+                    }
                 }
-                Text {
+
+                Column {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: ":"
-                    color: Theme.brand
-                    font.family: Theme.font
-                    font.pixelSize: 17 * pill.s
-                    font.weight: Font.DemiBold
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: clock.mm
-                    color: Theme.cream
-                    font.family: Theme.font
-                    font.pixelSize: 17 * pill.s
-                    font.weight: Font.DemiBold
-                    font.features: { "tnum": 1 }
+                    spacing: 1 * pill.s
+
+                    Text {
+                        text: clock.weekday
+                        color: Theme.dim
+                        font.family: Theme.mono
+                        font.pixelSize: 6 * pill.s
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 1.3 * pill.s
+                        font.capitalization: Font.AllUppercase
+                    }
+                    Text {
+                        text: clock.daymon
+                        color: Theme.faint
+                        font.family: Theme.mono
+                        font.pixelSize: 6 * pill.s
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 1.3 * pill.s
+                        font.capitalization: Font.AllUppercase
+                    }
                 }
             }
 
-            // Date: a stacked mono micro-label, in the deck's dossier idiom.
-            Column {
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 1 * pill.s
-
-                Text {
-                    text: clock.weekday
-                    color: Theme.dim
-                    font.family: Theme.mono
-                    font.pixelSize: 7.5 * pill.s
-                    font.weight: Font.DemiBold
-                    font.letterSpacing: 1.3 * pill.s
-                    font.capitalization: Font.AllUppercase
-                }
-                Text {
-                    text: clock.daymon
-                    color: Theme.faint
-                    font.family: Theme.mono
-                    font.pixelSize: 7.5 * pill.s
-                    font.weight: Font.DemiBold
-                    font.letterSpacing: 1.3 * pill.s
-                    font.capitalization: Font.AllUppercase
-                }
+            WorkspaceWave {
+                anchors.horizontalCenter: parent.horizontalCenter
+                screenName: pill.screenName
+                s: pill.s
             }
-        }
-
-        WorkspaceWave {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: restRow.bottom
-            anchors.topMargin: 3 * pill.s
-            screenName: pill.screenName
-            s: pill.s
         }
     }
 
