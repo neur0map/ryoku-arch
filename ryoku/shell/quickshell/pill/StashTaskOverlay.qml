@@ -33,15 +33,6 @@ Rectangle {
 
     MouseArea { anchors.fill: parent; hoverEnabled: true }
 
-    SheetBack {
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.topMargin: 12 * root.s
-        anchors.leftMargin: 14 * root.s
-        s: root.s
-        onBack: Stash.dismissTask()
-    }
-
     // ── Confirm step ────────────────────────────────────────────────────
     Column {
         anchors.centerIn: parent

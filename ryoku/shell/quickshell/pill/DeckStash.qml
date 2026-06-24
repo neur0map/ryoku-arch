@@ -44,6 +44,14 @@ Item {
         || Stash.dlOpen
         || (Stash.task !== "" && Stash.taskState !== "idle")
 
+    // Dismiss whichever sub-screen sheet is open, driven by the header Back.
+    function dismissSheet() {
+        if (Stash.recvState !== "idle") Stash.stopReceive();
+        else if (Stash.lsState !== "idle") Stash.cancelSend();
+        else if (Stash.dlOpen) Stash.closeDownload();
+        else if (Stash.task !== "") Stash.dismissTask();
+    }
+
     // File-type category for the non-image tile glyph, by extension.
     function catGlyph(ext) {
         var e = ext.toLowerCase();
@@ -64,9 +72,63 @@ Item {
         anchors.right: parent.right
         height: stash.headH
 
-        // File count, mono caps, tabular figures.
-        Text {
+        // Back control + file count. Back appears only while a sub-screen is open
+        // and dismisses it; it sits just left of the count, like a breadcrumb.
+        Item {
+            id: backBtn
+            visible: stash.sheetOpen
             anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: bChevron.width + 4 * stash.s + bLabel.implicitWidth
+            height: stash.headH
+
+            GlyphIcon {
+                id: bChevron
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                width: 11 * stash.s
+                height: 11 * stash.s
+                name: "chevron-left"
+                color: bArea.containsMouse ? Theme.cream : Theme.subtle
+                stroke: 1.9
+            }
+            Text {
+                id: bLabel
+                anchors.left: bChevron.right
+                anchors.leftMargin: 4 * stash.s
+                anchors.verticalCenter: parent.verticalCenter
+                text: "BACK"
+                color: bArea.containsMouse ? Theme.cream : Theme.subtle
+                font.family: Theme.mono
+                font.pixelSize: 9.5 * stash.s
+                font.weight: Font.DemiBold
+                font.letterSpacing: 1.6 * stash.s
+                font.capitalization: Font.AllUppercase
+            }
+            MouseArea {
+                id: bArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: stash.dismissSheet()
+            }
+        }
+
+        Rectangle {
+            id: backDiv
+            visible: stash.sheetOpen
+            anchors.left: backBtn.right
+            anchors.leftMargin: 9 * stash.s
+            anchors.verticalCenter: parent.verticalCenter
+            width: 1
+            height: 11 * stash.s
+            color: Theme.hair
+        }
+
+        Text {
+            id: countText
+            anchors.left: stash.sheetOpen ? backDiv.right : parent.left
+            anchors.leftMargin: stash.sheetOpen ? 9 * stash.s : 0
             anchors.verticalCenter: parent.verticalCenter
             text: Stash.count > 0
                 ? Stash.count + (Stash.count === 1 ? " FILE" : " FILES")

@@ -56,17 +56,8 @@ Rectangle {
         anchors.rightMargin: 6 * root.s
         height: 26 * root.s
 
-        SheetBack {
-            id: backBtn
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            s: root.s
-            onBack: Stash.cancelSend()
-        }
-
         Row {
-            anchors.left: backBtn.right
-            anchors.leftMargin: 10 * root.s
+            anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             spacing: 8 * root.s
 

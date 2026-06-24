@@ -3,6 +3,36 @@
 ## Unreleased
 
 ### Added
+- `quickshell/widgets`: desktop widgets on the wallpaper. A new `WlrLayer.Bottom`
+  host (per monitor, below windows, namespace
+  `ryoku-widgets`), supervised like the pill/visualiser via a `{"widgets", true}`
+  entry in `ipc/daemon.go`, carries a clock and a weather widget. The clock ships
+  five faces (digital, minimal, analog, flip-card, and a wallust ring clock) with
+  12/24h and an optional seconds cluster, plus three toggleable date designs
+  (inline, badge, stacked); its accent follows wallust, the brand, or stays mono.
+  The weather widget ships three designs (card, minimal, strip) over a live
+  animated sky (sun/moon-and-stars, drifting clouds, rain, snow, lightning storm,
+  fog) chosen by the WMO condition, with a C/F unit toggle and a today/week scope.
+  Every widget is fully customisable, design, size, background (none/card/glass)
+  and radius, placement (nine snap zones or a free dragged position), and
+  opacity. On the desktop the widgets are interactive: left-drag moves a widget
+  (snapping to a grid that fades in, with a press bump and an open/closed-hand
+  cursor), and right-click opens a menu in the carbon-dossier idiom (a 力
+  masthead, corner registration ticks, hairline rules, mono spec rows with a
+  vermilion hover tick). Right-clicking the bare desktop opens the desktop menu
+  (show or hide each widget, settings, reload); right-clicking a widget opens its
+  own (cycle the design, toggle date/motion/units, lock against accidental drags,
+  snap to a zone, hide it), both ending in the global settings and reload-shell
+  actions. The layer is interactive across the wallpaper so the right-click lands
+  anywhere, but it sits below windows and a left click on bare wallpaper falls
+  through to nothing. State lives in
+  `~/.config/ryoku/widgets.json` (a watched `Config` singleton, defaults seeded on
+  first run), so a save in Ryoku Settings, a drag, or a menu action retunes the
+  running widgets with no reload. Weather comes from Open-Meteo (no key), reusing the pill's cached
+  location at `~/.local/state/ryoku/weather-loc.json`; its WMO-to-animation mapping
+  and parsing live in `weather/lib/weather.js`, unit-tested by
+  `weather/lib/weather.test.mjs`. A `Wallust` singleton watches
+  `~/.cache/wallust/colors.json` so tinted widgets retune to the wallpaper.
 - `quickshell/pill` stash: a cobalt download window. The Download action now opens
   a paste-the-link panel modelled on cobalt (https://github.com/imputnet/cobalt):
   auto/audio/mute modes, a Paste button, and a processing queue that runs links in
@@ -125,9 +155,9 @@
   Utilities right), corner registration ticks, mono micro-labels and tabular
   figures in the hub Profile dossier idiom. Stash drops onto a filling tray with
   the Profile's square spec grid; its action bar is evenly spaced; the Send,
-  Receive, Download and Task sub-screens share one consistent top-left back
-  control (`SheetBack`). New `DeckSurface`, `DeckStash`, `DeckTools`,
-  `DeckUtilities`, `DeckSegmented`, `SheetBack`, `MicroLabel`, `SpecRow`,
+  Receive, Download and Task sub-screens are dismissed by a single Back control
+  in the stash header beside the file count. New `DeckSurface`, `DeckStash`,
+  `DeckTools`, `DeckUtilities`, `DeckSegmented`, `MicroLabel`, `SpecRow`,
   `CornerTicks`; the standalone `StashSurface`, `ToolkitSurface`, and
   `UtilitiesSurface` are retired, and the old Caffeine tile drops out (Keep-Awake
   covers it).

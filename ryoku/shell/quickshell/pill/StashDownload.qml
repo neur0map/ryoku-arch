@@ -54,7 +54,7 @@ Rectangle {
         }
     }
 
-    // ── Header: back + cobalt mark + tabs ───────────────────────────────
+    // ── Header: cobalt mark + tabs ──────────────────────────────────────
     Item {
         id: head
         anchors.top: parent.top
@@ -65,17 +65,8 @@ Rectangle {
         anchors.rightMargin: 6 * root.s
         height: 24 * root.s
 
-        SheetBack {
-            id: backBtn
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            s: root.s
-            onBack: Stash.closeDownload()
-        }
-
         Row {
-            anchors.left: backBtn.right
-            anchors.leftMargin: 12 * root.s
+            anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             spacing: 12 * root.s
 
