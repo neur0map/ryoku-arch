@@ -17,7 +17,8 @@
   and radius, placement (nine snap zones or a free dragged position), and
   opacity. On the desktop the widgets are interactive: left-drag moves a widget
   (snapping to a grid that fades in, with a press bump and an open/closed-hand
-  cursor), and right-click opens a menu in the carbon-dossier idiom (a 力
+  cursor), the bottom-right bracket resizes it (scrubbing the scale, with a live
+  readout), and right-click opens a menu in the carbon-dossier idiom (a 力
   masthead, corner registration ticks, hairline rules, mono spec rows with a
   vermilion hover tick). Right-clicking the bare desktop opens the desktop menu
   (show or hide each widget, settings, reload); right-clicking a widget opens its
@@ -179,6 +180,10 @@
   for a cleaner read. A tabular `HH:MM` clock with a vermilion colon leads a
   stacked mono weekday/date, above the workspace wave; the Ame bead's rest anchor
   moves from the stamp to the clock.
+- `quickshell/pill`: the now-playing card is reworked into the carbon-dossier
+  idiom. A 力 MEDIA eyebrow leads the title and artist, the source/time line is
+  mono uppercase, the play seal is flat vermilion (no gloss), and corner
+  registration ticks frame it. The album art and the Ryoku wave seek line stay.
 - `quickshell/pill` stash: the action bar lights only what applies. It reads the
   live file types (`Stash.hasMedia` / `hasInstallable`), so Compress dims unless
   there is a video/image/audio file and Install dims unless there is an AppImage or

@@ -7,13 +7,12 @@ import Quickshell.Services.Mpris
 import "Singletons"
 
 /**
- * Now-playing card. Album art bleeds edge-to-edge on the left, faded into the
- * card; a blurred copy of the same art glows through a near-opaque warm wash
- * behind everything. Right of the cover: title, artist, a dim service/time
- * line, the play/pause seal (奏/休) flanked by 前/次 skips. Playback runs as a
- * brush stroke along the bottom (dry base stroke + painted progress stroke);
- * the painted head is where the pill's soul bead docks. Reads the active MPRIS
- * player.
+ * Now-playing card in the carbon-dossier idiom. Album art sits on the left; to
+ * its right a 力 MEDIA eyebrow leads the title, artist, and a mono source/time
+ * line. A flat vermilion play seal flanked by chevron skips, the Ryoku wave as
+ * the seek line (dry base stroke + painted progress stroke), and faint corner
+ * registration ticks framing it. The painted head is where the pill's soul bead
+ * docks. Reads the active MPRIS player.
  */
 PillSurface {
     id: root
@@ -291,8 +290,30 @@ PillSurface {
             anchors.right: parent.right
             anchors.rightMargin: root.edgePad
             anchors.top: parent.top
-            anchors.topMargin: 24 * root.s
+            anchors.topMargin: 14 * root.s
             spacing: 3 * root.s
+            Row {
+                spacing: 7 * root.s
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "力"
+                    color: Theme.brand
+                    font.family: Theme.fontJp
+                    font.weight: Font.Medium
+                    font.pixelSize: 13 * root.s
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "MEDIA"
+                    color: Theme.subtle
+                    font.family: Theme.font
+                    font.pixelSize: 9 * root.s
+                    font.weight: Font.DemiBold
+                    font.capitalization: Font.AllUppercase
+                    font.letterSpacing: 1.8 * root.s
+                }
+            }
 
             Marquee {
                 anchors.left: parent.left
@@ -328,9 +349,11 @@ PillSurface {
                 return head + cur + " · " + root.fmt(root.lengthSec);
             }
             color: Theme.dim
-            font.family: Theme.font
-            font.pixelSize: 9.5 * root.s
+            font.family: Theme.mono
+            font.pixelSize: 9 * root.s
             font.features: { "tnum": 1 }
+            font.capitalization: Font.AllUppercase
+            font.letterSpacing: 1 * root.s
         }
 
         Row {
@@ -352,30 +375,26 @@ PillSurface {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 30 * root.s
                 height: 30 * root.s
-                radius: 7 * root.s
-                rotation: -1.5
-                scale: 1 + 0.08 * root.sealPulse
+                radius: 4 * root.s
+                scale: 1 + 0.06 * root.sealPulse
 
-                /** 1 while playing, eases to 0 when paused. drives the ink desaturation. */
+                /** 1 while playing, eases to 0 when paused; dims the flat fill. */
                 property real sat: root.playing ? 1 : 0
                 Behavior on sat { NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard } }
 
-                opacity: (sealArea.enabled ? 1 : 0.4) * (0.75 + 0.25 * sat)
+                opacity: sealArea.enabled ? 1 : 0.4
                 Behavior on opacity { NumberAnimation { duration: Motion.fast } }
 
+                color: root.mix(Theme.verm, Theme.tileBg, 0.55 * (1 - seal.sat))
                 border.width: 1
-                border.color: Qt.alpha(Theme.vermLit, 0.4 + 0.4 * root.sealPulse)
-                gradient: Gradient {
-                    GradientStop { position: 0.0; color: root.mix(Theme.verm, Theme.tileBg, 0.55 * (1 - seal.sat)) }
-                    GradientStop { position: 1.0; color: root.mix(Theme.vermDeep, Theme.tileBg, 0.55 * (1 - seal.sat)) }
-                }
+                border.color: Qt.alpha(Theme.vermLit, 0.5)
 
                 Text {
                     anchors.centerIn: parent
                     text: root.playing ? "▶" : "Ⅱ"
                     color: Theme.bright
                     font.family: Theme.font
-                    font.pixelSize: 16 * root.s
+                    font.pixelSize: 15 * root.s
                     font.weight: Font.DemiBold
                 }
 
@@ -512,6 +531,12 @@ PillSurface {
                     root.dragging = false;
                 }
             }
+        }
+
+        CornerTicks {
+            anchors.fill: parent
+            anchors.margins: 9 * root.s
+            s: root.s
         }
     }
 }
