@@ -212,3 +212,85 @@ func TestReconcileHyprlandConfigNoConfig(t *testing.T) {
 		t.Fatalf("no hyprland.lua: status=%s, want ok", r.status.label())
 	}
 }
+
+// The snapper reconciler's decision logic lives in planSnapper, a pure function
+// of an observed snapperState. Exercising it directly keeps the test
+// hermetic: no real /etc, no snapper or btrfs invocation, just the branch
+// table reconcileSnapper switches on.
+func TestPlanSnapper(t *testing.T) {
+	consistent := snapperState{
+		rootIsBtrfs:       true,
+		configExists:      true,
+		snapshotsExists:   true,
+		snapshotsIsSubvol: true,
+		snapshotsMode:     0o750,
+		confdExists:       true,
+		confdContents:     "SNAPPER_CONFIGS=\"root\"\n",
+	}
+	withMode := func(m os.FileMode) snapperState { s := consistent; s.snapshotsMode = m; return s }
+	withConfd := func(c string) snapperState { s := consistent; s.confdContents = c; return s }
+	plainSnapshotsDir := func() snapperState { s := consistent; s.snapshotsIsSubvol = false; return s }
+
+	cases := []struct {
+		name        string
+		in          snapperState
+		want        snapperOutcome
+		wantProblem string // substring expected in problems, empty when none
+	}{
+		{"missing config + btrfs root converges with create", snapperState{rootIsBtrfs: true}, snapperCreate, ""},
+		{"missing config + non-btrfs root warns honestly", snapperState{rootIsBtrfs: false}, snapperWarnNotBtrfs, ""},
+		{"present + consistent reads ok", consistent, snapperOK, ""},
+		{"/.snapshots wrong mode warns inconsistent", withMode(0o755), snapperWarnInconsistent, "mode 0755"},
+		{"conf.d missing root warns inconsistent", withConfd("SNAPPER_CONFIGS=\"home\"\n"), snapperWarnInconsistent, "does not list the root config"},
+		{"/.snapshots is plain dir warns inconsistent", plainSnapshotsDir(), snapperWarnInconsistent, "plain directory"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, problems := planSnapper(c.in)
+			if got != c.want {
+				t.Fatalf("planSnapper outcome = %d, want %d (problems=%v)", got, c.want, problems)
+			}
+			if c.wantProblem == "" {
+				if len(problems) != 0 {
+					t.Errorf("unexpected problems: %v", problems)
+				}
+				return
+			}
+			joined := strings.Join(problems, " | ")
+			if !strings.Contains(joined, c.wantProblem) {
+				t.Errorf("problems = %q, want one containing %q", joined, c.wantProblem)
+			}
+		})
+	}
+}
+
+// mergedConfdRoot decides how /etc/conf.d/snapper changes when doctor lays the
+// snapper root config down. It must add "root" without dropping anything a
+// human (or another tool) already put in the file.
+func TestMergedConfdRoot(t *testing.T) {
+	// Missing file: doctor writes the canonical snippet.
+	out, changed := mergedConfdRoot(false, "")
+	if !changed || !strings.Contains(out, `SNAPPER_CONFIGS="root"`) {
+		t.Errorf("missing file: changed=%v out=%q, want canonical content with root", changed, out)
+	}
+
+	// Already lists root: leave the file alone (idempotent doctor).
+	in := "SNAPPER_CONFIGS=\"root\"\n"
+	if out, changed := mergedConfdRoot(true, in); changed || out != in {
+		t.Errorf("present+root: changed=%v out=%q, want unchanged", changed, out)
+	}
+
+	// Lists another config: append root, keep the existing one.
+	in = "SNAPPER_CONFIGS=\"home\"\n"
+	out, changed = mergedConfdRoot(true, in)
+	if !changed || !strings.Contains(out, `SNAPPER_CONFIGS="home root"`) {
+		t.Errorf("present+home: changed=%v out=%q, want root appended after home", changed, out)
+	}
+
+	// No SNAPPER_CONFIGS line at all: add one, keep surrounding lines.
+	in = "# user comment\n"
+	out, changed = mergedConfdRoot(true, in)
+	if !changed || !strings.Contains(out, `SNAPPER_CONFIGS="root"`) || !strings.Contains(out, "# user comment") {
+		t.Errorf("no SNAPPER_CONFIGS line: changed=%v out=%q, want root line added and comment kept", changed, out)
+	}
+}

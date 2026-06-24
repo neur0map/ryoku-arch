@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### Fixed
+- `doctor` now creates the snapper `root` config when it is missing instead of
+  reporting "not configured" as healthy. The snapshot safety net behind every
+  `ryoku update` (the pre/post snapshot pair and the Limine rollback entries) was
+  set up only by the installer, so a `ryoku deploy` box, an upgrade from an older
+  release, or hand drift left a machine with no snapshots and nothing to restore
+  them, and `ryoku snapshots` failed with "config 'root' does not exist". On a
+  btrfs root `ryoku doctor` now lays down the same layout the installer writes
+  (the `/.snapshots` subvolume, `/etc/snapper/configs/root`, `/etc/conf.d/snapper`,
+  ownership, the cleanup timer, and limine-snapper-sync), and on a non-btrfs root
+  it warns honestly that snapshots are unavailable. `ryoku status` and the
+  pre-update note now distinguish "not configured" from an empty snapshot list.
 - `status` no longer escalates to `sudo` unless a real terminal is driving it. The
   Hub and the update island poll `ryoku status --json` on a timer with no
   controlling terminal, but the snapshot count shelled out to interactive

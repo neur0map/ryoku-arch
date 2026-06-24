@@ -199,7 +199,14 @@ func cmdStatus(args []string) error {
 			fmt.Println("pending:       (install pacman-contrib for checkupdates)")
 		}
 	}
-	fmt.Printf("snapshots:     %d\n", r.Snapshots)
+	// A bare 0 cannot tell "configured but empty" from "snapper has no root
+	// config at all"; doctor restores the config when it is missing, so point
+	// the user there instead of letting status look healthy on a broken setup.
+	if exists("/etc/snapper/configs/root") {
+		fmt.Printf("snapshots:     %d\n", r.Snapshots)
+	} else {
+		fmt.Println("snapshots:     not configured (run ryoku doctor)")
+	}
 	return nil
 }
 
@@ -366,6 +373,12 @@ func cmdDeploy(_ []string) error {
 func snapperPre(desc string) string {
 	if !has("snapper") {
 		fmt.Fprintln(os.Stderr, "note: snapper not installed; skipping pre-update snapshot")
+		return ""
+	}
+	// No root config means the create below fails with an opaque
+	// "config 'root' does not exist"; point the user at the fix instead.
+	if !exists("/etc/snapper/configs/root") {
+		fmt.Fprintln(os.Stderr, "note: snapshot skipped, snapper root config missing; run 'ryoku doctor' to enable snapshots")
 		return ""
 	}
 	out, err := runOut("sudo", "snapper", "-c", snapperConfig, "create",

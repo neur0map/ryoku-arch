@@ -290,27 +290,255 @@ func reconcileSwapSubvolume(checkOnly bool) recResult {
 	return okRes("swap is out of snapshots")
 }
 
-// ---- reconciler: snapper configuration consistency ---------------------------
+// ---- reconciler: snapper configuration ---------------------------------------
 
-func reconcileSnapper(_ bool) recResult {
-	if !exists("/etc/snapper/configs/root") {
-		return okRes("root snapshots not configured")
+// The snapper "root" config is the safety net behind every ryoku update: the
+// pre/post snapshot pair and the Limine boot-menu entries that make rollback
+// possible. The installer (installation/backend/lib/snapshots.sh) writes it,
+// but a dev box brought up with `ryoku deploy`, an upgrade from an older
+// release, or hand-edited drift can leave it missing -- and snapper proceeds
+// silently when it is, so the user believes they have rollback when they do
+// not. doctor restores the canonical layout on a btrfs root, warns honestly
+// when the root is not btrfs (snapshots are unavailable there), and stays
+// idempotent on a healthy machine.
+//
+// snapperRootConfig mirrors installation/backend/lib/snapshots.sh verbatim:
+// keep the two in sync so a doctored machine matches a freshly installed one.
+const snapperRootConfig = `# Ryoku snapper config for the root filesystem. Written by ryoku doctor when
+# the installer's config is missing (a deploy box, an upgrade from an older
+# release, or drift). Keys not listed here fall back to snapper's built-in
+# defaults.
+SUBVOLUME="/"
+FSTYPE="btrfs"
+QGROUP=""
+SPACE_LIMIT="0.5"
+FREE_LIMIT="0.2"
+ALLOW_USERS=""
+ALLOW_GROUPS=""
+SYNC_ACL="no"
+BACKGROUND_COMPARISON="yes"
+NUMBER_CLEANUP="yes"
+NUMBER_MIN_AGE="1800"
+NUMBER_LIMIT="10"
+NUMBER_LIMIT_IMPORTANT="10"
+TIMELINE_CREATE="no"
+TIMELINE_CLEANUP="yes"
+TIMELINE_MIN_AGE="1800"
+TIMELINE_LIMIT_HOURLY="10"
+TIMELINE_LIMIT_DAILY="7"
+TIMELINE_LIMIT_WEEKLY="0"
+TIMELINE_LIMIT_MONTHLY="0"
+TIMELINE_LIMIT_YEARLY="0"
+EMPTY_PRE_POST_CLEANUP="yes"
+EMPTY_PRE_POST_MIN_AGE="1800"
+`
+
+const snapperConfdRoot = `## Path: System/Snapper
+## Type: string
+## Default: ""
+# Snapper configs the systemd units and pacman hooks operate on.
+SNAPPER_CONFIGS="root"
+`
+
+// snapperOutcome is the decision planSnapper hands to reconcileSnapper: ok
+// means leave the machine alone, the two warn variants surface as-is, and
+// create means write the canonical layout.
+type snapperOutcome int
+
+const (
+	snapperOK snapperOutcome = iota
+	snapperWarnNotBtrfs
+	snapperWarnInconsistent
+	snapperCreate
+)
+
+// snapperState is the slice of the filesystem reconcileSnapper looks at, lifted
+// into a value so planSnapper is unit-testable without touching real /etc or
+// invoking snapper/btrfs.
+type snapperState struct {
+	rootIsBtrfs       bool
+	configExists      bool
+	snapshotsExists   bool
+	snapshotsIsSubvol bool
+	snapshotsMode     os.FileMode
+	confdExists       bool
+	confdContents     string
+}
+
+// planSnapper picks the reconcile branch from observable state. Pure: no side
+// effects, no IO. The "configured" branch runs the same consistency checks the
+// old reconciler did, unchanged in spirit so a healthy machine still reads ok.
+func planSnapper(s snapperState) (snapperOutcome, []string) {
+	if !s.configExists {
+		if !s.rootIsBtrfs {
+			return snapperWarnNotBtrfs, nil
+		}
+		return snapperCreate, nil
 	}
 	var problems []string
-	if exists("/.snapshots") && !isBtrfsSubvolumeRoot("/.snapshots") {
+	if s.snapshotsExists && !s.snapshotsIsSubvol {
 		problems = append(problems, "/.snapshots is a plain directory, not a btrfs subvolume")
 	}
-	if fi, err := os.Stat("/.snapshots"); err == nil && fi.Mode().Perm() != 0o750 {
-		problems = append(problems, fmt.Sprintf("/.snapshots is mode %04o, expected 0750", fi.Mode().Perm()))
+	if s.snapshotsExists && s.snapshotsMode != 0o750 {
+		problems = append(problems, fmt.Sprintf("/.snapshots is mode %04o, expected 0750", s.snapshotsMode))
 	}
-	if conf, err := os.ReadFile("/etc/conf.d/snapper"); err == nil && !strings.Contains(string(conf), "root") {
+	if s.confdExists && !strings.Contains(s.confdContents, "root") {
 		problems = append(problems, "/etc/conf.d/snapper does not list the root config (timers and hooks will skip it)")
 	}
 	if len(problems) == 0 {
-		return okRes("snapper root config is consistent")
+		return snapperOK, nil
 	}
-	return warnRes("%s", strings.Join(problems, "; ")).
-		withFix("see https://wiki.archlinux.org/title/Snapper")
+	return snapperWarnInconsistent, problems
+}
+
+// gatherSnapperState reads /etc and /.snapshots into a snapperState. Everything
+// here is a non-privileged stat or world-readable file; the privileged writes
+// happen later in the create branch, under sudo, like every other reconciler.
+func gatherSnapperState() snapperState {
+	s := snapperState{
+		rootIsBtrfs:  isBtrfs("/"),
+		configExists: exists("/etc/snapper/configs/root"),
+	}
+	if fi, err := os.Stat("/.snapshots"); err == nil {
+		s.snapshotsExists = true
+		s.snapshotsMode = fi.Mode().Perm()
+		s.snapshotsIsSubvol = isBtrfsSubvolumeRoot("/.snapshots")
+	}
+	if b, err := os.ReadFile("/etc/conf.d/snapper"); err == nil {
+		s.confdExists = true
+		s.confdContents = string(b)
+	}
+	return s
+}
+
+// reconcileSnapper converges the snapper "root" config: on a btrfs root with no
+// config it writes the canonical installer layout; on a non-btrfs root it warns
+// honestly instead of silently okay; on a healthy machine the consistency
+// checks gate "ok".
+func reconcileSnapper(checkOnly bool) recResult {
+	st := gatherSnapperState()
+	outcome, problems := planSnapper(st)
+	switch outcome {
+	case snapperWarnNotBtrfs:
+		return warnRes("root filesystem is not btrfs; snapshot and rollback are unavailable on this machine")
+	case snapperCreate:
+		if checkOnly {
+			return wouldRes("snapper root config is missing; snapshots and rollback are off").
+				withFix("ryoku doctor (creates the snapper root config)")
+		}
+		return createSnapperRootConfig(st)
+	case snapperWarnInconsistent:
+		return warnRes("%s", strings.Join(problems, "; ")).
+			withFix("see https://wiki.archlinux.org/title/Snapper")
+	}
+	return okRes("snapper root config is consistent")
+}
+
+// createSnapperRootConfig lays the installer's layout down on a live system. It
+// mirrors installation/backend/lib/snapshots.sh: ensure /.snapshots is a btrfs
+// subvolume owned root:root mode 0750, write /etc/snapper/configs/root,
+// register "root" in /etc/conf.d/snapper without dropping any sibling configs,
+// and best-effort enable snapper-cleanup.timer plus (when its unit is present)
+// limine-snapper-sync.service. A pre-existing /.snapshots that is a plain
+// directory is left to a human: it may hold user data and the risk of rmdir
+// clobbering it is not worth the convenience.
+func createSnapperRootConfig(st snapperState) recResult {
+	var actions []string
+
+	switch {
+	case !st.snapshotsExists:
+		if err := run("sudo", "btrfs", "subvolume", "create", "/.snapshots"); err != nil {
+			return failRes("creating /.snapshots subvolume: %v", err).
+				withFix("sudo btrfs subvolume create /.snapshots, then re-run ryoku doctor")
+		}
+		actions = append(actions, "/.snapshots subvolume")
+	case !st.snapshotsIsSubvol:
+		return warnRes("/.snapshots exists as a plain directory; remove or convert it before the snapper config can be created").
+			withFix("inspect /.snapshots, then `sudo rmdir /.snapshots && sudo btrfs subvolume create /.snapshots` and re-run ryoku doctor")
+	}
+
+	if err := run("sudo", "chmod", "0750", "/.snapshots"); err != nil {
+		return failRes("chmod /.snapshots: %v", err)
+	}
+	if err := run("sudo", "chown", "root:root", "/.snapshots"); err != nil {
+		return failRes("chown /.snapshots: %v", err)
+	}
+
+	if err := writeRootFile("/etc/snapper/configs/root", snapperRootConfig, "0640"); err != nil {
+		return failRes("writing /etc/snapper/configs/root: %v", err)
+	}
+	actions = append(actions, "/etc/snapper/configs/root")
+
+	newConfd, changed := mergedConfdRoot(st.confdExists, st.confdContents)
+	if changed {
+		if err := writeRootFile("/etc/conf.d/snapper", newConfd, "0644"); err != nil {
+			return failRes("writing /etc/conf.d/snapper: %v", err)
+		}
+		actions = append(actions, "/etc/conf.d/snapper")
+	}
+
+	// Services are best-effort: a healthy install has both, but an offline AUR
+	// install can be missing limine-snapper-sync, and a failure here does not
+	// undo the config we just laid down.
+	_ = run("sudo", "systemctl", "enable", "--now", "snapper-cleanup.timer")
+	if exists("/usr/lib/systemd/system/limine-snapper-sync.service") {
+		_ = run("sudo", "systemctl", "enable", "--now", "limine-snapper-sync.service")
+	}
+
+	return fixedRes("created snapper root config: %s", strings.Join(actions, ", "))
+}
+
+// mergedConfdRoot returns the desired /etc/conf.d/snapper contents and whether
+// they differ from the current file. Missing file -> the canonical snippet;
+// SNAPPER_CONFIGS already lists root -> unchanged; SNAPPER_CONFIGS lists other
+// configs -> append "root" without dropping them; the file is present but has
+// no SNAPPER_CONFIGS line -> add one. Split-on-whitespace tolerates either
+// "a b" or single-name styles snapper accepts in the wild.
+func mergedConfdRoot(present bool, current string) (string, bool) {
+	if !present {
+		return snapperConfdRoot, true
+	}
+	lines := strings.Split(current, "\n")
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, "SNAPPER_CONFIGS=") {
+			continue
+		}
+		value := strings.Trim(strings.TrimPrefix(trimmed, "SNAPPER_CONFIGS="), `"`)
+		configs := strings.Fields(value)
+		for _, c := range configs {
+			if c == "root" {
+				return current, false
+			}
+		}
+		configs = append(configs, "root")
+		lines[i] = fmt.Sprintf(`SNAPPER_CONFIGS="%s"`, strings.Join(configs, " "))
+		return strings.Join(lines, "\n"), true
+	}
+	if current != "" && !strings.HasSuffix(current, "\n") {
+		current += "\n"
+	}
+	return current + `SNAPPER_CONFIGS="root"` + "\n", true
+}
+
+// writeRootFile stages contents in a temp file then `sudo install -D`s it into
+// place with the given mode, owned root:root, so a regular-user invocation of
+// ryoku doctor still converges /etc. install -D creates the parent dir in one
+// shot, matching the other privileged reconcilers that go through sudo.
+func writeRootFile(path, contents, mode string) error {
+	tmp, err := os.CreateTemp("", "ryoku-snapper-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.WriteString(contents); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return run("sudo", "install", "-D", "-m", mode, "-o", "root", "-g", "root", tmp.Name(), path)
 }
 
 // ---- reconciler: stale pacman lock -------------------------------------------
