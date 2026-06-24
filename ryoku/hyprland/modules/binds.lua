@@ -3,8 +3,8 @@ local mod = "SUPER"
 -- Windows
 hl.bind(mod .. " + Q",         hl.dsp.window.close())                           -- close active window
 hl.bind(mod .. " + F",         hl.dsp.window.fullscreen())                      -- fullscreen
-hl.bind(mod .. " + A",         function() hl.dispatch(hl.dsp.window.float({ action = "toggle" })); hl.dispatch(hl.dsp.window.center()) end) -- float + centre the window (press again to tile back)
-hl.bind(mod .. " + R",         hl.dsp.submap("resize"))                         -- resize mode (arrows resize, Esc exits)
+hl.bind(mod .. " + A",         function() hl.dispatch(hl.dsp.window.float({ action = "toggle" })); hl.dispatch(hl.dsp.window.resize({ x = 1000, y = 660, exact = true })); hl.dispatch(hl.dsp.window.center()) end) -- float at 1000x660, centred (press again to tile back)
+hl.bind(mod .. " + R",         function() hl.dispatch(hl.dsp.submap("resize")); hl.dispatch(hl.dsp.exec_cmd("hyprctl notify -1 2200 0 'Resize mode: arrows or hjkl resize, Esc exits'")) end) -- resize mode (arrows/hjkl resize, Esc exits)
 hl.bind(mod .. " + P",         hl.dsp.exec_cmd("ryoku-monitor toggle"))         -- mirror <-> extend displays
 
 -- Focus and move windows
@@ -16,6 +16,10 @@ hl.bind(mod .. " + SHIFT + Left",  hl.dsp.window.move({ direction = "left" }))  
 hl.bind(mod .. " + SHIFT + Right", hl.dsp.window.move({ direction = "right" })) -- move window right
 hl.bind(mod .. " + SHIFT + Up",    hl.dsp.window.move({ direction = "up" }))    -- move window up
 hl.bind(mod .. " + SHIFT + Down",  hl.dsp.window.move({ direction = "down" }))  -- move window down
+hl.bind(mod .. " + CTRL + Left",   hl.dsp.window.resize({ x = -40, y = 0,   relative = true }), { repeating = true }) -- resize window narrower
+hl.bind(mod .. " + CTRL + Right",  hl.dsp.window.resize({ x = 40,  y = 0,   relative = true }), { repeating = true }) -- resize window wider
+hl.bind(mod .. " + CTRL + Up",     hl.dsp.window.resize({ x = 0,   y = -40, relative = true }), { repeating = true }) -- resize window shorter
+hl.bind(mod .. " + CTRL + Down",   hl.dsp.window.resize({ x = 0,   y = 40,  relative = true }), { repeating = true }) -- resize window taller
 hl.bind("ALT + Tab",               hl.dsp.exec_cmd("flock -n -o /tmp/ryoku-switcher.lock qs -c switcher")) -- window switcher (MRU; Tab/arrows cycle, Enter/release picks, Esc cancels)
 
 -- Apps
@@ -53,7 +57,8 @@ local function ws_to_current(i)
     hl.dispatch(hl.dsp.workspace.move({ workspace = i, monitor = "current" }))
 end
 
-hl.bind(mod .. " + H",          hl.dsp.workspace.toggle_special(""))            -- toggle the scratchpad (special workspace)
+hl.bind(mod .. " + H",          hl.dsp.workspace.toggle_special("scratch"))     -- toggle the scratchpad (special workspace)
+hl.bind(mod .. " + SHIFT + H",  function() hl.dispatch(hl.dsp.window.float({ action = "enable" })); hl.dispatch(hl.dsp.window.resize({ x = 1280, y = 800, exact = true })); hl.dispatch(hl.dsp.window.center()); hl.dispatch(hl.dsp.window.move({ workspace = "special:scratch", silent = true })) end) -- stash the active window in the scratchpad
 hl.bind(mod .. " + mouse_up",   hl.dsp.focus({ workspace = "r-1" }))            -- previous workspace
 hl.bind(mod .. " + mouse_down", hl.dsp.focus({ workspace = "r+1" }))            -- next workspace
 for i = 1, 10 do

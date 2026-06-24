@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- `hyprland/binds` + `hyprland/resize`: working window resize. `Super + Ctrl +
+  arrows` resize the active window directly (repeating); the `Super + R` resize
+  mode also accepts `hjkl`, exits on `Super + R`, `Esc`, or `Return`, and shows a
+  toast on entry, since entering a submap is otherwise silent.
+- `hyprland/binds` + `hyprland/animations`: a scratchpad you can fill. `Super +
+  Shift + H` stashes the active window into `special:scratch` as a tidy 1280x800
+  centred float, `Super + H` toggles it, and a new `specialWorkspace` slide-and-fade
+  drops it in.
 - `shell/quickshell/sidebar` QuickStrip: a Night Light quick-toggle joins Do Not
   Disturb and Keep Awake, reading and toggling `hyprsunset` (the warm screen) live
   via the night-light script, so it stays in sync with the `Super + U` utility and
@@ -104,6 +112,8 @@
   or peg the voice wave.
 
 ### Changed
+- `hyprland/binds`: `Super + A` floats the active window at a fixed 1000x660,
+  centred (press again tiles it back), instead of floating it at its current size.
 - `hyprland/modules/binds`: reworked the keymap. `Super + arrow` keys move focus
   between windows and `Super + Shift + arrow` move the active window; `Super + 1..0`
   still focus workspaces but moving the active window there is now `Super + Alt + 1..0`.
