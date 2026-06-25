@@ -5,7 +5,7 @@ import Ryoku.Blobs
 import "../Singletons"
 
 /**
- * A surface popout that grows out of a vertical frame edge (left or right) on
+ * A surface popout that grows out of a frame edge (left/right/top/bottom) on
  * hover and melts into the border through the SHARED blob field. It joins the
  * pill's `group` (the same BlobGroup as the frame border and the centre island),
  * so a popout reads as the frame swelling open at that edge, the same way the
@@ -16,8 +16,8 @@ import "../Singletons"
  * the fixed-size content reveals edge-first without ever resizing. The close eases
  * cleanly into the border with no overshoot, so the body never re-grows under a
  * pointer that just left and sticks the popout open. The blob body, the neck into
- * the border, and the reveal all live here;
- * each popup file only supplies its content.
+ * the border, and the reveal all live here; each popup file only supplies its
+ * content. `align` slides the body along the edge (start/center/end).
  *
  *   Popout { group: blobGroup; frameThickness: 16; radius: 16; smoothing: 30
  *            edge: "left"; openW: 220; openH: 200; Mixer {} }
@@ -29,13 +29,18 @@ Item {
     required property real frameThickness
     property real radius: 16
     property real smoothing: 30
-    property string edge: "left"          // "left" | "right"
+    property string edge: "left"          // "left" | "right" | "top" | "bottom"
+    property string align: "center"       // "start" | "center" | "end" (along the edge)
     property real openW: 220
     property real openH: 200
     property real s: 1
     property bool pinned: false           // force open (IPC / inspection)
 
     readonly property bool atLeft: edge === "left"
+    readonly property bool atRight: edge === "right"
+    readonly property bool atTop: edge === "top"
+    readonly property bool atBottom: edge === "bottom"
+    readonly property bool vertical: atLeft || atRight   // body grows horizontally
     readonly property bool hovered: triggerHH.hovered || bodyHH.hovered
     // Host gates this off while a centre surface is open or a window is
     // fullscreen, so an edge hover never fights a modal surface.
@@ -47,21 +52,36 @@ Item {
 
     anchors.fill: parent
 
+    // Position along the edge (the cross-axis): start/center/end, with an inset
+    // so the body never sits flush in a corner.
+    readonly property real edgeInset: frameThickness + 12 * s
+    function alignPos(span, sz) {
+        return align === "start" ? edgeInset
+             : align === "end" ? span - sz - edgeInset
+             : (span - sz) / 2;
+    }
+    readonly property real alongX: alignPos(width, openW)
+    readonly property real alongY: alignPos(height, openH)
+
     // Body geometry in window coordinates; the body grows inward from the border.
-    readonly property real cy: Math.round((height - openH) / 2)
-    readonly property real curW: Math.max(0, openW * prog)
-    readonly property real bodyX: atLeft ? frameThickness : (width - frameThickness - curW)
-    readonly property real bodyY: cy
+    readonly property real curW: vertical ? Math.max(0, openW * prog) : openW
+    readonly property real curH: vertical ? openH : Math.max(0, openH * prog)
+    readonly property real bodyX: atLeft ? frameThickness
+                                 : atRight ? (width - frameThickness - curW)
+                                 : alongX
+    readonly property real bodyY: atTop ? frameThickness
+                                 : atBottom ? (height - frameThickness - curH)
+                                 : alongY
     readonly property real bodyW: curW
-    readonly property real bodyH: openH
+    readonly property real bodyH: curH
 
     // Hover trigger: the border segment beside the body, pixel-perfect to the
-    // frame (exactly `frameThickness` deep), spanning the body height so the
+    // frame (exactly `frameThickness` deep), spanning the body span so the
     // pointer never falls into a dead gap on the way in.
-    readonly property real triggerW: frameThickness
-    readonly property real triggerH: openH
-    readonly property real triggerX: atLeft ? 0 : (width - frameThickness)
-    readonly property real triggerY: cy
+    readonly property real triggerW: vertical ? frameThickness : openW
+    readonly property real triggerH: vertical ? openH : frameThickness
+    readonly property real triggerX: atLeft ? 0 : atRight ? (width - frameThickness) : alongX
+    readonly property real triggerY: atTop ? 0 : atBottom ? (height - frameThickness) : alongY
 
     states: State {
         name: "open"
@@ -90,17 +110,19 @@ Item {
 
     // Blob body: a BlobRect in the shared group, tracking the content clip and
     // reaching a neck past it into the border so the smooth-min fuses them. The
-    // neck is clamped to the body's own width so it retracts cleanly on close.
+    // neck is clamped to the body's own extent so it retracts cleanly on close,
+    // and points back toward the edge the body grows from.
     BlobRect {
         readonly property real reach: root.frameThickness + root.smoothing
-        readonly property real neck: Math.max(0, Math.min(reach, root.bodyW))
+        readonly property real neckW: root.vertical ? Math.max(0, Math.min(reach, root.bodyW)) : 0
+        readonly property real neckH: root.vertical ? 0 : Math.max(0, Math.min(reach, root.bodyH))
         group: root.group
         radius: root.radius
         deformScale: 0.0006
-        x: root.bodyX - (root.atLeft ? neck : 0)
-        y: root.bodyY
-        implicitWidth: root.bodyW > 0 ? root.bodyW + neck : 0
-        implicitHeight: root.bodyH
+        x: root.bodyX - (root.atLeft ? neckW : 0)
+        y: root.bodyY - (root.atTop ? neckH : 0)
+        implicitWidth: root.bodyW > 0 ? root.bodyW + neckW : 0
+        implicitHeight: root.bodyH > 0 ? root.bodyH + neckH : 0
     }
 
     // The content, full size, revealed by a widening clip anchored to the border
@@ -121,8 +143,8 @@ Item {
             id: contentInner
             width: root.openW
             height: root.openH
-            x: root.atLeft ? 0 : (bodyClip.width - root.openW)
-            y: 0
+            x: root.atRight ? (bodyClip.width - root.openW) : 0
+            y: root.atBottom ? (bodyClip.height - root.openH) : 0
         }
     }
 
