@@ -97,13 +97,52 @@ fi
 
 install_pkgs "${pkgs[@]}"
 
-# Early KMS: the DRM modeset is mandatory for a working NVIDIA Wayland session, and
-# the modules must load in the initramfs (rebuilt by the bootloader step, which
-# runs after this). Detection-gated, so it applies whenever an NVIDIA GPU is present.
-echo "nvidia.sh: writing modeset + initramfs module config"
+# Early KMS plus the boot-race fix. The DRM modeset is mandatory for a working
+# NVIDIA Wayland session, and the modules must load from the initramfs (rebuilt
+# by the bootloader step, which runs after this). nouveau is blacklisted so it
+# cannot also bind the card: when both modules can claim the GPU they race at
+# boot and the card is detected only on some boots (the wonky-detection bug).
+# PreserveVideoMemoryAllocations keeps the session intact across suspend.
+# Detection-gated, so it applies whenever an NVIDIA GPU is present.
+echo "nvidia.sh: writing modeset, nouveau blacklist + initramfs module config"
 write_root /etc/modprobe.d/nvidia.conf <<'EOF'
 options nvidia_drm modeset=1 fbdev=1
+options nvidia NVreg_PreserveVideoMemoryAllocations=1
+blacklist nouveau
+options nouveau modeset=0
 EOF
 write_root /etc/mkinitcpio.conf.d/nvidia.conf <<'EOF'
 MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
+EOF
+
+# Suspend/resume: NVIDIA must save and restore VRAM across sleep or the session
+# comes back corrupted. These units ship with nvidia-utils; enabling them is
+# offline-safe (just symlinks), so it works in the install chroot. A missing unit
+# is tolerated.
+if command -v systemctl >/dev/null 2>&1; then
+  echo "nvidia.sh: enabling NVIDIA suspend/resume services"
+  run systemctl enable nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service || true
+fi
+
+# Keep the initramfs in step with the NVIDIA modules across driver-only updates:
+# otherwise the old module stays baked into the image while userspace moves on,
+# and the version mismatch stops the GPU from initialising. Rebuild through
+# limine-mkinitcpio (the UKI path) when present, else plain mkinitcpio.
+echo "nvidia.sh: installing initramfs-rebuild pacman hook"
+run mkdir -p /etc/pacman.d/hooks
+write_root /etc/pacman.d/hooks/ryoku-nvidia.hook <<'EOF'
+[Trigger]
+Operation=Install
+Operation=Upgrade
+Operation=Remove
+Type=Package
+Target=nvidia-open-dkms
+Target=nvidia-dkms
+Target=nvidia-utils
+
+[Action]
+Description=Rebuilding the initramfs for the updated NVIDIA modules...
+Depends=mkinitcpio
+When=PostTransaction
+Exec=/bin/sh -c 'if command -v limine-mkinitcpio >/dev/null 2>&1; then limine-mkinitcpio; else mkinitcpio -P; fi'
 EOF
