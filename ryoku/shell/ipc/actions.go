@@ -46,6 +46,27 @@ func ipcCall(config, target, fn, arg string) string {
 	return "err qs ipc " + config + "/" + fn + ": " + msg
 }
 
+// ipcCallN is ipcCall for IpcHandler functions that take more than one argument
+// (e.g. pluginPopout(mon, id)). Empty trailing args are still passed positionally.
+func ipcCallN(config, target, fn string, args ...string) string {
+	argv := append(qsSelect(config), "ipc", "call", target, fn)
+	argv = append(argv, args...)
+	var out []byte
+	var err error
+	for i := 0; i < 10; i++ {
+		out, err = exec.Command("qs", argv...).CombinedOutput()
+		if err == nil {
+			return "ok"
+		}
+		time.Sleep(150 * time.Millisecond)
+	}
+	msg := strings.TrimSpace(string(out))
+	if msg == "" {
+		msg = err.Error()
+	}
+	return "err qs ipc " + config + "/" + fn + ": " + msg
+}
+
 // activeMonitor returns the name of the monitor holding the focused workspace.
 func activeMonitor() string {
 	out, err := exec.Command("hyprctl", "activeworkspace", "-j").Output()

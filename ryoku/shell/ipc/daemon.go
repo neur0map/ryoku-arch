@@ -327,6 +327,22 @@ func (d *daemon) dispatch(line string) string {
 	case "quit":
 		d.signalQuit()
 		return "ok"
+	case "plugin":
+		// plugin <id> [toggle] -> toggle that plugin's frame popout. Reserved for
+		// future per-host actions (show/hide); toggle is the default.
+		if len(args) < 1 {
+			return "err plugin: missing id"
+		}
+		d.ensure("pill")
+		return ipcCallN("pill", "pill", "pluginPopout", activeMonitor(), args[0])
+	case "plugins":
+		// plugins reload -> the per-monitor PluginPopouts watch plugins.json and
+		// re-discover on change, so a Settings save retunes live; this is a no-op
+		// acknowledgement kept for an explicit force path.
+		if len(args) >= 1 && args[0] == "reload" {
+			return "ok"
+		}
+		return "err plugins: unknown action"
 	default:
 		return "err unknown command: " + cmd
 	}

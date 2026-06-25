@@ -1,0 +1,8 @@
+module Ryoku.PluginKit
+GlyphIcon 1.0 GlyphIcon.qml
+MicroLabel 1.0 MicroLabel.qml
+SearchField 1.0 SearchField.qml
+CornerTicks 1.0 CornerTicks.qml
+WaveMeter 1.0 WaveMeter.qml
+Card 1.0 Card.qml
+PluginSurface 1.0 PluginSurface.qml

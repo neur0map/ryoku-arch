@@ -202,6 +202,8 @@ ShellRoot {
         function voiceHide(): void { if (root.openSurface === "voice") root.close(); }
         function peek(mon: string): void { root.peek(mon); }
         function hide(): void { root.close(); }
+        // Toggle an enabled plugin's frame popout by id (leader menu / keybind).
+        function pluginPopout(mon: string, id: string): void { root.togglePopout(mon, "plugin:" + id); }
     }
 
     Variants {
@@ -335,6 +337,9 @@ ShellRoot {
                 Region { x: mixerPop.bodyX; y: mixerPop.bodyY; width: mixerPop.bodyW; height: mixerPop.bodyH }
                 Region { x: powerPop.triggerX; y: powerPop.triggerY; width: powerPop.triggerW; height: powerPop.triggerH }
                 Region { x: powerPop.bodyX; y: powerPop.bodyY; width: powerPop.bodyW; height: powerPop.bodyH }
+                // Plugin frame popouts: aggregate trigger+body input grab.
+                Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
+                Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
                 // The activity strip rides left of the pill, outside the pill body,
                 // so input must be grabbed over it for its chips (REC stop, stash) to
                 // receive hover and clicks instead of passing through to the window.
@@ -360,6 +365,8 @@ ShellRoot {
                 Region { x: mixerPop.bodyX; y: mixerPop.bodyY; width: mixerPop.bodyW; height: mixerPop.bodyH }
                 Region { x: powerPop.triggerX; y: powerPop.triggerY; width: powerPop.triggerW; height: powerPop.triggerH }
                 Region { x: powerPop.bodyX; y: powerPop.bodyY; width: powerPop.bodyW; height: powerPop.bodyH }
+                Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
+                Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
             }
             Region {
                 id: fullRegion
@@ -552,6 +559,20 @@ ShellRoot {
                     Power {
                         s: overlay.s
                     }
+                }
+
+                // Plugin frame popouts: every enabled plugin whose host is a
+                // frame popout, fused into the same blob field as Mixer/Power.
+                PluginPopouts {
+                    id: pluginPops
+                    group: blobGroup
+                    s: overlay.s
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    frameThickness: 16
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    pinnedId: (root.popoutMon === overlay.modelData.name && root.popout.indexOf("plugin:") === 0)
+                              ? root.popout.substring(7) : ""
                 }
 
                 // The music island buds off the centre island through its own blob

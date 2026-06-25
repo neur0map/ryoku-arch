@@ -1,0 +1,29 @@
+{
+  "id": "wallhaven",
+  "name": "Wallhaven",
+  "version": "2.0.0",
+  "author": "Ryoku Team <hello@ryoku.sh>",
+  "description": "Browse wallhaven.cc and set wallpapers, from any host.",
+  "license": "MIT",
+  "tags": ["wallpaper"],
+  "official": true,
+  "entryPoints": {
+    "main": "service/Main.qml",
+    "content": "content/Widget.qml",
+    "settings": "settings/Page.qml"
+  },
+  "capabilities": {
+    "densities": ["glyph", "compact", "full"]
+  },
+  "hosts": ["framePopout", "desktopWidget", "island", "topbarGlyph", "window"],
+  "defaults": {
+    "host": "framePopout",
+    "framePopout": { "edge": "top", "align": "end" },
+    "key": "w",
+    "icon": "wallpaper",
+    "label": "Wallhaven"
+  },
+  "commands": ["bin/ryoku-wallhaven-search"],
+  "dependencies": { "commands": ["curl", "jq"] },
+  "metadata": { "defaultSettings": { "apiKey": "" } }
+}

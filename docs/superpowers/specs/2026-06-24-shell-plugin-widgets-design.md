@@ -203,15 +203,23 @@ From `ryoku/shell/quickshell/pill/`: `Theme` (brand `#F25623`, `cream`,
 `MicroLabel` (vermilion dot + mono eyebrow), `PillSurface`, `SearchField`,
 `Card`, `CornerTicks`, `WaveMeter`.
 
-Problem: these live *inside* `pill/` and are imported by relative path, so a
-plugin (loaded from outside `pill/`) cannot import them.
+Problem: these live *inside* `pill/` and are imported by relative path, and
+each Quickshell config in this repo is self-contained (sidebar, widgets,
+visualizer each ship their own `Singletons/`). There is NO `qs.*` module in the
+codebase; that namespace was legacy-shell fiction. Forcing one would add a
+second convention beside the established per-config relative-import pattern,
+which the cardinal rules forbid.
 
-Decision: **extract the reusable, presentational subset into a shared
-`ryoku/shell/quickshell/components/` module** (Quickshell synthesizes the
-`qmldir`, importable as `qs.components`), and have both the shell and plugins
-import from there. Singletons (`Theme`, `Motion`, `Config`) are exposed to
-plugins through a stable import the plugin host establishes. Stateful pill
-internals (`DeckStash`, `DeckUtilities`, etc.) stay in `pill/`.
+Decision (revised after reading the code): the plugin runtime is its own
+self-contained config, `ryoku/shell/quickshell/plugins/`, following the house
+pattern exactly. It ships its own `Singletons/` (Theme/Motion/Config, the same
+source as the pill's) and a local `components/` holding the reusable
+presentational kit (`GlyphIcon`, `MicroLabel`, `Card`, `SearchField`,
+`CornerTicks`, `WaveMeter`, and a host-side `PluginSurface` adapted from
+`PillSurface`). Plugin QML imports these relatively, like every other config.
+The deck kit is the source of truth; the `plugins/components/` copies are kept
+faithful to it. Stateful pill internals (`DeckStash`, `DeckUtilities`, etc.)
+are never copied. This is zero-churn to the existing `pill/` tree.
 
 ### Hub dialect (settings page)
 
@@ -258,17 +266,32 @@ under the "Desktop" group, following the existing page patterns.
 
 ## Plugin runtime (shell side)
 
-- A new supervised component (a `PluginHost`) discovers enabled plugins from
-  `~/.local/share/ryoku/plugins/` + `~/.config/ryoku/plugins.json`, loads each
-  plugin's `service/Main.qml` once (persistent), and instantiates
-  `content/Widget.qml` into each host the user assigned, at that host's density.
-- Loading external QML uses Quickshell's component loading from the plugin dir;
-  `QML2_IMPORT_PATH` already includes `~/.local/lib/qt6/qml` (for `Ryoku.Blobs`)
-  and will include the shared `qs.components` path.
-- New daemon verbs (plain-text socket, matching the existing protocol):
-  `plugin <id> <action>` (e.g. `toggle`, `show`, `hide`) routed to the
-  PluginHost's `IpcHandler`, plus `plugins reload` for hot-reload after a config
-  change. The leader menu and any plugin keybinds route through these.
+Refined after reading the blob architecture: the SDF blob field is **per
+process** (frame.md: everything that must fuse lives in one scene and one
+`BlobGroup`, in the pill process). So a single separate "PluginHost" process
+cannot host a frame-fusing popout. The runtime is therefore split by whether a
+host must fuse the frame:
+
+- **Shared discovery.** `plugins/Singletons/Registry.qml` runs `discover.sh`
+  (scan plugin dirs + merge `~/.config/ryoku/plugins.json` + keep enabled),
+  exposes `plugins: [{ id, dir, manifest, placement }]`, and re-runs on a
+  `plugins.json` change. Both processes below read this same singleton.
+- **Frame-fusing hosts (FramePopout, Island)** are hosted **in the pill
+  process**: the pill's overlay instantiates plugin content into a `Popout` (the
+  existing edge-popout machinery) or the island, in the pill's `blobGroup`, so
+  it melts into the frame exactly like Mixer/Power do today.
+- **Independent-layer hosts (DesktopWidget, Window, TopbarGlyph)** live in the
+  `plugins/` config (its own process): DesktopWidget mirrors `widgets/`
+  (`WlrLayer.Bottom` + `WidgetSlot` drag), Window is a centered surface,
+  TopbarGlyph is a bar slot.
+- Each plugin's `service/Main.qml` loads once per process that renders it;
+  content is instantiated via `Qt.createComponent(dir + "/content/Widget.qml")`
+  behind an error guard, so a broken plugin disables itself and never crashes
+  the host.
+- Daemon verbs (plain-text socket, matching the protocol): `plugin <id>
+  <action>` (`toggle`/`show`/`hide`) routed to the pill or plugins IpcHandler by
+  the host the plugin uses, plus `plugins reload`. The leader menu and plugin
+  keybinds route through these.
 
 ## Wallhaven rework (proof case)
 
