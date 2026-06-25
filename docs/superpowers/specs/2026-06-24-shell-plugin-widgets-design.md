@@ -366,10 +366,13 @@ Built and verified live on the running shell (grim screenshots at each step):
 - Wallhaven reworked (manifest + service + adaptive content + hub settings) with
   a live search backend.
 
-Deferred to fast-follow (documented, not silently dropped):
+Fast-follow status:
 
-- Island, TopbarGlyph, Window hosts. Island needs the edge `Popout` generalized
-  to a top edge (currently left/right only); the others are independent layers.
+- Frame popout now grows from **any edge** (top/bottom/left/right) with `align`
+  (start/center/end), selected live in the hub placement editor; the blob melts
+  into the frame on every edge. Verified live on all four. This also unblocks the
+  Island host (a top-edge popout variant).
+- TopbarGlyph and Window hosts remain fast-follow (independent layers).
 - Remote-catalogue browse/install of plugins inside the Hub page (the page
   manages installed plugins today; install is via the Extras bundle path).
 

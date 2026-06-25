@@ -91,6 +91,8 @@ Item {
             pinned: root.pinnedId === modelData.id
             openW: 360 * root.s
             openH: 460 * root.s
+            hoverW: (place.framePopout && place.framePopout.hoverW) ? place.framePopout.hoverW * root.s : 0
+            hoverH: (place.framePopout && place.framePopout.hoverH) ? place.framePopout.hoverH * root.s : 0
 
             // Per-plugin service + content, instantiated from the plugin dir.
             property var api: QtObject {

@@ -33,6 +33,8 @@ Item {
     property string align: "center"       // "start" | "center" | "end" (along the edge)
     property real openW: 220
     property real openH: 200
+    property real hoverW: 0                // hover-band span along the edge (0 = match body)
+    property real hoverH: 0                // hover-band depth from the edge (0 = frameThickness)
     property real s: 1
     property bool pinned: false           // force open (IPC / inspection)
 
@@ -75,13 +77,20 @@ Item {
     readonly property real bodyW: curW
     readonly property real bodyH: curH
 
-    // Hover trigger: the border segment beside the body, pixel-perfect to the
-    // frame (exactly `frameThickness` deep), spanning the body span so the
-    // pointer never falls into a dead gap on the way in.
-    readonly property real triggerW: vertical ? frameThickness : openW
-    readonly property real triggerH: vertical ? openH : frameThickness
-    readonly property real triggerX: atLeft ? 0 : atRight ? (width - frameThickness) : alongX
-    readonly property real triggerY: atTop ? 0 : atBottom ? (height - frameThickness) : alongY
+    // Hover trigger: the border band beside the body. Depth from the edge is
+    // `hoverH` (>= frameThickness so it never sits in a dead gap); span along the
+    // edge is `hoverW` (defaulting to the body span). A wider band makes the
+    // popout easier to summon; the placement editor tunes both.
+    readonly property real bandDepth: Math.max(frameThickness, hoverH)
+    readonly property real bandSpan: hoverW > 0 ? hoverW : (vertical ? openH : openW)
+    readonly property real triggerW: vertical ? bandDepth : bandSpan
+    readonly property real triggerH: vertical ? bandSpan : bandDepth
+    readonly property real triggerX: atLeft ? 0
+                                   : atRight ? (width - bandDepth)
+                                   : (alongX + (openW - bandSpan) / 2)
+    readonly property real triggerY: atTop ? 0
+                                   : atBottom ? (height - bandDepth)
+                                   : (alongY + (openH - bandSpan) / 2)
 
     states: State {
         name: "open"
