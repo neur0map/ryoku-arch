@@ -19,7 +19,8 @@ Item {
         "frameRadius", "frameBorder", "frameSmoothing", "frameOpacity",
         "shadowStrength", "shadowSize", "surfaceColor",
         "islandWidth", "islandHeight", "islandRestCorner", "islandOpenCorner",
-        "islandGap", "islandSmoothing", "islandOpacity", "islandStyle", "islandAutohide", "barEnabled"
+        "islandGap", "islandSmoothing", "islandOpacity", "islandStyle", "islandAutohide", "barEnabled",
+        "fontFamily", "fontScale", "matchWallpaper"
     ]
     readonly property var vizKeys: [
         "enabled", "bars", "height", "thickness", "bloom", "reflection", "idleWave",
@@ -35,6 +36,7 @@ Item {
         "islandWidth": 108, "islandHeight": 38, "islandRestCorner": 18, "islandOpenCorner": 22,
         "islandGap": 8, "islandSmoothing": 24, "islandOpacity": 1,
         "islandStyle": "island", "islandAutohide": false, "barEnabled": false,
+        "fontFamily": "Inter", "fontScale": 1.0, "matchWallpaper": false,
         "enabled": true, "bars": 64, "height": 0.42, "thickness": 0.58,
         "bloom": 0.6, "reflection": 0.1, "idleWave": true,
         "style": "bars", "shape": "rounded", "position": "bottom", "mirror": false
@@ -67,6 +69,9 @@ Item {
         property string islandStyle: "island"
         property bool islandAutohide: false
         property bool barEnabled: false
+        property string fontFamily: "Inter"
+        property real fontScale: 1.0
+        property bool matchWallpaper: false
         property bool enabled: true
         property int bars: 64
         property real height: 0.42
@@ -199,6 +204,9 @@ Item {
             property string islandStyle: "island"
             property bool islandAutohide: false
             property bool barEnabled: false
+            property string fontFamily: "Inter"
+            property real fontScale: 1.0
+            property bool matchWallpaper: false
         }
     }
 
@@ -363,6 +371,11 @@ Item {
                 SettingSection {
                     width: parent.width
                     title: "SURFACE"
+                    ToggleRow {
+                        width: parent.width; label: "Match wallpaper"
+                        checked: draft.matchWallpaper
+                        onToggled: (v) => page.edit("matchWallpaper", v)
+                    }
                     ColorField {
                         width: parent.width; label: "Colour"
                         value: draft.surfaceColor
@@ -372,6 +385,23 @@ Item {
                         width: parent.width; label: "Opacity"; percent: true
                         from: 0.2; to: 1; step: 0.01; value: draft.frameOpacity
                         onModified: (v) => page.edit("frameOpacity", v)
+                    }
+                }
+
+                SettingSection {
+                    width: parent.width
+                    title: "TEXT"
+                    Dropdown {
+                        width: parent.width; label: "Font"
+                        fieldWidth: 200
+                        options: ["Inter", "JetBrainsMono Nerd Font", "Noto Sans", "Noto Sans CJK JP"]
+                        current: draft.fontFamily
+                        onChosen: (k) => page.edit("fontFamily", k)
+                    }
+                    SliderRow {
+                        width: parent.width; label: "Size"; percent: true
+                        from: 0.7; to: 1.6; step: 0.05; value: draft.fontScale
+                        onModified: (v) => page.edit("fontScale", v)
                     }
                 }
             }

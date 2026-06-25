@@ -3,10 +3,10 @@ import QtQuick
 import Quickshell
 
 Singleton {
-    readonly property color brand:    "#F25623"
+    readonly property color brand:    Config.matchWallpaper ? Wallust.accent : "#F25623"
     readonly property color verm:     brand
-    readonly property color vermLit:  "#ff7a45"
-    readonly property color vermDeep: "#c4411d"
+    readonly property color vermLit:  Config.matchWallpaper ? Qt.lighter(Wallust.accent, 1.22) : "#ff7a45"
+    readonly property color vermDeep: Config.matchWallpaper ? Qt.darker(Wallust.accent, 1.3) : "#c4411d"
     readonly property color cream:    "#c0caf5"
     readonly property color bright:   "#e0e6ff"
     readonly property color dim:      "#7aa2f7"
@@ -43,7 +43,7 @@ Singleton {
     readonly property color frameBorder: Qt.rgba(122/255, 162/255, 247/255, 0.18)
     readonly property color creamMenu:   Qt.rgba(192/255, 202/255, 245/255, 0.82)
     readonly property real shadowOpacity: 0.5
-    readonly property string font: "Inter"
+    readonly property string font: Config.fontFamily.length > 0 ? Config.fontFamily : "Inter"
     readonly property string fontJp: "Noto Sans CJK JP"
     readonly property string mono: "JetBrainsMono Nerd Font"
 

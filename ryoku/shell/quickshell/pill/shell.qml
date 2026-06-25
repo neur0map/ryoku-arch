@@ -212,7 +212,7 @@ ShellRoot {
         PanelWindow {
             id: reserve
             required property var modelData
-            readonly property real s: modelData ? modelData.height / 1080 : 1
+            readonly property real s: (modelData ? modelData.height / 1080 : 1) * Math.max(0.7, Math.min(1.6, Config.fontScale))
             readonly property real topGap: Config.islandGap * s
             readonly property real restHeight: Config.islandHeight * s
             // Only the classic fused island, shown at rest, reserves its own strip
@@ -245,7 +245,7 @@ ShellRoot {
         PanelWindow {
             id: overlay
             required property var modelData
-            readonly property real s: modelData ? modelData.height / 1080 : 1
+            readonly property real s: (modelData ? modelData.height / 1080 : 1) * Math.max(0.7, Math.min(1.6, Config.fontScale))
             readonly property real topGap: Config.islandGap * s
 
             // Bar mode: the frame's top border swells into a band carrying the
@@ -421,7 +421,7 @@ ShellRoot {
                 // reads as the frame swelling open at top-centre, not a bar on top.
                 BlobGroup {
                     id: blobGroup
-                    color: Config.surfaceColor
+                    color: Config.matchWallpaper ? Wallust.surface : Config.surfaceColor
                     smoothing: Config.frameSmoothing
                     shadowStrength: Config.shadowStrength
                     shadowSize: Config.shadowSize
@@ -580,7 +580,7 @@ ShellRoot {
                 // second field (not the frame's) so the music never fuses the border.
                 BlobGroup {
                     id: islandGroup
-                    color: Config.surfaceColor
+                    color: Config.matchWallpaper ? Wallust.surface : Config.surfaceColor
                     smoothing: Config.islandSmoothing
                 }
 

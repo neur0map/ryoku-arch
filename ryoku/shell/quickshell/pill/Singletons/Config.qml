@@ -54,6 +54,17 @@ Singleton {
     // Shell -> Bar toggles it.
     property alias barEnabled: adapter.barEnabled
 
+    // Typography: the pill's UI font family (Theme.font reads this) and a scale
+    // that grows or shrinks the whole pill -- text and the island that holds it,
+    // so the readout stays legible on a dense panel without overflowing.
+    property alias fontFamily: adapter.fontFamily
+    property alias fontScale:  adapter.fontScale
+
+    // Match wallpaper: when on, the pill's surface fill and accent follow the
+    // wallust palette (Wallust singleton) instead of surfaceColor / the brand
+    // orange, so the shell retunes to the wallpaper. Off by default.
+    property alias matchWallpaper: adapter.matchWallpaper
+
     FileView {
         id: file
         path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/shell.json"
@@ -82,6 +93,9 @@ Singleton {
             property string islandStyle: "island"
             property bool islandAutohide: false
             property bool barEnabled: false
+            property string fontFamily: "Inter"
+            property real fontScale: 1.0
+            property bool matchWallpaper: false
         }
     }
 
