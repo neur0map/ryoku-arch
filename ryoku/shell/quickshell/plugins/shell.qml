@@ -58,10 +58,11 @@ ShellRoot {
                     readonly property var place: modelData.placement
                     pluginId: modelData.id
                     locked: (place.desktopWidget && place.desktopWidget.locked === true) || false
-                    scaleCfg: (place.desktopWidget && place.desktopWidget.scale) || 1
+                    scaleCfg: (place.desktopWidget && place.desktopWidget.scale) || 0.85
                     freeX: (place.desktopWidget && place.desktopWidget.x !== undefined) ? place.desktopWidget.x : 80
                     freeY: (place.desktopWidget && place.desktopWidget.y !== undefined) ? place.desktopWidget.y : 80
                     bg: (place.desktopWidget && place.desktopWidget.bg) ? place.desktopWidget.bg : "card"
+                    radius: (place.desktopWidget && place.desktopWidget.radius) || 26
 
                     // Drag commit: write the new free position; ryoku-plugins-place
                     // merges into plugins.json and the Registry's file watch
