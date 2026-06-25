@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Widgets
 import Ryoku.PluginKit
 import Ryoku.PluginKit.Singletons
 
@@ -269,14 +270,23 @@ Item {
         color: Theme.tileBg
         border.width: 1
         border.color: tma.containsMouse ? Theme.brand : Theme.border
-        clip: true
         Behavior on border.color { ColorAnimation { duration: Motion.fast } }
-        Image {
+        // ClippingRectangle is the scene-graph clipper the shell uses for images
+        // in the blob overlay (see Media.qml); a plain Rectangle{clip:true} around
+        // an Image does not composite the texture in this surface.
+        ClippingRectangle {
             anchors.fill: parent
-            asynchronous: true
-            cache: true
-            fillMode: Image.PreserveAspectCrop
-            source: thumb.data && thumb.data.thumb ? thumb.data.thumb : ""
+            anchors.margins: 1
+            radius: thumb.radius
+            color: "transparent"
+            Image {
+                anchors.fill: parent
+                asynchronous: true
+                cache: true
+                fillMode: Image.PreserveAspectCrop
+                sourceSize: Qt.size(Math.ceil(thumb.width * 2), Math.ceil(thumb.height * 2))
+                source: thumb.data && thumb.data.thumb ? thumb.data.thumb : ""
+            }
         }
         Rectangle {
             visible: thumb.big && tma.containsMouse
