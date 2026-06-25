@@ -77,19 +77,19 @@ Item {
     readonly property real bodyW: curW
     readonly property real bodyH: curH
 
-    // Hover trigger: the border band beside the body. Depth from the edge is
-    // `hoverH` (>= frameThickness so it never sits in a dead gap); span along the
-    // edge is `hoverW` (defaulting to the body span). A wider band makes the
-    // popout easier to summon; the placement editor tunes both.
-    readonly property real bandDepth: Math.max(frameThickness, hoverH)
-    readonly property real bandSpan: hoverW > 0 ? hoverW : (vertical ? openH : openW)
-    readonly property real triggerW: vertical ? bandDepth : bandSpan
-    readonly property real triggerH: vertical ? bandSpan : bandDepth
+    // Hover trigger: the frame border itself is the activator - a thin strip of the
+    // frame beside the popout, exactly `frameThickness` deep (the same pixels the
+    // mixer/power popouts use). The strip spans the frame next to the body but is
+    // capped so it is a small, deliberate hot-spot on the frame rather than a tall
+    // invisible line that opens the popout before the pointer reaches the frame.
+    readonly property real bandSpan: Math.min(vertical ? openH : openW, 220 * s)
+    readonly property real triggerW: vertical ? frameThickness : bandSpan
+    readonly property real triggerH: vertical ? bandSpan : frameThickness
     readonly property real triggerX: atLeft ? 0
-                                   : atRight ? (width - bandDepth)
+                                   : atRight ? (width - frameThickness)
                                    : (alongX + (openW - bandSpan) / 2)
     readonly property real triggerY: atTop ? 0
-                                   : atBottom ? (height - bandDepth)
+                                   : atBottom ? (height - frameThickness)
                                    : (alongY + (openH - bandSpan) / 2)
 
     states: State {

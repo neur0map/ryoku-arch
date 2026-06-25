@@ -88,7 +88,7 @@ Item {
             frameThickness: root.frameThickness
             radius: root.radius
             smoothing: root.smoothing
-            edge: (place.framePopout && ["left", "right", "top", "bottom"].indexOf(place.framePopout.edge) >= 0) ? place.framePopout.edge : "right"
+            edge: (place.framePopout && ["left", "right", "top", "bottom"].indexOf(place.framePopout.edge) >= 0) ? place.framePopout.edge : "top"
             align: (place.framePopout && place.framePopout.align) ? place.framePopout.align : "start"
             s: root.s
             active: root.active
