@@ -390,18 +390,19 @@ Fixes landed (widget now renders fully and search works end-to-end):
 - Content is loaded via `PluginContent` (Qt.createComponent + createObject)
   rather than `Loader { source: url }`.
 
-Remaining defect (image-texture compositing):
+Resolved defect (image-texture compositing):
 
-- Result-grid **thumbnail `Image`s do not paint** in either host (frame popout
-  OR desktop widget). Exhaustively isolated: the `Image` reaches `Ready` with
-  correct geometry, in an UNCLIPPED desktop layer, with a local file, with and
-  without `ClippingRectangle`, with/without `sourceSize`, async/sync, FBO layer,
-  and via Loader or createComponent. A single top-level `Image` renders; the
-  failing case is `Image` nodes inside `Grid > Repeater` delegates within
-  externally-loaded plugin content. This is a Quickshell scene-graph interaction
-  that needs platform-level investigation (e.g. a custom texture node, or the
-  Blobs plugin's texture path), not widget code. Everything else in the widget
-  renders and functions natively.
+- Symptom: result-grid thumbnail `Image`s did not paint in any host. Root cause,
+  isolated by a mock-service reproduction: **an `Image` inside an inline QML
+  `component` (`component WhThumb: Rectangle { ... Image ... }`) used as a
+  Repeater delegate does not composite its texture in Quickshell**, while the
+  same `Image` in a plain inline delegate renders fine. Not clip, layer,
+  network, sourceSize, loader, or `ComponentBehavior` related (all eliminated).
+  Fix: the thumbnail delegate is a plain inline `Rectangle` + `Image` (no inline
+  component). Verified live: real wallhaven thumbnails render in BOTH the desktop
+  widget and the frame popout. Authoring guidance: plugin content should avoid
+  inline `component` wrappers around `Image`; use a separate `.qml` file or an
+  inline delegate.
 
 ## Decisions taken (defaults; confirm or override on review)
 

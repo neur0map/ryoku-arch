@@ -103,3 +103,10 @@ live in the `plugins` config.
 - Enable and place: Ryoku Settings -> Plugins. Placement persists to
   `~/.config/ryoku/plugins.json`; the runtime watches it and retunes live.
 - Keybind / leader: `ryoku-shell plugin <id>` toggles a frame popout.
+
+## Gotcha: images in delegates
+
+An `Image` inside an inline QML `component` used as a list/grid delegate does not
+composite its texture in Quickshell (it loads `Ready` but paints nothing). Put
+thumbnail/image delegates inline (a plain `Rectangle { Image {} }` delegate) or
+in a separate `.qml` file, not an inline `component`. See `wallhaven`'s grid.
