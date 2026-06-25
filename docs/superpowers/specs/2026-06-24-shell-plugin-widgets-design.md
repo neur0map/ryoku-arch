@@ -346,6 +346,44 @@ desktop tile, **and** a topbar glyph, and looks deliberately Ryoku in each.
   `Motion.morph`; the PluginHost reparents content between hosts on an explicit
   state change, never per-frame.
 
+## Implementation status (live build)
+
+Built and verified live on the running shell (grim screenshots at each step):
+
+- Foundation: `Ryoku.PluginKit` QML module; `plugins/` Quickshell config;
+  `discover.sh` (catalogue + `plugins.json` merge), tested for the empty,
+  disabled, and enabled cases.
+- FramePopout host: wallhaven fused into the frame blob in the pill, opened by
+  hover (input-mask wired) and by `ryoku-shell plugin <id>` (new daemon verb +
+  pill `pluginPopout` IpcHandler). Verified open/close and live render.
+- DesktopWidget host: wallhaven as a draggable tile on the `WlrLayer.Bottom`
+  layer (the `plugins` config, mirroring `widgets/`), position persisted via
+  `ryoku-plugins-place`. Verified on the wallpaper alongside the shipped widgets.
+- Hub Plugins page: enable toggle + host selector per plugin, in the hub dialect.
+  Verified rendering and that a host change writes `plugins.json`.
+- Extras: `ryoku-extras-install` installs/removes `plugin` items via
+  `ryoku-hub extras plugin`. Packaged in `ryoku-desktop`; deploy wired.
+- Wallhaven reworked (manifest + service + adaptive content + hub settings) with
+  a live search backend.
+
+Deferred to fast-follow (documented, not silently dropped):
+
+- Island, TopbarGlyph, Window hosts. Island needs the edge `Popout` generalized
+  to a top edge (currently left/right only); the others are independent layers.
+- Remote-catalogue browse/install of plugins inside the Hub page (the page
+  manages installed plugins today; install is via the Extras bundle path).
+
+Known issue:
+
+- Wallhaven result thumbnails (remote https images in the result grid) load and
+  paint in a standalone `qs -p pill` (verified: `Image` reaches `Ready`,
+  paintedWidth 300) but do not paint in the daemon-supervised pill, with
+  identical code and environment. Ruled out: async vs sync, image cache, SSL/TLS
+  backend, env vars, sourceSize, and reveal-state gating. The popout chrome,
+  layout, and styling are correct; only the in-grid remote-image paint in the
+  supervised process is affected. Needs dedicated debugging of the supervised
+  render context.
+
 ## Decisions taken (defaults; confirm or override on review)
 
 1. Core model: one adaptive `content/Widget.qml` at three densities; shell owns
