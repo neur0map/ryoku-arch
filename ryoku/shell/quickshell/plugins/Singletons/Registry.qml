@@ -23,7 +23,7 @@ Singleton {
     readonly property string _shellDir: Quickshell.env("RYOKU_SHELL_DIR")
     readonly property string _script: (_shellDir && _shellDir.length > 0)
         ? _shellDir + "/quickshell/plugins/discover.sh"
-        : Quickshell.shellDir + "/discover.sh"
+        : (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/quickshell/plugins/discover.sh"
 
     function reload() {
         discoverProc.running = false;

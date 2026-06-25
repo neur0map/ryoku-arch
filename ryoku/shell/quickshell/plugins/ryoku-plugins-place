@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Merge a plugin placement change into ~/.config/ryoku/plugins.json. Used by the
+# desktop layer to persist a dragged tile's free position (and by Ryoku Settings
+# for any placement edit). The Registry's file watch picks the change up and
+# retunes every surface, so there is no reload.
+#
+#   ryoku-plugins-place <id> desktopWidget <x> <y>
+#   ryoku-plugins-place <id> host <hostName>
+#   ryoku-plugins-place <id> enabled <true|false>
+set -euo pipefail
+
+cfg_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+f="$cfg_home/ryoku/plugins.json"
+mkdir -p "$(dirname "$f")"
+[ -f "$f" ] || echo '{}' >"$f"
+
+id="${1:?id required}"; field="${2:?field required}"; shift 2
+
+case "$field" in
+desktopWidget)
+	x="${1:?x}"; y="${2:?y}"
+	jq --arg id "$id" --argjson x "$x" --argjson y "$y" \
+		'.[$id] = ((.[$id] // {}) + { enabled: ((.[$id].enabled) // true), host: ((.[$id].host) // "desktopWidget"), desktopWidget: (((.[$id].desktopWidget) // {}) + { x: $x, y: $y }) })' \
+		"$f" >"$f.tmp" && mv "$f.tmp" "$f"
+	;;
+host)
+	host="${1:?host}"
+	jq --arg id "$id" --arg h "$host" '.[$id] = ((.[$id] // {}) + { enabled: ((.[$id].enabled) // true), host: $h })' "$f" >"$f.tmp" && mv "$f.tmp" "$f"
+	;;
+enabled)
+	en="${1:?enabled}"
+	jq --arg id "$id" --argjson e "$en" '.[$id] = ((.[$id] // {}) + { enabled: $e })' "$f" >"$f.tmp" && mv "$f.tmp" "$f"
+	;;
+*)
+	echo "usage: ryoku-plugins-place <id> desktopWidget <x> <y> | host <name> | enabled <bool>" >&2
+	exit 2
+	;;
+esac
