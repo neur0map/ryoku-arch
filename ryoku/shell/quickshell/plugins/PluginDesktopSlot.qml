@@ -89,9 +89,12 @@ Item {
         anchors.fill: parent
         visible: slot.bg !== "none"
         radius: slot.radius
-        color: slot.bg === "card" ? Theme.cardTop : Qt.rgba(16 / 255, 16 / 255, 24 / 255, 0.26)
+        // Match the shipped desktop widgets (WidgetSlot): a translucent dark card
+        // with a faint white hairline, so plugin tiles read identically to the
+        // clock and weather on the wallpaper.
+        color: slot.bg === "card" ? Qt.rgba(0, 0, 0, 0.42) : Qt.rgba(16 / 255, 16 / 255, 24 / 255, 0.26)
         border.width: 1
-        border.color: Theme.hair
+        border.color: slot.bg === "card" ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.16)
     }
 
     Item {
