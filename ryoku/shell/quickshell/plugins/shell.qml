@@ -33,7 +33,10 @@ ShellRoot {
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Bottom
             WlrLayershell.namespace: "ryoku-plugins"
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+            // OnDemand so the search field can take keyboard focus when clicked and
+            // the slot's drag/click handlers receive the pointer; None would leave
+            // the widget inert (the reported "unresponsive to drag or clicks").
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
             anchors { top: true; left: true; right: true; bottom: true }
 
             Repeater {
