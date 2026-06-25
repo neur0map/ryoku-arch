@@ -42,6 +42,71 @@ ShellRoot {
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
             anchors { top: true; left: true; right: true; bottom: true }
 
+            // Input mask: this layer is a full-screen WlrLayer.Bottom surface.
+            // Without a mask it would claim every pointer event over the empty
+            // wallpaper and starve click-through to the desktop / right-click
+            // menu beneath. So claim input ONLY over each visible plugin tile's
+            // live rect; an empty Region (no item, no rect) contributes
+            // QRegion() to the union, so the mask collapses cleanly when no
+            // plugin is enabled. Region.item tracks the slot's QQuickItem
+            // geometry directly (x/y/width/height change signals from C++), so
+            // dragging or resizing a tile updates the input mask without any
+            // QML rewrites. The trailing full-screen rect activates while a
+            // tile is being held so the cursor can leave the rect mid-drag
+            // without losing the grip, matching widgets/shell.qml.
+            mask: pluginsMask
+            Region {
+                id: pluginsMask
+                // A pool larger than any realistic enabled-plugin count
+                // (typical is 1-5; the desktopWidget host is opt-in per
+                // plugin). Entries past `rep.count` resolve to item:null,
+                // hence an empty Region contributing nothing to the union.
+                Region { item: rep.count >  0 ? rep.itemAt( 0) : null }
+                Region { item: rep.count >  1 ? rep.itemAt( 1) : null }
+                Region { item: rep.count >  2 ? rep.itemAt( 2) : null }
+                Region { item: rep.count >  3 ? rep.itemAt( 3) : null }
+                Region { item: rep.count >  4 ? rep.itemAt( 4) : null }
+                Region { item: rep.count >  5 ? rep.itemAt( 5) : null }
+                Region { item: rep.count >  6 ? rep.itemAt( 6) : null }
+                Region { item: rep.count >  7 ? rep.itemAt( 7) : null }
+                Region { item: rep.count >  8 ? rep.itemAt( 8) : null }
+                Region { item: rep.count >  9 ? rep.itemAt( 9) : null }
+                Region { item: rep.count > 10 ? rep.itemAt(10) : null }
+                Region { item: rep.count > 11 ? rep.itemAt(11) : null }
+                Region { item: rep.count > 12 ? rep.itemAt(12) : null }
+                Region { item: rep.count > 13 ? rep.itemAt(13) : null }
+                Region { item: rep.count > 14 ? rep.itemAt(14) : null }
+                Region { item: rep.count > 15 ? rep.itemAt(15) : null }
+                Region {
+                    x: 0; y: 0
+                    width: win._anyHolding ? win.width : 0
+                    height: win._anyHolding ? win.height : 0
+                }
+                // Menu open: the right-click menu's click-away catcher fills
+                // the whole window, so input has to be claimed everywhere
+                // while it's up or the user can't dismiss it by clicking the
+                // wallpaper (and the menu rows themselves may sit outside
+                // every tile's rect when the cursor was near a screen edge).
+                Region {
+                    x: 0; y: 0
+                    width: menu.open ? win.width : 0
+                    height: menu.open ? win.height : 0
+                }
+            }
+
+            // True while any plugin tile is mid-drag or mid-resize, used by
+            // the tracking rect above. Recomputed via _recomputeHolding() in
+            // the delegate below (each slot.holdingChanged wires into it),
+            // so the value stays correct as tiles come and go.
+            property bool _anyHolding: false
+            function _recomputeHolding() {
+                for (let i = 0; i < rep.count; i++) {
+                    const it = rep.itemAt(i);
+                    if (it && it.holding) { _anyHolding = true; return; }
+                }
+                _anyHolding = false;
+            }
+
             // Look up a plugin's currently-persisted desktopWidget block by id.
             // Used by the menu handlers below to round-trip a partial change
             // (lock/scale) without dropping the other coordinates.
@@ -51,6 +116,7 @@ ShellRoot {
             }
 
             Repeater {
+                id: rep
                 model: root.desktopPlugins
                 delegate: PluginDesktopSlot {
                     id: slot
@@ -88,6 +154,12 @@ ShellRoot {
                         const dw = win.placementOf(id);
                         menu.openFor(id, dw.locked === true, mx, my);
                     }
+
+                    // Aggregate "any tile is being held" updates the mask's
+                    // full-screen tracking rect (see pluginsMask above), so a
+                    // drag that wanders past the tile's rect still reaches
+                    // the grip and the release tracks correctly.
+                    onHoldingChanged: win._recomputeHolding()
 
                     property var api: QtObject {
                         property var mainInstance: svc.item

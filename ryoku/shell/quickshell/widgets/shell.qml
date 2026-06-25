@@ -43,6 +43,37 @@ ShellRoot {
 
             anchors { top: true; left: true; right: true; bottom: true }
 
+            // Input mask: this layer sits ON TOP of `ryoku-plugins` (also
+            // WlrLayer.Bottom). Without a mask the full-screen surface swallows
+            // every pointer event over the wallpaper and starves plugin tiles
+            // beneath. So claim input ONLY over the visible widget rects, with the
+            // whole screen folded in while a slot is being dragged so motion past
+            // the rect still reaches the grip (and the release tracks correctly).
+            // An empty Region (width/height 0) contributes nothing to the union,
+            // which is how a hidden or undragged state collapses cleanly.
+            mask: widgetMask
+            Region {
+                id: widgetMask
+                Region {
+                    x: clockSlot.x; y: clockSlot.y
+                    width: clockSlot.visible ? clockSlot.width : 0
+                    height: clockSlot.visible ? clockSlot.height : 0
+                }
+                Region {
+                    x: weatherSlot.x; y: weatherSlot.y
+                    width: weatherSlot.visible ? weatherSlot.width : 0
+                    height: weatherSlot.visible ? weatherSlot.height : 0
+                }
+                // Drag tracking: claim the screen while a widget is being dragged
+                // so the cursor can leave the rect without losing the grip.
+                Region {
+                    readonly property bool tracking: clockSlot.dragging || weatherSlot.dragging
+                    x: 0; y: 0
+                    width: tracking ? win.width : 0
+                    height: tracking ? win.height : 0
+                }
+            }
+
             // Right-click the bare desktop for the global menu. Sits behind the
             // widgets (which handle their own right-click) and takes only the right
             // button, so a left click on the wallpaper does nothing rather than
