@@ -93,12 +93,7 @@ Item {
         width: root.contentW
         spacing: 14 * root.s
 
-        WhHeader {
-            width: root.contentW; s: root.s; service: root.service
-            pager: true
-            onPrev: root.service?.previousPage()
-            onNext: root.service?.nextPage()
-        }
+        WhHeader { width: root.contentW; s: root.s; service: root.service }
         WhSearch { width: root.contentW; s: root.s; service: root.service }
         WhChips { width: root.contentW; s: root.s; service: root.service }
         WhGrid {
@@ -115,29 +110,11 @@ Item {
         id: hdr
         property real s: 1
         property var service
-        property bool pager: false
-        signal prev()
-        signal next()
-        implicitHeight: 30 * s
+        implicitHeight: 22 * s
         MicroLabel {
             label: qsTr("Wallhaven"); s: hdr.s
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-        }
-        Row {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 8 * hdr.s
-            visible: hdr.pager
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: `${hdr.service?.page ?? 1}`
-                color: Theme.dim
-                font.family: Theme.mono
-                font.pixelSize: 11 * hdr.s
-            }
-            WhIconBtn { s: hdr.s; glyph: "prev"; onClicked: hdr.prev() }
-            WhIconBtn { s: hdr.s; glyph: "next"; onClicked: hdr.next() }
         }
     }
 
@@ -164,18 +141,44 @@ Item {
         }
     }
 
-    component WhChips: Row {
+    component WhChips: Item {
         id: chips
         property real s: 1
         property var service
-        spacing: 8 * s
-        WhChip {
-            s: chips.s; text: qsTr("Latest")
-            on: (chips.service?.topRange ?? "") === "" && (chips.service?.query ?? "") === ""
-            onClicked: chips.service?.searchLatest("")
+        implicitHeight: 30 * s
+        Row {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 8 * chips.s
+            WhChip {
+                s: chips.s; text: qsTr("Latest")
+                on: (chips.service?.topRange ?? "") === "" && (chips.service?.query ?? "") === ""
+                onClicked: chips.service?.searchLatest("")
+            }
+            WhChip { s: chips.s; text: qsTr("Top week"); on: chips.service?.topRange === "1w"; onClicked: chips.service?.searchTop("1w") }
+            WhChip { s: chips.s; text: qsTr("Top month"); on: chips.service?.topRange === "1M"; onClicked: chips.service?.searchTop("1M") }
         }
-        WhChip { s: chips.s; text: qsTr("Top week"); on: chips.service?.topRange === "1w"; onClicked: chips.service?.searchTop("1w") }
-        WhChip { s: chips.s; text: qsTr("Top month"); on: chips.service?.topRange === "1M"; onClicked: chips.service?.searchTop("1M") }
+        // Pager in the trailing space: page number + previous/next.
+        Row {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 6 * chips.s
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: `${chips.service?.page ?? 1}`
+                color: Theme.dim
+                font.family: Theme.mono
+                font.pixelSize: 11 * chips.s
+            }
+            WhIconBtn {
+                s: chips.s; glyph: "prev"
+                onClicked: chips.service?.previousPage()
+            }
+            WhIconBtn {
+                s: chips.s; glyph: "next"
+                onClicked: chips.service?.nextPage()
+            }
+        }
     }
 
     component WhGrid: Item {
