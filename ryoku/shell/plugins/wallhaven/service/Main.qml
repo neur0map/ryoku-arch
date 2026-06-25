@@ -16,10 +16,19 @@ Item {
     id: root
 
     property var pluginApi
+    readonly property bool ready: !!(pluginApi && pluginApi.pluginDir && pluginApi.pluginDir.length > 0)
 
-    readonly property string commandPath: (pluginApi ? pluginApi.pluginDir : "") + "/bin/ryoku-wallhaven-search"
+    // The host wires pluginApi after this service loads, so the command path is
+    // empty until then. Run the first search as soon as the dir is known, so the
+    // grid populates without any cross-component timing race.
+    onReadyChanged: if (ready && results.length === 0 && !searching) searchLatest("");
+
+    function cmdPath() { return (pluginApi ? pluginApi.pluginDir : "") + "/bin/ryoku-wallhaven-search"; }
     readonly property string apiKey: (pluginApi && pluginApi.pluginSettings ? pluginApi.pluginSettings.apiKey : "") || ""
-    readonly property var commandEnv: apiKey.length > 0 ? ({ "WALLHAVEN_API_KEY": apiKey }) : ({})
+    // Prefix that injects the optional API key without replacing the process
+    // environment (setting Process.environment to a dict clears PATH, so curl/jq
+    // vanish). Empty when no key, so the command runs with the inherited env.
+    readonly property var keyPrefix: apiKey.length > 0 ? ["env", "WALLHAVEN_API_KEY=" + apiKey] : []
 
     property bool searching
     property bool downloading
@@ -45,6 +54,10 @@ Item {
         const nextPage = Math.max(1, searchPage || 1);
         const nextTopRange = range || "";
 
+        // Not wired yet: the onReadyChanged handler will run the first search.
+        if (!ready)
+            return;
+
         resultsExpanded = true;
 
         if (searchProcess.running) {
@@ -59,7 +72,7 @@ Item {
         searching = true;
         _searchStdout = "";
         _searchStderr = "";
-        const command = [commandPath, "search", "--query", trimmed, "--page", `${nextPage}`, "--json"];
+        const command = keyPrefix.concat([cmdPath(), "search", "--query", trimmed, "--page", `${nextPage}`, "--json"]);
         if (topRange.length > 0)
             command.push("--top-range", topRange);
         searchProcess.command = command;
@@ -87,7 +100,7 @@ Item {
         _downloadStderr = "";
         _downloadItem = item;
         _downloadShouldApply = shouldApply;
-        downloadProcess.command = [commandPath, "download", item.id, item.path];
+        downloadProcess.command = keyPrefix.concat([cmdPath(), "download", item.id, item.path]);
         downloadProcess.running = true;
     }
 
@@ -145,7 +158,6 @@ Item {
 
     Process {
         id: searchProcess
-        environment: root.commandEnv
         stdout: StdioCollector { onStreamFinished: root._searchStdout = text }
         stderr: StdioCollector { onStreamFinished: root._searchStderr = text }
         onExited: exitCode => root._finishSearch(exitCode)
@@ -153,7 +165,6 @@ Item {
 
     Process {
         id: downloadProcess
-        environment: root.commandEnv
         stdout: StdioCollector { onStreamFinished: root._downloadStdout = text }
         stderr: StdioCollector { onStreamFinished: root._downloadStderr = text }
         onExited: exitCode => root._finishDownload(exitCode)

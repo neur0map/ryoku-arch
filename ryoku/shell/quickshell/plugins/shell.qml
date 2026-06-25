@@ -53,7 +53,7 @@ ShellRoot {
                     property var api: QtObject {
                         property var mainInstance: svc.item
                         property var pluginSettings: (slot.place && slot.place.settings) ? slot.place.settings : ({})
-                        property string pluginDir: modelData.dir
+                        property string pluginDir: slot.modelData.dir
                         function saveSettings() {}
                     }
 
