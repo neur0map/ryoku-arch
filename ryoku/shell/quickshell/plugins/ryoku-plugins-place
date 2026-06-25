@@ -5,6 +5,7 @@
 # retunes every surface, so there is no reload.
 #
 #   ryoku-plugins-place <id> desktopWidget <x> <y>
+#   ryoku-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>
 #   ryoku-plugins-place <id> host <hostName>
 #   ryoku-plugins-place <id> enabled <true|false>
 set -euo pipefail
@@ -21,6 +22,12 @@ desktopWidget)
 	x="${1:?x}"; y="${2:?y}"
 	jq --arg id "$id" --argjson x "$x" --argjson y "$y" \
 		'.[$id] = ((.[$id] // {}) + { enabled: ((.[$id].enabled) // true), host: ((.[$id].host) // "desktopWidget"), desktopWidget: (((.[$id].desktopWidget) // {}) + { x: $x, y: $y }) })' \
+		"$f" >"$f.tmp" && mv "$f.tmp" "$f"
+	;;
+framePopout)
+	edge="${1:?edge}"; align="${2:?align}"; hoverW="${3:-320}"; hoverH="${4:-16}"
+	jq --arg id "$id" --arg e "$edge" --arg a "$align" --argjson hw "$hoverW" --argjson hh "$hoverH" \
+		'.[$id] = ((.[$id] // {}) + { enabled: ((.[$id].enabled) // true), host: ((.[$id].host) // "framePopout"), framePopout: (((.[$id].framePopout) // {}) + { edge: $e, align: $a, hoverW: $hw, hoverH: $hh }) })' \
 		"$f" >"$f.tmp" && mv "$f.tmp" "$f"
 	;;
 host)

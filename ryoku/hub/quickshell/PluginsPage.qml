@@ -25,10 +25,9 @@ Flickable {
         : (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/quickshell/plugins/discover.sh"
 
     function refresh() { listProc.running = false; listProc.running = true; }
-    function place(id, field, a, b) {
+    function place(id, field, a, b, c, d) {
         var args = ["ryoku-plugins-place", id, field];
-        if (a !== undefined) args.push("" + a);
-        if (b !== undefined) args.push("" + b);
+        for (var v of [a, b, c, d]) if (v !== undefined) args.push("" + v);
         placeProc.command = args;
         placeProc.running = true;
     }
@@ -188,6 +187,17 @@ Flickable {
                                 }
                             }
                         }
+                    }
+
+                    // Interactive placement editor (preview + drag-box), shown for
+                    // the active host when enabled.
+                    PluginPlacementEditor {
+                        width: parent.width
+                        visible: card.on && (card.host === "framePopout" || card.host === "desktopWidget")
+                        pluginId: card.modelData.id
+                        host: card.host
+                        place: card.place
+                        onChanged: (field, args) => page.place(card.modelData.id, field, args[0], args[1], args[2], args[3])
                     }
                 }
             }
