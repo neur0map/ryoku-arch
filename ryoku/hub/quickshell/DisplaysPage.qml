@@ -6,9 +6,9 @@ import "Singletons"
 
 // Displays: detect every connected monitor and arrange them visually, no
 // coordinate math. Drag tiles on the canvas to place them; tune resolution,
-// refresh, scale, rotation, VRR, and mirroring per monitor; then Apply to the
-// live session (ryoku-monitor apply) or Save a named, hardware-keyed profile that
-// recalls itself at login. Edits stage in the canvas and only touch the displays
+// refresh, scale, rotation, VRR, and mirroring per monitor; then Apply (which
+// also persists for this display set, so it returns at the next login) or Save a
+// named, hardware-keyed profile. Edits stage in the canvas and only touch the displays
 // on Apply, so fiddling never disrupts your screens.
 Item {
     id: page
@@ -277,8 +277,8 @@ Item {
         profileProc.running = true;
         profileRefresh.start();
     }
-    function quick(cmd) {
-        applyProc.command = ["ryoku-monitor", cmd];
+    function quick(cmd, arg) {
+        applyProc.command = arg ? ["ryoku-monitor", cmd, arg] : ["ryoku-monitor", cmd];
         applyProc.running = true;
         listRefresh.start();
     }
@@ -305,7 +305,7 @@ Item {
         spacing: 8
         HubButton { label: "Mirror"; icon: "display"; enabled: page.monCount > 1; onClicked: page.quick("mirror") }
         HubButton { label: "Extend"; icon: "display"; enabled: page.monCount > 1; onClicked: page.quick("extend") }
-        HubButton { label: "DPI auto-scale"; icon: "refresh"; enabled: page.monCount > 0; onClicked: page.quick("autoscale") }
+        HubButton { label: "DPI auto-scale"; icon: "refresh"; enabled: page.monCount > 0; onClicked: page.quick("autoscale", "--no-profile") }
     }
 
     Row {

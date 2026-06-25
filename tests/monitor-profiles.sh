@@ -13,6 +13,10 @@ trap 'rm -rf "$tmp"' EXIT
 conf="$tmp/monitors.lua"
 profiles="$tmp/profiles"
 
+# Isolate the implicit applied-layout file from the real ~/.config (autoscale
+# reads it and apply writes it). Per-test overrides point elsewhere.
+export RYOKU_MONITORS_APPLIED="$tmp/applied-default.json"
+
 # Two distinct displays, Dell on DP-1 and LG on DP-2.
 cat >"$tmp/two.json" <<'JSON'
 [
@@ -96,8 +100,43 @@ field4() { awk -F'|' -v n="$1" '$1==n {print $4}' <<<"$specout"; }
 userlua="$tmp/monitors.user.lua"
 echo 'hl.monitor({ output = "DP-1", mode = "highrr", position = "0x0", scale = 1 })' >"$userlua"
 RYOKU_MONITOR_JSON="$tmp/two.json" RYOKU_MONITORS_CONF="$conf" RYOKU_MONITORS_DIR="$tmp/none" \
-  RYOKU_MONITORS_USER="$userlua" "$mon" autoscale >/dev/null
+  RYOKU_MONITORS_APPLIED="$tmp/none-applied.json" RYOKU_MONITORS_USER="$userlua" "$mon" autoscale >/dev/null
 grep -qF 'output = "DP-1"' "$conf" && fail "autoscale wrote a rule for pinned DP-1 (should defer to monitors.user.lua)"
 has "$conf" 'output = "DP-2"' "autoscale dropped the non-pinned DP-2"
+
+# --- applied layout: Apply persists across login (the scale-reset fix) --------
+# One HiDPI panel whose live scale (2.5) differs from both an applied 1.0 and its
+# DPI bucket, so each code path is distinguishable in fixture mode.
+cat >"$tmp/one.json" <<'JSON'
+[{"name":"eDP-1","make":"Acme","model":"Panel","serial":"S1","width":2560,"height":1600,
+  "refreshRate":60.0,"physicalWidth":300,"physicalHeight":188,"x":0,"y":0,"scale":2.5,
+  "transform":0,"vrr":false,"disabled":false,"focused":true,
+  "availableModes":["2560x1600@60.000Hz"]}]
+JSON
+appliedfile="$tmp/applied.json"
+layout1='[{"id":"Acme|Panel|S1","output":"eDP-1","mode":"2560x1600@60","position":"0x0","scale":1.0,"transform":0,"vrr":0,"mirror":"none","disabled":false}]'
+runA() { RYOKU_MONITOR_JSON="$tmp/one.json" RYOKU_MONITORS_CONF="$conf" \
+  RYOKU_MONITORS_DIR="$tmp/none" RYOKU_MONITORS_APPLIED="$appliedfile" "$mon" "$@"; }
+eDP() { grep 'output = "eDP-1"' "$conf"; }
+
+# Apply records the applied layout...
+runA apply "$layout1" >/dev/null
+[[ -f "$appliedfile" ]] || fail "apply did not record the applied layout"
+jq -e '.monitors[0].scale == 1' "$appliedfile" >/dev/null || fail "applied layout lost the scale"
+
+# ...and a plain login autoscale recalls it (scale 1.0), not the live/DPI scale (2.5).
+runA autoscale >/dev/null
+eDP | grep -qE 'scale = 1(\.0)? ' || fail "autoscale did not recall the applied scale (got: $(eDP))"
+eDP | grep -q 'scale = 2.5' && fail "autoscale used the live scale, not the applied layout"
+
+# A forced DPI pass clears the override so it stops winning at login.
+runA autoscale --no-profile >/dev/null
+[[ -f "$appliedfile" ]] && fail "autoscale --no-profile did not clear the applied layout"
+
+# An applied layout for a different display set is ignored (DPI/live wins).
+runA apply "$layout1" >/dev/null
+echo '{"monitors":[{"id":"Other|Mon|0","output":"DP-9","mode":"highrr","position":"0x0","scale":1.0}]}' >"$appliedfile"
+runA autoscale >/dev/null
+eDP | grep -q 'scale = 2.5' || fail "autoscale recalled a non-matching applied layout"
 
 echo "monitor-profiles: all checks passed"

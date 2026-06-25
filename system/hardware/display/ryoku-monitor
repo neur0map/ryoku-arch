@@ -33,6 +33,13 @@ monitors_dir="${RYOKU_MONITORS_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/moni
 # or modeline, or a layout you want kept).
 monitors_user="${RYOKU_MONITORS_USER:-${XDG_CONFIG_HOME:-$HOME/.config}/hypr/monitors_user.lua}"
 
+# Last layout applied from Ryoku Settings (Apply, not a named profile). autoscale
+# recalls it for the connected display set so an explicit choice -- a hand-set
+# scale above all -- survives a relogin instead of being recomputed from DPI.
+# Keyed by hardware identity like a profile, but implicit and singular (the most
+# recent Apply); a forced DPI pass clears it.
+applied_layout="${RYOKU_MONITORS_APPLIED:-${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/monitors-applied.json}"
+
 # Output names the user pinned in monitors_user.lua, one per line (empty if none).
 pinned_outputs() {
   [[ -f $monitors_user ]] || return 0
@@ -193,12 +200,22 @@ settle_refresh() {
 cmd_autoscale() {
   require_hyprctl
   require_jq
-  # Login/hotplug: a saved profile for exactly this set of displays wins over DPI
-  # scaling. --no-profile (used by extend/toggle and the hub's DPI button) skips it.
-  if [[ "${1:-}" != "--no-profile" ]]; then
+  if [[ "${1:-}" == "--no-profile" ]]; then
+    # A forced DPI pass (Extend, or the hub's DPI button) also forgets the last
+    # applied override, so the DPI result is what survives the next login.
+    rm -f "$applied_layout"
+  else
+    # Login/hotplug: an explicit choice for this display set wins over DPI -- a
+    # named profile first, then the last layout applied from Ryoku Settings -- so a
+    # hand-set scale is not reset on the next login.
     local prof
     if prof="$(matching_profile)" && [[ -n $prof ]]; then
       cmd_load "$prof"
+      return
+    fi
+    if applied_matches; then
+      load_layout_file "$applied_layout"
+      echo "ryoku-monitor: recalled the applied layout -> $monitors_conf"
       return
     fi
   fi
@@ -370,7 +387,9 @@ write_monitors_explicit() {
   } >"$monitors_conf"
 }
 
-# Apply a layout live without saving a profile. JSON array as $1 or on stdin.
+# Apply a layout live and remember it as the implicit applied layout, so the
+# choice (a hand-set scale above all) survives a relogin: autoscale recalls it for
+# this display set instead of recomputing from DPI. JSON array as $1 or on stdin.
 cmd_apply() {
   require_hyprctl
   require_jq
@@ -378,6 +397,8 @@ cmd_apply() {
   [[ -n $json ]] || json="$(cat)"
   printf '%s' "$json" | apply_specs
   printf '%s' "$json" | write_monitors_explicit
+  mkdir -p "$(dirname "$applied_layout")"
+  printf '%s' "$json" | jq '{monitors: .}' >"$applied_layout"
   echo "ryoku-monitor: applied layout -> $monitors_conf"
 }
 
@@ -419,15 +440,11 @@ matching_profile() {
   return 1
 }
 
-# Apply a saved profile, mapping each saved monitor to the connector that now
-# carries its hardware identity, so DP-1/DP-2 swaps do not matter.
-cmd_load() {
-  require_hyprctl
-  require_jq
-  local name="${1:-}" file
-  file="$monitors_dir/$name.json"
-  [[ -f $file ]] || { echo "ryoku-monitor: no such profile: $name" >&2; return 1; }
-  local resolved
+# Apply a saved layout file ({monitors:[...]}), mapping each saved monitor to the
+# connector that now carries its hardware identity, so DP-1/DP-2 swaps do not
+# matter. Shared by named-profile load and the implicit applied-layout recall.
+load_layout_file() {
+  local file="$1" resolved
   resolved="$(jq -n --argjson live "$(monitors_json)" --slurpfile prof "$file" '
     [ $prof[0].monitors[]
       | . as $m
@@ -436,7 +453,26 @@ cmd_load() {
       | $m + { output: $out } ]')"
   printf '%s' "$resolved" | apply_specs
   printf '%s' "$resolved" | write_monitors_explicit
+}
+
+# Apply a saved, named profile by hardware identity.
+cmd_load() {
+  require_hyprctl
+  require_jq
+  local name="${1:-}" file
+  file="$monitors_dir/$name.json"
+  [[ -f $file ]] || { echo "ryoku-monitor: no such profile: $name" >&2; return 1; }
+  load_layout_file "$file"
   echo "ryoku-monitor: loaded profile $name"
+}
+
+# True when the implicit applied layout exists and matches the connected set.
+applied_matches() {
+  [[ -f $applied_layout ]] || return 1
+  local conn pids
+  conn="$(connected_ids)"
+  pids="$(jq -r '[ .monitors[].id ] | sort | unique | .[]' "$applied_layout" 2>/dev/null)"
+  [[ -n $pids && "$pids" == "$conn" ]]
 }
 
 # List saved profiles as JSON, each tagged with whether it matches the connected
