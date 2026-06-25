@@ -3,7 +3,7 @@
   "name": "Wallhaven",
   "version": "2.0.0",
   "author": "Ryoku Team <hello@ryoku.sh>",
-  "description": "Browse wallhaven.cc and set wallpapers, from any host.",
+  "description": "Browse wallhaven.cc and set wallpapers, as a frame popout or desktop widget.",
   "license": "MIT",
   "tags": ["wallpaper"],
   "official": true,
@@ -15,7 +15,7 @@
   "capabilities": {
     "densities": ["glyph", "compact", "full"]
   },
-  "hosts": ["framePopout", "desktopWidget", "island", "topbarGlyph", "window"],
+  "hosts": ["framePopout", "desktopWidget"],
   "defaults": {
     "host": "framePopout",
     "framePopout": { "edge": "top", "align": "end" },
