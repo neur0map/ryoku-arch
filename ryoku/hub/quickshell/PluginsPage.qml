@@ -27,6 +27,7 @@ Item {
     property var catalog: []      // downloadable plugins (from plugincatalog)
     property var plugins: []      // installed plugins (from discover.sh --all)
     property string busyId: ""    // id currently installing/removing
+    property bool refreshing: false
 
     readonly property string shellDir: Quickshell.env("RYOKU_SHELL_DIR")
     readonly property string script: (shellDir && shellDir.length > 0)
@@ -95,6 +96,7 @@ Item {
                     }];
                 }
                 page.catalog = list;
+                page.refreshing = false;
             }
         }
     }
@@ -104,6 +106,34 @@ Item {
         onExited: { page.busyId = ""; page.refresh(); }
     }
     Process { id: rmProc; onExited: { page.busyId = ""; page.refresh(); } }
+
+    // Refresh: re-pull the catalogue (so plugins newly added to ryoku-extras show
+    // up) and re-scan installed plugins, without leaving the page. Mirrors the
+    // lockscreen refresh. Spins while a fetch is in flight.
+    Rectangle {
+        id: refreshBtn
+        visible: page.view !== "detail"
+        anchors.top: parent.top
+        anchors.right: tabs.left
+        anchors.rightMargin: 10
+        width: 32; height: 32; radius: 9
+        color: rHover.hovered ? Theme.surface : "transparent"
+        border.width: 1
+        border.color: rHover.hovered ? Theme.ember : "transparent"
+        Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+        z: 2
+        Icon {
+            id: rIcon
+            anchors.centerIn: parent
+            name: "refresh"
+            size: 15
+            weight: 2
+            tint: rHover.hovered ? Theme.bright : Theme.dim
+            RotationAnimation on rotation { running: page.refreshing; loops: Animation.Infinite; from: 0; to: 360; duration: 800 }
+        }
+        HoverHandler { id: rHover; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: { page.refreshing = true; page.loadCatalog(); page.refresh(); } }
+    }
 
     // ── Segmented switch: Discover | Installed (hidden on the detail view) ───
     Row {

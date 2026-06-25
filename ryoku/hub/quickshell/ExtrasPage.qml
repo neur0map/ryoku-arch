@@ -156,6 +156,32 @@ Item {
         }
     }
 
+    // Refresh: re-pull the bundle catalogue so newly published extras appear,
+    // without leaving the page. Spins while the fetch is in flight.
+    Rectangle {
+        id: extrasRefresh
+        visible: !page.loading && !page.loadFailed && page.selectedId === ""
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.rightMargin: 8
+        width: 32; height: 32; radius: 9
+        color: exHover.hovered ? Theme.surface : "transparent"
+        border.width: 1
+        border.color: exHover.hovered ? Theme.ember : "transparent"
+        Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+        z: 3
+        Icon {
+            anchors.centerIn: parent
+            name: "refresh"
+            size: 15
+            weight: 2
+            tint: exHover.hovered ? Theme.bright : Theme.dim
+            RotationAnimation on rotation { running: page.loading; loops: Animation.Infinite; from: 0; to: 360; duration: 800 }
+        }
+        HoverHandler { id: exHover; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: page.reload() }
+    }
+
     // --- bento grid ---------------------------------------------------------
     Flickable {
         id: flick
