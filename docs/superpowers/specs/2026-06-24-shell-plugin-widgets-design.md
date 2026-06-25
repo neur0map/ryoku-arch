@@ -368,10 +368,18 @@ Built and verified live on the running shell (grim screenshots at each step):
 
 Fast-follow status:
 
-- Frame popout now grows from **any edge** (top/bottom/left/right) with `align`
-  (start/center/end), selected live in the hub placement editor; the blob melts
-  into the frame on every edge. Verified live on all four. This also unblocks the
-  Island host (a top-edge popout variant).
+- Frame popout grows from **any edge** (top/bottom/left/right) with `align`
+  (start/end; the centre of every edge is reserved for the island/mixer/power and
+  is shown struck out in the editor, never selectable). The blob melts into the
+  frame on every edge. The body **fits its content** (no deadspace) with inner
+  padding. Verified live on all four edges. This also unblocks the Island host.
+- Desktop widget has **full parity with the shipped clock/weather**: left-drag to
+  move (grid-snapped, clamped, frozen when locked), a bottom-right resize bracket
+  scrubbing scale 0.5..2.5 with a live % readout, and a right-click `PluginWidgetMenu`
+  (Lock / Hide) in the carbon-dossier idiom. Placement is on the wallpaper, not in
+  the hub (the hub shows a hint, not a drag-box). The tile render and the
+  right-click menu are verified live; the grip sits under the content so plugin
+  chrome stays clickable.
 - TopbarGlyph and Window hosts remain fast-follow (independent layers).
 - Remote-catalogue browse/install of plugins inside the Hub page (the page
   manages installed plugins today; install is via the Extras bundle path).
