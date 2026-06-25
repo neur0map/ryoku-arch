@@ -8,8 +8,6 @@
 ryoku_bootloader() {
   CMDLINE=$(ryoku_cmdline)
   log "kernel cmdline: $CMDLINE quiet splash"
-  [[ $RYOKU_DISK_STRATEGY == alongside ]] && \
-    log "alongside: reusing the existing ESP; a Windows boot manager found there is chained into the Limine menu"
 
   ryoku_boot_plymouth
   ryoku_boot_default_limine
@@ -24,6 +22,9 @@ ryoku_bootloader() {
     ryoku_boot_limine_conf with_entry
     run arch-chroot /mnt mkinitcpio -P
   fi
+
+  # Detect an installed Windows on any drive and chainload it from the menu.
+  ryoku_windows_entry
 
   ryoku_boot_install_efi
   log "enabling services: sddm, NetworkManager"
@@ -105,24 +106,28 @@ ryoku_boot_limine_conf() {
     module_path: boot():/initramfs-linux.img
 EOF
     fi
-    ryoku_windows_entry
   } | write_file /mnt/boot/limine/limine.conf
 }
 
-# ryoku_windows_entry prints a Limine chainload entry for an existing Windows
-# install on the reused ESP, or nothing. For 'alongside' the ESP is shared and
-# mounted at /mnt/boot, so the Windows boot manager sits at EFI/Microsoft/Boot/
-# bootmgfw.efi; boot() resolves to that same ESP at boot time. It emits only the
-# entry text (no logging) so it can be piped straight into limine.conf.
+# ryoku_windows_entry detects an installed Windows on any drive (not only the
+# reused ESP) and writes a uuid()-addressed Limine chainload entry for it, so a
+# dual-boot machine keeps a way back into Windows after Ryoku takes the boot
+# order. boot():/ only reaches Limine's own ESP, so a cross-drive Windows must be
+# referenced by its partition GUID; the shared system/boot helper does the scan.
+# Runs after the menu is generated so the entry is not regenerated away, and the
+# shipped post.d hook re-asserts it on later kernel updates. Skipped under dry-run
+# (it mounts partitions to probe).
 ryoku_windows_entry() {
-  [[ $RYOKU_DISK_STRATEGY == alongside ]] || return 0
-  [[ -f /mnt/boot/EFI/Microsoft/Boot/bootmgfw.efi ]] || return 0
-  cat <<'EOF'
-
-/Microsoft Windows
-    protocol: efi_chainload
-    image_path: boot():/EFI/Microsoft/Boot/bootmgfw.efi
-EOF
+  local helper="$RYOKU_REPO/system/boot/limine/ryoku-windows-entry"
+  local conf=/mnt/boot/limine/limine.conf
+  [[ -x $helper && -f $conf ]] || return 0
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    log "dry-run: skipping Windows boot-entry detection"
+    return 0
+  fi
+  if "$helper" sync "$conf" >/dev/null 2>&1 && grep -q '^/Windows$' "$conf" 2>/dev/null; then
+    log "Windows detected: added a chainload entry to the Limine menu"
+  fi
 }
 
 # ryoku_boot_install_efi places the Limine EFI binary on the ESP (both the

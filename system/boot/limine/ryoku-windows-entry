@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+#
+# ryoku-windows-entry: keep a Windows chainload entry in the Limine boot menu,
+# detected automatically on any drive.
+#
+# Why this exists: Limine's own FIND_BOOTLOADERS only scans the ESP that holds
+# limine.conf, so a Windows install on a *separate* drive is never picked up. Once
+# Ryoku takes over the boot order the machine then has no way back into Windows.
+# This scans every EFI System Partition for the Windows boot manager
+# (EFI/Microsoft/Boot/bootmgfw.efi) and writes a Limine entry addressed by the
+# partition's GPT GUID: boot():/ only reaches Limine's own ESP, so a cross-drive
+# Windows must be referenced by uuid(). The entry sits in a marker-fenced block so
+# a re-run updates it in place and never duplicates it, and foreign entries
+# (kernels, snapshots) are left untouched.
+#
+# Subcommands:
+#   detect          print "<gpt-part-guid><TAB><device>" for the Windows ESP, if any
+#   emit <guid>     print the Limine entry block for a GUID
+#   sync [conf]     ensure the managed Windows block exists in `conf`
+#                   (default: the live limine.conf), adding or updating as needed
+#
+# Test seams (so the conf-editing runs hermetically, with no real disks):
+#   RYOKU_WINDOWS_GUID   when set, skip the disk scan; empty => "no Windows found",
+#                        non-empty => report that GUID as the detected Windows ESP.
+#   RYOKU_WINDOWS_DEV    device string paired with RYOKU_WINDOWS_GUID (display only).
+#
+# Mounting to probe an ESP needs root; run as root (the installer and the
+# limine-entry-tool post.d hook both do).
+
+set -euo pipefail
+
+# Fences are Limine comments (a line starting with '#' is ignored), so they are
+# safe inside limine.conf yet give an exact, regex-free anchor for idempotent edits.
+readonly BEGIN_MARK="# >>> ryoku-windows-entry (managed) >>>"
+readonly END_MARK="# <<< ryoku-windows-entry (managed) <<<"
+readonly WIN_PATH="/EFI/Microsoft/Boot/bootmgfw.efi"
+
+# ── detection ─────────────────────────────────────────────────────────────────
+
+# probe_device DEV: true when DEV's filesystem holds the Windows boot manager.
+# Uses the existing mountpoint when DEV is already mounted, else a temporary
+# read-only mount that is always unmounted again.
+probe_device() {
+  local dev="$1" mp tmp rc=1
+  mp="$(findmnt -nro TARGET --source "$dev" 2>/dev/null | head -n1 || true)"
+  if [[ -n $mp ]]; then
+    [[ -e "$mp$WIN_PATH" ]]
+    return
+  fi
+  command -v mount >/dev/null 2>&1 || return 1
+  tmp="$(mktemp -d)" || return 1
+  if mount -o ro "$dev" "$tmp" 2>/dev/null; then
+    [[ -e "$tmp$WIN_PATH" ]] && rc=0
+    umount "$tmp" 2>/dev/null || true
+  fi
+  rmdir "$tmp" 2>/dev/null || true
+  return $rc
+}
+
+# detect_windows: print "<guid><TAB><device>" for the first ESP that carries the
+# Windows boot manager, or return 1 when none is found.
+detect_windows() {
+  # Test seam: a defined RYOKU_WINDOWS_GUID short-circuits the scan.
+  if [[ -n ${RYOKU_WINDOWS_GUID+x} ]]; then
+    [[ -n $RYOKU_WINDOWS_GUID ]] || return 1
+    printf '%s\t%s\n' "$RYOKU_WINDOWS_GUID" "${RYOKU_WINDOWS_DEV:-/dev/test}"
+    return 0
+  fi
+
+  command -v lsblk >/dev/null 2>&1 || return 1
+  local dev fstype partuuid parttype
+  # vfat partitions and GPT EFI System Partitions are the only chainload
+  # candidates; PARTUUID on GPT is exactly the partition GUID uuid() resolves.
+  while read -r dev fstype partuuid parttype; do
+    [[ -n $dev && -n $partuuid ]] || continue
+    [[ $fstype == vfat || ${parttype,,} == c12a7328-* ]] || continue
+    if probe_device "$dev"; then
+      printf '%s\t%s\n' "$partuuid" "$dev"
+      return 0
+    fi
+  done < <(lsblk -rpno NAME,FSTYPE,PARTUUID,PARTTYPE 2>/dev/null)
+  return 1
+}
+
+# ── config editing ────────────────────────────────────────────────────────────
+
+emit_entry() {
+  local guid="$1"
+  cat <<EOF
+/Windows
+    comment: Boot into Windows
+    protocol: efi_chainload
+    path: uuid($guid):$WIN_PATH
+EOF
+}
+
+# strip_managed FILE: echo FILE with any prior managed block removed (exact-match
+# on the fence lines, so no regex escaping of the markers is needed).
+strip_managed() {
+  awk -v b="$BEGIN_MARK" -v e="$END_MARK" '
+    $0 == b { skip = 1; next }
+    $0 == e { skip = 0; next }
+    !skip   { print }
+  ' "$1"
+}
+
+# sync_conf CONF GUID: rewrite CONF so it carries exactly one managed Windows
+# block for GUID. Atomic (write a temp, then move into place).
+sync_conf() {
+  local conf="$1" guid="$2" tmp
+  tmp="$(mktemp)" || return 1
+  if [[ -f $conf ]]; then
+    strip_managed "$conf" >"$tmp"
+  fi
+  {
+    printf '%s\n' "$BEGIN_MARK"
+    emit_entry "$guid"
+    printf '%s\n' "$END_MARK"
+  } >>"$tmp"
+  mv "$tmp" "$conf"
+}
+
+# live_conf: the limine.conf the running firmware actually reads, searched in the
+# same precedence Limine uses, then the bootctl-reported ESP.
+live_conf() {
+  local c esp
+  for c in /boot/limine/limine.conf /boot/limine.conf /efi/limine/limine.conf /efi/limine.conf; do
+    [[ -f $c ]] && { printf '%s' "$c"; return 0; }
+  done
+  if command -v bootctl >/dev/null 2>&1; then
+    esp="$(bootctl --print-esp-path 2>/dev/null | head -n1 || true)"
+    [[ -n $esp && -f "$esp/limine/limine.conf" ]] && { printf '%s' "$esp/limine/limine.conf"; return 0; }
+    [[ -n $esp && -f "$esp/limine.conf" ]] && { printf '%s' "$esp/limine.conf"; return 0; }
+  fi
+  return 1
+}
+
+# ── subcommands ───────────────────────────────────────────────────────────────
+
+cmd_detect() {
+  detect_windows
+}
+
+cmd_emit() {
+  local guid="${1:-}"
+  [[ -n $guid ]] || { echo "ryoku-windows-entry: emit needs a GUID" >&2; return 1; }
+  emit_entry "$guid"
+}
+
+cmd_sync() {
+  local conf="${1:-}"
+  if [[ -z $conf ]]; then
+    conf="$(live_conf)" || {
+      echo "ryoku-windows-entry: no limine.conf found; nothing to do" >&2
+      return 0
+    }
+  fi
+  local out guid
+  if out="$(detect_windows)"; then
+    guid="${out%%$'\t'*}"
+    sync_conf "$conf" "$guid"
+    echo "ryoku-windows-entry: Windows chainload entry -> uuid($guid) in $conf"
+  else
+    # Conservative: a missing Windows may just be a detached drive, so an existing
+    # managed block is left in place rather than torn out.
+    echo "ryoku-windows-entry: no Windows boot manager found; left $conf unchanged"
+  fi
+}
+
+usage() {
+  cat <<'USAGE'
+Usage: ryoku-windows-entry <command>
+
+Keep a Windows chainload entry in the Limine boot menu, auto-detected on any drive.
+
+Commands:
+  detect          Print "<gpt-part-guid>\t<device>" for the Windows ESP, if any.
+  emit <guid>     Print the Limine entry block for a partition GUID.
+  sync [conf]     Add or update the managed Windows entry in limine.conf
+                  (default: the live limine.conf). Idempotent.
+USAGE
+}
+
+case "${1:-sync}" in
+  detect) cmd_detect ;;
+  emit) cmd_emit "${2:-}" ;;
+  sync) cmd_sync "${2:-}" ;;
+  -h | --help | help) usage ;;
+  *)
+    echo "ryoku-windows-entry: unknown command: $1" >&2
+    usage >&2
+    exit 1
+    ;;
+esac

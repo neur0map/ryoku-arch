@@ -159,4 +159,12 @@ package() {
   # so `ryoku-gpu install-udev` is never needed on an installed system.
   install -Dm644 "$_repo/system/hardware/gpu/90-ryoku-gpu.rules" \
     "$pkgdir/usr/lib/udev/rules.d/90-ryoku-gpu.rules"
+
+  # Windows dual-boot: the cross-drive detector and a limine-entry-tool post.d
+  # hook that re-asserts the uuid()-addressed chainload entry whenever the boot
+  # menu is regenerated, so a separate-drive Windows survives kernel updates.
+  install -Dm755 "$_repo/system/boot/limine/ryoku-windows-entry" \
+    "$pkgdir/usr/bin/ryoku-windows-entry"
+  install -Dm755 "$_repo/system/boot/limine/45-ryoku-windows" \
+    "$pkgdir/etc/boot/hooks/post.d/45-ryoku-windows"
 }
