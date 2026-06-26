@@ -225,6 +225,15 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- `quickshell/visualizer` no longer pins a CPU core and overheats the machine on a
+  high-refresh panel. It ran a `FrameAnimation` once per vsync (re-rendering 96
+  bands plus the bloom at 165Hz though cava only feeds 60fps), and the `wave` style
+  rasterised a full-width filled curve on a software `Canvas` on the main thread.
+  Now a Timer caps updates to ~60fps while sound plays and ~30fps for the idle wave
+  (and stops entirely when silent), the wave renders as a GPU `Shape` instead of a
+  `Canvas`, and the bloom skips its pass when the spectrum is flat. Wave-style CPU
+  fell from ~85% of a core to ~10% and the package temperature from ~95°C to ~67°C
+  on a 165Hz panel.
 - `deploy.sh` no longer trips a live Hyprland session into emergency mode when run
   from outside the session (ssh, an agent, or the curl recovery, which also calls
   it). The config swap pauses Hyprland autoreload first, but that pause was gated

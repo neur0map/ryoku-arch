@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Shapes
 import "Singletons"
 
 /**
@@ -10,8 +11,9 @@ import "Singletons"
  * sweep retunes per wallpaper), with a soft bloom behind it and, for bottom bars,
  * a fading reflection.
  *
- * Motion runs off a single per-frame ticker (FrameAnimation) so every style moves
- * at the display's refresh rate: each band eases toward its target (fast attack,
+ * Motion runs off a Timer capped to ~60fps while sound plays and ~30fps for the
+ * idle wave (and stops entirely when silent), decoupled from the display refresh
+ * so a 165Hz panel never re-renders every vsync: each band eases toward its target (fast attack,
  * slow decay) and an `activity` signal eases between the live spectrum and a calm
  * idle wave, so quiet gaps fade in and out smoothly instead of snapping off. The
  * look is read live from the visualiser Config; Ryoku Settings edits it.
@@ -43,6 +45,13 @@ Item {
     property real idlePhase: 0
     property real maxLevel: 0
     property bool waveOn: false
+    property string wavePath: ""
+    // Sound is playing, or just stopped and still easing down.
+    readonly property bool sounding: Spectrum.energy > 0.04 || root.activity > 0.02
+    // Anything to animate at all. When silent, settled, and the idle wave is off
+    // there is nothing to move, so the ticker stops entirely (0 CPU on a quiet
+    // desktop) until sound returns.
+    readonly property bool animating: root.sounding || Config.idleWave || root.maxLevel > 0.004
 
     function srcIndex(i) {
         if (!root.mirror)
@@ -60,10 +69,23 @@ Item {
         return 0.012 + 0.02 * (0.5 + 0.5 * Math.sin(root.srcIndex(i) * 0.4 + root.idlePhase));
     }
 
-    FrameAnimation {
+    Timer {
         id: ticker
-        running: root.visible && Config.enabled
-        onTriggered: root.tick(Math.min(0.05, frameTime))
+        // The display can run at 165Hz, but cava only feeds 60fps and a
+        // FrameAnimation drives a full scene-graph re-render every vsync even when
+        // nothing changed. A Timer decouples the update (and render) rate from the
+        // refresh: ~60fps while sounding, ~30fps for the slow idle wave, and it
+        // stops entirely when there is nothing to animate.
+        interval: root.sounding ? 16 : 33
+        running: root.visible && Config.enabled && root.animating
+        repeat: true
+        property real last: 0
+        onTriggered: {
+            var now = Date.now();
+            var dt = last > 0 ? (now - last) / 1000 : interval / 1000;
+            last = now;
+            root.tick(Math.min(0.05, dt));
+        }
     }
     function tick(dt) {
         // Activity: rises fast when sound starts, releases slowly so short gaps
@@ -94,7 +116,7 @@ Item {
         if (root.style === "wave") {
             var show = Config.idleWave || mx > 0.003;
             if (show || root.waveOn) {
-                wave.requestPaint();
+                root.wavePath = root.buildWavePath();
                 root.waveOn = show;
             }
         }
@@ -145,9 +167,12 @@ Item {
         source: field
         anchors.fill: field
         z: 0
+        // An effect runs its GPU pass every frame it is visible, even at low
+        // opacity, so skip it entirely when the field is flat (silent, idle off).
+        visible: root.maxLevel > 0.01
         blurEnabled: true
         blur: 1.0
-        blurMax: 40
+        blurMax: 24
         autoPaddingEnabled: true
         opacity: Config.bloom * (0.5 + 0.5 * root.activity)
     }
@@ -225,47 +250,58 @@ Item {
             }
         }
 
-        // Wave: a filled, smoothed curve through the band tips, repainted each frame.
-        Canvas {
+        // Wave: a filled, smoothed curve through the band tips, rendered as a GPU
+        // Shape (not a software Canvas) so the fill never touches the main thread.
+        Shape {
             id: wave
             anchors.fill: parent
             visible: root.style === "wave"
-            renderStrategy: Canvas.Cooperative
-            onPaint: root.paintWave(wave)
+            preferredRendererType: Shape.CurveRenderer
+            ShapePath {
+                strokeColor: "transparent"
+                fillGradient: LinearGradient {
+                    x1: 0
+                    y1: 0
+                    x2: wave.width
+                    y2: 0
+                    GradientStop { position: 0; color: Qt.alpha(Wallust.colorAt(0), 0.92) }
+                    GradientStop { position: 0.1667; color: Qt.alpha(Wallust.colorAt(0.1667), 0.92) }
+                    GradientStop { position: 0.3333; color: Qt.alpha(Wallust.colorAt(0.3333), 0.92) }
+                    GradientStop { position: 0.5; color: Qt.alpha(Wallust.colorAt(0.5), 0.92) }
+                    GradientStop { position: 0.6667; color: Qt.alpha(Wallust.colorAt(0.6667), 0.92) }
+                    GradientStop { position: 0.8333; color: Qt.alpha(Wallust.colorAt(0.8333), 0.92) }
+                    GradientStop { position: 1; color: Qt.alpha(Wallust.colorAt(1), 0.92) }
+                }
+                PathSvg { path: root.wavePath }
+            }
         }
     }
 
-    // Quadratic-smoothed polyline through (xs, ys), forward or reversed.
-    function smoothCurve(ctx, xs, ys, reverse) {
+    // Quadratic-smoothed SVG segments through (xs, ys), forward or reversed, the
+    // same curve the old Canvas drew, now emitted as a path string for the Shape.
+    function svgSmooth(xs, ys, reverse) {
         var n = xs.length;
+        var s = "";
         if (reverse) {
             for (var i = n - 1; i > 0; i--)
-                ctx.quadraticCurveTo(xs[i], ys[i], (xs[i] + xs[i - 1]) / 2, (ys[i] + ys[i - 1]) / 2);
-            ctx.quadraticCurveTo(xs[0], ys[0], xs[0], ys[0]);
+                s += "Q" + xs[i] + " " + ys[i] + " " + ((xs[i] + xs[i - 1]) / 2) + " " + ((ys[i] + ys[i - 1]) / 2) + " ";
+            s += "Q" + xs[0] + " " + ys[0] + " " + xs[0] + " " + ys[0] + " ";
         } else {
             for (var k = 0; k < n - 1; k++)
-                ctx.quadraticCurveTo(xs[k], ys[k], (xs[k] + xs[k + 1]) / 2, (ys[k] + ys[k + 1]) / 2);
-            ctx.quadraticCurveTo(xs[n - 1], ys[n - 1], xs[n - 1], ys[n - 1]);
+                s += "Q" + xs[k] + " " + ys[k] + " " + ((xs[k] + xs[k + 1]) / 2) + " " + ((ys[k] + ys[k + 1]) / 2) + " ";
+            s += "Q" + xs[n - 1] + " " + ys[n - 1] + " " + xs[n - 1] + " " + ys[n - 1] + " ";
         }
+        return s;
     }
-    function paintWave(cv) {
-        var ctx = cv.getContext("2d");
-        var w = cv.width;
-        ctx.reset();
-        // Nothing to draw once the spectrum has settled flat: leave the canvas clear
-        // so the wave fully disappears instead of freezing on its last frame.
+    function buildWavePath() {
+        // Nothing to draw once the spectrum settles flat: clear the path so the
+        // wave fully disappears instead of freezing on its last frame.
         if (root.bands < 2 || root.maxLevel < 0.003)
-            return;
-
-        var grad = ctx.createLinearGradient(0, 0, w, 0);
-        for (var s = 0; s <= 6; s++)
-            grad.addColorStop(s / 6, root.bandColor(Math.round((s / 6) * (root.bands - 1))));
-
+            return "";
+        var w = root.width;
         var xs = [];
         for (var i = 0; i < root.bands; i++)
             xs.push(i * root.slotW + root.slotW / 2);
-
-        ctx.beginPath();
         if (root.position === "center") {
             var top = [], bot = [];
             for (var j = 0; j < root.bands; j++) {
@@ -273,24 +309,14 @@ Item {
                 top.push(root.cy - ln / 2);
                 bot.push(root.cy + ln / 2);
             }
-            ctx.moveTo(xs[0], top[0]);
-            root.smoothCurve(ctx, xs, top, false);
-            ctx.lineTo(xs[root.bands - 1], bot[root.bands - 1]);
-            root.smoothCurve(ctx, xs, bot, true);
-        } else {
-            var baseY = root.position === "top" ? 0 : root.baseBottom;
-            var ys = [];
-            for (var m = 0; m < root.bands; m++)
-                ys.push(root.tipY(root.lengthAt(m)));
-            ctx.moveTo(0, baseY);
-            ctx.lineTo(xs[0], ys[0]);
-            root.smoothCurve(ctx, xs, ys, false);
-            ctx.lineTo(w, ys[root.bands - 1]);
-            ctx.lineTo(w, baseY);
+            return "M" + xs[0] + " " + top[0] + " " + root.svgSmooth(xs, top, false)
+                + "L" + xs[root.bands - 1] + " " + bot[root.bands - 1] + " " + root.svgSmooth(xs, bot, true) + "Z";
         }
-        ctx.closePath();
-        ctx.globalAlpha = 0.92;
-        ctx.fillStyle = grad;
-        ctx.fill();
+        var baseY = root.position === "top" ? 0 : root.baseBottom;
+        var ys = [];
+        for (var m = 0; m < root.bands; m++)
+            ys.push(root.tipY(root.lengthAt(m)));
+        return "M0 " + baseY + " L" + xs[0] + " " + ys[0] + " " + root.svgSmooth(xs, ys, false)
+            + "L" + w + " " + ys[root.bands - 1] + " L" + w + " " + baseY + " Z";
     }
 }
