@@ -230,6 +230,14 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- `shell/deploy.sh`: the Hyprland config swap is now near-atomic, so a reload can
+  never catch `hyprland.lua` missing. It built `~/.config/hypr` with `rm -rf` then
+  `cp -a`, leaving a long window with no `hyprland.lua`; a manual reload or a fresh
+  login in that window (both bypass the autoreload pause) tripped emergency mode
+  and a stale "cannot open hyprland.lua". It now stages the config in a sibling
+  dir, carries the preserved user files and generated drop-ins across, then renames
+  staging into place; it also touches the entry, since `cp -a` carried the repo's
+  older mtimes and an mtime-watching autoreload could otherwise miss the swap.
 - `quickshell/widgets`: opening an app on an empty workspace now focuses it. The
   desktop-widgets layer (full-screen `WlrLayer.Bottom`) requested
   `keyboardFocus: OnDemand`, so on a workspace with no window above it that layer

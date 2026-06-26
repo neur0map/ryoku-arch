@@ -9,10 +9,11 @@
 #                          the next login. Useful so a live swap can't disrupt
 #                          the current session.
 #
-# Hyprland auto-reloads its config on change, so a naive rm+cp of ~/.config/hypr
-# briefly leaves hyprland.lua missing and trips emergency mode. We pause
-# auto-reload for the swap; live mode issues one clean reload at the end, staged
-# mode leaves auto-reload paused so the swap never reaches the running session.
+# Hyprland auto-reloads its config on change. The hypr swap below builds the new
+# config in a staging dir and renames it into place (near-atomic), so hyprland.lua
+# is never missing mid-swap and emergency mode can't trip; auto-reload is paused
+# too as a belt. Live mode reloads once at the end; staged mode leaves the swap
+# for the next login.
 set -euo pipefail
 
 reload=1
@@ -150,21 +151,31 @@ fi
 # ryoku-gpu writes gpu.lua, the hub writes settings.lua, theme apply writes
 # theme.lua, and the user may keep user.lua / monitors_user.lua.
 preserve=(user.lua monitors_user.lua settings.lua theme.lua monitors.lua gpu.lua)
+# Build the new config in a staging dir on the same filesystem, then rename it
+# into place. A slow rm+cp of ~/.config/hypr leaves a long window where
+# hyprland.lua is missing; anything that reloads then (a manual reload or a fresh
+# login both bypass the autoreload pause) trips Hyprland into emergency mode and a
+# stale "cannot open hyprland.lua". A rename swap closes that window.
+rm -rf "$cfg"/hypr.staging.*
+staging="$cfg/hypr.staging.$$"
+mkdir -p "$staging"
+cp -a "$here/../hyprland/." "$staging/"
+# Carry the user's own files and the per-machine generated drop-ins across, the
+# way a packaged `ryoku materialize` preserves them on an update.
 if [[ -d $cfg/hypr ]]; then
-  bak="$cfg/hypr.bak-$(date +%Y%m%d%H%M%S)"
-  cp -a "$cfg/hypr" "$bak"
-  say "backed up existing hypr -> $bak"
-fi
-rm -rf "$cfg/hypr"
-mkdir -p "$cfg/hypr"
-cp -a "$here/../hyprland/." "$cfg/hypr/"
-# Restore the preserved files from the backup so a redeploy never resets a user's
-# settings, theme, display layout, or GPU pin.
-if [[ -n ${bak:-} && -d $bak ]]; then
   for f in "${preserve[@]}"; do
-    [[ -e "$bak/$f" ]] && cp -a "$bak/$f" "$cfg/hypr/$f"
+    [[ -e "$cfg/hypr/$f" ]] && cp -a "$cfg/hypr/$f" "$staging/$f"
   done
 fi
+# cp -a carries the repo's older mtimes; bump the entry so an mtime-watching
+# autoreload still registers the swapped-in config as new.
+touch "$staging/hyprland.lua"
+if [[ -d $cfg/hypr ]]; then
+  bak="$cfg/hypr.bak-$(date +%Y%m%d%H%M%S)"
+  mv "$cfg/hypr" "$bak"
+  say "backed up existing hypr -> $bak"
+fi
+mv "$staging" "$cfg/hypr"
 
 # Palette generation, per-app config, and the user session target.
 mkdir -p "$cfg/wallust";   cp -a "$here/wallust/." "$cfg/wallust/"
