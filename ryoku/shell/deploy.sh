@@ -52,8 +52,21 @@ restart_shell() {
 }
 
 hypr_live=0
-if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
-  hypr_live=1
+if command -v hyprctl >/dev/null 2>&1; then
+  # When deploy runs outside the Hyprland session (ssh, an agent, the curl
+  # recovery), HYPRLAND_INSTANCE_SIGNATURE is unset and hyprctl cannot find the
+  # compositor, so the autoreload pause below would be skipped and the rm+cp
+  # config swap could trip the live session into emergency mode. Recover the
+  # signature from the runtime dir so the pause still happens when a session is up.
+  if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+    for _inst in "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"/hypr/*/; do
+      [ -d "$_inst" ] || continue
+      _sig="$(basename "$_inst")"
+      export HYPRLAND_INSTANCE_SIGNATURE="$_sig"
+      break
+    done
+  fi
+  if hyprctl version >/dev/null 2>&1; then hypr_live=1; fi
 fi
 
 # Build the daemon/client and put it on PATH.

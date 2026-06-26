@@ -225,6 +225,13 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- `deploy.sh` no longer trips a live Hyprland session into emergency mode when run
+  from outside the session (ssh, an agent, or the curl recovery, which also calls
+  it). The config swap pauses Hyprland autoreload first, but that pause was gated
+  on hyprctl being reachable, which it is not when `HYPRLAND_INSTANCE_SIGNATURE` is
+  absent from the environment, so the brief `rm`+`cp` window where `hyprland.lua`
+  is missing got caught by autoreload. deploy now recovers the running instance
+  signature from the runtime dir, so the pause happens whenever a session is up.
 - `quickshell/pill`: an auto-hidden island no longer collapses while the cursor
   travels onto its buds (the music/update island and the activity strip). The
   reveal expands the pill, and a bud's x tracks the pill width, so hovering a bud
