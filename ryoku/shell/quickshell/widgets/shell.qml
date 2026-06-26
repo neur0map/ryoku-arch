@@ -42,11 +42,15 @@ ShellRoot {
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Bottom
             WlrLayershell.namespace: "ryoku-widgets"
-            // OnDemand so plugin desktop tiles (e.g. a search field) can take
-            // keyboard focus when clicked and the slot's drag/click handlers
-            // receive the pointer; None would leave plugin chrome inert. The
-            // shipped clock/weather don't need focus so this is harmless to them.
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+            // None. A full-screen Bottom layer that can hold keyboard focus keeps
+            // it on an EMPTY workspace (no window above it to take over), so a
+            // freshly opened window stays unfocused until you move the mouse or hit
+            // a focus bind. Pointer input is unaffected: layer-shell delivers clicks
+            // by the input region, not keyboard interactivity (the visualiser relies
+            // on the same fact), so widget drag and the right-click desktop menu
+            // still fire. A plugin tile that needs the keyboard would grab focus on
+            // its own focused item rather than holding the whole surface.
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
             anchors { top: true; left: true; right: true; bottom: true }
 

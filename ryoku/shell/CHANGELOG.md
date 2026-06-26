@@ -230,6 +230,14 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- `quickshell/widgets`: opening an app on an empty workspace now focuses it. The
+  desktop-widgets layer (full-screen `WlrLayer.Bottom`) requested
+  `keyboardFocus: OnDemand`, so on a workspace with no window above it that layer
+  held the keyboard and a freshly launched window (terminal keybind or app
+  launcher) stayed unfocused until you moved the mouse or hit a focus bind. It now
+  uses `keyboardFocus: None`; pointer input (widget drag, right-click desktop
+  menu) is unaffected, since layer-shell gates clicks by the input region, not
+  keyboard interactivity.
 - `quickshell/pill` LocalSend receive: incoming transfers now require consent.
   The receiver auto-accepted any device's `prepare-upload` and dropped the bytes
   straight into the stash. It now holds each offer at `prepare-upload`, shows
