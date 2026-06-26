@@ -66,6 +66,11 @@ check "$(cat "$work/pkexec.log")" "pacman -U --noconfirm $s1/foo.pkg.tar.gz" \
   "pacman package handed to pkexec pacman -U"
 absent "$work/home/.local/share/ryoku-apps/foo" "pacman package NOT extracted into ~/.local"
 absent "$s1/foo.pkg.tar.gz" "source removed from the stash after a successful install"
+if grep -qx "@AUTH" "$work/out"; then
+  echo "  ok: pacman install signals the deck to step aside (@AUTH)"
+else
+  echo "::error::FAIL: pacman install did not emit @AUTH" >&2; fail=1
+fi
 
 # Case 2: a renamed package (.tar.gz with .PKGINFO) is still detected as pacman.
 s2="$work/stash2"; mkdir -p "$s2"
@@ -85,6 +90,11 @@ STASH_DIR="$s3" run_stash
 check "$(cat "$work/pkexec.log")" "" "generic tarball never escalated to pacman"
 present "$work/home/.local/share/applications/plainapp.desktop" \
   "generic tarball still becomes a launcher entry"
+if grep -qx "@AUTH" "$work/out"; then
+  echo "::error::FAIL: a non-privileged install emitted @AUTH" >&2; fail=1
+else
+  echo "  ok: non-privileged install does not signal the deck"
+fi
 
 # Case 4: a flatpak bundle installs via flatpak install --user (flatpak stubbed).
 s4="$work/stash4"; mkdir -p "$s4"

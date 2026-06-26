@@ -230,6 +230,14 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- `quickshell/pill` stash install: the control deck now steps aside for the sudo
+  prompt. Installing a pacman package shells out to `pkexec`, whose polkit window
+  (`hyprpolkitagent`) landed behind the deck's overlay layer and could not take
+  the password (the deck holds an exclusive keyboard grab), forcing a close-deck,
+  type-password, reopen dance. `stash-install.sh` emits an `@AUTH` marker before
+  the privileged step, the stash reads it live and the pill dismisses the deck so
+  the prompt takes focus, and a window rule floats and centres the
+  `hyprpolkitagent` prompt. Covered by `tests/stash-install.sh`.
 - `quickshell/visualizer` no longer pins a CPU core and overheats the machine on a
   high-refresh panel. It ran a `FrameAnimation` once per vsync (re-rendering 96
   bands plus the bloom at 165Hz though cava only feeds 60fps), and the `wave` style

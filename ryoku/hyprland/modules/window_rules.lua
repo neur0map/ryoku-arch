@@ -24,6 +24,13 @@ hl.window_rule({
 })
 
 hl.window_rule({
+    name   = "float-polkit-agent",
+    match  = { class = "hyprpolkitagent" },
+    float  = true,
+    center = true,
+})
+
+hl.window_rule({
     name  = "float-file-pickers",
     match = { title = "(Open File|Save File|Save As|Choose Files|Open Folder)" },
     float = true,

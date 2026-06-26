@@ -149,6 +149,14 @@ ShellRoot {
         root.peekMon = root.peekMon === mon ? "" : mon;
     }
 
+    // A stash install that reaches a sudo/polkit prompt asks the deck to step
+    // aside, so the prompt (a window beneath this overlay's keyboard grab) can take
+    // focus instead of landing behind the open deck.
+    Connections {
+        target: Stash
+        function onAuthStepAside() { root.close(); }
+    }
+
     // Pin/unpin an edge popout (mixer/power) on a monitor; re-issuing the same
     // one clears it. Hover opens them on its own, so this is the IPC/keybind path.
     function togglePopout(mon, name) {

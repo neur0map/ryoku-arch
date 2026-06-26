@@ -82,6 +82,10 @@ Singleton {
     property string taskState: "idle"     // idle | confirm | running | done | error
     property string taskMsg: ""
 
+    // Emitted when an install reaches a privileged (sudo/polkit) step so the shell
+    // can step the control deck aside and let the prompt take keyboard focus.
+    signal authStepAside()
+
     // Cobalt download window.
     property bool dlOpen: false
     property string dlTab: "download"     // download | remux
@@ -371,15 +375,21 @@ Singleton {
 
     Process {
         id: taskProc
-        stdout: StdioCollector { id: taskOut }
-        onExited: (exitCode) => {
-            var lines = ("" + taskOut.text).split("\n");
-            var last = "";
-            for (var i = 0; i < lines.length; i++) {
-                if (lines[i].trim().length > 0)
-                    last = lines[i].trim();
+        property string lastLine: ""
+        stdout: SplitParser {
+            splitMarker: "\n"
+            onRead: (line) => {
+                var l = ("" + line).trim();
+                if (l === "@AUTH") {
+                    root.authStepAside();
+                    return;
+                }
+                if (l.length > 0)
+                    taskProc.lastLine = l;
             }
-            root.taskMsg = last;
+        }
+        onExited: (exitCode) => {
+            root.taskMsg = taskProc.lastLine;
             root.taskState = exitCode === 0 ? "done" : "error";
         }
     }

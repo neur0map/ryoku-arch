@@ -342,6 +342,10 @@ install_pacman() {
   local src="$1" name
   command -v pacman >/dev/null 2>&1 || return 1
   command -v pkexec >/dev/null 2>&1 || return 1
+  # Tell the shell to step the control deck aside before the polkit prompt: the
+  # deck is a top overlay layer with a keyboard grab, so the prompt would land
+  # behind it and could not take the password. The shell reads this off stdout.
+  printf '@AUTH\n'
   pkexec pacman -U --noconfirm "$src" >/dev/null 2>&1 || return 1
   name=$(pacman_pkgname "$src")
   LAST_NAME="${name:-$(slug "$(basename "$src")")}"
