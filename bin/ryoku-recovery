@@ -100,7 +100,9 @@ else
   git clone --branch "$CHANNEL" "$REPO_URL" "$RECOVERY_DIR"
 fi
 
-git -C "$RECOVERY_DIR" checkout -B "$CHANNEL" "origin/$CHANNEL"
+# -f so a dirty or conflicted tree (the old updater stash-pops before switching,
+# which can leave conflicts) can never block the rescue from reaching main.
+git -C "$RECOVERY_DIR" checkout -f -B "$CHANNEL" "origin/$CHANNEL"
 git -C "$RECOVERY_DIR" reset --hard "origin/$CHANNEL"
 git -C "$RECOVERY_DIR" clean -fdx
 

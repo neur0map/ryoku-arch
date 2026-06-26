@@ -66,6 +66,10 @@ data1="$home1/.local/share/ryoku"
 mkdir -p "$(dirname "$data1")" "$home1/.local/lib"
 git_q clone -q "$origin" "$data1"
 git_q -C "$data1" checkout -q unstable-dev
+# The old updater stash-pops before switching, which can leave the tree dirty or
+# conflicted; dirty it on purpose so the test proves the rescue forces past that.
+echo "stray local edit" >>"$data1/system/packages/base.packages"
+echo "stray" >"$data1/stray-untracked"
 ln -s "$data1/lib/runtime-env.sh" "$home1/.local/lib/runtime-env.sh" # dangling bridge
 
 HOME="$home1" XDG_DATA_HOME="$home1/.local/share" \
@@ -79,6 +83,8 @@ check "$(sed -n 's/^deployed-from //p' "$work/marker1" 2>/dev/null)" "$(cd "$dat
   "deploy ran from the repaired in-place checkout"
 absent "$data1/UNSTABLE_MARKER" "unstable-dev content cleaned from the checkout"
 absent "$home1/.local/lib/runtime-env.sh" "dangling pre-rewrite runtime-env bridge removed"
+check "$(git_q -C "$data1" status --porcelain)" "" \
+  "rescue forces a dirty stranded checkout clean"
 
 # Case 2: a clean machine with no prior checkout clones to repo/ on main.
 home2="$work/home2"
