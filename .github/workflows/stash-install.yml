@@ -1,0 +1,35 @@
+name: Stash installer
+
+# The stash install action (hyprland/scripts/stash-install.sh) must hand an Arch
+# package (.pkg.tar.zst, by its .PKGINFO) to pacman -U, never extract it into
+# ~/.local where its /opt binary would not run, and must not escalate a generic
+# tarball to pacman. pkexec and pacman are stubbed in the test. See
+# tests/stash-install.sh.
+
+on:
+  pull_request:
+    paths:
+      - 'ryoku/hyprland/scripts/stash-install.sh'
+      - 'tests/stash-install.sh'
+  push:
+    branches:
+      - main
+    paths:
+      - 'ryoku/hyprland/scripts/stash-install.sh'
+      - 'tests/stash-install.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stash-install:
+    name: Stash installs Arch packages via pacman
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stash installer dispatch
+        shell: bash
+        run: bash tests/stash-install.sh

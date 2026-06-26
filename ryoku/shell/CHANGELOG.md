@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- `quickshell/pill` stash install now handles Arch packages and stops offering
+  formats it cannot install. A dropped `.pkg.tar.zst` (recognised by its
+  `.PKGINFO`) is installed with `pacman -U` through pkexec instead of being
+  extracted into `~/.local` as if it were a self-contained app, which produced a
+  broken launcher entry because the binary lives under `/opt`; the package's own
+  desktop entry is then read natively. `Stash.qml` `hasInstallable` no longer
+  lights the Install action for `.deb/.rpm/.bin/.run/.flatpak`, which
+  `stash-install.sh` never supported and silently skipped. Fixes Warp terminal
+  (and any native package) not opening from the launcher after a stash install.
+  Covered by `tests/stash-install.sh`.
 - `quickshell/widgets`: desktop widgets on the wallpaper. A new `WlrLayer.Bottom`
   host (per monitor, below windows, namespace
   `ryoku-widgets`), supervised like the pill/visualiser via a `{"widgets", true}`

@@ -55,7 +55,10 @@ Singleton {
         var n = files.count;
         for (var i = 0; i < n; i++) {
             var nm = ("" + files.get(i, "fileName")).toLowerCase();
-            if (/\.(appimage|deb|rpm|tar\.gz|tgz|tar\.xz|tar\.bz2|tar\.zst|tar|bin|run|flatpak)$/.test(nm))
+            // What stash-install.sh can actually install: AppImages, self-contained
+            // tarballs, and Arch packages (.pkg.tar.zst, caught by the tar.zst suffix).
+            // .deb/.rpm/.bin/.run/.flatpak are not Arch-native, so they are not offered.
+            if (/\.(appimage|tar\.gz|tgz|tar\.xz|tar\.bz2|tar\.zst|tar)$/.test(nm))
                 return true;
         }
         return false;

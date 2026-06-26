@@ -1,7 +1,10 @@
 #!/bin/bash
-# Stash app installer for the Ryoku shell file stash: makes dropped AppImages and
-# tarballs discoverable in the launcher by emitting XDG desktop entries.
-# Usage: stash-install.sh [file]   (no arg: install every AppImage/tarball in $STASH)
+# Stash app installer for the Ryoku shell file stash: makes dropped AppImages,
+# tarballs, and Arch packages launchable. A self-contained AppImage or tarball
+# gets a synthesized XDG desktop entry under ~/.local; a pacman package
+# (.pkg.tar.zst) is handed to `pacman -U` through pkexec so it installs the normal
+# way and the launcher reads the entry the package itself ships.
+# Usage: stash-install.sh [file]   (no arg: install every supported file in $STASH)
 set -u
 
 STASH="${STASH_DIR:-$HOME/Downloads/Stash}"
@@ -19,10 +22,23 @@ slug() { printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '_'; }
 
 classify() {
   case "$1" in
-    *.AppImage|*.appimage) printf 'appimage' ;;
-    *.tar|*.tar.gz|*.tgz|*.tar.xz|*.tar.zst|*.tar.bz2) printf 'tarball' ;;
+    *.AppImage|*.appimage) printf 'appimage'; return ;;
+    *.pkg.tar.zst|*.pkg.tar.xz|*.pkg.tar.gz|*.pkg.tar) printf 'pacman'; return ;;
+  esac
+  case "$1" in
+    *.tar|*.tar.gz|*.tgz|*.tar.xz|*.tar.zst|*.tar.bz2)
+      # A renamed Arch package is still a system package, not a self-contained app
+      # tree, and a top-level .PKGINFO is the tell. Route it to pacman, never to
+      # the extract-into-~/.local path that cannot produce a working /opt app.
+      if is_pacman_pkg "$1"; then printf 'pacman'; else printf 'tarball'; fi ;;
     *) printf 'unknown' ;;
   esac
+}
+
+# is_pacman_pkg FILE: true when the archive carries a top-level .PKGINFO, the
+# first member of every pacman package.
+is_pacman_pkg() {
+  { bsdtar -tf "$1" 2>/dev/null || tar -tf "$1" 2>/dev/null; } | head -n 8 | grep -qxF '.PKGINFO'
 }
 
 strip_appimage_ext() {
@@ -247,6 +263,25 @@ install_tarball() {
   return 1
 }
 
+# install_pacman SRC: install an Arch package with `pacman -U`. The stash runs
+# with no tty, so escalate through pkexec (the polkit agent raises the GUI
+# prompt). The package ships its own /usr/share/applications entry, which the
+# launcher reads, so nothing is synthesized here. Sets LAST_NAME.
+install_pacman() {
+  local src="$1" name
+  command -v pacman >/dev/null 2>&1 || return 1
+  command -v pkexec >/dev/null 2>&1 || return 1
+  pkexec pacman -U --noconfirm "$src" >/dev/null 2>&1 || return 1
+  name=$(pacman_pkgname "$src")
+  LAST_NAME="${name:-$(slug "$(basename "$src")")}"
+}
+
+# pacman_pkgname FILE: the pkgname recorded in the package's .PKGINFO.
+pacman_pkgname() {
+  { bsdtar -xOf "$1" .PKGINFO 2>/dev/null || tar -xOf "$1" .PKGINFO 2>/dev/null; } \
+    | sed -n 's/^pkgname = //p' | head -n1
+}
+
 # install_one FILE: returns 0 success, 1 failure, 2 unsupported extension.
 install_one() {
   local f="$1" kind appname dest
@@ -265,6 +300,9 @@ install_one() {
     tarball)
       install_tarball "$f" || return 1
       ;;
+    pacman)
+      install_pacman "$f" || return 1
+      ;;
     *)
       return 2
       ;;
@@ -282,7 +320,7 @@ else
   shopt -s nullglob
   for f in "$STASH"/*; do
     [ -f "$f" ] || continue
-    case "$(classify "$f")" in appimage|tarball) targets+=("$f") ;; esac
+    case "$(classify "$f")" in appimage|tarball|pacman) targets+=("$f") ;; esac
   done
   shopt -u nullglob
 fi
