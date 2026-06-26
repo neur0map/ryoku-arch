@@ -4,6 +4,8 @@
 # gets a synthesized XDG desktop entry under ~/.local; a pacman package
 # (.pkg.tar.zst) is handed to `pacman -U` through pkexec so it installs the normal
 # way and the launcher reads the entry the package itself ships.
+# A successful install then removes the source from the stash so it is not left
+# duplicating the installed app (set RYOKU_STASH_KEEP=1 to keep it).
 # Usage: stash-install.sh [file]   (no arg: install every supported file in $STASH)
 set -u
 
@@ -11,6 +13,9 @@ STASH="${STASH_DIR:-$HOME/Downloads/Stash}"
 APPSTORE="$HOME/.local/share/ryoku-apps"        # installed payloads live here
 APPDIR="$HOME/.local/share/applications"         # launcher reads .desktop from here
 ICONDIR="$HOME/.local/share/icons"
+# A successful install copies, extracts, or installs the app out of the stash, so
+# the dropped source is then a pure duplicate; remove it unless RYOKU_STASH_KEEP=1.
+KEEP_SOURCE="${RYOKU_STASH_KEEP:-0}"
 mkdir -p "$APPSTORE" "$APPDIR" "$ICONDIR"
 
 LAST_NAME=""
@@ -19,6 +24,15 @@ LAST_NAME=""
 
 # slug: reduce a name to filesystem/desktop-id-safe characters.
 slug() { printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '_'; }
+
+# cleanup_source FILE: drop a successfully-installed source from the stash so the
+# app is not duplicated as both an install and a leftover stash copy. Returns 0
+# only when the file is actually gone, so the caller can count it.
+cleanup_source() {
+  [ "$KEEP_SOURCE" = 1 ] && return 1
+  rm -f "$1" 2>/dev/null
+  [ ! -e "$1" ]
+}
 
 classify() {
   case "$1" in
@@ -393,12 +407,14 @@ fi
 
 NAMES=()
 attempted=0
+cleaned=0
 if [ "${#targets[@]}" -gt 0 ]; then
   for t in "${targets[@]}"; do
     install_one "$t"; rc=$?
     if [ "$rc" -eq 0 ]; then
       attempted=$((attempted + 1))
       NAMES+=("$LAST_NAME")
+      cleanup_source "$t" && cleaned=$((cleaned + 1))
       echo "OK $LAST_NAME"
     elif [ "$rc" -eq 2 ]; then
       # Unsupported extension: a hard error only when the user named the file
@@ -413,8 +429,10 @@ fi
 if [ "${#NAMES[@]}" -gt 0 ]; then
   update-desktop-database "$APPDIR" 2>/dev/null || true
   names_str=$(printf '%s, ' "${NAMES[@]}"); names_str=${names_str%, }
-  notify-send "Stash" "Installed $names_str" -i emblem-ok-symbolic
-  echo "Installed $names_str"
+  msg="Installed $names_str"
+  [ "$cleaned" -gt 0 ] && msg="$msg, cleared from stash"
+  notify-send "Stash" "$msg" -i emblem-ok-symbolic
+  echo "$msg"
   exit 0
 fi
 

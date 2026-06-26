@@ -65,6 +65,7 @@ fi
 check "$(cat "$work/pkexec.log")" "pacman -U --noconfirm $s1/foo.pkg.tar.gz" \
   "pacman package handed to pkexec pacman -U"
 absent "$work/home/.local/share/ryoku-apps/foo" "pacman package NOT extracted into ~/.local"
+absent "$s1/foo.pkg.tar.gz" "source removed from the stash after a successful install"
 
 # Case 2: a renamed package (.tar.gz with .PKGINFO) is still detected as pacman.
 s2="$work/stash2"; mkdir -p "$s2"
@@ -115,6 +116,18 @@ if command -v ar >/dev/null 2>&1 && command -v bsdtar >/dev/null 2>&1; then
 else
   echo "  skip: .deb extraction (ar or bsdtar absent)"
 fi
+
+# Case 6: RYOKU_STASH_KEEP=1 keeps the source after a successful install.
+s6="$work/stash6"; mkdir -p "$s6"
+mkpkg "$s6/keep.pkg.tar.gz" keep
+RYOKU_STASH_KEEP=1 STASH_DIR="$s6" run_stash
+present "$s6/keep.pkg.tar.gz" "RYOKU_STASH_KEEP=1 keeps the source in the stash"
+
+# Case 7: a failed install leaves the source in place (no cleanup on failure).
+s7="$work/stash7"; mkdir -p "$s7"
+printf 'not a real package\n' >"$s7/broken.deb"
+STASH_DIR="$s7" run_stash || true
+present "$s7/broken.deb" "a failed install keeps its source in the stash"
 
 if (( fail )); then echo "stash-install: FAILED" >&2; exit 1; fi
 echo "stash-install: all checks passed"

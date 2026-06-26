@@ -20,6 +20,11 @@
   `Stash.qml` `hasInstallable` offers exactly these; self-extracting `.bin`/`.run`
   stay out (running an arbitrary installer blind is unsafe). Covered by
   `tests/stash-install.sh`.
+- `quickshell/pill` stash install now clears the source from the stash after a
+  successful install, so an installed app is not left duplicated as a leftover
+  drop (it already lives in the app store, or a system/flatpak install). It only
+  removes on success, never on failure, and `RYOKU_STASH_KEEP=1` opts out.
+  Covered by `tests/stash-install.sh`.
 - `quickshell/widgets`: desktop widgets on the wallpaper. A new `WlrLayer.Bottom`
   host (per monitor, below windows, namespace
   `ryoku-widgets`), supervised like the pill/visualiser via a `{"widgets", true}`
