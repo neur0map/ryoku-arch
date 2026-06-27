@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+- `ryoku update` offers to install the snapshot helpers when they are missing
+  (`snap-pac`, and `limine-snapper-sync` on a Limine system) rather than leaving
+  them as a standing `doctor` recommendation. It asks first: a Hub-launched update
+  (`RYOKU_UPDATE_UI=hub`) raises the question in the Hub's Updates page and waits
+  for the answer; a terminal update asks y/N; a non-interactive run declines. Skip
+  or no answer leaves them to `ryoku doctor`, and a failed install never aborts the
+  update. The consent rides the existing run-state file (a `prompt` phase plus a
+  one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
+
 ### Fixed
 - `doctor` gains a "display resolution" reconciler that recovers a monitor a
   degraded link left below its available resolution. A cold boot or the

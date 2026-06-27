@@ -72,9 +72,13 @@ Item {
     }
 
     // --- live run state (published by `ryoku update`) -----------------------
-    property string phase: "idle"   // idle | running
+    property string phase: "idle"   // idle | running | prompt
     property real progress: 0
+    property string promptTitle: ""
+    property string promptDetail: ""
+    property var promptOptions: []
     readonly property string statePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-update.json"
+    readonly property string answerPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-update-answer"
 
     FileView {
         id: stateFile
@@ -90,19 +94,33 @@ Item {
         var prev = page.phase;
         try {
             var o = JSON.parse(t);
-            page.phase = (o.phase === "running") ? "running" : "idle";
-            page.progress = (typeof o.progress === "number") ? o.progress : 0;
+            if (o.phase === "prompt" && o.prompt) {
+                page.phase = "prompt";
+                page.promptTitle = o.prompt.title || "";
+                page.promptDetail = o.prompt.detail || "";
+                page.promptOptions = o.prompt.options || [];
+            } else {
+                page.phase = (o.phase === "running") ? "running" : "idle";
+                page.progress = (typeof o.progress === "number") ? o.progress : 0;
+            }
         } catch (e) {
             page.phase = "idle";
             page.progress = 0;
         }
-        // An update just finished: refresh the status so the list clears.
-        if (prev === "running" && page.phase !== "running")
+        // An update settled back to idle (finished): refresh so the list clears.
+        if (prev !== "idle" && page.phase === "idle")
             Updates.check();
     }
 
+    // Answer a prompt phase: write the choice to the back-channel `ryoku update`
+    // is polling, and optimistically resume the running view so the buttons clear.
+    function answer(choice) {
+        Quickshell.execDetached(["sh", "-c", "printf '%s' '" + choice + "' > '" + page.answerPath + "'"]);
+        page.phase = "running";
+    }
+
     function startUpdate() {
-        Quickshell.execDetached(["kitty", "-e", "ryoku", "update"]);
+        Quickshell.execDetached(["kitty", "-e", "sh", "-c", "RYOKU_UPDATE_UI=hub exec ryoku update"]);
     }
 
     // --- idle content: status + pending updates -----------------------------
@@ -279,6 +297,104 @@ Item {
             WaveMeter {
                 width: parent.width
                 frac: page.progress
+            }
+        }
+    }
+
+    // --- consent prompt: an editorial question `ryoku update` waits on, in the
+    // UpdateStatus idiom (ember rule + headline + detail) with dossier-stamp
+    // actions rather than a centred two-pill modal.
+    Item {
+        visible: page.phase === "prompt"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: footer.top
+
+        Row {
+            anchors.centerIn: parent
+            width: Math.min(parent.width - 80, 540)
+            spacing: 20
+
+            Rectangle {
+                width: 3
+                height: promptCol.implicitHeight
+                radius: 1.5
+                color: Theme.ember
+            }
+
+            Column {
+                id: promptCol
+                width: parent.width - 23
+                spacing: 14
+
+                Text {
+                    width: parent.width
+                    text: page.promptTitle
+                    color: Theme.cream
+                    font.family: Theme.font
+                    font.pixelSize: 22
+                    font.weight: Font.DemiBold
+                    wrapMode: Text.WordWrap
+                }
+
+                Text {
+                    width: parent.width
+                    text: page.promptDetail
+                    color: Theme.dim
+                    font.family: Theme.font
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
+                    lineHeight: 1.35
+                    wrapMode: Text.WordWrap
+                }
+
+                Item { width: 1; height: 4 }
+
+                Row {
+                    spacing: 18
+
+                    Repeater {
+                        model: page.promptOptions
+
+                        delegate: Rectangle {
+                            required property var modelData
+                            required property int index
+                            height: 32
+                            width: optLabel.implicitWidth + (index === 0 ? 30 : 22)
+                            radius: 3
+                            color: index === 0
+                                ? (optMa.containsMouse ? Qt.lighter(Theme.ember, 1.08) : Theme.ember)
+                                : "transparent"
+                            border.width: index === 0 ? 0 : 1
+                            border.color: optMa.containsMouse ? Theme.ember : Theme.line
+
+                            Text {
+                                id: optLabel
+                                anchors.centerIn: parent
+                                text: ("" + modelData).toUpperCase()
+                                color: index === 0
+                                    ? Theme.onAccent
+                                    : (optMa.containsMouse ? Theme.cream : Theme.dim)
+                                font.family: Theme.mono
+                                font.pixelSize: 12
+                                font.weight: index === 0 ? Font.Bold : Font.DemiBold
+                                font.letterSpacing: 2
+                            }
+
+                            MouseArea {
+                                id: optMa
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: page.answer(modelData)
+                            }
+
+                            Behavior on color { ColorAnimation { duration: Theme.quick } }
+                            Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+                        }
+                    }
+                }
             }
         }
     }

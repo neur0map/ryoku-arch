@@ -94,6 +94,7 @@ func cmdUpdate(_ []string) error {
 	if handled, err := channelUpdate(); err != nil {
 		return err
 	} else if handled {
+		offerSnapperHelpers()
 		runFreshDoctor()
 		snapperPost(pre, "ryoku-update")
 		fmt.Println("==> Update complete")
@@ -130,10 +131,86 @@ func cmdUpdate(_ []string) error {
 	hyprReload()
 	restartShell()
 
+	offerSnapperHelpers()
 	runFreshDoctor()
 	snapperPost(pre, "ryoku-update")
 	fmt.Println("==> Update complete")
 	return nil
+}
+
+// wantedSnapperHelpers returns the missing snapshot helpers worth offering, given
+// the snapper state and whether Limine is the bootloader. Pure, so the gating (no
+// snapshots without btrfs + snapper; limine-snapper-sync only under Limine) is
+// unit-testable without touching /etc or pacman.
+func wantedSnapperHelpers(st snapperState, limineInstalled bool) []string {
+	if !st.rootIsBtrfs || !st.snapperInstalled {
+		return nil
+	}
+	var want []string
+	if !st.snapPacInstalled {
+		want = append(want, "snap-pac")
+	}
+	if !st.limineSyncInstalled && limineInstalled {
+		want = append(want, "limine-snapper-sync")
+	}
+	return want
+}
+
+// offerSnapperHelpers asks before installing the snapshot helpers when they are
+// missing, then installs the chosen ones. snap-pac auto-snapshots every pacman
+// transaction and, on a Limine system, limine-snapper-sync puts the snapshots in
+// the boot menu: the rollback safety net behind every `ryoku update`. Opt-in and
+// best-effort: Skip or no answer leaves them to `ryoku doctor`'s recommendation,
+// and a failed install never aborts the update.
+func offerSnapperHelpers() {
+	want := wantedSnapperHelpers(gatherSnapperState(), pkgInstalled("limine"))
+	if len(want) == 0 {
+		return
+	}
+	var blurbs []string
+	for _, p := range want {
+		switch p {
+		case "snap-pac":
+			blurbs = append(blurbs, "auto-snapshot every update")
+		case "limine-snapper-sync":
+			blurbs = append(blurbs, "snapshots in the boot menu")
+		}
+	}
+	detail := strings.Join(want, " + ") + " back the rollback safety net (" + strings.Join(blurbs, ", ") + ")."
+	if !askInstall("Enable snapshot helpers?", detail, want) {
+		fmt.Printf("==> Snapshot helpers skipped (%s); ryoku doctor keeps recommending them\n", strings.Join(want, ", "))
+		return
+	}
+	fmt.Printf("==> Installing snapshot helpers: %s\n", strings.Join(want, ", "))
+	for _, p := range want {
+		tool := "ryoku-pkg-add"
+		if p == "limine-snapper-sync" {
+			tool = "ryoku-pkg-aur-add"
+		}
+		if err := run(tool, p); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: installing %s failed: %v\n", p, err)
+		}
+	}
+}
+
+// askInstall gets consent to install pkgs. A Hub-launched update
+// (RYOKU_UPDATE_UI=hub) asks in the Hub via the run-state prompt and waits for the
+// answer; a plain terminal update asks y/N; a non-interactive run declines.
+func askInstall(title, detail string, pkgs []string) bool {
+	if os.Getenv("RYOKU_UPDATE_UI") == "hub" {
+		publishPrompt("snapper-helpers", title, detail, []string{"Install", "Skip"})
+		choice, ok := awaitAnswer(120 * time.Second)
+		publishRun("running", 0.75) // clear the prompt; resume the progress wave
+		return ok && choice == "Install"
+	}
+	if stdinIsTTY() {
+		fmt.Printf("%s install %s? [y/N] ", title, strings.Join(pkgs, ", "))
+		var resp string
+		_, _ = fmt.Scanln(&resp)
+		resp = strings.ToLower(strings.TrimSpace(resp))
+		return resp == "y" || resp == "yes"
+	}
+	return false
 }
 
 // runFreshDoctor runs `ryoku doctor` after an update has installed the new binary,

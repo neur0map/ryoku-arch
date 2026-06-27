@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- Updates: `ryoku update` can pause on a question (enabling the snapshot helpers)
+  and the Updates page renders it inline, in the `UpdateStatus` idiom: an ember
+  rule, a headline and detail, and dossier-stamp Install / Skip actions (no
+  centred pill modal). The tap writes the choice to the run-state back-channel the
+  update is waiting on.
 - Plugins: a plugin's settings now follow its lifecycle. `ryoku-hub extras` seeds
   a plugin's manifest presets into `plugins.json` (`<id>.settings`) on install and
   forgets the whole entry on uninstall, so a widget's settings appear with it and
