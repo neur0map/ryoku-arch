@@ -25,7 +25,7 @@ func vmDefine(v VM) error {
 	if err := ensureDisk(v); err != nil {
 		return err
 	}
-	xml, err := RenderDomain(v, report.Passthrough.Functions, 128)
+	xml, err := RenderDomain(v, report.Passthrough.Functions, kvmfrStaticMB)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func vmLaunch() error {
 	}
 	// modules-load.d loads kvmfr at boot; cover the case where the user just enabled
 	// passthrough and has not rebooted.
-	run("modprobe", "kvmfr", "static_size_mb=128")
+	run("modprobe", "kvmfr", fmt.Sprintf("static_size_mb=%d", kvmfrStaticMB))
 	if err := virsh("start", v.Name); err != nil {
 		return err
 	}

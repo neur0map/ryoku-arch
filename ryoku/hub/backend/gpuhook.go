@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // sysAction is one privileged step: a sysfs attribute write or a modprobe.
@@ -91,9 +92,11 @@ func runGpuHook(args []string) error {
 	if len(args) >= 2 {
 		name = args[1]
 	}
-	vm := loadVM()
-	if name != "" && name != vm.Name {
-		return nil // not our VM; libvirt hooks fire for every domain
+	// libvirt hooks fire for every domain; act only on Ryoku-managed VMs (the
+	// "ryoku-" name prefix). This works even when libvirtd runs us as root with no
+	// access to the user's vm.json.
+	if name != "" && !strings.HasPrefix(name, "ryoku-") {
+		return nil
 	}
 	report, err := detectCapability()
 	if err != nil {

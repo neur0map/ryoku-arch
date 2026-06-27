@@ -10,16 +10,17 @@ import (
 // point each scenario mutates. iGPU drives the display, dGPU is free.
 func baseInputs() capInputs {
 	in := capInputs{
-		cpuVendor:    "AMD",
-		cpuVirt:      true,
-		kvm:          true,
-		iommuOn:      true,
-		chassis:      "desktop",
-		ramTotalMB:   32000,
-		ramFreeMB:    16000,
-		groupOf:      map[string]int{},
-		groupMembers: map[int][]string{},
-		tooling:      tooling{qemu: true, libvirt: true, ovmf: true, swtpm: true, lookingGlass: true, kvmfr: true, hook: true},
+		cpuVendor:      "AMD",
+		cpuVirt:        true,
+		kvm:            true,
+		iommuOn:        true,
+		chassis:        "desktop",
+		ramTotalMB:     32000,
+		ramFreeMB:      16000,
+		groupOf:        map[string]int{},
+		groupMembers:   map[int][]string{},
+		inLibvirtGroup: true,
+		tooling:        tooling{qemu: true, libvirt: true, ovmf: true, swtpm: true, lookingGlass: true, kvmfr: true, hook: true},
 	}
 	in.records = []gpuRecord{
 		{Slot: "0000:01:00.0", Class: "discrete", Driver: "nvidia", VRAM: 8 << 30, Connected: 0, Model: "RTX 4060"},
@@ -106,6 +107,12 @@ func TestBuildCapabilityVerdicts(t *testing.T) {
 			mutate:       func(in *capInputs) { in.tooling.qemu = false; in.tooling.lookingGlass = false },
 			wantStrategy: "live-bind",
 			wantVerdict:  "needs-setup",
+		},
+		{
+			name:         "stack installed but not yet in libvirt group",
+			mutate:       func(in *capInputs) { in.inLibvirtGroup = false },
+			wantStrategy: "live-bind",
+			wantVerdict:  "needs-relogin",
 		},
 	}
 

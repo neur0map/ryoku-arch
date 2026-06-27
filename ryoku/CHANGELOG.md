@@ -34,7 +34,7 @@
   refuses anything unsafe. Dynamic vfio bind/unbind via a libvirt hook (no
   boot-time binding), kvmfr Looking Glass, swtpm + Secure Boot for Win11; a "Ryoku
   VM" app-launcher entry boots it automatically when the verdict is ready. The
-  one-time "Enable passthrough" is reversible. Design in `docs/superpowers/specs`.
+  one-time "Enable passthrough" is reversible.
 - `hyprland/binds` + `hyprland/resize`: working window resize. `Super + Ctrl +
   arrows` resize the active window directly (repeating); the `Super + R` resize
   mode also accepts `hjkl`, exits on `Super + R`, `Esc`, or `Return`, and shows a

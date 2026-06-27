@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -31,7 +32,7 @@ type Check struct {
 
 // GPU is a graphics device as the passthrough feature sees it.
 type GPU struct {
-	Slot          string   `json:"slot"`  // PCI slot, e.g. 0000:01:00.0
+	Slot          string   `json:"slot"` // PCI slot, e.g. 0000:01:00.0
 	Model         string   `json:"model"`
 	Driver        string   `json:"driver"`
 	Class         string   `json:"class"` // integrated | discrete | egpu
@@ -76,18 +77,19 @@ type tooling struct {
 // capInputs is everything buildCapability needs, already gathered. Tests build
 // this directly; detectCapability() fills it from the live system.
 type capInputs struct {
-	records      []gpuRecord
-	cpuVendor    string
-	cpuVirt      bool
-	kvm          bool
-	iommuOn      bool
-	iommuFixable bool // Intel host with IOMMU off: addable via kernel cmdline
-	groupOf      map[string]int    // slot -> IOMMU group number
-	groupMembers map[int][]string  // IOMMU group -> member PCI slots
-	chassis      string            // laptop | desktop
-	ramTotalMB   int
-	ramFreeMB    int
-	tooling      tooling
+	records        []gpuRecord
+	cpuVendor      string
+	cpuVirt        bool
+	kvm            bool
+	iommuOn        bool
+	iommuFixable   bool             // Intel host with IOMMU off: addable via kernel cmdline
+	groupOf        map[string]int   // slot -> IOMMU group number
+	groupMembers   map[int][]string // IOMMU group -> member PCI slots
+	chassis        string           // laptop | desktop
+	ramTotalMB     int
+	ramFreeMB      int
+	tooling        tooling
+	inLibvirtGroup bool
 }
 
 // buildCapability is the pure verdict function: gathered inputs in, Capability out.
@@ -238,6 +240,13 @@ func buildChecks(in capInputs, host, pass *GPU) (checks []Check, hardFail bool) 
 	} else {
 		add(Check{ID: "tooling", Level: "warn", Label: "Virtualization stack", Value: "missing: " + strings.Join(missing, ", "), Hint: "Use Enable passthrough to install qemu, libvirt, OVMF, swtpm and Looking Glass."})
 	}
+	if in.tooling.libvirt {
+		if in.inLibvirtGroup {
+			add(Check{ID: "session", Level: "ok", Label: "libvirt access", Value: "active"})
+		} else {
+			add(Check{ID: "session", Level: "warn", Label: "libvirt access", Value: "log in again", Hint: "You were added to the libvirt group; log out and back in before launching the VM."})
+		}
+	}
 	return checks, hardFail
 }
 
@@ -260,6 +269,9 @@ func decide(in capInputs, host, pass *GPU, hardFail bool) (strategy, verdict str
 	}
 	switch strategy {
 	case "live-bind":
+		if !in.inLibvirtGroup {
+			return strategy, "needs-relogin" // stack ready, but the group needs a fresh login
+		}
 		return strategy, "ready"
 	case "relogin-then-bind":
 		return strategy, "needs-relogin"
@@ -343,7 +355,28 @@ func detectCapability() (Capability, error) {
 		}
 	}
 	in.tooling = detectTooling(root)
+	in.inLibvirtGroup = userInGroup("libvirt")
 	return buildCapability(in), nil
+}
+
+// userInGroup reports whether the current process is effectively a member of the
+// named group. It tells a freshly-enabled passthrough (group added but the session
+// predates it) apart from one that is actually ready to launch.
+func userInGroup(name string) bool {
+	g, err := user.LookupGroup(name)
+	if err != nil {
+		return false
+	}
+	gids, err := os.Getgroups()
+	if err != nil {
+		return false
+	}
+	for _, gid := range gids {
+		if strconv.Itoa(gid) == g.Gid {
+			return true
+		}
+	}
+	return false
 }
 
 func gpuRecordsFromTool() ([]gpuRecord, error) {

@@ -15,6 +15,11 @@ import (
 	"text/template"
 )
 
+// kvmfrStaticMB is the Looking Glass shared-memory size (MiB), used for both the
+// kvmfr module's static_size_mb and the VM's ivshmem device. 128 MiB covers SDR
+// panels up to 2160p and most ultrawides; raising it only blocks that much RAM.
+const kvmfrStaticMB = 128
+
 type pciAddr struct {
 	Domain, Bus, Slot, Func string // hex, e.g. 0x0000 0x01 0x00 0x0
 }
@@ -46,8 +51,8 @@ func RenderDomain(vm VM, functions []string, kvmfrMB int) (string, error) {
 		}
 		addrs = append(addrs, a)
 	}
-	if kvmfrMB < 128 {
-		kvmfrMB = 128
+	if kvmfrMB < kvmfrStaticMB {
+		kvmfrMB = kvmfrStaticMB
 	}
 	d := domainData{
 		Name:       vm.Name,
@@ -76,8 +81,8 @@ func KvmfrSizeMB(w, h int) int {
 	for float64(mb) < needMB {
 		mb <<= 1
 	}
-	if mb < 128 {
-		mb = 128
+	if mb < kvmfrStaticMB {
+		mb = kvmfrStaticMB
 	}
 	return mb
 }

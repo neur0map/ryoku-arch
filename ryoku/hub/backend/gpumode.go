@@ -40,11 +40,24 @@ func setGpuMode(mode string) error {
 	default:
 		return fmt.Errorf("mode must be hybrid|performance|passthrough")
 	}
+	report, _ := detectCapability()
+	if mode == "passthrough" && wouldStrandDisplay(report) {
+		return fmt.Errorf("passthrough would black-screen the desktop: the dGPU drives the display and the iGPU has none. Set the laptop MUX to hybrid (or move the monitor to the iGPU) and reboot first")
+	}
 	if out, err := exec.Command(ryokuGpuBin(), "mode", mode).CombinedOutput(); err != nil {
 		return fmt.Errorf("ryoku-gpu mode %s: %v: %s", mode, err, strings.TrimSpace(string(out)))
 	}
-	report, _ := detectCapability()
 	return printJSON(map[string]string{"mode": mode, "cost": gpuModeCost(mode, report)})
+}
+
+// wouldStrandDisplay reports whether pinning the iGPU alone (passthrough mode) would
+// leave the desktop without a screen: the dGPU drives the display and the iGPU does
+// not. On such a machine the MUX must be flipped to hybrid (a reboot) first.
+func wouldStrandDisplay(c Capability) bool {
+	if c.Passthrough == nil || !c.Passthrough.DrivesDisplay {
+		return false
+	}
+	return c.Host == nil || !c.Host.DrivesDisplay
 }
 
 func currentGpuMode() string {

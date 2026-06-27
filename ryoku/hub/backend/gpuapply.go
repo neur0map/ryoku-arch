@@ -109,7 +109,7 @@ func managedFiles(user, exe string) []managedFile {
 	udev := fmt.Sprintf("SUBSYSTEM==\"kvmfr\", OWNER=\"%s\", GROUP=\"kvm\", MODE=\"0660\"\n", user)
 	return []managedFile{
 		{"etc/modules-load.d/ryoku-kvmfr.conf", "kvmfr\n", 0o644},
-		{"etc/modprobe.d/ryoku-kvmfr.conf", "options kvmfr static_size_mb=128\n", 0o644},
+		{"etc/modprobe.d/ryoku-kvmfr.conf", fmt.Sprintf("options kvmfr static_size_mb=%d\n", kvmfrStaticMB), 0o644},
 		{"etc/udev/rules.d/99-ryoku-kvmfr.rules", udev, 0o644},
 		{"etc/polkit-1/rules.d/50-ryoku-libvirt.rules", polkitRule, 0o644},
 		{"etc/libvirt/hooks/qemu", hook, 0o755},

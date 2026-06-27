@@ -18,6 +18,7 @@ Item {
     property string seg: "graphics"
     property string planText: ""
     property bool planning: false
+    property string actionError: ""
 
     readonly property var blockerText: ({
         "needs-relogin": "Log out and back in: Ryoku must move to the iGPU first.",
@@ -36,9 +37,13 @@ Item {
         d[k] = v;
         page.draft = d;
     }
-    function setMode(m) {
-        runProc.command = ["ryoku-hub", "gpu", "mode", "set", m];
+    function act(cmd) {
+        page.actionError = "";
+        runProc.command = cmd;
         runProc.running = true;
+    }
+    function setMode(m) {
+        page.act(["ryoku-hub", "gpu", "mode", "set", m]);
     }
     function reviewEnable() {
         planProc.command = ["ryoku-hub", "gpu", "apply", "enable", "--dry-run"];
@@ -46,8 +51,7 @@ Item {
     }
     function confirmEnable() {
         page.planning = false;
-        runProc.command = ["ryoku-hub", "gpu", "apply", "enable"];
-        runProc.running = true;
+        page.act(["ryoku-hub", "gpu", "apply", "enable"]);
     }
 
     onVmcfgChanged: page.draft = JSON.parse(JSON.stringify(page.vmcfg))
@@ -90,7 +94,17 @@ Item {
             }
         }
     }
-    Process { id: runProc; stdout: StdioCollector { onStreamFinished: page.reload() } }
+    Process {
+        id: runProc
+        stdout: StdioCollector { onStreamFinished: page.reload() }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                var e = this.text.trim();
+                if (e.length > 0)
+                    page.actionError = e;
+            }
+        }
+    }
     Process {
         id: planProc
         stdout: StdioCollector {
@@ -413,8 +427,7 @@ Item {
                                 label: "Save"
                                 icon: "check"
                                 onClicked: {
-                                    runProc.command = ["ryoku-hub", "vm", "save", JSON.stringify(page.draft)];
-                                    runProc.running = true;
+                                    page.act(["ryoku-hub", "vm", "save", JSON.stringify(page.draft)]);
                                 }
                             }
                             HubButton {
@@ -423,8 +436,7 @@ Item {
                                 primary: true
                                 enabled: page.caps.verdict === "ready"
                                 onClicked: {
-                                    runProc.command = ["ryoku-hub", "vm", "launch"];
-                                    runProc.running = true;
+                                    page.act(["ryoku-hub", "vm", "launch"]);
                                 }
                             }
                         }
@@ -454,6 +466,32 @@ Item {
                     font.family: Theme.font
                     font.pixelSize: 14
                 }
+            }
+
+            // Action error banner: a refused mode switch, a failed launch, etc.
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                visible: page.actionError !== ""
+                height: errText.height + 22
+                radius: 10
+                color: Qt.rgba(Theme.bad.r, Theme.bad.g, Theme.bad.b, 0.12)
+                border.width: 1
+                border.color: Qt.rgba(Theme.bad.r, Theme.bad.g, Theme.bad.b, 0.5)
+                Text {
+                    id: errText
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.margins: 14
+                    text: page.actionError
+                    color: Theme.bad
+                    font.family: Theme.font
+                    font.pixelSize: 12
+                    wrapMode: Text.WordWrap
+                }
+                TapHandler { onTapped: page.actionError = "" }
             }
         }
     }

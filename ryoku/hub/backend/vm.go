@@ -121,7 +121,7 @@ func runVM(args []string) error {
 		if report.Passthrough == nil {
 			return fmt.Errorf("no discrete GPU available to pass through")
 		}
-		xml, err := RenderDomain(v, report.Passthrough.Functions, 128)
+		xml, err := RenderDomain(v, report.Passthrough.Functions, kvmfrStaticMB)
 		if err != nil {
 			return err
 		}

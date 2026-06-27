@@ -61,3 +61,27 @@ func TestReadAQValue(t *testing.T) {
 		t.Errorf("missing file = %q, want empty", v)
 	}
 }
+
+func TestWouldStrandDisplay(t *testing.T) {
+	dgpuDrives := Capability{
+		Passthrough: &GPU{Slot: "0000:01:00.0", DrivesDisplay: true},
+		Host:        &GPU{Slot: "0000:65:00.0", DrivesDisplay: false},
+	}
+	if !wouldStrandDisplay(dgpuDrives) {
+		t.Error("dGPU drives the only display: passthrough must be refused")
+	}
+	dgpuFree := Capability{
+		Passthrough: &GPU{Slot: "0000:01:00.0", DrivesDisplay: false},
+		Host:        &GPU{Slot: "0000:65:00.0", DrivesDisplay: true},
+	}
+	if wouldStrandDisplay(dgpuFree) {
+		t.Error("dGPU is free: passthrough is safe")
+	}
+	bothDrive := Capability{
+		Passthrough: &GPU{Slot: "0000:01:00.0", DrivesDisplay: true},
+		Host:        &GPU{Slot: "0000:65:00.0", DrivesDisplay: true},
+	}
+	if wouldStrandDisplay(bothDrive) {
+		t.Error("host has its own display: passthrough is safe")
+	}
+}

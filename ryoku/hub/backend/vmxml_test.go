@@ -49,19 +49,19 @@ func TestRenderDomainWindows(t *testing.T) {
 		"<name>ryoku-win11</name>",
 		"<vcpu placement='static'>6</vcpu>",
 		"<memory unit='MiB'>16384</memory>",
-		"<hidden state='on'/>",        // KVM hidden from the guest
-		"vendor_id state='on'",        // spoofed hypervisor vendor (code-43 insurance)
-		"<smm state='on'/>",           // required for Secure Boot
-		"<loader secure='yes'/>",      // Secure Boot OVMF
-		"name='secure-boot'",          // firmware feature
-		"<tpm model='tpm-crb'>",       // Win11 TPM
-		"version='2.0'",               // TPM 2.0 via swtpm
-		"slot='0x00' function='0x0'",  // dGPU
-		"slot='0x00' function='0x1'",  // dGPU audio function
-		"/isos/virtio-win.iso",        // virtio driver ISO attached
+		"<hidden state='on'/>",         // KVM hidden from the guest
+		"vendor_id state='on'",         // spoofed hypervisor vendor (code-43 insurance)
+		"<smm state='on'/>",            // required for Secure Boot
+		"<loader secure='yes'/>",       // Secure Boot OVMF
+		"name='secure-boot'",           // firmware feature
+		"<tpm model='tpm-crb'>",        // Win11 TPM
+		"version='2.0'",                // TPM 2.0 via swtpm
+		"slot='0x00' function='0x0'",   // dGPU
+		"slot='0x00' function='0x1'",   // dGPU audio function
+		"/isos/virtio-win.iso",         // virtio driver ISO attached
 		"\"mem-path\":\"/dev/kvmfr0\"", // Looking Glass kvmfr
-		"\"size\":134217728",          // 128 MiB
-		"<memballoon model='none'/>",  // balloon disabled for LG perf
+		"\"size\":134217728",           // 128 MiB
+		"<memballoon model='none'/>",   // balloon disabled for LG perf
 	}
 	for _, s := range must {
 		if !strings.Contains(xml, s) {
