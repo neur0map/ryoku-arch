@@ -74,6 +74,11 @@ optdepends=(
   'mpv: webcam mirror and media playback'
   'nautilus: graphical file manager'
   'chromium: web browser'
+  'qemu-desktop: GPU-passthrough VM (Ryoku Settings > GPU)'
+  'libvirt: VM management for the passthrough VM'
+  'edk2-ovmf: UEFI and Secure Boot firmware for the VM'
+  'swtpm: TPM 2.0 for the Windows 11 VM'
+  'looking-glass: low-latency VM display in a desktop window'
 )
 install="$pkgname.install"
 source=()
@@ -154,11 +159,24 @@ package() {
   install -Dm755 "$_repo/ryoku/shell/quickshell/plugins/ryoku-plugins-place" \
     "$pkgdir/usr/bin/ryoku-plugins-place"
 
+  # Ryoku VM: the launcher wrapper on PATH plus its app-launcher entry. The VM
+  # stack (qemu, libvirt, looking-glass) is in optdepends; Ryoku Settings > GPU
+  # installs it on the first "Enable passthrough".
+  install -Dm755 "$_repo/ryoku/apps/ryoku-vm/ryoku-vm" "$pkgdir/usr/bin/ryoku-vm"
+  install -Dm644 "$_repo/ryoku/apps/ryoku-vm/ryoku-vm.desktop" \
+    "$pkgdir/usr/share/applications/ryoku-vm.desktop"
+
   # GPU primary-renderer udev rule: boot-stable /dev/dri/ryoku-gpu-* symlinks
   # that ryoku-gpu pins via AQ_DRM_DEVICES. Vendor location -> active on boot,
   # so `ryoku-gpu install-udev` is never needed on an installed system.
   install -Dm644 "$_repo/system/hardware/gpu/90-ryoku-gpu.rules" \
     "$pkgdir/usr/lib/udev/rules.d/90-ryoku-gpu.rules"
+
+  # Game Mode WiFi power-save: a polkit rule authorizes the privileged helper
+  # (ryoku-wifi-powersave, installed to /usr/bin by the hardware glob above)
+  # without a password, so the deck toggle stays one click.
+  install -Dm644 "$_repo/system/hardware/network/49-ryoku-wifi-powersave.rules" \
+    "$pkgdir/usr/share/polkit-1/rules.d/49-ryoku-wifi-powersave.rules"
 
   # Windows dual-boot: the cross-drive detector and a limine-entry-tool post.d
   # hook that re-asserts the uuid()-addressed chainload entry whenever the boot

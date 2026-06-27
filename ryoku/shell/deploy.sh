@@ -183,6 +183,12 @@ mkdir -p "$cfg/wallust";   cp -a "$here/wallust/." "$cfg/wallust/"
 cp -a "$here/../apps/fish/config.fish" "$cfg/fish/config.fish"
 cp -a "$here/kde/kdeglobals" "$cfg/kdeglobals"
 mkdir -p "$cfg/systemd/user"; cp -a "$here/systemd/user/." "$cfg/systemd/user/"
+# Ryoku VM launcher: the wrapper on PATH plus its app-launcher entry (ryoku-hub
+# does the real work). optdepends (qemu, libvirt, looking-glass) install on first
+# "Enable passthrough" from Ryoku Settings > GPU, not here.
+install -m755 "$here/../apps/ryoku-vm/ryoku-vm" "$bindir/ryoku-vm"
+install -Dm644 "$here/../apps/ryoku-vm/ryoku-vm.desktop" \
+  "${XDG_DATA_HOME:-$HOME/.local/share}/applications/ryoku-vm.desktop"
 command -v systemctl >/dev/null 2>&1 && systemctl --user daemon-reload 2>/dev/null || true
 
 if (( hypr_live && reload )); then

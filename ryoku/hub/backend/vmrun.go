@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 func vmDefine(v VM) error {
@@ -71,8 +72,10 @@ func vmLaunch() error {
 	if err := virsh("start", v.Name); err != nil {
 		return err
 	}
+	// Detach the client so a launcher-spawned ryoku-hub can exit immediately and the
+	// window outlives it (its fds go to /dev/null, not the caller's captured pipe).
 	lg := exec.Command("looking-glass-client", "app:shmFile=/dev/kvmfr0")
-	lg.Stdout, lg.Stderr = os.Stdout, os.Stderr
+	lg.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	return lg.Start()
 }
 

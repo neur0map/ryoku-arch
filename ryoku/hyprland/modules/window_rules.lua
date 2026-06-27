@@ -78,3 +78,11 @@ hl.window_rule({
     size   = { 900, 600 },
     center = true,
 })
+
+hl.window_rule({
+    name   = "float-looking-glass",
+    match  = { class = "looking-glass-client" },
+    float  = true,
+    size   = { 1600, 900 },
+    center = true,
+})
