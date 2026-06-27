@@ -52,8 +52,10 @@ Item {
         planProc.running = true;
     }
     function confirmEnable() {
-        page.planning = false;
-        page.act(["ryoku-hub", "gpu", "apply", "enable"]);
+        page.planText = "Enabling passthrough. You may be prompted for your password...\n";
+        page.planning = true;
+        enableProc.command = ["sh", "-c", "ryoku-hub gpu apply enable 2>&1"];
+        enableProc.running = true;
     }
 
     onVmcfgChanged: page.draft = JSON.parse(JSON.stringify(page.vmcfg))
@@ -113,6 +115,15 @@ Item {
             onStreamFinished: {
                 page.planText = this.text;
                 page.planning = true;
+            }
+        }
+    }
+    Process {
+        id: enableProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                page.planText += this.text;
+                page.reload();
             }
         }
     }
@@ -304,30 +315,43 @@ Item {
                         Rectangle {
                             visible: page.planning
                             width: parent.width
-                            height: planView.height + 24
+                            height: 220
                             radius: 10
                             color: Theme.surfaceLo
                             border.width: 1
                             border.color: Theme.line
-                            Text {
-                                id: planView
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
+                            clip: true
+                            Flickable {
+                                id: planFlick
+                                anchors.fill: parent
                                 anchors.margins: 12
-                                text: page.planText
-                                color: Theme.cream
-                                font.family: Theme.mono
-                                font.pixelSize: 11
-                                wrapMode: Text.WordWrap
+                                contentWidth: width
+                                contentHeight: planView.height
+                                clip: true
+                                boundsBehavior: Flickable.StopAtBounds
+                                Text {
+                                    id: planView
+                                    width: planFlick.width
+                                    text: page.planText
+                                    color: Theme.cream
+                                    font.family: Theme.mono
+                                    font.pixelSize: 11
+                                    wrapMode: Text.WrapAnywhere
+                                }
                             }
                         }
 
                         Row {
                             visible: page.planning
                             spacing: 10
-                            HubButton { label: "Enable passthrough"; icon: "check"; primary: true; onClicked: page.confirmEnable() }
-                            HubButton { label: "Cancel"; icon: "close"; onClicked: page.planning = false }
+                            HubButton {
+                                visible: page.caps.enabled !== true
+                                label: "Enable passthrough"
+                                icon: "check"
+                                primary: true
+                                onClicked: page.confirmEnable()
+                            }
+                            HubButton { label: "Close"; icon: "close"; onClicked: { page.planning = false; page.planText = ""; } }
                         }
                     }
                 }
@@ -499,11 +523,12 @@ Item {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 visible: page.actionError !== ""
-                height: errText.height + 22
+                height: Math.min(errText.implicitHeight + 22, 110)
                 radius: 10
                 color: Qt.rgba(Theme.bad.r, Theme.bad.g, Theme.bad.b, 0.12)
                 border.width: 1
                 border.color: Qt.rgba(Theme.bad.r, Theme.bad.g, Theme.bad.b, 0.5)
+                clip: true
                 Text {
                     id: errText
                     anchors.left: parent.left
@@ -515,6 +540,8 @@ Item {
                     font.family: Theme.font
                     font.pixelSize: 12
                     wrapMode: Text.WordWrap
+                    elide: Text.ElideRight
+                    maximumLineCount: 5
                 }
                 TapHandler { onTapped: page.actionError = "" }
             }
