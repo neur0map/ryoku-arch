@@ -155,9 +155,10 @@
   shell's morph motion (a single sliding selection indicator in the rail).
 
 ### Changed
-- Plugins store: the Install / Installed / Remove actions adopt the dossier idiom
-  (a small-radius carbon chip with a mono uppercase label, ember only while
-  actionable, press-dip not hover-grow), replacing the generic bright full-pill.
+- Plugins store: the Install / Installed / Remove actions match the update consent
+  prompt - flat ember "stamp" buttons (radius 3, mono bold uppercase, no icon) for
+  the live action and hairline ghost stamps for the rest - replacing the generic
+  bright full-pill.
 - The sidebar brand is a centred masthead: the wide-tracked **RYOKU ARCH**
   wordmark and a "system and shell settings" subtitle sit over a dimmed 力
   backdrop (a soft warm glow and a faint grid, echoing the Profile portrait
@@ -193,6 +194,10 @@
   field `ryoku status --json` now publishes. "Up to date" shows when current.
 
 ### Fixed
+- Plugins: installing a plugin now fetches every file it declares, not just its
+  entry points. `ensurePlugin` also pulls a `files` manifest array (helper QML and
+  assets), so a multi-file plugin (one whose view imports a sibling component, or
+  ships a sample image) installs complete instead of rendering nothing.
 - Plugins / Extras: a catalogue refresh now reflects a just-pushed change at
   once. `ryoku-hub extras` fetches bypass the GitHub raw CDN cache (a unique
   query param plus a `no-cache` header), which had served a stale `registry.json`

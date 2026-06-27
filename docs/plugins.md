@@ -192,6 +192,7 @@ it to your content as `pluginApi.mainInstance`. Persist user options with
     "content": "content/Widget.qml",
     "settings": "settings/Page.qml"
   },
+  "files": ["content/Helper.qml", "assets/example.jpg"],
   "capabilities": { "densities": ["compact", "full"] },
   "hosts": ["framePopout", "desktopWidget"],
   "defaults": {
@@ -213,6 +214,10 @@ it to your content as `pluginApi.mainInstance`. Persist user options with
   `framePopout`, prefer `align: "start"` or `"end"` (never `"center"` - that's
   reserved).
 - `official` - leave `false`. Only first-party Ryoku plugins set `true`.
+- `files` - any extra files the plugin ships beyond its entry points and
+  `commands` (helper QML a view imports, images, data). Install fetches the entry
+  points, `commands`, `README.md`, and everything listed here; a file you forget
+  to list is simply missing on install, so the plugin can fail to render.
 
 ---
 

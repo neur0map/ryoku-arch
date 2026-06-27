@@ -302,80 +302,73 @@ Item {
             // Install / installed action.
             Item { width: 1; height: 22 }
             Row {
-                spacing: 10
-                // Primary action in the dossier idiom (mirrors HubButton): a
-                // small-radius carbon chip with a mono uppercase label - ember
-                // gradient while actionable, a hairline ghost once installed -
-                // never a generic full-pill.
+                spacing: 14
+                // Dossier-stamp actions, matching the update consent prompt: a flat
+                // ember stamp for the live action, hairline ghost stamps for the
+                // rest. Mono, uppercase, letterspaced; no icons.
                 Rectangle {
                     id: actionBtn
                     readonly property bool isInstalled: detail.installed
                     readonly property bool actionable: !actionBtn.isInstalled && !detail.busy
-                    implicitWidth: actRow.implicitWidth + 44
-                    width: Math.max(150, actionBtn.implicitWidth)
-                    height: 40
-                    radius: 10
-                    color: actionBtn.isInstalled ? (actHover.hovered ? Theme.keyTop : "transparent") : "transparent"
+                    height: 32
+                    width: actLabel.implicitWidth + 30
+                    radius: 3
+                    color: actionBtn.isInstalled
+                        ? (actMa.containsMouse ? Theme.keyTop : "transparent")
+                        : (actMa.containsMouse ? Qt.lighter(Theme.ember, 1.08) : Theme.ember)
                     border.width: actionBtn.isInstalled ? 1 : 0
-                    border.color: Theme.line
+                    border.color: actMa.containsMouse ? Theme.ember : Theme.line
                     opacity: detail.busy ? 0.7 : 1
-                    scale: actTap.pressed && actionBtn.actionable ? 0.97 : 1
-                    Behavior on scale { NumberAnimation { duration: Theme.quick; easing.type: Theme.ease } }
-                    Behavior on color { ColorAnimation { duration: Theme.quick } }
-                    // Ember fill while not installed (a conditional gradient
-                    // property is not valid QML, so it is a separate layer).
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: parent.radius
-                        visible: !actionBtn.isInstalled
-                        gradient: Gradient {
-                            GradientStop { position: 0.0; color: actHover.hovered ? Qt.lighter(Theme.ember, 1.08) : Theme.ember }
-                            GradientStop { position: 1.0; color: Theme.emberDeep }
-                        }
-                    }
-                    Row {
-                        id: actRow
-                        anchors.centerIn: parent
-                        spacing: 8
-                        Icon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            name: detail.busy ? "refresh" : (actionBtn.isInstalled ? "check" : "download")
-                            size: 14; weight: 1.8
-                            tint: actionBtn.isInstalled ? (actHover.hovered ? Theme.bright : Theme.subtle) : Theme.onAccent
-                            RotationAnimation on rotation { running: detail.busy; loops: Animation.Infinite; from: 0; to: 360; duration: 900 }
-                        }
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: detail.busy ? "WORKING" : (actionBtn.isInstalled ? "INSTALLED" : "INSTALL")
-                            color: actionBtn.isInstalled ? (actHover.hovered ? Theme.bright : Theme.subtle) : Theme.onAccent
-                            font.family: Theme.mono
-                            font.pixelSize: 12
-                            font.weight: Font.DemiBold
-                            font.letterSpacing: 1.5
-                            font.capitalization: Font.AllUppercase
-                            Behavior on color { ColorAnimation { duration: Theme.quick } }
-                        }
-                    }
-                    HoverHandler { id: actHover; cursorShape: Qt.PointingHandCursor; enabled: !detail.busy }
-                    TapHandler {
-                        id: actTap
-                        enabled: actionBtn.actionable
-                        onTapped: detail.install(detail.plugin.id)
-                    }
-                }
-                // Remove, only when installed: the same carbon chip, its hairline
-                // warming to the fault red on hover (danger accent, not a red disc).
-                Rectangle {
-                    visible: detail.installed && !detail.busy
-                    width: 40; height: 40; radius: 10
-                    color: rmHover.hovered ? Qt.rgba(Theme.bad.r, Theme.bad.g, Theme.bad.b, 0.12) : "transparent"
-                    border.width: 1
-                    border.color: rmHover.hovered ? Theme.bad : Theme.line
                     Behavior on color { ColorAnimation { duration: Theme.quick } }
                     Behavior on border.color { ColorAnimation { duration: Theme.quick } }
-                    Icon { anchors.centerIn: parent; name: "trash"; size: 15; weight: 1.8; tint: rmHover.hovered ? Theme.bad : Theme.dim }
-                    HoverHandler { id: rmHover; cursorShape: Qt.PointingHandCursor }
-                    TapHandler { onTapped: detail.remove(detail.plugin.id) }
+                    Text {
+                        id: actLabel
+                        anchors.centerIn: parent
+                        text: detail.busy ? "WORKING" : (actionBtn.isInstalled ? "INSTALLED" : "INSTALL")
+                        color: actionBtn.isInstalled ? Theme.dim : Theme.onAccent
+                        font.family: Theme.mono
+                        font.pixelSize: 12
+                        font.weight: actionBtn.isInstalled ? Font.DemiBold : Font.Bold
+                        font.letterSpacing: 2
+                    }
+                    MouseArea {
+                        id: actMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        enabled: actionBtn.actionable
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: detail.install(detail.plugin.id)
+                    }
+                }
+                // Remove, only when installed: a ghost stamp whose hairline warms to
+                // the fault red on hover.
+                Rectangle {
+                    visible: detail.installed && !detail.busy
+                    height: 32
+                    width: rmLabel.implicitWidth + 22
+                    radius: 3
+                    color: "transparent"
+                    border.width: 1
+                    border.color: rmMa.containsMouse ? Theme.bad : Theme.line
+                    Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+                    Text {
+                        id: rmLabel
+                        anchors.centerIn: parent
+                        text: "REMOVE"
+                        color: rmMa.containsMouse ? Theme.bad : Theme.dim
+                        font.family: Theme.mono
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 2
+                        Behavior on color { ColorAnimation { duration: Theme.quick } }
+                    }
+                    MouseArea {
+                        id: rmMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: detail.remove(detail.plugin.id)
+                    }
                 }
             }
 

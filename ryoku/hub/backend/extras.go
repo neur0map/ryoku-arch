@@ -431,6 +431,7 @@ func ensurePlugin(id string) (string, error) {
 	var man struct {
 		EntryPoints map[string]string `json:"entryPoints"`
 		Commands    []string          `json:"commands"`
+		Files       []string          `json:"files"`
 	}
 	if err := json.Unmarshal(manRaw, &man); err != nil {
 		return "", fmt.Errorf("plugin %q manifest: %w", id, err)
@@ -458,6 +459,7 @@ func ensurePlugin(id string) (string, error) {
 	for _, c := range man.Commands {
 		files = append(files, c)
 	}
+	files = append(files, man.Files...)
 	for _, f := range files {
 		b, err := fetch(extrasBase() + "/" + rel + "/" + f)
 		if err != nil {
