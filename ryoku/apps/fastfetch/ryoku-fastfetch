@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Ryoku branded fastfetch launcher.
-# Inside kitty the logo uses kitty's graphics protocol; elsewhere it falls back
-# to chafa, and to no logo when chafa is missing.
+# Ryoku-branded fastfetch wrapper.
+# kitty -> kitty graphics protocol logo. else chafa. no chafa = no logo.
 set -euo pipefail
 
 config="${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/config.jsonc"

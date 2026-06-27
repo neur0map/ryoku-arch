@@ -1,3 +1,3 @@
--- User overrides live here. Ryoku keeps this file intentionally empty so
--- future generated theme files can point at a stable customization hook.
+-- user overrides go here. kept intentionally empty so future generated theme
+-- files have a stable hook to point at.
 return {}

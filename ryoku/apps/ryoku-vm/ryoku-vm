@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Launch the configured Ryoku VM from the app launcher. ryoku-hub does the work
-# (hand the dGPU to the VM, start it, open Looking Glass); we run it detached, so we
-# surface any blocker -- a needed relogin, reboot, or one-time setup -- as a desktop
-# notification instead of failing silently.
+# launch the configured Ryoku VM from the app launcher. ryoku-hub does the
+# real work (pass the dGPU to the VM, start it, open Looking Glass). run it
+# detached so any blocker (relogin, reboot, one-time setup) surfaces as a
+# desktop notification instead of failing silently.
 set -u
 
 if ! out="$(ryoku-hub vm launch 2>&1)"; then

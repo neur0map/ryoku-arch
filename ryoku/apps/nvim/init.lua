@@ -1,4 +1,4 @@
--- Ryoku LazyVim starter.
+-- ryoku lazyvim starter.
 vim.g.mapleader = " "
 vim.g.maplocalleader = "\\"
 

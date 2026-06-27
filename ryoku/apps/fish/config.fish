@@ -1,26 +1,26 @@
-# Put user-installed binaries on PATH for every shell (not just interactive),
-# so tools dropped in ~/.local/bin (e.g. claude, oh-my-posh) are runnable and
-# the ryoku-fastfetch wrapper below is found. fish_add_path is idempotent.
+# ~/.local/bin on PATH for every shell, not only interactive: tools dropped in
+# there (claude, oh-my-posh) work, and the ryoku-fastfetch wrapper below
+# resolves. fish_add_path is idempotent.
 if test -d $HOME/.local/bin
   fish_add_path $HOME/.local/bin
 end
 
-# Send `go install` and `cargo install` binaries to ~/.local/bin (already on
-# PATH), so user-installed CLI tools work without extra PATH setup.
+# point `go install` and `cargo install` at ~/.local/bin (already on PATH) so
+# they show up without extra setup.
 set -gx GOBIN $HOME/.local/bin
 set -gx CARGO_INSTALL_ROOT $HOME/.local
 
 if status is-interactive
-  # No greeting: keep the login terminal clean.
+  # no greeting, keeps the login terminal clean.
   set -g fish_greeting
 
   set -gx EDITOR nvim
   set -gx VISUAL nvim
 
-  # Readable fish syntax colors. fish applies a palette-tied default theme before
-  # config.fish (here with a malformed flag that left typed input the same color
-  # as the background). Pin a fixed, legible scheme unconditionally so it always
-  # wins and stays readable under any wallust palette.
+  # legible fish syntax colours. fish applies a palette-tied default before
+  # config.fish runs (in our case with a malformed flag that made typed input
+  # the same colour as the background). pin a fixed scheme unconditionally so
+  # it always wins, regardless of the wallust palette.
   set -g fish_color_normal         F1F3E4
   set -g fish_color_command        F25623
   set -g fish_color_keyword        F56E0F
@@ -35,35 +35,35 @@ if status is-interactive
   set -g fish_color_escape         93D4E0
   set -g fish_color_autosuggestion 949699
 
-  # Branded system readout when a terminal opens.
+  # branded system readout on terminal open.
   if command -v ryoku-fastfetch >/dev/null 2>&1
     ryoku-fastfetch
   end
 
-  # Prompt.
+  # prompt.
   if command -v starship >/dev/null 2>&1
     starship init fish | source
   end
 
-  # Directory jumper: hook cd into zoxide so plain `cd` learns and jumps to
-  # frecent directories (use `cdi` for an interactive pick).
+  # directory jumper: hook `cd` into zoxide so plain `cd` learns and jumps to
+  # frecent dirs (`cdi` for an interactive pick).
   if command -v zoxide >/dev/null 2>&1
     zoxide init fish --cmd cd | source
   end
 
-  # Polyglot runtime version manager (shims + per-project tool versions).
+  # runtime version manager: shims + per-project tool versions.
   if command -v mise >/dev/null 2>&1
     mise activate fish | source
   end
 
-  # Let fzf walk the tree with fd when present.
+  # fzf walks the tree via fd when present.
   if command -v fd >/dev/null 2>&1
     set -gx FZF_DEFAULT_COMMAND 'fd --hidden --follow --exclude .git'
     set -gx FZF_CTRL_T_COMMAND $FZF_DEFAULT_COMMAND
     set -gx FZF_ALT_C_COMMAND 'fd --type d --hidden --follow --exclude .git'
   end
 
-  # fzf key bindings (Ctrl-R history, Ctrl-T files, Alt-C cd).
+  # fzf keys: Ctrl-R history, Ctrl-T files, Alt-C cd.
   if command -v fzf >/dev/null 2>&1
     fzf --fish | source
   end
@@ -77,6 +77,6 @@ if status is-interactive
   end
 end
 
-# User overrides: ~/.config/fish/user.fish is never shipped or touched by updates
-# and loads last, so your settings win.
+# user overrides: ~/.config/fish/user.fish is never shipped, never touched on
+# update, and loads last so your stuff wins.
 test -f $__fish_config_dir/user.fish && source $__fish_config_dir/user.fish

@@ -1,12 +1,11 @@
-# Yazi file manager.
+# yazi.
 #
-# Editor opener: upstream Ryoku routes text/code files through
-# `ryoku-launch-editor`, which is not present on a slim Arch + Ryoku box.
-# Here `edit` runs Neovim directly with `block = true`, so nvim takes over
-# yazi's terminal until you quit it.
+# editor opener: upstream Ryoku punts text/code through `ryoku-launch-editor`,
+# which isn't present on a slim Arch+Ryoku box. so `edit` runs nvim directly
+# with block=true (nvim owns yazi's terminal until you quit it).
 
 [mgr]
-# Show dotfiles (e.g. ~/.config) in listings.
+# show dotfiles in listings.
 show_hidden = true
 
 [opener]
