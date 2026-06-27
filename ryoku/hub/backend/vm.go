@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // VM = the user-facing virtual-machine configuration, persisted at
@@ -115,6 +116,14 @@ func runVM(args []string) error {
 		return saveVM(v)
 	case "xml":
 		v := loadVM()
+		if !vmWantsPassthrough(v) {
+			args, err := qemuArgs(v)
+			if err != nil {
+				return err
+			}
+			fmt.Println("qemu-system-x86_64 " + strings.Join(args, " "))
+			return nil
+		}
 		report, err := detectCapability()
 		if err != nil {
 			return err
@@ -140,3 +149,9 @@ func runVM(args []string) error {
 		return fmt.Errorf("unknown vm subcommand: %s", args[0])
 	}
 }
+
+// vmWantsPassthrough reports whether a VM should be handed the discrete GPU and
+// Looking Glass over libvirt. Only the Windows 11 guest is; Linux and other
+// guests run directly in QEMU (qemu.go) -- a native window, no GPU, no Looking
+// Glass, no libvirt, no MUX flip.
+func vmWantsPassthrough(v VM) bool { return v.Guest == "windows11" }

@@ -398,7 +398,10 @@ Item {
                 anchors.fill: parent
                 visible: page.seg === "vm"
 
-                readonly property bool usable: page.caps.enabled === true && page.caps.verdict !== "incapable"
+                readonly property bool vmPassthrough: page.draft.guest === "windows11"
+                readonly property bool usable: vmv.vmPassthrough
+                    ? (page.caps.enabled === true && page.caps.verdict !== "incapable")
+                    : (page.caps.vmReady === true)
 
                 Flickable {
                     anchors.fill: parent
@@ -514,7 +517,7 @@ Item {
                                 label: "Launch VM"
                                 icon: "rocket"
                                 primary: true
-                                enabled: page.caps.verdict === "ready"
+                                enabled: vmv.vmPassthrough ? (page.caps.verdict === "ready") : (page.caps.vmReady === true)
                                 onClicked: page.act(["ryoku-hub", "vm", "launch"])
                             }
                             HubButton {
@@ -526,9 +529,13 @@ Item {
                         }
                         Text {
                             width: parent.width
-                            visible: page.caps.verdict !== undefined && page.caps.verdict !== "ready"
+                            visible: vmv.vmPassthrough
+                                ? (page.caps.verdict !== undefined && page.caps.verdict !== "ready")
+                                : (page.caps.vmReady !== true)
                             wrapMode: Text.WordWrap
-                            text: page.blockerText[page.caps.verdict] || ""
+                            text: vmv.vmPassthrough
+                                ? (page.blockerText[page.caps.verdict] || "")
+                                : "Install QEMU to run a VM: pacman -S qemu-desktop. No Looking Glass needed."
                             color: Theme.ember
                             font.family: Theme.font
                             font.pixelSize: 12
@@ -543,9 +550,11 @@ Item {
                     width: parent.width * 0.7
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
-                    text: page.caps.verdict === "incapable"
-                        ? "This machine cannot pass a GPU to a VM. See the Graphics tab for why."
-                        : "Enable passthrough in the Graphics tab first."
+                    text: vmv.vmPassthrough
+                        ? (page.caps.verdict === "incapable"
+                            ? "This machine cannot pass a GPU to a VM. See the Graphics tab for why."
+                            : "Enable passthrough in the Graphics tab first.")
+                        : "Install QEMU to run a VM. No Looking Glass or GPU passthrough needed."
                     color: Theme.subtle
                     font.family: Theme.font
                     font.pixelSize: 14

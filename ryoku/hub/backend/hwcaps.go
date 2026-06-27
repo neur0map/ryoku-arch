@@ -56,6 +56,7 @@ type Capability struct {
 	Checks      []Check `json:"checks"`
 	RamTotalMB  int     `json:"ramTotalMb"`
 	RamFreeMB   int     `json:"ramFreeMb"`
+	VmReady     bool    `json:"vmReady"` // qemu + kvm present: a plain (non-passthrough) VM can run
 }
 
 // gpuRecord = one entry from `ryoku-gpu detect --json`.
@@ -134,6 +135,7 @@ func buildCapability(in capInputs) Capability {
 	checks, hardFail := buildChecks(in, c.Host, c.Passthrough)
 	c.Checks = checks
 	c.Enabled = len(toolingMissing(in.tooling)) == 0 && in.iommuOn
+	c.VmReady = in.tooling.qemu && in.kvm
 	c.Strategy, c.Verdict = decide(in, c.Host, c.Passthrough, hardFail)
 	return c
 }

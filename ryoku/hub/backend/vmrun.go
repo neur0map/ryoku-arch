@@ -1,9 +1,10 @@
 package main
 
-// vmrun.go: VM lifecycle over libvirt (qemu:///system). define = create the
-// disk + register the domain. launch refuses unless capability verdict is
-// "ready" (the zero-reboot path the user opted into), starts the domain so the
-// libvirt hook binds the dGPU to vfio-pci, then opens Looking Glass.
+// vmrun.go: VM lifecycle. A plain (non-passthrough) VM runs directly in QEMU
+// with a native GTK window (see qemu.go) -- no libvirt, no Looking Glass. A
+// passthrough VM goes over libvirt (qemu:///system): define registers the
+// domain, launch refuses unless the capability verdict is "ready", starts it so
+// the libvirt hook binds the dGPU to vfio-pci, then opens Looking Glass.
 
 import (
 	"fmt"
@@ -28,6 +29,13 @@ func vmDefine(v VM) error {
 	xml, err := RenderDomain(v, report.Passthrough.Functions, kvmfrStaticMB)
 	if err != nil {
 		return err
+	}
+	// preserve identity across redefines: libvirt rejects a fresh UUID for an
+	// existing name. reuse the current UUID so a relaunch updates in place.
+	if uuid := domainUUID(v.Name); uuid != "" {
+		xml = strings.Replace(xml,
+			"<name>"+v.Name+"</name>",
+			"<name>"+v.Name+"</name>\n  <uuid>"+uuid+"</uuid>", 1)
 	}
 	tmp, err := os.CreateTemp("", "ryoku-domain-*.xml")
 	if err != nil {
@@ -55,6 +63,11 @@ func ensureDisk(v VM) error {
 }
 
 func vmLaunch() error {
+	v := loadVM()
+	if !vmWantsPassthrough(v) {
+		// plain VM: a native QEMU window, no libvirt and no Looking Glass.
+		return qemuLaunch(v)
+	}
 	report, err := detectCapability()
 	if err != nil {
 		return err
@@ -62,7 +75,6 @@ func vmLaunch() error {
 	if msg, blocked := launchBlocker(report); blocked {
 		return fmt.Errorf("%s", msg)
 	}
-	v := loadVM()
 	if err := vmDefine(v); err != nil {
 		return err
 	}
@@ -98,16 +110,25 @@ func launchBlocker(report Capability) (string, bool) {
 }
 
 func vmStop(v VM) error {
+	if !vmWantsPassthrough(v) {
+		return qemuStop(v)
+	}
 	return virsh("shutdown", v.Name)
 }
 
 func vmStatus() error {
 	v := loadVM()
 	report, _ := detectCapability()
-	defined := virshQuiet("dominfo", v.Name) == nil
-	running := false
-	if out, err := exec.Command("virsh", "-c", "qemu:///system", "domstate", v.Name).Output(); err == nil {
-		running = strings.TrimSpace(string(out)) == "running"
+	var defined, running bool
+	if vmWantsPassthrough(v) {
+		defined = virshQuiet("dominfo", v.Name) == nil
+		if out, err := exec.Command("virsh", "-c", "qemu:///system", "domstate", v.Name).Output(); err == nil {
+			running = strings.TrimSpace(string(out)) == "running"
+		}
+	} else {
+		// a plain VM has no persistent libvirt definition; the disk is its state.
+		running = qemuRunning(v)
+		defined = fileExists(v.DiskPath)
 	}
 	return printJSON(map[string]any{
 		"name":     v.Name,
@@ -126,4 +147,13 @@ func virsh(args ...string) error {
 
 func virshQuiet(args ...string) error {
 	return exec.Command("virsh", append([]string{"-c", "qemu:///system"}, args...)...).Run()
+}
+
+// domainUUID returns the UUID of a defined domain, or "" if it does not exist.
+func domainUUID(name string) string {
+	out, err := exec.Command("virsh", "-c", "qemu:///system", "domuuid", name).Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
