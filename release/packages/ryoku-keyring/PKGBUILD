@@ -1,9 +1,9 @@
 # Maintainer: Ryoku <releases@ryoku.dev>
 #
-# Ships the Ryoku release signing key so pacman trusts the [ryoku] repository.
-# The key material lives beside this PKGBUILD (ryoku.gpg + ryoku-trusted), built
-# from keys/ryoku-release-key.pub.asc. To rotate the key, regenerate those two
-# files and bump pkgver.
+# ships the Ryoku release signing key so pacman trusts the [ryoku] repo.
+# key material lives beside this PKGBUILD (ryoku.gpg + ryoku-trusted), built
+# from keys/ryoku-release-key.pub.asc. to rotate: regenerate those two files
+# and bump pkgver.
 pkgname=ryoku-keyring
 pkgver=20260620
 pkgrel=1

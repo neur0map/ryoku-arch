@@ -1,11 +1,11 @@
 # Maintainer: Ryoku <releases@ryoku.dev>
 #
-# Ryoku control CLI (Go). The single front door to updates, rollback, snapshots,
-# and the config materialize step. It orchestrates pacman, yay, and snapper; it
-# does not reimplement them.
+# Ryoku control CLI (Go). single front door to update, rollback, snapshot, and
+# the config materialize step. orchestrates pacman, yay, snapper -- never
+# reimplements them.
 #
-# Built from the in-repo source at ryoku/cli; no tarball is fetched and there are
-# no external Go modules.
+# built from in-repo source at ryoku/cli; no tarball fetch, no external Go
+# modules.
 pkgname=ryoku
 pkgver=${RYOKU_PKGVER:-0.1.0}
 pkgrel=1

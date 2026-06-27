@@ -1,12 +1,12 @@
 # Maintainer: Ryoku <releases@ryoku.dev>
 #
-# GlazePKG (gpk): the official RyokuArch package manager, a terminal dashboard
-# that unifies every package manager on the system into one searchable view.
-# Shipped in the [ryoku] repo and depended on by ryoku-desktop so a fresh install
-# always has it, instead of relying on the best-effort post-install AUR build.
+# GlazePKG (gpk) = the official RyokuArch package manager. terminal dashboard
+# that unifies every pkg manager on the system in one searchable view. ships in
+# the [ryoku] repo and is a ryoku-desktop dep so a fresh install has it, vs
+# leaning on the best-effort post-install AUR build.
 #
-# Built upstream (github.com/neur0map/glazepkg, Go) and repackaged here from the
-# pinned release binary, which the [ryoku] repo then signs with the release key.
+# upstream is Go (github.com/neur0map/glazepkg); repackaged here from the
+# pinned release binary, signed by the release key in the [ryoku] repo.
 # `gpk update` self-updates from upstream after install.
 pkgname=gpk
 pkgver=0.5.8

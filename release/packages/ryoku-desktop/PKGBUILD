@@ -1,13 +1,12 @@
 # Maintainer: Ryoku <releases@ryoku.dev>
 #
-# The Ryoku desktop umbrella. Pulls the Ryoku components and the user-facing
-# runtime, lays the base configuration under /usr/share/ryoku/config (mirroring
-# the ~/.config layout that `ryoku materialize` copies into a user's home), and
-# installs the helper scripts and the GPU udev rule.
+# Ryoku desktop umbrella. pulls the Ryoku components + the user-facing runtime,
+# lays the base config under /usr/share/ryoku/config (mirrors the ~/.config tree
+# that `ryoku materialize` copies into a user's home), and drops the helper
+# scripts + the GPU udev rule.
 #
-# Built from the in-repo sources; no tarball is fetched. The publish CI runs
-# makepkg inside this directory in a full checkout, so the repo root is three
-# levels up.
+# built from in-repo sources, no tarball fetch. publish CI runs makepkg inside
+# this dir from a full checkout, so the repo root is three levels up.
 pkgname=ryoku-desktop
 pkgver=${RYOKU_PKGVER:-0.1.0}
 pkgrel=1
@@ -16,15 +15,15 @@ arch=('any')
 url="https://ryoku.dev"
 license=('GPL-3.0-or-later')
 depends=(
-  # Ryoku components
+  # Ryoku
   'ryoku-shell'
   'ryoku-hub'
   'ryoku-blobs'
   'ryoku'
   'ryoku-keyring'
-  # The RyokuArch package manager (GlazePKG)
+  # the RyokuArch package manager (GlazePKG)
   'gpk'
-  # Compositor + Wayland session
+  # compositor + Wayland session
   'hyprland'
   'xorg-xwayland'
   'qt6-wayland'
@@ -33,7 +32,7 @@ depends=(
   'hyprpolkitagent'
   'xdg-desktop-portal-hyprland'
   'xdg-desktop-portal-gtk'
-  # The shell and the apps configured here
+  # shell + apps configured here
   'quickshell'
   'kitty'
   'fish'
@@ -41,7 +40,7 @@ depends=(
   'fastfetch'
   'yazi'
   'neovim'
-  # Tools the shipped autostart, pill, ryoshot, and helper scripts call by name
+  # tools the shipped autostart, pill, ryoshot, and helper scripts call by name
   'hypridle'
   'brightnessctl'
   'playerctl'
@@ -53,11 +52,11 @@ depends=(
   'cava'
   'jq'
   'imagemagick'
-  # Ryoku Hub's ISO picker (GPU passthrough VM) shells out to a file chooser
+  # Hub's ISO picker (GPU passthrough VM) shells out to a file chooser
   'zenity'
-  # Game Mode WiFi power-save toggle (ryoku-wifi-powersave runs iw)
+  # Game Mode wifi power-save toggle (ryoku-wifi-powersave runs iw)
   'iw'
-  # Fonts the shell UI hardcodes (Inter, JetBrainsMono Nerd, Noto Sans CJK)
+  # fonts the shell UI hardcodes (Inter, JetBrainsMono Nerd, Noto Sans CJK)
   'ttf-jetbrains-mono-nerd'
   'inter-font'
   'noto-fonts'
@@ -92,34 +91,34 @@ _repo="$startdir/../../.."
 package() {
   local cfg="$pkgdir/usr/share/ryoku/config"
 
-  # --- Base configs under /usr/share/ryoku/config, mirroring ~/.config. -------
+  # --- base configs under /usr/share/ryoku/config, mirroring ~/.config -------
   # `ryoku materialize` copies this tree verbatim into the user's ~/.config.
 
-  # Hyprland: the whole tree, including scripts/ (the shell calls
+  # Hyprland: whole tree. includes scripts/ (shell calls
   # ~/.config/hypr/scripts/* by absolute path) and the hardware-managed
   # gpu/keyboard/monitors drop-ins.
   install -d "$cfg/hypr"
   cp -a "$_repo/ryoku/hyprland/." "$cfg/hypr/"
 
-  # Quickshell desktop components, with the Hub's config nested under hub/.
+  # Quickshell desktop components, Hub's config nested under hub/.
   install -d "$cfg/quickshell"
   cp -a "$_repo/ryoku/shell/quickshell/." "$cfg/quickshell/"
   install -d "$cfg/quickshell/hub"
   cp -a "$_repo/ryoku/hub/quickshell/." "$cfg/quickshell/hub/"
 
   # Ryoku.PluginKit: the signature QML kit a shell plugin imports for its
-  # content. Pure QML, installed onto the system import path next to Ryoku.Blobs
-  # so plugins (loaded from outside the shell tree) can import it.
+  # content. pure QML, lives on the system import path next to Ryoku.Blobs so
+  # plugins (loaded from outside the shell tree) can import it.
   install -d "$pkgdir/usr/lib/qt6/qml/Ryoku/PluginKit"
   cp -a "$_repo/ryoku/shell/quickshell/plugins/kit/." "$pkgdir/usr/lib/qt6/qml/Ryoku/PluginKit/"
   rm -f "$pkgdir/usr/lib/qt6/qml/Ryoku/PluginKit/install.sh"
   chmod -R u=rwX,go=rX "$pkgdir/usr/lib/qt6/qml/Ryoku/PluginKit"
 
-  # Wallust palette generation (templates feed the kitty, Hyprland, and shell colors).
+  # wallust palette gen (templates feed kitty, Hyprland, shell colors).
   install -d "$cfg/wallust"
   cp -a "$_repo/ryoku/shell/wallust/." "$cfg/wallust/"
 
-  # Per-app configs.
+  # per-app configs
   install -Dm644 "$_repo/ryoku/apps/fish/config.fish"       "$cfg/fish/config.fish"
   install -Dm644 "$_repo/ryoku/shell/kde/kdeglobals"        "$cfg/kdeglobals"
   install -Dm644 "$_repo/ryoku/apps/starship/starship.toml" "$cfg/starship.toml"
@@ -128,23 +127,23 @@ package() {
   install -d "$cfg/kitty"
   cp -a "$_repo/ryoku/apps/kitty/." "$cfg/kitty/"
 
-  # Neovim (LazyVim seed): the config only, not the repo docs or .desktop handler.
+  # neovim (LazyVim seed): the config only, not repo docs / .desktop handler.
   install -Dm644 "$_repo/ryoku/apps/nvim/init.lua"       "$cfg/nvim/init.lua"
   install -Dm644 "$_repo/ryoku/apps/nvim/.ryoku-lazyvim" "$cfg/nvim/.ryoku-lazyvim"
   cp -a "$_repo/ryoku/apps/nvim/lua" "$cfg/nvim/"
 
-  # User session target.
+  # user session target
   install -Dm644 "$_repo/ryoku/shell/systemd/user/hyprland-session.target" \
     "$cfg/systemd/user/hyprland-session.target"
 
-  # cp -a preserves source mode bits; normalize so scripts under hypr/scripts
-  # stay executable and the rest is world-readable data.
+  # cp -a kept source mode bits; normalize so hypr/scripts stays executable
+  # and the rest is world-readable data.
   chmod -R u=rwX,go=rX "$pkgdir/usr/share/ryoku"
 
-  # --- Helper scripts on PATH (/usr/bin). ------------------------------------
-  # The pill, Hub, and shell also call the hypr/scripts copies above by absolute
-  # path; these PATH copies serve CLI use and the hardware helpers that Hyprland
-  # autostart invokes by bare name.
+  # --- helper scripts on PATH (/usr/bin) ------------------------------------
+  # the pill, Hub, and shell also call the hypr/scripts copies above by absolute
+  # path; these are for CLI use + the hardware helpers Hyprland autostart calls
+  # by bare name.
   local s
   for s in "$_repo"/ryoku/hyprland/scripts/ryoku-cmd-*; do
     install -Dm755 "$s" "$pkgdir/usr/bin/${s##*/}"
@@ -158,33 +157,33 @@ package() {
   install -Dm755 "$_repo/ryoku/apps/fastfetch/ryoku-fastfetch" \
     "$pkgdir/usr/bin/ryoku-fastfetch"
 
-  # Plugin placement helper: the desktop drag and Ryoku Settings call it to
-  # persist a plugin's host/position into ~/.config/ryoku/plugins.json.
+  # plugin placement helper: desktop drag + Ryoku Settings call it to persist
+  # a plugin's host/position into ~/.config/ryoku/plugins.json.
   install -Dm755 "$_repo/ryoku/shell/quickshell/plugins/ryoku-plugins-place" \
     "$pkgdir/usr/bin/ryoku-plugins-place"
 
-  # Ryoku VM: the launcher wrapper on PATH plus its app-launcher entry. The VM
-  # stack (qemu, libvirt, looking-glass) is in optdepends; Ryoku Settings > GPU
+  # Ryoku VM: launcher wrapper on PATH + its app-launcher entry. VM stack
+  # (qemu, libvirt, looking-glass) lives in optdepends; Ryoku Settings > GPU
   # installs it on the first "Enable passthrough".
   install -Dm755 "$_repo/ryoku/apps/ryoku-vm/ryoku-vm" "$pkgdir/usr/bin/ryoku-vm"
   install -Dm644 "$_repo/ryoku/apps/ryoku-vm/ryoku-vm.desktop" \
     "$pkgdir/usr/share/applications/ryoku-vm.desktop"
 
   # GPU primary-renderer udev rule: boot-stable /dev/dri/ryoku-gpu-* symlinks
-  # that ryoku-gpu pins via AQ_DRM_DEVICES. Vendor location -> active on boot,
+  # that ryoku-gpu pins via AQ_DRM_DEVICES. vendor location = active on boot,
   # so `ryoku-gpu install-udev` is never needed on an installed system.
   install -Dm644 "$_repo/system/hardware/gpu/90-ryoku-gpu.rules" \
     "$pkgdir/usr/lib/udev/rules.d/90-ryoku-gpu.rules"
 
-  # Game Mode WiFi power-save: a polkit rule authorizes the privileged helper
+  # Game Mode wifi power-save: a polkit rule authorizes the privileged helper
   # (ryoku-wifi-powersave, installed to /usr/bin by the hardware glob above)
   # without a password, so the deck toggle stays one click.
   install -Dm644 "$_repo/system/hardware/network/49-ryoku-wifi-powersave.rules" \
     "$pkgdir/usr/share/polkit-1/rules.d/49-ryoku-wifi-powersave.rules"
 
-  # Windows dual-boot: the cross-drive detector and a limine-entry-tool post.d
-  # hook that re-asserts the uuid()-addressed chainload entry whenever the boot
-  # menu is regenerated, so a separate-drive Windows survives kernel updates.
+  # Windows dual-boot: cross-drive detector + a limine-entry-tool post.d hook
+  # that re-asserts the uuid()-addressed chainload entry whenever the boot menu
+  # is regenerated -- separate-drive Windows survives kernel updates.
   install -Dm755 "$_repo/system/boot/limine/ryoku-windows-entry" \
     "$pkgdir/usr/bin/ryoku-windows-entry"
   install -Dm755 "$_repo/system/boot/limine/45-ryoku-windows" \

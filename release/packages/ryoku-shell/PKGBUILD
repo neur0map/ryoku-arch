@@ -1,12 +1,11 @@
 # Maintainer: Ryoku <releases@ryoku.dev>
 #
-# Ryoku shell IPC daemon (Go). Supervises the Quickshell desktop components,
-# drives wallpaper + palette, and serves the ryoku-shell control socket.
+# Ryoku shell IPC daemon (Go). supervises the Quickshell desktop components,
+# drives wallpaper + palette, serves the ryoku-shell control socket.
 #
-# Built from the in-repo source at ryoku/shell/ipc; no tarball is fetched. The
-# publish CI runs makepkg inside this directory in a full checkout, so the repo
-# root is three levels up. The binary is written to $srcdir, leaving the source
-# tree untouched.
+# built from the in-repo source at ryoku/shell/ipc, no tarball fetched. publish
+# CI runs makepkg inside this dir against a full checkout, so the repo root is
+# three levels up. binary lands in $srcdir = source tree stays untouched.
 pkgname=ryoku-shell
 pkgver=${RYOKU_PKGVER:-0.1.0}
 pkgrel=1
@@ -22,8 +21,8 @@ _repo="$startdir/../../.."
 
 build() {
   cd "$_repo/ryoku/shell/ipc"
-  # -mod=vendor keeps the build hermetic: the godbus dependency is vendored, so
-  # the signed-repo CI builds with no network regardless of makepkg's GOFLAGS.
+  # -mod=vendor keeps the build hermetic. godbus is vendored, so the signed-repo
+  # CI builds offline regardless of whatever GOFLAGS makepkg picked up.
   CGO_ENABLED=0 go build -trimpath -mod=vendor -o "$srcdir/ryoku-shell" .
 }
 

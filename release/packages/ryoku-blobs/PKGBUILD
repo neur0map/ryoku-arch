@@ -1,13 +1,13 @@
 # Maintainer: Ryoku <releases@ryoku.dev>
 #
-# Ryoku.Blobs: the SDF metaball QML plugin behind the screen frame (docs/frame.md).
-# A standard Qt6 QML module loaded by Quickshell from the QML import path.
+# Ryoku.Blobs = the SDF metaball QML plugin behind the screen frame
+# (docs/frame.md). a standard Qt6 QML module loaded by Quickshell from the
+# QML import path.
 #
-# Built from the in-repo source at ryoku/shell/plugin via its build.sh, which
-# configures + builds with CMake/Ninja and bakes the metaball shaders. The module
-# is self-contained (the plugin .so carries an $ORIGIN rpath to its backing
-# library), so the whole Ryoku/Blobs directory is relocatable onto any QML import
-# path. No tarball is fetched.
+# built in-repo from ryoku/shell/plugin via its build.sh (CMake/Ninja, bakes the
+# metaball shaders). self-contained: the plugin .so carries an $ORIGIN rpath to
+# its backing library, so the whole Ryoku/Blobs dir is relocatable onto any QML
+# import path. no tarball fetch.
 pkgname=ryoku-blobs
 pkgver=${RYOKU_PKGVER:-0.1.0}
 pkgrel=1
@@ -22,7 +22,7 @@ source=()
 _repo="$startdir/../../.."
 
 build() {
-  # Keep the CMake build tree in $srcdir so the source checkout stays clean.
+  # CMake tree under $srcdir keeps the source checkout clean.
   RYOKU_BLOBS_BUILD="$srcdir/build" \
     "$_repo/ryoku/shell/plugin/build.sh" "$srcdir/qml"
 }
@@ -30,7 +30,7 @@ build() {
 package() {
   install -dm755 "$pkgdir/usr/lib/qt6/qml/Ryoku/Blobs"
   cp -a "$srcdir/qml/Ryoku/Blobs/." "$pkgdir/usr/lib/qt6/qml/Ryoku/Blobs/"
-  # cp -a preserves the build tree's mode bits; normalize for packaging so the
-  # plugin .so stays executable and the qmldir/.qsb data stay world-readable.
+  # cp -a kept build-tree mode bits; normalize for packaging: plugin .so stays
+  # executable, qmldir/.qsb data world-readable.
   chmod -R u=rwX,go=rX "$pkgdir/usr/lib/qt6"
 }
