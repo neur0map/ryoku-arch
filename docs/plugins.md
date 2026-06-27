@@ -17,7 +17,7 @@ If you only read one thing, read **"Who does what"** below.
 | The **logic**: fetch data, hold state, run commands (`service/Main.qml`). | **Where the widget lives** (frame popout, desktop widget) and letting the user choose and move it. |
 | **One view** of your widget (`content/Widget.qml`) - the labels, buttons, grid, etc. | The **card / popout surface** behind your view: background, rounded corners, shadow, hairline. |
 | A small **manifest** describing your plugin and its defaults. | **Dragging, resizing, the right-click menu, hover-to-open** - all the interaction. |
-| Optionally, a **settings page** (`settings/Page.qml`). | **Sizing**: the popout grows to fit your content; the desktop tile scales as the user resizes it. |
+| A **settings schema** in your manifest (`metadata.settings`). | **Sizing**: the popout grows to fit your content; the desktop tile scales as the user resizes it. |
 | Optionally, **shipped scripts/binaries** (`bin/`). | **Theming, motion, the brand look** (the "deck dialect"), so you match the shell automatically. |
 
 **The golden rule:** never set your own position, never draw your own window
@@ -34,7 +34,6 @@ bolted-on instead of native.
   manifest.json        what your plugin is + its suggested defaults   (required)
   service/Main.qml     persistent logic and state, no UI               (required)
   content/Widget.qml   ONE view of your widget                          (required)
-  settings/Page.qml    an options page inside Ryoku Settings           (optional)
   bin/                 scripts or binaries your plugin runs            (optional)
   README.md            what it is + a preview.gif                      (recommended)
 ```
@@ -191,8 +190,7 @@ to `plugins.json`; read the live values from `pluginApi.pluginSettings`.
   "official": false,
   "entryPoints": {
     "main": "service/Main.qml",
-    "content": "content/Widget.qml",
-    "settings": "settings/Page.qml"
+    "content": "content/Widget.qml"
   },
   "files": ["content/Helper.qml", "assets/example.jpg"],
   "capabilities": { "densities": ["compact", "full"] },
