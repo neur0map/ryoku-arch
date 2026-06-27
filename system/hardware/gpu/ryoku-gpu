@@ -266,7 +266,7 @@ Usage: ryoku-gpu <command>
 Pin the strongest GPU as Hyprland's primary render device on multi-GPU machines.
 
 Commands:
-  detect          Show detected GPUs (strongest first) and the chosen primary.
+  detect [--json]  Show detected GPUs (strongest first) and the chosen primary.
   order           Print the recommended AQ_DRM_DEVICES value (exit 1 if none).
   persist [PATH]  Write the Hyprland pin (Lua) to PATH, to ~/.config/hypr/gpu.lua
                   by default, or to stdout when PATH is '-'.
@@ -280,7 +280,9 @@ USAGE
 }
 
 case "${1:-status}" in
-  detect) cmd_detect ;;
+  detect)
+    if [[ "${2:-}" == "--json" ]]; then gpu_records_json; else cmd_detect; fi
+    ;;
   order) cmd_order ;;
   persist) cmd_persist "${2:-}" ;;
   install-udev) cmd_install_udev ;;

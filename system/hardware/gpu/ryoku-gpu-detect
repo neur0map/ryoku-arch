@@ -155,6 +155,31 @@ gpu_records() {
   done | sort -t$'\t' -k1,1nr -k3,3
 }
 
+json_escape() {
+  # Escape a string for a JSON double-quoted value (backslash then quote).
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  printf '%s' "$s"
+}
+
+gpu_records_json() {
+  # gpu_records rendered as a JSON array, strongest first. Carries the same fields
+  # as the table; the Hub capability engine reads the rest of the virtualization
+  # picture (IOMMU groups, isolation) from sysfs itself, keyed by slot.
+  local class slot card driver vram connected model first=1
+  printf '['
+  while IFS=$'\t' read -r _ class slot card driver vram connected model; do
+    [[ -n $slot ]] || continue
+    (( first )) || printf ','
+    first=0
+    printf '{"slot":"%s","class":"%s","card":"%s","driver":"%s","vram":%s,"connected":%s,"model":"%s"}' \
+      "$(json_escape "$slot")" "$class" "$(json_escape "$card")" "$(json_escape "$driver")" \
+      "${vram:-0}" "${connected:-0}" "$(json_escape "$model")"
+  done < <(gpu_records)
+  printf ']\n'
+}
+
 analyze() {
   # Populate _slots / _classes (strongest first) and counts from gpu_records.
   local class slot
