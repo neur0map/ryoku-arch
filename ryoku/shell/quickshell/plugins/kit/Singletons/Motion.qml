@@ -12,15 +12,13 @@ Singleton {
     readonly property int easeStandard: Easing.OutCubic
     readonly property int easeMorph:    Easing.BezierSpline
 
-    /**
-     * Liquid morph curve, cubic-bezier(0.16, 1, 0.3, 1). Front-loaded like an
-     * exponential chase but with a long, visible settle tail. Use with
-     * easeMorph (BezierSpline).
-     */
+    // liquid morph curve = cubic-bezier(0.16, 1, 0.3, 1). front-loaded like an
+    // exponential chase but with a long, visible settle tail. pair with
+    // easeMorph (BezierSpline).
     readonly property var morphCurve: [0.16, 1, 0.3, 1, 1, 1]
     readonly property real rSmall: 7
     readonly property real rTile:  13
 
-    /** Looping scan/pairing breath pulse. */
+    // looping scan/pairing breath pulse.
     readonly property int pulse: 420
 }

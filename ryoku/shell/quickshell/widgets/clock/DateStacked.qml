@@ -3,11 +3,9 @@ import QtQuick
 import "../Singletons"
 import "lib/clock.js" as Clk
 
-/**
- * Stacked date: a large day number beside the weekday over the month and year, the
- * torn-calendar-page look. The most expressive date design; it stands on its own
- * under the analog or rings face.
- */
+// stacked date: big day number, weekday over month/year. the torn-calendar
+// look. most expressive of the date designs; stands on its own under analog
+// or rings.
 Item {
     id: date
 

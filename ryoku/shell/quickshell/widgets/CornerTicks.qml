@@ -1,9 +1,9 @@
 import QtQuick
 import "Singletons"
 
-// Faint L-bracket registration ticks at the four corners, framing a panel like an
-// editorial specimen sheet, the same motif the pill's dossier surfaces use.
-// Purely decorative.
+// faint L-bracket registration ticks at the 4 corners. frames a panel like
+// an editorial specimen sheet -- same motif the pill's dossier surfaces use.
+// purely decorative.
 Item {
     id: ticks
 

@@ -3,11 +3,9 @@ import QtQuick
 import "../Singletons"
 import "lib/clock.js" as Clk
 
-/**
- * Inline date: a single quiet caption, the weekday in accent, then the month and
- * day in soft ink, divided by a dot. The default companion to the time, it reads
- * as one line and never competes with the clock above it.
- */
+// inline date: one quiet caption. weekday in accent, then month + day in soft
+// ink, split by a dot. default companion to the time, reads as one line, never
+// competes with the clock above.
 Item {
     id: date
 

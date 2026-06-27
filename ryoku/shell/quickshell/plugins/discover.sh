@@ -1,31 +1,29 @@
 #!/usr/bin/env bash
-# Emit the enabled plugin set as one JSON array on stdout. Each element merges a
-# plugin's manifest.json with the user's placement from plugins.json:
-#
+# emit the enabled plugin set as one JSON array on stdout. each element merges
+# a manifest.json with the user's placement from plugins.json:
 #   { "id", "dir", "manifest": {...}, "placement": {...} }
-#
-# Plugin sources are discovered from (first wins on duplicate id):
+# sources, first wins on duplicate id:
 #   $RYOKU_PLUGINS_DIR (dev override, colon-separated)
 #   ~/.local/share/ryoku/plugins
-# User placement + per-plugin settings live in ~/.config/ryoku/plugins.json:
+# placement + per-plugin settings live in ~/.config/ryoku/plugins.json:
 #   { "<id>": { "enabled": bool, "host": "...", "<host>": {...}, "key": "...",
 #               "settings": {...} } }
-# A plugin with no entry, or enabled=false, is omitted (the shell only loads
-# what the user turned on).
+# no entry or enabled=false = skipped. the shell only loads what the user
+# actually turned on.
 set -euo pipefail
 
 cfg_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
 user_json="$cfg_home/ryoku/plugins.json"
 
-# --all lists every installed plugin (for Settings); default lists only enabled
-# ones (for the shell runtime).
+# --all = every installed plugin (Settings wants that). default = only enabled
+# (the runtime wants that).
 all=0
 [ "${1:-}" = "--all" ] && all=1
 
 user='{}'
-# Tolerate a missing, empty, or corrupt plugins.json: treat any of them as {} so
-# a single bad write never blanks the whole installed/enabled listing.
+# missing / empty / corrupt plugins.json = {}. one bad write must never blank
+# the whole installed listing.
 if [ -s "$user_json" ]; then
 	parsed="$(jq -c '.' "$user_json" 2>/dev/null || true)"
 	[ -n "$parsed" ] && [ "$parsed" != "null" ] && user="$parsed"
@@ -49,7 +47,7 @@ for d in "${dirs[@]}"; do
 		[ -n "$id" ] || continue
 		[ -n "${seen[$id]:-}" ] && continue
 		seen[$id]=1
-		# In runtime mode, skip plugins the user has not enabled; --all keeps all.
+		# runtime mode skips anything the user didn't enable. --all keeps everything.
 		enabled="$(jq -r --arg id "$id" '.[$id].enabled // false' <<<"$user")"
 		[ "$all" = "1" ] || [ "$enabled" = "true" ] || continue
 		entry="$(jq -n \

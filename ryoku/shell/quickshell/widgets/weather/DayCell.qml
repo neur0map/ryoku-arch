@@ -2,11 +2,9 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "../Singletons"
 
-/**
- * One day in a forecast row: the weekday, a small static sky icon for its
- * category, and the high over the low. Shared by every design that shows the week,
- * so the cell lives in one place. The current day is highlighted in accent.
- */
+// one day in a forecast row: weekday, a small static sky icon for the
+// category, hi over lo. shared by every weather design that shows the
+// week, so the cell lives in one place. current day = accent.
 Item {
     id: cell
 

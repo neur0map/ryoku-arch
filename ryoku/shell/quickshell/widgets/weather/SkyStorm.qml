@@ -2,11 +2,9 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
 
-/**
- * Storm: a dark cloud over fast rain, with a lightning bolt and a screen flash
- * fired on a fixed cadence while animation is on. The flash double-blinks like
- * real lightning, then fades.
- */
+// storm = dark cloud over fast rain, plus a lightning bolt + a screen flash
+// fired on a fixed cadence while animation is on. flash double-blinks like
+// real lightning, then fades.
 Item {
     id: sky
 
@@ -50,7 +48,7 @@ Item {
         }
     }
 
-    // Lightning bolt.
+    // bolt.
     Shape {
         id: bolt
         anchors.centerIn: parent
@@ -68,7 +66,7 @@ Item {
         }
     }
 
-    // Flash overlay.
+    // flash overlay.
     Rectangle {
         id: flash
         anchors.fill: parent

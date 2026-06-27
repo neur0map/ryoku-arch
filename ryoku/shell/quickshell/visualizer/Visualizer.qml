@@ -4,20 +4,17 @@ import QtQuick.Effects
 import QtQuick.Shapes
 import "Singletons"
 
-/**
- * The desktop spectrum. A full-width cava analyser drawn in the configured style,
- * bars, a filled wave, or floating dots, anchored to the bottom, top, or centre,
- * with optional mirroring. Every band is a vivified wallust colour (so the whole
- * sweep retunes per wallpaper), with a soft bloom behind it and, for bottom bars,
- * a fading reflection.
- *
- * Motion runs off a Timer capped to ~60fps while sound plays and ~30fps for the
- * idle wave (and stops entirely when silent), decoupled from the display refresh
- * so a 165Hz panel never re-renders every vsync: each band eases toward its target (fast attack,
- * slow decay) and an `activity` signal eases between the live spectrum and a calm
- * idle wave, so quiet gaps fade in and out smoothly instead of snapping off. The
- * look is read live from the visualiser Config; Ryoku Settings edits it.
- */
+// desktop spectrum. full-width cava analyser: bars | filled wave | floating
+// dots, anchored bottom/top/centre, optional mirror. each band = a wallust
+// colour so the whole sweep retunes with the wallpaper. soft bloom behind,
+// fading reflection under bottom bars.
+//
+// motion = a Timer. ~60fps sounding, ~30fps for the idle wave, OFF when
+// silent. decoupled from vsync so a 165Hz panel doesn't re-render every
+// frame for nothing. per-band ease (fast attack, slow decay) plus an
+// `activity` signal cross-fades live spectrum <-> calm idle wave, so quiet
+// gaps fade instead of snapping off. look is live from the visualiser
+// Config; Ryoku Settings edits it.
 Item {
     id: root
 
@@ -38,19 +35,18 @@ Item {
     readonly property real capR: Config.shape === "rounded" ? root.barW / 2 : Math.min(3 * root.ui, root.barW * 0.2)
 
     // --- motion engine ------------------------------------------------------
-    // Smoothed per-band heights (0..1) and a 0..1 "music is playing" signal,
-    // both eased every frame so nothing ever jumps.
+    // smoothed per-band heights (0..1) + a 0..1 "is music playing" signal.
+    // both eased per frame, nothing jumps.
     property var levels: []
     property real activity: 0
     property real idlePhase: 0
     property real maxLevel: 0
     property bool waveOn: false
     property string wavePath: ""
-    // Sound is playing, or just stopped and still easing down.
+    // sounding = playing now, or just stopped and still easing down.
     readonly property bool sounding: Spectrum.energy > 0.04 || root.activity > 0.02
-    // Anything to animate at all. When silent, settled, and the idle wave is off
-    // there is nothing to move, so the ticker stops entirely (0 CPU on a quiet
-    // desktop) until sound returns.
+    // anything to animate at all? silent + settled + idle wave off -> ticker
+    // stops cold (0 CPU on a quiet desktop) until sound returns.
     readonly property bool animating: root.sounding || Config.idleWave || root.maxLevel > 0.004
 
     function srcIndex(i) {
@@ -71,11 +67,10 @@ Item {
 
     Timer {
         id: ticker
-        // The display can run at 165Hz, but cava only feeds 60fps and a
-        // FrameAnimation drives a full scene-graph re-render every vsync even when
-        // nothing changed. A Timer decouples the update (and render) rate from the
-        // refresh: ~60fps while sounding, ~30fps for the slow idle wave, and it
-        // stops entirely when there is nothing to animate.
+        // panel can be 165Hz, cava only feeds 60. a FrameAnimation would still
+        // re-render the whole scene every vsync for nothing. Timer decouples
+        // update rate from refresh: ~60 sounding, ~30 idle wave, stops when
+        // there's nothing to animate.
         interval: root.sounding ? 16 : 33
         running: root.visible && Config.enabled && root.animating
         repeat: true
@@ -88,8 +83,8 @@ Item {
         }
     }
     function tick(dt) {
-        // Activity: rises fast when sound starts, releases slowly so short gaps
-        // do not flicker the spectrum off.
+        // activity: fast rise on sound start, slow release so short gaps
+        // don't flicker the spectrum off.
         var goal = Spectrum.energy > 0.04 ? 1 : 0;
         var aK = 1 - Math.exp(-dt / (goal > root.activity ? 0.05 : 1.1));
         root.activity += (goal - root.activity) * aK;
@@ -103,7 +98,7 @@ Item {
         for (var i = 0; i < n; i++) {
             var target = root.activity * root.rawLevel(i) + idleAmt * root.idleLevel(i);
             var cur = (prev && i < prev.length) ? prev[i] : 0;
-            // Fast attack, slower decay, frame-rate independent.
+            // fast attack, slow decay, frame-rate independent.
             var k = 1 - Math.exp(-dt / (target > cur ? 0.045 : 0.16));
             out[i] = cur + (target - cur) * k;
         }
@@ -128,7 +123,7 @@ Item {
     function lengthAt(i) {
         var dl = root.levels;
         var v = (dl && i < dl.length) ? dl[i] : 0;
-        // The minimum sliver fades with the spectrum when the idle wave is off, so a
+        // min sliver fades with the spectrum when idle wave is off, so a
         // silent desktop clears fully instead of leaving a thin line.
         var minH = 2 * root.ui * (Config.idleWave ? 1 : root.activity);
         return Math.max(minH, root.maxBarH * v);
@@ -148,7 +143,7 @@ Item {
         return root.baseBottom - len;
     }
 
-    // Ambient floor glow grounding bottom spectra; warms with overall energy.
+    // floor glow under bottom spectra. warms with overall energy.
     Rectangle {
         visible: root.position === "bottom"
         anchors.left: parent.left
@@ -162,13 +157,13 @@ Item {
         }
     }
 
-    // Soft bloom: a blurred copy of the crisp field sitting just behind it.
+    // bloom = blurred copy of the crisp field sitting just behind it.
     MultiEffect {
         source: field
         anchors.fill: field
         z: 0
-        // An effect runs its GPU pass every frame it is visible, even at low
-        // opacity, so skip it entirely when the field is flat (silent, idle off).
+        // MultiEffect runs its GPU pass every visible frame even at low
+        // opacity. skip it when the field is flat (silent, idle off).
         visible: root.maxLevel > 0.01
         blurEnabled: true
         blur: 1.0
@@ -177,7 +172,7 @@ Item {
         opacity: Config.bloom * (0.5 + 0.5 * root.activity)
     }
 
-    // Reflection: the bottom bars mirrored below the baseline, each fading down.
+    // reflection: bottom bars mirrored below the baseline, each fading down.
     Item {
         x: 0
         y: root.baseBottom
@@ -205,13 +200,13 @@ Item {
         }
     }
 
-    // The field: the active style, drawn crisp.
+    // the field = active style, drawn crisp.
     Item {
         id: field
         anchors.fill: parent
         z: 1
 
-        // Bars.
+        // bars.
         Repeater {
             model: root.style === "bars" ? root.bands : 0
             Rectangle {
@@ -232,7 +227,7 @@ Item {
             }
         }
 
-        // Dots: a disc riding the tip of each band.
+        // dots: a disc on the tip of each band.
         Repeater {
             model: root.style === "dots" ? root.bands : 0
             Rectangle {
@@ -250,8 +245,8 @@ Item {
             }
         }
 
-        // Wave: a filled, smoothed curve through the band tips, rendered as a GPU
-        // Shape (not a software Canvas) so the fill never touches the main thread.
+        // wave: filled smoothed curve through the band tips. GPU Shape (not
+        // a software Canvas), so the fill never touches the main thread.
         Shape {
             id: wave
             anchors.fill: parent
@@ -277,8 +272,8 @@ Item {
         }
     }
 
-    // Quadratic-smoothed SVG segments through (xs, ys), forward or reversed, the
-    // same curve the old Canvas drew, now emitted as a path string for the Shape.
+    // quadratic-smoothed SVG segments through (xs, ys), forward or reverse.
+    // same curve the old Canvas drew, now a path string for the Shape.
     function svgSmooth(xs, ys, reverse) {
         var n = xs.length;
         var s = "";
@@ -294,8 +289,8 @@ Item {
         return s;
     }
     function buildWavePath() {
-        // Nothing to draw once the spectrum settles flat: clear the path so the
-        // wave fully disappears instead of freezing on its last frame.
+        // once the spectrum settles flat there's nothing to draw. clear the
+        // path so the wave disappears instead of freezing on its last frame.
         if (root.bands < 2 || root.maxLevel < 0.003)
             return "";
         var w = root.width;

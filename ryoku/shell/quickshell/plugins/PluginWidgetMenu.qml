@@ -3,17 +3,13 @@ import QtQuick
 import QtQuick.Effects
 import "Singletons"
 
-/**
- * Right-click menu for a plugin desktop tile, in the same Ryoku carbon-dossier
- * idiom WidgetMenu uses for the shipped clock/weather (a 力 masthead, corner
- * registration ticks, hairline rules, mono uppercase spec rows with a vermilion
- * hover tick) so plugin tiles read as the same shell rather than a foreign
- * popup. Two actions for now: Lock/Unlock the tile (left-drag and resize freeze
- * when on) and Hide it (turns the plugin off in plugins.json). The host owns
- * persistence; the menu is a dumb dispatcher, so the same component fits any
- * plugin id without learning per-widget Config keys the way WidgetMenu does.
- * Fills the host window so its click-away catcher can dismiss the popup.
- */
+// right-click menu for a plugin desktop tile. same carbon-dossier idiom as
+// WidgetMenu (力 masthead, corner ticks, hairline rules, mono uppercase rows,
+// vermilion hover tick) so plugin tiles read as the same shell, not a foreign
+// popup. two actions: Lock/Unlock (freezes drag + resize) and Hide (turns the
+// plugin off in plugins.json). host owns persistence; menu is a dumb dispatcher,
+// so the same component fits any plugin id without per-widget Config keys like
+// WidgetMenu has. fills the host window so the click-away catcher can dismiss.
 Item {
     id: menu
 
@@ -21,7 +17,7 @@ Item {
     visible: menu.open
 
     property bool open: false
-    property string scope: ""        // plugin id the menu is bound to
+    property string scope: ""        // plugin id this menu is bound to
     property bool locked: false
     property real px: 0
     property real py: 0
@@ -38,7 +34,7 @@ Item {
     }
     function close() { menu.open = false; }
 
-    // Click-away.
+    // click-away.
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -76,9 +72,9 @@ Item {
         Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutExpo } }
         Behavior on opacity { NumberAnimation { duration: 130 } }
 
-        // Faint L-bracket registration ticks at the four corners, mirroring
-        // WidgetMenu. Inlined (eight 1px rectangles) so this component doesn't
-        // depend on the optional Ryoku.PluginKit import path.
+        // faint L-bracket ticks at the four corners, mirroring WidgetMenu.
+        // inlined (eight 1px rects) so this component doesn't depend on the
+        // optional Ryoku.PluginKit import path.
         Item {
             anchors.fill: parent
             anchors.margins: 7
@@ -100,7 +96,7 @@ Item {
             width: parent.width - 28
             spacing: 0
 
-            // Masthead: 力 + scope (plugin id).
+            // masthead: 力 + scope (plugin id).
             Item {
                 width: parent.width
                 height: 26
@@ -129,8 +125,8 @@ Item {
 
             Rule {}
 
-            // Lock keeps the menu open: toggling is a stateful affordance, and
-            // the user often wants to see the row flip before committing.
+            // lock keeps the menu open: it's stateful, user wants to see the
+            // row flip before committing.
             MenuRow {
                 k: "Lock"
                 v: menu.locked ? "On" : "Off"
@@ -144,8 +140,8 @@ Item {
 
             Rule {}
 
-            // Hide closes the menu (the tile vanishes as the host re-reads
-            // plugins.json, so there's nothing left to point the menu at).
+            // hide closes the menu (tile vanishes on host re-read of
+            // plugins.json, nothing left to point the menu at).
             MenuRow {
                 k: "Hide"
                 onTriggered: menu.hideRequested(menu.scope)
@@ -179,7 +175,7 @@ Item {
             color: miMa.containsMouse ? Qt.rgba(Theme.brand.r, Theme.brand.g, Theme.brand.b, 0.08) : "transparent"
             Behavior on color { ColorAnimation { duration: 90 } }
         }
-        // Vermilion registration tick on hover.
+        // vermilion tick on hover.
         Rectangle {
             anchors.left: parent.left
             anchors.leftMargin: -6

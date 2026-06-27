@@ -2,12 +2,9 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
-/**
- * The shared wall clock for every desktop widget. One second-resolution tick
- * drives all clock designs and the analog second hand, so they stay in lockstep
- * and the desktop never runs two timers for the same time. Designs that only show
- * minutes simply ignore the seconds field.
- */
+// the shared wall clock for desktop widgets. one 1s tick drives every face
+// and the analog second hand, so they stay in lockstep and the desktop isn't
+// running two timers for the same time. minute-only designs ignore seconds.
 Singleton {
     id: root
 

@@ -1,12 +1,10 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-/**
- * Clear sky: a warm sun with a soft layered glow and slowly turning rays by day; a
- * pale moon with a faint halo and a scatter of twinkling stars by night. The core
- * breathes and the rays rotate only while animation is on, so a still preview or
- * an inhibited desktop stays calm.
- */
+// clear sky. day: warm sun, soft layered glow, slowly turning rays. night:
+// pale moon, faint halo, scatter of twinkling stars. core breathes and rays
+// rotate only while animation is on, so a still preview / inhibited desktop
+// stays calm.
 Item {
     id: sky
 
@@ -22,14 +20,14 @@ Item {
         NumberAnimation { from: 1.06; to: 1; duration: 2600; easing.type: Easing.InOutSine }
     }
 
-    // --- Day: sun ----------------------------------------------------------
+    // -- day: sun -----------------------------------------------------------
     Item {
         anchors.centerIn: parent
         visible: sky.isDay
         width: sky.u
         height: sky.u
 
-        // Layered glow approximating a radial halo.
+        // layered glow, fake a radial halo.
         Rectangle {
             anchors.centerIn: parent
             width: sky.u * 0.86 * sky.pulse
@@ -45,7 +43,7 @@ Item {
             color: Qt.rgba(1, 0.72, 0.34, 0.2)
         }
 
-        // Rays.
+        // rays.
         Item {
             anchors.centerIn: parent
             width: sky.u
@@ -72,7 +70,7 @@ Item {
             }
         }
 
-        // Core.
+        // core.
         Rectangle {
             anchors.centerIn: parent
             width: sky.u * 0.44
@@ -85,7 +83,7 @@ Item {
         }
     }
 
-    // --- Night: moon + stars ----------------------------------------------
+    // -- night: moon + stars ------------------------------------------------
     Item {
         anchors.fill: parent
         visible: !sky.isDay

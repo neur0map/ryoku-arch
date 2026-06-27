@@ -3,11 +3,8 @@ import QtQuick
 import "../Singletons"
 import "lib/clock.js" as Clk
 
-/**
- * Badge date: an accent-tinted chip carrying the day number big, with the weekday
- * and month stacked beside it. A compact, self-contained mark that pairs well with
- * the minimal and digital faces.
- */
+// badge date = accent-tinted chip, big day number with weekday/month stacked
+// beside it. compact mark, pairs with the minimal and digital faces.
 Item {
     id: date
 

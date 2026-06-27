@@ -3,12 +3,10 @@ import QtQuick
 import "../Singletons"
 import "lib/clock.js" as Clk
 
-/**
- * Analog face: a clean dial with twelve ticks (the quarters bright), bright ink
- * hour and minute hands, and a thin accent second hand over an accent hub. The
- * minute hand creeps with the seconds so it never sits between marks; the second
- * hand ticks. Sized square from the scale knob.
- */
+// analog face. clean dial with twelve ticks (quarters bright), bright ink
+// hour + minute hands, thin accent second hand over an accent hub. minute
+// hand creeps with the seconds so it never sits between marks; second hand
+// ticks. sized square from the scale knob.
 Item {
     id: face
 
@@ -24,7 +22,7 @@ Item {
         id: dial
         anchors.fill: parent
 
-        // Faint rim so the dial reads as a face even on a busy wallpaper.
+        // faint rim so the dial reads as a face even on a busy wallpaper.
         Rectangle {
             anchors.fill: parent
             radius: width / 2
@@ -33,8 +31,8 @@ Item {
             border.color: Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b, 0.14)
         }
 
-        // Ticks: each wrapper is dial-sized and centred, so rotating it sweeps its
-        // top tick around the rim.
+        // ticks: each wrapper is dial-sized + centred, rotating it sweeps its
+        // top tick round the rim.
         Repeater {
             model: 12
             Item {
@@ -53,7 +51,7 @@ Item {
             }
         }
 
-        // Hour hand.
+        // hour.
         Rectangle {
             x: (dial.width - width) / 2
             y: dial.height / 2 - height
@@ -66,7 +64,7 @@ Item {
             rotation: face.t.hourAngle
         }
 
-        // Minute hand.
+        // minute.
         Rectangle {
             x: (dial.width - width) / 2
             y: dial.height / 2 - height
@@ -79,7 +77,7 @@ Item {
             rotation: face.t.minuteAngle
         }
 
-        // Second hand.
+        // second.
         Rectangle {
             x: (dial.width - width) / 2
             y: dial.height / 2 - height
@@ -92,7 +90,7 @@ Item {
             rotation: face.t.secondAngle
         }
 
-        // Hub.
+        // hub.
         Rectangle {
             anchors.centerIn: parent
             width: Math.round(14 * face.s)

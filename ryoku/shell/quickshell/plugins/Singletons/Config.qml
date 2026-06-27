@@ -3,22 +3,20 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-/**
- * Live shell appearance config: the single source of truth for the look knobs
- * Ryoku Settings' Shell section edits, and the shipped defaults the shell falls
- * back to. Persisted as JSON at ~/.config/ryoku/shell.json and watched, so a
- * save in Ryoku Settings retunes the running shell on the next file event, with no
- * reload. The defaults here are canonical; Ryoku Settings mirrors them for its
- * reset-to-default and seeds nothing of its own.
- *
- * Geometry is unscaled base pixels at 1080p. The island values are multiplied by
- * the per-monitor scale `s` where they are read; the frame radius and border sit
- * in Hyprland's gaps ring and stay unscaled, matching the hand-tuned originals.
- */
+// live shell appearance config = single source of truth for the look knobs
+// Ryoku Settings -> Shell edits, plus the shipped defaults the shell falls
+// back to. JSON at ~/.config/ryoku/shell.json, watched: save in Settings
+// retunes the running shell on the next file event, no reload. defaults
+// here are canonical, Ryoku Settings mirrors them for reset-to-default
+// and seeds nothing of its own.
+//
+// geometry = unscaled base pixels at 1080p. island values get *s (per-monitor
+// scale) where they're read; frame radius + border sit in Hyprland's gaps ring
+// and stay unscaled (matches the hand-tuned originals).
 Singleton {
     id: root
 
-    // Frame: the rounded screen border the pill swells out of.
+    // frame: the rounded screen border the pill swells out of.
     property alias frameRadius:    adapter.frameRadius
     property alias frameBorder:    adapter.frameBorder
     property alias frameSmoothing: adapter.frameSmoothing
@@ -26,11 +24,11 @@ Singleton {
     property alias shadowStrength: adapter.shadowStrength
     property alias shadowSize:     adapter.shadowSize
 
-    // Surface: the warm dark fill the frame, the pill and the island share. They
-    // live in one blob field, so a single colour reads as one continuous surface.
+    // surface: warm dark fill shared by frame + pill + island. one blob field,
+    // so a single colour reads as one continuous surface.
     property alias surfaceColor:   adapter.surfaceColor
 
-    // Island: the morphing top pill and the music bud that grows beside it.
+    // island: morphing top pill + the music bud that grows beside it.
     property alias islandWidth:      adapter.islandWidth
     property alias islandHeight:     adapter.islandHeight
     property alias islandRestCorner: adapter.islandRestCorner
@@ -39,18 +37,18 @@ Singleton {
     property alias islandSmoothing:  adapter.islandSmoothing
     property alias islandOpacity:    adapter.islandOpacity
 
-    // Island appearance variant and its rest visibility:
-    //  - islandStyle: "island" (the pill fused into the top frame, the default),
-    //    "floating" (a detached pill that floats below the frame), or "none"
-    //    (no resting island; surfaces and keybinds still work).
-    //  - islandAutohide: hide the island at rest and reveal it on hover of the
-    //    top centre. Applies to "island" and "floating"; "none" is always hidden.
+    // island variant + rest visibility:
+    //   islandStyle    = "island" (pill fused into the top frame, default)
+    //                  | "floating" (detached pill below the frame)
+    //                  | "none" (no resting island; surfaces + keybinds still work)
+    //   islandAutohide = hide at rest, reveal on hover of the top centre.
+    //                    applies to "island" + "floating"; "none" is always hidden.
     property alias islandStyle:    adapter.islandStyle
     property alias islandAutohide: adapter.islandAutohide
 
-    // Top bar: an opt-in bar drawn on the frame's thickened top edge (Bar.qml),
-    // shown in place of the resting island. When on, the island never shows at
-    // rest (surfaces and keybinds still summon the pill); Ryoku Settings ->
+    // top bar: opt-in bar drawn on the frame's thickened top edge (Bar.qml),
+    // shown in place of the resting island. on -> the island never shows at
+    // rest (surfaces + keybinds still summon the pill). Ryoku Settings ->
     // Shell -> Bar toggles it.
     property alias barEnabled: adapter.barEnabled
 
@@ -85,7 +83,7 @@ Singleton {
         }
     }
 
-    // Seed only on a genuine first run (no content to load), so a slow or failed
+    // seed only on a real first run (no content to load), so a slow or failed
     // load never overwrites a present file from defaults.
     Component.onCompleted: if (!file.text()) file.writeAdapter();
 }

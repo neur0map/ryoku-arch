@@ -8,21 +8,16 @@ import "Singletons"
 import "clock"
 import "weather"
 
-/**
- * Desktop widgets: a wallpaper layer (WlrLayer.Bottom, below windows) carrying the
- * clock and weather, one per monitor. The layer is interactive across the
- * wallpaper so a right-click anywhere on the bare desktop opens the desktop menu;
- * windows above still receive their own input, so only clicks on visible wallpaper
- * reach it. Drag a widget to move it (it snaps to the grid that fades in),
- * right-click a widget for its own menu, right-click the desktop for the global
- * one. Everything is read live from the widgets Config; the drag, the menus, and
- * Ryoku Settings' Desktop Widgets section all write the same file, so the surfaces
- * retune with no reload.
- */
+// desktop widgets layer: WlrLayer.Bottom (below windows), one per monitor,
+// carrying the clock and weather. only clicks on bare wallpaper land here,
+// so windows above keep their input. drag = move (snaps to the fade-in
+// grid), right-click a widget = its menu, right-click empty = global menu.
+// every knob is live from Config; drag, menus and Ryoku Settings all write
+// the same file, so surfaces retune with no reload.
 ShellRoot {
     id: root
 
-    // One IP-located weather fetch shared by every monitor, in the user's unit.
+    // one IP-located weather fetch, shared across monitors, in the user's unit.
     Binding {
         target: WeatherData
         property: "unit"
@@ -42,36 +37,36 @@ ShellRoot {
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Bottom
             WlrLayershell.namespace: "ryoku-widgets"
-            // None. A full-screen Bottom layer that can hold keyboard focus keeps
-            // it on an EMPTY workspace (no window above it to take over), so a
-            // freshly opened window stays unfocused until you move the mouse or hit
-            // a focus bind. Pointer input is unaffected: layer-shell delivers clicks
-            // by the input region, not keyboard interactivity (the visualiser relies
-            // on the same fact), so widget drag and the right-click desktop menu
-            // still fire. A plugin tile that needs the keyboard would grab focus on
-            // its own focused item rather than holding the whole surface.
+            // None on purpose. a full-screen Bottom layer that holds kb focus
+            // keeps it on an EMPTY workspace (nothing above to steal it), so
+            // the next-opened window stays unfocused until you move the mouse
+            // or hit a focus bind. pointer is unaffected: layer-shell routes
+            // clicks by input region, not kb interactivity (the visualiser
+            // relies on the same fact), so drag + the right-click menu still
+            // fire. a plugin tile that needs kb grabs its own focused item
+            // rather than holding the whole surface.
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
             anchors { top: true; left: true; right: true; bottom: true }
 
-            // The enabled desktopWidget-hosted plugins, filtered from the shared
-            // Registry. Drives the Repeater below so plugin tiles render in the
-            // SAME wallpaper layer as clock/weather — one layer, one input model,
-            // no second full-screen surface fighting for input.
+            // enabled desktopWidget-hosted plugins, filtered from the shared
+            // Registry. drives the Repeater below so plugin tiles ride the
+            // SAME wallpaper layer as clock/weather: one layer, one input
+            // model, no second full-screen surface fighting for input.
             readonly property var desktopPlugins: Registry.plugins.filter(p => p.placement && p.placement.host === "desktopWidget")
 
-            // Look up a plugin's currently-persisted desktopWidget block by id.
-            // Used by the menu handlers below to round-trip a partial change
-            // (lock/scale) without dropping the other coordinates.
+            // current persisted desktopWidget block by id. menu handlers use
+            // it to round-trip a partial change (lock/scale) without dropping
+            // the other coordinates.
             function placementOf(id) {
                 const p = win.desktopPlugins.find(pp => pp.id === id);
                 return (p && p.placement && p.placement.desktopWidget) || {};
             }
 
-            // Right-click the bare desktop for the global menu. Sits behind the
-            // widgets (which handle their own right-click) and takes only the right
-            // button, so a left click on the wallpaper does nothing rather than
-            // being swallowed in a way that feels broken.
+            // right-click empty desktop = global menu. sits behind the widgets
+            // (which own their own right-click) and only takes RightButton, so
+            // left-clicks on wallpaper fall through instead of being silently
+            // swallowed.
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.RightButton
@@ -118,11 +113,11 @@ ShellRoot {
                 Weather {}
             }
 
-            // Plugin desktop tiles: one draggable PluginDesktopSlot per enabled
-            // desktopWidget plugin. Dragging writes free position; resizing the
-            // bracket writes scale; right-click opens the per-tile menu. Each
-            // commit goes through a dedicated Process so a Lock right after a
-            // drag never clobbers an in-flight write on `persist`.
+            // one draggable PluginDesktopSlot per enabled desktopWidget plugin.
+            // drag = write free pos. resize bracket = write scale. right-click
+            // = per-tile menu. each commit goes through its own Process so a
+            // Lock right after a drag can't stomp an in-flight write on
+            // `persist`.
             Repeater {
                 model: win.desktopPlugins
                 delegate: PluginDesktopSlot {
@@ -137,16 +132,16 @@ ShellRoot {
                     bg: (place.desktopWidget && place.desktopWidget.bg) ? place.desktopWidget.bg : ((modelData.manifest && modelData.manifest.defaults && modelData.manifest.defaults.desktopWidget && modelData.manifest.defaults.desktopWidget.bg) || "card")
                     radius: (place.desktopWidget && place.desktopWidget.radius) || 26
 
-                    // Drag commit: write the new free position; ryoku-plugins-place
-                    // merges into plugins.json and the Registry's file watch
+                    // drag commit: write new free pos. ryoku-plugins-place
+                    // merges into plugins.json, the Registry's file-watch
                     // retunes every surface.
                     onMoved: (x, y) => {
                         persist.command = ["ryoku-plugins-place", modelData.id, "desktopWidget", "" + x, "" + y];
                         persist.running = true;
                     }
 
-                    // Resize commit: scale + the pinned top-left + the current
-                    // locked flag, so a partial write never drops siblings.
+                    // resize commit: scale + pinned top-left + current locked
+                    // flag, so a partial write never drops siblings.
                     onResized: (sc) => {
                         const dw = (slot.place && slot.place.desktopWidget) || {};
                         const x = (dw.x !== undefined) ? dw.x : Math.round(slot.x);
@@ -189,9 +184,9 @@ ShellRoot {
 
             WidgetMenu { id: menu }
 
-            // Right-click menu for plugin tiles. Lives at the PanelWindow level
-            // so its click-away catcher fills the whole desktop, and a tile that
-            // disappears (Hide) doesn't take the menu down with it.
+            // per-tile right-click menu, hoisted to PanelWindow level so the
+            // click-away catcher covers the whole desktop and a tile that
+            // vanishes (Hide) doesn't pull the menu down with it.
             PluginWidgetMenu {
                 id: pluginMenu
                 onHideRequested: (id) => {
@@ -217,15 +212,15 @@ ShellRoot {
                 }
             }
 
-            // Position/scale writeback for plugin tiles. ryoku-plugins-place
-            // merges the new free x/y (and optional scale/locked) into
-            // plugins.json; the Registry's file watch then retunes every surface.
+            // position/scale writeback for plugin tiles. ryoku-plugins-place
+            // merges free x/y (+ optional scale/locked) into plugins.json;
+            // Registry's file-watch then retunes every surface.
             Process { id: persist }
-            // Dedicated processes for menu actions so a fast Hide-then-Lock or
-            // resize-then-Lock doesn't clobber an in-flight command on `persist`.
+            // separate Processes per menu action so a quick Hide-then-Lock or
+            // resize-then-Lock doesn't trample an in-flight `persist` command.
             Process { id: hide }
             Process { id: lockProc }
-            // Per-widget settings writeback from the right-click menu.
+            // settings writeback from the right-click menu.
             Process { id: settingsProc }
         }
     }

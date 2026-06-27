@@ -4,24 +4,23 @@ import Quickshell
 import Quickshell.Io
 import "../weather/lib/weather.js" as Model
 
-/**
- * Live weather for the desktop weather widget, served by Open-Meteo (no API key).
- * A thin fetch wrapper: all parsing and the WMO-code -> animation-category mapping
- * live in weather/lib/weather.js (unit-tested under node). The location resolves
- * once via a keyless IP lookup and is cached at the same
- * ~/.local/state/ryoku/weather-loc.json the pill uses, so the two share one
- * lookup. The unit follows the user's Ryoku Settings choice (`unit` = C|F), set by
- * the host; changing it refetches so the temperature flips at once.
- */
+// live weather for the desktop weather widget, via Open-Meteo (no API key).
+// thin fetch wrapper, all the parsing and the WMO-code -> animation-category
+// map live in weather/lib/weather.js (node-tested).
+//
+// location: resolved once via a keyless IP lookup and cached at the same
+// ~/.local/state/ryoku/weather-loc.json the pill uses, so the two share one
+// lookup. unit follows Ryoku Settings (`unit` = C|F), set by the host;
+// changing it refetches so the temperature flips at once.
 Singleton {
     id: root
 
     readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku"
 
-    // Set by the host from Config.weatherUnit; refetch when it changes.
+    // set by the host from Config.weatherUnit. refetch on change.
     property string unit: "C"
 
-    // Public state for the designs.
+    // public state for the designs.
     property bool available: false
     property int tempNow: 0
     property string temp: ""
@@ -79,7 +78,7 @@ Singleton {
         }
     }
 
-    // The state dir may not exist on a fresh profile; create it before writeLoc.
+    // state dir may not exist on a fresh profile -- mkdir before writeLoc.
     Process {
         command: ["mkdir", "-p", root.stateDir]
         running: true

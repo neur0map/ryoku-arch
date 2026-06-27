@@ -3,24 +3,20 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-/**
- * Live config for the desktop widgets, the single source of truth for the knobs
- * Ryoku Settings' Desktop Widgets section edits, the desktop drag/right-click
- * actions write, and the shipped defaults everything falls back to. Persisted as
- * JSON at ~/.config/ryoku/widgets.json and watched, so a save in Ryoku Settings or
- * a drag on the desktop retunes the running widgets on the next file event.
- *
- * Placement is either a compass anchor (one of nine zones, kept across resolutions
- * by a fixed edge margin) or "free": an absolute x/y in monitor pixels, set by
- * dragging the widget on the desktop. Dragging switches a widget to "free";
- * snapping it to a zone (the right-click menu or Ryoku Settings) switches it back.
- * Scale, background, radius, opacity and design are independent knobs. The write
- * helpers below let the desktop edit the same file Ryoku Settings does.
- */
+// live config for the desktop widgets. one source of truth: the knobs Ryoku
+// Settings' Desktop Widgets section edits, the desktop drag/right-click writes,
+// and the shipped defaults. JSON at ~/.config/ryoku/widgets.json, watched, so a
+// Settings save or a desktop drag retunes the running widgets next file event.
+//
+// placement = compass anchor (one of nine zones, kept across resolutions by a
+// fixed edge margin) | "free" (absolute x/y in monitor pixels, set by dragging).
+// dragging flips to "free"; right-click/Settings snap back to a zone. scale, bg,
+// radius, opacity, design are independent. write helpers below let the desktop
+// edit the same file Settings does.
 Singleton {
     id: root
 
-    // --- Clock --------------------------------------------------------------
+    // -- clock ---------------------------------------------------------------
     property alias clockEnabled: adapter.clockEnabled
     property alias clockDesign:  adapter.clockDesign   // digital | minimal | analog | flip | rings
     property alias clock24h:     adapter.clock24h
@@ -37,7 +33,7 @@ Singleton {
     property alias dateShow:     adapter.dateShow
     property alias dateDesign:   adapter.dateDesign     // inline | badge | stacked
 
-    // --- Weather ------------------------------------------------------------
+    // -- weather -------------------------------------------------------------
     property alias weatherEnabled: adapter.weatherEnabled
     property alias weatherDesign:  adapter.weatherDesign  // card | minimal | strip
     property alias weatherUnit:    adapter.weatherUnit    // C | F
@@ -52,16 +48,16 @@ Singleton {
     property alias weatherBg:      adapter.weatherBg       // none | card | glass
     property alias weatherRadius:  adapter.weatherRadius
 
-    // Write helpers used by the desktop drag and right-click menu. Each writes the
-    // same file Ryoku Settings does; the watch above reloads it (a no-op for the
-    // values just written), so the running widgets and the next Settings open agree.
+    // write helpers used by desktop drag + right-click menu. write the same file
+    // Settings does; the watch reloads it (no-op for the value just written) so
+    // running widgets and the next Settings open agree.
     function set(key, value) {
         adapter[key] = value;
         file.writeAdapter();
     }
-    // In-memory only (no file write), for a live drag like resize: the aliases
-    // update at once so the widget re-renders, and a setFree/set on release does
-    // the single persisting write.
+    // memory-only, no file write. for a live drag like resize: aliases update
+    // at once so the widget re-renders; setFree/set on release does the single
+    // persisting write.
     function setLive(key, value) {
         adapter[key] = value;
     }

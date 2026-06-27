@@ -1,11 +1,9 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-/**
- * Overcast sky: two soft clouds at different depths, swaying on one shared drift
- * phase so they never thrash and stop cleanly when animation is off. The back
- * cloud is smaller and fainter for a sense of depth.
- */
+// overcast sky: 2 soft clouds at different depths on one shared drift phase,
+// so they don't thrash and they stop cleanly when animation is off. back
+// cloud is smaller + fainter for depth.
 Item {
     id: sky
 

@@ -1,18 +1,16 @@
 import QtQuick
 import "Singletons"
 
-/**
- * Host-side surface base for a plugin's content. Mirrors the pill's PillSurface
- * curtain: the plugin content lives at a FIXED open size inside a clip that
- * tracks the live (morphing) body, so a host can reveal/hide it by animating its
- * own width/height without the content reflowing or squishing mid-morph.
- *
- * A host (FramePopout, Island, ...) sets `s`, `openW`, `openH`, `shown` and
- * `openProgress` exactly as the pill does for its surfaces; the plugin's
- * content/Widget.qml is reparented into `slot` and lays out once at the open
- * size for the host's chosen density. The shell owns this base; plugins never
- * touch it.
- */
+// host-side surface base for a plugin's content. mirrors the pill's
+// PillSurface curtain: plugin content sits at a FIXED open size inside a clip
+// that tracks the live (morphing) body, so a host can reveal/hide it by
+// animating its own width/height without the content reflowing mid-morph.
+//
+// a host (FramePopout, Island, ...) sets s, openW, openH, shown and
+// openProgress exactly like the pill does for its surfaces; the plugin's
+// content/Widget.qml gets reparented into `slot` and lays out once at the
+// open size for the host's chosen density. the shell owns this base, plugins
+// never touch it.
 Item {
     id: surface
 
@@ -27,7 +25,7 @@ Item {
     property real mRight: 0
     property real mBottom: 0
 
-    // The plugin content item the host parented in (its content/Widget.qml root).
+    // the plugin's content item the host parented in (its content/Widget.qml root).
     default property alias data: contentInner.data
 
     enabled: shown

@@ -1,12 +1,9 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-/**
- * The animated sky backdrop: picks the right animation for the current weather
- * category and fills its parent. The designs drop one of these behind their
- * readout at whatever size they need; `animate` lets a still preview or an
- * inhibited desktop freeze it.
- */
+// animated sky backdrop: pick the right animation for the current category,
+// fill parent. designs drop one behind their readout at whatever size; flip
+// `animate` off to freeze it for a still preview or an inhibited desktop.
 Item {
     id: sky
 

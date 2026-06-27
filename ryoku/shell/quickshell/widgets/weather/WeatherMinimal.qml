@@ -2,11 +2,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "../Singletons"
 
-/**
- * Minimal design: a small live sky, the temperature, and the condition, nothing
- * else, for a clean corner of the desktop. In week scope a compact four-day strip
- * tucks underneath.
- */
+// minimal = small live sky + temp + condition, nothing else. for a quiet
+// corner of the desktop. in week scope a four-day strip tucks underneath.
 Item {
     id: m
 

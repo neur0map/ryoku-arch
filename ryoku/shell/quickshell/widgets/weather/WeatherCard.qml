@@ -2,13 +2,11 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "../Singletons"
 
-/**
- * Card design: a rounded "sky window" with the live animation, the temperature
- * big beside it, and, by scope, either today's humidity and wind or the week
- * ahead. The sky window's gradient shifts with day/night and the rough condition
- * so the animation always reads against a fitting backdrop. The flagship weather
- * look.
- */
+// card design: rounded "sky window" with the live animation, big temperature
+// beside it, then either today's humidity + wind or the week ahead (by
+// scope). the sky window's gradient shifts with day/night and the rough
+// condition so the animation always reads against a fitting backdrop. the
+// flagship weather look.
 Item {
     id: card
 

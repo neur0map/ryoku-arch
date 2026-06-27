@@ -3,12 +3,9 @@ import QtQuick
 import "../Singletons"
 import "lib/clock.js" as Clk
 
-/**
- * Minimal face: a thin, airy Inter time with wide tracking and a short accent rule
- * underneath, the whole point being restraint, the design earns its place through
- * type and spacing, not ornament. Seconds and AM/PM, when on, sit as a quiet
- * caption.
- */
+// minimal face. thin airy Inter time, wide tracking, a short accent rule
+// below it. earns its place through type + spacing, no ornament. seconds /
+// AM-PM (when on) sit as a quiet caption.
 Item {
     id: face
 

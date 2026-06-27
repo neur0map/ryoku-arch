@@ -3,13 +3,11 @@ import QtQuick
 import "../Singletons"
 import "lib/clock.js" as Clk
 
-/**
- * Rings face: three concentric arcs sweeping hour, minute and second, drawn from
- * the wallust ramp so the whole dial retunes per wallpaper (the design where the
- * palette is the point). Each ring rides a faint track with a round-capped
- * progress arc; the time sits digital in the centre. Brand/Mono accents fall back
- * to graded shades of the brand or ink.
- */
+// rings face: three concentric arcs sweeping hour / minute / second, drawn
+// from the wallust ramp so the whole dial retunes per wallpaper (the design
+// where the palette IS the point). each ring rides a faint track with a
+// round-capped progress arc; time sits digital in the centre. brand/mono
+// accents fall back to graded shades of brand or ink.
 Item {
     id: face
 
@@ -20,7 +18,7 @@ Item {
     implicitWidth: dia
     implicitHeight: dia
 
-    // Repaint when the time, palette, accent choice or size changes.
+    // repaint when time, palette, accent or size changes.
     readonly property var repaintKey: [Now.date, Config.clockAccent, Wallust.accent, face.dia, Config.clock24h]
     onRepaintKeyChanged: canvas.requestPaint()
 
@@ -56,14 +54,14 @@ Item {
                 face.t.seconds / 60
             ];
             for (var i = 0; i < 3; i++) {
-                // Track.
+                // track.
                 ctx.beginPath();
                 ctx.lineWidth = lineW;
                 ctx.lineCap = "butt";
                 ctx.strokeStyle = face.css(Theme.ink, 0.12);
                 ctx.arc(cx, cy, radii[i], 0, 2 * Math.PI, false);
                 ctx.stroke();
-                // Progress.
+                // progress.
                 if (fr[i] > 0.0001) {
                     ctx.beginPath();
                     ctx.lineWidth = lineW;

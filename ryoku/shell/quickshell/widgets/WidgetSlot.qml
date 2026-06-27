@@ -3,17 +3,16 @@ import QtQuick
 import QtQuick.Effects
 import "Singletons"
 
-/**
- * Placement, shape and interaction frame for one desktop widget. It measures its
- * single child's natural size, pads it, and positions it either at a compass zone
- * (a fixed margin in from that screen edge) or, once dragged, at a free monitor
- * pixel. It draws the chosen backing (none/card/glass), and carries the desktop
- * interaction: drag to move (snapping to the grid, with a press bump), right-click
- * to raise the widget menu, and a per-widget lock that freezes it. Dragging
- * persists a "free" position to the widgets Config; the menu and Ryoku Settings
- * write the same file. The widget grip takes the press over the desktop catcher
- * beneath it, so a right-click on the widget opens its menu, not the desktop one.
- */
+// placement / shape / interaction frame for one desktop widget. measures its
+// single child's natural size, pads it, positions it either at a compass
+// zone (a fixed margin in from that edge) or, once dragged, at a free
+// monitor pixel. draws the chosen backing (none|card|glass). carries the
+// desktop interaction: drag to move (grid-snapped, with a press bump),
+// right-click for the menu, and a per-widget lock that freezes everything.
+// dragging persists a "free" position to the widgets Config; the menu and
+// Ryoku Settings write the same file. the grip takes the press over the
+// desktop catcher beneath it, so a right-click on the widget opens its
+// menu, not the desktop one.
 Item {
     id: slot
 
@@ -37,9 +36,9 @@ Item {
     readonly property real cw: slot.item ? slot.item.implicitWidth : 0
     readonly property real ch: slot.item ? slot.item.implicitHeight : 0
 
-    // Drag state. While holding (dragging, or briefly after release until the
-    // config write lands) the rendered position follows the drag so it never
-    // flickers back to the old anchor for a frame.
+    // drag state. while holding (dragging, or briefly after release until
+    // the config write lands) the rendered position follows the drag so it
+    // doesn't flicker back to the old anchor for a frame.
     property bool dragging: false
     property real dragX: 0
     property real dragY: 0
@@ -75,14 +74,14 @@ Item {
     Behavior on x { enabled: !slot.holding; NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
     Behavior on y { enabled: !slot.holding; NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
-    // Press bump: a gentle lift while dragging, so the widget feels picked up.
+    // press bump: small lift while dragging, so it feels picked up.
     scale: slot.dragging ? 1.03 : 1.0
     transformOrigin: Item.Center
     Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutExpo } }
 
     Timer { id: guard; interval: 90 }
 
-    // Soft lift off the wallpaper for the backed styles.
+    // soft lift off the wallpaper for the backed styles.
     MultiEffect {
         source: backing
         anchors.fill: backing
@@ -104,8 +103,8 @@ Item {
         border.width: 1
         border.color: slot.bg === "card" ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.16)
 
-        // Glass sheen: a faint top-down highlight so the panel reads as a pane of
-        // glass rather than a flat fill.
+        // glass sheen: faint top-down highlight so the panel reads as a pane
+        // of glass rather than a flat fill.
         Rectangle {
             visible: slot.bg === "glass"
             anchors.fill: parent
@@ -118,9 +117,9 @@ Item {
         }
     }
 
-    // Lift a bare widget off the wallpaper for legibility on any backdrop. A
-    // card/glass panel already gives contrast, so the shadow is applied only when
-    // the widget sits directly on the wallpaper.
+    // lift a bare widget off the wallpaper for legibility on any backdrop. a
+    // card/glass panel already gives contrast, so the shadow only applies
+    // when the widget sits directly on the wallpaper.
     Item {
         id: holder
         x: slot.pad
@@ -138,7 +137,7 @@ Item {
         }
     }
 
-    // Interaction: drag to move (snapped to the grid), right-click for the menu.
+    // interaction: drag to move (grid-snapped), right-click for the menu.
     MouseArea {
         id: grip
         anchors.fill: parent
@@ -187,13 +186,14 @@ Item {
         }
     }
 
-    // Hover state for the slot and its children, so the resize handle stays lit
-    // while you reach across to it.
+    // hover state for the slot and its children, so the resize handle stays
+    // lit while you reach across to it.
     HoverHandler { id: slotHover }
 
-    // Quick resize: drag the bottom-right bracket to scrub the widget's scale. The
-    // top-left is pinned while resizing so it grows toward the cursor; on release
-    // the new scale and a pinned free position persist in one write.
+    // quick resize: drag the bottom-right bracket to scrub the widget's
+    // scale. top-left is pinned during the resize so it grows toward the
+    // cursor; on release the new scale + a pinned free position persist in
+    // one write.
     Item {
         id: handle
         width: 22
@@ -261,7 +261,7 @@ Item {
         }
     }
 
-    // Live size readout while resizing.
+    // live size readout while resizing.
     Rectangle {
         visible: slot.resizing
         anchors.right: parent.right

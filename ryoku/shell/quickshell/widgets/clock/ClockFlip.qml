@@ -3,12 +3,10 @@ import QtQuick
 import "../Singletons"
 import "lib/clock.js" as Clk
 
-/**
- * Flip face: split-flap cards, one per digit, that fold over when the digit
- * changes (rotate edge-on, swap, fold back). Dark cards with a centre seam and a
- * faint accent edge tie the palette in; the colon carries the accent. Hours are
- * always two cards, so the split-flap look holds in both 12h and 24h.
- */
+// flip face: split-flap cards, one per digit. fold edge-on, swap, fold back
+// when the digit changes. dark cards, centre seam, faint accent edge to tie
+// the palette. colon carries the accent. hours are always two cards so the
+// look holds in 12h and 24h.
 Item {
     id: face
 
@@ -57,7 +55,7 @@ Item {
                 font.weight: Font.Bold
             }
 
-            // Fold seam across the middle.
+            // fold seam across the middle.
             Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right

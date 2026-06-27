@@ -1,10 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-/**
- * Fog: a few soft horizontal haze bands drifting at different speeds on one shared
- * phase, the lightest-touch sky. Clipped so the over-wide bands stay inside.
- */
+// fog: a few soft horizontal haze bands drifting at different speeds on one
+// shared phase. lightest-touch sky. clipped so the over-wide bands stay in.
 Item {
     id: sky
 

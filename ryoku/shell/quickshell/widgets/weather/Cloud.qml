@@ -1,11 +1,8 @@
 import QtQuick
 
-/**
- * One soft cloud: a base bar with three puffs, built from rounded rectangles so it
- * scales crisply at any widget size. Shared by every overcast sky (clouds, rain,
- * snow, storm) so the cloud shape lives in one place. `tint` and `glow` colour the
- * body and a faint top highlight.
- */
+// one soft cloud: base bar + 3 puffs, all rounded rects so it scales clean at
+// any widget size. shared by every overcast sky (clouds, rain, snow, storm)
+// so the shape lives in one place. tint = body, glow = the faint top highlight.
 Item {
     id: cloud
 

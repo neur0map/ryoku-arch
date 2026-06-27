@@ -3,17 +3,15 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-/**
- * The live wallust palette for the desktop widgets. wallust rewrites
- * ~/.cache/wallust/colors.json on every wallpaper change (see wallust.toml) and
- * this watches it, so a clock or weather card tinted from the palette retunes to
- * whatever is on screen. The defaults are the Ryoku brand palette, so widgets look
- * right before the first wallust run and never fall back to grey.
- *
- * `accent`/`accent2` are the two lead tints; `ramp`/`colorAt(t)` is the ordered
- * sweep the ring clock and gradients sample. Every tint is vivified so even a
- * muted wallpaper still reads as colour, matching the visualiser.
- */
+// live wallust palette for the desktop widgets. wallust rewrites
+// ~/.cache/wallust/colors.json on every wallpaper change (see wallust.toml),
+// we watch it, so a clock/weather card tinted from the palette retunes to
+// whatever's on screen. defaults are the Ryoku brand palette so widgets look
+// right before the first wallust run, never grey.
+//
+// accent/accent2 = the two leads. ramp / colorAt(t) = ordered sweep the ring
+// clock and gradients sample. every tint vivified so a muted wallpaper still
+// reads as colour (matches the visualiser).
 Singleton {
     id: root
 
@@ -22,8 +20,8 @@ Singleton {
     readonly property color accent:  vivid(adapter.color4)
     readonly property color accent2: vivid(adapter.color5)
 
-    // Shell-wide "Match wallpaper" toggle (shell.json) and the surface ramp it
-    // drives: base is exactly the terminal background, the rest shift its value.
+    // shell-wide "Match wallpaper" toggle (shell.json) + the surface ramp it
+    // drives. base = terminal background exactly; rest shift its value.
     readonly property bool  matchWallpaper: shellCfg.matchWallpaper
     readonly property color base:     background
     readonly property color elevated: tone(background, 0.05)
@@ -39,22 +37,22 @@ Singleton {
         vivid(adapter.color5)
     ]
 
-    // Lift saturation and floor brightness so a tint reads as colour, not mud,
-    // regardless of how desaturated the wallpaper's palette is. Greys (no
-    // measurable hue) are only brightened, never tinted.
+    // lift saturation, floor brightness so a tint reads as colour not mud,
+    // no matter how desaturated the wallpaper palette is. greys (no measurable
+    // hue) only get brightened, never tinted.
     function vivid(c) {
         var hue = c.hsvHue < 0 ? 0 : c.hsvHue;
         var sat = c.hsvSaturation < 0.06 ? 0 : Math.min(1, c.hsvSaturation * 1.2 + 0.06);
         return Qt.hsva(hue, sat, Math.max(c.hsvValue, 0.74), 1);
     }
 
-    // Shift a colour's HSV value by dv (hue and saturation kept), for the ramp.
+    // shift HSV value by dv, hue + sat kept. used for the ramp.
     function tone(c, dv) {
         var hue = c.hsvHue < 0 ? 0 : c.hsvHue;
         return Qt.hsva(hue, c.hsvSaturation, Math.max(0, Math.min(1, c.hsvValue + dv)), 1);
     }
 
-    // Linear-interpolate the ramp at t in [0,1].
+    // linear interp the ramp at t in [0,1].
     function colorAt(t) {
         var s = root.ramp;
         var n = s.length;

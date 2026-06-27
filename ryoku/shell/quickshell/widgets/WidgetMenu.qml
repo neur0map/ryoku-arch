@@ -4,16 +4,16 @@ import QtQuick.Effects
 import Quickshell
 import "Singletons"
 
-/**
- * The desktop right-click menu, in the Ryoku carbon-dossier idiom (a 力 masthead,
- * corner registration ticks, hairline rules, mono uppercase spec rows with a
- * vermilion hover tick), so it reads as the same shell as the pill rather than a
- * generic popup. Two scopes: right-clicking the bare desktop opens the desktop
- * menu (show/hide each widget, settings, reload); right-clicking a widget opens its
- * menu (cycle design, toggle date/motion/units, lock, snap to a zone, hide) plus
- * the same global actions. Every action writes the widgets Config the drag and
- * Ryoku Settings do. Fills the host window so its click-away catcher can dismiss.
- */
+// desktop right-click menu, carbon-dossier idiom (力 masthead, corner
+// registration ticks, hairline rules, mono uppercase spec rows + vermilion
+// hover tick), so it reads as the same shell as the pill rather than a
+// generic popup. two scopes:
+//   right-click bare desktop = desktop menu (show/hide each widget,
+//     settings, reload)
+//   right-click a widget     = its menu (cycle design, toggle date/motion/
+//     units, lock, snap to a zone, hide) + the same globals
+// every action writes the same widgets Config the drag and Ryoku Settings
+// do. fills the host window so its click-away catcher can dismiss.
 Item {
     id: menu
 
@@ -60,7 +60,7 @@ Item {
         menu.close();
     }
 
-    // Click-away.
+    // click-away.
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -107,7 +107,7 @@ Item {
             width: parent.width - 28
             spacing: 0
 
-            // Masthead: 力 + scope.
+            // masthead = 力 + scope.
             Item {
                 width: parent.width
                 height: 26
@@ -136,11 +136,11 @@ Item {
 
             Rule {}
 
-            // Desktop scope.
+            // desktop scope.
             MenuRow { visible: !menu.isWidget; k: "Clock"; v: Config.clockEnabled ? "On" : "Off"; on: Config.clockEnabled; closeOnTrigger: false; onTriggered: Config.set("clockEnabled", !Config.clockEnabled) }
             MenuRow { visible: !menu.isWidget; k: "Weather"; v: Config.weatherEnabled ? "On" : "Off"; on: Config.weatherEnabled; closeOnTrigger: false; onTriggered: Config.set("weatherEnabled", !Config.weatherEnabled) }
 
-            // Widget scope.
+            // widget scope.
             MenuRow { visible: menu.isWidget; k: "Design"; v: menu.cap(menu.curDesign); closeOnTrigger: false; onTriggered: menu.cycleDesign() }
             MenuRow { visible: menu.isClock; k: "Date"; v: Config.dateShow ? "On" : "Off"; on: Config.dateShow; closeOnTrigger: false; onTriggered: Config.toggle("dateShow") }
             MenuRow { visible: menu.isWidget && !menu.isClock; k: "Motion"; v: Config.weatherAnimate ? "On" : "Off"; on: Config.weatherAnimate; closeOnTrigger: false; onTriggered: Config.toggle("weatherAnimate") }
@@ -149,7 +149,7 @@ Item {
 
             Rule { visible: menu.isWidget }
 
-            // Snap-to-zone pad (widget scope).
+            // snap-to-zone pad (widget scope).
             Item {
                 visible: menu.isWidget
                 width: parent.width
@@ -227,7 +227,7 @@ Item {
             color: miMa.containsMouse ? Qt.rgba(Theme.brand.r, Theme.brand.g, Theme.brand.b, 0.08) : "transparent"
             Behavior on color { ColorAnimation { duration: 90 } }
         }
-        // Vermilion registration tick on hover.
+        // vermilion registration tick on hover.
         Rectangle {
             anchors.left: parent.left
             anchors.leftMargin: -6

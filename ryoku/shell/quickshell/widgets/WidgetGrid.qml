@@ -1,12 +1,9 @@
 import QtQuick
 
-/**
- * The alignment grid shown while a widget is being dragged: faint minor lines on
- * the snap cell, brighter lines every few cells, fading in as you pick a widget up
- * and out when you drop it. Purely visual (no input); the host makes the layer
- * interactive during a drag. Drawn in one Canvas pass so even a 4K desktop stays
- * cheap.
- */
+// alignment grid shown during a widget drag: faint minor lines on the snap
+// cell, brighter ones every few cells. fades in on pick-up, out on drop.
+// purely visual (no input); the host flips the layer interactive during a
+// drag. one Canvas pass, so a 4K desktop stays cheap.
 Item {
     id: grid
 

@@ -1,10 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-/**
- * Snow: a pale cloud over flakes that fall slowly and sway side to side on one
- * shared phase, spread by the golden ratio. Clipped to the sky.
- */
+// snow: pale cloud over flakes that fall slowly and sway side to side on one
+// shared phase, spread by the golden ratio. clipped to the sky.
 Item {
     id: sky
 

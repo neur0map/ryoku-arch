@@ -3,17 +3,13 @@ import QtQuick
 import QtQuick.Effects
 import "Singletons"
 
-/**
- * Desktop placement frame for one plugin widget on the wallpaper layer. Measures
- * its plugin content's natural size, pads it, draws an optional card/glass
- * backing with a soft lift, and carries the same desktop interaction the shipped
- * WidgetSlot (clock/weather) uses: left-drag to move (grid-snapped, clamped to
- * the host), right-click to raise a menu, and a bottom-right resize bracket that
- * scrubs scale 0.5..2.5 with a live percent readout. The free position, scale,
- * and lock state persist to plugins.json through the host; the grip lives UNDER
- * the content so chips/thumbs/search inside the plugin still take their own
- * clicks while empty card chrome reads as a drag/menu surface.
- */
+// desktop frame for one plugin widget on the wallpaper layer. measure plugin's
+// natural size, pad it, draw an optional card/glass backing with a soft lift.
+// same desktop interaction WidgetSlot uses: left-drag to move (grid-snapped,
+// clamped to host), right-click for menu, bottom-right bracket scrubs scale
+// 0.5..2.5 with a live percent readout. free pos / scale / lock persist to
+// plugins.json via the host. grip lives UNDER the content so chips/thumbs/
+// search inside the plugin keep their own clicks; empty chrome reads as drag.
 Item {
     id: slot
 
@@ -25,16 +21,15 @@ Item {
     property string bg: "card"            // none | card | glass
     property real radius: 16
     property real gridSize: 32
-    property real scaleCfg: 1             // persisted scale, bound from the host
+    property real scaleCfg: 1             // persisted, bound from the host
 
     signal moved(real x, real y)
     signal resized(real scale)
     signal menuRequested(real x, real y, string id)
 
-    // Create the plugin widget directly as a child of `holder` (via
-    // createComponent, which renders Image correctly where Loader does not), so
-    // the slot measures the widget's own implicit size exactly like WidgetSlot
-    // hosts Clock directly. No wrapper Item between slot and widget.
+    // build the plugin widget directly as a child of `holder` via createComponent
+    // (Loader renders Image wrong here), so the slot measures the widget's own
+    // implicit size, like WidgetSlot hosts Clock. no wrapper Item in between.
     property string contentUrl: ""
     property var configure: null
     property var item: null
@@ -58,9 +53,9 @@ Item {
     readonly property real cw: item ? item.implicitWidth : 100
     readonly property real ch: item ? item.implicitHeight : 100
 
-    // Drag/resize state. While holding (dragging or resizing, or briefly after
-    // release until the persisted value lands) the rendered position/scale stick
-    // to the live values so they never flash back to the old config for a frame.
+    // drag/resize state. while holding (or briefly after release until the
+    // persisted value lands) rendered pos/scale stick to the live values so
+    // they don't flash back to the old config for a frame.
     property bool dragging: false
     property real dragX: 0
     property real dragY: 0
@@ -71,9 +66,9 @@ Item {
     property real resizeStartDiag: 1
     readonly property bool holding: slot.dragging || slot.resizing || guard.running
 
-    // Live scale during a resize scrub. Mirrors scaleCfg when idle; mutates while
-    // resizing so the readout and content track the cursor without writing to
-    // the host on every frame (plugins have no setLive-style fast path).
+    // live scale during a resize scrub. mirrors scaleCfg when idle, mutates
+    // while resizing so the readout/content track the cursor without writing
+    // to the host every frame (plugins have no setLive fast path).
     property real liveScale: 1
     onScaleCfgChanged: if (!slot.resizing) slot.liveScale = slot.scaleCfg
     Component.onCompleted: { slot.liveScale = slot.scaleCfg; _build(); }
@@ -91,14 +86,14 @@ Item {
     Behavior on x { enabled: !slot.holding; NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
     Behavior on y { enabled: !slot.holding; NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
-    // Press bump: a gentle lift while dragging, so the tile feels picked up.
+    // press bump: gentle lift while dragging so the tile feels picked up.
     scale: slot.dragging ? 1.03 : 1.0
     transformOrigin: Item.Center
     Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutExpo } }
 
     Timer { id: guard; interval: 90 }
 
-    // Soft lift off the wallpaper for the backed styles.
+    // soft lift off the wallpaper, backed styles only.
     MultiEffect {
         source: backing
         anchors.fill: backing
@@ -116,14 +111,13 @@ Item {
         anchors.fill: parent
         visible: slot.bg !== "none"
         radius: slot.radius
-        // Match the shipped desktop widgets (WidgetSlot): a translucent dark card
-        // with a faint white hairline, so plugin tiles read identically to the
-        // clock and weather on the wallpaper.
+        // match WidgetSlot: translucent dark card + faint white hairline, so
+        // plugin tiles read identically to clock/weather on the wallpaper.
         color: slot.bg === "card" ? Qt.rgba(0, 0, 0, 0.42) : Qt.rgba(16 / 255, 16 / 255, 24 / 255, 0.26)
         border.width: 1
         border.color: slot.bg === "card" ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.16)
 
-        // Glass sheen, matching WidgetSlot.
+        // glass sheen, same as WidgetSlot.
         Rectangle {
             visible: slot.bg === "glass"
             anchors.fill: parent
@@ -136,11 +130,10 @@ Item {
         }
     }
 
-    // Drag/menu grip UNDER the content: a left-drag on empty card chrome (the
-    // header eyebrow, padding, gaps) moves the tile and a right-click opens the
-    // menu, while plugin chrome (chips, thumbs, search) keeps its own clicks on
-    // top. A grip above the content would swallow every click (the reported
-    // "unresponsive to clicks").
+    // grip UNDER the content: left-drag on empty card chrome (eyebrow, padding,
+    // gaps) moves the tile, right-click opens the menu; plugin chrome (chips,
+    // thumbs, search) keeps its own clicks on top. a grip above the content
+    // swallowed every click (the "unresponsive to clicks" bug).
     MouseArea {
         id: grip
         anchors.fill: parent
@@ -189,9 +182,9 @@ Item {
         }
     }
 
-    // Content holder: a Scale transform applies the live scale, so the plugin
-    // visibly grows from its top-left as the resize bracket scrubs. The slot's
-    // width/height grow in lockstep so the backing tracks the content.
+    // content holder: a Scale transform applies liveScale so the plugin grows
+    // visibly from its top-left as the resize bracket scrubs. slot w/h grow in
+    // lockstep so the backing tracks it.
     Item {
         id: holder
         x: slot.pad
@@ -206,13 +199,12 @@ Item {
         }
     }
 
-    // Hover state for the slot and its children, so the resize handle stays lit
-    // while you reach across to it.
+    // hover for the slot + children, so the resize handle stays lit while you
+    // reach across to it.
     HoverHandler { id: slotHover }
 
-    // Quick resize: drag the bottom-right bracket to scrub the widget's scale.
-    // The top-left is pinned while resizing so it grows toward the cursor; on
-    // release the new scale persists through the host.
+    // resize: drag the bottom-right bracket to scrub scale. top-left pins
+    // while resizing so it grows toward the cursor; release persists via host.
     Item {
         id: handle
         width: 22
@@ -280,7 +272,7 @@ Item {
         }
     }
 
-    // Live size readout while resizing.
+    // live size readout while resizing.
     Rectangle {
         visible: slot.resizing
         anchors.right: parent.right

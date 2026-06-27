@@ -1,8 +1,8 @@
 import QtQuick
 import "Singletons"
 
-// A section eyebrow in the dossier idiom: a small vermilion registration dot
-// before a mono, uppercase, letterspaced label. Scales with `s`.
+// section eyebrow, dossier idiom: vermilion reg dot then a mono uppercase
+// letterspaced label. scales with `s`.
 Row {
     id: ml
 

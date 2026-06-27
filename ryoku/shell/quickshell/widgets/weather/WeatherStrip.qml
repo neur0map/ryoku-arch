@@ -2,11 +2,9 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "../Singletons"
 
-/**
- * Strip design: the current conditions on the left, a hairline, then the week
- * ahead as a row of day cells, the design built for the forecast. In today scope
- * the right side shows humidity and wind instead of the week.
- */
+// strip design: current conditions on the left, a hairline, then the week
+// ahead as a row of day cells. built for the forecast. in today-scope the
+// right side becomes humidity + wind instead of the week.
 Item {
     id: strip
 

@@ -3,16 +3,14 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-/**
- * The live wallust palette for the visualiser. wallust rewrites
- * ~/.cache/wallust/colors.json on every wallpaper change (see wallust.toml), and
- * this watches it so the spectrum retunes to whatever is on screen. The defaults
- * are the Ryoku brand palette, so the visualiser already looks right before the
- * first wallust run and never falls back to grey.
- *
- * `stops` is the ordered low->high frequency ramp the bars sample with
- * colorAt(t). Each stop is vivified so even a muted wallpaper still glows.
- */
+// live wallust palette for the visualiser. wallust rewrites
+// ~/.cache/wallust/colors.json on every wallpaper change (see wallust.toml);
+// this watches it so the spectrum retunes to whatever is on screen. defaults
+// are the Ryoku brand palette, so the visualiser looks right before the
+// first wallust run and never falls back to grey.
+//
+// stops = ordered low->high freq ramp the bars sample with colorAt(t). each
+// stop is vivified, so a muted wallpaper still glows.
 Singleton {
     id: root
 
@@ -28,16 +26,16 @@ Singleton {
         vivid(adapter.color5)
     ]
 
-    // Lift saturation and floor the brightness so the spectrum reads as colour,
-    // not mud, regardless of how desaturated the wallpaper's palette is. Greys
-    // (no measurable hue) are only brightened, never tinted.
+    // lift saturation, floor brightness, so the spectrum reads as colour, not
+    // mud, no matter how desaturated the wallpaper is. greys (no measurable
+    // hue) are only brightened, never tinted.
     function vivid(c) {
         var hue = c.hsvHue < 0 ? 0 : c.hsvHue;
         var sat = c.hsvSaturation < 0.06 ? 0 : Math.min(1, c.hsvSaturation * 1.25 + 0.08);
         return Qt.hsva(hue, sat, Math.max(c.hsvValue, 0.72), 1);
     }
 
-    // Linear-interpolate the ramp at t in [0,1].
+    // linear-interp the ramp at t in [0,1].
     function colorAt(t) {
         var s = root.stops;
         var n = s.length;

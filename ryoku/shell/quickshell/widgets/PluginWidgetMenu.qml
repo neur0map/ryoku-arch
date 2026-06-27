@@ -5,17 +5,18 @@ import Quickshell.Io
 import QtQuick.Dialogs
 import Ryoku.PluginKit.Singletons
 
-/**
- * Right-click menu for a plugin desktop tile, in the Ryoku carbon-dossier idiom (a
- * 力 masthead, corner registration ticks, hairline rules, mono uppercase rows).
- * Beyond Lock and Hide it renders the plugin's own settings inline, straight from
- * its declared schema (manifest.metadata.settings), so a desktop widget is tuned
- * in place without opening Settings. The controls are mouse-only (the wallpaper
- * layer has no keyboard): choice -> chips, toggle -> switch, slider -> slider,
- * image -> a thumbnail strip scanned from ~/Pictures. Text fields are left to the
- * hub. Each change emits settingChanged(id, key, value); the host persists it via
- * ryoku-plugins-place and the shell retunes live.
- */
+// right-click menu for a plugin desktop tile, carbon-dossier idiom (力
+// masthead, corner ticks, hairline rules, mono uppercase rows). beyond
+// Lock + Hide it renders the plugin's own settings inline straight from
+// its declared schema (manifest.metadata.settings), so a desktop widget
+// is tuned in place without opening Settings.
+//
+// controls are mouse-only (wallpaper layer = no keyboard):
+//   choice -> chips, toggle -> switch, slider -> slider,
+//   image  -> thumbnail strip scanned from ~/Pictures.
+// text fields are left to the hub. each change emits
+// settingChanged(id, key, value); host persists via ryoku-plugins-place
+// and the shell retunes live.
 Item {
     id: menu
 
@@ -63,7 +64,7 @@ Item {
         menu.settingChanged(menu.scope, key, value);
     }
 
-    // Scan ~/Pictures (one level deep) for images to offer in the picker.
+    // scan ~/Pictures (one level deep) for picker thumbnails.
     Process {
         id: picScan
         command: ["bash", "-c",
@@ -137,7 +138,7 @@ Item {
                 width: parent.width
                 spacing: 0
 
-                // Masthead: 力 + scope (plugin id).
+                // masthead: 力 + scope (plugin id).
                 Item {
                     width: parent.width
                     height: 26
@@ -184,7 +185,7 @@ Item {
                     onTriggered: menu.hideRequested(menu.scope)
                 }
 
-                // ── Settings, rendered from the plugin's schema ──────────────
+                // -- settings, rendered from the plugin's schema --------------
                 Item { width: parent.width; height: menu.schema.length > 0 ? 6 : 0 }
 
                 Repeater {
@@ -200,13 +201,13 @@ Item {
                         readonly property string grp: fieldWrap.f.group || ""
                         readonly property bool startsGroup: fieldWrap.index === 0
                             || ((menu.schema[fieldWrap.index - 1].group || "") !== fieldWrap.grp)
-                        // No keyboard on the wallpaper layer: text fields live in the hub.
+                        // no keyboard on wallpaper layer -- text fields live in the hub.
                         readonly property bool shown: fieldWrap.f.type !== "text"
 
                         visible: fieldWrap.shown
                         topPadding: fieldWrap.startsGroup && fieldWrap.shown ? 6 : 0
 
-                        // Group eyebrow (vermilion dot + mono label).
+                        // group eyebrow: vermilion dot + mono label.
                         Row {
                             visible: fieldWrap.startsGroup && fieldWrap.grp.length > 0 && fieldWrap.shown
                             spacing: 7
@@ -307,7 +308,7 @@ Item {
                             }
                         }
 
-                        // slider -> track + knob (commits on release)
+                        // slider -> track + knob, commits on release.
                         Item {
                             id: slRow
                             visible: fieldWrap.f.type === "slider"
@@ -390,7 +391,7 @@ Item {
                             }
                         }
 
-                        // image -> thumbnail strip (Default + ~/Pictures)
+                        // image -> thumb strip (Default + ~/Pictures)
                         Column {
                             visible: fieldWrap.f.type === "image"
                             width: parent.width
@@ -412,7 +413,7 @@ Item {
                                 Row {
                                     id: strip
                                     spacing: 6
-                                    // "Default" (clears the path -> bundled sample).
+                                    // "Default" clears the path -> bundled sample.
                                     Rectangle {
                                         width: 66
                                         height: 48
@@ -431,7 +432,7 @@ Item {
                                         TapHandler { onTapped: menu.set(fieldWrap.f.key, "") }
                                         HoverHandler { cursorShape: Qt.PointingHandCursor }
                                     }
-                                    // "Browse" opens the system file chooser (portal).
+                                    // "Browse" -> system file chooser (portal).
                                     Rectangle {
                                         width: 66
                                         height: 48

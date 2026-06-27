@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Merge a plugin placement change into ~/.config/ryoku/plugins.json. Used by the
-# desktop layer to persist a dragged tile's free position, by Ryoku Settings for
-# any placement edit, and by the installer to seed/forget a plugin's settings
-# block. The Registry's file watch picks the change up and retunes every surface,
-# so there is no reload.
+# merge a plugin placement change into ~/.config/ryoku/plugins.json. used by:
+# the desktop layer (drag commits a free position), Ryoku Settings (any
+# placement edit), and the installer (seed/forget a plugin's settings block).
+# Registry's file watch sees it and retunes every surface, no reload.
 #
 #   ryoku-plugins-place <id> desktopWidget <x> <y> [scale] [locked]
 #   ryoku-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>
@@ -19,24 +18,24 @@ data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
 f="$cfg_home/ryoku/plugins.json"
 mkdir -p "$(dirname "$f")"
 
-# Self-heal: a missing, empty, or corrupt file (a stale partial write, an external
-# reset) becomes a fresh {} so every write below has valid input and the readers
-# (discover.sh) never choke on it.
+# self-heal. missing / empty / corrupt (stale partial write, external reset)
+# becomes a fresh {}, so writes below have valid input and discover.sh doesn't
+# choke on it.
 if [ ! -s "$f" ] || ! jq -e . "$f" >/dev/null 2>&1; then
 	echo '{}' >"$f"
 fi
 
-# Every write goes through a unique temp on the same filesystem, then an atomic
-# rename. A unique name (not a shared "$f.tmp") means two writers landing at once
-# - a desktop drag committing while Settings toggles enabled, say - can at worst
-# lose one update, never truncate the file to nothing.
+# atomic: unique temp on the same fs, then rename. unique (not a shared
+# "$f.tmp") matters when two writers land at once (desktop drag committing
+# while Settings flips enabled) -- worst case loses one update, never
+# truncates the file.
 tmp="$(mktemp "$f.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
 
 id="${1:?id required}"; field="${2:?field required}"; shift 2
 
-# Print a plugin's manifest path, searching the dev override dirs then the data
-# dir (the same order discover.sh uses). Non-zero when none is found.
+# manifest path for a plugin. dev override dirs first, then the data dir
+# (same order discover.sh uses). non-zero when none found.
 manifest_for() {
 	local pid="$1" d
 	local -a dirs=()
@@ -48,14 +47,14 @@ manifest_for() {
 	return 1
 }
 
-# Inject a plugin's shipped presets - its default host and default settings - into
-# its plugins.json entry, filling only what is missing so a user's edits survive.
-# Best-effort and idempotent: no manifest means nothing to seed.
+# fill a plugin's entry with its shipped presets (default host, default
+# settings) -- only the missing keys, so user edits survive. idempotent;
+# no manifest = nothing to seed.
 seed_entry() {
 	local pid="$1" man defs host
 	man="$(manifest_for "$pid")" || return 0
-	# Defaults come from the settings schema (metadata.settings[].default); a plugin
-	# with the older flat metadata.defaultSettings still works.
+	# defaults come from the schema (metadata.settings[].default). older flat
+	# metadata.defaultSettings still works.
 	defs="$(jq -c 'if (.metadata.settings | type) == "array" then (.metadata.settings | map({(.key): .default}) | add // {}) else (.metadata.defaultSettings // {}) end' "$man")"
 	host="$(jq -r '.defaults.host // "desktopWidget"' "$man")"
 	jq --arg id "$pid" --argjson defs "$defs" --arg host "$host" \
@@ -69,8 +68,8 @@ seed_entry() {
 case "$field" in
 desktopWidget)
 	x="${1:?x}"; y="${2:?y}"; scale="${3:-}"; locked="${4:-}"
-	# scale/locked are optional: keep the existing value (or a sane default) when
-	# not passed, so a position-only write never drops them.
+	# scale/locked optional: keep existing (or a sane default) when omitted,
+	# so a position-only write doesn't drop them.
 	jq --arg id "$id" --argjson x "$x" --argjson y "$y" \
 		--arg scale "$scale" --arg locked "$locked" \
 		'.[$id] = ((.[$id] // {}) + {
@@ -94,8 +93,8 @@ host)
 enabled)
 	en="${1:?enabled}"
 	jq --arg id "$id" --argjson e "$en" '.[$id] = ((.[$id] // {}) + { enabled: $e })' "$f" >"$tmp" && mv "$tmp" "$f"
-	# Enabling injects the preset block, so a plugin's settings exist in the right
-	# place the moment it goes live (a fresh enable needs no hand edit).
+	# enabling seeds the preset block too, so the moment it goes live its
+	# settings already exist in the right place.
 	if [ "$en" = "true" ]; then seed_entry "$id"; fi
 	;;
 settings)

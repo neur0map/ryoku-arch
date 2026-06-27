@@ -1,14 +1,14 @@
-// Pure weather model for the desktop weather widget: parses Open-Meteo + ip-api
-// responses and maps WMO weather codes to an *animation category* (clear | clouds
-// | rain | snow | storm | fog), which the animated Sky renders. This is a sibling
-// of the pill's lib/weather.js, not a copy: the pill maps codes to font glyphs and
-// takes its unit from the locale, whereas the widget maps codes to live animations
-// and takes its unit (C/F) from the user's Ryoku Settings choice. No QML and no
-// network here, so node can exercise the parsing against a captured response.
-// Avoids Date.now()/Math.random() (both throw in the Quickshell JS engine); the
-// Date constructor and Math.round are fine.
+// pure weather model for the desktop weather widget. parses Open-Meteo +
+// ip-api responses and maps WMO codes to an *animation category*
+// (clear | clouds | rain | snow | storm | fog) the animated Sky knows how to
+// draw. sibling of the pill's lib/weather.js, not a copy: the pill maps codes
+// to font glyphs and pulls its unit from the locale, while the widget maps
+// codes to live animations and reads its unit (C/F) out of Ryoku Settings.
+// no QML and no network here, so node can run the parser against captured
+// JSON. avoids Date.now() / Math.random() (both throw in the Quickshell JS
+// engine); the Date ctor and Math.round are fine.
 
-// WMO weather code -> animation category the Sky knows how to draw.
+// WMO code -> animation category the Sky knows how to draw.
 function categoryFor(code) {
     if (code === 0 || code === 1) return "clear";
     if (code <= 3) return "clouds";
@@ -19,7 +19,7 @@ function categoryFor(code) {
     return "clouds";
 }
 
-// Short condition word for a WMO code (the display label).
+// short condition word for a WMO code (display label).
 function labelFor(code) {
     if (code === 0 || code === 1) return "Clear";
     if (code <= 3) return "Cloudy";
@@ -30,19 +30,19 @@ function labelFor(code) {
     return "Cloudy";
 }
 
-// The user's unit choice ("C"/"F") -> Open-Meteo request param and display symbol.
+// user unit ("C"/"F") -> Open-Meteo request param + display symbol.
 function unitParam(unit) { return unit === "F" ? "fahrenheit" : "celsius"; }
-// The widget shows a bare degree; the unit letter lives in the design's caption.
+// widget shows the bare degree; the unit letter lives in the caption.
 function tempSymbol(unit) { return "\u00b0"; }
 
-// "27°": rounds and appends the bare degree. The temperature is already in the
-// requested unit (it is what we ask Open-Meteo for).
+// "27°": round + append the bare degree. temp is already in the requested
+// unit (it's what we ask Open-Meteo for).
 function formatTemp(temp, unit) {
     return Math.round(temp) + tempSymbol(unit);
 }
 
-// Parse an Open-Meteo forecast into the widget's weather state. Guards every
-// field: a missing/!numeric current block yields available:false so the caller
+// Open-Meteo forecast -> the widget's weather state. guards every field: a
+// missing/non-numeric current block gives back available:false so the caller
 // keeps its last good values instead of flashing zeros.
 function parseForecast(json, unit) {
     var out = {
@@ -82,7 +82,7 @@ function parseForecast(json, unit) {
     return out;
 }
 
-// Parse ip-api's response to { city, lat, lon }, or null when it failed.
+// ip-api response -> { city, lat, lon }, or null if the lookup failed.
 function parseLoc(json) {
     if (json && (json.status === "success" || json.status === undefined)
         && typeof json.lat === "number" && typeof json.lon === "number")
@@ -90,7 +90,7 @@ function parseLoc(json) {
     return null;
 }
 
-// Guarded JSON.parse: null on any empty or malformed body.
+// guarded JSON.parse. null on empty or malformed body.
 function parseJson(text) {
     try {
         if (text && text.trim().length > 0) return JSON.parse(text);

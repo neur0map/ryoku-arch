@@ -2,13 +2,11 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "../Singletons"
 
-/**
- * The clock widget: picks one face design and, when enabled, stacks the chosen
- * date design centred beneath it. Purely structural, the faces and date strips
- * read the time, palette and size knobs from the singletons themselves (as the
- * visualiser's renderer does), so this only chooses which to show and lays them
- * out. Its implicit size drives the WidgetSlot around it.
- */
+// clock widget. picks one face + (if enabled) stacks the date strip centred
+// underneath. purely structural -- faces and date strips read time, palette
+// and size knobs from the singletons themselves (same pattern as the
+// visualiser's renderer). this only chooses which to show and lays them out.
+// implicit size drives the WidgetSlot around it.
 Item {
     id: clock
 

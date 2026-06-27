@@ -3,20 +3,18 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-/**
- * High-resolution playback spectrum for the desktop visualiser. Mirrors the
- * pill's AudioBars but reads the PipeWire playback monitor at 64 bands and 60fps
- * so the whole desktop sweep stays smooth. `active` gates the cava process, and
- * the levels settle to a flat rest when cava stops emitting (system silent or a
- * restart gap) so the spectrum never freezes on the last peak.
- */
+// high-resolution playback spectrum for the desktop visualiser. mirrors the
+// pill's AudioBars but reads the PipeWire playback monitor at 64 bands /
+// 60fps so the whole desktop sweep stays smooth. `active` gates the cava
+// process; levels settle to a flat rest when cava stops emitting (system
+// silent, or a restart gap) so the spectrum never freezes on the last peak.
 Singleton {
     id: root
 
     property bool active: false
     property int bars: 64
 
-    // 0..1 per band (length == bars) and the mean energy across all bands.
+    // 0..1 per band (length == bars) + mean energy across all bands.
     property var levels: root.flat(0.02)
     property real energy: 0
     property real lastReadMs: 0
@@ -45,14 +43,14 @@ Singleton {
         onTriggered: if (root.active && !cavaProc.running) cavaProc.running = true
     }
 
-    // Restart cava when the band count changes so its config picks up the new bars.
+    // restart cava when the band count changes so its config picks up new bars.
     Timer {
         id: barsRestart
         interval: 300
         onTriggered: if (root.active && !cavaProc.running) cavaProc.running = true
     }
 
-    // Settle to a flat resting line when no frame arrives recently.
+    // settle to a flat resting line when no frame has arrived in a bit.
     Timer {
         interval: 120
         running: root.active

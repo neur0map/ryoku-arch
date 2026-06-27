@@ -3,15 +3,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-/**
- * Shell surface palette matched to the wallpaper's terminal background. When
- * Ryoku Settings -> Shell -> Match wallpaper is on (read here from shell.json),
- * surfaces follow the live wallust palette (~/.cache/wallust/colors.json), so the
- * shell reads as the same colour as an open terminal. `base` is exactly the
- * terminal (kitty) background; `elevated`/`deep`/`line` shift its value to keep
- * the depth hierarchy. Defaults are the Ryoku brand palette, so things look right
- * before the first wallust run.
- */
+// shell surface palette matched to the wallpaper's terminal background. when
+// Ryoku Settings -> Shell -> Match wallpaper is on (read here from shell.json),
+// surfaces follow the live wallust palette (~/.cache/wallust/colors.json), so
+// the shell reads the same colour as an open terminal. base = terminal (kitty)
+// background exactly; elevated/deep/line shift its value to keep the depth
+// hierarchy. defaults = Ryoku brand palette, so it looks right before the
+// first wallust run.
 Singleton {
     readonly property bool  matchWallpaper: shellCfg.matchWallpaper
     readonly property color base:     palette.background
@@ -20,13 +18,13 @@ Singleton {
     readonly property color line:     tone(palette.background, 0.14)
     readonly property color accent:   vivid(palette.color4)
 
-    // Shift a colour's HSV value by dv (hue and saturation kept), so a ramp from
-    // the wallpaper background sits at predictable depths.
+    // shift HSV value by dv (hue + sat kept), so a ramp from the wallpaper
+    // background lands at predictable depths.
     function tone(c, dv) {
         var hue = c.hsvHue < 0 ? 0 : c.hsvHue;
         return Qt.hsva(hue, c.hsvSaturation, Math.max(0, Math.min(1, c.hsvValue + dv)), 1);
     }
-    // Lift saturation and floor brightness so an accent reads as colour, not mud.
+    // lift sat, floor brightness so an accent reads as colour not mud.
     function vivid(c) {
         var hue = c.hsvHue < 0 ? 0 : c.hsvHue;
         var sat = c.hsvSaturation < 0.06 ? 0 : Math.min(1, c.hsvSaturation * 1.2 + 0.06);

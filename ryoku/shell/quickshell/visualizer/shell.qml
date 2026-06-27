@@ -4,13 +4,11 @@ import Quickshell.Io
 import Quickshell.Wayland
 import "Singletons"
 
-/**
- * Desktop audio visualiser. A click-through, wallust-tinted cava spectrum across
- * the bottom of each monitor. By default it sits on the wallpaper behind every
- * window (WlrLayer.Bottom); `ryoku-shell visualizer-overlay` raises it over the
- * windows (WlrLayer.Top) on demand and flips back. On by default; `ryoku-shell
- * visualizer` toggles it, and cava only runs while it is enabled.
- */
+// desktop audio visualiser. click-through, wallust-tinted cava spectrum across
+// the bottom of each monitor. default = on the wallpaper, behind every window
+// (WlrLayer.Bottom). `ryoku-shell visualizer-overlay` raises it over windows
+// (WlrLayer.Top) on demand and flips back. on by default; `ryoku-shell
+// visualizer` toggles. cava only runs while enabled.
 ShellRoot {
     id: root
 
@@ -25,14 +23,14 @@ ShellRoot {
         function overlay(mon: string): void { root.raised = !root.raised; if (root.raised) Config.setEnabled(true); }
     }
 
-    // Run cava only while the visualiser is live on the desktop.
+    // run cava only while the visualiser is live on the desktop.
     Binding {
         target: Spectrum
         property: "active"
         value: root.enabled
     }
 
-    // The configured band count; changing it restarts cava with the new bars.
+    // configured band count; changing it restarts cava with the new bars.
     Binding {
         target: Spectrum
         property: "bars"
@@ -55,7 +53,7 @@ ShellRoot {
             WlrLayershell.namespace: "ryoku-visualizer"
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-            // Empty input region: every click falls through to the windows above,
+            // empty input region: every click falls through to windows above,
             // so the visualiser shares the desktop without ever intercepting it.
             mask: emptyRegion
             Region { id: emptyRegion }

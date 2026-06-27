@@ -2,11 +2,9 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "../Singletons"
 
-/**
- * The weather widget: picks one design and reports its size to the WidgetSlot. The
- * designs read the forecast, unit, scope and palette from the singletons
- * themselves, so this only chooses which to show.
- */
+// weather widget: pick a design, report its size to WidgetSlot. designs read
+// forecast / unit / scope / palette from the singletons themselves, so this
+// only chooses which to show.
 Item {
     id: weather
 

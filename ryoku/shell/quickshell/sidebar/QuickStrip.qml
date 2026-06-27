@@ -12,8 +12,8 @@ RowLayout {
 
     spacing: 10 * s
 
-    // Night light reflects whether hyprsunset is running, which the script owns;
-    // re-query on open so an external toggle (Super+U, the hub) stays in sync.
+    // night light = whether hyprsunset is running, owned by the script. re-query
+    // on open so a Super+U / hub toggle stays in sync.
     property bool nightOn: false
     readonly property string scriptsDir: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/"
     function refreshNight() { nightStatus.running = true; }
