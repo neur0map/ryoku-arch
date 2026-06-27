@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- `display/ryoku-monitor`: a `settle` subcommand re-asserts each output's intended
+  mode so a display recovers in place when a cold-boot or post-upgrade link comes
+  up advertising only a fallback resolution (e.g. 800x600) that Hyprland's
+  `highrr`/`preferred` then pins. It generalises the old refresh-only settle to
+  resolution too, reads intent from `monitors.lua` (so an explicit Ryoku Settings
+  pick is restored, never overridden, and `monitors_user.lua` pins are skipped),
+  and powers both `ryoku doctor` and the login/hotplug/Settings `autoscale` path.
+  `settle --check` reports drift (exit 1) without changing anything.
 - `display/ryoku-monitor`: honours a hand-written `~/.config/hypr/monitors_user.lua`.
   Any output pinned there is left out of the generated `monitors.lua` and skipped
   by `autoscale` (scale and position), so a manually forced panel (a wrong/fake

@@ -139,4 +139,37 @@ echo '{"monitors":[{"id":"Other|Mon|0","output":"DP-9","mode":"highrr","position
 runA autoscale >/dev/null
 eDP | grep -q 'scale = 2.5' || fail "autoscale recalled a non-matching applied layout"
 
+# --- settle: recover a display a degraded link left below its resolution -------
+# settle re-asserts each output's intended mode from monitors.lua; --check reports
+# drift (exit 1) and changes nothing -- the read-only signal `ryoku doctor` uses.
+settle_conf="$tmp/settle.lua"
+: >"$tmp/none.lua"
+sc() { printf '%s\n' "$1" >"$settle_conf"; }   # set the monitors.lua intent
+chk() {  # chk FIXTURE USERLUA EXPECT(drift|ok) MSG
+  local rc=0
+  RYOKU_MONITOR_JSON="$1" RYOKU_MONITORS_CONF="$settle_conf" RYOKU_MONITORS_USER="$2" \
+    "$mon" settle --check || rc=$?
+  if [[ "$3" == drift ]]; then (( rc != 0 )) || fail "$4"; else (( rc == 0 )) || fail "$4"; fi
+}
+cat >"$tmp/stuck.json" <<'JSON'
+[{"name":"DP-1","make":"V","model":"M","serial":"1","width":800,"height":600,"refreshRate":60.0,"x":0,"y":0,"scale":1.0,"transform":0,"vrr":false,"disabled":false,"focused":true,"mirrorOf":"none","availableModes":["1920x1080@60.00Hz","800x600@60.00Hz"]}]
+JSON
+cat >"$tmp/topped.json" <<'JSON'
+[{"name":"DP-1","make":"V","model":"M","serial":"1","width":1920,"height":1080,"refreshRate":60.0,"x":0,"y":0,"scale":1.0,"transform":0,"vrr":false,"disabled":false,"focused":true,"mirrorOf":"none","availableModes":["1920x1080@60.00Hz","800x600@60.00Hz"]}]
+JSON
+# A highrr output stuck below its max resolution is drift; at its max it is not.
+sc 'hl.monitor({ output = "", mode = "highrr", position = "auto", scale = 1 })'
+chk "$tmp/stuck.json"  "$tmp/none.lua" drift "settle missed a highrr display stuck below its max resolution"
+chk "$tmp/topped.json" "$tmp/none.lua" ok    "settle reported drift for a display already at its max"
+# A deliberate explicit pick (config says 800x600) is respected, not bumped to 1080p.
+sc 'hl.monitor({ output = "DP-1", mode = "800x600@60", position = "0x0", scale = 1 })'
+chk "$tmp/stuck.json"  "$tmp/none.lua" ok    "settle overrode a deliberate explicit 800x600 pick"
+# But an explicit 1080p pick the link dropped to 800x600 is drift (restore it).
+sc 'hl.monitor({ output = "DP-1", mode = "1920x1080@60", position = "0x0", scale = 1 })'
+chk "$tmp/stuck.json"  "$tmp/none.lua" drift "settle missed an explicit 1080p pick degraded to 800x600"
+# A monitors_user.lua-pinned output is left to the user, never re-asserted.
+sc 'hl.monitor({ output = "", mode = "highrr", position = "auto", scale = 1 })'
+printf '%s\n' 'hl.monitor({ output = "DP-1", mode = "800x600@60" })' >"$tmp/pin.lua"
+chk "$tmp/stuck.json"  "$tmp/pin.lua"  ok    "settle touched a monitors_user.lua-pinned output"
+
 echo "monitor-profiles: all checks passed"

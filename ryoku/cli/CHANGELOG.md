@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Fixed
+- `doctor` gains a "display resolution" reconciler that recovers a monitor a
+  degraded link left below its available resolution. A cold boot or the
+  post-upgrade `hyprctl reload` can briefly leave a DP/HDMI link advertising only
+  a fallback mode (e.g. 800x600); Hyprland resolves `monitors.lua`'s `highrr`
+  against that list and never re-picks once the link trains, so the panel stays
+  low-res until a relogin. The reconciler (run by every `ryoku update` and by
+  hand) re-asserts each output's intended mode via `ryoku-monitor settle`,
+  respecting an explicit Ryoku Settings resolution and `monitors_user.lua`.
+  Covered by `doctor_test.go` and `tests/monitor-profiles.sh`.
 - `bin/ryoku-recovery` (the `curl | bash` panic button) now always restores the
   stable `main` branch and repairs the broken checkout in place. A machine from
   an old ISO could be stranded on `unstable-dev`: that ISO's `ryoku-update`

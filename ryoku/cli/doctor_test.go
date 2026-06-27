@@ -302,3 +302,43 @@ func TestMergedConfdRoot(t *testing.T) {
 		t.Errorf("no SNAPPER_CONFIGS line: changed=%v out=%q, want root line added and comment kept", changed, out)
 	}
 }
+
+// reconcileDisplayModes delegates to `ryoku-monitor settle`; stub both it and
+// hyprctl on PATH so hyprLive() and the settle outcomes are deterministic.
+func TestReconcileDisplayModes(t *testing.T) {
+	bin := t.TempDir()
+	mkExec := func(name, body string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(bin, name), []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// A present, answering hyprctl makes hyprLive() report a live session.
+	mkExec("hyprctl", "#!/bin/sh\nexit 0\n")
+	// ryoku-monitor stub: `settle --check` exits $CHK, `settle` exits $SET.
+	mkExec("ryoku-monitor", "#!/bin/sh\n"+
+		"if [ \"$1\" = settle ] && [ \"$2\" = --check ]; then exit ${CHK:-0}; fi\n"+
+		"if [ \"$1\" = settle ]; then exit ${SET:-0}; fi\nexit 0\n")
+	t.Setenv("PATH", bin)
+
+	t.Setenv("CHK", "0") // every display at its best available mode
+	if r := reconcileDisplayModes(false); r.status != recOK {
+		t.Fatalf("settled: got %s (%q), want ok", r.status.label(), r.detail)
+	}
+	t.Setenv("CHK", "1") // a display is below its available resolution
+	if r := reconcileDisplayModes(true); r.status != recWouldFix {
+		t.Fatalf("drift check-only: got %s, want todo", r.status.label())
+	}
+	t.Setenv("SET", "0") // settle recovers it
+	if r := reconcileDisplayModes(false); r.status != recFixed {
+		t.Fatalf("drift apply: got %s, want fixed", r.status.label())
+	}
+	t.Setenv("SET", "1") // settle cannot recover it
+	if r := reconcileDisplayModes(false); r.status != recWarn {
+		t.Fatalf("settle failed: got %s, want warn", r.status.label())
+	}
+	t.Setenv("PATH", t.TempDir()) // no hyprctl -> no live session
+	if r := reconcileDisplayModes(false); r.status != recOK {
+		t.Fatalf("no session: got %s, want ok", r.status.label())
+	}
+}

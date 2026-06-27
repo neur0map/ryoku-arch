@@ -173,28 +173,86 @@ apply_monitor() {
   hyprctl eval "hl.monitor({ $1 })" >/dev/null 2>&1
 }
 
-# Ride out a cold-boot DisplayPort link that first advertises a low refresh (common
-# on a discrete GPU): while an enabled, non-mirrored output runs below the top rate
-# its EDID lists, re-assert highrr and wait. Bounded, and a no-op once every output
-# already sits at its max, so it only costs time on a link still training.
-settle_refresh() {
-  [[ -n ${RYOKU_MONITOR_JSON:-} ]] && return 0
-  local tries=0 name
-  while ((tries < 6)); do
-    monitors_json | jq -e '
-      any(.[];
-        (.disabled | not)
-        and ((.mirrorOf // "none") == "none")
-        and ((.availableModes // []
-              | map(capture("@(?<r>[0-9.]+)Hz") | .r | tonumber)
-              | max // 0) - .refreshRate > 1))' >/dev/null 2>&1 || return 0
-    while IFS= read -r name; do
+# Per-output intended mode from the generated monitors.lua, as a JSON object
+# { "DP-1": "highrr", "": "highrr", ... }. The catch-all output ("") is the
+# default for any connector not named; a missing file means every output defaults
+# to highrr. Disabled entries carry no mode and are skipped.
+intended_modes_json() {
+  [[ -f $monitors_conf ]] || { printf '{}'; return; }
+  local obj
+  obj="$(grep -oE 'hl\.monitor\(\{[^}]*\}\)' "$monitors_conf" 2>/dev/null \
+    | while IFS= read -r call; do
+        [[ $call == *'mode = "'* ]] || continue
+        o="$(sed -nE 's/.*output = "([^"]*)".*/\1/p' <<<"$call")"
+        m="$(sed -nE 's/.*mode = "([^"]*)".*/\1/p' <<<"$call")"
+        [[ -n $m ]] && jq -cn --arg o "$o" --arg m "$m" '{($o): $m}'
+      done | jq -cs 'add // {}')"
+  [[ -n $obj ]] || obj='{}'
+  printf '%s' "$obj"
+}
+
+# Outputs whose live mode sits below what their intended config allows, emitted as
+# "name<TAB>mode" (mode = the intended mode to re-assert). A highrr/preferred output
+# is below when the panel advertises a larger resolution (or a higher refresh at
+# that top resolution) than the live mode; an explicit Ryoku Settings mode is below
+# only while the panel still advertises it and the live mode differs. Skips
+# disabled, mirrored, and monitors_user-pinned outputs. $1 = intent JSON object,
+# $2 = pinned-name JSON array; monitor JSON on stdin.
+drift_specs() {
+  jq -r --argjson intent "$1" --argjson pinned "$2" '
+    .[]
+    | . as $m
+    | select((.disabled | not) and ((.mirrorOf // "none") == "none"))
+    | select(($pinned | index($m.name)) == null)
+    | (($intent[$m.name]) // ($intent[""]) // "highrr") as $want
+    | ((.availableModes // [])
+        | map(capture("(?<w>[0-9]+)x(?<h>[0-9]+)@(?<r>[0-9.]+)")?
+              | {px: ((.w | tonumber) * (.h | tonumber)), r: (.r | tonumber)})) as $am
+    | ($am | map(.px) | max // 0) as $maxpx
+    | ($am | map(select(.px == $maxpx) | .r) | max // 0) as $maxrr
+    | (.width * .height) as $curpx
+    | if ($want == "highrr" or $want == "preferred") then
+        (if ($maxpx > $curpx) or (($maxrr - .refreshRate) > 1)
+         then "\(.name)\t\($want)" else empty end)
+      else
+        ($want | [capture("(?<w>[0-9]+)x(?<h>[0-9]+)")?] | .[0]) as $t
+        | if $t == null then empty
+          else (($t.w | tonumber) * ($t.h | tonumber)) as $tpx
+            | (if ($am | any(.px == $tpx)) and ($curpx != $tpx)
+               then "\(.name)\t\($want)" else empty end)
+          end
+      end'
+}
+
+# Re-assert each output's intended mode until the live layout matches it, bounded.
+# A cold-boot or post-upgrade link can advertise only a fallback mode (e.g. 800x600)
+# or a low refresh; Hyprland resolves highrr/preferred against that degraded list
+# and never re-picks once the link trains, so the display is stuck low until a
+# relogin. This re-asserts the intent (highrr re-resolves to the now-available top
+# mode; an explicit pick is restored), recovering it in place. Respects an explicit
+# mode and any monitors_user.lua pin. With --check it reports drift (exit 1) and
+# changes nothing -- the read-only signal `ryoku doctor` uses.
+settle_modes() {
+  local check_only=0
+  [[ "${1:-}" == "--check" ]] && check_only=1
+  local intent pinned_json drift name mode tries=0 max_tries=6
+  intent="$(intended_modes_json)"
+  pinned_json="$(pinned_outputs | jq -R . | jq -s .)"
+  # A fixture never changes between reads and never applies, so a single pass.
+  [[ -n ${RYOKU_MONITOR_JSON:-} ]] && max_tries=1
+  while ((tries < max_tries)); do
+    drift="$(monitors_json | drift_specs "$intent" "$pinned_json" 2>/dev/null || true)"
+    [[ -n $drift ]] || return 0
+    if ((check_only)); then return 1; fi
+    while IFS=$'\t' read -r name mode; do
       [[ -n $name ]] || continue
-      apply_monitor "output = \"$name\", mode = \"highrr\"" || true
-    done < <(monitors_json | jq -r '.[] | select((.disabled | not) and ((.mirrorOf // "none") == "none")) | .name')
+      apply_monitor "output = \"$name\", mode = \"$mode\"" || true
+    done <<<"$drift"
+    [[ -n ${RYOKU_MONITOR_JSON:-} ]] && return 0
     sleep 2
     tries=$((tries + 1))
   done
+  return 0
 }
 
 cmd_autoscale() {
@@ -248,7 +306,7 @@ cmd_autoscale() {
     [[ $newpos != "${curx}x${cury}" ]] && apply_monitor "output = \"$name\", position = \"$newpos\""
     x=$(awk -v X="$x" -v W="$w" -v S="$scale" 'BEGIN { printf "%d", X + int(W / S + 0.5) }')
   done < <(monitors_json | jq -r '[ .[] | select(.disabled | not) ] | sort_by(.x) | .[] | "\(.name)|\(.width)|\(.scale)|\(.x)|\(.y)"')
-  settle_refresh
+  settle_modes
   local gdk
   gdk="$(sync_gdk_scale)"
   write_monitors_conf "$gdk"
@@ -262,6 +320,15 @@ cmd_persist() {
   gdk="$(sync_gdk_scale)"
   write_monitors_conf "$gdk"
   echo "ryoku-monitor: wrote $monitors_conf (GDK_SCALE=$gdk)"
+}
+
+# settle: re-assert each output's intended mode so a display that came up at a
+# fallback resolution recovers without a relogin. Run at the end of an update and
+# by `ryoku doctor`; with --check it reports drift (exit 1) and changes nothing.
+cmd_settle() {
+  require_hyprctl
+  require_jq
+  settle_modes "${1:-}"
 }
 
 # Mirror every other enabled monitor onto SRC (default: the focused one) so all
@@ -510,6 +577,8 @@ Usage: ryoku-monitor <command>
   autoscale   Derive each monitor's scale from its DPI, apply it live, and write
               the monitors drop-in (default ~/.config/hypr/monitors.lua).
   persist     Write the monitors drop-in from the current live layout (no rescale).
+  settle      Re-assert each display's intended mode, recovering a link that came
+              up at a fallback resolution (--check reports drift, changes nothing).
   mirror [SRC] Mirror every other display onto SRC (default: the focused one).
   extend      Clear mirroring and lay displays side by side, DPI-scaled.
   toggle      Switch between mirror and extend.
@@ -529,6 +598,7 @@ main() {
   case "${1:-}" in
     autoscale) cmd_autoscale "${2:-}" ;;
     persist) cmd_persist ;;
+    settle) cmd_settle "${2:-}" ;;
     mirror) cmd_mirror "${2:-}" ;;
     extend) cmd_extend ;;
     toggle) cmd_toggle ;;

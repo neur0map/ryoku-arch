@@ -97,6 +97,7 @@ func reconcilers() []reconciler {
 		{"failed services", reconcileFailedUnits},
 		{"btrfs device health", reconcileBtrfsHealth},
 		{"display backlight", reconcileBacklight},
+		{"display resolution", reconcileDisplayModes},
 		{"NVIDIA boot reliability", reconcileNvidiaModeset},
 		{"pending config (.pacnew)", reconcilePacnew},
 		{"orphaned packages", reconcileOrphans},
@@ -815,6 +816,35 @@ func reconcileHyprlandConfig(checkOnly bool) recResult {
 			withFix("check ~/.config/hypr/user.lua, settings.lua, or theme.lua")
 	}
 	return okRes("Hyprland config loads cleanly")
+}
+
+// reconcileDisplayModes recovers a monitor a degraded link left below its
+// available resolution. After a cold boot or the post-upgrade `hyprctl reload`, a
+// DP/HDMI link can momentarily advertise only a VESA fallback (e.g. 800x600);
+// Hyprland resolves monitors.lua's `highrr` against that list and never re-picks
+// once the link trains, so the panel stays low-res until a relogin. `ryoku-monitor
+// settle` re-asserts each output's intended mode (respecting an explicit Ryoku
+// Settings pick and monitors_user.lua); `settle --check` is the read-only signal.
+// Live-only: with no session there is nothing to re-assert and the next login does.
+func reconcileDisplayModes(checkOnly bool) recResult {
+	if !hyprLive() {
+		return okRes("no live Hyprland session; displays settle at the next login")
+	}
+	if !has("ryoku-monitor") {
+		return okRes("ryoku-monitor not installed")
+	}
+	if exec.Command("ryoku-monitor", "settle", "--check").Run() == nil {
+		return okRes("every display is at its best available resolution")
+	}
+	if checkOnly {
+		return wouldRes("a display is below its available resolution (the link came up degraded)").
+			withFix("ryoku doctor (re-asserts each display's intended mode)")
+	}
+	if err := exec.Command("ryoku-monitor", "settle").Run(); err != nil {
+		return warnRes("a display is below its available resolution and ryoku-monitor settle did not recover it").
+			withFix("open Ryoku Settings > Displays and pick the resolution, or replug the cable")
+	}
+	return fixedRes("re-asserted a display that came up below its available resolution")
 }
 
 // repairHyprDropin rewrites a corrupt drop-in: regenerate it from the live machine
