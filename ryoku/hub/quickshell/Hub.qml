@@ -147,6 +147,7 @@ Rectangle {
         case "autostart":   return [hypr + "/modules/autostart.lua", hypr + "/user.lua"];
         case "environment": return [hypr + "/modules/env.lua", hypr + "/user.lua"];
         case "displays":    return [hypr + "/monitors.lua", hypr + "/monitors_user.lua"];
+        case "gpu":         return [hypr + "/gpu.lua", hypr + "/user.lua"];
         case "shell":       return [ryoku + "/shell.json", ryoku + "/visualizer.json"];
         case "widgets":     return [ryoku + "/widgets.json"];
         default:            return [];

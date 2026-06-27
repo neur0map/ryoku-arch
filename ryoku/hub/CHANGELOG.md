@@ -10,7 +10,7 @@
   beside `user.lua`, the file edits persist in (the Hub regenerates `settings.lua`
   from its JSON, so base-module and `settings.lua` edits do not survive, but
   `user.lua` loads last and always wins); Displays opens `monitors.lua` beside
-  `monitors_user.lua`; Shell and Widgets open their `~/.config/ryoku/*.json`. The
+  `monitors_user.lua`; GPU opens `gpu.lua`; Shell and Widgets open their `~/.config/ryoku/*.json`. The
   chip is hidden for sections with no editable file (Profile, Connections, Updates,
   Store, Add-ons, Lockscreen).
 - The **Store**: the plugin Discover catalogue and the Extras bundles are unified
