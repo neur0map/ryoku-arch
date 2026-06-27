@@ -127,6 +127,14 @@ func runVM(args []string) error {
 		}
 		fmt.Println(xml)
 		return nil
+	case "define":
+		return vmDefine(loadVM())
+	case "launch":
+		return vmLaunch()
+	case "stop":
+		return vmStop(loadVM())
+	case "status":
+		return vmStatus()
 	default:
 		return fmt.Errorf("unknown vm subcommand: %s", args[0])
 	}

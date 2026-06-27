@@ -19,6 +19,10 @@ func runGpu(args []string) error {
 		return printJSON(report)
 	case "mode":
 		return runGpuMode(args[1:])
+	case "apply":
+		return runGpuApply(args[1:])
+	case "hook":
+		return runGpuHook(args[1:])
 	default:
 		return fmt.Errorf("unknown gpu subcommand: %s", args[0])
 	}
