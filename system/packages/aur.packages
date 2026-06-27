@@ -10,10 +10,21 @@ yay-bin
 limine-mkinitcpio-hook
 limine-snapper-sync
 
-# Cursor themes (the whole Bibata family; XCURSOR_THEME default is Bibata-Modern-Ice).
-# The -bin package is prebuilt, so a failed source compile can never leave the
-# cursor picker with only a fallback theme.
+# Cursor themes: a curated set of modern XCursor themes the Ryoku Settings picker
+# offers (XCURSOR_THEME defaults to Bibata-Modern-Ice). The modern flat vimix set
+# ships from the official repo, see base.packages. Prebuilt packages are preferred
+# so a flaky source build cannot leave the picker with a single fallback.
+# Bibata family: Modern and Original edges in Ice, Amber, Classic.
 bibata-cursor-theme-bin
+# phinger: clean rounded set, light and dark, from a prebuilt release.
+phinger-cursors
+# volantes: minimal modern set, light and dark; the base Catppuccin is built on.
+volantes-cursors
+# catppuccin (Mocha): soft pastel set with several accent variants.
+catppuccin-cursors-mocha
+# apple_cursor (macOS style): builds from source via clickgen, so it can be slow or
+# fail to build; best-effort, like every package in this set.
+apple_cursor
 
 # Palette generator for the shell: wallpaper to terminal and Hyprland colors.
 wallust

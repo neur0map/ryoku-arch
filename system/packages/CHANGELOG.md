@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Added
+- Cursor themes: ship a curated set of modern XCursor themes the Ryoku Settings
+  picker offers, beyond the Bibata family. `base.packages` adds `vimix-cursors`
+  (official repo, flat modern); `aur.packages` adds `phinger-cursors` (clean
+  rounded, light and dark), `volantes-cursors` (minimal, light and dark),
+  `catppuccin-cursors-mocha` (pastel), and `apple_cursor` (macOS style; a source
+  build, so best-effort). All install XCursor themes under `/usr/share/icons`, so
+  they appear in the picker automatically.
+- `base.packages`: add `iw`, used by `ryoku-wifi-powersave` to disable 802.11
+  power-save for Game Mode (a low-latency win for competitive play).
 - `base.packages`: the curated base set the installer pacstraps.
 - `hardware.packages`: per-profile CPU microcode (`[amd]`, `[intel]`). GPU drivers
   come from `system/hardware/drivers/*.sh`, which the installer runs in the target.

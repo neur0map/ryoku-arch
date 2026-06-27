@@ -25,6 +25,8 @@ snap-pac
 # Networking
 networkmanager
 iwd
+# iw: ryoku-wifi-powersave (Game Mode) disables 802.11 power-save for low latency
+iw
 
 # Audio (PipeWire)
 pipewire
@@ -46,6 +48,10 @@ xdg-user-dirs
 qt6-wayland
 qt6ct
 adwaita-icon-theme
+
+# Cursor theme from the official repo (the rest of the Ryoku cursor set is AUR,
+# see aur.packages). vimix is a modern flat XCursor theme.
+vimix-cursors
 
 # Flatpak: the stash file drop installs .flatpak bundles, and it is the portable
 # app channel alongside the [ryoku] and Arch repos.
