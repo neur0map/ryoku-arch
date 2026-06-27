@@ -146,6 +146,9 @@
   shell's morph motion (a single sliding selection indicator in the rail).
 
 ### Changed
+- Plugins store: the Install / Installed / Remove actions adopt the dossier idiom
+  (a small-radius carbon chip with a mono uppercase label, ember only while
+  actionable, press-dip not hover-grow), replacing the generic bright full-pill.
 - The sidebar brand is a centred masthead: the wide-tracked **RYOKU ARCH**
   wordmark and a "system and shell settings" subtitle sit over a dimmed 力
   backdrop (a soft warm glow and a faint grid, echoing the Profile portrait

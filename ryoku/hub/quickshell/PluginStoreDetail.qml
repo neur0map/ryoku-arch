@@ -302,19 +302,28 @@ Item {
             // Install / installed action.
             Item { width: 1; height: 22 }
             Row {
-                spacing: 12
+                spacing: 10
+                // Primary action in the dossier idiom (mirrors HubButton): a
+                // small-radius carbon chip with a mono uppercase label - ember
+                // gradient while actionable, a hairline ghost once installed -
+                // never a generic full-pill.
                 Rectangle {
                     id: actionBtn
-                    width: 168; height: 44; radius: 22
                     readonly property bool isInstalled: detail.installed
-                    color: actionBtn.isInstalled ? (actHover.hovered ? Theme.surface : Theme.surfaceLo) : "transparent"
+                    readonly property bool actionable: !actionBtn.isInstalled && !detail.busy
+                    implicitWidth: actRow.implicitWidth + 44
+                    width: Math.max(150, actionBtn.implicitWidth)
+                    height: 40
+                    radius: 10
+                    color: actionBtn.isInstalled ? (actHover.hovered ? Theme.keyTop : "transparent") : "transparent"
                     border.width: actionBtn.isInstalled ? 1 : 0
                     border.color: Theme.line
-                    scale: actHover.hovered ? 1.03 : 1.0
-                    opacity: detail.busy ? 0.6 : 1
+                    opacity: detail.busy ? 0.7 : 1
+                    scale: actTap.pressed && actionBtn.actionable ? 0.97 : 1
                     Behavior on scale { NumberAnimation { duration: Theme.quick; easing.type: Theme.ease } }
-                    // Ember fill only when not installed (a conditional gradient
-                    // property is not valid QML, so it's a separate layer).
+                    Behavior on color { ColorAnimation { duration: Theme.quick } }
+                    // Ember fill while not installed (a conditional gradient
+                    // property is not valid QML, so it is a separate layer).
                     Rectangle {
                         anchors.fill: parent
                         radius: parent.radius
@@ -325,37 +334,46 @@ Item {
                         }
                     }
                     Row {
+                        id: actRow
                         anchors.centerIn: parent
                         spacing: 8
                         Icon {
                             anchors.verticalCenter: parent.verticalCenter
                             name: detail.busy ? "refresh" : (actionBtn.isInstalled ? "check" : "download")
-                            size: 16; weight: 2.2
-                            tint: actionBtn.isInstalled ? Theme.subtle : Theme.onAccent
+                            size: 14; weight: 1.8
+                            tint: actionBtn.isInstalled ? (actHover.hovered ? Theme.bright : Theme.subtle) : Theme.onAccent
                             RotationAnimation on rotation { running: detail.busy; loops: Animation.Infinite; from: 0; to: 360; duration: 900 }
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: detail.busy ? "Working" : (actionBtn.isInstalled ? "Installed" : "Install")
-                            color: actionBtn.isInstalled ? Theme.subtle : Theme.onAccent
-                            font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold
+                            text: detail.busy ? "WORKING" : (actionBtn.isInstalled ? "INSTALLED" : "INSTALL")
+                            color: actionBtn.isInstalled ? (actHover.hovered ? Theme.bright : Theme.subtle) : Theme.onAccent
+                            font.family: Theme.mono
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                            font.letterSpacing: 1.5
+                            font.capitalization: Font.AllUppercase
+                            Behavior on color { ColorAnimation { duration: Theme.quick } }
                         }
                     }
                     HoverHandler { id: actHover; cursorShape: Qt.PointingHandCursor; enabled: !detail.busy }
                     TapHandler {
-                        enabled: !detail.busy && !actionBtn.isInstalled
+                        id: actTap
+                        enabled: actionBtn.actionable
                         onTapped: detail.install(detail.plugin.id)
                     }
                 }
-                // Remove, only when installed.
+                // Remove, only when installed: the same carbon chip, its hairline
+                // warming to the fault red on hover (danger accent, not a red disc).
                 Rectangle {
                     visible: detail.installed && !detail.busy
-                    width: 44; height: 44; radius: 22
-                    color: rmHover.hovered ? Qt.rgba(Theme.bad.r, Theme.bad.g, Theme.bad.b, 0.14) : Theme.surfaceLo
+                    width: 40; height: 40; radius: 10
+                    color: rmHover.hovered ? Qt.rgba(Theme.bad.r, Theme.bad.g, Theme.bad.b, 0.12) : "transparent"
                     border.width: 1
                     border.color: rmHover.hovered ? Theme.bad : Theme.line
+                    Behavior on color { ColorAnimation { duration: Theme.quick } }
                     Behavior on border.color { ColorAnimation { duration: Theme.quick } }
-                    Icon { anchors.centerIn: parent; name: "trash"; size: 16; weight: 2; tint: rmHover.hovered ? Theme.bad : Theme.dim }
+                    Icon { anchors.centerIn: parent; name: "trash"; size: 15; weight: 1.8; tint: rmHover.hovered ? Theme.bad : Theme.dim }
                     HoverHandler { id: rmHover; cursorShape: Qt.PointingHandCursor }
                     TapHandler { onTapped: detail.remove(detail.plugin.id) }
                 }
