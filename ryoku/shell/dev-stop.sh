@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop the dev shell. The daemon terminates the components it started; the shell on
+# stop the dev shell. daemon kills the components it spawned; the shell on
 # your own session is left alone.
 set -euo pipefail
 

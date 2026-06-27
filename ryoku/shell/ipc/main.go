@@ -1,8 +1,8 @@
-// ryoku-shell is the single control plane for the Ryoku desktop shell. Run as
+// ryoku-shell = single control plane for the Ryoku desktop shell. as
 // `ryoku-shell daemon` it supervises the Quickshell components, brings up the
-// clipboard and wallpaper helpers, and owns one Unix socket. Run as
-// `ryoku-shell <command>` it forwards that command to the daemon over the socket;
-// Hyprland keybinds use this client form.
+// clipboard and wallpaper helpers, and owns one Unix socket. as
+// `ryoku-shell <command>` it forwards that command to the daemon over the
+// socket; Hyprland keybinds use this client form.
 package main
 
 import (
@@ -43,8 +43,8 @@ func main() {
 	}
 }
 
-// sendCommand forwards one command line to the daemon and prints any reply that
-// is not a bare "ok".
+// sendCommand: forward one command line to the daemon and print any reply that
+// isn't a bare "ok".
 func sendCommand(line string) error {
 	conn, err := net.DialTimeout("unix", sockPath(), 2*time.Second)
 	if err != nil {

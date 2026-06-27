@@ -2,7 +2,7 @@ package main
 
 import "testing"
 
-// route is the single source of truth for which panel a keybind toggles; a wrong
+// route = the single source of truth for which panel a keybind toggles; a wrong
 // entry silently opens the wrong surface, so pin every command.
 func TestRoute(t *testing.T) {
 	cases := []struct {
@@ -38,7 +38,7 @@ func TestRoute(t *testing.T) {
 	}
 }
 
-// Only monitor-scoped surfaces get the active monitor; hide does not.
+// only monitor-scoped surfaces get the active monitor; hide doesn't.
 func TestNeedsMonitor(t *testing.T) {
 	for fn, want := range map[string]bool{
 		"launcher": true, "toggle": true, "clipboard": true,

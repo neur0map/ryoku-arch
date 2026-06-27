@@ -37,18 +37,18 @@ func TestParseKeyringRespond(t *testing.T) {
 	}
 }
 
-// TestHandleKeyringFraming proves the control socket reads the keyring answer as
-// two lines (command, then the raw secret) and routes it to the prompter, while
-// leaving ordinary one-line commands untouched.
+// keyring framing: control socket reads the answer as two lines (command,
+// then the raw secret) and hands it to the prompter; ordinary one-line
+// commands stay untouched.
 func TestHandleKeyringFraming(t *testing.T) {
-	d := &daemon{} // prompter nil: the keyring branch returns its own error
+	d := &daemon{} // prompter nil: keyring branch returns its own error
 
-	// The secret line (with spaces) must be consumed without hanging, and the
-	// keyring branch (not dispatch) must handle it.
+	// secret line, spaces and all: must be consumed without hanging, and the
+	// keyring branch (not dispatch) handles it.
 	if got := roundtrip(t, d, "keyring-respond 7 continue 1\nhunter2 with spaces\n"); got != "err keyring prompter not running" {
 		t.Fatalf("keyring framing: got %q", got)
 	}
-	// A normal command is unaffected by the keyring branch.
+	// normal one-line command: keyring branch leaves it alone.
 	if got := roundtrip(t, d, "ping\n"); got != "ok" {
 		t.Fatalf("ping: got %q", got)
 	}

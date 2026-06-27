@@ -9,25 +9,25 @@ import (
 	"github.com/godbus/dbus/v5"
 )
 
-// TestPrompterInterop proves the prompter interoperates with the real
-// gnome-keyring-daemon: it registers as the system prompter (auto-answering with
-// a known password), then creates a password-protected keyring, locks it, and
-// unlocks it through the Secret Service. gnome-keyring only accepts the unlock if
-// the password our secret exchange decrypts matches, so a green run is end-to-end
-// proof of the DH/HKDF/AES wire format against the real implementation.
+// live interop check against the real gnome-keyring-daemon: register as the
+// system prompter (auto-answer with a known password), then create a
+// password-protected keyring, lock it, unlock it through the Secret Service.
+// gnome-keyring only accepts the unlock if the decrypted password matches, so
+// a green run is end-to-end proof of the DH/HKDF/AES wire format against the
+// real implementation.
 //
-// It touches the live keyring daemon and creates (then deletes) a throwaway
-// collection, so it is gated behind RYOKU_KEYRING_INTEROP=1 and skipped in CI and
-// ordinary `go test`.
+// touches the live keyring daemon and creates (then deletes) a throwaway
+// collection, so it's gated behind RYOKU_KEYRING_INTEROP=1 and skipped in CI
+// and plain `go test`.
 func TestPrompterInterop(t *testing.T) {
 	if os.Getenv("RYOKU_KEYRING_INTEROP") != "1" {
 		t.Skip("set RYOKU_KEYRING_INTEROP=1 to run the live gnome-keyring interop test")
 	}
 
-	const pw = "ryoku-interop-pw-\U0001F510" // a non-ASCII secret exercises utf-8
+	const pw = "ryoku-interop-pw-\U0001F510" // non-ASCII secret exercises utf-8
 
-	// The prompter and the Secret Service client must look like distinct peers,
-	// so they use separate bus connections.
+	// prompter and Secret Service client must look like distinct peers, so they
+	// take separate bus connections.
 	pConn, err := dbus.ConnectSessionBus()
 	if err != nil {
 		t.Fatalf("prompter bus: %v", err)
@@ -37,7 +37,7 @@ func TestPrompterInterop(t *testing.T) {
 	p := &prompter{conn: pConn, prompts: map[dbus.ObjectPath]*promptSession{}}
 	var attempts int32
 	p.onShow = func(id int, ptype string, props map[string]interface{}) {
-		// Answer with the known password, but stop after a few tries so a wrong
+		// answer with the known password, but bail after a few tries so a wrong
 		// decryption fails the assertion instead of looping forever.
 		if atomic.AddInt32(&attempts, 1) > 3 {
 			go p.respond(id, "cancel", false, "")
@@ -63,7 +63,7 @@ func TestPrompterInterop(t *testing.T) {
 	defer cConn.Close()
 	secrets := cConn.Object("org.freedesktop.secrets", "/org/freedesktop/secrets")
 
-	// Create a password-protected collection (a "new keyring password" prompt).
+	// password-protected collection (a "new keyring password" prompt).
 	var collPath, promptPath dbus.ObjectPath
 	props := map[string]dbus.Variant{
 		"org.freedesktop.Secret.Collection.Label": dbus.MakeVariant("ryoku-interop-test"),
@@ -84,7 +84,7 @@ func TestPrompterInterop(t *testing.T) {
 	}
 	defer deleteCollection(t, cConn, collPath)
 
-	// Lock it, then unlock it (a password prompt) so the round trip is exercised.
+	// lock, then unlock (a password prompt) so the full round trip runs.
 	var locked []dbus.ObjectPath
 	if err := secrets.Call("org.freedesktop.Secret.Service.Lock", 0, []dbus.ObjectPath{collPath}).
 		Store(&locked, &promptPath); err != nil {
@@ -124,7 +124,7 @@ func TestPrompterInterop(t *testing.T) {
 }
 
 // runSecretPrompt drives an org.freedesktop.Secret.Prompt and waits for its
-// Completed signal, returning the result and whether it was dismissed.
+// Completed signal. returns the result + whether it was dismissed.
 func runSecretPrompt(t *testing.T, conn *dbus.Conn, promptPath dbus.ObjectPath) (dbus.Variant, bool) {
 	t.Helper()
 	if err := conn.AddMatchSignal(

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Run the Ryoku shell straight from this repo on the running Hyprland session, with
-# no install. The daemon launches each component with `qs -p <repo>/quickshell/...`,
-# and quickshell hot-reloads QML edits, so changes show live. Your own ~/.config is
-# never touched. Stop with dev-stop.sh.
+# run the Ryoku shell straight from this repo on the live Hyprland session, no
+# install. daemon launches each component with `qs -p <repo>/quickshell/...`
+# and quickshell hot-reloads QML edits, so changes show live. your ~/.config
+# stays untouched. dev-stop.sh to stop.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -10,8 +10,8 @@ bin="$here/ipc/ryoku-shell"
 
 (cd "$here/ipc" && go build -o ryoku-shell .)
 
-# The frame component imports the Ryoku.Blobs plugin from the QML import path the
-# daemon sets; build + install it so the dev loop renders the frame like a deploy.
+# the frame component imports Ryoku.Blobs from the QML path the daemon sets,
+# so build + install it once = dev loop renders the frame like a real deploy.
 "$here/plugin/build.sh" "$HOME/.local/lib/qt6/qml"
 
 export RYOKU_SHELL_DIR="$here"

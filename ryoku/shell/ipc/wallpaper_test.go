@@ -17,9 +17,9 @@ func TestPickTransitionNeverRepeats(t *testing.T) {
 }
 
 func TestPresetsShareOneSpeed(t *testing.T) {
-	// Every transition must run at the shared speed: no preset may carry its own
-	// --transition-duration or --transition-fps (showWallpaper appends the shared
-	// values), so they all stay in lockstep.
+	// shared speed enforcement. no preset carries its own --transition-duration
+	// or --transition-fps (showWallpaper appends those), so all presets stay
+	// in lockstep.
 	for _, p := range transitionPresets {
 		for _, a := range p.args {
 			if a == "--transition-duration" || a == "--transition-fps" {

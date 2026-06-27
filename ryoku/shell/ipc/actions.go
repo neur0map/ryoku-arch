@@ -9,13 +9,13 @@ import (
 	"time"
 )
 
-// shellDir, set via RYOKU_SHELL_DIR, runs the components straight from a repo
-// checkout (qs -p <dir>/quickshell/<name>) instead of an installed config under
-// ~/.config. Empty in a deployed setup.
+// shellDir (RYOKU_SHELL_DIR): run components straight out of a repo checkout
+// (qs -p <dir>/quickshell/<name>) instead of an installed config under
+// ~/.config. empty in a deployed setup.
 var shellDir = os.Getenv("RYOKU_SHELL_DIR")
 
-// qsSelect builds the qs config selector for a component: by repo path in dev, or
-// by config name when deployed.
+// qsSelect: qs config selector for a component. by repo path in dev, by config
+// name when deployed.
 func qsSelect(name string) []string {
 	if shellDir != "" {
 		return []string{"-p", filepath.Join(shellDir, "quickshell", name)}
@@ -23,7 +23,7 @@ func qsSelect(name string) []string {
 	return []string{"-c", name}
 }
 
-// ipcCall invokes a Quickshell IpcHandler function. The component may have just
+// ipcCall: invoke a Quickshell IpcHandler function. component may have just
 // been started, so it retries briefly until the instance answers.
 func ipcCall(config, target, fn, arg string) string {
 	argv := append(qsSelect(config), "ipc", "call", target, fn)
@@ -46,8 +46,8 @@ func ipcCall(config, target, fn, arg string) string {
 	return "err qs ipc " + config + "/" + fn + ": " + msg
 }
 
-// ipcCallN is ipcCall for IpcHandler functions that take more than one argument
-// (e.g. pluginPopout(mon, id)). Empty trailing args are still passed positionally.
+// ipcCallN = ipcCall for IpcHandler functions that take more than one arg
+// (e.g. pluginPopout(mon, id)). empty trailing args still go positionally.
 func ipcCallN(config, target, fn string, args ...string) string {
 	argv := append(qsSelect(config), "ipc", "call", target, fn)
 	argv = append(argv, args...)
@@ -67,7 +67,7 @@ func ipcCallN(config, target, fn string, args ...string) string {
 	return "err qs ipc " + config + "/" + fn + ": " + msg
 }
 
-// activeMonitor returns the name of the monitor holding the focused workspace.
+// activeMonitor: name of the monitor holding the focused workspace.
 func activeMonitor() string {
 	out, err := exec.Command("hyprctl", "activeworkspace", "-j").Output()
 	if err != nil {
@@ -82,8 +82,8 @@ func activeMonitor() string {
 	return w.Monitor
 }
 
-// lockSession locks the screen with qylock, the in-session lock Ryoku ships. The
-// shell has no lock of its own.
+// lockSession locks the screen with qylock, the in-session lock Ryoku ships.
+// the shell has no lock of its own.
 func lockSession() string {
 	if pgrepRunning("quickshell.*quickshell-lockscreen.*/lock_shell.qml") {
 		return "ok"
@@ -99,11 +99,11 @@ func lockSession() string {
 	return "ok"
 }
 
-// toggleHandy flips Handy's transcription on the running instance
-// (the Super+` tap). Handy is an optional AUR app (handy-bin); when it is not
-// installed this is a no-op, so the voice visualizer still works as a plain mic
-// meter. The flag is forwarded to the already-running instance via Handy's
-// single-instance plugin, so the process started here exits at once.
+// toggleHandy flips Handy transcription on the running instance (the Super+`
+// tap). Handy is an optional AUR app (handy-bin); when absent this is a no-op
+// and the voice visualizer keeps working as a plain mic meter. the flag is
+// forwarded to the already-running instance via Handy's single-instance plugin,
+// so the process started here exits right away.
 func toggleHandy() {
 	if _, err := exec.LookPath("handy"); err != nil {
 		return
@@ -112,8 +112,8 @@ func toggleHandy() {
 	if err := cmd.Start(); err != nil {
 		return
 	}
-	// Reap the short-lived forwarder in the background so it does not linger as a
-	// zombie; toggleHandy fires twice per dictation (key down and key up).
+	// reap the short-lived forwarder in the background, else it lingers as a
+	// zombie; toggleHandy fires twice per dictation (key down + key up).
 	go func() { _ = cmd.Wait() }()
 }
 

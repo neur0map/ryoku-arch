@@ -88,7 +88,7 @@ void BlobGroup::markShapeDirty(BlobShape* source) {
     source->polish();
     source->update();
 
-    // Use cached padded rects to find spatial neighbors
+    // cached padded rects = neighbor lookup
     const float pad = static_cast<float>(m_smoothing) * 2.0f;
     const QRectF srcRect(static_cast<double>(source->m_cachedPaddedX - pad),
         static_cast<double>(source->m_cachedPaddedY - pad), static_cast<double>(source->m_cachedPaddedW + pad * 2.0f),

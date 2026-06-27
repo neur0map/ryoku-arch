@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-// TestSecretExchangePrime guards the group prime: gcr uses the 1536-bit MODP
-// group, so a transcription slip here would silently break interop.
+// guard the group prime: gcr uses the 1536-bit MODP group, so a transcription
+// slip here silently breaks interop.
 func TestSecretExchangePrime(t *testing.T) {
 	if sxPrime == nil {
 		t.Fatal("prime failed to parse")
@@ -20,10 +20,10 @@ func TestSecretExchangePrime(t *testing.T) {
 	}
 }
 
-// TestSecretExchangeRoundTrip drives both halves of the exchange the way gcr
-// does: the prompter begins, the client receives and replies with its public,
-// the prompter receives and seals the secret, the client decrypts it. The two
-// sides must derive an identical key and recover the exact bytes.
+// drive both halves of the exchange the way gcr does: prompter begins, client
+// receives and replies with its public, prompter receives and seals the secret,
+// client decrypts. both sides must derive the same key and recover the exact
+// bytes.
 func TestSecretExchangeRoundTrip(t *testing.T) {
 	for _, secret := range [][]byte{
 		[]byte("hunter2"),
@@ -68,8 +68,8 @@ func TestSecretExchangeRoundTrip(t *testing.T) {
 	}
 }
 
-// TestHKDFVector checks the HKDF implementation against RFC 5869 test case 1, so
-// the key-derivation half of the exchange is verified independently of the DH.
+// HKDF against RFC 5869 test case 1, so the key-derivation half of the exchange
+// is verified independently of the DH.
 func TestHKDFVector(t *testing.T) {
 	ikm := bytes.Repeat([]byte{0x0b}, 22)
 	salt, _ := hex.DecodeString("000102030405060708090a0b0c")

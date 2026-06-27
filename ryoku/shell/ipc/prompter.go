@@ -13,19 +13,19 @@ import (
 	"github.com/godbus/dbus/v5"
 )
 
-// The daemon is the GNOME keyring "system prompter": it owns
+// the daemon doubles as the GNOME keyring "system prompter": owns
 // org.gnome.keyring.SystemPrompter on the session bus and implements
-// org.gnome.keyring.internal.Prompter, the interface gnome-keyring-daemon drives
-// when it needs the user's keyring password. The default prompter (gcr-prompter)
-// draws a centred GTK dialog; by claiming the name first we draw the prompt as a
-// pill island instead, while reusing gcr's exact wire protocol so
-// gnome-keyring-daemon is unaware of the swap.
+// org.gnome.keyring.internal.Prompter, the iface gnome-keyring-daemon drives
+// when it needs the keyring password. default prompter (gcr-prompter) draws a
+// centred GTK dialog; we grab the name first and render the prompt as a pill
+// island instead, but reuse gcr's exact wire protocol so gnome-keyring-daemon
+// can't tell the difference.
 //
 // gcr's prompter contract (gcr/org.gnome.keyring.Prompter.xml):
-//   - BeginPrompting(o callback): the client registers a callback object; we
-//     reply, then call PromptReady on it once, seeding the secret exchange.
+//   - BeginPrompting(o callback): client registers a callback object; we reply,
+//     then call PromptReady on it once, seeding the secret exchange.
 //   - PerformPrompt(o callback, s type, a{sv} props, s exchange): show one
-//     prompt. We return at once; the answer is delivered later via PromptReady.
+//     prompt. returns at once; the answer comes back later via PromptReady.
 //   - StopPrompting(o callback): tear the prompt down; we answer PromptDone.
 const (
 	prompterName  = "org.gnome.keyring.SystemPrompter"
@@ -39,9 +39,9 @@ const (
 	errPromptFailed = "org.gnome.keyring.Prompter.Failed"
 )
 
-// promptSession is one client's prompt across its lifetime. The secret exchange
-// is established once (in BeginPrompting) and reused for every PerformPrompt on
-// the same callback; gnome-keyring only sends the properties that changed, so
+// promptSession = one client's prompt across its life. the secret exchange is
+// set up once (in BeginPrompting) and reused for every PerformPrompt on the
+// same callback. gnome-keyring only sends the properties that changed, so
 // props accumulates them.
 type promptSession struct {
 	callback dbus.ObjectPath
@@ -60,8 +60,8 @@ type prompter struct {
 	onShow  func(id int, ptype string, props map[string]interface{})
 }
 
-// startKeyringPrompter brings the prompter up on the session bus. It returns nil
-// (after logging) when the bus is unavailable or the name is held elsewhere, so
+// startKeyringPrompter brings the prompter up on the session bus. returns nil
+// (after logging) if the bus is unavailable or the name is held elsewhere, so
 // the shell still starts and gcr's own prompter stays as the fallback.
 func startKeyringPrompter() *prompter {
 	conn, err := dbus.ConnectSessionBus()
@@ -90,9 +90,9 @@ func startKeyringPrompter() *prompter {
 	return p
 }
 
-// BeginPrompting registers a client callback and seeds the secret exchange. We
-// must call PromptReady only after this method's reply reaches the client (it
-// completes the client's open on that first ready), so it is deferred briefly:
+// BeginPrompting: register a client callback, seed the secret exchange.
+// PromptReady must fire only AFTER this method's reply reaches the client (the
+// reply completes the client's open on the first ready), hence the brief defer.
 // the bus preserves message order once the reply is out.
 func (p *prompter) BeginPrompting(callback dbus.ObjectPath, sender dbus.Sender) *dbus.Error {
 	sess := &promptSession{
@@ -116,9 +116,9 @@ func (p *prompter) BeginPrompting(callback dbus.ObjectPath, sender dbus.Sender) 
 	return nil
 }
 
-// PerformPrompt shows one prompt. It merges the changed properties, takes the
-// client's public key to finish key agreement, and raises the island. The user's
-// answer arrives later via the control socket and is sent back with PromptReady.
+// PerformPrompt: show one prompt. merges the changed props, takes the client's
+// public key to finish key agreement, raises the island. user's answer arrives
+// later via the control socket and goes back out with PromptReady.
 func (p *prompter) PerformPrompt(callback dbus.ObjectPath, ptype string, properties map[string]dbus.Variant, exchange string) *dbus.Error {
 	p.mu.Lock()
 	sess := p.prompts[callback]
@@ -144,8 +144,8 @@ func (p *prompter) PerformPrompt(callback dbus.ObjectPath, ptype string, propert
 	return nil
 }
 
-// StopPrompting ends a prompt: dismiss the island and acknowledge with
-// PromptDone (best effort; the client has often already dropped its callback).
+// StopPrompting: dismiss the island, ack with PromptDone (best effort, the
+// client has often already dropped its callback).
 func (p *prompter) StopPrompting(callback dbus.ObjectPath) *dbus.Error {
 	p.mu.Lock()
 	sess := p.prompts[callback]
@@ -162,11 +162,10 @@ func (p *prompter) StopPrompting(callback dbus.ObjectPath) *dbus.Error {
 	return nil
 }
 
-// respond delivers the island's answer back to gnome-keyring. action is
-// "continue" (the user submitted) or anything else (cancel); choice is the
-// optional checkbox. A stale id (the prompt was replaced or torn down) is
-// ignored. Called from the daemon's control socket so the secret never crosses a
-// command line.
+// respond hands the island's answer back to gnome-keyring. action = "continue"
+// (user submitted) or anything else (cancel); choice = the optional checkbox.
+// stale id (prompt was replaced or torn down) -> ignored. called from the
+// daemon's control socket so the secret never crosses a command line.
 func (p *prompter) respond(id int, action string, choice bool, secret string) string {
 	p.mu.Lock()
 	sess := p.active
@@ -197,7 +196,7 @@ func (p *prompter) respond(id int, action string, choice bool, secret string) st
 }
 
 // parseKeyringRespond decodes a control-socket "keyring-respond <id> <action>
-// <choice>" line. The typed secret travels on the following line, not here.
+// <choice>" line. the typed secret rides the FOLLOWING line, not here.
 func parseKeyringRespond(cmd string) (id int, action string, choice bool, err error) {
 	fields := strings.Fields(cmd)
 	if len(fields) < 4 {
@@ -222,7 +221,7 @@ func (d *daemon) keyringRespond(cmd, secret string) string {
 	return d.prompter.respond(id, action, choice, secret)
 }
 
-// pushPrompt sends one prompt's fields to the pill island as JSON.
+// pushPrompt: ship one prompt's fields to the pill island as JSON.
 func (p *prompter) pushPrompt(id int, ptype string, props map[string]interface{}) {
 	payload := map[string]interface{}{
 		"id":            id,

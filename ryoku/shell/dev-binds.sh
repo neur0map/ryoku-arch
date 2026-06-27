@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Add (on) or drop (off) the Ryoku shell keybinds on the live session so the real
-# bindings can be tested. They override your current ones until `hyprctl reload`.
+# add (on) or drop (off) the Ryoku shell keybinds on the live session so the
+# real bindings can be exercised. overrides yours until `hyprctl reload`.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
