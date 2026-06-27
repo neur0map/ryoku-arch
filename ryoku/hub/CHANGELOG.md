@@ -175,6 +175,11 @@
   shell's morph motion (a single sliding selection indicator in the rail).
 
 ### Changed
+- Store: the catalogue refresh moved to a single control to the left of the
+  Plugins / Bundles switch, refreshing whichever catalogue is shown; the embedded
+  pages no longer show their own refresh inside the store.
+- Add-ons: the per-plugin settings detail drops the showcase backdrop (the warm
+  glow read muddy behind a form); the bento grid keeps it.
 - Plugins store: the Install / Installed / Remove actions match the update consent
   prompt - outlined ember "stamp" buttons (a thin ember border + mono uppercase
   label, no fill) for the live action and hairline ghost stamps for the rest,

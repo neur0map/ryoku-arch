@@ -73,7 +73,7 @@ Item {
     Process { id: settingsProc; onExited: page.refresh() }
     Process { id: rmProc; onExited: { page.busyId = ""; page.view = "grid"; page.refresh(); } }
 
-    ShowcaseBackdrop { anchors.fill: parent }
+    ShowcaseBackdrop { anchors.fill: parent; visible: page.view === "grid" }
 
     // ── Grid: installed plugins as bento cards ──────────────────────────────
     Flickable {

@@ -17,6 +17,7 @@ Item {
     property bool loading: true
     property bool loadFailed: false
     property string selectedId: ""
+    property bool storeMode: false
 
     readonly property string reportDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-extras"
 
@@ -160,7 +161,7 @@ Item {
     // without leaving the page. Spins while the fetch is in flight.
     Rectangle {
         id: extrasRefresh
-        visible: !page.loading && !page.loadFailed && page.selectedId === ""
+        visible: !page.loading && !page.loadFailed && page.selectedId === "" && !page.storeMode
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.rightMargin: 8

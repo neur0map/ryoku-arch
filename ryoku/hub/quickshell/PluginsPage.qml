@@ -115,7 +115,7 @@ Item {
     // lockscreen refresh. Spins while a fetch is in flight.
     Rectangle {
         id: refreshBtn
-        visible: page.view !== "detail"
+        visible: page.view !== "detail" && !page.storeMode
         anchors.top: parent.top
         anchors.right: tabs.left
         anchors.rightMargin: 10
@@ -195,7 +195,7 @@ Item {
             id: grid
             width: parent.width
             spacing: 18
-            topPadding: 48
+            topPadding: page.storeMode ? 4 : 48
 
             Repeater {
                 model: page.catalog
