@@ -2,22 +2,22 @@
 #
 # sddm/setup: wire SDDM as the graphical login manager at install time.
 #
-# Run on the target system (typically from the install backend, inside the
-# chroot or via sudo). It does the plumbing that makes a fresh machine boot
-# into the SDDM greeter rather than a bare tty:
+# runs on the target (typically from the install backend, in the chroot or
+# via sudo). the plumbing that makes a fresh box boot into the SDDM greeter
+# instead of a bare tty:
 #
 #   1. enable sddm.service
-#   2. set the default systemd target to graphical
-#   3. strip pam_gnome_keyring from /etc/pam.d/sddm (a password SDDM login must
-#      not spawn an encrypted login keyring; it conflicts with the passwordless
-#      Default_keyring used for auto-unlock)
-#   4. ensure a hyprland.desktop wayland session exists so SDDM can launch it
+#   2. default systemd target = graphical
+#   3. strip pam_gnome_keyring from /etc/pam.d/sddm. a password SDDM login
+#      must NOT spawn an encrypted login keyring: it clashes with the
+#      passwordless Default_keyring used for auto-unlock.
+#   4. make sure a hyprland.desktop wayland session exists so SDDM can launch it
 #
-# The greeter THEME itself is installed by install-qylock; this script only does
-# the SDDM service/session wiring. Keep the two separate so a cosmetic theme
-# failure never stops the login manager from coming up.
+# the greeter THEME itself is installed by install-qylock. this script only
+# does the SDDM service/session wiring; keep the two separate so a cosmetic
+# theme failure never stops the login manager from coming up.
 #
-# Usage:
+# usage:
 #   setup                run the wiring
 #   setup --dry-run      print the plan, change nothing
 #   RYOKU_DRYRUN=1 setup  same, via the shared installer switch
@@ -47,7 +47,7 @@ run() {
   "$@"
 }
 
-# Root for the system paths; sudo when we are not already root.
+# root for system paths; sudo when we're not already root.
 if (( EUID == 0 )); then
   PRIV=()
 else
@@ -64,13 +64,13 @@ echo "  enabling sddm.service"
 priv systemctl enable sddm.service
 
 # --- 2. default to the graphical target --------------------------------------
-# A plain Arch chroot leaves default.target = multi-user.target, which boots to
-# a getty and never starts SDDM. The pacman post-install hook that normally
-# flips this does not fire in a chroot, so set it explicitly.
+# a plain Arch chroot leaves default.target = multi-user.target = boots to a
+# getty, SDDM never starts. the pacman post-install hook that normally flips
+# this doesn't fire in a chroot, so set it explicitly.
 echo "  setting default target -> graphical.target"
 priv systemctl set-default graphical.target
 
-# --- 3. drop pam_gnome_keyring from the SDDM PAM stack ------------------------
+# --- 3. drop pam_gnome_keyring from the SDDM PAM stack -----------------------
 if [[ -f $PAM_FILE ]]; then
   if grep -q 'pam_gnome_keyring\.so' "$PAM_FILE"; then
     echo "  removing pam_gnome_keyring from $PAM_FILE"
@@ -82,7 +82,7 @@ else
   echo "  note: $PAM_FILE not present yet; nothing to strip"
 fi
 
-# --- 4. ensure a Hyprland wayland session exists -----------------------------
+# --- 4. make sure a Hyprland wayland session exists --------------------------
 session_found=false
 for session in hyprland.desktop Hyprland.desktop hyprland-uwsm.desktop; do
   if [[ -f $SESSION_DIR/$session ]]; then
