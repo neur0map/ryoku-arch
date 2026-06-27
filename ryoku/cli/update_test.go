@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// wantedSnapperHelpers gates the offer: no snapshots without btrfs + snapper, and
-// limine-snapper-sync only when Limine is the bootloader.
+// wantedSnapperHelpers gates the offer. no btrfs+snapper -> nothing,
+// limine-snapper-sync only on Limine.
 func TestWantedSnapperHelpers(t *testing.T) {
 	ready := snapperState{rootIsBtrfs: true, snapperInstalled: true}
 
@@ -39,12 +39,12 @@ func TestWantedSnapperHelpers(t *testing.T) {
 	}
 }
 
-// publishPrompt/awaitAnswer is the Hub consent back-channel: a prompt clears any
-// stale answer, the run-state carries it, and a fresh answer is read and consumed.
+// publishPrompt/awaitAnswer = the Hub consent back-channel. publish clears
+// stale answers, run-state carries the prompt, awaitAnswer reads + consumes.
 func TestPromptAnswerRoundTrip(t *testing.T) {
 	t.Setenv("XDG_RUNTIME_DIR", t.TempDir())
 
-	// A stale answer from a previous prompt must not satisfy this one.
+	// stale answer from a previous prompt must not satisfy this one.
 	if err := os.WriteFile(answerPath(), []byte("Install"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -58,12 +58,12 @@ func TestPromptAnswerRoundTrip(t *testing.T) {
 		t.Fatalf("run-state missing the prompt: %s (err %v)", b, err)
 	}
 
-	// No answer within the window is a decline.
+	// no answer in the window = decline.
 	if choice, ok := awaitAnswer(150 * time.Millisecond); ok {
 		t.Fatalf("awaitAnswer should time out with no answer, got %q", choice)
 	}
 
-	// A written answer is read and then consumed.
+	// written answer: read, then consume.
 	if err := os.WriteFile(answerPath(), []byte("Install\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

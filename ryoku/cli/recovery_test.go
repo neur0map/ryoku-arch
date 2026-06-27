@@ -10,7 +10,7 @@ import (
 
 func TestRecoveryRunsLocalScript(t *testing.T) {
 	repo := t.TempDir()
-	// resolveRepo only accepts a real git work tree.
+	// resolveRepo wants a real git work tree.
 	init := exec.Command("git", "-C", repo, "init")
 	init.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_SYSTEM=/dev/null")
 	if out, err := init.CombinedOutput(); err != nil {

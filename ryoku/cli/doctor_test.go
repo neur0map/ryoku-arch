@@ -43,7 +43,7 @@ func TestDirOnlyContains(t *testing.T) {
 	if !dirOnlyContains(dir, "swapfile") {
 		t.Error("dir holding only the swapfile should match")
 	}
-	// A second file must block the auto-fix so surgery never runs on a shared dir.
+	// a second file must block the auto-fix; surgery never runs on a shared dir.
 	if err := os.WriteFile(filepath.Join(dir, "other"), []byte("y"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -151,10 +151,10 @@ func TestHyprLuaSane(t *testing.T) {
 	}
 }
 
-// A crash-truncated generated drop-in is detected and repaired to a parseable
-// safe seed, while a valid sibling is left untouched and the fix is idempotent.
-// PATH is emptied so the test never touches luac/hyprctl/ryoku-monitor: it
-// exercises the structural check and the safe-seed fallback deterministically.
+// torn generated drop-in -> detected and repaired to a parseable safe seed;
+// a valid sibling stays untouched, and the fix is idempotent. PATH is wiped
+// so the test never touches luac/hyprctl/ryoku-monitor: just the structural
+// check + the safe-seed fallback, deterministically.
 func TestReconcileHyprlandConfigRepairsCorruptDropin(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -213,8 +213,8 @@ func TestReconcileHyprlandConfigNoConfig(t *testing.T) {
 	}
 }
 
-// The snapper reconciler's decision logic lives in planSnapper, a pure function
-// of an observed snapperState. Exercising it directly keeps the test
+// the snapper reconciler's decision logic lives in planSnapper, a pure
+// function of an observed snapperState. exercising it directly stays
 // hermetic: no real /etc, no snapper or btrfs invocation, just the branch
 // table reconcileSnapper switches on.
 func TestPlanSnapper(t *testing.T) {
@@ -272,30 +272,30 @@ func TestPlanSnapper(t *testing.T) {
 	}
 }
 
-// mergedConfdRoot decides how /etc/conf.d/snapper changes when doctor lays the
-// snapper root config down. It must add "root" without dropping anything a
+// mergedConfdRoot decides how /etc/conf.d/snapper changes when doctor writes
+// the snapper root config. it must add "root" without dropping anything a
 // human (or another tool) already put in the file.
 func TestMergedConfdRoot(t *testing.T) {
-	// Missing file: doctor writes the canonical snippet.
+	// missing file: doctor writes the canonical snippet.
 	out, changed := mergedConfdRoot(false, "")
 	if !changed || !strings.Contains(out, `SNAPPER_CONFIGS="root"`) {
 		t.Errorf("missing file: changed=%v out=%q, want canonical content with root", changed, out)
 	}
 
-	// Already lists root: leave the file alone (idempotent doctor).
+	// already lists root: leave the file alone (idempotent doctor).
 	in := "SNAPPER_CONFIGS=\"root\"\n"
 	if out, changed := mergedConfdRoot(true, in); changed || out != in {
 		t.Errorf("present+root: changed=%v out=%q, want unchanged", changed, out)
 	}
 
-	// Lists another config: append root, keep the existing one.
+	// lists another config: append root, keep the existing one.
 	in = "SNAPPER_CONFIGS=\"home\"\n"
 	out, changed = mergedConfdRoot(true, in)
 	if !changed || !strings.Contains(out, `SNAPPER_CONFIGS="home root"`) {
 		t.Errorf("present+home: changed=%v out=%q, want root appended after home", changed, out)
 	}
 
-	// No SNAPPER_CONFIGS line at all: add one, keep surrounding lines.
+	// no SNAPPER_CONFIGS line at all: add one, keep surrounding lines.
 	in = "# user comment\n"
 	out, changed = mergedConfdRoot(true, in)
 	if !changed || !strings.Contains(out, `SNAPPER_CONFIGS="root"`) || !strings.Contains(out, "# user comment") {
@@ -303,8 +303,8 @@ func TestMergedConfdRoot(t *testing.T) {
 	}
 }
 
-// reconcileDisplayModes delegates to `ryoku-monitor settle`; stub both it and
-// hyprctl on PATH so hyprLive() and the settle outcomes are deterministic.
+// reconcileDisplayModes delegates to `ryoku-monitor settle`; stub both it
+// and hyprctl on PATH so hyprLive() + the settle outcomes stay deterministic.
 func TestReconcileDisplayModes(t *testing.T) {
 	bin := t.TempDir()
 	mkExec := func(name, body string) {
@@ -313,7 +313,7 @@ func TestReconcileDisplayModes(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// A present, answering hyprctl makes hyprLive() report a live session.
+	// a present, answering hyprctl makes hyprLive() report a live session.
 	mkExec("hyprctl", "#!/bin/sh\nexit 0\n")
 	// ryoku-monitor stub: `settle --check` exits $CHK, `settle` exits $SET.
 	mkExec("ryoku-monitor", "#!/bin/sh\n"+
@@ -343,8 +343,8 @@ func TestReconcileDisplayModes(t *testing.T) {
 	}
 }
 
-// Off a Hyprland desktop the cursor-theme check stays quiet rather than nagging a
-// server or a non-Ryoku box to install a desktop cursor theme.
+// off a Hyprland desktop the cursor-theme check must stay quiet -- no nagging
+// a server or a non-Ryoku box to install a desktop cursor theme.
 func TestReconcileCursorThemeNotDesktop(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

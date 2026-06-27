@@ -2,10 +2,9 @@ package main
 
 import "testing"
 
-// TestNvidiaConfigOK locks the idempotency of the NVIDIA reliability reconciler:
-// the canonical config it writes must read back as "ok" (so a healthy machine
-// stays quiet and doctor never rebuilds the initramfs on every run), while a
-// pre-fix or missing config must read as "needs fixing".
+// idempotency lock on the NVIDIA reconciler. canonical config we write must
+// read back ok (else doctor rebuilds the initramfs every run); pre-fix or
+// missing config = "needs fixing".
 func TestNvidiaConfigOK(t *testing.T) {
 	cases := []struct {
 		name             string

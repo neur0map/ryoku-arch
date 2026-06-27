@@ -1,6 +1,6 @@
-// ryoku is the user-facing control CLI for the Ryoku distro: the single front
-// door to updates, rollback, and the shell. It orchestrates pacman, yay, snapper,
-// and the materialize step; it does not reimplement them.
+// ryoku = the user-facing CLI for the distro. one front door to updates,
+// rollback, and the shell. orchestrates pacman / yay / snapper / materialize;
+// doesn't reimplement any of them.
 //
 //	ryoku update            snapshot -> channel pull or pacman -Syu -> deploy -> reload
 //	ryoku rollback [id]     restore a snapper snapshot (or list them)
@@ -77,20 +77,20 @@ func usage() {
 `)
 }
 
-// cmdUpdate runs the full, safe update inside a snapper pre/post snapshot pair:
-// the git update channel on a checkout (fast-forward + redeploy), or the package
-// transactions + materialize + reload on a packaged install. Once the new binary
-// is in place it runs `ryoku doctor` (the same command users run by hand) to heal
-// stateful drift, then takes the post snapshot. Snapshots are best-effort so an
-// unconfigured snapper never blocks an update, but a failed step aborts first.
+// cmdUpdate = the whole safe update, wrapped in a snapper pre/post pair.
+// checkout box -> git channel (fast-forward + redeploy). packaged box ->
+// pacman + materialize + reload. once the new binary is in place we call
+// `ryoku doctor` (same one users run by hand) to heal stateful drift, then
+// the post snapshot. snapshots are best-effort: an unconfigured snapper
+// never blocks an update, but a failed step still aborts first.
 func cmdUpdate(_ []string) error {
 	pre := snapperPre("ryoku-update")
 	publishRun("running", 0.05)
 	defer publishRun("idle", 0)
 
-	// A Ryoku checkout updates through its git channel; a packaged install
-	// updates through pacman. channelUpdate handles the former and reports
-	// whether it applied; if not, fall through to the package transactions.
+	// checkout: update through the git channel. packaged: pacman.
+	// channelUpdate handles the former and reports whether it ran; if not,
+	// fall through to the package transactions.
 	if handled, err := channelUpdate(); err != nil {
 		return err
 	} else if handled {
@@ -116,8 +116,8 @@ func cmdUpdate(_ []string) error {
 	publishRun("running", 0.7)
 
 	fmt.Println("==> Materializing desktop configs")
-	// Pause Hyprland's Lua auto-reload so the config swap is never observed
-	// half-written, which would trip its emergency error overlay (no keybinds).
+	// pause Hyprland's Lua auto-reload so the swap isn't observed mid-write
+	// (= emergency overlay popping up with no keybinds).
 	hyprPauseAutoreload()
 	if err := materialize(); err != nil {
 		hyprReload()
@@ -126,8 +126,8 @@ func cmdUpdate(_ []string) error {
 	publishRun("running", 0.9)
 
 	fmt.Println("==> Reloading desktop")
-	// One clean Hyprland reload applies the new config and restores auto-reload;
-	// then restart the shell daemon so the new binary and QML both take effect.
+	// one clean reload picks up the new config and restores auto-reload, then
+	// restart the shell daemon so the new binary + QML both take effect.
 	hyprReload()
 	restartShell()
 
@@ -138,10 +138,10 @@ func cmdUpdate(_ []string) error {
 	return nil
 }
 
-// wantedSnapperHelpers returns the missing snapshot helpers worth offering, given
-// the snapper state and whether Limine is the bootloader. Pure, so the gating (no
-// snapshots without btrfs + snapper; limine-snapper-sync only under Limine) is
-// unit-testable without touching /etc or pacman.
+// wantedSnapperHelpers: which snapshot helpers we should offer to install,
+// given snapper state + whether Limine is the bootloader. pure, so the
+// gating (no snapshots without btrfs + snapper; limine-snapper-sync only
+// under Limine) is unit-testable without touching /etc or pacman.
 func wantedSnapperHelpers(st snapperState, limineInstalled bool) []string {
 	if !st.rootIsBtrfs || !st.snapperInstalled {
 		return nil
@@ -156,12 +156,12 @@ func wantedSnapperHelpers(st snapperState, limineInstalled bool) []string {
 	return want
 }
 
-// offerSnapperHelpers asks before installing the snapshot helpers when they are
-// missing, then installs the chosen ones. snap-pac auto-snapshots every pacman
-// transaction and, on a Limine system, limine-snapper-sync puts the snapshots in
-// the boot menu: the rollback safety net behind every `ryoku update`. Opt-in and
-// best-effort: Skip or no answer leaves them to `ryoku doctor`'s recommendation,
-// and a failed install never aborts the update.
+// offerSnapperHelpers: ask before installing the missing helpers, then
+// install whoever was picked. snap-pac = a snapshot on every pacman txn;
+// limine-snapper-sync, on a Limine box, puts those snapshots in the boot
+// menu. together = the rollback safety net behind every `ryoku update`.
+// opt-in + best-effort: Skip (or no answer) leaves them for `ryoku doctor`
+// to keep recommending, and a failed install never aborts the update.
 func offerSnapperHelpers() {
 	want := wantedSnapperHelpers(gatherSnapperState(), pkgInstalled("limine"))
 	if len(want) == 0 {
@@ -193,9 +193,9 @@ func offerSnapperHelpers() {
 	}
 }
 
-// askInstall gets consent to install pkgs. A Hub-launched update
-// (RYOKU_UPDATE_UI=hub) asks in the Hub via the run-state prompt and waits for the
-// answer; a plain terminal update asks y/N; a non-interactive run declines.
+// askInstall: consent for installing pkgs. hub-launched update
+// (RYOKU_UPDATE_UI=hub) -> ask through the run-state prompt and wait.
+// plain terminal -> y/N. non-interactive -> decline.
 func askInstall(title, detail string, pkgs []string) bool {
 	if os.Getenv("RYOKU_UPDATE_UI") == "hub" {
 		publishPrompt("snapper-helpers", title, detail, []string{"Install", "Skip"})
@@ -213,10 +213,10 @@ func askInstall(title, detail string, pkgs []string) bool {
 	return false
 }
 
-// runFreshDoctor runs `ryoku doctor` after an update has installed the new binary,
-// so the reconcilers shipped in this release run in the same update. It is the
-// same command users run standalone; invoking it here keeps doctor a single thing
-// instead of a copy baked into update. Best-effort: a finding never fails update.
+// runFreshDoctor runs `ryoku doctor` after the new binary lands, so the
+// reconcilers shipped in this release run inside the same update. same
+// command users run by hand; calling it here keeps doctor one thing instead
+// of a copy baked into update. best-effort: a finding never fails update.
 func runFreshDoctor() {
 	fmt.Println("==> Running doctor")
 	_ = run("ryoku", "doctor")
@@ -276,9 +276,9 @@ func cmdStatus(args []string) error {
 			fmt.Println("pending:       (install pacman-contrib for checkupdates)")
 		}
 	}
-	// A bare 0 cannot tell "configured but empty" from "snapper has no root
-	// config at all"; doctor restores the config when it is missing, so point
-	// the user there instead of letting status look healthy on a broken setup.
+	// a bare 0 can't tell "configured but empty" from "snapper has no root
+	// config at all". doctor restores a missing config, so send the user
+	// there rather than letting status look healthy on a broken setup.
 	if exists("/etc/snapper/configs/root") {
 		fmt.Printf("snapshots:     %d\n", r.Snapshots)
 	} else {
@@ -287,10 +287,10 @@ func cmdStatus(args []string) error {
 	return nil
 }
 
-// statusReport is the data the Hub and the update island read from
-// `ryoku status --json`: the installed and available versions, how far behind the
-// machine is, and the per-item list. It is sourced from the git update channel on
-// a Ryoku checkout (the live mirror) and from the [ryoku] pacman repo otherwise.
+// statusReport = what the Hub and the update island read from
+// `ryoku status --json`. installed + available versions, how far behind,
+// per-item list. from the git update channel on a Ryoku checkout (the live
+// mirror), else from the [ryoku] pacman repo.
 type statusReport struct {
 	Installed string       `json:"installedVersion"`
 	Latest    string       `json:"latestVersion"`
@@ -302,8 +302,8 @@ type statusReport struct {
 	Git       bool         `json:"-"`
 }
 
-// buildStatus prefers the git update channel (a checkout tracking main); with no
-// checkout it falls back to the pacman view of the [ryoku] repo.
+// buildStatus prefers the git update channel (a checkout tracking main).
+// no checkout -> fall back to the pacman view of the [ryoku] repo.
 func buildStatus() statusReport {
 	if r, ok := channelStatus(); ok {
 		return r
@@ -327,10 +327,10 @@ func buildStatus() statusReport {
 	}
 }
 
-// shortCommit extracts the abbreviated commit hash from a packaged version of the
-// form <core>.r<count>.g<sha>(-pkgrel) that the repo build embeds, so the Hub and
-// the CLI can show the exact commit a packaged machine runs. A version without
-// that gNNNN token (a hand-pinned 0.1.0-3, say) is returned unchanged.
+// shortCommit pulls the abbreviated commit hash out of a packaged version
+// shaped <core>.r<count>.g<sha>(-pkgrel) (what the repo build embeds), so
+// Hub and CLI can show the exact commit a packaged box runs. no gNNNN token
+// (a hand-pinned 0.1.0-3, say) -> input comes back unchanged.
 func shortCommit(ver string) string {
 	for _, tok := range strings.FieldsFunc(ver, func(r rune) bool { return r == '.' || r == '-' }) {
 		if len(tok) >= 8 && tok[0] == 'g' && isHex(tok[1:]) {
@@ -349,8 +349,8 @@ func isHex(s string) bool {
 	return s != ""
 }
 
-// latestAvailable returns the version of pkg in the [ryoku] repo, or "" when the
-// repo is not synced/configured. `pacman -Sl ryoku` prints "<repo> <pkg> <ver>".
+// latestAvailable: version of pkg in the [ryoku] repo, or "" when the repo
+// isn't synced/configured. `pacman -Sl ryoku` = "<repo> <pkg> <ver>".
 func latestAvailable(pkg string) string {
 	out, err := runOut("pacman", "-Sl", "ryoku")
 	if err != nil {
@@ -366,26 +366,25 @@ func latestAvailable(pkg string) string {
 	return ""
 }
 
-// updateItem is one row in the update list: a package (name, old -> new) on the
-// pacman path, or a commit (subject in Name, short hash in New) on the git
-// channel.
+// updateItem = one row in the update list. pacman -> a package (name,
+// old -> new). git channel -> a commit (subject in Name, short hash in New).
 type updateItem struct {
 	Name string `json:"name"`
 	Old  string `json:"old"`
 	New  string `json:"new"`
 }
 
-// pendingUpdates lists packages with a newer version available, via checkupdates
-// (pacman-contrib), which syncs to a private database and so needs no root. The
-// list is empty when the system is current or checkupdates is absent.
+// pendingUpdates: packages with a newer version available, via checkupdates
+// (pacman-contrib). syncs to a private db, so no root needed. empty when
+// the system is current or checkupdates is absent.
 func pendingUpdates() []updateItem {
 	ups := []updateItem{}
 	if !has("checkupdates") {
 		return ups
 	}
-	// Bound the check: checkupdates syncs package databases over the network and
-	// is polled by the update island, so it must never hang a status query; cap
-	// it generously so a slow sync still completes.
+	// cap the check: checkupdates syncs package dbs over the network and the
+	// update island polls this, so it MUST never hang status. generous so a
+	// slow sync still finishes.
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	out, _ := exec.CommandContext(ctx, "checkupdates").Output()
@@ -403,13 +402,13 @@ func snapshotCount() int {
 	if !has("snapper") {
 		return 0
 	}
-	// `ryoku status` is polled from the GUI (Hub + pill) on a timer with no
-	// controlling terminal. snapper needs root, but an interactive sudo with no
-	// tty cannot read a password: the PAM conversation fails, and pam_faillock
-	// counts every failure until the account is locked out of sudo even with the
-	// correct password. A read-only status query must never escalate, so skip the
-	// count unless a real terminal drives us, and even then never prompt (sudo -n
-	// uses only an already-cached credential).
+	// `ryoku status` is polled from the GUI (Hub + pill) on a timer, no
+	// controlling terminal. snapper wants root; interactive sudo with no tty
+	// can't read a password, the PAM conversation fails, pam_faillock counts
+	// each failure, and the account ends up locked out of sudo even with the
+	// correct password. (yes, found this one the loud way.) so a read-only
+	// status query MUST never escalate: skip the count unless a real terminal
+	// drives us, and even then never prompt (sudo -n = already-cached cred only).
 	if !stdinIsTTY() {
 		return 0
 	}
@@ -430,9 +429,9 @@ func orDash(s string) string {
 	return s
 }
 
-// cmdDeploy is the DEV loop: build the Go binaries + plugin and materialize from
-// a repo checkout. Production installs never use this; they get everything from
-// the [ryoku] pacman repo.
+// cmdDeploy = the DEV loop: build the Go binaries + plugin and materialize
+// from a repo checkout. production installs never see this; they pull
+// everything from the [ryoku] pacman repo.
 func cmdDeploy(_ []string) error {
 	repo := os.Getenv("RYOKU_REPO")
 	if repo == "" {
@@ -452,8 +451,8 @@ func snapperPre(desc string) string {
 		fmt.Fprintln(os.Stderr, "note: snapper not installed; skipping pre-update snapshot")
 		return ""
 	}
-	// No root config means the create below fails with an opaque
-	// "config 'root' does not exist"; point the user at the fix instead.
+	// no root config -> the create below fails with an opaque
+	// "config 'root' does not exist". point the user at the fix.
 	if !exists("/etc/snapper/configs/root") {
 		fmt.Fprintln(os.Stderr, "note: snapshot skipped, snapper root config missing; run 'ryoku doctor' to enable snapshots")
 		return ""
@@ -494,31 +493,31 @@ func has(name string) bool { _, err := exec.LookPath(name); return err == nil }
 
 func exists(p string) bool { _, err := os.Stat(p); return err == nil }
 
-// hyprLive reports whether a Hyprland session is reachable for hyprctl.
+// hyprLive: is a Hyprland session reachable for hyprctl.
 func hyprLive() bool {
 	return has("hyprctl") && exec.Command("hyprctl", "version").Run() == nil
 }
 
-// hyprPauseAutoreload stops Hyprland reloading its Lua config mid-swap, which
-// would expose a half-written config and trip the emergency error overlay.
+// hyprPauseAutoreload stops Hyprland reloading the Lua config mid-swap, so a
+// half-written file is never observed (would trip the emergency overlay).
 func hyprPauseAutoreload() {
 	if hyprLive() {
 		_ = exec.Command("hyprctl", "keyword", "misc:disable_autoreload", "true").Run()
 	}
 }
 
-// hyprReload applies the materialized config in one clean pass; the reload also
-// restores auto-reload, since keywords reset from the config.
+// hyprReload applies the materialized config in one clean pass. the reload
+// also restores auto-reload, since keywords reset from the config.
 func hyprReload() {
 	if hyprLive() {
 		_ = exec.Command("hyprctl", "reload").Run()
 	}
 }
 
-// restartShell brings the shell daemon back on the new binary, recovering one
-// that died across the update. Mirrors deploy.sh: stop the old daemon, clear
-// orphaned surfaces that hold the single-instance lock, then start it detached so
-// it outlives this process.
+// restartShell: bring the shell daemon back up on the new binary, recovering
+// one that died across the update. mirrors deploy.sh: stop the old daemon,
+// drop orphaned surfaces holding the single-instance lock, start it detached
+// so it outlives this process.
 func restartShell() {
 	if !has("ryoku-shell") {
 		return

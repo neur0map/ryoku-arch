@@ -9,12 +9,12 @@ import (
 	"strings"
 )
 
-// generatedSeed names base files that are seeded once on a fresh install and then
-// never clobbered or pruned by an update, so the machine owns them after the first
-// boot. Two kinds qualify: per-machine files the runtime regenerates (monitors.lua
-// from ryoku-monitor, gpu.lua from ryoku-gpu), and user-owned config the package
-// only seeds a default for (keyboard.lua, the keyboard layout). Paths are
-// slash-separated, relative to the config base.
+// generatedSeed: base files seeded once on a fresh install, then never
+// clobbered or pruned by an update. The machine owns them after first boot.
+// Two kinds qualify: per-machine files the runtime regenerates (monitors.lua
+// from ryoku-monitor, gpu.lua from ryoku-gpu), and user-owned config the
+// package only seeds a default for (keyboard.lua, the keyboard layout).
+// Slash-separated paths, relative to the config base.
 var generatedSeed = map[string]bool{
 	"hypr/monitors.lua": true,
 	"hypr/gpu.lua":      true,
@@ -22,20 +22,20 @@ var generatedSeed = map[string]bool{
 }
 
 // Materialize lays the Ryoku-owned base configs into the user's ~/.config,
-// declaratively: every file the package ships under baseConfigDir() is copied
-// over (clobbering the previous Ryoku copy), files that were shipped before but
-// no longer are get removed, and anything the package never shipped (the user's
-// own files, e.g. hypr/user.lua, kitty/user.conf) is left untouched. Per-machine
-// generated seeds (generatedSeed, e.g. hypr/monitors.lua) are an exception: they
-// are seeded only when absent and never clobbered, so an update keeps the user's
+// declaratively: every file the package ships under baseConfigDir() is
+// copied over (clobbering the previous Ryoku copy), files we shipped before
+// but no longer ship are removed, anything the package never shipped (user
+// files: hypr/user.lua, kitty/user.conf, ...) is left alone. Per-machine
+// generated seeds (generatedSeed, e.g. hypr/monitors.lua) are the exception:
+// seeded only when absent, never clobbered, so an update keeps the user's
 // runtime-written display and GPU config.
 //
-// This is the production replacement for deploy.sh's per-user config copy. The
-// base lives at /usr/share/ryoku/config on an installed system; on a dev
-// checkout RYOKU_CONFIG_BASE points at ryoku/<...> via `ryoku deploy`.
+// Production replacement for deploy.sh's per-user config copy. Base lives at
+// /usr/share/ryoku/config on an installed system; on a dev checkout
+// RYOKU_CONFIG_BASE points at ryoku/<...> via `ryoku deploy`.
 //
-// The set of Ryoku-owned paths is the manifest. It is recorded in the state file
-// so the next run can prune files dropped from a release without ever guessing.
+// The set of Ryoku-owned paths is the manifest. Recorded in the state file so
+// the next run can prune files dropped from a release without guessing.
 func materialize() error {
 	base := baseConfigDir()
 	dest := configHome()
@@ -55,10 +55,10 @@ func materialize() error {
 		return fmt.Errorf("scan %s: %w", base, err)
 	}
 
-	// Lay down every shipped file, except the seeds: those are copied only on a
-	// fresh install (absent) and never overwritten, so an update leaves the user's
-	// display, GPU pin, and keyboard layout untouched. Only clobbered files enter
-	// the manifest, so a later prune can never remove a seed either.
+	// Lay down every shipped file, except seeds: those copy only when absent
+	// (fresh install) and never get overwritten, so an update leaves the
+	// user's display, GPU pin, and keyboard layout alone. Only clobbered
+	// files enter the manifest, so a later prune can never remove a seed either.
 	managed := make([]string, 0, len(current))
 	for _, rel := range current {
 		dst := filepath.Join(dest, rel)
@@ -76,7 +76,7 @@ func materialize() error {
 		managed = append(managed, rel)
 	}
 
-	// Prune files this release no longer ships (present in the previous manifest,
+	// Prune files this release no longer ships (in the previous manifest,
 	// absent now). Never touches paths outside the manifest, i.e. user files.
 	previous := readManifest(state)
 	curSet := make(map[string]bool, len(current))
@@ -98,8 +98,8 @@ func materialize() error {
 	return nil
 }
 
-// walkRel returns every regular file under root, as slash-separated paths
-// relative to root, sorted.
+// walkRel: every regular file under root, as slash-separated paths relative
+// to root, sorted.
 func walkRel(root string) ([]string, error) {
 	var rels []string
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {

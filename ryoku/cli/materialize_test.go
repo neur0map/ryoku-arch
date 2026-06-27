@@ -8,22 +8,22 @@ import (
 )
 
 // materialize must never overwrite a per-machine generated seed (monitors.lua,
-// gpu.lua) or a user's own file, so `ryoku update` cannot change a user's
-// settings, while still refreshing the managed config the package ships.
+// gpu.lua) or a user file, so `ryoku update` can't change a user's settings
+// while it refreshes the managed config the package ships.
 func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	base, dest := t.TempDir(), t.TempDir()
 	t.Setenv("RYOKU_CONFIG_BASE", base)
 	t.Setenv("XDG_CONFIG_HOME", dest)
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 
-	// The package ships a managed module and seeds for the generated drop-ins and
-	// the user-owned keyboard layout.
+	// Package ships a managed module and seeds for the generated drop-ins
+	// plus the user-owned keyboard layout.
 	writeFile(t, filepath.Join(base, "hypr/hyprland.lua"), "require(\"monitors\")\n")
 	writeFile(t, filepath.Join(base, "hypr/monitors.lua"), "-- seed\n")
 	writeFile(t, filepath.Join(base, "hypr/gpu.lua"), "-- seed\n")
 	writeFile(t, filepath.Join(base, "hypr/keyboard.lua"), "kb_layout = \"us\"\n")
 
-	// Fresh install: every file is laid down, seeds included so the first boot works.
+	// fresh install: every file lands, seeds included so first boot works.
 	if err := materialize(); err != nil {
 		t.Fatalf("fresh materialize: %v", err)
 	}
@@ -31,17 +31,17 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	wantFile(t, filepath.Join(dest, "hypr/gpu.lua"), "-- seed")
 	wantFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "kb_layout = \"us\"")
 
-	// The runtime regenerates the drop-in seeds; the user adds extra keyboard
-	// layouts and a user file.
+	// Runtime regenerates the drop-in seeds; user adds extra keyboard layouts
+	// and a user file.
 	writeFile(t, filepath.Join(dest, "hypr/monitors.lua"), "DISPLAY\n")
 	writeFile(t, filepath.Join(dest, "hypr/gpu.lua"), "GPUPIN\n")
 	writeFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "kb_layout = \"us,ru,de,fr\"\n")
 	writeFile(t, filepath.Join(dest, "hypr/user.lua"), "USER\n")
-	// A later release changes the managed module.
+	// later release changes the managed module.
 	writeFile(t, filepath.Join(base, "hypr/hyprland.lua"), "require(\"monitors_user\")\n")
 
-	// Update: the managed file is refreshed; the generated seeds and the user
-	// file are left exactly as the machine had them.
+	// update: managed file is refreshed; the generated seeds and the user
+	// file stay exactly as the machine had them.
 	if err := materialize(); err != nil {
 		t.Fatalf("update materialize: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestMaterializePrunesManagedNotSeeds(t *testing.T) {
 	}
 	writeFile(t, filepath.Join(dest, "hypr/monitors.lua"), "DISPLAY\n") // runtime-regenerated
 
-	// The next release drops both the managed file and the monitors seed.
+	// next release drops both the managed file and the monitors seed.
 	os.Remove(filepath.Join(base, "hypr/old.lua"))
 	os.Remove(filepath.Join(base, "hypr/monitors.lua"))
 	if err := materialize(); err != nil {

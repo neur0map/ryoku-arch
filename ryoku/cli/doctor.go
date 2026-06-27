@@ -13,17 +13,18 @@ import (
 	"time"
 )
 
-// ryoku doctor runs convergent reconcilers: idempotent checks (and, where it is
-// safe, fixes) for stateful drift that `ryoku update` and `ryoku materialize`
-// cannot express declaratively (disk layout, package channel, session pieces).
-// Each reconciler reports "ok" when the machine already matches the desired
-// state, otherwise it converges, proposes the exact fix, or flags it for a human.
-// What it cannot fix it records: `ryoku doctor --report` writes a single shareable
-// text file of findings plus system state for the maintainers.
+// doctor = the convergent reconcilers. idempotent checks (plus a fix where
+// it's safe) for the stateful drift that `ryoku update` / `ryoku materialize`
+// can't say declaratively: disk layout, package channel, session bits. each
+// one returns "ok" if the box already matches, else converges, prints the
+// exact fix, or punts to a human.
 //
-// Reconcilers are safe to run on every update; retire one once every supported
-// install has run it, so the set stays small instead of piling up like an ordered
-// migration ledger.
+// whatever can't be fixed gets written down: `ryoku doctor --report` dumps the
+// findings + system state to one shareable text file for the maintainers.
+//
+// reconcilers are safe on every update. retire one once every supported install
+// has run it, so the set stays small instead of piling up like a migration
+// ledger.
 
 const ryokuIssuesURL = "https://github.com/neur0map/ryoku-arch/issues"
 
@@ -118,9 +119,8 @@ func runReconcilers(checkOnly bool) []finding {
 	return out
 }
 
-// printFindings prints one line per finding (plus its remedy). When not verbose
-// it shows only the non-ok lines, matching the "a healthy machine is quiet"
-// convention. It returns the warn and fail counts.
+// printFindings: one line per finding (+ its remedy). without verbose, only
+// non-ok lines surface -- a healthy box is quiet. returns warn + fail counts.
 func printFindings(fs []finding, verbose bool) (warns, fails int) {
 	width := termWidth()
 	printed := 0
@@ -196,8 +196,8 @@ func doctorUsage() {
 `)
 }
 
-// cmdDoctor checks the machine, applies safe fixes, and on trouble it cannot fix
-// writes a maintainer report so the user always has something to share.
+// cmdDoctor: check, apply the safe fixes; on anything it can't fix, write a
+// maintainer report so the user always has something to share.
 func cmdDoctor(args []string) error {
 	checkOnly, wantReport, wantExplain := false, false, false
 	reportTo := ""
@@ -222,7 +222,7 @@ func cmdDoctor(args []string) error {
 	}
 
 	verbose := checkOnly || wantReport || wantExplain
-	findings := runReconcilers(verbose) // report and check modes never mutate
+	findings := runReconcilers(verbose) // report/check never mutate
 	warns, fails := printFindings(findings, verbose)
 
 	if wantExplain {
@@ -239,7 +239,7 @@ func cmdDoctor(args []string) error {
 		return nil
 	}
 
-	// Could not fix everything: surface the AI option and a saved report so the
+	// couldn't fix everything. surface the AI option + a saved report so the
 	// user always has a next step and a file to share.
 	if warns+fails > 0 {
 		path, _ := writeReport("", findings)
@@ -261,13 +261,13 @@ func cmdDoctor(args []string) error {
 
 // ---- reconciler: swapfile out of snapshotted subvolumes ----------------------
 
-// reconcileSwapSubvolume relocates a swapfile that lives inside @ (the
-// snapshotted root) into its own btrfs subvolume. btrfs cannot snapshot a
-// subvolume that holds an active swapfile, so the old installer layout made every
-// snapper snapshot fail. Only the exact layout the old installer produced (a
-// single swapfile in a plain directory on btrfs) is auto-fixed; anything else is
-// reported for a human. It no-ops once the swapfile already sits in its own
-// subvolume, and skips machines that do not snapshot root.
+// reconcileSwapSubvolume: a swapfile inside @ (the snapshotted root) gets
+// moved into its own btrfs subvolume. btrfs can't snapshot a subvolume that
+// holds an active swapfile, so the old installer layout made every snapper
+// snapshot fail. auto-fix only on the exact old layout (one swapfile in a
+// plain dir on btrfs); anything else is flagged for a human. no-op once it
+// already sits in its own subvolume. skipped on machines that don't snapshot
+// root.
 func reconcileSwapSubvolume(checkOnly bool) recResult {
 	if !exists("/etc/snapper/configs/root") {
 		return okRes("root snapshots not configured, nothing to keep out of them")
@@ -295,18 +295,17 @@ func reconcileSwapSubvolume(checkOnly bool) recResult {
 
 // ---- reconciler: snapper configuration ---------------------------------------
 
-// The snapper "root" config is the safety net behind every ryoku update: the
-// pre/post snapshot pair and the Limine boot-menu entries that make rollback
-// possible. The installer (installation/backend/lib/snapshots.sh) writes it,
-// but a dev box brought up with `ryoku deploy`, an upgrade from an older
-// release, or hand-edited drift can leave it missing -- and snapper proceeds
-// silently when it is, so the user believes they have rollback when they do
-// not. doctor restores the canonical layout on a btrfs root, warns honestly
-// when the root is not btrfs (snapshots are unavailable there), and stays
-// idempotent on a healthy machine.
+// the snapper "root" config = the safety net behind every ryoku update: the
+// pre/post snapshot pair plus the Limine boot-menu entries that make rollback
+// work. the installer (installation/backend/lib/snapshots.sh) writes it, but a
+// deploy box, an upgrade from an older release, or hand-edited drift can leave
+// it missing -- and snapper proceeds silently when it is, so the user believes
+// they have rollback when they don't. doctor restores the canonical layout on
+// a btrfs root, warns honestly on a non-btrfs root (no snapshots there), stays
+// idempotent on a healthy box.
 //
 // snapperRootConfig mirrors installation/backend/lib/snapshots.sh verbatim:
-// keep the two in sync so a doctored machine matches a freshly installed one.
+// keep the two in sync so a doctored box matches a fresh install.
 const snapperRootConfig = `# Ryoku snapper config for the root filesystem. Written by ryoku doctor when
 # the installer's config is missing (a deploy box, an upgrade from an older
 # release, or drift). Keys not listed here fall back to snapper's built-in
@@ -343,9 +342,9 @@ const snapperConfdRoot = `## Path: System/Snapper
 SNAPPER_CONFIGS="root"
 `
 
-// snapperOutcome is the decision planSnapper hands to reconcileSnapper: ok
-// means leave the machine alone, the two warn variants surface as-is, and
-// create means write the canonical layout.
+// snapperOutcome: what planSnapper hands to reconcileSnapper. ok = leave the
+// box alone; the two warn variants surface as-is; create writes the canonical
+// layout.
 type snapperOutcome int
 
 const (
@@ -356,9 +355,9 @@ const (
 	snapperWarnMissingPkgs
 )
 
-// snapperState is the slice of the filesystem reconcileSnapper looks at, lifted
-// into a value so planSnapper is unit-testable without touching real /etc or
-// invoking snapper/btrfs.
+// snapperState: the slice of the filesystem reconcileSnapper looks at, lifted
+// to a value so planSnapper is unit-testable without real /etc or running
+// snapper/btrfs.
 type snapperState struct {
 	rootIsBtrfs         bool
 	configExists        bool
@@ -372,9 +371,9 @@ type snapperState struct {
 	limineSyncInstalled bool
 }
 
-// planSnapper picks the reconcile branch from observable state. Pure: no side
-// effects, no IO. The "configured" branch runs the same consistency checks the
-// old reconciler did, unchanged in spirit so a healthy machine still reads ok.
+// planSnapper picks the branch from observed state. pure, no IO. the
+// "configured" branch runs the same consistency checks the old reconciler
+// did, so a healthy box still reads ok.
 func planSnapper(s snapperState) (snapperOutcome, []string) {
 	if !s.configExists {
 		if !s.rootIsBtrfs {
@@ -410,9 +409,9 @@ func planSnapper(s snapperState) (snapperOutcome, []string) {
 	return snapperWarnInconsistent, problems
 }
 
-// gatherSnapperState reads /etc and /.snapshots into a snapperState. Everything
-// here is a non-privileged stat or world-readable file; the privileged writes
-// happen later in the create branch, under sudo, like every other reconciler.
+// gatherSnapperState reads /etc + /.snapshots into a snapperState. all
+// non-privileged stats and world-readable files; privileged writes happen
+// later in the create branch under sudo, like every other reconciler.
 func gatherSnapperState() snapperState {
 	s := snapperState{
 		rootIsBtrfs:         isBtrfs("/"),
@@ -433,10 +432,9 @@ func gatherSnapperState() snapperState {
 	return s
 }
 
-// reconcileSnapper converges the snapper "root" config: on a btrfs root with no
-// config it writes the canonical installer layout; on a non-btrfs root it warns
-// honestly instead of silently okay; on a healthy machine the consistency
-// checks gate "ok".
+// reconcileSnapper converges the snapper "root" config. btrfs root + no config
+// -> write the canonical installer layout. non-btrfs root -> warn honestly
+// instead of silently ok. healthy box -> consistency checks gate "ok".
 func reconcileSnapper(checkOnly bool) recResult {
 	st := gatherSnapperState()
 	outcome, problems := planSnapper(st)
@@ -459,14 +457,17 @@ func reconcileSnapper(checkOnly bool) recResult {
 	return okRes("snapper root config is consistent")
 }
 
-// createSnapperRootConfig lays the installer's layout down on a live system. It
-// mirrors installation/backend/lib/snapshots.sh: ensure /.snapshots is a btrfs
-// subvolume owned root:root mode 0750, write /etc/snapper/configs/root,
-// register "root" in /etc/conf.d/snapper without dropping any sibling configs,
-// and best-effort enable snapper-cleanup.timer plus (when its unit is present)
-// limine-snapper-sync.service. A pre-existing /.snapshots that is a plain
-// directory is left to a human: it may hold user data and the risk of rmdir
-// clobbering it is not worth the convenience.
+// createSnapperRootConfig lays the installer's layout down on a live box.
+// mirrors installation/backend/lib/snapshots.sh:
+//   - /.snapshots = btrfs subvolume, owned root:root, mode 0750.
+//   - write /etc/snapper/configs/root.
+//   - register "root" in /etc/conf.d/snapper without dropping siblings.
+//   - best-effort enable snapper-cleanup.timer (+ limine-snapper-sync.service
+//     when its unit is present).
+//
+// a pre-existing plain-directory /.snapshots is left to a human: it might
+// hold user data, and the risk of rmdir clobbering it isn't worth saving the
+// extra command.
 func createSnapperRootConfig(st snapperState) recResult {
 	var actions []string
 
@@ -502,9 +503,9 @@ func createSnapperRootConfig(st snapperState) recResult {
 		actions = append(actions, "/etc/conf.d/snapper")
 	}
 
-	// Services are best-effort: a healthy install has both, but an offline AUR
-	// install can be missing limine-snapper-sync, and a failure here does not
-	// undo the config we just laid down.
+	// services: best-effort. a healthy install has both; an offline AUR install
+	// can be missing limine-snapper-sync, and a failure here doesn't undo the
+	// config we just wrote.
 	_ = run("sudo", "systemctl", "enable", "--now", "snapper-cleanup.timer")
 	if exists("/usr/lib/systemd/system/limine-snapper-sync.service") {
 		_ = run("sudo", "systemctl", "enable", "--now", "limine-snapper-sync.service")
@@ -513,12 +514,12 @@ func createSnapperRootConfig(st snapperState) recResult {
 	return fixedRes("created snapper root config: %s", strings.Join(actions, ", "))
 }
 
-// mergedConfdRoot returns the desired /etc/conf.d/snapper contents and whether
-// they differ from the current file. Missing file -> the canonical snippet;
-// SNAPPER_CONFIGS already lists root -> unchanged; SNAPPER_CONFIGS lists other
-// configs -> append "root" without dropping them; the file is present but has
-// no SNAPPER_CONFIGS line -> add one. Split-on-whitespace tolerates either
-// "a b" or single-name styles snapper accepts in the wild.
+// mergedConfdRoot returns the desired /etc/conf.d/snapper contents + whether
+// they differ from the current file. missing file -> canonical snippet.
+// SNAPPER_CONFIGS already lists root -> unchanged. SNAPPER_CONFIGS lists other
+// configs -> append "root", keep them. file present, no SNAPPER_CONFIGS line
+// -> add one. split-on-whitespace tolerates both "a b" and single-name styles
+// snapper accepts in the wild.
 func mergedConfdRoot(present bool, current string) (string, bool) {
 	if !present {
 		return snapperConfdRoot, true
@@ -546,10 +547,10 @@ func mergedConfdRoot(present bool, current string) (string, bool) {
 	return current + `SNAPPER_CONFIGS="root"` + "\n", true
 }
 
-// writeRootFile stages contents in a temp file then `sudo install -D`s it into
-// place with the given mode, owned root:root, so a regular-user invocation of
-// ryoku doctor still converges /etc. install -D creates the parent dir in one
-// shot, matching the other privileged reconcilers that go through sudo.
+// writeRootFile: stage contents in a temp file, then `sudo install -D` into
+// place at the given mode, owned root:root, so a regular-user `ryoku doctor`
+// still converges /etc. install -D makes the parent dir in one shot, same
+// pattern as the other privileged reconcilers that go through sudo.
 func writeRootFile(path, contents, mode string) error {
 	tmp, err := os.CreateTemp("", "ryoku-snapper-*")
 	if err != nil {
@@ -632,12 +633,12 @@ func reconcileSessionComponents(_ bool) recResult {
 
 // ---- reconciler: cursor theme ------------------------------------------------
 
-// reconcileCursorTheme flags a Ryoku desktop with no Bibata cursor theme. The
-// shipped XCURSOR_THEME default (env.lua, and the Ryoku Settings default) is
-// Bibata-Modern-Ice, and the AUR set installs the whole Bibata family, but a
-// failed source build or a dev checkout (deploy.sh installs no AUR packages) can
-// leave the cursor picker with only a single fallback theme. The -bin package is
-// prebuilt, so the fix never has to compile.
+// reconcileCursorTheme flags a Ryoku desktop with no Bibata cursor theme.
+// shipped XCURSOR_THEME default (env.lua + Ryoku Settings) = Bibata-Modern-Ice,
+// and the AUR set installs the whole Bibata family. but a failed source build
+// or a dev checkout (deploy.sh installs no AUR packages) can leave the cursor
+// picker with only a single fallback. the -bin package is prebuilt, so the
+// fix never has to compile.
 func reconcileCursorTheme(_ bool) recResult {
 	if !exists(filepath.Join(homeDir(), ".config", "hypr")) && !has("Hyprland") {
 		return okRes("not a Hyprland desktop")
@@ -651,13 +652,13 @@ func reconcileCursorTheme(_ bool) recResult {
 
 // ---- reconciler: ryoku shell daemon ------------------------------------------
 
-// reconcileShellDaemon checks the Ryoku shell control plane is alive. The daemon
+// reconcileShellDaemon: is the Ryoku shell control plane alive? the daemon
 // (`ryoku-shell daemon`, autostarted by Hyprland) owns the Unix socket every
-// keybind and quickshell component talks to; if it dies the whole shell is dead
-// while the session target still looks up. Hyprland starts it once at login, so a
-// crash leaves nothing to bring it back -- which is what doctor is for. Inside a
-// live session it restarts the daemon; from a TTY or ssh there is no shell to
-// manage, so it stays quiet.
+// keybind and quickshell component talks to -- if it dies, the whole shell
+// is dead while the session target still looks up. Hyprland starts it once
+// at login, so a crash leaves nothing to bring it back: that's what doctor
+// is for. inside a live session it restarts the daemon; from a TTY or ssh
+// there's no shell to manage, so it stays quiet.
 func reconcileShellDaemon(checkOnly bool) recResult {
 	if os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") == "" {
 		return okRes("not in a live Hyprland session")
@@ -684,9 +685,10 @@ func reconcileShellDaemon(checkOnly bool) recResult {
 		withFix("run `ryoku-shell daemon` in a terminal to see why it exits")
 }
 
-// shellDaemonReachable dials the shell control socket and pings it, the same
-// round-trip the keybinds make. A stale socket from a crashed daemon refuses the
-// connection; a hung daemon accepts but never replies, so the read is bounded.
+// shellDaemonReachable dials the shell control socket and pings it: same
+// round-trip the keybinds make. a stale socket from a crashed daemon refuses
+// the connection; a hung daemon accepts but never replies, so the read is
+// bounded.
 func shellDaemonReachable() bool {
 	dir := os.Getenv("XDG_RUNTIME_DIR")
 	if dir == "" {
@@ -706,10 +708,10 @@ func shellDaemonReachable() bool {
 	return strings.TrimSpace(string(buf[:n])) == "ok"
 }
 
-// startShellDaemon launches `ryoku-shell daemon` detached from doctor: its own
-// session so it outlives this process, stdio to /dev/null. The daemon removes a
-// stale socket and refuses to double-start, so this is safe to call only when the
-// socket is already unreachable.
+// startShellDaemon launches `ryoku-shell daemon` detached from doctor: own
+// session so it outlives this process, stdio to /dev/null. the daemon clears
+// a stale socket and refuses to double-start, so this is only safe to call
+// when the socket is already unreachable.
 func startShellDaemon() error {
 	cmd := exec.Command("ryoku-shell", "daemon")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
@@ -720,8 +722,8 @@ func startShellDaemon() error {
 	return cmd.Start()
 }
 
-// waitDaemonReachable polls until the daemon answers or the deadline passes; the
-// daemon needs a moment to bind the socket and bootstrap.
+// waitDaemonReachable polls until the daemon answers or the deadline passes.
+// it needs a moment to bind the socket and bootstrap.
 func waitDaemonReachable(d time.Duration) bool {
 	deadline := time.Now().Add(d)
 	for {
@@ -737,13 +739,13 @@ func waitDaemonReachable(d time.Duration) bool {
 
 // ---- reconciler: Hyprland config integrity -----------------------------------
 
-// hyprDropin is a runtime-generated Hyprland Lua drop-in. hyprland.lua loads
-// monitors.lua (ryoku-monitor) and gpu.lua (ryoku-gpu); both are rewritten while
-// the session runs (a display hotplug or a GPU reset re-runs the generators), so
-// a crash or a truncated write can leave one unparseable. If Hyprland then
-// reloads, it rejects the whole config and drops into its on-screen emergency
-// mode -- the "reload/doctor/update do nothing, only a reboot fixes it" failure --
-// until the file is repaired.
+// hyprDropin: a runtime-generated Hyprland Lua drop-in. hyprland.lua loads
+// monitors.lua (ryoku-monitor) and gpu.lua (ryoku-gpu); both get rewritten
+// while the session is live (a display hotplug or a GPU reset re-runs the
+// generators), so a crash or a torn write can leave one unparseable. on the
+// next Hyprland reload the whole config gets rejected and the compositor
+// drops into on-screen emergency mode -- the "reload/doctor/update do
+// nothing, only a reboot fixes it" failure -- until the file is repaired.
 type hyprDropin struct {
 	name     string   // file under ~/.config/hypr
 	regen    []string // generator that rewrites it from live state
@@ -771,14 +773,14 @@ func hyprDropins() []hyprDropin {
 	}
 }
 
-// reconcileHyprlandConfig keeps the Hyprland config loadable, the generic cure for
-// the "desktop dropped into emergency mode and only a reboot helped" report. It
-// validates that the runtime-generated drop-ins still parse (a crash-truncated one
-// would wedge the next reload) and, in a live session, asks Hyprland whether it is
-// currently rejecting its config. A corrupt drop-in is regenerated from live state
-// or reset to a safe seed; in a live session the config is then reloaded so the
-// desktop leaves emergency mode at once instead of needing a reboot. It is
-// hardware-agnostic: it only ever validates and repairs config files.
+// reconcileHyprlandConfig keeps the Hyprland config loadable: the generic
+// cure for the "desktop fell into emergency mode, only a reboot helped"
+// report. checks the runtime-generated drop-ins still parse (a torn one
+// would wedge the next reload), and in a live session asks Hyprland whether
+// it's currently rejecting its config. corrupt drop-in -> regenerate from
+// live state, else reset to a safe seed; in a live session, reload after, so
+// the desktop leaves emergency mode right away instead of needing a reboot.
+// hardware-agnostic: only ever validates and repairs config files.
 func reconcileHyprlandConfig(checkOnly bool) recResult {
 	dir := filepath.Join(configHome(), "hypr")
 	if !exists(filepath.Join(dir, "hyprland.lua")) {
@@ -818,7 +820,7 @@ func reconcileHyprlandConfig(checkOnly bool) recResult {
 		}
 	}
 
-	// A clean reload pulls a live session out of emergency mode immediately.
+	// clean reload yanks a live session out of emergency mode right away.
 	if live && len(repaired) > 0 {
 		_ = exec.Command("hyprctl", "reload").Run()
 	}
@@ -839,13 +841,14 @@ func reconcileHyprlandConfig(checkOnly bool) recResult {
 }
 
 // reconcileDisplayModes recovers a monitor a degraded link left below its
-// available resolution. After a cold boot or the post-upgrade `hyprctl reload`, a
-// DP/HDMI link can momentarily advertise only a VESA fallback (e.g. 800x600);
-// Hyprland resolves monitors.lua's `highrr` against that list and never re-picks
-// once the link trains, so the panel stays low-res until a relogin. `ryoku-monitor
-// settle` re-asserts each output's intended mode (respecting an explicit Ryoku
-// Settings pick and monitors_user.lua); `settle --check` is the read-only signal.
-// Live-only: with no session there is nothing to re-assert and the next login does.
+// available resolution. after a cold boot or a post-upgrade `hyprctl reload`,
+// a DP/HDMI link can briefly advertise only a VESA fallback (e.g. 800x600);
+// Hyprland resolves monitors.lua's `highrr` against that list and never
+// re-picks once the link trains, so the panel stays low-res until a relogin.
+// `ryoku-monitor settle` re-asserts each output's intended mode (respecting
+// an explicit Ryoku Settings pick and monitors_user.lua); `settle --check`
+// is the read-only signal. live-only: no session = nothing to re-assert, the
+// next login takes care of it.
 func reconcileDisplayModes(checkOnly bool) recResult {
 	if !hyprLive() {
 		return okRes("no live Hyprland session; displays settle at the next login")
@@ -867,9 +870,10 @@ func reconcileDisplayModes(checkOnly bool) recResult {
 	return fixedRes("re-asserted a display that came up below its available resolution")
 }
 
-// repairHyprDropin rewrites a corrupt drop-in: regenerate it from the live machine
-// when its generator is available, else fall back to the safe seed. Both outcomes
-// are re-validated, so even a generator that wrote garbage ends at a parseable file.
+// repairHyprDropin rewrites a corrupt drop-in: regenerate from the live box
+// if the generator is available, else fall back to the safe seed. both
+// outcomes get re-validated, so even a generator that wrote garbage ends at
+// a parseable file.
 func repairHyprDropin(dir string, d hyprDropin, live bool) bool {
 	p := filepath.Join(dir, d.name)
 	if len(d.regen) > 0 && has(d.regen[0]) && (!d.needLive || live) {
@@ -883,11 +887,11 @@ func repairHyprDropin(dir string, d hyprDropin, live bool) bool {
 	return hyprLuaParseable(p)
 }
 
-// hyprLuaParseable reports whether a Lua drop-in will load. luac -p is definitive
-// (the lua toolchain ships with Hyprland's config stack); without it, fall back to
-// catching the truncation failure mode -- an empty file or unbalanced brackets,
-// which a whole generated drop-in (no brackets inside its string literals) never
-// has. An unreadable file is left alone rather than clobbered.
+// hyprLuaParseable: will this Lua drop-in load? luac -p is definitive (the
+// lua toolchain ships with Hyprland's config stack). without it, fall back
+// to catching the truncation failure mode -- empty file or unbalanced
+// brackets, which a whole generated drop-in (no brackets inside its string
+// literals) never has. unreadable file is left alone, not clobbered.
 func hyprLuaParseable(path string) bool {
 	if has("luac") {
 		return exec.Command("luac", "-p", path).Run() == nil
@@ -922,8 +926,9 @@ func balancedRunes(s string, open, shut rune) bool {
 	return depth == 0
 }
 
-// liveConfigErrors returns Hyprland's current config errors (its emergency-mode
-// reason), or "" when the config is clean or no live session is reachable.
+// liveConfigErrors returns Hyprland's current config errors (its
+// emergency-mode reason), or "" when the config is clean or no live session
+// is reachable.
 func liveConfigErrors(live bool) string {
 	if !live {
 		return ""
@@ -1027,9 +1032,9 @@ func writeReport(override string, findings []finding) (string, error) {
 	return path, nil
 }
 
-// gatherReport builds a single self-contained text report: the doctor findings
-// followed by the system state a maintainer needs to diagnose the unknown. It is
-// safe to share, it contains system state and recent error logs, no secrets.
+// gatherReport: one self-contained text report. doctor findings, then the
+// system state a maintainer needs to diagnose the unknown. safe to share --
+// system state + recent error logs, no secrets.
 func gatherReport(findings []finding) string {
 	var b strings.Builder
 	line := func(f string, a ...any) { fmt.Fprintf(&b, f+"\n", a...) }
@@ -1103,10 +1108,11 @@ func gatherReport(findings []finding) string {
 	line("kernel display log (tail):\n%s", captureOut("sh", "-c", "journalctl -k -b --no-pager 2>/dev/null | grep -iE 'backlight|amdgpu|nvidia|i915|drm' | tail -30 || true"))
 
 	section("gpu / compositor stability")
-	// Vendor-agnostic GPU-hang signatures: amdgpu (reset/wedged/VRAM lost/ring),
-	// nvidia (NVRM Xid), i915 (GPU HANG). Bare "Xid" is avoided so an r8169 NIC's
-	// "XID" line is not mistaken for a GPU fault. Search across boots (a crash
-	// needs a reboot, so the evidence is in the previous boot, not the current one).
+	// vendor-agnostic GPU-hang signatures: amdgpu (reset/wedged/VRAM lost/ring),
+	// nvidia (NVRM Xid), i915 (GPU HANG). skip a bare "Xid" so an r8169 NIC's
+	// "XID" line doesn't get mistaken for a GPU fault. search across boots: a
+	// crash needs a reboot, so the evidence is in the previous boot, not the
+	// current one.
 	const gpuHang = `GPU reset begin|device wedged|VRAM is lost|ring .* reset failed|NVRM: Xid|GPU HANG`
 	line("GPU resets/hangs (last 14 days): %s", captureOut("sh", "-c",
 		"journalctl --no-pager --since '-14 days' -g '"+gpuHang+"' 2>/dev/null | grep -cE '"+gpuHang+"'"))
@@ -1133,8 +1139,8 @@ func activeSwapFiles() []swapFile {
 	return parseProcSwaps(string(b))
 }
 
-// parseProcSwaps returns the file-backed swaps from /proc/swaps content. The
-// first line is a header; the path field escapes spaces as \040.
+// parseProcSwaps: file-backed swaps from /proc/swaps content. first line is
+// a header; the path field escapes spaces as \040.
 func parseProcSwaps(s string) []swapFile {
 	var out []swapFile
 	sc := bufio.NewScanner(strings.NewReader(s))
@@ -1163,8 +1169,8 @@ func isBtrfs(path string) bool {
 	return int64(st.Type) == 0x9123683E // BTRFS_SUPER_MAGIC
 }
 
-// isBtrfsSubvolumeRoot reports whether path is the root of a btrfs subvolume;
-// those always carry inode 256.
+// isBtrfsSubvolumeRoot: is path the root of a btrfs subvolume? those always
+// carry inode 256.
 func isBtrfsSubvolumeRoot(path string) bool {
 	var st syscall.Stat_t
 	if err := syscall.Stat(path, &st); err != nil {
@@ -1181,10 +1187,10 @@ func dirOnlyContains(dir, name string) bool {
 	return len(entries) == 1 && entries[0].Name() == name
 }
 
-// relocateSwapToSubvolume swaps off the file, turns its directory into a btrfs
-// subvolume, recreates the swapfile inside it at the same path and size, and
-// swaps it back on. The path is unchanged, so the fstab swap entry still resolves
-// and the nested subvolume appears with its parent: no fstab edit is needed.
+// relocateSwapToSubvolume: swapoff the file, turn its dir into a btrfs
+// subvolume, recreate the swapfile inside at the same path + size, swap it
+// back on. path is unchanged, so the fstab swap entry still resolves and
+// the nested subvolume comes up with its parent -- no fstab edit.
 func relocateSwapToSubvolume(sw swapFile, dir string) error {
 	steps := [][]string{
 		{"swapoff", sw.path},
@@ -1245,8 +1251,8 @@ func nonEmptyLines(s string) []string {
 	return out
 }
 
-// captureOut runs a command and returns its combined output (or the error text),
-// for best-effort diagnostics where a non-zero exit is still informative.
+// captureOut runs a command and returns combined output (or the error text):
+// best-effort diagnostics where a non-zero exit is still informative.
 func captureOut(name string, args ...string) string {
 	out, err := exec.Command(name, args...).CombinedOutput()
 	s := strings.TrimRight(string(out), "\n")
@@ -1277,12 +1283,14 @@ func tailLines(s string, n int) string {
 
 // ---- reconciler: display backlight -------------------------------------------
 
-// reconcileBacklight flags the common display-brightness failures: no backlight
-// interface at all, a backlight present but no brightnessctl to drive it, and the
-// hybrid-GPU laptop case where the only interface is a firmware backlight. For the
-// last it reads the kernel's own verdict (the dGPU reporting no native backlight)
-// rather than trusting a sysfs value the panel may ignore. Detect-and-warn only:
-// the fixes (a GPU mux switch, kernel parameters) are too machine-specific to
+// reconcileBacklight flags the common brightness failures:
+//   - no backlight interface at all.
+//   - backlight present but no brightnessctl to drive it.
+//   - hybrid-GPU laptop with only a firmware backlight.
+//
+// for the last we trust the kernel's own verdict (dGPU reports no native
+// backlight) over a sysfs value the panel may ignore. detect-and-warn only;
+// the fixes (GPU mux switch, kernel parameters) are too machine-specific to
 // apply blindly.
 func reconcileBacklight(_ bool) recResult {
 	devs := backlightDevices()
@@ -1313,8 +1321,8 @@ func reconcileBacklight(_ bool) recResult {
 	return okRes("backlight: %s", strings.Join(devs, ", "))
 }
 
-// nvidiaBacklightDead reports the kernel's own tell that the dGPU has no usable
-// backlight and fell back to the frequently non-functional ACPI/EC interface.
+// nvidiaBacklightDead: the kernel's own tell that the dGPU has no usable
+// backlight and fell back to the often-broken ACPI/EC interface.
 func nvidiaBacklightDead() bool {
 	n := strings.TrimSpace(captureOut("sh", "-c",
 		"journalctl -k -b --no-pager 2>/dev/null | grep -ic 'no NVIDIA native backlight'"))
@@ -1342,8 +1350,8 @@ func onlyFirmwareBacklight(devs []string) bool {
 	return len(devs) > 0
 }
 
-// gpuDriversLoaded returns the loaded GPU kernel drivers, so a hybrid-GPU machine
-// is recognizable.
+// gpuDriversLoaded: loaded GPU kernel drivers, so a hybrid-GPU box is
+// recognizable.
 func gpuDriversLoaded() []string {
 	var out []string
 	for _, m := range []string{"amdgpu", "nvidia", "i915", "nouveau", "xe"} {
@@ -1354,8 +1362,8 @@ func gpuDriversLoaded() []string {
 	return out
 }
 
-// isLaptop reports whether the machine has a battery, i.e. an internal panel
-// whose backlight we would expect to control.
+// isLaptop: machine has a battery, i.e. an internal panel whose backlight
+// we'd expect to control.
 func isLaptop() bool {
 	entries, err := os.ReadDir("/sys/class/power_supply")
 	if err != nil {
@@ -1371,19 +1379,19 @@ func isLaptop() bool {
 
 // ---- reconciler: NVIDIA boot reliability -------------------------------------
 
-// reconcileNvidiaModeset backports the installer's NVIDIA reliability config to a
-// machine that drives the card with the proprietary/open nvidia modules but was
-// installed (or last doctored) before the fix. Without it nouveau and nvidia race
-// for the card at boot, so the GPU "shows up only on some boots" -- the
-// intermittent-detection failure users hit. It mirrors
-// system/hardware/drivers/nvidia.sh: blacklist nouveau, force DRM modeset, load
-// the modules early, then rebuild the initramfs so it takes effect. It acts ONLY
-// when an nvidia kernel-module package is installed (or the module is loaded);
-// a machine on nouveau by choice has no such package and is left untouched, since
-// blacklisting nouveau there would break its display.
+// reconcileNvidiaModeset backports the installer's NVIDIA reliability config
+// to a box running the proprietary/open nvidia modules but installed (or
+// last doctored) before the fix. without it, nouveau and nvidia race for the
+// card at boot, so the GPU "shows up only on some boots" -- the intermittent
+// detection failure users hit. mirrors system/hardware/drivers/nvidia.sh:
+// blacklist nouveau, force DRM modeset, load the modules early, then rebuild
+// the initramfs so it takes effect. acts ONLY when an nvidia kernel-module
+// package is installed (or the module is loaded); a box on nouveau by choice
+// has no such package and stays untouched -- blacklisting nouveau there
+// would break its display.
 
-// nvidiaModprobeConf mirrors system/hardware/drivers/nvidia.sh verbatim, so a
-// doctored machine matches a freshly installed one.
+// nvidiaModprobeConf mirrors system/hardware/drivers/nvidia.sh verbatim, so
+// a doctored box matches a fresh install.
 const nvidiaModprobeConf = `options nvidia_drm modeset=1 fbdev=1
 options nvidia NVreg_PreserveVideoMemoryAllocations=1
 blacklist nouveau
@@ -1392,11 +1400,11 @@ options nouveau modeset=0
 
 const nvidiaMkinitcpioConf = "MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)\n"
 
-// nvidiaDriverActive reports whether this machine uses the proprietary/open
-// nvidia driver. The module being loaded is the clearest tell; but the bug we
-// repair is exactly that nouveau won the boot race, so the module may NOT be
-// loaded -- fall back to an nvidia kernel-module package being installed.
-// nvidia-utils (userspace) alone is excluded: with no module to load, writing
+// nvidiaDriverActive: does this box use the proprietary/open nvidia driver?
+// a loaded module is the clearest tell, but the bug we repair is exactly
+// that nouveau won the boot race, so the module may NOT be loaded -- fall
+// back to "an nvidia kernel-module package is installed". nvidia-utils
+// (userspace) alone is excluded: with no module to load, writing
 // MODULES=(nvidia ...) would only break the initramfs.
 func nvidiaDriverActive() bool {
 	for _, m := range gpuDriversLoaded() {
@@ -1407,10 +1415,11 @@ func nvidiaDriverActive() bool {
 	return anyPkgInstalled("nvidia-open-dkms", "nvidia-dkms", "nvidia-open", "nvidia", "nvidia-lts", "nvidia-open-lts")
 }
 
-// nvidiaConfigOK reports whether the modprobe + mkinitcpio drop-ins already carry
-// the reliability essentials (nouveau blacklisted, DRM modeset on, nvidia modules
-// in the initramfs). Pure, so the idempotency that keeps doctor quiet on a healthy
-// machine -- and stops it rebuilding the initramfs every run -- is unit-tested.
+// nvidiaConfigOK: do the modprobe + mkinitcpio drop-ins already carry the
+// reliability essentials (nouveau blacklisted, DRM modeset on, nvidia
+// modules in the initramfs)? pure, so the idempotency that keeps doctor
+// quiet on a healthy box -- and stops it rebuilding the initramfs every
+// run -- is unit-testable.
 func nvidiaConfigOK(modprobe, mkinit string) bool {
 	return strings.Contains(modprobe, "blacklist nouveau") &&
 		strings.Contains(modprobe, "nvidia_drm modeset=1") &&
@@ -1446,9 +1455,9 @@ func reconcileNvidiaModeset(checkOnly bool) recResult {
 	return fixedRes("blacklisted nouveau, enabled NVIDIA DRM modeset, and rebuilt the initramfs")
 }
 
-// rebuildInitramfs regenerates the boot image after a module/blacklist change,
-// through limine-mkinitcpio (the UKI path Ryoku uses) when present, else plain
-// mkinitcpio -P.
+// rebuildInitramfs regenerates the boot image after a module/blacklist
+// change. limine-mkinitcpio when present (the UKI path Ryoku uses), else
+// plain mkinitcpio -P.
 func rebuildInitramfs() error {
 	if _, err := exec.LookPath("limine-mkinitcpio"); err == nil {
 		return run("sudo", "limine-mkinitcpio")

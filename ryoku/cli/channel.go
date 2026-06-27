@@ -12,14 +12,14 @@ import (
 	"time"
 )
 
-// The update channel is a git branch (main for everyone) that a Ryoku checkout
-// tracks. `ryoku status` reports how far the *deployed* commit (the running
-// system) is behind origin/<channel>, and `ryoku update` brings the channel in
-// and redeploys. A packaged install has no checkout, so these report "no channel"
-// and the caller falls back to the pacman view of the [ryoku] repo.
+// Update channel = a git branch (main for everyone) a Ryoku checkout tracks.
+// `ryoku status` reports how far the deployed commit (the running system) is
+// behind origin/<channel>; `ryoku update` pulls the channel in and redeploys.
+// A packaged install has no checkout, so these report "no channel" and the
+// caller falls back to the pacman view of the [ryoku] repo.
 
-// ryokuChannel is the branch the update check tracks. RYOKU_CHANNEL overrides the
-// default (used by tests); every Ryoku machine follows main.
+// ryokuChannel: the branch update tracks. RYOKU_CHANNEL overrides it for
+// tests; every real Ryoku machine follows main.
 func ryokuChannel() string {
 	if c := strings.TrimSpace(os.Getenv("RYOKU_CHANNEL")); c != "" {
 		return c
@@ -27,17 +27,17 @@ func ryokuChannel() string {
 	return "main"
 }
 
-// repoPathFile records the live-mirror checkout location. The deployed `ryoku`
-// binary sits on PATH with no path back to the repo, so the dev deploy
-// (ryoku/shell/deploy.sh) writes the checkout root here for the update channel.
+// repoPathFile records where the live-mirror checkout sits. The deployed
+// `ryoku` binary lives on PATH with no path back to the repo, so the dev
+// deploy (ryoku/shell/deploy.sh) writes the checkout root here.
 func repoPathFile() string {
 	return filepath.Join(xdg("XDG_STATE_HOME", ".local/state"), "ryoku", "repo")
 }
 
-// resolveRepo returns the Ryoku git checkout to track, or "" for a packaged
-// install with none. RYOKU_REPO wins (so `ryoku deploy` and tests can point it
-// explicitly); otherwise the path the last deploy recorded is used. A path that
-// is not a git work tree is ignored.
+// resolveRepo returns the Ryoku checkout to track, or "" when there is none
+// (packaged install). RYOKU_REPO wins (so `ryoku deploy` and tests can point
+// it explicitly); else the path the last deploy recorded. Anything that
+// isn't a git work tree is ignored.
 func resolveRepo() string {
 	for _, p := range []string{strings.TrimSpace(os.Getenv("RYOKU_REPO")), recordedRepo()} {
 		if p == "" {
@@ -59,15 +59,15 @@ func recordedRepo() string {
 }
 
 // deployedFile records the commit the last deploy laid down. The channel is
-// measured from it, not from whatever branch is checked out, so a commit pushed
-// to the channel shows as an update until the machine redeploys onto it.
+// measured from that, not from whatever branch happens to be checked out, so
+// a commit pushed upstream shows as an update until the machine redeploys onto it.
 func deployedFile() string {
 	return filepath.Join(xdg("XDG_STATE_HOME", ".local/state"), "ryoku", "deployed")
 }
 
-// deployedBase returns the recorded deployed commit when it still resolves in
-// repo, else HEAD (a checkout that has never deployed through this CLI). This is
-// the baseline the channel is compared against: what is running.
+// deployedBase returns the recorded deployed commit if it still resolves in
+// repo, else HEAD (a checkout that has never deployed through this CLI).
+// Baseline for the channel comparison: what is running.
 func deployedBase(repo string) string {
 	if b, err := os.ReadFile(deployedFile()); err == nil {
 		if c := strings.TrimSpace(string(b)); c != "" {
@@ -79,12 +79,12 @@ func deployedBase(repo string) string {
 	return "HEAD"
 }
 
-// channelStatus reports how far the deployed commit is behind the channel: the
-// commits origin/<channel> has that the running system does not. ok is false when
-// there is no checkout to track or the remote has no such branch, so the caller
-// uses the pacman view instead. It fetches best-effort and bounded so an offline
-// or auth-walled remote never hangs the status query; on a fetch failure the
-// cached remote-tracking ref stands.
+// channelStatus reports how far the deployed commit is behind the channel:
+// the commits origin/<channel> has that the running system doesn't. ok=false
+// when there's no checkout to track or the remote has no such branch, so the
+// caller falls back to the pacman view. Fetch is best-effort and bounded so
+// an offline or auth-walled remote never hangs a status query; on a fetch
+// failure the cached remote-tracking ref stands.
 func channelStatus() (statusReport, bool) {
 	repo := resolveRepo()
 	if repo == "" {
@@ -101,9 +101,9 @@ func channelStatus() (statusReport, bool) {
 	base := deployedBase(repo)
 	behind := gitCount(repo, base+".."+remote)
 
-	// The version is the channel's latest commit, so the Hub matches what the repo
-	// shows on main. When behind, surface the running commit too, so the header
-	// reads "running X -> latest Y"; when current, both are the channel tip.
+	// Version = the channel's latest commit, so the Hub matches what main
+	// shows. When behind, surface the running commit too, so the header reads
+	// "running X -> latest Y"; when current, both are the channel tip.
 	latest := gitShort(repo, remote)
 	installed := latest
 	if behind > 0 {
@@ -122,12 +122,12 @@ func channelStatus() (statusReport, bool) {
 }
 
 // channelUpdate brings the checkout's channel up to origin/<channel> and
-// redeploys, the git equivalent of a package upgrade. A clean checkout sitting on
-// the channel branch is fast-forwarded first; on a feature branch (a maintainer
-// mid-development) or a dirty tree, branch management is left to git and only the
-// redeploy runs. Either way it handles the update on a checkout (returns true), so
-// the pacman path, which a dev checkout cannot satisfy, never runs there. Returns
-// false only on a packaged install with no checkout.
+// redeploys: the git equivalent of a package upgrade. Clean checkout on the
+// channel branch -> fast-forward first; feature branch (a maintainer
+// mid-dev) or dirty tree -> leave branch management to git, just redeploy.
+// Either way the checkout is handled (returns true), so the pacman path,
+// which a dev checkout can't satisfy, never runs there. Returns false only
+// on a packaged install with no checkout.
 func channelUpdate() (bool, error) {
 	repo := resolveRepo()
 	if repo == "" {
@@ -156,9 +156,9 @@ func channelUpdate() (bool, error) {
 	return true, nil
 }
 
-// gitFetch updates the remote-tracking ref for one branch, best-effort. It never
-// prompts for credentials and is bounded, so a private or unreachable remote
-// fails fast and the cached ref stands.
+// gitFetch updates the remote-tracking ref for one branch, best-effort.
+// Never prompts for credentials and is bounded, so a private or unreachable
+// remote fails fast and the cached ref stands.
 func gitFetch(repo, branch string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -176,9 +176,9 @@ func gitCount(repo, rng string) int {
 	return n
 }
 
-// gitShort is the abbreviated commit hash of ref, the bare identifier the Hub
-// shows as the version. The 7-char floor matches GitHub's short hashes (git
-// extends it if a collision ever appears, as GitHub does).
+// gitShort: abbreviated commit hash of ref, the bare identifier the Hub
+// shows as the version. 7-char floor matches GitHub's short hashes (git
+// extends if a collision ever appears, as GitHub does).
 func gitShort(repo, ref string) string {
 	out, err := runOut("git", "-C", repo, "rev-parse", "--short=7", ref)
 	if err != nil {
@@ -187,8 +187,8 @@ func gitShort(repo, ref string) string {
 	return strings.TrimSpace(out)
 }
 
-// gitLog lists the commits in rng newest-first as display rows: the subject in
-// Name and the short hash in New (a commit has no from/to pair, so Old is empty).
+// gitLog: commits in rng newest-first as display rows. Subject in Name,
+// short hash in New (a commit has no from/to pair, so Old stays empty).
 func gitLog(repo, rng string) []updateItem {
 	ups := []updateItem{}
 	out, err := runOut("git", "-C", repo, "log", "--abbrev=7", "--format=%h%x1f%s", rng)

@@ -8,10 +8,10 @@ import (
 	"unsafe"
 )
 
-// Small terminal-styling helpers, stdlib only. Colour is the Ryoku brand
-// vermilion (#F25623) and a few accents, emitted only to a real terminal and
-// never when NO_COLOR is set, so piped or redirected output (and the report
-// file) stays plain text.
+// tiny terminal-styling helpers, stdlib only. colour is Ryoku vermilion
+// (#F25623) plus a few accents, emitted only on a real terminal and never
+// under NO_COLOR, so piped/redirected output (and the report file) stays
+// plain text.
 
 var useColor = colorWanted()
 
@@ -23,11 +23,11 @@ func colorWanted() bool {
 	return err == nil && fi.Mode()&os.ModeCharDevice != 0
 }
 
-// stdinIsTTY reports whether standard input is a real terminal: a TCGETS ioctl
-// succeeds only on a tty. Unlike an os.ModeCharDevice check it is not fooled by
-// /dev/null (also a character device), so a GUI poller that wires stdin to
-// /dev/null or a pipe is correctly seen as non-interactive. It is the gate that
-// keeps `ryoku status` from escalating to sudo when no human is present.
+// stdinIsTTY: is stdin a real terminal? TCGETS succeeds only on a tty.
+// unlike an os.ModeCharDevice check it isn't fooled by /dev/null (also a
+// character device), so a GUI poller wiring stdin to /dev/null or a pipe
+// reads as non-interactive. this is what keeps `ryoku status` from escalating
+// to sudo when no human is present.
 func stdinIsTTY() bool {
 	var t syscall.Termios
 	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, os.Stdin.Fd(),
@@ -49,8 +49,8 @@ func red(s string) string   { return paint("38;2;224;108;117", s) }
 func dim(s string) string   { return paint("2", s) }
 func bold(s string) string  { return paint("1", s) }
 
-// termWidth is the terminal column count (COLUMNS, else the TIOCGWINSZ ioctl),
-// clamped to a readable range; 80 when stdout is not a terminal.
+// termWidth: terminal column count (COLUMNS, else the TIOCGWINSZ ioctl),
+// clamped to a readable range. 80 when stdout isn't a terminal.
 func termWidth() int {
 	if c := strings.TrimSpace(os.Getenv("COLUMNS")); c != "" {
 		if n, err := strconv.Atoi(c); err == nil && n > 0 {
@@ -77,7 +77,7 @@ func clamp(n int) int {
 	}
 }
 
-// wrap word-wraps s to width, indenting every line. Newlines in s are kept as
+// wrap word-wraps s to width and indents each line. newlines stay as
 // paragraph breaks.
 func wrap(s string, width int, indent string) string {
 	avail := width - len(indent)

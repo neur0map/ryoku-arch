@@ -13,24 +13,23 @@ import (
 	"time"
 )
 
-// ryoku doctor --explain is the reasoning layer over the deterministic
-// reconcilers: it sends the diagnostic report to the user's own cloud model and
-// prints the model's root-cause analysis and fix steps. It is strictly advisory
-// and read-only: it never runs anything, so a wrong answer can only mislead, never
-// break the machine (cognition is kept separate from actuation). The provider,
-// key, and model are the user's; nothing is sent anywhere unless they set a key.
+// `ryoku doctor --explain` = the reasoning layer over the deterministic
+// reconcilers. ships the diagnostic report to the user's own cloud model,
+// prints back the root-cause analysis + fix steps. strictly advisory and
+// read-only: it never runs anything, so a wrong answer can only mislead, not
+// break the box (cognition stays separate from actuation). provider, key, and
+// model are the user's; nothing leaves the box without a key.
 //
-// Any OpenAI-compatible chat endpoint works. The defaults target Groq (fast, free
-// tier); OpenRouter's free models work by overriding RYOKU_AI_URL and _MODEL.
+// any OpenAI-compatible chat endpoint works. defaults aim at Groq (fast, free
+// tier); OpenRouter's free models work via RYOKU_AI_URL + RYOKU_AI_MODEL.
 
 const (
 	defaultAIEndpoint = "https://api.groq.com/openai/v1"
 	defaultAIModel    = "llama-3.3-70b-versatile"
 )
 
-// aiSystemPrompt is the compact context injected so the model knows the system it
-// is diagnosing and exactly what to produce. Kept short on purpose: it is the
-// task framing, the report is the data.
+// aiSystemPrompt: compact framing so the model knows the system it's
+// diagnosing and what to produce. short on purpose -- the report is the data.
 const aiSystemPrompt = "You are the diagnostic brain for Ryoku, an Arch-based Linux distro running the " +
 	"Hyprland Wayland compositor (btrfs root with snapper; the `ryoku` CLI manages updates, snapshots, and " +
 	"config). You are given a `ryoku doctor` report: deterministic findings plus system state (btrfs, " +
@@ -117,9 +116,9 @@ type aiResponse struct {
 	} `json:"error"`
 }
 
-// aiDiagnose sends the report to an OpenAI-compatible chat-completions endpoint
-// and returns the assistant's text. The OpenAI wire format is the de-facto
-// standard, so the same code serves Groq, OpenRouter, and any compatible host.
+// aiDiagnose POSTs the report to an OpenAI-compatible chat-completions
+// endpoint and returns the assistant's text. OpenAI's wire format is the
+// de-facto standard, so the same code serves Groq, OpenRouter, and friends.
 func aiDiagnose(endpoint, key, model, report string) (string, error) {
 	body, err := json.Marshal(aiRequest{
 		Model: model,
