@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- A desktop plugin's right-click menu renders the plugin's own settings inline from
+  its `metadata.settings` schema - choice chips, a toggle, a slider, and an image
+  thumbnail strip scanned from `~/Pictures` - so a widget (e.g. the photo frame) is
+  restyled and its picture changed in place, no Settings trip. Mouse-only (the
+  wallpaper layer has no keyboard, so text fields stay hub-side); changes persist
+  through `ryoku-plugins-place settings`.
 - `quickshell/plugins/ryoku-plugins-place` gains `seed`, `settings`, and `forget`
   verbs: `seed` injects a plugin's manifest preset block (default host + default
   settings) into `plugins.json`, filling only what is missing so user edits

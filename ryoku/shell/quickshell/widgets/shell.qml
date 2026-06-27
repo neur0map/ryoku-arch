@@ -159,7 +159,8 @@ ShellRoot {
 
                     onMenuRequested: (mx, my, id) => {
                         const dw = win.placementOf(id);
-                        pluginMenu.openFor(id, dw.locked === true, mx, my);
+                        pluginMenu.openFor(id, dw.locked === true, mx, my,
+                            slot.modelData.manifest, slot.modelData.placement);
                     }
 
                     property var api: QtObject {
@@ -208,6 +209,12 @@ ShellRoot {
                         "" + x, "" + y, "" + sc, "" + lk];
                     lockProc.running = true;
                 }
+                onSettingChanged: (id, key, value) => {
+                    var obj = {};
+                    obj[key] = value;
+                    settingsProc.command = ["ryoku-plugins-place", id, "settings", JSON.stringify(obj)];
+                    settingsProc.running = true;
+                }
             }
 
             // Position/scale writeback for plugin tiles. ryoku-plugins-place
@@ -218,6 +225,8 @@ ShellRoot {
             // resize-then-Lock doesn't clobber an in-flight command on `persist`.
             Process { id: hide }
             Process { id: lockProc }
+            // Per-widget settings writeback from the right-click menu.
+            Process { id: settingsProc }
         }
     }
 }
