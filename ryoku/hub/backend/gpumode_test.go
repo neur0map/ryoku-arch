@@ -1,0 +1,63 @@
+package main
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestClassifyMode(t *testing.T) {
+	const dgpu = "0000:01:00.0" // token 0000-01-00-0
+	const igpu = "0000:65:00.0" // token 0000-65-00-0
+	cases := []struct {
+		name, value, want string
+	}{
+		{"empty is hybrid", "", "hybrid"},
+		{"dgpu primary is performance", "/dev/dri/ryoku-gpu-0000-01-00-0:/dev/dri/ryoku-gpu-0000-65-00-0", "performance"},
+		{"igpu solo is passthrough", "/dev/dri/ryoku-gpu-0000-65-00-0", "passthrough"},
+		{"igpu primary but not solo is hybrid", "/dev/dri/ryoku-gpu-0000-65-00-0:/dev/dri/ryoku-gpu-0000-01-00-0", "hybrid"},
+		{"cardN form is unclassified (hybrid)", "/dev/dri/card1:/dev/dri/card0", "hybrid"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := classifyMode(tc.value, dgpu, igpu); got != tc.want {
+				t.Errorf("classifyMode(%q) = %q, want %q", tc.value, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestSlotToken(t *testing.T) {
+	if got := slotToken("0000:01:00.0"); got != "0000-01-00-0" {
+		t.Errorf("slotToken = %q, want 0000-01-00-0", got)
+	}
+}
+
+func TestGpuModeCost(t *testing.T) {
+	mux := Capability{Strategy: "mux-reboot"}
+	live := Capability{Strategy: "live-bind"}
+	if c := gpuModeCost("passthrough", mux); c != "reboot" {
+		t.Errorf("passthrough on mux = %q, want reboot", c)
+	}
+	if c := gpuModeCost("passthrough", live); c != "relogin" {
+		t.Errorf("passthrough on live = %q, want relogin", c)
+	}
+	if c := gpuModeCost("performance", mux); c != "relogin" {
+		t.Errorf("performance = %q, want relogin", c)
+	}
+}
+
+func TestReadAQValue(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "gpu.lua")
+	lua := "-- managed\nhl.env(\"AQ_DRM_DEVICES\", \"/dev/dri/ryoku-gpu-0000-01-00-0\")\nhl.config({})\n"
+	if err := os.WriteFile(p, []byte(lua), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if v := readAQValue(p); v != "/dev/dri/ryoku-gpu-0000-01-00-0" {
+		t.Errorf("readAQValue = %q", v)
+	}
+	if v := readAQValue(filepath.Join(dir, "missing.lua")); v != "" {
+		t.Errorf("missing file = %q, want empty", v)
+	}
+}
