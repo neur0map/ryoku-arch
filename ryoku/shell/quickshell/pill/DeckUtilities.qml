@@ -476,28 +476,57 @@ Item {
                     }
                 }
 
-                // Flat horizontal switch, lights vermilion when active.
-                Rectangle {
-                    id: sw
+                DeckSwitch {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 38 * root.s
-                    height: 20 * root.s
-                    color: Flags.keepAwake ? Theme.brand : "transparent"
-                    border.width: 1
-                    border.color: Flags.keepAwake ? Theme.brand : Theme.border
-                    Behavior on color { ColorAnimation { duration: Motion.fast } }
-                    Behavior on border.color { ColorAnimation { duration: Motion.fast } }
-                    Rectangle {
-                        width: 14 * root.s
-                        height: 14 * root.s
-                        anchors.verticalCenter: parent.verticalCenter
-                        x: Flags.keepAwake ? parent.width - width - 3 * root.s : 3 * root.s
-                        color: Flags.keepAwake ? Theme.cream : Theme.iconDim
-                        Behavior on x { NumberAnimation { duration: 130 } }
+                    s: root.s
+                    on: Flags.keepAwake
+                    onToggled: Flags.keepAwake = !Flags.keepAwake
+                }
+            }
+        }
+
+        Rectangle { width: parent.width; height: 1; color: Theme.hair }
+
+        // ── GAME MODE ─────────────────────────────────────────────────────
+        Column {
+            width: parent.width
+            spacing: 9 * root.s
+
+            MicroLabel { label: "Game Mode"; s: root.s }
+
+            Item {
+                width: parent.width
+                height: 32 * root.s
+
+                Column {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 2 * root.s
+                    Text {
+                        text: Flags.gameMode ? "ON" : "OFF"
+                        color: Flags.gameMode ? Theme.brand : Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 14 * root.s
+                        font.weight: Font.DemiBold
                     }
-                    HoverHandler { cursorShape: Qt.PointingHandCursor }
-                    TapHandler { onTapped: Flags.keepAwake = !Flags.keepAwake }
+                    Text {
+                        text: Flags.gameMode ? "LOW-LATENCY PROFILE" : "STANDARD DESKTOP"
+                        color: Theme.faint
+                        font.family: Theme.mono
+                        font.pixelSize: 8.5 * root.s
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 1.4 * root.s
+                        font.capitalization: Font.AllUppercase
+                    }
+                }
+
+                DeckSwitch {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    s: root.s
+                    on: Flags.gameMode
+                    onToggled: Flags.gameMode = !Flags.gameMode
                 }
             }
         }

@@ -6,7 +6,7 @@ import Quickshell.Io
 /**
  * Shared session flags persisted to a small JSON file and watched for external
  * change, so every Ryoku daemon (pill, sidebar) reads and writes the same
- * Do-Not-Disturb and Keep-Awake state live without a second notification server
+ * Do-Not-Disturb, Keep-Awake, and Game-Mode state live without a second notification server
  * or idle inhibitor. Toggling in one surface updates the others on the next file
  * event, and the state survives a daemon restart. keepAwakeSince is the epoch
  * millisecond Keep-Awake was last enabled (0 when off), so every surface reads
@@ -18,6 +18,7 @@ Singleton {
     property alias dnd: adapter.dnd
     property alias keepAwake: adapter.keepAwake
     property alias keepAwakeSince: adapter.keepAwakeSince
+    property alias gameMode: adapter.gameMode
 
     // Stamp the start time when Keep-Awake turns on and clear it when off, so no
     // toggle site has to track it. Guarded so a file reload (where the stamp is
@@ -29,6 +30,18 @@ Singleton {
             adapter.keepAwakeSince = 0;
     }
 
+    // Game Mode pulls Do-Not-Disturb on so notifications never interrupt or break
+    // a fullscreen game's tearing / direct scanout, and restores the prior DND on
+    // exit so it never clobbers a user who keeps DND on independently of gaming.
+    onGameModeChanged: {
+        if (gameMode) {
+            adapter.gameDndPrev = dnd;
+            dnd = true;
+        } else {
+            dnd = adapter.gameDndPrev;
+        }
+    }
+
     FileView {
         id: file
         path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku/flags.json"
@@ -37,7 +50,7 @@ Singleton {
         printErrors: false
         // Atomic writes (temp + rename) so a SIGTERM during a shell refresh, or
         // the pill and sidebar singletons writing at once, can never leave a torn
-        // half-written file that fails to parse on the next load — which would
+        // half-written file that fails to parse on the next load, which would
         // silently drop persisted Keep-Awake back to the default off.
         atomicWrites: true
 
@@ -49,6 +62,8 @@ Singleton {
             property bool dnd: false
             property bool keepAwake: false
             property real keepAwakeSince: 0
+            property bool gameMode: false
+            property bool gameDndPrev: false
         }
     }
 

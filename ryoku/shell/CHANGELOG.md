@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- `quickshell/pill` Control Deck: a **Game Mode** row in Utilities, a labeled
+  switch styled like Keep-Awake that flips `Flags.gameMode` (the one-click
+  competitive toggle). The shell bridges the flag to `ryoku-cmd-game-mode` the way
+  Keep-Awake bridges the caffeine helper, and pulls Do-Not-Disturb on while it is
+  active (`Flags` saves and restores the prior DND so it never clobbers a user who
+  keeps DND on independently). The deck's flat switch is extracted to
+  `DeckSwitch.qml` and shared by the Keep-Awake and Game-Mode rows. Covered by
+  `tests/game-mode.sh`.
 - A desktop plugin's right-click menu renders the plugin's own settings inline from
   its `metadata.settings` schema - choice chips, a toggle, a slider, and an image
   thumbnail strip scanned from `~/Pictures` - so a widget (e.g. the photo frame) is

@@ -53,6 +53,13 @@ ShellRoot {
         // outside this process), so "start" is an idempotent confirm; "stop"
         // clears any stray inhibitor when Keep-Awake is off.
         root.syncCaffeine(Flags.keepAwake ? "start" : "stop");
+        // Re-assert Game Mode if it persisted on: after a relogin Hyprland comes
+        // up fresh from the Lua config, so the compositor tuning must be re-applied
+        // (start is idempotent and preserves the saved WiFi value). Only "start",
+        // never "stop": a reload is expensive and the desktop already sits in its
+        // normal config when game mode is off.
+        if (Flags.gameMode)
+            root.syncGameMode("start");
     }
 
     Binding {
@@ -91,6 +98,24 @@ ShellRoot {
         target: Flags
         function onKeepAwakeChanged() {
             root.syncCaffeine(Flags.keepAwake ? "start" : "stop");
+        }
+    }
+
+    // Game Mode's compositor + WiFi tuning lives outside the shell, like
+    // Keep-Awake: ryoku-cmd-game-mode drives hyprctl and NetworkManager so the
+    // tuning survives a shell reload and re-applies after a relogin. DND is the
+    // shell's own concern (handled in Flags); the deck toggle just flips
+    // Flags.gameMode.
+    readonly property string gameModeScript: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/ryoku-cmd-game-mode"
+
+    function syncGameMode(action) {
+        Quickshell.execDetached([root.gameModeScript, action]);
+    }
+
+    Connections {
+        target: Flags
+        function onGameModeChanged() {
+            root.syncGameMode(Flags.gameMode ? "start" : "stop");
         }
     }
 
