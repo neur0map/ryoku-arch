@@ -71,6 +71,21 @@ aq_value_effective() {
   if symlinks_present; then aq_value_symlinks; else aq_value_cardn; fi
 }
 
+aq_value_for() {
+  # AQ_DRM_DEVICES value for an explicit, ordered slot list (boot-stable symlink
+  # when present, else the current cardN node).
+  local out="" slot node
+  for slot in "$@"; do
+    if [[ -e "$(symlink_path "$slot")" ]]; then
+      out+="${out:+:}$(symlink_path "$slot")"
+    else
+      node="$(card_node_for_slot "$slot")" || return 1
+      out+="${out:+:}$node"
+    fi
+  done
+  printf '%s' "$out"
+}
+
 # ── config snippet (Lua, hl API) ──────────────────────────────────────────────
 
 emit_snippet() {
@@ -259,6 +274,53 @@ cmd_disable() {
   echo "ryoku-gpu: reset $dest to Hyprland's default GPU selection (active on next login)"
 }
 
+cmd_persist_solo() {
+  # Pin one GPU as the sole render device. Used for passthrough mode: Ryoku renders
+  # on the iGPU and the dGPU is left out of AQ_DRM_DEVICES so it is free to bind to
+  # vfio-pci for a VM.
+  local slot="$1" dest="${2:-$GPU_CONF_DEFAULT}" value
+  value="$(aq_value_for "$slot")" || {
+    echo "ryoku-gpu: could not resolve a device node for $slot" >&2
+    return 1
+  }
+  write_snippet "$dest" "$value" "$slot"
+  [[ $dest == "-" ]] && return 0
+  echo "ryoku-gpu: pinned $slot as the sole render GPU (active on next Hyprland login)"
+}
+
+cmd_mode() {
+  # Set the host graphics mode (which GPU Ryoku renders on):
+  #   hybrid       no pin; Hyprland's iGPU-first default (battery)
+  #   performance  pin the strongest GPU (the dGPU) as primary
+  #   passthrough  pin the integrated GPU alone, freeing the dGPU for a VM
+  local mode="${1:-}" dest="${2:-$GPU_CONF_DEFAULT}" i igpu=""
+  analyze
+  case "$mode" in
+    hybrid)
+      cmd_disable "$dest"
+      ;;
+    performance)
+      ( export RYOKU_GPU_FORCE=1; cmd_persist "$dest" )
+      ;;
+    passthrough)
+      for i in "${!_classes[@]}"; do
+        [[ ${_classes[$i]} == "integrated" ]] || continue
+        igpu="${_slots[$i]}"
+        break
+      done
+      if [[ -z $igpu ]]; then
+        echo "ryoku-gpu: no integrated GPU to fall back to; cannot enter passthrough mode" >&2
+        return 1
+      fi
+      cmd_persist_solo "$igpu" "$dest"
+      ;;
+    *)
+      echo "ryoku-gpu: mode must be hybrid|performance|passthrough" >&2
+      return 1
+      ;;
+  esac
+}
+
 usage() {
   cat <<'USAGE'
 Usage: ryoku-gpu <command>
@@ -273,6 +335,7 @@ Commands:
   disable [PATH]  Reset the pin file to a managed comment-only placeholder.
   install-udev    Install 90-ryoku-gpu.rules for boot-stable GPU symlinks (root).
   status          Show detection plus the current pin and udev-rule state.
+  mode <m> [PATH]  Set host graphics mode: hybrid | performance | passthrough.
 
 The pin takes effect on the next Hyprland login (AQ_DRM_DEVICES is read at start).
 Env: RYOKU_GPU_FORCE=1 treats a laptop as a desktop and pins the discrete GPU.
@@ -288,6 +351,7 @@ case "${1:-status}" in
   install-udev) cmd_install_udev ;;
   status) cmd_status ;;
   disable | clear) cmd_disable "${2:-}" ;;
+  mode) cmd_mode "${2:-}" "${3:-}" ;;
   -h | --help | help) usage ;;
   *)
     echo "ryoku-gpu: unknown command: $1" >&2
