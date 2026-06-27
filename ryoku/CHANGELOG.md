@@ -146,6 +146,13 @@
   `shell/fish` (with its non-brand greeting) was dropped for `ryoku/apps/fish`.
 
 ### Fixed
+- `hyprland/scripts/ryoku-cmd-mirror`: the webcam mirror (力 deck -> Tools) ran at
+  5-15 fps and stuttered because mpv negotiated the camera's raw YUYV stream, which
+  is USB-bandwidth capped (about 5 fps at 1080p, 10 at 720p). It now asks the camera
+  for MJPEG when it offers it (probed with ffmpeg, falling back to the default so a
+  raw-only camera still works), restoring the full 30 fps, and renders explicitly
+  through `--vo=gpu-next` (libplacebo) so a stray software `vo` in mpv.conf can't
+  bog it down.
 - Hyprland: DPI autoscale now re-runs when a display is hotplugged, not only at
   login, so an external monitor plugged in mid-session is positioned and scaled
   immediately instead of coming up at 1x until the next relogin.

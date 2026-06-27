@@ -21,9 +21,22 @@ for d in /dev/video*; do
 done
 [ -n "$dev" ] || { notify-send -u normal "$app" "No webcam found"; exit 1; }
 
-# hflip reads like a real mirror; no audio, no on-screen controls, borderless.
+# Webcams expose raw (YUYV) and compressed (MJPEG) streams. Raw is USB-bandwidth
+# bound -- roughly 5 fps at 1080p, 10 at 720p -- which is the stutter; MJPEG runs
+# the full 30 fps. Request MJPEG when the camera offers it (probed with ffmpeg,
+# already a base package), else keep its default so a raw-only camera still works.
+fmt=()
+if command -v ffmpeg >/dev/null 2>&1 &&
+   timeout 3 ffmpeg -hide_banner -f v4l2 -list_formats all -i "$dev" 2>&1 | grep -qi mjpeg; then
+  fmt=(--demuxer-lavf-o=input_format=mjpeg)
+fi
+
+# hflip reads like a real mirror; --vo=gpu-next renders on the GPU via libplacebo
+# (overriding any software vo from mpv.conf). No audio, no controls, borderless.
 # window_rules.lua floats and sizes the "ryoku-mirror" window into a PiP.
 exec mpv "av://v4l2:$dev" \
   --title="$title" \
+  "${fmt[@]}" \
+  --vo=gpu-next \
   --profile=low-latency --untimed --no-audio \
   --vf=hflip --no-osc --no-border --ontop
