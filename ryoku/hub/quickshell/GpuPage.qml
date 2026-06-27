@@ -19,6 +19,7 @@ Item {
     property string planText: ""
     property bool planning: false
     property string actionError: ""
+    property string modeWarn: ""
     property bool vmRunning: false
 
     readonly property var blockerText: ({
@@ -45,7 +46,9 @@ Item {
         runProc.running = true;
     }
     function setMode(m) {
-        page.act(["ryoku-hub", "gpu", "mode", "set", m]);
+        page.modeWarn = "";
+        modeSetProc.command = ["ryoku-hub", "gpu", "mode", "set", m];
+        modeSetProc.running = true;
     }
     function reviewEnable() {
         planProc.command = ["ryoku-hub", "gpu", "apply", "enable", "--dry-run"];
@@ -95,6 +98,17 @@ Item {
                 try {
                     page.mode = JSON.parse(this.text).mode;
                 } catch (e) {}
+            }
+        }
+    }
+    Process {
+        id: modeSetProc
+        stdout: StdioCollector { onStreamFinished: page.reload() }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                var e = this.text.trim();
+                if (e.length > 0)
+                    page.modeWarn = e;
             }
         }
     }
@@ -278,6 +292,27 @@ Item {
                             color: Theme.dim
                             font.family: Theme.font
                             font.pixelSize: 12
+                        }
+                        Rectangle {
+                            visible: page.modeWarn !== ""
+                            width: parent.width
+                            height: modeWarnText.implicitHeight + 20
+                            radius: 8
+                            color: Qt.rgba(Theme.ember.r, Theme.ember.g, Theme.ember.b, 0.10)
+                            border.width: 1
+                            border.color: Qt.rgba(Theme.ember.r, Theme.ember.g, Theme.ember.b, 0.4)
+                            Text {
+                                id: modeWarnText
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.margins: 10
+                                text: page.modeWarn
+                                color: Theme.ember
+                                wrapMode: Text.WordWrap
+                                font.family: Theme.font
+                                font.pixelSize: 12
+                            }
                         }
                     }
 
