@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Scan added comment lines for low-value filler (chat residue, self-narration),
-# the same rule the pre-commit hook enforces. Comment markers checked: # -- // *.
-# Vendored content (ryoku/lockscreen/qylock and any vendor/ directory) is exempt.
+# scan added comment lines for low-value filler (chat residue, self-narration).
+# same rule the pre-commit hook enforces. comment markers: # -- // *.
+# vendored content (ryoku/lockscreen/qylock and any vendor/) is exempt.
 #
 #   ryoku-dev-scan-slop --range <base> <head>   scan added lines in base..head
 #   ryoku-dev-scan-slop --staged                scan staged additions
 #
-# Exit 1 (with the offending lines) when filler is found, 0 when clean.
+# exit 1 (with the offending lines) on filler, 0 on clean.
 set -euo pipefail
 
 slop='feel free to|let.?s (create|add|define|write|make|build|start)|\bnote that\b|here we (will|can|simply|just)'

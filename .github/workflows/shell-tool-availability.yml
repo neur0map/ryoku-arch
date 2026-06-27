@@ -1,9 +1,9 @@
 name: Shell tool availability
 
-# Prevents the "feature wired but its tool is not shipped" class (the
-# gnome-calendar / Super+G gap): every external program ProgramCheckerService
-# gates a feature on must map to a package the ISO ships, or be allow-listed as
-# intentionally bring-your-own. See tests/shell-tool-availability.sh.
+# blocks the "feature wired up, but its tool isn't shipped" class (see the
+# gnome-calendar / Super+G gap). every external program ProgramCheckerService
+# gates on must map to a package on the ISO, or be allow-listed as
+# bring-your-own. tests/shell-tool-availability.sh.
 
 on:
   pull_request:

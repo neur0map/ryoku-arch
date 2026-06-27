@@ -1,9 +1,9 @@
 name: Monitor profiles
 
-# Guards ryoku-monitor's Ryoku Settings surface: explicit layout apply (keeps the
-# chosen modes, not highrr), named hardware-keyed profiles, and the identity remap
-# that survives a connector rename. Runs in fixture mode, so no compositor is
-# needed. See tests/monitor-profiles.sh.
+# guards ryoku-monitor's Ryoku Settings surface: explicit layout apply (keep
+# chosen modes, not highrr), hardware-keyed named profiles, identity remap that
+# survives a connector rename. fixture mode -> no compositor needed.
+# tests/monitor-profiles.sh.
 
 on:
   pull_request:

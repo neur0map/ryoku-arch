@@ -1,10 +1,10 @@
 name: Docs
 
-# This repo's docs are plain Markdown under docs/ plus the top-level READMEs and
-# governance files. This validates that every relative link between them resolves,
-# replacing the Mintlify site validation the sibling repo used.
-# Vendored dependency trees are excluded: they carry upstream docs whose relative
-# links point at files we do not vendor (matches .githooks and the lint gates).
+# repo docs = plain Markdown under docs/ + the top-level READMEs and
+# governance files. checks every relative link between them resolves, in
+# place of the Mintlify site validation the sibling repo used.
+# vendored dep trees are skipped: their upstream docs point at files we don't
+# vendor (matches .githooks + the lint gates).
 
 on:
   pull_request:

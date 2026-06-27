@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Print the Ryoku version string for a release channel, derived from the repo
-# root VERSION file (base semver X.Y.Z).
+# print the Ryoku version string for a release channel. base semver comes from
+# the repo root VERSION file (X.Y.Z).
 #
 #   --channel main
 #       -> v<VERSION>                       (e.g. v0.1.0)
@@ -27,11 +27,11 @@ while (($#)); do
   esac
 done
 
-# --pkgver prints a pacman-valid, strictly increasing, commit-identifiable version
-# for the monorepo packages: the core semver (any -alpha/-beta suffix dropped,
-# since a pacman pkgver cannot contain '-') plus the commit count and the short
-# sha. Every commit yields a higher version that pacman upgrades to, and the gNNNN
-# token lets the Hub and `ryoku status` show the exact commit a machine runs.
+# --pkgver = a pacman-valid, strictly increasing, commit-identifiable version
+# for the monorepo packages. core semver (any -alpha/-beta suffix stripped, a
+# pacman pkgver can't contain '-') + commit count + short sha. every commit
+# yields a higher version pacman upgrades to, and the gNNNN token lets the Hub
+# and `ryoku status` show the exact commit a machine runs.
 if (( pkgver_mode )); then
   core=${base%%-*}
   if [[ -n $sha ]]; then

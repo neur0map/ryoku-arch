@@ -1,14 +1,14 @@
 name: Commit Notifications
 
-# Announces commit batches to the Ryoku commit-updates Discord channel.
+# announces commit batches to the Ryoku commit-updates Discord channel.
 #
-# Batching: GitHub Actions keeps no state between runs, so the last-notified
-# commit is tracked per branch as a lightweight git ref (refs/notify/commits/<branch>).
-# On every push we count the unnotified commits since that pointer; we only send
-# once the count reaches THRESHOLD, report ALL of them in a single message, then
-# advance the pointer. A push of 15 -> one "15 new commits" message; trickling one
-# commit at a time stays silent until the 5th lands. The pointer lives in a custom
-# ref namespace, so updating it never re-triggers this workflow.
+# batching: Actions runs are stateless, so per-branch we keep the last-notified
+# commit as a cheap git ref (refs/notify/commits/<branch>). on push, count
+# unnotified commits since that pointer; only send once count >= THRESHOLD,
+# report ALL of them in one message, then advance the pointer. push of 15 ->
+# one "15 new commits" message; trickling one at a time stays quiet until #5
+# lands. pointer lives in a custom ref namespace so advancing it never
+# re-triggers this workflow.
 
 on:
   push:
@@ -17,10 +17,10 @@ on:
       - unstable-dev
 
 permissions:
-  contents: write # push the refs/notify/commits/* state pointer
+  contents: write # advance the refs/notify/commits/* pointer
 
 concurrency:
-  # Serialise per branch so two pushes can't race on the state pointer.
+  # per-branch serialise so two pushes don't race the state pointer.
   group: commit-notifications-${{ github.ref_name }}
   cancel-in-progress: false
 

@@ -1,9 +1,9 @@
 name: Shell IPC parity
 
-# Fails when a keybind dispatches to a `ryoku-shell ipc <target> <fn>` that the
-# shell does not register (a silent no-op key), checked against the committed
-# shell/ipc-surface.txt manifest. Refresh the manifest with
-# `ryoku-dev-audit-shell-binds --refresh` after adding or renaming IPC handlers.
+# fails when a keybind dispatches to a `ryoku-shell ipc <target> <fn>` the
+# shell doesn't register (silent no-op key), checked against the committed
+# shell/ipc-surface.txt manifest. refresh it with
+# `ryoku-dev-audit-shell-binds --refresh` after adding/renaming IPC handlers.
 
 on:
   pull_request:

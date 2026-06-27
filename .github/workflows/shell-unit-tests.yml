@@ -1,10 +1,10 @@
 name: Shell unit tests
 
-# Runs the pure-JS unit tests behind the Quickshell surfaces (the launcher fuzzy
-# ranker and the ryoshot coords/keymap/annotation libs). They have no display or
-# Quickshell dependency, so unlike the advisory qmllint job this one is a real,
-# blocking gate. The runner (tests/shell-unit-tests.sh) discovers every
-# ryoku/shell/**/*.test.mjs, so adding a test needs no change here.
+# pure-JS unit tests behind the Quickshell surfaces (launcher fuzzy ranker +
+# the ryoshot coords/keymap/annotation libs). no display, no Quickshell dep,
+# so unlike the advisory qmllint job this one is a real blocking gate. the
+# runner (tests/shell-unit-tests.sh) discovers every
+# ryoku/shell/**/*.test.mjs; adding a test needs no change here.
 
 on:
   pull_request:

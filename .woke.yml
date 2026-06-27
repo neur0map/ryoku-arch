@@ -1,6 +1,5 @@
-# Inclusive-language (woke) configuration. The built-in default rules apply; the
-# paths below are excluded because they are vendored upstream, binary assets, or
-# verbatim license text that Ryoku does not author.
+# woke config. defaults apply. paths below are skipped: vendored upstream,
+# binary blobs, or verbatim license text we didn't write.
 ignore_files:
   - ryoku/lockscreen/qylock/**
   - ryoku/assets/**

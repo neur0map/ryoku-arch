@@ -1,10 +1,10 @@
 name: QML Lint
 
-# Advisory only. The Ryoku surfaces import the Quickshell QML modules, which are
-# not installable on a stock CI runner, so qmllint cannot resolve them and would
-# report environmental import errors as failures. This job runs qmllint for
-# visibility but never blocks: treat its output as a hint, and verify QML on a
-# running system with ryoku/shell/dev-run.sh. Vendored qylock QML is exempt.
+# advisory only. the Ryoku surfaces import the Quickshell QML modules, which
+# aren't installable on a stock CI runner, so qmllint can't resolve them and
+# would flag environmental import errors as failures. this runs qmllint for
+# visibility but never blocks: read its output as a hint, then verify QML on
+# a running system via ryoku/shell/dev-run.sh. vendored qylock QML is exempt.
 
 on:
   pull_request:

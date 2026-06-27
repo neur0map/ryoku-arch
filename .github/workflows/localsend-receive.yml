@@ -1,10 +1,10 @@
 name: LocalSend receive
 
-# The LocalSend receiver (hyprland/scripts/localsend.sh receive) holds every
+# localsend receiver (hyprland/scripts/localsend.sh receive) stalls every
 # incoming transfer at prepare-upload until the shell answers ACCEPT/DECLINE on
-# stdin: ACCEPT issues an upload token (200), DECLINE or silence returns 403 and
-# no bytes transfer. The test drives the server over HTTPS and feeds verdicts on
-# its stdin. See tests/localsend-receive.sh.
+# stdin. ACCEPT -> upload token (200), DECLINE or silence -> 403, no bytes
+# move. test drives the server over HTTPS, feeds verdicts on its stdin.
+# tests/localsend-receive.sh.
 
 on:
   pull_request:

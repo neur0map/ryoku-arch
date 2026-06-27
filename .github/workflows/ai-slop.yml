@@ -1,8 +1,8 @@
 name: AI Slop Scan
 
-# Fails a PR or push that adds AI-slop comments (placeholder stubs, chat
-# residue, attribution, self-narration). Mirrors the pre-commit
-# ryoku-dev-scan-slop check; scans added lines in the event range only.
+# fails any PR/push that adds AI-slop comments (placeholder stubs, chat
+# residue, attribution, self-narration). mirrors the pre-commit
+# ryoku-dev-scan-slop check; only added lines in the event range.
 
 on:
   pull_request:

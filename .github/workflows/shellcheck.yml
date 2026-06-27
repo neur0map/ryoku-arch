@@ -72,8 +72,8 @@ jobs:
               [[ $file == ryoku/lockscreen/qylock/* ]] && continue
               [[ $file == */vendor/* ]] && continue
 
-              # Skip non-shell interpreters that live in the same dirs (e.g.
-              # Python tools under bin/). ShellCheck would parse them as bash
+              # skip non-shell interpreters that share these dirs (e.g.
+              # python under bin/). shellcheck would parse them as bash
               # and emit bogus errors.
               if head -n 1 -- "$file" 2>/dev/null \
                 | grep -Eq '^#!.*(python|perl|node|ruby|/env[[:space:]]+(python|perl|node|ruby))'; then

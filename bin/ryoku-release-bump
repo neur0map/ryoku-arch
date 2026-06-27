@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Compute the next Ryoku version from the repo root VERSION file.
+# next Ryoku version from the repo-root VERSION file.
 #
 #   ryoku-release-bump <patch|minor|major> <alpha|beta|stable>
 #
-# Prints the bumped version with no leading "v". A stable stage prints the bare
-# semver; alpha/beta append "-<stage>.0".
+# prints the bumped version, no leading "v". stable = bare semver; alpha/beta
+# append "-<stage>.0".
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)

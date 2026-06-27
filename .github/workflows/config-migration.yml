@@ -1,13 +1,12 @@
 name: Global change needs a migration
 
-# Ryoku's config contract (docs/ryoku-config-architecture.md): changes are
-# fresh-install-only by default and DO NOT touch existing users. The only way a
-# change reaches existing installs is a migration, and a change is marked as
-# "must reach existing users" with a [global] label in its commit subject.
+# config contract (docs/ryoku-config-architecture.md): changes are
+# fresh-install-only by default. existing installs only get a change via a
+# migration, and "must reach existing users" is signalled by a [global] label
+# on the commit subject.
 #
-# This gate enforces that contract: if any commit in the PR is [global], the PR
-# must also add/modify a migrations/*.sh that carries the delta. Non-[global]
-# changes need no migration.
+# this gate enforces it: any [global] commit in the PR -> the PR must also
+# add/modify migrations/*.sh with the delta. non-[global] needs no migration.
 
 on:
   pull_request:

@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # Ryoku Arch commit-msg hook.
-# Blocks commits whose message lacks an impact label or contains generated-content
-# attribution, authorship trailers, or em-dashes. Enforces project-wide commit
-# hygiene rules.
-# Bypass with --no-verify only when you know what you are doing.
+# blocks commits with no impact label, generated-content attribution,
+# authorship trailers, or em-dashes. project-wide message hygiene.
+# --no-verify bypass only if you know what you're doing.
 
 set -e
 

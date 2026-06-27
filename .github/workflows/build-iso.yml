@@ -1,11 +1,11 @@
 name: Build ISO
 
-# Builds the Ryoku live ISO with installation/iso/build.sh, signs it with the
-# release GPG key, and publishes the signed image to Cloudflare R2.
+# builds the Ryoku live ISO via installation/iso/build.sh, signs it with the
+# release GPG key, ships the signed image to Cloudflare R2.
 #
-# Publishing is intentional only: this workflow runs on a v* release tag (cut
-# from main) or a manual dispatch. There is no branch-push trigger, so commits
-# to unstable-dev never publish anything user-facing.
+# publish is intentional only: this fires on a v* release tag (cut from main)
+# or a manual dispatch. no branch-push trigger, so commits to unstable-dev
+# never publish anything user-facing.
 
 on:
   workflow_dispatch:
@@ -25,7 +25,7 @@ on:
 
 permissions:
   contents: read
-  # Trivy uploads its ISO scan to the Security tab as SARIF.
+  # Trivy uploads the ISO scan to the Security tab as SARIF.
   security-events: write
 
 jobs:
@@ -38,12 +38,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # build.sh stages the repo payload with `git archive HEAD`, which only
-          # needs the working tree's git objects; full history is cheap here and
-          # keeps tag-described metadata available.
+          # build.sh stages the repo payload via `git archive HEAD`, which
+          # only wants the working tree's git objects; full history is cheap
+          # here and keeps tag-described metadata around.
           fetch-depth: 0
-          # Never persist the Actions token into .git/config: the build runs git
-          # inside a container against the checked-out tree.
+          # never persist the Actions token into .git/config; the build runs
+          # git inside a container against the checked-out tree.
           persist-credentials: false
 
       - name: Prepare release metadata
@@ -82,9 +82,9 @@ jobs:
 
       - name: Free disk space on runner
         run: |
-          # ubuntu-latest ships ~14 GB free; the ISO build needs ~10 GB
-          # transient. Strip preinstalled toolchains we do not use to buy
-          # headroom before mkarchiso runs inside the Arch container.
+          # ubuntu-latest ships ~14 GB free; the ISO build wants ~10 GB
+          # transient. strip the preinstalled toolchains we don't use, buys
+          # headroom before mkarchiso runs in the Arch container.
           sudo rm -rf /opt/hostedtoolcache /usr/share/dotnet /opt/ghc \
                       /usr/local/lib/android /usr/local/share/boost
           docker system prune -af
@@ -94,21 +94,21 @@ jobs:
         run: |
           set -euo pipefail
 
-          # mkarchiso is Arch-only and needs root plus the build toolchain that
+          # mkarchiso is Arch-only and wants root + the build toolchain that
           # bakes the prebuilt binaries and the Ryoku.Blobs plugin into the
           # image, so the whole build runs inside a privileged archlinux
-          # container. --privileged lets pacstrap bind-mount /proc /sys /dev into
-          # the airootfs during the build.
+          # container. --privileged lets pacstrap bind-mount /proc /sys /dev
+          # into the airootfs while it runs.
           #
-          # mkarchiso's work/staging trees live on a host bind mount (real ext4
-          # under RUNNER_TEMP) rather than the container's overlay layer, which
-          # cannot back every filesystem operation pacstrap performs. Only the
-          # finished ISO lands back in the workspace at installation/iso/out.
+          # mkarchiso's work/staging trees live on a host bind mount (real
+          # ext4 under RUNNER_TEMP), not the container's overlay layer (which
+          # can't back every fs op pacstrap performs). only the finished ISO
+          # lands back in the workspace at installation/iso/out.
           work="$RUNNER_TEMP/ryoku-iso-build"
           mkdir -p "$work" installation/iso/out
 
-          # Reproducible iso_version/iso_label: profiledef.sh and mkarchiso both
-          # read SOURCE_DATE_EPOCH.
+          # reproducible iso_version/iso_label: profiledef.sh + mkarchiso
+          # both read SOURCE_DATE_EPOCH.
           source_epoch="$(date -u +%s)"
 
           docker run --rm --privileged \
@@ -123,27 +123,27 @@ jobs:
             -e HOST_GID="$(id -g)" \
             archlinux:latest \
             bash -euo pipefail -c '
-              # Refresh the keyring first: a stale base image cannot verify
-              # packages signed by newly-added packager keys, which aborts the
-              # upgrade. Then full upgrade + install (never a partial -Sy alone).
+              # refresh the keyring first: a stale base image can't verify
+              # packages signed by newly-added packager keys and the upgrade
+              # aborts. then full upgrade + install (never a partial -Sy alone).
               pacman -Sy --noconfirm archlinux-keyring
               pacman -Su --noconfirm --needed \
                 archiso git go base-devel cmake ninja \
                 qt6-base qt6-declarative qt6-shadertools
-              # The checkout is owned by the runner UID, not container root;
+              # checkout is owned by the runner UID, not container root;
               # build.sh runs `git archive` against it.
               git config --global --add safe.directory /repo
               ./build.sh
-              # Hand the finished ISO back to the runner user so the host-side
-              # sign/checksum/upload steps can read and write alongside it.
+              # hand the finished ISO back to the runner user so the
+              # host-side sign/checksum/upload steps can read + write next to it.
               chown -R "$HOST_UID:$HOST_GID" /repo/installation/iso/out
             '
 
           ls -la installation/iso/out/
 
           # mkarchiso's work tree (root-owned, on the RUNNER_TEMP bind mount)
-          # outlives the --rm container; drop it now to free disk for the Trivy
-          # rootfs copy below.
+          # outlives the --rm container; drop it now to free disk for the
+          # Trivy rootfs copy below.
           sudo rm -rf "$work"
 
       - name: Capture ISO path
@@ -151,7 +151,7 @@ jobs:
         run: |
           iso=$(ls -t installation/iso/out/*.iso | head -n1)
           base=$(basename "$iso")
-          # Rename to the tracked public name the manifest + website expect:
+          # rename to the tracked public name the manifest + website expect:
           # ryoku-<date>-r<run>-<sha>-x86_64-<installer_ref>.iso
           if [[ $base =~ ^(ryoku-[0-9]{4}\.[0-9]{2}\.[0-9]{2})-(x86_64)\.iso$ ]]; then
             tracked="$(dirname "$iso")/${BASH_REMATCH[1]}-${RYOKU_ISO_TRACKING_ID}-${BASH_REMATCH[2]}-${RYOKU_ISO_INSTALLER_REF}.iso"
@@ -206,10 +206,10 @@ jobs:
           format: sarif
           output: trivy-iso-results.sarif
           limit-severities-for-sarif: true
-          # Skip the runtime mount points (empty in the squashfs), the pacman
-          # package cache, and the baked payload's bulky wallpaper/brand assets
-          # at /usr/share/ryoku/ryoku/assets. The prebuilt Go binaries and the
-          # rest of the payload stay in scope.
+          # skip the runtime mount points (empty in the squashfs), the pacman
+          # package cache, and the baked payload's bulky wallpaper/brand
+          # assets at /usr/share/ryoku/ryoku/assets. prebuilt Go binaries and
+          # the rest of the payload stay in scope.
           skip-dirs: proc,sys,dev,run,tmp,var/cache/pacman/pkg,usr/share/ryoku/ryoku/assets
           version: v0.70.0
 
@@ -258,8 +258,8 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          # Import the private key into a fresh ephemeral keyring. GNUPGHOME is a
-          # runner-local temp dir; the key never touches persistent storage.
+          # import the private key into a fresh ephemeral keyring. GNUPGHOME
+          # is a runner-local temp dir; the key never hits persistent storage.
           export GNUPGHOME="$(mktemp -d)"
           chmod 700 "$GNUPGHOME"
           echo "$GPG_PRIVATE_KEY" | gpg --batch --import
@@ -274,8 +274,8 @@ jobs:
 
           gpg --verify "$iso.sig" "$iso"
 
-          # Export the public key alongside the ISO so testers can verify it from
-          # the same R2 bucket. This mirrors the repo-canonical copy at
+          # ship the public key alongside the ISO so testers can verify from
+          # the same R2 bucket. mirrors the repo-canonical copy at
           # keys/ryoku-release-key.pub.asc for users who only have the ISO URL.
           pubkey="$(dirname "$iso")/ryoku-release-key.pub.asc"
           gpg --armor --export > "$pubkey"
@@ -284,7 +284,7 @@ jobs:
       - name: Generate release manifest
         run: |
           iso="${{ steps.iso.outputs.path }}"
-          # Writes <iso>.sha256, <iso>.json, <iso>.js, latest.json and latest.js;
+          # writes <iso>.sha256, <iso>.json, <iso>.js, latest.json + latest.js;
           # the website reads latest.json to surface the newest ISO.
           ./bin/ryoku-iso-manifest "$iso"
           cat "$iso.json"
@@ -314,11 +314,11 @@ jobs:
           no_check_bucket = true
           EOF
 
-          # R2_BUCKET is the shared release bucket, served at the channel root
-          # (iso.ryoku.dev/<channel>/). Publish the tracked ISO, signature,
-          # checksum, per-ISO manifests, and the latest.json/latest.js pointer the
-          # website reads. The [ryoku] pacman repo owns the per-arch prefixes in
-          # the same bucket; the ISO release lives at the root.
+          # R2_BUCKET = the shared release bucket, served at the channel root
+          # (iso.ryoku.dev/<channel>/). publish the tracked ISO, signature,
+          # checksum, per-ISO manifests, and the latest.json/latest.js pointer
+          # the website reads. the [ryoku] pacman repo owns the per-arch
+          # prefixes in the same bucket; the ISO release lives at the root.
           dest="${R2_BUCKET:-ryoku}"
 
           iso="${{ steps.iso.outputs.path }}"
@@ -347,7 +347,7 @@ jobs:
           retention-days: 14
 
       - name: Notify Discord of the ISO build
-        # Runs on success and failure; never fails the build itself.
+        # runs on success and failure; never fails the build itself.
         if: ${{ always() }}
         continue-on-error: true
         env:

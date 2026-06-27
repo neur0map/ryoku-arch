@@ -1,10 +1,10 @@
 name: Stash installer
 
-# The stash install action (hyprland/scripts/stash-install.sh) turns a dropped
-# file into a launcher entry: an Arch package (.pkg.tar.zst) goes to pacman -U, a
-# flatpak bundle to flatpak install, and .deb/.rpm payloads are extracted with
-# bsdtar. The test stubs pkexec/pacman/flatpak and asserts each dispatch (and that
-# a generic tarball is never escalated). See tests/stash-install.sh.
+# stash-install (hyprland/scripts/stash-install.sh) turns a dropped file into a
+# launcher entry: an Arch pkg (.pkg.tar.zst) goes through pacman -U, a flatpak
+# bundle through flatpak install, .deb/.rpm payloads get cracked open with
+# bsdtar. tests stub pkexec/pacman/flatpak and check each dispatch (and that a
+# generic tarball is never escalated). see tests/stash-install.sh.
 
 on:
   pull_request:

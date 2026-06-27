@@ -1,10 +1,10 @@
 name: Install chroot safety
 
-# Prevents the "fresh install halts in the chroot" class: a bare
+# blocks the "fresh install halts in the chroot" class: a bare
 # `systemctl --user enable|start|...` in a chroot-run install phase fails (no
-# user bus) and halts the whole install before login/ (SDDM + qylock) and
-# post-install/ run. Each such call must be guarded with `|| true`.
-# See tests/install-chroot-safety.sh.
+# user bus) and stops the install before login/ (SDDM + qylock) and
+# post-install/ run. guard each such call with `|| true`.
+# see tests/install-chroot-safety.sh.
 
 on:
   pull_request:

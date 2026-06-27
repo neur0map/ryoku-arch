@@ -111,8 +111,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          # A tag pushed by GITHUB_TOKEN does not fire publish-repo's tag trigger,
-          # so dispatch it explicitly to republish the signed [ryoku] repo.
+          # a tag pushed by GITHUB_TOKEN doesn't fire publish-repo's tag
+          # trigger, so dispatch it explicitly to republish the signed [ryoku] repo.
           gh workflow run publish-repo.yml --ref "$RELEASE_TAG"
           echo "::notice::Dispatched publish-repo.yml on $RELEASE_TAG."
 

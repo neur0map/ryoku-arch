@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Verify every `ryoku-shell <cmd>` that a Hyprland keybind or autostart invokes is
-# a command the ryoku-shell daemon actually handles, so no key is a silent no-op.
+# check every `ryoku-shell <cmd>` a Hyprland keybind or autostart fires is
+# actually handled by the daemon. no silent no-op keys.
 #
 #   ryoku-dev-audit-shell-binds --check     fail on any unhandled command
 #   ryoku-dev-audit-shell-binds --refresh   rewrite ryoku/shell/ipc/ipc-surface.txt
 #
-# The handled set is read from the daemon source (the pillSurfaces map keys and
-# the dispatch/route switch cases) plus the client-only `daemon` mode. Over-
-# capturing a handled command is safe: it can only mark a used command as handled,
-# never the reverse.
+# handled set comes from the daemon source (pillSurfaces map keys + the
+# dispatch/route switch cases), plus the client-only `daemon` mode. over-
+# capturing on the handled side is safe: it can only mark a used command as
+# handled, never the reverse.
 set -euo pipefail
 
 ROOT=${RYOKU_PATH:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}

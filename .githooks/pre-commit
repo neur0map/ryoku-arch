@@ -1,10 +1,10 @@
 #!/bin/bash
-# Ryoku pre-commit checks on staged additions:
+# Ryoku pre-commit, on staged additions:
 #   1. no em-dash in text files (prose stays plain, not machine-styled)
 #   2. bash syntax on staged shell scripts
 #   3. no low-value filler phrases in added comment lines
-# Vendored content (ryoku/lockscreen/qylock) is exempt. Bypass with --no-verify
-# only when you know what you are doing.
+# vendored ryoku/lockscreen/qylock is exempt. bypass with --no-verify only when
+# you know what you're doing.
 set -euo pipefail
 
 fail() {
@@ -20,7 +20,7 @@ text='\.(md|txt|sh|bash|yml|yaml|toml|json|jsonc|conf|lua|tpl|fish|desktop|rules
 
 mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACM)
 
-# 1. em-dash scan on text files.
+# 1. em-dash scan over text files.
 for f in "${staged[@]}"; do
 	[[ -f $f ]] || continue
 	[[ $f =~ $exempt ]] && continue
@@ -31,7 +31,7 @@ for f in "${staged[@]}"; do
 	fi
 done
 
-# 2. bash syntax on staged shell scripts (by extension or shebang).
+# 2. bash syntax on staged shell scripts (extension or shebang).
 for f in "${staged[@]}"; do
 	[[ -f $f ]] || continue
 	[[ $f =~ $exempt ]] && continue
@@ -48,8 +48,8 @@ for f in "${staged[@]}"; do
 	fi
 done
 
-# 3. Filler phrases in ADDED comment lines, via the shared scanner (vendored
-#    tree excluded). The same check runs in CI (.github/workflows/ai-slop.yml).
+# 3. filler phrases in ADDED comment lines, via the shared scanner (vendored
+#    tree excluded). same check runs in CI (.github/workflows/ai-slop.yml).
 bin/ryoku-dev-scan-slop --staged >/dev/null \
 	|| fail "low-value filler comments found (see above); reword or drop them."
 
