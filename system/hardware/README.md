@@ -36,6 +36,13 @@ in the machine.
     capture far hotter than unity does not clip speech into distortion. A mic
     already at or below unity is left alone. Launched from Hyprland autostart for
     Handy speech-to-text and the pill voice visualizer.
+- `network/`
+  - `ryoku-wifi-powersave` Disables, then restores, 802.11 power-save on every
+    WiFi device for the shell's Game Mode, via `iw`, so the radio stays fully awake
+    for lower, steadier latency. It saves each device's prior state and reverts it;
+    no reconnect and no throughput cap. Runs as root through pkexec.
+  - `49-ryoku-wifi-powersave.rules` A polkit rule that lets the active wheel user
+    run exactly that helper without a password, so the Game Mode toggle stays one click.
 - `drivers/` One install script per vendor: `nvidia.sh`, `intel.sh`, `amd.sh`,
   and `vulkan.sh`. Each one checks whether its hardware is present and installs
   only what that hardware needs.
@@ -104,4 +111,5 @@ first login already renders on the right GPU at the right size.
 the GPU rule) are expected on the target. `nvidia-smi` is optional and only fills
 in the NVIDIA VRAM figure. `hyprctl` and `jq` are needed for live display
 changes. `pacman` does the installing. `pactl` (PipeWire-Pulse) reads and sets
-the microphone base volume for `ryoku-mic`.
+the microphone base volume for `ryoku-mic`. `iw` toggles WiFi power-save for
+`ryoku-wifi-powersave`.

@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- `network/ryoku-wifi-powersave` + `network/49-ryoku-wifi-powersave.rules`: a
+  privileged helper that disables, and later restores, 802.11 power-save on every
+  WiFi device for Game Mode, via `iw` with no reconnect and no throughput cap,
+  saving each device's prior state. A polkit rule authorizes exactly this program
+  for the active wheel user without a password, so the deck toggle stays one click.
+  The `ryoku-desktop` PKGBUILD installs the helper to `/usr/bin` and the rule under
+  `/usr/share/polkit-1/rules.d`. Covered by `tests/wifi-powersave.sh`.
 - `display/ryoku-monitor`: a `settle` subcommand re-asserts each output's intended
   mode so a display recovers in place when a cold-boot or post-upgrade link comes
   up advertising only a fallback resolution (e.g. 800x600) that Hyprland's

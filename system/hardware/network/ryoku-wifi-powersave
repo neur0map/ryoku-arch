@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Privileged WiFi power-save control for Game Mode. Disabling 802.11 power-save
+# keeps the radio fully awake, which removes the periodic micro-sleeps that spike
+# latency on an otherwise idle link. It is a pure latency change: no reconnect, no
+# throughput cap, the connection is never dropped. iw talks to nl80211, which
+# needs CAP_NET_ADMIN, so this runs as root via pkexec; the polkit rule
+# 49-ryoku-wifi-powersave.rules authorizes exactly this program for the wheel
+# group without a password, keeping Game Mode one click. The prior per-device
+# state is saved on `off` and restored on `on`, so it is non-destructive.
+#
+#   off       save each WiFi device's power-save state, then disable it
+#   on        restore the saved state (default: enabled, the driver default)
+#   status    print each WiFi device and its current power-save state
+set -u
+
+state="${RYOKU_WIFI_PS_STATE:-/run/ryoku/wifi-powersave.prev}"
+sysfs="${RYOKU_NET_SYSFS:-/sys/class/net}"
+
+wifi_devs() {
+  local w dev
+  for w in "$sysfs"/*/wireless; do
+    [[ -e $w ]] || continue
+    dev="${w%/wireless}"
+    printf '%s\n' "${dev##*/}"
+  done
+}
+
+# "on" or "off" for a device's current 802.11 power-save.
+ps_state() {
+  iw dev "$1" get power_save 2>/dev/null | grep -qi 'power save: on' && echo on || echo off
+}
+
+case "${1:-}" in
+  status)
+    command -v iw >/dev/null 2>&1 || { echo "iw not installed" >&2; exit 1; }
+    mapfile -t devs < <(wifi_devs)
+    for d in "${devs[@]}"; do printf '%s %s\n' "$d" "$(ps_state "$d")"; done
+    ;;
+  off)
+    command -v iw >/dev/null 2>&1 || exit 0
+    mkdir -p "$(dirname "$state")" 2>/dev/null || true
+    : >"$state" 2>/dev/null || true
+    mapfile -t devs < <(wifi_devs)
+    for d in "${devs[@]}"; do
+      printf '%s %s\n' "$d" "$(ps_state "$d")" >>"$state" 2>/dev/null || true
+      iw dev "$d" set power_save off 2>/dev/null || true
+    done
+    ;;
+  on)
+    command -v iw >/dev/null 2>&1 || exit 0
+    declare -A prev=()
+    if [[ -r $state ]]; then
+      while read -r d s; do [[ -n $d ]] && prev[$d]="$s"; done <"$state"
+    fi
+    mapfile -t devs < <(wifi_devs)
+    for d in "${devs[@]}"; do
+      iw dev "$d" set power_save "${prev[$d]:-on}" 2>/dev/null || true
+    done
+    rm -f "$state" 2>/dev/null || true
+    ;;
+  *)
+    echo "usage: ryoku-wifi-powersave [off | on | status]" >&2
+    exit 2
+    ;;
+esac

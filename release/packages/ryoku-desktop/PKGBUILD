@@ -53,6 +53,8 @@ depends=(
   'cava'
   'jq'
   'imagemagick'
+  # Game Mode WiFi power-save toggle (ryoku-wifi-powersave runs iw)
+  'iw'
   # Fonts the shell UI hardcodes (Inter, JetBrainsMono Nerd, Noto Sans CJK)
   'ttf-jetbrains-mono-nerd'
   'inter-font'
