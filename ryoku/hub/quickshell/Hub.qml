@@ -24,6 +24,7 @@ Rectangle {
         { "key": "input",       "name": "Input",           "icon": "mouse",    "group": "System" },
         { "key": "keybinds",    "name": "Keybinds",        "icon": "keyboard", "group": "System" },
         { "key": "connections", "name": "Connections",     "icon": "wifi",     "group": "System" },
+        { "key": "gpu",         "name": "GPU",             "icon": "chip",     "group": "System" },
         { "key": "updates",     "name": "Updates",         "icon": "download", "pinned": "bottom" },
         { "key": "appearance",  "name": "Appearance",      "icon": "palette",  "group": "Desktop" },
         { "key": "animations",  "name": "Animations",      "icon": "motion",   "group": "Desktop" },
@@ -53,6 +54,7 @@ Rectangle {
         "shell":       { "title": "Shell", "subtitle": "Tune the Ryoku shell: the frame, the island, the bar, and the desktop visualiser." },
         "widgets":     { "title": "Desktop Widgets", "subtitle": "Clock and weather on the wallpaper: pick a design, size, shape, and placement, with a live preview that follows your palette." },
         "connections": { "title": "Connections", "subtitle": "Wi-Fi networks, Bluetooth devices, and your hotspot, all in one place." },
+        "gpu":         { "title": "GPU", "subtitle": "Graphics mode (Hybrid, Performance, Passthrough) and a Looking-Glass Windows VM that owns the discrete GPU." },
         "updates":     { "title": "Updates", "subtitle": "Updates pending for your Ryoku system." },
         "store":       { "title": "Store", "subtitle": "Browse and install shell plugins and extras bundles for the Ryoku desktop." },
         "addons":      { "title": "Add-ons", "subtitle": "Your installed plugins. Open one to change its settings, enable it, or remove it." }
@@ -214,6 +216,7 @@ Rectangle {
         case "widgets": return widgetsComp;
         case "updates": return updatesComp;
         case "connections": return connectionsComp;
+        case "gpu": return gpuComp;
         case "store": return storeComp;
         case "addons": return addonsComp;
         default: return shellComp;
@@ -238,6 +241,7 @@ Rectangle {
     Component { id: storeComp; StorePage {} }
     Component { id: addonsComp; AddonsPage {} }
     Component { id: connectionsComp; ConnectionsPage {} }
+    Component { id: gpuComp; GpuPage {} }
 
     Item {
         id: closeBtn
