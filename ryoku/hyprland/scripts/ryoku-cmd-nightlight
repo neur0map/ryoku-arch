@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Night light: warm the screen colour temperature via hyprsunset.
+# night light = warm the screen via hyprsunset.
 #
-#   (no args)      toggle on/off at the saved temperature (the Super+U utility)
-#   <temp>         toggle, using <temp> Kelvin when turning on
-#   on [temp]      ensure on (default: saved temperature, or 4000)
-#   off            ensure off
-#   status         print "on <temp>" or "off"
+#   (no args)   toggle at the saved temp (the Super+U binding)
+#   <temp>      toggle, using <temp> K on the way up
+#   on [temp]   ensure on (default = saved temp, or 4000)
+#   off         ensure off
+#   status      "on <temp>" | "off"
 #
-# Killing hyprsunset reverts the gamma, so "off" is a plain pkill. The chosen
-# temperature persists, so status reports it and a re-enable reuses it.
+# killing hyprsunset puts gamma back, so off is just pkill. temp is persisted,
+# so status prints it and the next enable reuses it.
 set -u
 
 state="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-nightlight"
@@ -33,7 +33,7 @@ start() {
   mkdir -p "$(dirname "$state")" 2>/dev/null || true
   printf '%s\n' "$temp" >"$state" 2>/dev/null || true
   pkill -x hyprsunset 2>/dev/null || true
-  # Detach so the night light outlives whatever invoked this (a keybind, the hub).
+  # detach so we outlive whatever called us (keybind, hub).
   setsid -f hyprsunset -t "$temp" >/dev/null 2>&1
 }
 

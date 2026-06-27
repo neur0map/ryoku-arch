@@ -2,8 +2,8 @@ hl.env("XCURSOR_THEME",   "Bibata-Modern-Ice")
 hl.env("XCURSOR_SIZE",    "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 
--- VA-API/GLX vendor hints are NVIDIA-only; mesa (AMD/Intel) auto-detects and
--- forcing these breaks video decode and Xwayland GL, so gate them on the driver.
+-- VA-API/GLX vendor hints: nvidia only. mesa (AMD/Intel) auto-detects, and
+-- forcing them there breaks video decode + Xwayland GL. gate on the driver.
 local nvidia = io.open("/proc/driver/nvidia/version")
 if nvidia then
     nvidia:close()

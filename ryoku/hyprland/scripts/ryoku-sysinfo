@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# System read-out for the Ryoku pill's SYSTEM card: one field per line, in the
-# exact order SysInfo.qml parses. Dual-GPU aware (matches GPU device classes, not
-# bus ids, and strips the bus/class prefix and vendor noise). On first run it
-# also assigns the user a random codename and persists it to
-# ~/.local/state/ryoku/codename, so the operator handle is stable per install.
+# sysread for the pill's SYSTEM card. one field per line, exact order SysInfo.qml
+# parses. dual-GPU aware: matches device classes (not bus ids), strips the
+# bus/class prefix and vendor noise. first run rolls a random codename and saves
+# it to ~/.local/state/ryoku/codename, so the operator handle stays stable
+# across reboots for this install.
 export LC_ALL=C
 
 clean_gpu() {

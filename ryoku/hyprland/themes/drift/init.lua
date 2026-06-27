@@ -1,6 +1,6 @@
--- Drift: an airy, breathing motion, loaded as the active Ryoku theme. A slow
--- curve at a low speed lets windows and workspaces ease in unhurriedly, for a
--- calm, ambient feel; the wide gaps and soft blur come from the look block.
+-- drift: airy, breathing motion. slow curve at low speed lets windows and
+-- workspaces ease in unhurried (calm, ambient feel). wide gaps + soft blur
+-- live in the look block.
 hl.config({
   decoration = {
     rounding_power = 4,

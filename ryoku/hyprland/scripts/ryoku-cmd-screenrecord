@@ -62,7 +62,7 @@ recorder_running() {
   proc_running "$gsr_pattern" || proc_running "$wf_pattern"
 }
 
-# Which backend currently owns the live recording, if any.
+# which backend owns the live recording right now, if any.
 running_backend() {
   if proc_running "$gsr_pattern"; then
     printf 'gsr'
@@ -79,11 +79,11 @@ signal_recorder() {
   pkill "$signal" -f "$pattern" >/dev/null 2>&1 || true
 }
 
-# Must match Ryoku.Paths.recsdir in the shell (shell/utils/Paths.qml), which is
-# RYOKU_SHELL_RECORDINGS_DIR or ${XDG_VIDEOS_DIR:-$HOME/Videos}/Recordings. The
-# shell's recordings list only watches that exact directory, so resolving it any
-# other way (e.g. via `xdg-user-dir VIDEOS`, which returns $HOME when no Videos
-# dir is configured) would hide every saved recording.
+# must match Ryoku.Paths.recsdir (shell/utils/Paths.qml): RYOKU_SHELL_RECORDINGS_DIR
+# or ${XDG_VIDEOS_DIR:-$HOME/Videos}/Recordings. the shell's recordings list only
+# watches that one dir, so any other resolution (e.g. `xdg-user-dir VIDEOS`,
+# which returns $HOME when there's no Videos dir) would hide every saved
+# recording.
 recordings_dir() {
   if [[ -n ${RYOKU_SHELL_RECORDINGS_DIR:-} ]]; then
     printf '%s\n' "$RYOKU_SHELL_RECORDINGS_DIR"
@@ -113,11 +113,10 @@ next_recording_path() {
   printf '%s\n' "$path"
 }
 
-# Ground truth: can gpu-screen-recorder enumerate a real monitor with the card
-# it auto-selects? On multi-GPU setups where the display lives on a different
-# card than the render GPU, this is false and we must use wf-recorder instead.
-# The probe is time-boxed because gpu-screen-recorder's DRM enumeration can hang
-# on such machines.
+# ground truth: can gpu-screen-recorder list a real monitor with the card it
+# auto-picks? on multi-GPU boxes where the display lives on a different card
+# than the render GPU this is false and we have to use wf-recorder. probe is
+# time-boxed because gsr's DRM enum can hang on exactly those machines.
 gsr_capture_probe() {
   local cmd="${RYOKU_SCREENRECORD_RECORDER:-gpu-screen-recorder}"
   local out
@@ -133,9 +132,9 @@ gsr_capture_probe() {
   printf '%s' "$out" | grep -Eq '^[^|[:space:]]+\|[0-9]+x[0-9]+'
 }
 
-# A cheap, stable fingerprint of the GPU/monitor topology. It changes when a
-# card or a connected output changes, which is exactly when the backend choice
-# might need to change.
+# cheap stable fingerprint of GPU/monitor topology. changes when a card or a
+# connected output changes, which is exactly when the backend choice may need
+# to flip.
 gpu_topology_signature() {
   {
     printf '%s\n' /dev/dri/card*
@@ -157,8 +156,8 @@ select_backend() {
     ;;
   esac
 
-  # Reuse the previously probed backend while the topology is unchanged, so the
-  # (potentially slow) gpu-screen-recorder probe runs at most once per layout.
+  # reuse the last probed backend while the topology hasn't changed, so the
+  # (potentially slow) gsr probe runs at most once per layout.
   local cache sig cached_sig cached_backend chosen
   cache="$(backend_cache_file)"
   sig="$(gpu_topology_signature)"
@@ -175,8 +174,8 @@ select_backend() {
   elif command -v "${RYOKU_SCREENRECORD_WF:-wf-recorder}" >/dev/null 2>&1; then
     chosen="wf"
   else
-    # Nothing better available; let gpu-screen-recorder run and surface its own
-    # diagnostic instead of silently doing nothing.
+    # nothing better around; let gsr run and surface its own diagnostic instead
+    # of silently doing nothing.
     chosen="gsr"
   fi
 
@@ -188,8 +187,7 @@ select_backend() {
   printf '%s' "$chosen"
 }
 
-# slurp geometry as "WxH+X+Y" for gpu-screen-recorder. Empty output means the
-# selection was cancelled.
+# slurp geometry as "WxH+X+Y" for gpu-screen-recorder. empty = cancelled.
 region_geometry_gsr() {
   local slurp_cmd="${RYOKU_SCREENRECORD_SLURP:-slurp}"
   local geometry
@@ -219,7 +217,7 @@ region_geometry_gsr() {
   printf '%s' "$geometry"
 }
 
-# slurp's native "X,Y WxH" for wf-recorder -g. Empty output means cancelled.
+# slurp's native "X,Y WxH" for wf-recorder -g. empty = cancelled.
 region_geometry_wf() {
   local slurp_cmd="${RYOKU_SCREENRECORD_SLURP:-slurp}"
   local geometry
@@ -229,8 +227,8 @@ region_geometry_wf() {
   printf '%s' "$geometry"
 }
 
-# Name of the focused Hyprland output, used to target wf-recorder. Empty when it
-# can't be resolved (wf-recorder then records the only/default output).
+# focused Hyprland output name, to target wf-recorder. empty when we can't
+# resolve it (wf-recorder then records the only/default output).
 focused_output() {
   command -v hyprctl >/dev/null 2>&1 || return 0
   command -v jq >/dev/null 2>&1 || return 0
@@ -250,8 +248,8 @@ default_source_name() {
   pactl get-default-source 2>/dev/null || true
 }
 
-# Resolve the render node (/dev/dri/renderD*) that shares a PCI address with the
-# given card device (a real card or a ryoku-gpu-* symlink).
+# render node (/dev/dri/renderD*) sharing a PCI addr with the given card
+# device (a real card or a ryoku-gpu-* symlink).
 render_node_for_card() {
   local ref="$1"
   local card name pci node
@@ -269,7 +267,7 @@ render_node_for_card() {
   readlink -f "$node"
 }
 
-# Pick the render node for wf-recorder's VAAPI encoder: an explicit override, the
+# pick the render node for wf-recorder's VAAPI encoder: explicit override, the
 # primary GPU pinned by ryoku-gpu (AQ_DRM_DEVICES), else the first render node.
 wf_vaapi_node() {
   if [[ -n ${RYOKU_SCREENRECORD_WF_DEVICE:-} ]]; then
@@ -410,15 +408,15 @@ start_wf() {
   mkdir -p "$output_dir"
   output_path="$(next_recording_path "$output_dir")"
 
-  # Explicit codec: skip the hardware/software negotiation entirely.
+  # explicit codec: skip hw/sw negotiation entirely.
   if [[ -n ${RYOKU_SCREENRECORD_WF_CODEC:-} ]]; then
     exec "$wf_cmd" -r "$fps" "${target_args[@]}" "${audio_args[@]}" \
       -c "$RYOKU_SCREENRECORD_WF_CODEC" -f "$output_path"
   fi
 
-  # Prefer GPU (VAAPI) encoding on the primary render node. If the hardware
-  # encoder can't be set up (e.g. the captured buffer lives on a GPU whose VAAPI
-  # can't ingest it), fall back to libx264 so a recording is always produced.
+  # try VAAPI on the primary render node first. if the hw encoder can't be set
+  # up (e.g. the captured buffer lives on a GPU whose VAAPI can't ingest it),
+  # fall back to libx264 so we always produce a file.
   node="$(wf_vaapi_node || true)"
   if [[ -n ${node:-} ]]; then
     "$wf_cmd" -r "$fps" "${target_args[@]}" "${audio_args[@]}" \
@@ -430,7 +428,7 @@ start_wf() {
       exit $?
     fi
     wait "$pid" 2>/dev/null && status=0 || status=$?
-    # If hardware encoding produced a file, the user simply stopped it early.
+    # hw encode produced something? the user just stopped it early.
     [[ -s $output_path ]] && exit "${status:-0}"
     rm -f "$output_path"
     output_path="$(next_recording_path "$output_dir")"

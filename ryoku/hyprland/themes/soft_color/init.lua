@@ -1,6 +1,6 @@
--- Soft Color: a dreamy pastel finish, loaded as the active Ryoku theme. High
--- blur vibrancy and a gentle, slightly slow curve give it a soft, floaty feel;
--- the palette and the heavy blur in the look block do the rest.
+-- soft color: dreamy pastel finish. active ryoku theme. high blur vibrancy +
+-- a gentle, slightly slow curve = soft, floaty feel. palette and the heavier
+-- blur live in the look block.
 hl.config({
   decoration = {
     rounding_power = 4,

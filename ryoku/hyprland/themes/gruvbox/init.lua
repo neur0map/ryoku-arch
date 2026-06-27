@@ -1,4 +1,4 @@
--- Gruvbox: motion and finish, loaded as the active Ryoku theme.
+-- gruvbox: motion + finish (active theme).
 hl.config({
   decoration = {
     rounding_power = 3,

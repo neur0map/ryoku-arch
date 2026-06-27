@@ -1,21 +1,20 @@
 #!/usr/bin/env bash
-# 力 Game Mode: one reversible toggle that tunes the session for competitive play
-# and restores it on exit. The compositor is driven through hyprctl eval (no root);
-# WiFi power-save is toggled by the privileged ryoku-wifi-powersave helper via
-# pkexec (a polkit rule authorizes exactly it without a password, so the toggle
-# stays one click). Do-Not-Disturb is the shell's concern (Flags.dnd); the shell
-# flips it and bridges this helper, mirroring ryoku-cmd-caffeine.
+# 力 game mode = one reversible toggle. competitive-play tune on start, back
+# to normal on stop. compositor via `hyprctl eval` (no root). wifi
+# power-save flipped by the privileged ryoku-wifi-powersave through pkexec
+# (polkit pre-auths it, no password, toggle stays one click). dnd is the
+# shell's job (Flags.dnd) and bridges in here, same as ryoku-cmd-caffeine.
 #
-#   status   exit 0 when game mode is on
-#   start    apply tuning, persist the request (idempotent: safe to re-run)
-#   stop     restore everything, clear the request
-#   toggle   start if off, stop if on
+#   status   exit 0 = on
+#   start    apply, persist (idempotent, safe to re-run)
+#   stop     restore, clear
+#   toggle
 #
-# Revert is exact. The compositor changes are runtime hyprctl eval overrides, which
-# `hyprctl reload` wipes by re-reading the Lua config, so nothing needs to be
-# remembered. The WiFi helper saves and restores the radio's prior power-save
-# state. `start` re-applies cleanly after a relogin (Hyprland comes up fresh from
-# the Lua config while the request is still persisted).
+# revert = exact. compositor changes are runtime eval overrides; `hyprctl
+# reload` rereads Lua and clears them, so nothing to track. the wifi helper
+# saves + restores the prior power-save state. `start` is safe to re-run
+# after a relogin (Hyprland comes back fresh from Lua, request is still on
+# disk).
 set -u
 
 state_dir="${RYOKU_STATE_PATH:-${XDG_STATE_HOME:-$HOME/.local/state}/ryoku}"
@@ -27,13 +26,14 @@ notify() {
   command -v notify-send >/dev/null 2>&1 && notify-send -a Ryoku "$1" "$2" || true
 }
 
-# ── Compositor ────────────────────────────────────────────────────────────────
-# Ryoku's Hyprland runs the Lua config parser, where `hyprctl keyword` is rejected;
-# `hyprctl eval` runs Lua against the same `hl` API the config uses (the flash-free
-# path ryoku-hub also uses). Drop every present-time cost (blur, shadow, rounding,
-# opacity blending, animations) and switch to the low-latency path: tearing allowed
-# with an immediate rule, plus fullscreen-only VRR. Tearing only actually engages on
-# a fullscreen, sole-window game (Hyprland wiki), which is exactly the case here.
+# ── compositor ────────────────────────────────────────────────────────────────
+# Ryoku's Hyprland runs the Lua config parser, so `hyprctl keyword` is
+# rejected. `hyprctl eval` runs Lua against the same `hl` API the config
+# uses (same no-flash path ryoku-hub takes). kill present-time cost (blur,
+# shadow, rounding, opacity blending, animations) and flip to the
+# low-latency path: immediate window rule for tearing + fullscreen-only VRR.
+# per the Hyprland wiki tearing only kicks in on a fullscreen sole window,
+# which is exactly the game case.
 hypr_fast() {
   command -v hyprctl >/dev/null 2>&1 || return 0
   hyprctl eval '
@@ -53,18 +53,18 @@ hl.window_rule({ name = "game-mode-immediate", match = { class = ".*" }, immedia
 ' >/dev/null 2>&1 || true
 }
 
-# Reload re-reads the Lua config, dropping every eval override set above.
+# reload rereads Lua and blows away every eval override above.
 hypr_restore() {
   command -v hyprctl >/dev/null 2>&1 || return 0
   hyprctl reload >/dev/null 2>&1 || true
 }
 
-# ── WiFi (latency only, never a cap) ──────────────────────────────────────────
-# Disabling 802.11 power-save keeps the radio fully awake, removing the periodic
-# micro-sleeps that spike latency on an idle link. It does NOT shape, cap, or drop
-# the connection, so online play keeps full throughput. The privileged helper does
-# it via iw with no reconnect and saves/restores the prior state. With no WiFi
-# device, or on a system without the desktop package (no helper), this is a no-op.
+# ── wifi (latency only, never a cap) ──────────────────────────────────────────
+# 802.11 power-save off = radio stays fully awake. kills the periodic
+# micro-sleeps that spike latency on an idle link. does NOT shape, cap, or
+# drop the link, so throughput is untouched. the privileged helper does it
+# via iw with no reconnect and saves + restores the prior state. no wifi or
+# no helper = no-op.
 has_wifi() {
   local w
   for w in "${RYOKU_NET_SYSFS:-/sys/class/net}"/*/wireless; do [[ -e $w ]] && return 0; done

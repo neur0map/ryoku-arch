@@ -1,13 +1,13 @@
 #!/bin/bash
-# Shrink stashed videos/images via ffmpeg/magick, writing a smaller "<name>.min.<ext>" beside the original.
-# Usage: stash-compress.sh [file]   (no arg = every video/image directly in $STASH, non-recursive)
+# shrink stashed videos/images via ffmpeg/magick. writes "<name>.min.<ext>" next to the original.
+# usage: stash-compress.sh [file]   (no arg = every video/image directly in $STASH, non-recursive)
 set -u
 
 STASH="${STASH_DIR:-$HOME/Downloads/Stash}"
 
 notify() { notify-send "Stash" "$1" -i "$2"; }
 
-# Human-readable size with MB-style labels on a 1024 base (matches "saved 45.2 MB" feedback).
+# human size, MB-style labels, 1024 base (matches "saved 45.2 MB").
 human() {
   awk -v b="$1" 'BEGIN{
     split("B KB MB GB TB", u, " "); i=1; x=b;
@@ -16,7 +16,7 @@ human() {
   }'
 }
 
-# Media class from extension (case-insensitive); empty = not a compression target.
+# media class from extension (lowercased). empty = nothing to compress.
 classify() {
   local ext="${1##*.}"; ext="${ext,,}"
   case "$ext" in
@@ -29,9 +29,9 @@ classify() {
   esac
 }
 
-# Re-encode $1 (class $2) to $3 at the same resolution (never upscales). ffmpeg keeps
-# quality and audio while shrinking; png/bmp go through magick because this ffmpeg
-# build's png encoder exposes no zlib level, so it cannot actually compress them.
+# re-encode in -> out at the same res (never upscales). ffmpeg keeps quality + audio.
+# png/bmp go through magick: this ffmpeg's png encoder has no zlib knob, so it
+# can't actually compress them.
 encode() {
   local in="$1" kind="$2" out="$3"
   case "$kind" in
@@ -43,7 +43,7 @@ encode() {
   esac
 }
 
-# Collect targets: an explicit file, or every regular file directly in the stash.
+# targets = the named file, or every regular file directly in the stash.
 declare -a targets=()
 single=0
 if [ "$#" -ge 1 ]; then
@@ -67,7 +67,7 @@ compressed=0; optimal=0; failed=0; saved=0
 
 for in in "${targets[@]}"; do
   bn=$(basename -- "$in")
-  case "$bn" in *.min.*) continue ;; esac   # never recompress our own outputs
+  case "$bn" in *.min.*) continue ;; esac   # don't re-compress our own outputs
 
   kind=$(classify "$in")
   if [ -z "$kind" ]; then
@@ -92,7 +92,7 @@ for in in "${targets[@]}"; do
   fi
 
   in_size=$(stat -c%s "$in"); out_size=$(stat -c%s "$out")
-  # A re-encode that didn't shrink is wasted; drop it and leave the original untouched.
+  # re-encode that didn't shrink = wasted bytes. drop it, keep the original.
   if [ "$out_size" -ge "$in_size" ]; then
     rm -f "$out"; optimal=$((optimal + 1)); echo "already optimal: $bn"
   else

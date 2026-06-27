@@ -1,6 +1,6 @@
--- CRT: a cyan phosphor finish, loaded as the active Ryoku theme. A wide cyan
--- shadow stands in for the tube glow, and a quick, almost-linear curve keeps the
--- motion crisp like a refresh sweep; the palette carries the rest.
+-- crt: cyan phosphor finish. active ryoku theme. the wide cyan shadow (look
+-- block) fakes the tube glow; the near-linear curve here keeps motion crisp,
+-- like a refresh sweep. palette does the rest.
 hl.config({
   decoration = {
     rounding_power = 2,

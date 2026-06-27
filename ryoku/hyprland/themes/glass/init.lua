@@ -1,6 +1,6 @@
--- Glass: a frosted, translucent finish, loaded as the active Ryoku theme. The
--- heavy blur and window transparency come from the look block; here we raise the
--- blur vibrancy and drive windows with a gentle overshoot so they pop into place.
+-- glass: frosted, translucent finish. active ryoku theme. heavy blur and
+-- window alpha come from the look block; this file bumps blur vibrancy and
+-- gives windows a small overshoot so they pop into place.
 hl.config({
   decoration = {
     rounding_power = 2,

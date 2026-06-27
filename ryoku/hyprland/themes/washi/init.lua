@@ -1,6 +1,5 @@
--- Washi: warm vermilion finish with clinical, snappy motion, loaded as the
--- active Ryoku theme. A single easeOutQuint curve drives a quick, no-bounce
--- settle; the warmth and finish come from the palette and the look block.
+-- washi: warm vermilion, clinical snap. single easeOutQuint = quick no-bounce
+-- settle. warmth + finish come from the palette and the look block.
 hl.config({
   decoration = {
     rounding_power = 3,

@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# Keep-Awake's durable idle inhibitor. The shell only flips Flags.keepAwake and
-# calls this helper; the actual inhibitor is a systemd-inhibit process launched
-# OUTSIDE the shell (via systemd-run --user, or setsid as a fallback) so it keeps
-# the screen awake across a shell reload/restart, which would otherwise drop the
-# in-shell Wayland inhibitor and let the session idle during the swap. The user's
-# request is persisted to a state file so a fresh login can restore it.
+# Keep-Awake's durable idle inhibitor. shell only flips Flags.keepAwake + calls
+# this; the real inhibitor is a systemd-inhibit launched OUTSIDE the shell
+# (systemd-run --user, setsid fallback) so it survives a shell reload/restart.
+# do it in-shell and the Wayland inhibitor dies on the swap, screen idles. the
+# request is persisted so a fresh login can pick it back up.
 
 set -euo pipefail
 

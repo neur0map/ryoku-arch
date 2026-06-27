@@ -1,4 +1,4 @@
--- Catppuccin: motion and finish, loaded as the active Ryoku theme.
+-- catppuccin: motion + finish (active theme).
 hl.config({
   decoration = {
     rounding_power = 4,

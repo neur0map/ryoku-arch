@@ -1,1 +1,1 @@
--- Ryoku default: the shipped look and motion. No overrides.
+-- ryoku default = shipped look + motion. no overrides.

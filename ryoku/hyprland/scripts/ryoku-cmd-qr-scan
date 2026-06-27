@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Scan a QR code from a selected screen region, copy its content, and open URLs.
-# Self-contained: grim + slurp grab the region, zbarimg decodes, wl-copy stores.
-# Optional --file IMAGE skips the region grab.
+# region -> QR. grim+slurp grab, zbarimg decodes, wl-copy stores, URLs get
+# xdg-open. --file IMAGE skips the grab.
 set -euo pipefail
 
 app="QR Code"
@@ -26,7 +25,7 @@ fi
 if [[ -n $input_file ]]; then
   [[ -r $tmp ]] || { notify-send -u critical "$app" "Cannot read image at $tmp"; exit 1; }
 else
-  # slurp non-zero is a cancel (Esc); leave quietly.
+  # slurp nonzero = Esc/cancel. bail quietly.
   geometry="$(slurp 2>/dev/null)" || exit 130
   [[ -n $geometry ]] || exit 0
   grim -g "$geometry" "$tmp"

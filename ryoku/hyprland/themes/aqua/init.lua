@@ -1,4 +1,4 @@
--- Aqua: motion and finish, loaded as the active Ryoku theme.
+-- aqua: motion + finish. active ryoku theme.
 hl.config({
   decoration = {
     rounding_power = 6,

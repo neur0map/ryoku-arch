@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
-# Extended system read-out for the Ryoku Hub Profile dossier (the stat sheet
-# beside the specimen card). One field per line, in the exact order the hub's
-# SysInfo.qml extended parser expects. Best-effort: each field falls back to a
-# dash or an empty line when its source is missing, so the panel degrades
-# gracefully. Kept separate from ryoku-sysinfo so the pill's 30 s poll stays lean.
+# extended sysread for the Ryoku Hub Profile dossier (stat sheet next to the
+# specimen card). one field per line, exact order SysInfo.qml's extended parser
+# wants. each field falls back to "-" or "" if its source is gone, so the panel
+# degrades cleanly. separate from ryoku-sysinfo so the pill's 30s poll stays light.
 export LC_ALL=C
 
 read -r l1 _ < /proc/loadavg
 
-# CPU package temperature from a known hwmon sensor, if present.
+# CPU package temp, if a hwmon sensor we know is around.
 temp="-"
 for h in /sys/class/hwmon/hwmon*; do
     n=$(cat "$h/name" 2>/dev/null) || continue
@@ -17,7 +16,7 @@ for h in /sys/class/hwmon/hwmon*; do
     fi
 done
 
-# Battery percentage, if a battery exists.
+# battery %, if there is one.
 bat="-"
 for b in /sys/class/power_supply/BAT*; do
     [ -e "$b/capacity" ] || continue
@@ -25,7 +24,7 @@ for b in /sys/class/power_supply/BAT*; do
     break
 done
 
-# wallust terminal palette, comma-joined, for the swatch strip.
+# wallust palette, comma-joined, for the swatch strip.
 palette=""
 cj="${XDG_CACHE_HOME:-$HOME/.cache}/wallust/colors.json"
 if [ -s "$cj" ] && command -v jq >/dev/null 2>&1; then

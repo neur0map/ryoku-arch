@@ -1,9 +1,9 @@
--- Resize mode: SUPER+R (in binds.lua) enters this submap and shows a toast, since
--- entering a submap is otherwise silent. Arrow keys or hjkl grow and shrink the
--- active window; Escape, Return, or SUPER+R again hand control back to the normal
--- keymap. The submap is exclusive, so the bare keys resize here without colliding
--- with the global SUPER+arrow focus. SUPER+CTRL+arrows (in binds.lua) resize the
--- same way without entering a mode.
+-- resize mode. SUPER+R (binds.lua) enters this submap and pops a toast;
+-- submap entry is otherwise silent. arrows or hjkl grow/shrink the active
+-- window. escape, return, or SUPER+R again hand control back to the normal
+-- keymap. exclusive submap, so bare arrows resize here without fighting the
+-- global SUPER+arrow focus. SUPER+CTRL+arrows (binds.lua) do the same without
+-- entering a mode.
 local step = 40
 
 hl.define_submap("resize", function()

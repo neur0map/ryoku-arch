@@ -1,20 +1,20 @@
 #!/bin/bash
-# Stash app installer for the Ryoku shell file stash: makes dropped AppImages,
-# tarballs, and Arch packages launchable. A self-contained AppImage or tarball
-# gets a synthesized XDG desktop entry under ~/.local; a pacman package
-# (.pkg.tar.zst) is handed to `pacman -U` through pkexec so it installs the normal
-# way and the launcher reads the entry the package itself ships.
-# A successful install then removes the source from the stash so it is not left
-# duplicating the installed app (set RYOKU_STASH_KEEP=1 to keep it).
-# Usage: stash-install.sh [file]   (no arg: install every supported file in $STASH)
+# stash app installer: makes whatever the user dropped in the Ryoku stash
+# launchable. an AppImage or self-contained tarball gets a synthesized XDG
+# desktop entry under ~/.local; a pacman package (.pkg.tar.zst) is handed to
+# `pacman -U` via pkexec so it installs the normal way and the launcher reads
+# the entry the package itself ships.
+# on success we drop the source from the stash so it doesn't sit there as a
+# duplicate (RYOKU_STASH_KEEP=1 keeps it).
+# usage: stash-install.sh [file]   (no arg = install every supported file in $STASH)
 set -u
 
 STASH="${STASH_DIR:-$HOME/Downloads/Stash}"
-APPSTORE="$HOME/.local/share/ryoku-apps"        # installed payloads live here
+APPSTORE="$HOME/.local/share/ryoku-apps"        # installed payloads
 APPDIR="$HOME/.local/share/applications"         # launcher reads .desktop from here
 ICONDIR="$HOME/.local/share/icons"
-# A successful install copies, extracts, or installs the app out of the stash, so
-# the dropped source is then a pure duplicate; remove it unless RYOKU_STASH_KEEP=1.
+# successful install copies/extracts/installs the app out of the stash. the
+# dropped source is then a pure duplicate; nuke it unless RYOKU_STASH_KEEP=1.
 KEEP_SOURCE="${RYOKU_STASH_KEEP:-0}"
 mkdir -p "$APPSTORE" "$APPDIR" "$ICONDIR"
 
@@ -22,12 +22,12 @@ LAST_NAME=""
 
 # --- helpers ---------------------------------------------------------------
 
-# slug: reduce a name to filesystem/desktop-id-safe characters.
+# slug = name -> filesystem/desktop-id-safe chars.
 slug() { printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '_'; }
 
-# cleanup_source FILE: drop a successfully-installed source from the stash so the
-# app is not duplicated as both an install and a leftover stash copy. Returns 0
-# only when the file is actually gone, so the caller can count it.
+# cleanup_source FILE: drop a source we just installed, so we don't end up with
+# both an install and a leftover stash copy. returns 0 only when it's actually
+# gone, so the caller can count it.
 cleanup_source() {
   [ "$KEEP_SOURCE" = 1 ] && return 1
   rm -f "$1" 2>/dev/null
@@ -44,16 +44,16 @@ classify() {
   esac
   case "$1" in
     *.tar|*.tar.gz|*.tgz|*.tar.xz|*.tar.zst|*.tar.bz2)
-      # A renamed Arch package is still a system package, not a self-contained app
-      # tree, and a top-level .PKGINFO is the tell. Route it to pacman, never to
-      # the extract-into-~/.local path that cannot produce a working /opt app.
+      # a renamed Arch package is still a system pkg, not a self-contained app
+      # tree; top-level .PKGINFO is the tell. route it to pacman, never to the
+      # extract-into-~/.local path that can't produce a working /opt app.
       if is_pacman_pkg "$1"; then printf 'pacman'; else printf 'tarball'; fi ;;
     *) printf 'unknown' ;;
   esac
 }
 
-# is_pacman_pkg FILE: true when the archive carries a top-level .PKGINFO, the
-# first member of every pacman package.
+# is_pacman_pkg FILE: true if the archive carries a top-level .PKGINFO. that
+# entry is the first member of every pacman package.
 is_pacman_pkg() {
   { bsdtar -tf "$1" 2>/dev/null || tar -tf "$1" 2>/dev/null; } | head -n 8 | grep -qxF '.PKGINFO'
 }
@@ -78,8 +78,8 @@ strip_tar_ext() {
   esac
 }
 
-# desktop_get FILE KEY: first value of an unlocalized key from [Desktop Entry].
-# Restricting to that group avoids picking up Name=/Icon= from Desktop Action groups.
+# desktop_get FILE KEY: first value of an unlocalized KEY from [Desktop Entry].
+# restricting to that group avoids picking up Name=/Icon= from Desktop Action groups.
 desktop_get() {
   awk -v k="$2" '
     /^\[/ { inentry = ($0 == "[Desktop Entry]"); next }
@@ -94,8 +94,8 @@ desktop_get() {
   ' "$1" 2>/dev/null
 }
 
-# exec_field PATH: double-quote the program token if it contains whitespace,
-# as required by the desktop entry Exec syntax.
+# exec_field PATH: double-quote the program token if it has whitespace, per
+# the desktop entry Exec syntax.
 exec_field() {
   case "$1" in
     *[[:space:]]*) printf '"%s"' "$1" ;;
@@ -103,8 +103,8 @@ exec_field() {
   esac
 }
 
-# find_icon_file ROOT ICONVALUE: best-effort locate an icon file for ICONVALUE
-# under ROOT, preferring scalable SVG then the highest-resolution themed PNG.
+# find_icon_file ROOT ICONVALUE: best-effort find an icon file for ICONVALUE
+# under ROOT. prefer scalable SVG, then the highest-res themed PNG.
 find_icon_file() {
   local root="$1" icon="$2" bn found=""
   [ -n "$icon" ] || { printf ''; return; }
@@ -118,7 +118,7 @@ find_icon_file() {
   printf '%s' "$found"
 }
 
-# install_icon SRC APPNAME: copy SRC into the icon dir as APPNAME.<ext>; prints
+# install_icon SRC APPNAME: copy SRC to the icon dir as APPNAME.<ext>; prints
 # the installed path on success.
 install_icon() {
   local src="$1" appname="$2" ext
@@ -162,8 +162,8 @@ extract_tar() {
   fi
 }
 
-# pick_executable ROOT WANT: an executable file named WANT, else the sole
-# executable in the tree, else empty (ambiguous).
+# pick_executable ROOT WANT: an executable named WANT, else the sole executable
+# in the tree, else "" (ambiguous).
 pick_executable() {
   local root="$1" want="$2" list match
   list=$(find "$root" -type f -perm -u+x ! -iname '*.desktop' 2>/dev/null)
@@ -175,8 +175,8 @@ pick_executable() {
   [ "$(printf '%s\n' "$list" | wc -l)" -eq 1 ] && printf '%s' "$list"
 }
 
-# install_appimage PATH: extract embedded metadata from the executable AppImage at
-# PATH and emit a cleaned desktop entry (Exec points at PATH). Sets LAST_NAME.
+# install_appimage PATH: rip the embedded metadata out of the executable
+# AppImage and write a cleaned desktop entry (Exec -> PATH). sets LAST_NAME.
 install_appimage() {
   local app="$1" appname out tmp squash="" edesk="" icv="" iconfile="" iconinstalled=""
   local nm="" cm="" cat=""
@@ -184,8 +184,8 @@ install_appimage() {
   [ -n "$appname" ] || appname="app"
   out="$APPDIR/$appname.desktop"
 
-  # Type-2 AppImages self-extract via --appimage-extract (no FUSE); it dumps
-  # squashfs-root into the CWD, so run it inside a throwaway temp dir.
+  # Type-2 AppImages self-extract via --appimage-extract (no FUSE). it dumps
+  # squashfs-root into CWD, so run it inside a throwaway tempdir.
   tmp=$(mktemp -d 2>/dev/null) || tmp=""
   if [ -n "$tmp" ]; then
     if ( cd "$tmp" && "$app" --appimage-extract >/dev/null 2>&1 ) && [ -d "$tmp/squashfs-root" ]; then
@@ -204,12 +204,12 @@ install_appimage() {
     rm -rf "$tmp"
   fi
 
-  # Even when extraction fails (squash empty) this yields the required minimal entry.
+  # even when extraction fails (squash empty) this still emits the minimum entry.
   write_desktop "$out" "${nm:-$appname}" "$(exec_field "$app") %U" "${iconinstalled:-$appname}" "$cm" "$cat"
   LAST_NAME="$appname"
 }
 
-# install_tar_desktop ROOT DESKTOP FALLBACK: install a desktop file found in an
+# install_tar_desktop ROOT DESKTOP FALLBACK: install a .desktop found in an
 # extracted tree, rewriting Exec to the absolute binary path inside the tree.
 install_tar_desktop() {
   local root="$1" ed="$2" fallback="$3" appname nm cm cat icv oexec
@@ -225,10 +225,10 @@ install_tar_desktop() {
   if [ -n "$oexec" ]; then
     tok=${oexec%% *}                                   # program token
     case "$oexec" in *" "*) rest=${oexec#* } ;; esac   # preserve %U/%F and flags
-    # An absolute Exec (a .deb/.rpm ships /opt/... or /usr/bin/...) maps straight
-    # onto the extracted FHS tree; prefer that exact file over a tree-wide basename
-    # search, which can match an unrelated same-named payload file (e.g. a cron
-    # job) that happens to sort first.
+    # an absolute Exec (a .deb/.rpm ships /opt/... or /usr/bin/...) maps straight
+    # onto the extracted FHS tree; prefer that exact file over a tree-wide
+    # basename find, which can match an unrelated same-named payload file (a
+    # cron job etc.) that happens to sort first.
     case "$tok" in
       /*) [ -f "$root$tok" ] && abs="$root$tok" ;;
     esac
@@ -253,10 +253,10 @@ install_tar_desktop() {
 }
 
 # dispatch_extracted ROOT NAME FALLBACK: from an already-extracted app tree,
-# synthesize a launcher entry. Prefers a bundled AppImage, then a shipped desktop
-# file (Exec rewritten to the bundled binary), then a lone executable. Sets
-# LAST_NAME. Best-effort: an app that hardcodes /usr or /opt paths may still need
-# its native package, but a relocatable tree becomes launchable here.
+# synthesize a launcher entry. prefer a bundled AppImage, then a shipped
+# .desktop (Exec rewritten to the bundled binary), then a lone executable. sets
+# LAST_NAME. best-effort: an app that hardcodes /usr or /opt may still need its
+# native package, but a relocatable tree becomes launchable here.
 dispatch_extracted() {
   local dst="$1" name="$2" rawname="$3" ai ed exe
   ai=$(find "$dst" -type f \( -iname '*.AppImage' -o -iname '*.appimage' \) 2>/dev/null | head -n1)
@@ -280,7 +280,7 @@ dispatch_extracted() {
   return 1
 }
 
-# app_store_dir RAWNAME: a fresh per-app dir under the app store; echoes its path.
+# app_store_dir RAWNAME: fresh per-app dir under the app store; echoes its path.
 app_store_dir() {
   local name dst
   name=$(slug "$1"); [ -n "$name" ] || name="app"
@@ -289,7 +289,7 @@ app_store_dir() {
   printf '%s' "$dst"
 }
 
-# install_tarball SRC: extract a self-contained app tarball and synthesize an entry.
+# install_tarball SRC: extract a self-contained tarball + synthesize an entry.
 install_tarball() {
   local src rawname name dst
   src="$1"
@@ -300,11 +300,11 @@ install_tarball() {
   dispatch_extracted "$dst" "$name" "$rawname"
 }
 
-# install_deb SRC / install_rpm SRC: extract a foreign package's payload (its usr/
-# tree) and synthesize an entry from it. bsdtar (libarchive, always present via
-# pacman) reads both: a .deb nests its payload in data.tar.*, an .rpm exposes the
-# cpio tree directly. Best-effort, like the tarball path; a native pacman package
-# or flatpak is the better route for an app that hardcodes system paths.
+# install_deb / install_rpm SRC: pull a foreign package's payload (its usr/ tree)
+# and synthesize an entry from it. bsdtar (libarchive, always around via pacman)
+# reads both: .deb nests its payload in data.tar.*, .rpm exposes the cpio tree
+# directly. best-effort, like the tarball path; a native pacman package or
+# flatpak is the better route for an app that hardcodes system paths.
 install_deb() {
   local src rawname name dst tmp data
   src="$1"
@@ -332,7 +332,7 @@ install_rpm() {
 }
 
 # install_flatpak SRC: install a single-file Flatpak bundle into the user
-# installation. The flathub remote is ensured first so a bundle's runtime can
+# installation. ensure the flathub remote first so the bundle's runtime can
 # resolve; flatpak then exports the app's desktop entry under
 # ~/.local/share/flatpak/exports (on XDG_DATA_DIRS), which the launcher reads.
 install_flatpak() {
@@ -343,30 +343,30 @@ install_flatpak() {
   LAST_NAME=$(slug "$(basename "$src" .flatpak)")
 }
 
-# install_pacman SRC: install an Arch package with `pacman -U`. The stash runs
-# with no tty, so escalate through pkexec (the polkit agent raises the GUI
-# prompt). The package ships its own /usr/share/applications entry, which the
-# launcher reads, so nothing is synthesized here. Sets LAST_NAME.
+# install_pacman SRC: install an Arch package via `pacman -U`. the stash runs
+# with no tty, so escalate through pkexec (polkit agent raises the GUI prompt).
+# the package ships its own /usr/share/applications entry, which the launcher
+# reads, so nothing's synthesized here. sets LAST_NAME.
 install_pacman() {
   local src="$1" name
   command -v pacman >/dev/null 2>&1 || return 1
   command -v pkexec >/dev/null 2>&1 || return 1
-  # Tell the shell to step the control deck aside before the polkit prompt: the
-  # deck is a top overlay layer with a keyboard grab, so the prompt would land
-  # behind it and could not take the password. The shell reads this off stdout.
+  # tell the shell to step the control deck aside before the polkit prompt.
+  # the deck is a top overlay layer with a keyboard grab, so the prompt would
+  # land behind it and could not take the password. shell reads this off stdout.
   printf '@AUTH\n'
   pkexec pacman -U --noconfirm "$src" >/dev/null 2>&1 || return 1
   name=$(pacman_pkgname "$src")
   LAST_NAME="${name:-$(slug "$(basename "$src")")}"
 }
 
-# pacman_pkgname FILE: the pkgname recorded in the package's .PKGINFO.
+# pacman_pkgname FILE: the pkgname out of the package's .PKGINFO.
 pacman_pkgname() {
   { bsdtar -xOf "$1" .PKGINFO 2>/dev/null || tar -xOf "$1" .PKGINFO 2>/dev/null; } \
     | sed -n 's/^pkgname = //p' | head -n1
 }
 
-# install_one FILE: returns 0 success, 1 failure, 2 unsupported extension.
+# install_one FILE: 0 ok, 1 fail, 2 unsupported extension.
 install_one() {
   local f="$1" kind appname dest
   LAST_NAME=""
@@ -430,7 +430,7 @@ if [ "${#targets[@]}" -gt 0 ]; then
       cleanup_source "$t" && cleaned=$((cleaned + 1))
       echo "OK $LAST_NAME"
     elif [ "$rc" -eq 2 ]; then
-      # Unsupported extension: a hard error only when the user named the file
+      # unsupported extension: hard error only when the user named the file
       # explicitly; silently skipped during a whole-stash sweep.
       [ "$single" -eq 1 ] && attempted=$((attempted + 1))
     else

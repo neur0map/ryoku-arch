@@ -1,16 +1,16 @@
 #!/bin/bash
-# Cobalt-backed media fetcher and local remuxer for the Ryoku shell file stash.
-# Downloads through a cobalt API instance (https://github.com/imputnet/cobalt)
-# when one is reachable, and falls back to yt-dlp otherwise so a fresh install
-# still works. Remux is always a local, lossless ffmpeg container copy, which is
-# exactly what cobalt's own remux does on-device (no re-encode).
+# cobalt-backed media fetcher + local remuxer for the Ryoku stash.
+# downloads through a cobalt API instance (https://github.com/imputnet/cobalt)
+# when one's reachable, falls back to yt-dlp otherwise so a fresh box still works.
+# remux is always a lossless ffmpeg container copy, same thing cobalt's own
+# on-device remux does (no re-encode).
 #
-# Point it at your instance with COBALT_API_URL (default http://localhost:9000);
+# point it at your instance with COBALT_API_URL (default http://localhost:9000);
 # run one per https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md
 #
-# Streams tab-separated, line-buffered status the stash queue parses:
+# tab-separated, line-buffered status the stash queue parses:
 #   START <name> | PROGRESS <0-100> | SAVED <filename> | ERROR <message>
-# Usage: stash-cobalt.sh download <url> [auto|audio|mute] | remux <file>
+# usage: stash-cobalt.sh download <url> [auto|audio|mute] | remux <file>
 set -u
 
 STASH="${STASH_DIR:-$HOME/Downloads/Stash}"
@@ -19,7 +19,7 @@ mkdir -p "$STASH"
 
 emit() { printf '%s\t%s\n' "$1" "${2:-}"; }
 
-# A free path in the stash for the wanted name: "name.ext", then "name (1).ext".
+# free path in the stash for the wanted name: "name.ext", then "name (1).ext".
 dest_for() {
   local base; base=$(basename "$1"); [ -n "$base" ] || base="download"
   [ -e "$STASH/$base" ] || { printf '%s' "$STASH/$base"; return; }
@@ -34,7 +34,7 @@ dest_for() {
 
 cobalt_up() { curl -fsS --max-time 2 -H "Accept: application/json" "$COBALT/" >/dev/null 2>&1; }
 
-# Fetch one direct URL to DEST. curl's default meter is parsed for a coarse percent.
+# fetch one direct URL to DEST. curl's default meter parsed for a coarse %.
 fetch() {
   local url="$1" dest="$2" rc
   curl -fL --max-time 1800 -A "Mozilla/5.0 (X11; Linux x86_64)" -o "$dest" "$url" 2>&1 \
@@ -45,7 +45,7 @@ fetch() {
   return "$rc"
 }
 
-# yt-dlp fallback honouring the download mode; prints its own clean percent.
+# yt-dlp fallback, honours download mode; prints its own clean percent.
 ytdlp() {
   local url="$1" mode="$2" out err dest status
   out=$(mktemp); err=$(mktemp); trap 'rm -f "$out" "$err"' RETURN
@@ -69,7 +69,7 @@ ytdlp() {
   emit SAVED "$(basename "$dest")"
 }
 
-# cobalt POST + tunnel/redirect/picker; returns non-zero to trigger the fallback.
+# cobalt POST + tunnel/redirect/picker; nonzero return triggers the fallback.
 cobalt_get() {
   local url="$1" mode="$2" body resp st durl fn dest
   body=$(printf '{"url":%s,"downloadMode":"%s","filenameStyle":"basic"}' "$(printf '%s' "$url" | jq -Rs .)" "$mode")
@@ -113,7 +113,7 @@ download)
     notify-send "Stash" "Downloaded via cobalt" -i emblem-ok-symbolic 2>/dev/null || true
     exit 0
   fi
-  # No cobalt instance, or it declined (auth/unsupported): fall back to yt-dlp.
+  # no cobalt, or it declined (auth/unsupported): fall back to yt-dlp.
   if ytdlp "$url" "$mode"; then
     notify-send "Stash" "Downloaded" -i emblem-ok-symbolic 2>/dev/null || true
     exit 0
@@ -129,8 +129,8 @@ remux)
   [ "$stem" = "$base" ] && ext="mp4"
   dest=$(dest_for "$stem.remux.$ext")
   emit START "$base"
-  # Lossless container rebuild: copy every stream, fix the container and its
-  # timestamps. No re-encode, so it is near-instant, just like cobalt's remux.
+  # lossless container rebuild: copy every stream, fix the container + timestamps.
+  # no re-encode, near-instant, same as cobalt's remux.
   if ffmpeg -nostdin -hide_banner -loglevel error -i "$src" -map 0 -c copy \
       -movflags +faststart "$dest" </dev/null; then
     emit SAVED "$(basename "$dest")"

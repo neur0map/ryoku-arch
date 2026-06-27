@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Pick a screen color with hyprpicker and copy the hex to the clipboard. With
-# --repeat, keep picking until the picker is cancelled.
+# hyprpicker -> hex -> clipboard. --repeat keeps the loop alive until cancel.
 set -euo pipefail
 
 app="Color picker"
@@ -21,8 +20,8 @@ while true; do
     exit 130
   fi
   if [[ -n $color ]]; then
-    # wl-copy forks and persists the selection; hyprpicker -a does not survive
-    # hyprpicker exiting without a clipboard manager.
+    # wl-copy forks + holds the selection. hyprpicker -a alone dies the moment
+    # hyprpicker exits if nothing else owns the clipboard.
     printf '%s' "$color" | wl-copy
     printf '%s\n' "$color"
     notify-send -u low "$app" "Copied $color"

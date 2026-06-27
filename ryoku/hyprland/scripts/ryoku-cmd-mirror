@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Webcam mirror: a flipped picture-in-picture self-view via mpv. Re-running it
-# closes the open mirror, so one keybind or button toggles it.
+# webcam mirror = flipped PiP self-view via mpv. re-running closes the open
+# one, so a single keybind toggles.
 set -u
 
 app="Mirror"
 title="ryoku-mirror"
 
-# An open mirror closes (toggle): pkill returns 0 when it killed the running mpv.
+# already open? kill it and exit (pkill returns 0 on a kill = toggle off).
 if pkill -f -- "--title=$title" 2>/dev/null; then
   exit 0
 fi
 
 command -v mpv >/dev/null 2>&1 || { notify-send -u normal "$app" "mpv is not installed"; exit 1; }
 
-# First V4L2 capture device. No camera means no blank window.
+# first v4l2 capture node. no camera, no window.
 dev=""
 for d in /dev/video*; do
   [ -e "$d" ] || continue
@@ -21,19 +21,19 @@ for d in /dev/video*; do
 done
 [ -n "$dev" ] || { notify-send -u normal "$app" "No webcam found"; exit 1; }
 
-# Webcams expose raw (YUYV) and compressed (MJPEG) streams. Raw is USB-bandwidth
-# bound -- roughly 5 fps at 1080p, 10 at 720p -- which is the stutter; MJPEG runs
-# the full 30 fps. Request MJPEG when the camera offers it (probed with ffmpeg,
-# already a base package), else keep its default so a raw-only camera still works.
+# webcams give raw (YUYV) or compressed (MJPEG). raw is USB-bandwidth bound
+# (~5fps @ 1080p, ~10 @ 720p, that's the stutter); MJPEG hits the full 30.
+# ask for MJPEG if the camera lists it (probe with ffmpeg, always around as a
+# base pkg), else leave it alone so a raw-only camera still works.
 fmt=()
 if command -v ffmpeg >/dev/null 2>&1 &&
    timeout 3 ffmpeg -hide_banner -f v4l2 -list_formats all -i "$dev" 2>&1 | grep -qi mjpeg; then
   fmt=(--demuxer-lavf-o=input_format=mjpeg)
 fi
 
-# hflip reads like a real mirror; --vo=gpu-next renders on the GPU via libplacebo
-# (overriding any software vo from mpv.conf). No audio, no controls, borderless.
-# window_rules.lua floats and sizes the "ryoku-mirror" window into a PiP.
+# hflip = real-mirror feel. --vo=gpu-next forces libplacebo on the GPU (beats
+# any software vo from mpv.conf). no audio, no controls, no border.
+# window_rules.lua floats + sizes the "ryoku-mirror" window into a PiP.
 exec mpv "av://v4l2:$dev" \
   --title="$title" \
   "${fmt[@]}" \

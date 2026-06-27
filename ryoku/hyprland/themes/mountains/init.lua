@@ -1,6 +1,6 @@
--- Mountains: a calm, neutral earth-tone finish, loaded as the active Ryoku
--- theme. A steady curve at a moderate speed keeps motion grounded and unhurried;
--- the desaturated palette and modest blur in the look block set the mood.
+-- mountains: calm, neutral earth-tone. steady curve at moderate speed = motion
+-- stays grounded and unhurried. desaturated palette + modest blur come from
+-- the look block.
 hl.config({
   decoration = {
     rounding_power = 2,

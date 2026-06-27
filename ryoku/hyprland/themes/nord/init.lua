@@ -1,4 +1,4 @@
--- Nord: motion and finish, loaded as the active Ryoku theme.
+-- nord: motion + finish. active ryoku theme.
 hl.config({
   decoration = {
     rounding_power = 4,

@@ -1,4 +1,4 @@
--- Rose Pine: motion and finish, loaded as the active Ryoku theme.
+-- rose-pine: motion + finish (active theme).
 hl.config({
   decoration = {
     rounding_power = 5,
