@@ -143,7 +143,7 @@ Item {
     }
     Process {
         id: pickProc
-        command: ["sh", "-c", "zenity --file-selection --file-filter='ISO | *.iso *.ISO' 2>/dev/null || kdialog --getopenfilename $HOME '*.iso' 2>/dev/null"]
+        command: ["sh", "-c", "zenity --file-selection --title='Select an ISO' --file-filter='ISO images | *.iso *.ISO' --file-filter='All files | *' 2>/dev/null || kdialog --getopenfilename \"$HOME\" '*.iso *.ISO|ISO images' 2>/dev/null || notify-send 'Ryoku Settings' 'Install zenity to browse for an ISO, or type the path.'"]
         stdout: StdioCollector {
             onStreamFinished: {
                 var p = this.text.trim();
