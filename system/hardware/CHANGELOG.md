@@ -11,6 +11,10 @@
   pick is restored, never overridden, and `monitors_user.lua` pins are skipped),
   and powers both `ryoku doctor` and the login/hotplug/Settings `autoscale` path.
   `settle --check` reports drift (exit 1) without changing anything.
+- `gpu/ryoku-gpu`: a `detect --json` machine-readable GPU list and a `mode
+  hybrid|performance|passthrough` switch (passthrough pins the iGPU alone, freeing
+  the dGPU for a VM). Both feed the new Ryoku Settings -> GPU page and its
+  Looking-Glass passthrough VM.
 - `display/ryoku-monitor`: honours a hand-written `~/.config/hypr/monitors_user.lua`.
   Any output pinned there is left out of the generated `monitors.lua` and skipped
   by `autoscale` (scale and position), so a manually forced panel (a wrong/fake
