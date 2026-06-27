@@ -191,6 +191,10 @@
   palette stays static.
 
 ### Changed
+- `quickshell/widgets`: a desktop-widget tile now honours its plugin's manifest
+  default card style (`defaults.desktopWidget.bg`) when the placement pins none,
+  so a plugin like photo-frame can opt out of the host card (`bg: "none"`) and
+  draw its own frame.
 - `quickshell/pill`: Stash, Tools, and Utilities are unified into one wide
   `力 CONTROL DECK` surface instead of three separate pill popouts, opened by
   `Super+D` (the old `Super+Z` and `Super+U` binds are removed). Single view, no

@@ -134,7 +134,7 @@ ShellRoot {
                     scaleCfg: (place.desktopWidget && place.desktopWidget.scale) || 0.85
                     freeX: (place.desktopWidget && place.desktopWidget.x !== undefined) ? place.desktopWidget.x : 80
                     freeY: (place.desktopWidget && place.desktopWidget.y !== undefined) ? place.desktopWidget.y : 80
-                    bg: (place.desktopWidget && place.desktopWidget.bg) ? place.desktopWidget.bg : "card"
+                    bg: (place.desktopWidget && place.desktopWidget.bg) ? place.desktopWidget.bg : ((modelData.manifest && modelData.manifest.defaults && modelData.manifest.defaults.desktopWidget && modelData.manifest.defaults.desktopWidget.bg) || "card")
                     radius: (place.desktopWidget && place.desktopWidget.radius) || 26
 
                     // Drag commit: write the new free position; ryoku-plugins-place
