@@ -220,7 +220,7 @@ func buildChecks(in capInputs, host, pass *GPU) (checks []Check, hardFail bool) 
 		case !pass.DrivesDisplay:
 			add(Check{ID: "display-owner", Level: "ok", Label: "Display", Value: "host runs on " + hostLabel(host)})
 		case in.chassis == "laptop":
-			add(Check{ID: "display-owner", Level: "warn", Label: "Display", Value: "dGPU drives the panel", Hint: "Flip the MUX to hybrid (one reboot) so the iGPU drives the screen."})
+			add(Check{ID: "display-owner", Level: "warn", Label: "Display", Value: "dGPU drives the panel", Hint: "Your screen is wired to the discrete GPU. Switch to Hybrid GPU mode in the BIOS/firmware (look for GPU Mode, MUX, or Hybrid/Optimus) and reboot, so the built-in GPU drives it."})
 		case host != nil && host.DrivesDisplay:
 			add(Check{ID: "display-owner", Level: "warn", Label: "Display", Value: "dGPU drives a monitor", Hint: "Ryoku moves to the other GPU on the next login."})
 		default:

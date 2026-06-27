@@ -24,7 +24,7 @@ Item {
 
     readonly property var blockerText: ({
         "needs-relogin": "Log out and back in: Ryoku must move to the iGPU first.",
-        "needs-reboot": "Reboot into hybrid mode (flip the MUX) first.",
+        "needs-reboot": "Switch the laptop to Hybrid GPU mode in the BIOS (GPU Mode / MUX / Hybrid) and reboot first.",
         "needs-setup": "Enable passthrough below first.",
         "incapable": "This machine cannot pass the GPU through."
     })

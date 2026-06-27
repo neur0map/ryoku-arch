@@ -42,7 +42,7 @@ func setGpuMode(mode string) error {
 	}
 	report, _ := detectCapability()
 	if mode == "passthrough" && wouldStrandDisplay(report) {
-		return fmt.Errorf("passthrough would black-screen the desktop: the dGPU drives the display and the iGPU has none. Set the laptop MUX to hybrid (or move the monitor to the iGPU) and reboot first")
+		return fmt.Errorf("passthrough needs the discrete GPU free, but it is driving your screen right now. Switch the laptop to Hybrid GPU mode in the BIOS/firmware setup (often labelled GPU Mode, MUX, or Hybrid/Optimus) and reboot first, so the built-in GPU drives the display")
 	}
 	if out, err := exec.Command(ryokuGpuBin(), "mode", mode).CombinedOutput(); err != nil {
 		return fmt.Errorf("ryoku-gpu mode %s: %v: %s", mode, err, strings.TrimSpace(string(out)))
