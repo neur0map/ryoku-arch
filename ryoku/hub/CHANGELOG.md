@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- Every section whose GUI maps to a real config file gains a `CONFIG` chip next to
+  its title (in the shared `PageHeader`): it opens that file in `nvim` (side by
+  side, in a kitty window). The Hyprland sections (Input, Appearance, Animations,
+  Keybinds, Window/Layer Rules, Autostart, Environment) open their base module
+  beside `user.lua`, the file edits persist in (the Hub regenerates `settings.lua`
+  from its JSON, so base-module and `settings.lua` edits do not survive, but
+  `user.lua` loads last and always wins); Displays opens `monitors.lua` beside
+  `monitors_user.lua`; Shell and Widgets open their `~/.config/ryoku/*.json`. The
+  chip is hidden for sections with no editable file (Profile, Connections, Updates,
+  Store, Add-ons, Lockscreen).
 - The **Store**: the plugin Discover catalogue and the Extras bundles are unified
   into one section with a Plugins / Bundles switch. The separate Plugins and Extras
   nav entries are gone, and installed-plugin management moved to the Add-ons

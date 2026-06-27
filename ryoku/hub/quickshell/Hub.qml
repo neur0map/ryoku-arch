@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell.Io
+import Quickshell
 import "Singletons"
 
 // Ryoku Settings: the navigation rail (which owns the global search) beside a
@@ -128,6 +129,30 @@ Rectangle {
         saveSection.running = true;
     }
 
+    // Absolute config-file paths for the section's CONFIG button (empty = no
+    // button). Hyprland sections open the base module plus user.lua (where edits
+    // persist, since the Hub regenerates settings.lua); shell/widgets open their
+    // JSON; displays opens the generated monitors.lua beside monitors_user.lua.
+    function configPathsFor(s) {
+        var base = Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config");
+        var hypr = base + "/hypr";
+        var ryoku = base + "/ryoku";
+        switch (s) {
+        case "input":       return [hypr + "/modules/input.lua", hypr + "/user.lua"];
+        case "keybinds":    return [hypr + "/modules/binds.lua", hypr + "/user.lua"];
+        case "appearance":  return [hypr + "/modules/decoration.lua", hypr + "/user.lua"];
+        case "animations":  return [hypr + "/modules/animations.lua", hypr + "/user.lua"];
+        case "windowrules": return [hypr + "/modules/window_rules.lua", hypr + "/user.lua"];
+        case "layerrules":  return [hypr + "/user.lua"];
+        case "autostart":   return [hypr + "/modules/autostart.lua", hypr + "/user.lua"];
+        case "environment": return [hypr + "/modules/env.lua", hypr + "/user.lua"];
+        case "displays":    return [hypr + "/monitors.lua", hypr + "/monitors_user.lua"];
+        case "shell":       return [ryoku + "/shell.json", ryoku + "/visualizer.json"];
+        case "widgets":     return [ryoku + "/widgets.json"];
+        default:            return [];
+        }
+    }
+
     Row {
         anchors.fill: parent
 
@@ -155,6 +180,7 @@ Rectangle {
                 anchors.topMargin: 16
                 title: hub.searching ? "Search" : hub.pageMeta[hub.section].title
                 subtitle: hub.searching ? "Results across every section" : hub.pageMeta[hub.section].subtitle
+                configPaths: hub.searching ? [] : hub.configPathsFor(hub.section)
             }
 
             Loader {
