@@ -236,6 +236,11 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- `deploy.sh` now carries `keyboard.lua` across a redeploy (added to the preserve
+  list beside `user.lua`, `settings.lua`, and the generated drop-ins), matching
+  `ryoku materialize`'s seed handling. A `ryoku deploy` was overwriting a
+  hand-edited keyboard layout back to the `us` default, the same regression
+  `materialize` had.
 - `quickshell/plugins`: a desktop plugin's `plugins.json` could be blanked to an
   empty file when two writers landed at once (a drag committing while Settings
   toggled), because every write shared one `$f.tmp`. Each write now uses a unique

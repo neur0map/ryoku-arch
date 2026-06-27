@@ -342,3 +342,15 @@ func TestReconcileDisplayModes(t *testing.T) {
 		t.Fatalf("no session: got %s, want ok", r.status.label())
 	}
 }
+
+// Off a Hyprland desktop the cursor-theme check stays quiet rather than nagging a
+// server or a non-Ryoku box to install a desktop cursor theme.
+func TestReconcileCursorThemeNotDesktop(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("PATH", t.TempDir()) // no Hyprland on PATH
+	if r := reconcileCursorTheme(true); r.status != recOK {
+		t.Fatalf("off a Hyprland desktop the cursor check must be ok, got %q: %s", r.status.label(), r.detail)
+	}
+}

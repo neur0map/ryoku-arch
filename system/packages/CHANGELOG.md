@@ -54,3 +54,10 @@
 - `base.packages`: move the wallpaper daemon `awww` to `aur.packages` as
   `awww-git`. It is AUR-only (upstream renamed swww to awww), so listing it in the
   pacstrapped base set aborted the whole install with "target not found: awww".
+- `aur.packages`: switch the cursor theme from the source `bibata-cursor-theme` to
+  the prebuilt `bibata-cursor-theme-bin`. Both install the whole Bibata family
+  (Modern and Original in Ice, Amber, Classic), but the source build needs
+  `python-clickgen` and can fail, which left the Ryoku Settings cursor picker with
+  only a fallback theme; the `-bin` package never compiles. The stale comment
+  (it claimed XCURSOR_THEME=Bibata-Modern-Classic) now matches the real default,
+  Bibata-Modern-Ice.

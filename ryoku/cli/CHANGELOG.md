@@ -13,6 +13,19 @@
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
 
 ### Fixed
+- `materialize` now seeds `hypr/keyboard.lua` the way it seeds `monitors.lua` and
+  `gpu.lua`: laid down only on a fresh install, never clobbered on update. The
+  file documents itself as user-owned ("edits here survive Ryoku updates"), but it
+  was overwritten back to the `us` default on every `ryoku update`, so anyone with
+  several keyboard layouts had to re-add them after each update. Its comment now
+  shows the multi-layout syntax (`kb_layout = "us,ru,de,fr"` with a switch key).
+  Covered by `materialize_test.go`.
+- `doctor` gains a "cursor theme" reconciler: it warns when a Ryoku desktop has no
+  Bibata cursor theme and points at `ryoku-pkg-aur-add bibata-cursor-theme-bin`.
+  A failed AUR source build, or a dev checkout (which installs no AUR packages),
+  could leave the Ryoku Settings cursor picker with a single fallback theme; the
+  prebuilt `-bin` package installs the whole Bibata family. Covered by
+  `doctor_test.go`.
 - `doctor` gains a "display resolution" reconciler that recovers a monitor a
   degraded link left below its available resolution. A cold boot or the
   post-upgrade `hyprctl reload` can briefly leave a DP/HDMI link advertising only

@@ -9,14 +9,16 @@ import (
 	"strings"
 )
 
-// generatedSeed names base files the runtime regenerates per machine, so the
-// package ships only a seed for a fresh boot. materialize copies them when absent
-// and never clobbers or prunes them, so `ryoku update` never resets a user's
-// display (ryoku-monitor writes monitors.lua) or GPU pin (ryoku-gpu writes
-// gpu.lua). Paths are slash-separated, relative to the config base.
+// generatedSeed names base files that are seeded once on a fresh install and then
+// never clobbered or pruned by an update, so the machine owns them after the first
+// boot. Two kinds qualify: per-machine files the runtime regenerates (monitors.lua
+// from ryoku-monitor, gpu.lua from ryoku-gpu), and user-owned config the package
+// only seeds a default for (keyboard.lua, the keyboard layout). Paths are
+// slash-separated, relative to the config base.
 var generatedSeed = map[string]bool{
 	"hypr/monitors.lua": true,
 	"hypr/gpu.lua":      true,
+	"hypr/keyboard.lua": true,
 }
 
 // Materialize lays the Ryoku-owned base configs into the user's ~/.config,
@@ -53,10 +55,10 @@ func materialize() error {
 		return fmt.Errorf("scan %s: %w", base, err)
 	}
 
-	// Lay down every shipped file, except the per-machine generated seeds: those
-	// are copied only on a fresh install (absent) and never overwritten, so an
-	// update leaves the user's display and GPU config untouched. Only clobbered
-	// files enter the manifest, so a later prune can never remove a seed either.
+	// Lay down every shipped file, except the seeds: those are copied only on a
+	// fresh install (absent) and never overwritten, so an update leaves the user's
+	// display, GPU pin, and keyboard layout untouched. Only clobbered files enter
+	// the manifest, so a later prune can never remove a seed either.
 	managed := make([]string, 0, len(current))
 	for _, rel := range current {
 		dst := filepath.Join(dest, rel)

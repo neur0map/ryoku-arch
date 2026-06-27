@@ -10,8 +10,10 @@ yay-bin
 limine-mkinitcpio-hook
 limine-snapper-sync
 
-# Cursor theme (XCURSOR_THEME=Bibata-Modern-Classic)
-bibata-cursor-theme
+# Cursor themes (the whole Bibata family; XCURSOR_THEME default is Bibata-Modern-Ice).
+# The -bin package is prebuilt, so a failed source compile can never leave the
+# cursor picker with only a fallback theme.
+bibata-cursor-theme-bin
 
 # Palette generator for the shell: wallpaper to terminal and Hyprland colors.
 wallust

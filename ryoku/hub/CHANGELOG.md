@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- An **Add-ons** section: installed plugins as a bento grid, each card opening that
+  plugin's own settings - rendered from its `metadata.settings` schema by
+  `PluginSettingsForm` (dropdown / toggle / slider / text controls grouped under
+  mono headers), plus its enable toggle, host, and a remove action. Changes persist
+  to `plugins.json` through `ryoku-plugins-place`, so the desktop retunes live; a
+  plugin ships no settings QML, only the schema.
 - Updates: `ryoku update` can pause on a question (enabling the snapshot helpers)
   and the Updates page renders it inline, in the `UpdateStatus` idiom: an ember
   rule, a headline and detail, and dossier-stamp Install / Skip actions (no

@@ -92,6 +92,7 @@ func reconcilers() []reconciler {
 		{"pacman database lock", reconcilePacmanLock},
 		{"ryoku package channel", reconcileRyokuChannel},
 		{"desktop session components", reconcileSessionComponents},
+		{"cursor theme", reconcileCursorTheme},
 		{"Hyprland config integrity", reconcileHyprlandConfig},
 		{"ryoku shell daemon", reconcileShellDaemon},
 		{"failed services", reconcileFailedUnits},
@@ -627,6 +628,25 @@ func reconcileSessionComponents(_ bool) recResult {
 		return okRes("desktop session components present")
 	}
 	return warnRes("missing: %s", strings.Join(missing, "; "))
+}
+
+// ---- reconciler: cursor theme ------------------------------------------------
+
+// reconcileCursorTheme flags a Ryoku desktop with no Bibata cursor theme. The
+// shipped XCURSOR_THEME default (env.lua, and the Ryoku Settings default) is
+// Bibata-Modern-Ice, and the AUR set installs the whole Bibata family, but a
+// failed source build or a dev checkout (deploy.sh installs no AUR packages) can
+// leave the cursor picker with only a single fallback theme. The -bin package is
+// prebuilt, so the fix never has to compile.
+func reconcileCursorTheme(_ bool) recResult {
+	if !exists(filepath.Join(homeDir(), ".config", "hypr")) && !has("Hyprland") {
+		return okRes("not a Hyprland desktop")
+	}
+	if anyPkgInstalled("bibata-cursor-theme-bin", "bibata-cursor-theme") {
+		return okRes("Bibata cursor themes installed")
+	}
+	return warnRes("Ryoku's Bibata cursor themes are missing; the cursor picker has only fallbacks").
+		withFix("ryoku-pkg-aur-add bibata-cursor-theme-bin")
 }
 
 // ---- reconciler: ryoku shell daemon ------------------------------------------

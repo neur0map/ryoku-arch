@@ -32,6 +32,7 @@ Rectangle {
         { "key": "shell",       "name": "Shell",           "icon": "gear",     "group": "Desktop" },
         { "key": "plugins",     "name": "Plugins",         "icon": "widgets",  "group": "Add-ons" },
         { "key": "extras",      "name": "Extras",          "icon": "sparkles", "group": "Add-ons" },
+        { "key": "addons",      "name": "Installed",       "icon": "widgets",  "group": "Add-ons" },
         { "key": "windowrules", "name": "Window Rules",    "icon": "window",   "group": "Advanced" },
         { "key": "layerrules",  "name": "Layer Rules",     "icon": "window",   "group": "Advanced" },
         { "key": "autostart",   "name": "Autostart",       "icon": "rocket",   "group": "Advanced" },
@@ -55,7 +56,8 @@ Rectangle {
         "connections": { "title": "Connections", "subtitle": "Wi-Fi networks, Bluetooth devices, and your hotspot, all in one place." },
         "updates":     { "title": "Updates", "subtitle": "Updates pending for your Ryoku system." },
         "extras":      { "title": "Extras", "subtitle": "Curated bundles of extra tools, installed and removed with one click." },
-        "plugins":     { "title": "Plugins", "subtitle": "Shell plugins you can place where you like: a frame popout, a desktop widget, or a topbar glyph. Each runs in the Ryoku look." }
+        "plugins":     { "title": "Plugins", "subtitle": "Shell plugins you can place where you like: a frame popout, a desktop widget, or a topbar glyph. Each runs in the Ryoku look." },
+        "addons":      { "title": "Add-ons", "subtitle": "Your installed plugins. Open one to change its settings, enable it, or remove it." }
     })
 
     function known(s) {
@@ -216,6 +218,7 @@ Rectangle {
         case "connections": return connectionsComp;
         case "extras": return extrasComp;
         case "plugins": return pluginsComp;
+        case "addons": return addonsComp;
         default: return shellComp;
         }
     }
@@ -237,6 +240,7 @@ Rectangle {
     Component { id: updatesComp; UpdatesPage {} }
     Component { id: extrasComp; ExtrasPage {} }
     Component { id: pluginsComp; PluginsPage {} }
+    Component { id: addonsComp; AddonsPage {} }
     Component { id: connectionsComp; ConnectionsPage {} }
 
     Item {

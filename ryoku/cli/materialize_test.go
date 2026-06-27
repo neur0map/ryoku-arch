@@ -16,10 +16,12 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", dest)
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 
-	// The package ships a managed module and seeds for the generated drop-ins.
+	// The package ships a managed module and seeds for the generated drop-ins and
+	// the user-owned keyboard layout.
 	writeFile(t, filepath.Join(base, "hypr/hyprland.lua"), "require(\"monitors\")\n")
 	writeFile(t, filepath.Join(base, "hypr/monitors.lua"), "-- seed\n")
 	writeFile(t, filepath.Join(base, "hypr/gpu.lua"), "-- seed\n")
+	writeFile(t, filepath.Join(base, "hypr/keyboard.lua"), "kb_layout = \"us\"\n")
 
 	// Fresh install: every file is laid down, seeds included so the first boot works.
 	if err := materialize(); err != nil {
@@ -27,10 +29,13 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	}
 	wantFile(t, filepath.Join(dest, "hypr/monitors.lua"), "-- seed")
 	wantFile(t, filepath.Join(dest, "hypr/gpu.lua"), "-- seed")
+	wantFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "kb_layout = \"us\"")
 
-	// The runtime regenerates the seeds; the user adds an override.
+	// The runtime regenerates the drop-in seeds; the user adds extra keyboard
+	// layouts and a user file.
 	writeFile(t, filepath.Join(dest, "hypr/monitors.lua"), "DISPLAY\n")
 	writeFile(t, filepath.Join(dest, "hypr/gpu.lua"), "GPUPIN\n")
+	writeFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "kb_layout = \"us,ru,de,fr\"\n")
 	writeFile(t, filepath.Join(dest, "hypr/user.lua"), "USER\n")
 	// A later release changes the managed module.
 	writeFile(t, filepath.Join(base, "hypr/hyprland.lua"), "require(\"monitors_user\")\n")
@@ -44,6 +49,7 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	wantFile(t, filepath.Join(dest, "hypr/monitors.lua"), "DISPLAY")
 	wantFile(t, filepath.Join(dest, "hypr/gpu.lua"), "GPUPIN")
 	wantFile(t, filepath.Join(dest, "hypr/user.lua"), "USER")
+	wantFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "us,ru,de,fr")
 }
 
 // A managed file dropped from a release is pruned; a generated seed is never

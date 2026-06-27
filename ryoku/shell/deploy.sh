@@ -149,8 +149,9 @@ fi
 # generated drop-ins must survive a redeploy, exactly as `ryoku materialize`
 # preserves them on a packaged install: ryoku-monitor writes monitors.lua,
 # ryoku-gpu writes gpu.lua, the hub writes settings.lua, theme apply writes
-# theme.lua, and the user may keep user.lua / monitors_user.lua.
-preserve=(user.lua monitors_user.lua settings.lua theme.lua monitors.lua gpu.lua)
+# theme.lua, the user owns keyboard.lua (the keyboard layout), and may keep
+# user.lua / monitors_user.lua.
+preserve=(user.lua monitors_user.lua settings.lua theme.lua monitors.lua gpu.lua keyboard.lua)
 # Build the new config in a staging dir on the same filesystem, then rename it
 # into place. A slow rm+cp of ~/.config/hypr leaves a long window where
 # hyprland.lua is missing; anything that reloads then (a manual reload or a fresh
