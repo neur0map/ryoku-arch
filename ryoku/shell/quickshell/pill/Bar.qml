@@ -32,7 +32,8 @@ Item {
 
     SystemClock {
         id: clock
-        precision: SystemClock.Seconds
+        // the bar shows HH:mm; minute precision avoids a needless per-second tick.
+        precision: SystemClock.Minutes
     }
 
     Item {
