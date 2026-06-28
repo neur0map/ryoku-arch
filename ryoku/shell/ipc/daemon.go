@@ -298,6 +298,9 @@ func (d *daemon) dispatch(line string) string {
 		if needsMonitor(fn) {
 			mon = d.activeMonitor()
 		}
+		if config == "pill" {
+			return pillIpc(fn, mon)
+		}
 		return ipcCall(config, target, fn, mon)
 	}
 
@@ -339,7 +342,7 @@ func (d *daemon) dispatch(line string) string {
 			return "err plugin: missing id"
 		}
 		d.ensure("pill")
-		return ipcCallN("pill", "pill", "pluginPopout", d.activeMonitor(), args[0])
+		return pillIpc("pluginPopout", d.activeMonitor(), args[0])
 	case "plugins":
 		// plugins reload -> the per-monitor PluginPopouts watch plugins.json and
 		// re-discover on change, so a Settings save retunes live; this is a no-op
@@ -366,10 +369,10 @@ func (d *daemon) voice() string {
 	if d.voiceOn {
 		d.ensure("pill")
 		toggleHandy()
-		return ipcCall("pill", "pill", "voiceShow", d.activeMonitor())
+		return pillIpc("voiceShow", d.activeMonitor())
 	}
 	toggleHandy()
-	return ipcCall("pill", "pill", "voiceHide", "")
+	return pillIpc("voiceHide")
 }
 
 // reload restarts every supervised component by terminating it; the supervisor
