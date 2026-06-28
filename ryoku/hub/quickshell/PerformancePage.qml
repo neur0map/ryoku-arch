@@ -25,6 +25,7 @@ Item {
             property bool pauseWidgetsWhenCovered: false
             property bool freezeVisualizerWhenIdle: false
             property bool freezePillWhenIdle: false
+            property bool unloadVisualizerWhenSilent: false
         }
 
         Component.onCompleted: if (!cfg.text()) cfg.writeAdapter()
@@ -68,6 +69,16 @@ Item {
                     checked: adapter.freezeVisualizerWhenIdle
                     onToggled: c => {
                         adapter.freezeVisualizerWhenIdle = c;
+                        cfg.writeAdapter();
+                    }
+                }
+
+                ToggleRow {
+                    width: parent.width
+                    label: "Unload the visualiser to free memory when silent (brief delay when audio resumes)"
+                    checked: adapter.unloadVisualizerWhenSilent
+                    onToggled: c => {
+                        adapter.unloadVisualizerWhenSilent = c;
                         cfg.writeAdapter();
                     }
                 }

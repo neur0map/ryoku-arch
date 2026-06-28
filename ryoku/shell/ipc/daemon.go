@@ -62,12 +62,15 @@ type daemon struct {
 	quit           chan struct{}
 	closed         bool
 	ln             net.Listener
-	voiceMu        sync.Mutex    // serializes voice (Super+`) toggles
-	voiceOn        bool          // dictation active; guarded by voiceMu
-	prompter       *prompter     // GNOME keyring system prompter (nil when unavailable)
-	monMu          sync.Mutex    // guards activeMon
-	activeMon      string        // focused monitor, kept warm by watchHyprland
-	monFallback    func() string // monitor source when the cache is cold; tests swap it
+	voiceMu        sync.Mutex               // serializes voice (Super+`) toggles
+	voiceOn        bool                     // dictation active; guarded by voiceMu
+	prompter       *prompter                // GNOME keyring system prompter (nil when unavailable)
+	monMu          sync.Mutex               // guards activeMon
+	activeMon      string                   // focused monitor, kept warm by watchHyprland
+	monFallback    func() string            // monitor source when the cache is cold; tests swap it
+	gateMu         sync.Mutex               // guards gateWant / gateWake
+	gateWant       map[string]bool          // component -> may run now (absent = yes)
+	gateWake       map[string]chan struct{} // wakes a parked supervisor when its gate opens
 }
 
 func runDaemon() error {
@@ -88,6 +91,8 @@ func runDaemon() error {
 		paintSig: make(chan struct{}, 1),
 		ledsSig:  make(chan struct{}, 1),
 		quit:     make(chan struct{}),
+		gateWant: map[string]bool{},
+		gateWake: map[string]chan struct{}{},
 	}
 	d.ln = ln
 
@@ -146,6 +151,7 @@ func (d *daemon) bootstrap() {
 	go d.paintWorker()
 	go d.ledsWorker()
 	go d.watchHyprland()
+	go d.watchAudio()
 	go func() {
 		d.wallMu.Lock()
 		defer d.wallMu.Unlock()
@@ -180,6 +186,16 @@ func (d *daemon) supervise(name string) {
 			return
 		default:
 		}
+		// park while a gate keeps this component unloaded (the visualiser
+		// audio-unload). a fresh open wakes us; the timeout is a safety re-check.
+		for !d.gateAllows(name) {
+			select {
+			case <-d.quit:
+				return
+			case <-d.gateWaitCh(name):
+			case <-time.After(5 * time.Second):
+			}
+		}
 		cmd := exec.Command("qs", qsSelect(name)...)
 		if err := cmd.Start(); err != nil {
 			time.Sleep(backoff)
@@ -212,6 +228,60 @@ func (d *daemon) supervise(name string) {
 			// the surface does not blink out for a backoff interval.
 			backoff = time.Second
 		}
+	}
+}
+
+// gateAllows reports whether the supervisor may (re)start name now. Any
+// component without a gate defaults to true, so gating is strictly opt-in and a
+// cleared gate never blocks a start.
+func (d *daemon) gateAllows(name string) bool {
+	d.gateMu.Lock()
+	defer d.gateMu.Unlock()
+	w, ok := d.gateWant[name]
+	return !ok || w
+}
+
+// gateWaitCh returns name's wake channel, creating it on first use so a parked
+// supervisor can block until its gate opens.
+func (d *daemon) gateWaitCh(name string) chan struct{} {
+	d.gateMu.Lock()
+	defer d.gateMu.Unlock()
+	ch := d.gateWake[name]
+	if ch == nil {
+		ch = make(chan struct{}, 1)
+		d.gateWake[name] = ch
+	}
+	return ch
+}
+
+// setGate opens or closes a component's run gate. Opening wakes a parked
+// supervisor; closing SIGTERMs the live process so its supervisor parks instead
+// of respawning. Only real state changes act.
+func (d *daemon) setGate(name string, want bool) {
+	d.gateMu.Lock()
+	prev, ok := d.gateWant[name]
+	d.gateWant[name] = want
+	ch := d.gateWake[name]
+	if ch == nil {
+		ch = make(chan struct{}, 1)
+		d.gateWake[name] = ch
+	}
+	d.gateMu.Unlock()
+	if ok && prev == want {
+		return
+	}
+	if want {
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
+		return
+	}
+	d.mu.Lock()
+	cmd := d.proc[name]
+	d.mu.Unlock()
+	if cmd != nil && cmd.Process != nil {
+		_ = cmd.Process.Signal(syscall.SIGTERM)
 	}
 }
 
@@ -294,6 +364,10 @@ func (d *daemon) dispatch(line string) string {
 
 	if config, target, fn, ok := route(cmd); ok {
 		d.ensure(config)
+		if config == "visualizer" {
+			// an explicit toggle/overlay must win over the audio-unload gate.
+			d.setGate("visualizer", true)
+		}
 		mon := ""
 		if needsMonitor(fn) {
 			mon = d.activeMonitor()
