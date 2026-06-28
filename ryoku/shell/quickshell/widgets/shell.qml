@@ -1,5 +1,9 @@
 //@ pragma UseQApplication
-//@ pragma DefaultEnv QSG_RENDER_LOOP = threaded
+// basic (render-on-demand) loop, not threaded: the desktop widget layer is
+// mostly static, and the threaded loop spins the render thread every vsync on
+// NVIDIA even when nothing changes (measured ~2x idle CPU here). on-demand
+// rendering idles properly and the occasional drag/animation is still smooth.
+//@ pragma DefaultEnv QSG_RENDER_LOOP = basic
 
 import QtQuick
 import Quickshell
