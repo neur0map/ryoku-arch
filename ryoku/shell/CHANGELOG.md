@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- `deploy.sh` installs the Ryoku VM launcher icon (the brand mark) into the user
+  icon theme, so the **Ryoku VM** app entry shows the logo instead of a blank tile.
 - `quickshell/pill` Control Deck: a **Game Mode** row in Utilities, a labeled
   switch styled like Keep-Awake that flips `Flags.gameMode` (the one-click
   competitive toggle). The shell bridges the flag to `ryoku-cmd-game-mode` the way

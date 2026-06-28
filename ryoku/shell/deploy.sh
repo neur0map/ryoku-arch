@@ -189,6 +189,10 @@ mkdir -p "$cfg/systemd/user"; cp -a "$here/systemd/user/." "$cfg/systemd/user/"
 install -m755 "$here/../apps/ryoku-vm/ryoku-vm" "$bindir/ryoku-vm"
 install -Dm644 "$here/../apps/ryoku-vm/ryoku-vm.desktop" \
   "${XDG_DATA_HOME:-$HOME/.local/share}/applications/ryoku-vm.desktop"
+# the app-launcher icon (the brand mark) so the VM entry shows the logo, not a blank tile.
+install -Dm644 "$here/../assets/brand/logo-mark.svg" \
+  "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps/ryoku-vm.svg"
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -qtf "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor" 2>/dev/null || true
 command -v systemctl >/dev/null 2>&1 && systemctl --user daemon-reload 2>/dev/null || true
 
 if (( hypr_live && reload )); then
