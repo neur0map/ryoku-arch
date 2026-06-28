@@ -3,6 +3,18 @@
 ## Unreleased
 
 ### Added
+- `hub/quickshell/PerformancePage` + `shell/quickshell/{visualizer,pill,widgets}`:
+  a **Performance Optimizations** section in Ryoku Settings, opt-in tweaks for
+  modest hardware that are all off by default and written to
+  `~/.config/ryoku/performance.json` (watched live, no reload). Freeze the
+  visualiser when no audio plays (it stops drawing at zero CPU and resumes on
+  sound), unload the visualiser entirely when silent to free its ~190 MB of
+  GPU/scene-graph memory (the daemon parks the process after a 30s silence grace
+  and brings it back on audio, gated so a probe failure never drops the surface),
+  freeze the pill bead's idle swirl, and pause the desktop widgets' animation
+  while windows cover them. The visualiser also runs `cava` only while audio
+  actually plays (default on), so a silent desktop no longer samples at 60fps for
+  nothing.
 - `hyprland/scripts/ryoku-cmd-game-mode` + `system/hardware/network` +
   `shell/quickshell/pill`: a one-click **Game Mode** in the Control Deck. A
   Utilities switch flips `Flags.gameMode`; the shell bridges it to the helper,
@@ -144,6 +156,13 @@
   or peg the voice wave.
 
 ### Changed
+- `shell/quickshell/{pill,widgets}`: the always-on shell layers render on demand
+  (the basic Qt loop) instead of the threaded loop, which on NVIDIA spun the
+  render thread every vsync whenever a live MultiEffect (card shadows, the bead
+  glow) sat in the scene and burned idle CPU on a static desktop. On-demand
+  rendering idles properly, roughly halving each layer's idle cost, with no
+  visual change. Album art in the music island and OSD is now decoded at the
+  thumbnail size instead of at full resolution.
 - `hyprland/binds`: `Super + A` floats the active window at a fixed 1000x660,
   centred (press again tiles it back), instead of floating it at its current size.
 - `hyprland/modules/binds`: reworked the keymap. `Super + arrow` keys move focus
