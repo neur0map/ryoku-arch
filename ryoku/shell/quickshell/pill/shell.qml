@@ -376,10 +376,8 @@ ShellRoot {
             readonly property real revealTrigger: pillTop + 14 * s
             readonly property string surface: root.openMon === modelData.name ? root.openSurface : ""
             readonly property bool surfaceOpen: surface.length > 0
-            // voice dictation can't steal keyboard focus or block the
-            // pointer. Handy types the transcription into whatever app the
-            // user is dictating into, so the voice surface stays non-modal
-            // and OnDemand-focus.
+            // voice is excluded: it must not grab the keyboard, so Handy's
+            // dictation lands in the focused app, not the pill.
             readonly property bool focusSurface: surfaceOpen && surface !== "voice"
             readonly property bool modal: focusSurface || pill.held
 
@@ -402,7 +400,9 @@ ShellRoot {
             color: "transparent"
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: focusSurface ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
+            // None, not OnDemand: this layer is always mapped, so OnDemand would
+            // hold the keyboard after a surface closes and a launched window can't type.
+            WlrLayershell.keyboardFocus: focusSurface ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             WlrLayershell.namespace: "pill"
 
             anchors { top: true; left: true; right: true; bottom: true }

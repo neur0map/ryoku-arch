@@ -260,6 +260,15 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- `quickshell/pill`: an app launched from the pill launcher (notably
+  Discord/Electron and Vivaldi/Chromium) sometimes came up un-typeable until you
+  moved it to another monitor or reopened it. The pill is a full-screen
+  `WlrLayer.Overlay` that is always mapped, and its idle keyboard focus was
+  `OnDemand`, so when a typing surface closed `Exclusive` -> `OnDemand` the pill
+  held the keyboard instead of releasing it to the new window. It now uses
+  `keyboardFocus: None` whenever no typing surface is open (the voice surface
+  included), `Exclusive` only while a search field is up. Same fix as the
+  desktop-widgets layer below.
 - `deploy.sh` now carries `keyboard.lua` across a redeploy (added to the preserve
   list beside `user.lua`, `settings.lua`, and the generated drop-ins), matching
   `ryoku materialize`'s seed handling. A `ryoku deploy` was overwriting a
