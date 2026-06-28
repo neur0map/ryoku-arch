@@ -1,5 +1,10 @@
 //@ pragma UseQApplication
-//@ pragma DefaultEnv QSG_RENDER_LOOP = threaded
+// basic (render-on-demand) loop, not threaded: the bar is static between
+// interactions, but the threaded loop spins the render thread every vsync on
+// NVIDIA whenever a live MultiEffect (the bead glow, card shadows, art blur) is
+// in the scene (measured ~5% idle here). on-demand rendering idles properly;
+// the morph is a short scripted timeline and stays smooth on the GUI thread.
+//@ pragma DefaultEnv QSG_RENDER_LOOP = basic
 
 import QtQuick
 import Quickshell
