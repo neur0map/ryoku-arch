@@ -1,4 +1,5 @@
 //@ pragma UseQApplication
+//@ pragma DefaultEnv QSG_RENDER_LOOP = threaded
 
 import QtQuick
 import Quickshell
@@ -136,8 +137,10 @@ ShellRoot {
     Connections {
         target: Hyprland
         function onRawEvent(event) {
+            // a workspace switch fires several whitelisted events at once;
+            // Qt.callLater dedups them to one refresh (three IPC calls) per turn.
             if (root.refreshEvents[event.name])
-                root.refresh();
+                Qt.callLater(root.refresh);
         }
     }
 
