@@ -1,4 +1,5 @@
 //@ pragma UseQApplication
+//@ pragma DefaultEnv QSG_RENDER_LOOP = threaded
 
 import QtQuick
 import Quickshell
