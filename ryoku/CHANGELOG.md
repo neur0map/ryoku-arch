@@ -206,3 +206,11 @@
   detector alongside the hub (fixing both the GPU page and autostart pinning),
   and `gpu caps` reports an out-of-date `ryoku-gpu` plainly instead of leaking
   the parser error. Retry clears the prior failure so it visibly re-checks.
+- `hub/backend` (`vm setup`, `gpu apply`) + `hub/quickshell/GpuPage`: "Install
+  QEMU" reported success even when pacman failed (the install ran best-effort and
+  the "Done" line printed unconditionally), so the page kept asking to install.
+  The install now propagates pacman's exit status, verifies `qemu-system-x86_64`
+  is actually present, and on failure points at `ryoku update`; the passthrough
+  enable aborts the same way instead of writing config over a failed install. The
+  Machine tab also re-checks on its own while the install runs, so it advances
+  without a manual Recheck.

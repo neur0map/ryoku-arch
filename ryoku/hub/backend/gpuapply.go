@@ -206,7 +206,9 @@ func applyPlan(action, user, exe string, dryRun bool) error {
 		say("install packages: " + strings.Join(corePassthroughPkgs, " "))
 		if !dryRun {
 			snapshot("ryoku gpu passthrough enable")
-			pacmanInstall(corePassthroughPkgs)
+			if err := pacmanInstall(corePassthroughPkgs); err != nil {
+				return fmt.Errorf("installing the passthrough stack failed: %w (update the system with `ryoku update`, then retry)", err)
+			}
 		}
 		// Looking Glass + the kvmfr module are AUR-only; runGpuApply builds them
 		// as the user before this privileged step, so here we only report state.
@@ -292,8 +294,10 @@ func etcRoot() string {
 	return "/"
 }
 
-func pacmanInstall(pkgs []string) {
-	run("pacman", append([]string{"-S", "--needed", "--noconfirm"}, pkgs...)...)
+func pacmanInstall(pkgs []string) error {
+	cmd := exec.Command("pacman", append([]string{"-S", "--needed", "--noconfirm"}, pkgs...)...)
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	return cmd.Run()
 }
 
 // pkgInstalled: is this package locally installed? pkgInRepo: is it available

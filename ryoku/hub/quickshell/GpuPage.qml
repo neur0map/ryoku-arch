@@ -127,6 +127,8 @@ Item {
                 try {
                     page.caps = JSON.parse(capsOut.text);
                     page.capsError = "";
+                    if (page.caps.vmReady === true)
+                        page.settingUp = false;     // install finished: drop the installing notice
                     return;
                 } catch (e) {
                     console.log("gpu: caps parse failed: " + e);
@@ -218,6 +220,14 @@ Item {
         repeat: true
         running: page.seg === "machine"
         onTriggered: statusProc.running = true
+    }
+    // while QEMU installs in its terminal, poll caps so the page advances on its
+    // own when the stack appears, instead of waiting for a manual Recheck.
+    Timer {
+        interval: 4000
+        repeat: true
+        running: page.seg === "machine" && page.settingUp
+        onTriggered: capsProc.running = true
     }
 
     // dossier row: status dot, label, detected value, coloured by level.

@@ -174,7 +174,12 @@ func runVMSetup() error {
 		return escalateSelf("vm", "setup")
 	}
 	snapshot("ryoku vm setup")
-	pacmanInstall(plainVMPkgs)
+	if err := pacmanInstall(plainVMPkgs); err != nil {
+		return fmt.Errorf("installing the VM stack failed: %w (update the system with `ryoku update`, then retry)", err)
+	}
+	if !lookPath("qemu-system-x86_64") {
+		return fmt.Errorf("the install finished but qemu-system-x86_64 is still missing; see the pacman output above")
+	}
 	fmt.Println("Done. QEMU is installed; launch your VM from Ryoku Settings > GPU > Machine.")
 	return nil
 }
