@@ -168,6 +168,8 @@ package() {
   install -Dm755 "$_repo/ryoku/apps/ryoku-vm/ryoku-vm" "$pkgdir/usr/bin/ryoku-vm"
   install -Dm644 "$_repo/ryoku/apps/ryoku-vm/ryoku-vm.desktop" \
     "$pkgdir/usr/share/applications/ryoku-vm.desktop"
+  install -Dm644 "$_repo/ryoku/assets/brand/logo-mark.svg" \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/ryoku-vm.svg"
 
   # GPU primary-renderer udev rule: boot-stable /dev/dri/ryoku-gpu-* symlinks
   # that ryoku-gpu pins via AQ_DRM_DEVICES. vendor location = active on boot,
