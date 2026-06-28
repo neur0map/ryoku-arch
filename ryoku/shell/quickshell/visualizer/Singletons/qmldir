@@ -2,3 +2,4 @@ singleton Wallust Wallust.qml
 singleton Spectrum Spectrum.qml
 singleton Config Config.qml
 singleton AudioActivity AudioActivity.qml
+singleton Performance Performance.qml

@@ -46,8 +46,10 @@ Item {
     // sounding = playing now, or just stopped and still easing down.
     readonly property bool sounding: Spectrum.energy > 0.04 || root.activity > 0.02
     // anything to animate at all? silent + settled + idle wave off -> ticker
-    // stops cold (0 CPU on a quiet desktop) until sound returns.
-    readonly property bool animating: root.sounding || Config.idleWave || root.maxLevel > 0.004
+    // stops cold (0 CPU on a quiet desktop) until sound returns. the opt-in
+    // freeze drops the idle wave too, so a silent desktop is fully still.
+    readonly property bool idleFrozen: Performance.freezeVisualizerWhenIdle && !AudioActivity.playing
+    readonly property bool animating: root.sounding || (Config.idleWave && !root.idleFrozen) || root.maxLevel > 0.004
 
     function srcIndex(i) {
         if (!root.mirror)
