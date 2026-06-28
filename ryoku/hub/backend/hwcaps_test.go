@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // baseInputs is a capable desktop with the full stack installed: the starting
@@ -236,5 +237,25 @@ func TestPrettyModel(t *testing.T) {
 		if got := prettyModel(in); got != want {
 			t.Errorf("prettyModel(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestGpuRecordsFromToolTimeout(t *testing.T) {
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "ryoku-gpu")
+	if err := os.WriteFile(bin, []byte("#!/bin/sh\nsleep 30\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("RYOKU_GPU_BIN", bin)
+	old := gpuDetectTimeout
+	gpuDetectTimeout = 150 * time.Millisecond
+	defer func() { gpuDetectTimeout = old }()
+
+	start := time.Now()
+	if _, err := gpuRecordsFromTool(); err == nil {
+		t.Fatal("expected an error when the detector hangs past the timeout")
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Fatalf("gpuRecordsFromTool blocked for %s; the timeout did not fire", elapsed)
 	}
 }

@@ -192,3 +192,10 @@
 - `hub`: the Shell settings subtabs (Frame, Island, Bar, Visualizer) centred their
   content in the panel, so short tabs dropped their controls into the middle with a
   large empty gap above. The tab content top-aligns now.
+- `hub/backend` (`gpu caps`) + `hub/quickshell/GpuPage`: the System -> GPU page
+  could sit on "Detecting..." forever. `ryoku-hub gpu caps` shelled out to the
+  GPU detector with no time limit, so a wedged host probe (a runtime-suspended
+  or stuck `nvidia-smi`) hung the whole call and the page never resolved. The
+  caps call now runs under a hard timeout (its own process group, killed on
+  expiry so an orphaned probe can't hold the pipe open), and the page surfaces a
+  failed or timed-out probe with a Retry instead of an endless spinner.

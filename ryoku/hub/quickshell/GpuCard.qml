@@ -12,6 +12,7 @@ Item {
     id: root
 
     property var caps: ({})
+    property bool failed: false       // caps probe failed: show "Unavailable", not a spinner
     property real cardWidth: 360
     readonly property real s: cardWidth / 360
     width: cardWidth
@@ -261,7 +262,7 @@ Item {
                         }
                         Text {
                             width: parent.width
-                            text: root.renderGpu ? root.renderGpu.model : "Detecting…"
+                            text: root.renderGpu ? root.renderGpu.model : (root.failed ? "Unavailable" : "Detecting…")
                             color: Theme.bright
                             font.family: Theme.font
                             font.pixelSize: 21 * root.s

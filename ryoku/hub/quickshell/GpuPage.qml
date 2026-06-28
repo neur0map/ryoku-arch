@@ -24,6 +24,7 @@ Item {
     property bool settingUp: false     // qemu install launched in a terminal
     property bool showChecks: false    // disclosure: the passthrough readiness dossier
     property string actionError: ""
+    property string capsError: ""     // caps probe failed/timed out; show retry, not a spinner
     property string modeWarn: ""
     property bool vmRunning: false
 
@@ -52,7 +53,7 @@ Item {
         case "needs-reboot": return "Your screen runs on " + page.dgpuName + ". Switch to Hybrid GPU mode in the BIOS (look for GPU Mode, MUX, or Hybrid/Optimus) and reboot, so the built-in GPU drives the display and the discrete GPU is free.";
         case "needs-setup": return "Not set up yet. Review the changes, then enable it below.";
         case "incapable": return "This machine can't pass a GPU to a VM. Open the readiness checks below for why.";
-        default: return "Checking…";
+        default: return page.capsError !== "" ? "Couldn't read your graphics hardware." : "Checking…";
         }
     }
     readonly property color ptColor: {
@@ -61,7 +62,7 @@ Item {
         case "needs-relogin":
         case "needs-reboot": return Theme.ember;
         case "incapable": return Theme.bad;
-        default: return Theme.subtle;
+        default: return page.capsError !== "" ? Theme.bad : Theme.subtle;
         }
     }
 
@@ -116,14 +117,21 @@ Item {
     Process {
         id: capsProc
         command: ["ryoku-hub", "gpu", "caps"]
-        stdout: StdioCollector {
-            onStreamFinished: {
+        stdout: StdioCollector { id: capsOut }
+        stderr: StdioCollector { id: capsErr }
+        // decide on exit, not per-stream: a non-zero exit or unparseable output
+        // becomes a visible error + retry instead of an endless "Detecting…".
+        onExited: (code) => {
+            if (code === 0) {
                 try {
-                    page.caps = JSON.parse(this.text);
+                    page.caps = JSON.parse(capsOut.text);
+                    page.capsError = "";
+                    return;
                 } catch (e) {
                     console.log("gpu: caps parse failed: " + e);
                 }
             }
+            page.capsError = capsErr.text.trim() || ("ryoku-hub gpu caps exited " + code);
         }
     }
     Process {
@@ -327,7 +335,42 @@ Item {
             anchors.left: parent.left
             anchors.top: parent.top
             caps: page.caps
+            failed: page.capsError !== ""
             cardWidth: Math.min(parent.width * 0.4, 380)
+        }
+
+        // caps probe failed (detector missing, wedged, or timed out): surface it
+        // with a retry instead of leaving the page stuck on "Detecting…".
+        Column {
+            visible: page.capsError !== ""
+            anchors.left: hero.left
+            anchors.right: hero.right
+            anchors.top: hero.bottom
+            anchors.topMargin: 16
+            spacing: 10
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: "Couldn't read your graphics hardware."
+                color: Theme.bad
+                font.family: Theme.font
+                font.pixelSize: 14
+                font.weight: Font.DemiBold
+            }
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: page.capsError
+                color: Theme.subtle
+                font.family: Theme.mono
+                font.pixelSize: 11
+            }
+            HubButton {
+                label: "Retry"
+                icon: "refresh"
+                primary: true
+                onClicked: page.reload()
+            }
         }
 
         Item {
@@ -359,7 +402,7 @@ Item {
                         spacing: 16
 
                         Text {
-                            visible: !page.capsLoaded
+                            visible: !page.capsLoaded && page.capsError === ""
                             text: "Checking your hardware…"
                             color: Theme.subtle
                             font.family: Theme.font

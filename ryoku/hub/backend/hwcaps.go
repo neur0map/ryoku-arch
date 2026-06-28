@@ -11,7 +11,9 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"os/user"
@@ -20,6 +22,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 )
 
 // Check = one row of the capability dossier the Hub shows.
@@ -416,13 +420,32 @@ func userInGroup(name string) bool {
 	return false
 }
 
+// gpuDetectTimeout caps the wait on `ryoku-gpu detect`. The detector already
+// bounds its own host probes, so this is a backstop for the detector itself
+// hanging or never returning; without it a stuck call would freeze the Hub GPU
+// page on "Detecting..." forever. A test overrides it.
+var gpuDetectTimeout = 12 * time.Second
+
 func gpuRecordsFromTool() ([]gpuRecord, error) {
 	bin := os.Getenv("RYOKU_GPU_BIN")
 	if bin == "" {
 		bin = "ryoku-gpu"
 	}
-	out, err := exec.Command(bin, "detect", "--json").Output()
+	ctx, cancel := context.WithTimeout(context.Background(), gpuDetectTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, "detect", "--json")
+	// A wedged detector can spawn a host probe (nvidia-smi) that outlives a plain
+	// kill and holds the stdout pipe open, so a context kill alone would not
+	// unblock Output(). Run it in its own process group, kill the whole group on
+	// timeout, and cap the pipe wait so Output() always returns.
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
+	cmd.WaitDelay = 2 * time.Second
+	out, err := cmd.Output()
 	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("%s detect timed out after %s", bin, gpuDetectTimeout)
+		}
 		return nil, err
 	}
 	var recs []gpuRecord
