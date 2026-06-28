@@ -223,3 +223,8 @@
   included). OVMF firmware is detected across edk2 layouts instead of one
   hardcoded path, and a launch that dies is reported with QEMU's log tail (and the
   VM is detected as running, so Stop works) instead of a silent "failed to start".
+- `hyprland/modules/input`: a newly opened window was not active until the mouse
+  moved onto it. `follow_mouse = 1` refocuses whatever the pointer sits over, so a
+  window spawned away from the cursor lost focus at once. `follow_mouse = 2`
+  detaches keyboard focus from the pointer: a new window keeps focus, and a click
+  moves it.
