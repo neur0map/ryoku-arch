@@ -308,8 +308,10 @@ Item {
         }
     }
 
+    // idle swirl/breath ticker. opt-in freeze stops it so a quiet pill is a
+    // static bead at zero CPU; interaction still animates via FrameAnimation.
     Timer {
-        running: root.visible && !root.busy
+        running: root.visible && !root.busy && !Performance.freezePillWhenIdle
         interval: root.blinking ? 33 : 83
         repeat: true
         onTriggered: {
@@ -561,8 +563,10 @@ Item {
 
     // blur layer = FBO sized to the whole pill. while the bead is hidden (wallpaper
     // strip, toast, plain hover) that's pure GPU tax on an empty canvas, so the
-    // layer only exists while something draws or fades.
-    layer.enabled: opacity > 0.001 || busy
+    // layer only exists while something draws or fades. the live MultiEffect also
+    // re-captures every vsync, so the opt-in idle freeze drops the layer too: a
+    // frozen, idle bead is a plain static dab with no per-frame GPU cost.
+    layer.enabled: busy || (opacity > 0.001 && !Performance.freezePillWhenIdle)
     layer.effect: MultiEffect {
         blurEnabled: true
         blur: 0.34

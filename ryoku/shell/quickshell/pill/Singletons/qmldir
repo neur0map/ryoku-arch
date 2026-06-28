@@ -20,3 +20,4 @@ singleton Updates Updates.qml
 singleton Apps Apps.qml
 singleton Keyring Keyring.qml
 singleton Events Events.qml
+singleton Performance Performance.qml

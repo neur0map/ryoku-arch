@@ -24,6 +24,7 @@ Item {
             id: adapter
             property bool pauseWidgetsWhenCovered: false
             property bool freezeVisualizerWhenIdle: false
+            property bool freezePillWhenIdle: false
         }
 
         Component.onCompleted: if (!cfg.text()) cfg.writeAdapter()
@@ -67,6 +68,21 @@ Item {
                     checked: adapter.freezeVisualizerWhenIdle
                     onToggled: c => {
                         adapter.freezeVisualizerWhenIdle = c;
+                        cfg.writeAdapter();
+                    }
+                }
+            }
+
+            SettingSection {
+                width: col.width
+                title: "BAR"
+
+                ToggleRow {
+                    width: parent.width
+                    label: "Freeze the glowing bead animation while the bar is idle"
+                    checked: adapter.freezePillWhenIdle
+                    onToggled: c => {
+                        adapter.freezePillWhenIdle = c;
                         cfg.writeAdapter();
                     }
                 }
