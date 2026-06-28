@@ -4,8 +4,9 @@
 
 ### Added
 - `ryoku-desktop` ships the Ryoku VM launcher icon to
-  `/usr/share/icons/hicolor/scalable/apps/ryoku-vm.svg`, so the **Ryoku VM** app
-  entry shows the brand mark instead of a generic placeholder.
+  `/usr/share/icons/hicolor/scalable/apps/ryoku-vm.svg`, and its `.install` now
+  refreshes the hicolor icon cache and desktop database on install/upgrade, so the
+  **Ryoku VM** app entry shows the brand mark instead of a blank placeholder.
 - `ryoku-desktop` now ships the `Ryoku.PluginKit` QML module (to
   `/usr/lib/qt6/qml/Ryoku/PluginKit`, beside `Ryoku.Blobs`) and the
   `ryoku-plugins-place` helper on PATH, so shell plugins find the signature kit

@@ -5,10 +5,28 @@ _hint() {
 EOF
 }
 
+# refresh the hicolor icon cache and the desktop database so shipped entries
+# (the Ryoku VM launcher and its icon) resolve in the app launcher without a
+# relogin. both guarded: absent tools are skipped, a stale run never fails.
+_refresh() {
+  if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
+  fi
+  if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database -q /usr/share/applications 2>/dev/null || true
+  fi
+}
+
 post_install() {
+  _refresh
   _hint
 }
 
 post_upgrade() {
+  _refresh
   _hint
+}
+
+post_remove() {
+  _refresh
 }
