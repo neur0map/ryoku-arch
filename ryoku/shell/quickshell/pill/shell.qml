@@ -239,6 +239,57 @@ ShellRoot {
         function pluginPopout(mon: string, id: string): void { root.togglePopout(mon, "plugin:" + id); }
     }
 
+    // The daemon writes surface commands to this socket to toggle pill surfaces
+    // without spawning a `qs ipc call` client on the keybind hot path. The pill
+    // is a persistent component, so the socket is up whenever the daemon needs
+    // it; a miss makes the daemon fall back to the qs client.
+    readonly property string pillSockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-pill.sock"
+
+    // runPillCommand mirrors the IpcHandler above for the socket fast path:
+    // "<fn> <mon> [arg]" runs the same surface toggle. Returns false on an
+    // unknown command so the daemon falls back to the qs client.
+    function runPillCommand(line) {
+        var parts = line.trim().split(" ");
+        var fn = parts[0];
+        var mon = parts.length > 1 ? parts[1] : "";
+        switch (fn) {
+        case "calendar": case "launcher": case "clipboard": case "wallpaper":
+        case "link": case "inbox": case "battery": case "sysinfo":
+        case "stash": case "toolkit": case "utilities": case "workspaces":
+            root.toggleSurface(mon, fn); return true;
+        case "media":
+            if (Mpris.players.values.length > 0) root.toggleSurface(mon, "media");
+            return true;
+        case "mixer": case "power":
+            root.togglePopout(mon, fn); return true;
+        case "pluginPopout":
+            root.togglePopout(mon, "plugin:" + (parts.length > 2 ? parts[2] : ""));
+            return true;
+        case "voiceShow":
+            root.show(mon, "voice"); return true;
+        case "voiceHide":
+            if (root.openSurface === "voice") root.close();
+            return true;
+        case "peek":
+            root.peek(mon); return true;
+        case "hide":
+            root.close(); return true;
+        default:
+            return false;
+        }
+    }
+
+    SocketServer {
+        active: true
+        path: root.pillSockPath
+        handler: Socket {
+            id: cmdSock
+            parser: SplitParser {
+                onRead: line => cmdSock.write((root.runPillCommand(line) ? "ok" : "err") + "\n")
+            }
+        }
+    }
+
     Variants {
         model: Quickshell.screens
 
