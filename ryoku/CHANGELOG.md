@@ -187,6 +187,17 @@
   `shell/fish` (with its non-brand greeting) was dropped for `ryoku/apps/fish`.
 
 ### Fixed
+- `hyprland/modules/input`: a newly opened or re-raised window (notably Discord and
+  Vivaldi) sometimes came up un-typeable until you moved it to another monitor or
+  reopened it. The modular config refactor had silently dropped the `misc`/`xwayland`
+  block, reverting `focus_on_activate` to its `false` default, so an app's
+  xdg-activation focus request was ignored whenever the window landed off the focused
+  workspace/monitor; `follow_mouse = 2` then removed the pointer fallback that had
+  been masking it. Restores `focus_on_activate = true` (keyboard focus now follows the
+  activation request) plus the rest of the lost block: `xwayland.force_zero_scaling`
+  (crisp Chromium/Electron on HiDPI/fractional displays) and `disable_hyprland_logo`.
+  Verified live: with the setting false the activation request is ignored, with it
+  true keyboard focus moves to the activated window.
 - `hyprland/scripts/ryoku-cmd-mirror`: the webcam mirror (力 deck -> Tools) ran at
   5-15 fps and stuttered because mpv negotiated the camera's raw YUYV stream, which
   is USB-bandwidth capped (about 5 fps at 1080p, 10 at 720p). It now asks the camera
