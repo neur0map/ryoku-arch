@@ -33,6 +33,8 @@ source "$LIB_DIR/luks.sh"
 source "$LIB_DIR/filesystem.sh"
 # shellcheck source=lib/pacstrap.sh
 source "$LIB_DIR/pacstrap.sh"
+# shellcheck source=lib/mirrors.sh
+source "$LIB_DIR/mirrors.sh"
 # shellcheck source=lib/chroot.sh
 source "$LIB_DIR/chroot.sh"
 # shellcheck source=lib/deploy.sh
@@ -100,6 +102,7 @@ main() {
   ryoku_mount
 
   step pacstrap
+  ryoku_rank_mirrors
   ryoku_pacstrap
 
   step configure
