@@ -105,7 +105,7 @@ func saveVM(v VM) error {
 
 func runVM(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("vm needs get|save|xml|setup|launch|stop|status")
+		return fmt.Errorf("vm needs get|save|xml|setup|launch|stop|status|snapshot|reset")
 	}
 	switch args[0] {
 	case "get":
@@ -152,6 +152,10 @@ func runVM(args []string) error {
 		return vmStatus()
 	case "setup":
 		return runVMSetup()
+	case "snapshot":
+		return runVMSnapshot(args[1:])
+	case "reset":
+		return vmReset(loadVM())
 	default:
 		return fmt.Errorf("unknown vm subcommand: %s", args[0])
 	}

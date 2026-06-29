@@ -27,6 +27,8 @@ Item {
     property string capsError: ""     // caps probe failed/timed out; show retry, not a spinner
     property string modeWarn: ""
     property bool vmRunning: false
+    property bool vmDefined: false     // the disk exists (VM launched at least once)
+    property var snapshots: []
 
     // the GPU wired to the display: what the desktop and a windowed VM render on.
     readonly property var renderGpu: {
@@ -72,6 +74,7 @@ Item {
         vmProc.running = true;
         modeProc.running = true;
         statusProc.running = true;
+        snapsProc.running = true;
     }
     function patch(k, v) {
         var d = JSON.parse(JSON.stringify(page.draft));
@@ -82,6 +85,15 @@ Item {
         page.actionError = "";
         runProc.command = cmd;
         runProc.running = true;
+    }
+    // clear the install ISO and persist, so the VM boots its disk instead of the
+    // installer on the next launch. operates on the draft to keep other edits.
+    function eject() {
+        page.patch("isoPath", "");
+        // typing into the field earlier breaks its binding to the draft; restore it
+        // so the cleared path shows now and a later Browse still updates the field.
+        isoIn.text = Qt.binding(function() { return page.draft.isoPath || ""; });
+        page.act(["ryoku-hub", "vm", "save", JSON.stringify(page.draft)]);
     }
     function setMode(m) {
         page.modeWarn = "";
@@ -209,8 +221,20 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
-                    page.vmRunning = JSON.parse(this.text).running === true;
+                    var st = JSON.parse(this.text);
+                    page.vmRunning = st.running === true;
+                    page.vmDefined = st.defined === true;
                 } catch (e) {}
+            }
+        }
+    }
+    Process {
+        id: snapsProc
+        command: ["ryoku-hub", "vm", "snapshot", "list"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try { page.snapshots = JSON.parse(this.text); }
+                catch (e) { page.snapshots = []; }
             }
         }
     }
@@ -321,6 +345,32 @@ Item {
             font.family: Theme.font
             font.pixelSize: 13
         }
+    }
+
+    // a two-tap guard for a destructive action: the first tap arms it (the label
+    // turns to a warning that auto-disarms after a few seconds), the second fires.
+    component ConfirmButton: Item {
+        id: cb
+        property string label: ""
+        property string confirmLabel: "Confirm?"
+        property string icon: "trash"
+        property bool primary: false
+        property bool armed: false
+        signal confirmed()
+        implicitWidth: inner.implicitWidth
+        implicitHeight: inner.implicitHeight
+        HubButton {
+            id: inner
+            label: cb.armed ? cb.confirmLabel : cb.label
+            icon: cb.icon
+            primary: cb.primary || cb.armed
+            enabled: cb.enabled
+            onClicked: {
+                if (cb.armed) { cb.armed = false; cb.confirmed(); }
+                else { cb.armed = true; disarm.restart(); }
+            }
+        }
+        Timer { id: disarm; interval: 3500; onTriggered: cb.armed = false }
     }
 
     ShowcaseBackdrop { anchors.fill: parent }
@@ -564,6 +614,28 @@ Item {
                                 }
                             }
 
+                            // an attached ISO boots ahead of the disk on every launch
+                            // (qemu.go bootindex), so after the OS is installed the VM
+                            // keeps reopening the installer until the ISO is ejected.
+                            Column {
+                                width: parent.width
+                                spacing: 8
+                                visible: (page.draft.isoPath || "") !== ""
+                                Text {
+                                    width: parent.width
+                                    wrapMode: Text.WordWrap
+                                    text: "Done installing? Eject the ISO so the next launch boots your install, not the installer."
+                                    color: Theme.dim
+                                    font.family: Theme.font
+                                    font.pixelSize: 12
+                                }
+                                HubButton {
+                                    label: "Eject installer"
+                                    icon: "close"
+                                    onClicked: page.eject()
+                                }
+                            }
+
                             ChoiceRow {
                                 width: Math.min(parent.width, 460)
                                 label: "Guest OS"
@@ -672,6 +744,171 @@ Item {
                             VmKey { keys: "Ctrl Alt M"; action: "Show or hide the menu bar" }
                             VmKey { keys: "Ctrl Alt +/-"; action: "Scale the window (Ctrl Alt 0 resets)" }
                             VmKey { keys: "Ctrl Alt 2"; action: "QEMU monitor (Ctrl Alt 1 returns to the VM)" }
+                        }
+
+                        SettingSection {
+                            width: parent.width
+                            title: "SNAPSHOTS"
+                            Text {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: "Save the disk at a point in time and roll back to it later. The VM keeps its disk between launches; a snapshot is a named restore point on top of that."
+                                color: Theme.dim
+                                font.family: Theme.font
+                                font.pixelSize: 12
+                            }
+                            // snapshots edit the disk file directly, so the VM must be off.
+                            Text {
+                                visible: page.vmRunning
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: "Stop the VM to manage snapshots."
+                                color: Theme.ember
+                                font.family: Theme.font
+                                font.pixelSize: 12
+                            }
+                            Text {
+                                visible: !page.vmRunning && !page.vmDefined
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: "Launch the VM once to create its disk, then snapshots appear here."
+                                color: Theme.faint
+                                font.family: Theme.font
+                                font.pixelSize: 12
+                            }
+                            Row {
+                                width: parent.width
+                                spacing: 10
+                                visible: page.vmDefined && !page.vmRunning
+                                Rectangle {
+                                    width: parent.width - snapAddBtn.width - 10
+                                    height: 38
+                                    radius: 9
+                                    color: Theme.surfaceLo
+                                    border.width: 1
+                                    border.color: snapNameIn.activeFocus ? Theme.ember : Theme.line
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    TextInput {
+                                        id: snapNameIn
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 12
+                                        anchors.rightMargin: 12
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        color: Theme.bright
+                                        font.family: Theme.font
+                                        font.pixelSize: 13
+                                        clip: true
+                                        selectByMouse: true
+                                        onAccepted: if (snapAddBtn.enabled) snapAddBtn.clicked()
+                                        Text {
+                                            anchors.fill: parent
+                                            verticalAlignment: Text.AlignVCenter
+                                            visible: snapNameIn.text.length === 0
+                                            text: "Snapshot name (e.g. clean install)"
+                                            color: Theme.faint
+                                            font: snapNameIn.font
+                                        }
+                                    }
+                                }
+                                HubButton {
+                                    id: snapAddBtn
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    label: "Save snapshot"
+                                    icon: "plus"
+                                    primary: true
+                                    enabled: snapNameIn.text.trim().length > 0
+                                    onClicked: { page.act(["ryoku-hub", "vm", "snapshot", "create", snapNameIn.text.trim()]); snapNameIn.text = ""; }
+                                }
+                            }
+                            Column {
+                                width: parent.width
+                                spacing: 8
+                                visible: page.vmDefined
+                                Text {
+                                    visible: page.snapshots.length === 0 && !page.vmRunning
+                                    text: "No snapshots yet."
+                                    color: Theme.faint
+                                    font.family: Theme.font
+                                    font.pixelSize: 12
+                                }
+                                Repeater {
+                                    model: page.snapshots
+                                    delegate: Rectangle {
+                                        id: snapRow
+                                        required property var modelData
+                                        width: parent ? parent.width : 0
+                                        height: 44
+                                        radius: 9
+                                        color: Theme.surfaceLo
+                                        border.width: 1
+                                        border.color: Theme.line
+                                        Column {
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: 14
+                                            anchors.right: snapActions.left
+                                            anchors.rightMargin: 10
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            spacing: 2
+                                            Text {
+                                                width: parent.width
+                                                elide: Text.ElideRight
+                                                text: snapRow.modelData.name
+                                                color: Theme.cream
+                                                font.family: Theme.font
+                                                font.pixelSize: 13
+                                                font.weight: Font.Medium
+                                            }
+                                            Text {
+                                                text: snapRow.modelData.date
+                                                color: Theme.dim
+                                                font.family: Theme.mono
+                                                font.pixelSize: 10
+                                            }
+                                        }
+                                        Row {
+                                            id: snapActions
+                                            anchors.right: parent.right
+                                            anchors.rightMargin: 10
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            spacing: 8
+                                            ConfirmButton {
+                                                enabled: !page.vmRunning
+                                                label: "Restore"
+                                                confirmLabel: "Roll back?"
+                                                icon: "refresh"
+                                                onConfirmed: page.act(["ryoku-hub", "vm", "snapshot", "restore", snapRow.modelData.name])
+                                            }
+                                            ConfirmButton {
+                                                enabled: !page.vmRunning
+                                                label: "Delete"
+                                                confirmLabel: "Delete?"
+                                                icon: "trash"
+                                                onConfirmed: page.act(["ryoku-hub", "vm", "snapshot", "delete", snapRow.modelData.name])
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        SettingSection {
+                            width: parent.width
+                            title: "RESET"
+                            Text {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: "Erase the disk and every snapshot, back to an empty machine. The VM must be stopped, and this cannot be undone."
+                                color: Theme.dim
+                                font.family: Theme.font
+                                font.pixelSize: 12
+                            }
+                            ConfirmButton {
+                                enabled: page.vmDefined && !page.vmRunning
+                                label: "Reset VM"
+                                confirmLabel: "Erase everything?"
+                                icon: "trash"
+                                onConfirmed: page.act(["ryoku-hub", "vm", "reset"])
+                            }
                         }
                     }
                 }

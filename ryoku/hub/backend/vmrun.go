@@ -116,24 +116,29 @@ func vmStop(v VM) error {
 	return virsh("shutdown", v.Name)
 }
 
+// vmRunning reports whether the VM is powered on, in either display mode: a
+// windowed VM by its QEMU pid, a passthrough VM by its libvirt domain state.
+// Snapshot and reset refuse while it is on, since qemu-img must own the disk.
+func vmRunning(v VM) bool {
+	if vmWantsPassthrough(v) {
+		out, err := exec.Command("virsh", "-c", "qemu:///system", "domstate", v.Name).Output()
+		return err == nil && strings.TrimSpace(string(out)) == "running"
+	}
+	return qemuRunning(v)
+}
+
 func vmStatus() error {
 	v := loadVM()
 	report, _ := detectCapability()
-	var defined, running bool
+	// a plain VM has no persistent libvirt definition; the disk is its state.
+	defined := fileExists(v.DiskPath)
 	if vmWantsPassthrough(v) {
 		defined = virshQuiet("dominfo", v.Name) == nil
-		if out, err := exec.Command("virsh", "-c", "qemu:///system", "domstate", v.Name).Output(); err == nil {
-			running = strings.TrimSpace(string(out)) == "running"
-		}
-	} else {
-		// a plain VM has no persistent libvirt definition; the disk is its state.
-		running = qemuRunning(v)
-		defined = fileExists(v.DiskPath)
 	}
 	return printJSON(map[string]any{
 		"name":     v.Name,
 		"defined":  defined,
-		"running":  running,
+		"running":  vmRunning(v),
 		"verdict":  report.Verdict,
 		"strategy": report.Strategy,
 	})

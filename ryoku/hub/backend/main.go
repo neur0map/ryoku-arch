@@ -103,5 +103,6 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  ryoku-hub lock list")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub lock set <slug>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub gpu caps|mode")
-	fmt.Fprintln(os.Stderr, "  ryoku-hub vm get|save|xml")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub vm get|save|xml|launch|stop|status|reset")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub vm snapshot list|create|restore|delete <name>")
 }

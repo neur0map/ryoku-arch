@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Added
+- GPU > Machine: the VM gains disk quality-of-life, so a launch is no longer a
+  blank slate. A **Snapshots** group saves the disk as named restore points and
+  rolls back to, or deletes, them; **Reset** wipes the disk and every snapshot
+  back to an empty machine; and **Eject installer** clears the install ISO so a
+  finished install boots from its own disk instead of reopening the installer on
+  every launch. Backed by `ryoku-hub vm snapshot list|create|restore|delete` and
+  `ryoku-hub vm reset`, operating on the powered-off qcow2 (the same disk for
+  windowed and passthrough). Destructive actions arm on the first tap and confirm
+  on the second, and snapshot and reset controls disable while the VM is running.
 - Every section whose GUI maps to a real config file gains a `CONFIG` chip next to
   its title (in the shared `PageHeader`): it opens that file in `nvim` (side by
   side, in a kitty window). The Hyprland sections (Input, Appearance, Animations,
@@ -249,6 +258,12 @@
   field `ryoku status --json` now publishes. "Up to date" shows when current.
 
 ### Fixed
+- **Input: "Follow mouse" now takes effect.** The Hub's input default was out of
+  sync with the shipped Hyprland config (`input.lua` ships `follow_mouse = 2`, the
+  backend and the QML store both assumed `1`), so the diff-based generator wrote no
+  override when "Normal" was picked and the base config's click-to-focus stayed in
+  force. Aligned the default to `2`, so choosing "Normal" now writes
+  `follow_mouse = 1` and the window under the cursor becomes active on hover.
 - **Enable passthrough now installs the AUR stack.** Looking Glass and the kvmfr
   module are AUR-only, but the privileged `gpu apply enable` ran under pkexec and
   only `pacman`-installed the official core, so it printed a `yay -S` hint and left
