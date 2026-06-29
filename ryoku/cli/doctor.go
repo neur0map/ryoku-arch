@@ -589,18 +589,12 @@ func reconcilePacmanLock(checkOnly bool) recResult {
 
 // ---- reconciler: stale install crypt mapper ----------------------------------
 
-// reconcileStaleCryptMapper clears a /dev/mapper/root the installer left
-// behind. ryoku-install opens the encrypted root under that fixed name; a run
-// that died after the open, or a retry in the same live session, leaves it
-// held, and the next `cryptsetup open <part> root` aborts with "Device root
-// already exists" -- the wall a reinstall hits. closing the orphan frees the
-// name so the install proceeds.
-//
-// SAFETY: on a normal encrypted box /dev/mapper/root IS the running root, so
-// the gate skips any mapper that backs a live mount (the root device or a
-// mounted install target). only a "root" crypt node with no mount anywhere -- a
-// true orphan -- is closed, and closing a LUKS mapper merely re-locks it, so no
-// data is ever at risk. anything else is left untouched.
+// reconcileStaleCryptMapper clears a /dev/mapper/root the installer left open.
+// ryoku-install opens the encrypted root under that name; a failed run (or a
+// retry) leaves it held, so the next `cryptsetup open ... root` aborts with
+// "Device root already exists". Closing the orphan frees the name.
+// Safe: a "root" node backing a live mount (the running root) is never touched,
+// only a true orphan with no mount; closing a LUKS mapper only re-locks it.
 func reconcileStaleCryptMapper(checkOnly bool) recResult {
 	nodes := cryptMapperNodes()
 	if len(nodes) == 0 {
@@ -622,12 +616,9 @@ func reconcileStaleCryptMapper(checkOnly bool) recResult {
 	return fixedRes("closed orphaned crypt mapper %s left by a failed install", node)
 }
 
-// staleInstallMapper returns the installer's reserved mapper name when a crypt
-// node by that name is a true orphan -- present, not the device backing "/",
-// and holding no mount anywhere -- else "". the installer always opens the
-// encrypted root as /dev/mapper/root, so a leftover by that exact name is what
-// blocks the next `cryptsetup open ... root`. pure (live state is passed in) so
-// the safety gate is unit-testable without real device-mapper.
+// staleInstallMapper returns "root" only when /dev/mapper/root is a true orphan:
+// present, not backing "/", and holding no mount. pure, so the safety gate is
+// testable without device-mapper.
 func staleInstallMapper(cryptNodes []string, rootSource string, mountedSources map[string]bool) string {
 	const node = "/dev/mapper/root"
 	present := false
@@ -656,9 +647,8 @@ func cryptMapperNodes() []string {
 	return parseCryptMapperNodes(out)
 }
 
-// parseCryptMapperNodes turns `dmsetup ls --target crypt` output into
-// /dev/mapper/<name> paths. "No devices found" (and blank output) yields none.
-// pure, so the parsing is unit-testable without device-mapper.
+// parseCryptMapperNodes maps `dmsetup ls --target crypt` lines to /dev/mapper
+// paths; "No devices found" yields none.
 func parseCryptMapperNodes(out string) []string {
 	var nodes []string
 	for _, ln := range nonEmptyLines(out) {
