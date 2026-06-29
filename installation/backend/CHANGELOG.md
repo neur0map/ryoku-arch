@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Fixed
+- `lib/luks.sh` + `lib/disk.sh` make the install idempotent across a retry. A
+  `/dev/mapper/root` left open by an earlier failed run (or a retry in the same
+  live session) made `cryptsetup open ... root` abort with "Device root already
+  exists", stranding the install at the encryption step even on a fresh ISO. A
+  new `ryoku_free_mapper` frees the name however it is held (unmount, `swapoff -a`
+  for a swapfile that pins the mapper, then close), called before the wipe and
+  again before the LUKS open, so neither step trips on a stale mapper. Covered by
+  `tests/install-disk-teardown.sh`.
 - The install now fails closed on disk destruction. `ryoku-install` and
   `lib/disk.sh` reject an empty or unknown `RYOKU_DISK_STRATEGY` instead of
   defaulting to `whole` (the old default silently wiped the disk when the TUI

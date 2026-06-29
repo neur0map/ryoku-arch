@@ -21,6 +21,33 @@ ryoku_partition() {
   esac
 }
 
+# ryoku_free_mapper tears down a device-mapper node by NAME, whatever still
+# holds it. ryoku_release_disk only closes mappers lsblk still ties to the
+# target disk; a crypt mapper an earlier failed run orphaned -- its backing
+# signature already wiped, or pinned by a swapfile *inside* its filesystem
+# (which never shows as a swap partition, so the disk-scoped swapoff misses it)
+# -- lingers under its name and makes `cryptsetup open <part> <name>` die
+# "Device <name> already exists", the exact wall a retried install hits. a
+# command-based presence probe keeps a box with no such mapper a clean no-op
+# (and the dry-run plan empty), so this is idempotent.
+ryoku_free_mapper() {
+  local name=$1 node="/dev/mapper/$1" mp
+  [[ -n $name ]] || return 0
+  dmsetup info -- "$name" >/dev/null 2>&1 || return 0
+  log "freeing stale mapper /dev/mapper/$name held by a previous run"
+  # release whatever rides the mapper first, else the close bounces off a busy
+  # holder: unmount its filesystems deepest-first, then swapoff. a swapfile
+  # inside the fs pins the mapper yet is no swap partition, so swapoff -a is the
+  # only sure release (the live installer keeps no swap of its own mid-run).
+  while IFS= read -r mp; do
+    [[ -n $mp ]] || continue
+    run_sh "umount -R -- '$mp' 2>/dev/null || umount -l -- '$mp' 2>/dev/null || true"
+  done < <(lsblk -nrpo MOUNTPOINT "$node" 2>/dev/null | awk 'NF' | sort -r)
+  run_sh 'swapoff -a 2>/dev/null || true'
+  run_sh "cryptsetup close -- '$name' 2>/dev/null || dmsetup remove --force -- '$name' 2>/dev/null || true"
+  run_sh 'udevadm settle 2>/dev/null || true'
+}
+
 # ryoku_release_disk = free the target so the wipe doesn't die "Device or
 # resource busy". on the live medium something we didn't put there often holds
 # the disk: udisks-automount, a stale /mnt, an open LUKS/dm mapper from a
@@ -77,6 +104,12 @@ ryoku_release_disk() {
     [[ -n $name ]] || continue
     run_sh "mdadm --stop -- '$name' 2>/dev/null || true"
   done < <(lsblk -nrpo NAME,TYPE "$disk" 2>/dev/null | awk '$2 ~ /raid/{print $1}' | tac)
+
+  # also free the installer's own target mapper by NAME. the loops above only
+  # reach holders lsblk still ties to $disk; a "root" crypt node an earlier run
+  # orphaned (its backing partition since wiped) survives off that tree and
+  # would otherwise block both this wipe and the later LUKS open.
+  ryoku_free_mapper root
 
   run_sh 'udevadm settle 2>/dev/null || true'
 }

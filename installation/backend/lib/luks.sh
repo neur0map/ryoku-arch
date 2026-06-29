@@ -24,6 +24,14 @@ ryoku_luks() {
   LUKS_PART=$ROOT_PART
   log "encryption: LUKS2 on $LUKS_PART -> /dev/mapper/root"
 
+  # a /dev/mapper/root left open by a previous failed run (or a retry in the
+  # same live session) makes `cryptsetup open ... root` abort with "Device root
+  # already exists" before any keyslot is checked. free the name first so the
+  # open is idempotent; harmless when nothing holds it. (ryoku_release_disk does
+  # the same before the wipe; this guards the open even when release ran on a
+  # different disk or the name was orphaned after.)
+  ryoku_free_mapper root
+
   # passphrase stays on stdin, never on the command line, never in a log.
   printf '%s' "$RYOKU_LUKS_PASSPHRASE" | run_secret \
     "cryptsetup luksFormat --type luks2 --batch-mode $LUKS_PART (passphrase via stdin)" \
