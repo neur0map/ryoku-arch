@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+# add the CachyOS x86-64-v3 repository so the CachyOS kernel (linux-cachyos)
+# installs and updates through pacman. idempotent and additive: it never edits
+# [core]/[extra] and never touches the stock kernel. only [cachyos-v3] is added,
+# not the core/extra rebuilds, so the rest of the userland stays Arch and a
+# later -Syu cannot silently convert the system. the baseline [cachyos] repo
+# (the one carrying CachyOS's forked pacman) is deliberately left out. the
+# cachyos-kernel extras bundle declares "requires": ["cachyos"] and the actuator
+# shells out here before routing the kernel packages. needs a TTY for sudo.
+
+set -euo pipefail
+
+conf=/etc/pacman.conf
+key=F3B607488DB35A47
+server=https://mirror.cachyos.org/repo/x86_64_v3/cachyos-v3
+
+if ! /lib/ld-linux-x86-64.so.2 --help 2>/dev/null | grep -q 'x86-64-v3 (supported'; then
+  echo "ryoku-pkg-cachyos: this CPU does not support x86-64-v3; the CachyOS kernel needs it" >&2
+  exit 1
+fi
+
+# stock pacman resolves Architecture = auto to x86_64 and rejects the v3
+# packages, so it must also accept x86_64_v3. appended, existing values kept.
+if ! grep -qE '^Architecture =.*x86_64_v3' "$conf"; then
+  echo "==> Allowing x86_64_v3 packages in $conf"
+  sudo sed -i 's|^Architecture =.*|& x86_64_v3|' "$conf"
+fi
+
+if grep -qE '^\[cachyos' "$conf"; then
+  echo "cachyos: repository already configured"
+  exit 0
+fi
+
+echo "==> Trusting the CachyOS signing key"
+sudo pacman-key --recv-keys "$key" --keyserver keyserver.ubuntu.com \
+  || sudo pacman-key --recv-keys "$key" --keyserver hkps://keys.openpgp.org
+sudo pacman-key --lsign-key "$key"
+
+echo "==> Adding the [cachyos-v3] repository above [core]"
+sudo sed -i "0,/^\[core\]/ s|^\[core\]|[cachyos-v3]\nServer = $server\n\n[core]|" "$conf"
+grep -qE '^\[cachyos-v3\]' "$conf" || {
+  echo "ryoku-pkg-cachyos: could not add [cachyos-v3] to $conf" >&2
+  exit 1
+}
+
+echo "==> Synchronizing package databases"
+sudo pacman -Sy
+
+# best-effort: the keyring package keeps trust current across key rotations.
+# recv/lsign above already covers today's packages if it is unavailable.
+sudo pacman -S --needed --noconfirm cachyos-keyring || true

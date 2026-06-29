@@ -18,5 +18,13 @@
   AUR-helper wrappers for repo installs, AUR installs, and removals.
 - `ryoku-pkg-multilib`: idempotently enables the `[multilib]` repo for bundles
   that need 32-bit packages (Gaming, for Steam and the lib32 libraries).
+- `ryoku-pkg-cachyos`: idempotently adds the `[cachyos-v3]` repository (CachyOS
+  key, x86-64-v3 only, additive, without the baseline `[cachyos]` repo or its
+  forked pacman) so the CachyOS Kernel bundle can install `linux-cachyos`
+  through pacman.
+- `ryoku-extras-install`: satisfy `"requires": ["cachyos"]` via
+  `ryoku-pkg-cachyos`, and abort with a "run ryoku update" message on any
+  unrecognized requirement instead of skipping it (which would mis-route the
+  bundle's packages to an AUR source build).
 - `ryoku-cmd-present`: the single command-presence test shared by the actuator
   and the catalogue's installer scripts.

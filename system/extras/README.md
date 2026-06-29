@@ -25,6 +25,11 @@ fetches and caches that catalogue; the helpers here do the work.
 - `ryoku-pkg-remove` remove packages and their now-orphaned dependencies.
 - `ryoku-pkg-multilib` enable the `[multilib]` repo, for bundles that declare
   `"requires": ["multilib"]` (Gaming needs it for Steam and the lib32 libraries).
+- `ryoku-pkg-cachyos` add the `[cachyos-v3]` repo (CachyOS key, x86-64-v3 only)
+  so `linux-cachyos` installs through pacman, for bundles that declare
+  `"requires": ["cachyos"]` (CachyOS Kernel). Additive and idempotent: it never
+  touches `[core]`/`[extra]` or the stock kernel, and leaves out the baseline
+  `[cachyos]` repo and its forked pacman.
 - `ryoku-cmd-present` the one presence test (`command -v`) shared by the actuator
   and the catalogue's installer scripts.
 

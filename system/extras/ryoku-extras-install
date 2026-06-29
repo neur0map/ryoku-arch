@@ -211,7 +211,15 @@ ensure_requires() {
           ryoku-pkg-multilib || true
         fi
         ;;
-      *) echo "ryoku-extras-install: unknown requirement '$req', skipping" >&2 ;;
+      cachyos)
+        if [[ -n $DRYRUN ]]; then
+          echo "DRYRUN: ensure the CachyOS repository is enabled"
+        else
+          echo "==> Ensuring the CachyOS repository is enabled"
+          ryoku-pkg-cachyos || die "could not enable the CachyOS repository"
+        fi
+        ;;
+      *) die "this bundle needs a newer Ryoku (unknown requirement '$req'); run 'ryoku update' first" ;;
     esac
   done < <(jq -r '.requires[]? // empty' "$file")
 }
