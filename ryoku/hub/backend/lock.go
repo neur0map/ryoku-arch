@@ -326,6 +326,16 @@ func installGreeter(srcThemes, themesDir, confPath, slug string) error {
 	if out, err := exec.Command("cp", "-a", src, dst).CombinedOutput(); err != nil {
 		return fmt.Errorf("install greeter theme: %v: %s", err, out)
 	}
+	// The greeter runs as the unprivileged `sddm` user, so it must be able to
+	// read the theme no matter how the source was owned or masked. Catalog skins
+	// download into an os.MkdirTemp dir (always 0700) and `cp -a` preserves that,
+	// leaving the greeter dir unreadable to sddm -> SDDM silently falls back to
+	// its embedded theme on every boot. Normalize: root-owned (best effort, since
+	// this half runs as root under pkexec) and world-readable.
+	_ = exec.Command("chown", "-R", "root:root", dst).Run()
+	if out, err := exec.Command("chmod", "-R", "a+rX", dst).CombinedOutput(); err != nil {
+		return fmt.Errorf("make greeter theme readable: %v: %s", err, out)
+	}
 	if err := os.MkdirAll(filepath.Dir(confPath), 0o755); err != nil {
 		return err
 	}

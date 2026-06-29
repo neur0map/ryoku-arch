@@ -163,3 +163,42 @@ func TestValidSlug(t *testing.T) {
 		}
 	}
 }
+
+// A skin pulled from the catalogue lands 0700 user-owned (os.MkdirTemp), but the
+// greeter runs as the unprivileged `sddm` user: installGreeter must widen the
+// copy to world-readable, else SDDM can't read the theme and silently falls back
+// to its embedded one on every boot.
+func TestInstallGreeterMakesThemeWorldReadable(t *testing.T) {
+	src := t.TempDir()
+	mkSkin(t, src, "video/tape", false)
+	// mimic a catalogue download: owner-only perms on the skin tree.
+	skin := filepath.Join(src, "video", "tape")
+	if err := os.Chmod(filepath.Join(skin, "Main.qml"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(skin, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	themes := t.TempDir()
+	conf := filepath.Join(t.TempDir(), "sddm.conf.d", "99-ryoku.conf")
+
+	if err := installGreeter(src, themes, conf, "video/tape"); err != nil {
+		t.Fatalf("install greeter: %v", err)
+	}
+
+	dir := filepath.Join(themes, greeterTheme)
+	di, err := os.Stat(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if di.Mode().Perm()&0o005 != 0o005 {
+		t.Errorf("greeter dir mode = %o, want world read+execute (o+rx)", di.Mode().Perm())
+	}
+	mi, err := os.Stat(filepath.Join(dir, "Main.qml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mi.Mode().Perm()&0o004 == 0 {
+		t.Errorf("Main.qml mode = %o, want world readable (o+r)", mi.Mode().Perm())
+	}
+}

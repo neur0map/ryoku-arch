@@ -258,6 +258,15 @@
   field `ryoku status --json` now publishes. "Up to date" shows when current.
 
 ### Fixed
+- **The login screen keeps the lock skin you pick.** Choosing a lockscreen skin
+  applies it as the SDDM greeter too, but a skin pulled from the catalogue
+  downloads into a 0700 user-owned dir (`os.MkdirTemp`), and the `cp -a` into
+  `/usr/share/sddm/themes/ryoku` preserved that owner and mode. The greeter runs
+  as the unprivileged `sddm` user, which then could not read the theme, so SDDM
+  silently fell back to its embedded theme on every boot (it bit only users who
+  had switched skins). `installGreeter` now normalizes the installed greeter to
+  root-owned and world-readable, so the picked skin survives a reboot. Covered by
+  `lock_test.go`; `ryoku doctor` heals boxes already broken this way.
 - **Input: "Follow mouse" now takes effect.** The Hub's input default was out of
   sync with the shipped Hyprland config (`input.lua` ships `follow_mouse = 2`, the
   backend and the QML store both assumed `1`), so the diff-based generator wrote no
