@@ -670,12 +670,13 @@ ShellRoot {
                     s: overlay.s
                     active: !overlay.surfaceOpen && !overlay.monFullscreen
                     pinned: root.popout === "mixer" && root.popoutMon === overlay.modelData.name
-                    openW: (mixerContent.faderCount * 64 + 36) * overlay.s
-                    openH: 214 * overlay.s
+                    openW: mixerContent.implicitWidth
+                    openH: mixerContent.implicitHeight
 
                     Mixer {
                         id: mixerContent
                         s: overlay.s
+                        open: mixerPop.prog > 0.5
                     }
                 }
 

@@ -31,6 +31,10 @@ Item {
     property string align: "center"       // "start" | "center" | "end" (along the edge)
     property real openW: 220
     property real openH: 200
+    // size tracks the content's implicit size (the mixer grows as its device
+    // picker expands or a stream appears); melt rather than snap.
+    Behavior on openW { NumberAnimation { duration: Motion.morph; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.morphCurve } }
+    Behavior on openH { NumberAnimation { duration: Motion.morph; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.morphCurve } }
     property real hoverW: 0                // hover-band span along the edge (0 = match body)
     property real hoverH: 0                // hover-band depth from the edge (0 = frameThickness)
     property real s: 1

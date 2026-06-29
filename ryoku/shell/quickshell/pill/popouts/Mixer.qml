@@ -1,249 +1,153 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import Quickshell.Io
-import Quickshell.Services.Pipewire
 import ".."
 import "../Singletons"
 
-// mixer popout content. 力 MIXER header over a row of vertical ink-faders
-// wired to real hardware: per-monitor brightness (ddcutil), vibrance
-// (nvibrant), volume + mic (Pipewire). plain transparent Item, the frame
-// blob behind it IS the surface, Popout sizes and reveals it.
-// ported from the pill's Mixer, decoupled from PillSurface and the pill's
-// Ame bead. fader under the pointer lights up, wheel nudges it.
-// pointer-driven, no keyboard focus.
+// mixer popout content: an audio control center wired to real hardware. 力 MIXER
+// header over OUTPUT and INPUT endpoints (each a device selector + ink fader,
+// with battery/codec/profile for a Bluetooth sink), per-app playback streams,
+// and a DISPLAY section (brightness + vibrance). plain transparent Item, the
+// frame blob behind it IS the surface; Popout sizes and reveals it. the panel
+// reports its implicit size so the popout melts open to fit and grows as the
+// device picker expands or a stream appears. pointer-driven, no keyboard focus.
 Item {
     id: root
 
     property real s: 1
+    // popout open: gates the live VU meters so they never spin while closed.
+    property bool open: false
 
     anchors.fill: parent
 
-    readonly property var sink: Pipewire.defaultAudioSink
-    readonly property var source: Pipewire.defaultAudioSource
+    implicitWidth: 340 * s
+    implicitHeight: body.implicitHeight + 27 * s
 
-    property int focusIndex: -1
-    readonly property int faderCount: faders.length
-    readonly property var faders: {
-        void brRep.count;
-        var out = [];
-        for (var i = 0; i < brRep.count; i++) {
-            var f = brRep.itemAt(i);
-            if (f)
-                out.push(f);
-        }
-        out.push(vibFader, volFader, micFader);
-        return out;
-    }
-    readonly property bool surfaceHovered: hoverTracker.hovered
-    onSurfaceHoveredChanged: if (!surfaceHovered) focusIndex = -1
+    readonly property var sink: Audio.sink
+    readonly property var source: Audio.source
+    readonly property var streams: Audio.streams
 
-    // pointer column under the cursor drives which fader lights.
-    // coords are body-local (HoverHandler lives in `body`), matches faderRow.
-    readonly property int hoverIndex: surfaceHovered && body.width > 0
-        && hoverTracker.point.position.y >= faderRow.y
-        ? Math.max(0, Math.min(faders.length - 1, Math.floor(hoverTracker.point.position.x / (body.width / faders.length))))
-        : -1
-    onHoverIndexChanged: if (hoverIndex >= 0) focusIndex = hoverIndex
-
-    // nudge the focused fader by `deltaPct` percent. true if one handled it.
-    function stepFocused(deltaPct) {
-        if (focusIndex < 0)
-            return false;
-        faders[focusIndex].step(deltaPct);
-        return true;
+    component Divider: Rectangle {
+        width: parent ? parent.width : 0
+        height: 1
+        color: Theme.hair
     }
 
-    Component.onCompleted: Devices.detect()
-
-    property real pendingVibrance: -1
-
-    Timer {
-        id: vibDebounce
-        interval: 160
-        onTriggered: if (root.pendingVibrance >= 0) {
-            Devices.setVibrance(root.pendingVibrance);
-            root.pendingVibrance = -1;
-        }
-    }
-
-    PwObjectTracker {
-        objects: [root.sink, root.source].filter(Boolean)
-    }
-
-    Item {
+    Column {
         id: body
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
         anchors.topMargin: 13 * root.s
         anchors.leftMargin: 16 * root.s
         anchors.rightMargin: 16 * root.s
-        anchors.bottomMargin: 14 * root.s
-
-        HoverHandler {
-            id: hoverTracker
-        }
-
-        Item {
-            id: header
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 24 * root.s
-
-            Row {
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 8 * root.s
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "力"
-                    color: Theme.brand
-                    font.family: Theme.fontJp
-                    font.weight: Font.Medium
-                    font.pixelSize: 16 * root.s
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "MIXER"
-                    color: Theme.subtle
-                    font.family: Theme.font
-                    font.pixelSize: 10 * root.s
-                    font.weight: Font.DemiBold
-                    font.capitalization: Font.AllUppercase
-                    font.letterSpacing: 1.6 * root.s
-                }
-            }
-        }
-
-        Rectangle {
-            id: divider
-            anchors.top: header.bottom
-            anchors.topMargin: 9 * root.s
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 1
-            color: Theme.hair
-        }
+        spacing: 11 * root.s
 
         Row {
-            id: faderRow
-            anchors.top: divider.bottom
-            anchors.topMargin: 10 * root.s
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            spacing: 0
+            spacing: 8 * root.s
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "力"
+                color: Theme.brand
+                font.family: Theme.fontJp
+                font.weight: Font.Medium
+                font.pixelSize: 16 * root.s
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "MIXER"
+                color: Theme.subtle
+                font.family: Theme.font
+                font.pixelSize: 10 * root.s
+                font.weight: Font.DemiBold
+                font.capitalization: Font.AllUppercase
+                font.letterSpacing: 1.6 * root.s
+            }
+        }
 
-            readonly property real colW: width / Math.max(1, root.faderCount)
+        Column {
+            width: parent.width
+            spacing: 7 * root.s
+            MicroLabel { label: "Output"; s: root.s }
+            MixerDeviceRow {
+                width: parent.width
+                s: root.s
+                kind: "output"
+                node: root.sink
+                candidates: Audio.outputs
+                peakEnabled: root.open
+            }
+        }
 
-            Repeater {
-                id: brRep
-                model: Devices.ddcMonitors
+        Divider {}
 
-                VFader {
-                    id: brFader
+        Column {
+            width: parent.width
+            spacing: 7 * root.s
+            MicroLabel { label: "Input"; s: root.s }
+            MixerDeviceRow {
+                width: parent.width
+                s: root.s
+                kind: "input"
+                node: root.source
+                candidates: Audio.inputs
+                peakEnabled: root.open
+            }
+        }
 
-                    required property var modelData
-                    required property int index
+        Divider {}
 
-                    property int pct: 75
-                    property real pendingPct: -1
+        Column {
+            width: parent.width
+            spacing: 7 * root.s
 
-                    width: faderRow.colW
-                    s: root.s
-                    icon: "sun"
-                    subLabel: modelData.label
-                    focused: root.focusIndex === index
-                    value: pct / 100
-                    valueLabel: pct + "%"
-                    onMoved: (v) => pct = Math.max(5, Math.min(100, Math.round(v * 100)))
-                    onCommitted: (v) => {
-                        pendingPct = Math.max(5, Math.min(100, Math.round(v * 100)));
-                        brCommit.restart();
-                    }
-
-                    Timer {
-                        id: brCommit
-                        interval: 160
-                        onTriggered: if (brFader.pendingPct >= 0) {
-                            Devices.setBrightness(brFader.modelData.bus, brFader.pendingPct);
-                            brFader.pendingPct = -1;
-                        }
-                    }
-
-                    Process {
-                        id: brRead
-                        command: ["timeout", "3", "ddcutil", "getvcp", "10", "--bus", brFader.modelData.bus, "--brief"]
-                        running: true
-                        stdout: StdioCollector {
-                            onStreamFinished: {
-                                var v = Devices.parseBrightness(this.text);
-                                if (v >= 0)
-                                    brFader.pct = v;
-                            }
-                        }
-                    }
+            Row {
+                spacing: 7 * root.s
+                MicroLabel { label: "Apps"; s: root.s }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: root.streams.length > 0
+                    text: root.streams.length + ""
+                    color: Theme.faint
+                    font.family: Theme.mono
+                    font.pixelSize: 9 * root.s
+                    font.weight: Font.DemiBold
                 }
             }
 
-            VFader {
-                id: vibFader
-                width: faderRow.colW
-                s: root.s
-                icon: "monitor"
-                focused: root.focusIndex === root.faderCount - 3
-                value: Devices.vibrance / 100
-                valueLabel: Devices.vibrance + "%"
-                onMoved: (v) => Devices.vibrance = Math.round(v * 100)
-                onCommitted: (v) => { root.pendingVibrance = v * 100; vibDebounce.restart(); }
+            Text {
+                width: parent.width
+                visible: root.streams.length === 0
+                text: "Nothing playing"
+                color: Theme.faint
+                font.family: Theme.font
+                font.pixelSize: 11 * root.s
+                font.weight: Font.Medium
             }
-            VFader {
-                id: volFader
-                width: faderRow.colW
-                s: root.s
-                icon: "speaker"
-                focused: root.focusIndex === root.faderCount - 2
-                value: root.sink && root.sink.audio ? root.sink.audio.volume : 0
-                valueLabel: Math.round((root.sink && root.sink.audio ? root.sink.audio.volume : 0) * 100) + "%"
-                onMoved: (v) => { if (root.sink && root.sink.audio) root.sink.audio.volume = v; }
-            }
-            VFader {
-                id: micFader
-                width: faderRow.colW
-                s: root.s
-                icon: (root.source && root.source.audio && root.source.audio.muted) ? "mic-off" : "mic"
-                focused: root.focusIndex === root.faderCount - 1
-                value: root.source && root.source.audio ? root.source.audio.volume : 0
-                valueLabel: (root.source && root.source.audio && root.source.audio.muted)
-                    ? "off"
-                    : (Math.round((root.source && root.source.audio ? root.source.audio.volume : 0) * 100) + "%")
-                onMoved: (v) => { if (root.source && root.source.audio) root.source.audio.volume = v; }
 
-                MouseArea {
-                    anchors.bottom: parent.bottom
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 24 * root.s
-                    height: 22 * root.s
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: { if (root.source && root.source.audio) root.source.audio.muted = !root.source.audio.muted; }
+            Column {
+                width: parent.width
+                spacing: 9 * root.s
+                Repeater {
+                    model: root.streams
+                    MixerAppRow {
+                        required property var modelData
+                        width: parent.width
+                        s: root.s
+                        node: modelData
+                        peakEnabled: root.open
+                    }
                 }
             }
         }
-    }
 
-    // wheel over a fader nudges, no click needed.
-    MouseArea {
-        id: wheelArea
-        anchors.fill: parent
-        acceptedButtons: Qt.NoButton
-        property real acc: 0
-        onWheel: (event) => {
-            acc += event.angleDelta.y / 120;
-            const notches = Math.trunc(acc);
-            if (notches !== 0 && root.stepFocused(notches * 5))
-                acc -= notches;
-            event.accepted = true;
+        Divider {}
+
+        Column {
+            width: parent.width
+            spacing: 7 * root.s
+            MicroLabel { label: "Display"; s: root.s }
+            MixerDisplay { width: parent.width; s: root.s }
         }
     }
 }

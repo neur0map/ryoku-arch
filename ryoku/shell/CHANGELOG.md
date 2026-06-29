@@ -193,6 +193,18 @@
   palette stays static.
 
 ### Changed
+- `quickshell/pill`: the mixer popout is reworked from a row of vertical faders
+  into an audio control center, while keeping the frame-edge melt and the
+  `ryoku-shell mixer` pin. OUTPUT and INPUT each show the active device with an
+  inline selector that detects and switches the PipeWire default sink/source
+  (`preferredDefaultAudioSink`/`Source`), a horizontal ink fader with a live peak
+  meter, and mute. A Bluetooth output adds a chip with battery (native BlueZ
+  device), codec, and an A2DP/Headset profile toggle, read from the bluez card via
+  `pactl`. An APPS section gives each playback stream its own volume, mute, and
+  meter with app icon and name. DISPLAY keeps per-monitor brightness (ddcutil) and
+  vibrance (nvibrant), restyled to match. The popout melts to fit and grows as the
+  picker expands. New `Singletons/Audio.qml` owns the graph; new `HFader`,
+  `MixerDeviceRow`, `MixerAppRow`, and `MixerDisplay` components; `VFader` retired.
 - `quickshell/widgets`: a desktop widget's right-click image picker gains a
   **Browse** tile that opens the system file chooser (portal), and its thumbnail
   scan recurses one level into `~/Pictures` (so Wallpapers / Screenshots appear),
