@@ -335,8 +335,13 @@ jobs:
           rclone copy "$iso.sha256"    "Ryoku:$dest/" -P
           rclone copy "$iso.json"      "Ryoku:$dest/" -P
           rclone copy "$iso.js"        "Ryoku:$dest/" -P
-          rclone copy "$d/latest.json" "Ryoku:$dest/" -P
-          rclone copy "$d/latest.js"   "Ryoku:$dest/" -P
+          # latest.* are mutable release pointers: a long CDN cache serves the
+          # previous release for hours (the site dodges it with a ?ts= cache-bust,
+          # but curl and any other reader sees stale data). short-cache them; the
+          # per-ISO files above are immutable (named by tracking id) and keep the
+          # default long cache.
+          rclone copy "$d/latest.json" "Ryoku:$dest/" -P --header-upload "Cache-Control: no-cache, must-revalidate"
+          rclone copy "$d/latest.js"   "Ryoku:$dest/" -P --header-upload "Cache-Control: no-cache, must-revalidate"
           rclone copy "$pubkey"        "Ryoku:$dest/" -P
 
           echo "::notice::Uploaded ISO + manifests to R2 path Ryoku:$dest/"
