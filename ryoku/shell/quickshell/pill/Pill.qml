@@ -475,6 +475,9 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 screenName: pill.screenName
                 s: pill.s
+                // the auto-hidden pill stays in the scene at opacity 0; gate the
+                // wave on it so a hidden pill triggers no repaints.
+                live: pill.opacity > 0.01
             }
         }
     }

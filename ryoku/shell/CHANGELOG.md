@@ -582,6 +582,13 @@
   centre; the surface is wider and taller so the rail and a two-row grid have room.
 
 ### Fixed
+- `quickshell/pill`: the workspace wave under the clock no longer leaks memory. It
+  animated a software `Canvas` at 30fps forever, even while the pill was auto-hidden
+  (the pill hides by opacity, not visibility, so the wave stayed "visible" and kept
+  ticking), accruing the same idle-`Canvas` leak already fixed in `WaveMeter` and the
+  visualiser (~1.2 MB/min here, GBs over a day's uptime). The wave is now a static
+  Canvas: it repaints only on a workspace/focus/size change and only while the pill
+  is shown. The focus crest still glides on switch, it just no longer shimmers at rest.
 - `quickshell/pill`: the island stays open while hovering the tray/minimized-app
   icons. The hover zone that drives `pill.hovered` sat behind the pill, so the
   icons' own `hoverEnabled` MouseAreas swallowed the hover and the island
