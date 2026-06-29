@@ -14,6 +14,7 @@ release() {
   RYOKU_DRYRUN=1 ROOT="$root" MOCK="$1" bash -c '
     source "$ROOT/installation/backend/lib/common.sh"
     source "$ROOT/installation/backend/lib/disk.sh"
+    dmsetup() { return 1; }  # default: no stale mapper present; a case overrides.
     eval "$MOCK"
     ryoku_release_disk /dev/nvme0n1
   '
@@ -45,5 +46,14 @@ out="$(release 'lsblk() { printf "\n"; }')"
 grep -qF 'releasing /dev/nvme0n1' <<<"$out" || fail "missing the releasing log line"
 grep -qE "umount -R|swapoff --|cryptsetup close --|dmsetup remove|vgchange -an|mdadm --stop" <<<"$out" \
   && fail "acted on a clean disk that has no holders"
+
+# --- orphaned /dev/mapper/root from a failed prior run: freed by NAME ---------
+# lsblk ties nothing to the disk (the orphan's backing partition is already
+# gone), so only the by-name free reaches it; dmsetup reports the name present.
+out="$(release 'dmsetup() { return 0; }
+lsblk() { printf "\n"; }')"
+grep -qF "freeing stale mapper /dev/mapper/root" <<<"$out" || fail "did not announce freeing the orphaned root mapper"
+grep -qF "cryptsetup close -- 'root'" <<<"$out" || fail "did not close the orphaned root mapper by name"
+grep -qF "swapoff -a" <<<"$out" || fail "did not swapoff -a to release a swapfile that could pin the mapper"
 
 echo "install-disk-teardown: all checks passed"
