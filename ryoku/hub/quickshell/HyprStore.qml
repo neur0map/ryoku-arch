@@ -39,7 +39,7 @@ Item {
     property string kbLayout: "us"
     property string kbVariant: ""
     property string kbOptions: ""
-    property int followMouse: 1
+    property int followMouse: 2
     property real sensitivity: 0
     property string accelProfile: ""
     property bool naturalScroll: false

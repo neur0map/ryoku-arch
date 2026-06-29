@@ -158,7 +158,7 @@ func defaultOverrides() Overrides {
 		},
 		Input: Input{
 			KbLayout: "us", KbVariant: "", KbOptions: "",
-			FollowMouse: 1, Sensitivity: 0, AccelProfile: "",
+			FollowMouse: 2, Sensitivity: 0, AccelProfile: "",
 			NaturalScroll: false, TapToClick: true, DisableWhileTyping: true,
 			RepeatRate: 25, RepeatDelay: 600,
 			WorkspaceSwipe: false, SwipeFingers: 3,

@@ -149,7 +149,7 @@ func TestLiveLuaIsFullAndParses(t *testing.T) {
 	lua := liveLua(defaultOverrides())
 	for _, want := range []string{
 		"gaps_in = 8", "rounding = 16", "active_opacity = 0.96",
-		"kb_layout = \"us\"", "follow_mouse = 1",
+		"kb_layout = \"us\"", "follow_mouse = 2",
 		"[\"tap-to-click\"] = true", "animations = { enabled = true }",
 		"setcursor Bibata-Modern-Ice 24",
 	} {
@@ -165,6 +165,20 @@ func TestLiveLuaIsFullAndParses(t *testing.T) {
 	cmd.Stdin = strings.NewReader(lua)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("liveLua does not parse: %v\n%s\n%s", err, out, lua)
+	}
+}
+
+// genConfig writes follow_mouse into settings.lua only when it diverges from the
+// base config (input.lua ships follow_mouse = 2). picking "Normal" (1) in the Hub
+// must emit the override so hover-to-focus actually applies; the default must not.
+func TestGenConfigFollowMouseOverride(t *testing.T) {
+	if got := genConfig(defaultOverrides()); strings.Contains(got, "follow_mouse") {
+		t.Errorf("default follow_mouse must emit no override, got:\n%s", got)
+	}
+	o := defaultOverrides()
+	o.Input.FollowMouse = 1
+	if got := genConfig(o); !strings.Contains(got, "follow_mouse = 1") {
+		t.Errorf("follow_mouse = 1 must be written so hover-to-focus takes effect, got:\n%s", got)
 	}
 }
 
