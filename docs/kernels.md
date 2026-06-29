@@ -8,10 +8,12 @@ before flipping it, what it does and does not change, and how it is wired.
 
 **Pros**
 
-- Snappier desktop under load and steadier gaming frame pacing (EEVDF/BORE plus
-  the sched-ext scheduler framework).
-- `ntsync` and related patches that help Wine and Proton.
-- Built for x86-64-v3 with LTO/PGO tuning; a few percent on CPU-bound work.
+- An optimized, patched build: Clang ThinLTO and AutoFDO, an x86-64-v3 target,
+  and the Cachy patchset.
+- The mainline EEVDF scheduler with `sched-ext` compiled in, so you can opt into
+  a latency or gaming scheduler (`scx_lavd` and friends) via `scx-scheds`.
+- A modest, workload-dependent throughput edge on CPU-bound work, plus steadier
+  behavior under load.
 
 **Cons**
 
