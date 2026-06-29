@@ -18,6 +18,12 @@ built from it; the live machine is only ever a deployment target.
   configured automatically.
 - **Minimal and legible.** No cruft, no dead code, no duplicated config. Small,
   focused files you can read.
+- **Opinionated by default, swappable by choice.** A fresh install is a
+  deliberate set of choices, the stock Arch kernel among them. Where a
+  power-user lever is genuinely worth it, Ryoku offers it as an explicit opt-in
+  that leaves the default untouched: the Extras section can swap in the CachyOS
+  kernel, for one, without changing what a fresh install is. See
+  `docs/kernels.md`.
 
 ## How the parts fit
 
