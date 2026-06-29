@@ -59,6 +59,50 @@ func TestNonEmptyLines(t *testing.T) {
 	}
 }
 
+func TestStaleInstallMapper(t *testing.T) {
+	const node = "/dev/mapper/root"
+	cases := []struct {
+		name    string
+		nodes   []string
+		root    string
+		mounted map[string]bool
+		want    string
+	}{
+		{"orphan, nothing mounted", []string{node}, "/dev/nvme0n1p2", nil, "root"},
+		{"is the live root", []string{node}, node, map[string]bool{node: true}, ""},
+		{"mounted as a target", []string{node}, "/dev/sda1", map[string]bool{node: true}, ""},
+		{"absent", nil, "/dev/nvme0n1p2", nil, ""},
+		{"only a differently named crypt", []string{"/dev/mapper/cr"}, "/dev/sda1", nil, ""},
+	}
+	for _, c := range cases {
+		if got := staleInstallMapper(c.nodes, c.root, c.mounted); got != c.want {
+			t.Errorf("%s: staleInstallMapper = %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+func TestParseCryptMapperNodes(t *testing.T) {
+	if got := parseCryptMapperNodes("No devices found\n"); got != nil {
+		t.Errorf("\"No devices found\" should yield no nodes, got %v", got)
+	}
+	if got := parseCryptMapperNodes(""); got != nil {
+		t.Errorf("empty output should yield no nodes, got %v", got)
+	}
+	got := parseCryptMapperNodes("root\t(254:0)\nbackup (254:1)\n")
+	if len(got) != 2 || got[0] != "/dev/mapper/root" || got[1] != "/dev/mapper/backup" {
+		t.Errorf("parseCryptMapperNodes = %v, want the two /dev/mapper paths", got)
+	}
+}
+
+func TestBaseSource(t *testing.T) {
+	if got := baseSource("  /dev/mapper/root[/@home] "); got != "/dev/mapper/root" {
+		t.Errorf("baseSource kept the subvolume suffix: %q", got)
+	}
+	if got := baseSource("/dev/nvme0n1p2"); got != "/dev/nvme0n1p2" {
+		t.Errorf("baseSource mangled a plain device: %q", got)
+	}
+}
+
 func TestTailLines(t *testing.T) {
 	if got := tailLines("1\n2\n3\n4\n5", 2); got != "4\n5" {
 		t.Errorf("tailLines = %q, want \"4\\n5\"", got)

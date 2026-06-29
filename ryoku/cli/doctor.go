@@ -91,6 +91,7 @@ func reconcilers() []reconciler {
 		{"swap kept out of snapshots", reconcileSwapSubvolume},
 		{"snapper configuration", reconcileSnapper},
 		{"pacman database lock", reconcilePacmanLock},
+		{"stale install crypt mapper", reconcileStaleCryptMapper},
 		{"ryoku package channel", reconcileRyokuChannel},
 		{"desktop session components", reconcileSessionComponents},
 		{"cursor theme", reconcileCursorTheme},
@@ -584,6 +585,120 @@ func reconcilePacmanLock(checkOnly bool) recResult {
 		return failRes("could not remove stale lock: %v", err).withFix("sudo rm %s", lock)
 	}
 	return fixedRes("removed stale pacman lock")
+}
+
+// ---- reconciler: stale install crypt mapper ----------------------------------
+
+// reconcileStaleCryptMapper clears a /dev/mapper/root the installer left
+// behind. ryoku-install opens the encrypted root under that fixed name; a run
+// that died after the open, or a retry in the same live session, leaves it
+// held, and the next `cryptsetup open <part> root` aborts with "Device root
+// already exists" -- the wall a reinstall hits. closing the orphan frees the
+// name so the install proceeds.
+//
+// SAFETY: on a normal encrypted box /dev/mapper/root IS the running root, so
+// the gate skips any mapper that backs a live mount (the root device or a
+// mounted install target). only a "root" crypt node with no mount anywhere -- a
+// true orphan -- is closed, and closing a LUKS mapper merely re-locks it, so no
+// data is ever at risk. anything else is left untouched.
+func reconcileStaleCryptMapper(checkOnly bool) recResult {
+	nodes := cryptMapperNodes()
+	if len(nodes) == 0 {
+		return okRes("no crypt mappers present")
+	}
+	stale := staleInstallMapper(nodes, mountSourceOf("/"), mountedSources())
+	if stale == "" {
+		return okRes("no orphaned install crypt mapper")
+	}
+	node := "/dev/mapper/" + stale
+	if checkOnly {
+		return wouldRes("orphaned crypt mapper %s from a failed install blocks `cryptsetup open ... %s`", node, stale).
+			withFix("sudo cryptsetup close %s", stale)
+	}
+	if err := run("sudo", "cryptsetup", "close", stale); err != nil {
+		return failRes("could not close orphaned crypt mapper %s: %v", node, err).
+			withFix("sudo cryptsetup close %s", stale)
+	}
+	return fixedRes("closed orphaned crypt mapper %s left by a failed install", node)
+}
+
+// staleInstallMapper returns the installer's reserved mapper name when a crypt
+// node by that name is a true orphan -- present, not the device backing "/",
+// and holding no mount anywhere -- else "". the installer always opens the
+// encrypted root as /dev/mapper/root, so a leftover by that exact name is what
+// blocks the next `cryptsetup open ... root`. pure (live state is passed in) so
+// the safety gate is unit-testable without real device-mapper.
+func staleInstallMapper(cryptNodes []string, rootSource string, mountedSources map[string]bool) string {
+	const node = "/dev/mapper/root"
+	present := false
+	for _, m := range cryptNodes {
+		if m == node {
+			present = true
+			break
+		}
+	}
+	if !present {
+		return ""
+	}
+	if rootSource == node || mountedSources[node] {
+		return "" // backs a live mount: the running root or a mounted target
+	}
+	return "root"
+}
+
+// cryptMapperNodes lists the device-mapper nodes of type crypt as
+// /dev/mapper/<name>. empty when dmsetup is absent, unprivileged, or finds none.
+func cryptMapperNodes() []string {
+	out, err := runOut("dmsetup", "ls", "--target", "crypt")
+	if err != nil {
+		return nil
+	}
+	return parseCryptMapperNodes(out)
+}
+
+// parseCryptMapperNodes turns `dmsetup ls --target crypt` output into
+// /dev/mapper/<name> paths. "No devices found" (and blank output) yields none.
+// pure, so the parsing is unit-testable without device-mapper.
+func parseCryptMapperNodes(out string) []string {
+	var nodes []string
+	for _, ln := range nonEmptyLines(out) {
+		f := strings.Fields(ln)
+		if len(f) == 0 || f[0] == "No" {
+			continue
+		}
+		nodes = append(nodes, "/dev/mapper/"+f[0])
+	}
+	return nodes
+}
+
+// mountSourceOf returns the bare backing device of a mountpoint, btrfs
+// subvolume suffix stripped (/dev/mapper/root[/@] -> /dev/mapper/root).
+func mountSourceOf(path string) string {
+	out, _ := runOut("findmnt", "-n", "-o", "SOURCE", path)
+	return baseSource(out)
+}
+
+// mountedSources is the set of block devices with a current mount, subvolume
+// suffixes stripped, so a crypt mapper backing any live mount is recognizable.
+func mountedSources() map[string]bool {
+	m := map[string]bool{}
+	out, _ := runOut("findmnt", "-rn", "-o", "SOURCE")
+	for _, ln := range nonEmptyLines(out) {
+		if s := baseSource(ln); s != "" {
+			m[s] = true
+		}
+	}
+	return m
+}
+
+// baseSource trims findmnt's btrfs subvolume suffix:
+// "/dev/mapper/root[/@home]" -> "/dev/mapper/root".
+func baseSource(s string) string {
+	s = strings.TrimSpace(s)
+	if i := strings.IndexByte(s, '['); i >= 0 {
+		s = s[:i]
+	}
+	return s
 }
 
 // ---- reconciler: ryoku package channel + keyring -----------------------------

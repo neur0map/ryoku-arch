@@ -13,6 +13,15 @@
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
 
 ### Fixed
+- `doctor` gains a "stale install crypt mapper" reconciler. ryoku-install opens
+  the encrypted root as `/dev/mapper/root`; a run that died after the open, or a
+  retry in the same live session, left that name held, so the next
+  `cryptsetup open ... root` aborted with "Device root already exists" and a
+  reinstall could not proceed. The reconciler closes a `root` crypt node only
+  when it is a true orphan (present, not the device backing `/`, and holding no
+  mount anywhere), so a normal encrypted box, where `/dev/mapper/root` IS the
+  running root, is never touched. The installer self-heals too (see
+  `installation/backend`). Covered by `doctor_test.go`.
 - `materialize` now seeds `hypr/keyboard.lua` the way it seeds `monitors.lua` and
   `gpu.lua`: laid down only on a fresh install, never clobbered on update. The
   file documents itself as user-owned ("edits here survive Ryoku updates"), but it
