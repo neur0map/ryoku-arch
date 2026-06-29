@@ -189,6 +189,16 @@
   `shell/fish` (with its non-brand greeting) was dropped for `ryoku/apps/fish`.
 
 ### Fixed
+- `hub/backend/qemu`: a windowed VM booted to the UEFI shell / PXE ("failed to
+  load Boot0002 ... Not Found", then "Start PXE over IPv4") instead of the
+  installer ISO, even with the ISO correctly attached. OVMF boots by its own
+  persistent NVRAM order (`*_VARS.fd`) and ignores `-boot order=dc`; that NVRAM
+  goes stale (a boot entry pointing at a device that no longer exists) and falls
+  through to PXE. Attach the disk and ISO as explicit devices with `bootindex`
+  (ISO 1, disk 2), which QEMU passes via fw_cfg and OVMF honours over its saved
+  order, so the ISO boots deterministically. Fixes it on already-affected VMs
+  without wiping their NVRAM. Verified live: reproduced the PXE screen with the
+  real config, then booted Void to the desktop with the same stale NVRAM.
 - `hyprland/modules/misc`: a newly opened or re-raised window (notably Discord and
   Vivaldi) sometimes came up un-typeable until you moved it to another monitor or
   reopened it. The modular config refactor had silently dropped the `misc`/`xwayland`

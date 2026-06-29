@@ -51,7 +51,13 @@ func qemuArgs(v VM) ([]string, error) {
 		"-enable-kvm",
 		"-smp", strconv.Itoa(v.Cores),
 		"-m", strconv.Itoa(v.RamMB),
-		"-drive", "file=" + v.DiskPath + ",if=virtio,format=qcow2,discard=unmap",
+		// disk as an explicit device so it can carry a bootindex. OVMF boots by
+		// bootindex (passed via fw_cfg) and ignores -boot order, so without one it
+		// falls back to whatever its persistent NVRAM remembers -- which goes stale
+		// and lands on PXE. disk after the CD (index 2) so an attached installer ISO
+		// wins until it's removed.
+		"-drive", "if=none,id=disk0,file=" + v.DiskPath + ",format=qcow2,discard=unmap",
+		"-device", "virtio-blk-pci,drive=disk0,bootindex=2",
 		"-netdev", "user,id=net0",
 		"-device", "virtio-net-pci,netdev=net0",
 		"-device", "qemu-xhci",
@@ -82,8 +88,12 @@ func qemuArgs(v VM) ([]string, error) {
 	args = append(args,
 		"-device", fmt.Sprintf("virtio-vga,xres=%d,yres=%d", gw, gh),
 		"-display", "gtk,zoom-to-fit=on,show-menubar=off")
+	// installer ISO with bootindex 1 (ahead of the disk) so it boots first while
+	// attached, deterministically -- not subject to OVMF's stale NVRAM order.
 	if v.IsoPath != "" {
-		args = append(args, "-drive", "file="+v.IsoPath+",media=cdrom", "-boot", "order=dc,menu=on")
+		args = append(args,
+			"-drive", "if=none,id=cd0,media=cdrom,file="+v.IsoPath,
+			"-device", "ide-cd,drive=cd0,bootindex=1")
 	}
 	return args, nil
 }

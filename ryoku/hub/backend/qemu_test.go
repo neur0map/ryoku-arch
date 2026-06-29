@@ -19,6 +19,17 @@ func TestQemuArgs(t *testing.T) {
 			t.Errorf("qemuArgs missing %q in: %s", m, joined)
 		}
 	}
+	// boot must be driven by bootindex (CD ahead of disk), not -boot order, which
+	// OVMF ignores in favour of its stale persistent NVRAM -> PXE. CD = index 1,
+	// disk = index 2 so an attached installer ISO wins until it's removed.
+	for _, m := range []string{"drive=disk0,bootindex=2", "drive=cd0,bootindex=1"} {
+		if !strings.Contains(joined, m) {
+			t.Errorf("qemuArgs missing %q (bootindex fix) in: %s", m, joined)
+		}
+	}
+	if strings.Contains(joined, "-boot order") {
+		t.Errorf("qemuArgs uses -boot order, which OVMF ignores; use bootindex: %s", joined)
+	}
 	// a plain VM must never get passthrough / Looking Glass devices.
 	for _, bad := range []string{"vfio-pci", "ivshmem", "kvmfr", "looking-glass", "gl=on", "virtio-vga-gl"} {
 		if strings.Contains(joined, bad) {
