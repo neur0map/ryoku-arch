@@ -7,8 +7,8 @@ import "Singletons"
 
 // Performance: tweaks that trade a little eye-candy for lower CPU, GPU, and
 // memory use. Writes ~/.config/ryoku/performance.json, watched live (no reload).
-// Most are opt-in (off); the visualiser freeze defaults on -- its idle animation
-// leaks memory while it runs, and a silent visualiser has nothing to show anyway.
+// Two default on because leaving them off leaks memory: the visualiser freeze
+// and hiding widgets while windows cover them (they render and leak 24/7 else).
 Item {
     id: page
 
@@ -22,11 +22,10 @@ Item {
 
         JsonAdapter {
             id: adapter
-            property bool pauseWidgetsWhenCovered: false
             property bool freezeVisualizerWhenIdle: true
             property bool freezePillWhenIdle: false
             property bool unloadVisualizerWhenSilent: false
-            property bool unloadWidgetsWhenCovered: false
+            property bool unloadWidgetsWhenCovered: true
         }
 
         Component.onCompleted: if (!cfg.text()) cfg.writeAdapter()
@@ -51,17 +50,7 @@ Item {
 
                 ToggleRow {
                     width: parent.width
-                    label: "Pause clock and weather animation while windows cover the desktop"
-                    checked: adapter.pauseWidgetsWhenCovered
-                    onToggled: c => {
-                        adapter.pauseWidgetsWhenCovered = c;
-                        cfg.writeAdapter();
-                    }
-                }
-
-                ToggleRow {
-                    width: parent.width
-                    label: "Unload desktop widgets to free memory when windows cover every screen (they reappear on an empty desktop)"
+                    label: "Hide desktop widgets while windows cover the desktop (frees their memory; they reappear on an empty desktop)"
                     checked: adapter.unloadWidgetsWhenCovered
                     onToggled: c => {
                         adapter.unloadWidgetsWhenCovered = c;

@@ -3,6 +3,18 @@
 ## Unreleased
 
 ### Fixed
+- `lib/mirrors.sh` ranks the package mirrors before pacstrap so a user far from
+  the shipped mirrors no longer stalls the install. The static list leads with a
+  CDN mirror, but a user that CDN routes badly still hit "failed retrieving
+  file ... Operation too slow. Less than 1 bytes/sec", aborting pacstrap at
+  "failed to install packages to new root". The new `ryoku_rank_mirrors` step
+  ranks mirrors in the user's own country (resolved by IP geolocation, the same
+  way chroot.sh resolves the timezone) by measured download rate, falls back to
+  the fastest recent mirrors worldwide, then appends the shipped mirrors, so the
+  result is never worse than what shipped. Best-effort: it keeps the shipped list
+  on an offline box, a missing reflector, a failed geolocation, or a reflector
+  that returns nothing. Covered by
+  `tests/install-mirrors.sh`.
 - `lib/luks.sh` + `lib/disk.sh` make the install idempotent across a retry. A
   `/dev/mapper/root` left open by an earlier failed run (or a retry in the same
   live session) made `cryptsetup open ... root` abort with "Device root already

@@ -4,4 +4,3 @@ singleton Now Now.qml
 singleton Theme Theme.qml
 singleton WeatherData WeatherData.qml
 singleton Registry Registry.qml
-singleton Performance Performance.qml

@@ -1,0 +1,35 @@
+name: Install mirror ranking
+
+# guards the install-blocking "Operation too slow. Less than 1 bytes/sec" class:
+# a user far from the shipped mirrors stalls pacstrap and the install dies at
+# "failed to install packages to new root". the backend ranks mirrors with
+# reflector before pacstrap and must always fall back to the shipped list.
+# see tests/install-mirrors.sh.
+
+on:
+  pull_request:
+    paths:
+      - 'installation/backend/**'
+      - 'tests/install-mirrors.sh'
+  push:
+    branches:
+      - main
+    paths:
+      - 'installation/backend/**'
+      - 'tests/install-mirrors.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mirror-ranking:
+    name: Mirror ranking falls back to the shipped list
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Rank mirrors, then fall back when reflector cannot help
+        shell: bash
+        run: bash tests/install-mirrors.sh

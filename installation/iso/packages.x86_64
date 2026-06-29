@@ -30,6 +30,10 @@ cryptsetup
 e2fsprogs
 efibootmgr
 limine
+# reflector re-ranks the package mirrors by measured speed before pacstrap, so a
+# user far from the shipped mirrors does not stall the install (see the backend's
+# lib/mirrors.sh).
+reflector
 
 # Networking. The TUI scans and joins Wi-Fi with nmcli; NetworkManager drives
 # iwd as its Wi-Fi backend (configured in airootfs).

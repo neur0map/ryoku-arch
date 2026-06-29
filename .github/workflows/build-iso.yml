@@ -58,6 +58,12 @@ jobs:
             echo "RYOKU_ISO_RUN_URL=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo "RYOKU_ISO_CHANNEL=$RELEASE_STAGE"
             echo "RYOKU_ISO_INSTALLER_REF=main"
+            # public base the manifest urls point at: where R2 actually serves
+            # these files and where the site (ryoku-site DownloadSection.vue)
+            # reads them. the release bucket is served at iso.ryoku.dev/stable/
+            # regardless of the stage label, so without this the manifest's
+            # "url"/"urls.*" fields ship empty.
+            echo "RYOKU_ISO_PUBLIC_BASE=https://iso.ryoku.dev/stable"
           } >> "$GITHUB_ENV"
           echo "::notice::Ryoku ISO tracking ID: $tracking_id"
 

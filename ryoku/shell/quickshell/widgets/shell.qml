@@ -38,7 +38,6 @@ ShellRoot {
 
             screen: modelData
             color: "transparent"
-
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Bottom
             WlrLayershell.namespace: "ryoku-widgets"

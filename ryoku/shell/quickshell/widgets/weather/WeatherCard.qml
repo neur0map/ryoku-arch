@@ -52,7 +52,7 @@ Item {
                     anchors.fill: parent
                     category: WeatherData.category
                     isDay: WeatherData.isDay
-                    animate: Config.weatherAnimate && Performance.widgetsAwake
+                    animate: Config.weatherAnimate
                 }
             }
 

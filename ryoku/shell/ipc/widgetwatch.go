@@ -46,7 +46,35 @@ func perfFlag(key string) bool {
 	return parsePerfFlag(b, key)
 }
 
-func unloadWidgetsWhenCovered() bool { return perfFlag("unloadWidgetsWhenCovered") }
+// perfFlagDefault is perfFlag with an explicit default, for optimisations that
+// ship on by default (the user opts out). A missing file, missing key, or wrong
+// type all yield def.
+func perfFlagDefault(key string, def bool) bool {
+	dir := os.Getenv("XDG_CONFIG_HOME")
+	if dir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return def
+		}
+		dir = filepath.Join(home, ".config")
+	}
+	b, err := os.ReadFile(filepath.Join(dir, "ryoku", "performance.json"))
+	if err != nil {
+		return def
+	}
+	var m map[string]any
+	if json.Unmarshal(b, &m) != nil {
+		return def
+	}
+	if v, ok := m[key].(bool); ok {
+		return v
+	}
+	return def
+}
+
+// On by default: the widgets ride the wallpaper, so freeing them while every
+// screen is covered is invisible and reclaims their scene-graph + GL memory.
+func unloadWidgetsWhenCovered() bool { return perfFlagDefault("unloadWidgetsWhenCovered", true) }
 
 // parseDesktopVisible reports whether any monitor's active workspace is empty,
 // i.e. the wallpaper (and the widgets on it) is showing somewhere. It is given

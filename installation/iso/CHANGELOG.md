@@ -35,6 +35,10 @@
   and global backups. The default all-commented list left pacstrap with no
   servers; Fastly's edge POPs (incl. South America) keep downloads fast where the
   geo mirror has no nearby origin (it otherwise routes Brazil to Los Angeles).
+- Ship `reflector` in the live set so the backend re-ranks the package mirrors by
+  measured speed before pacstrap (see the backend's `lib/mirrors.sh`). The static
+  Fastly-led list still stalled for users its CDN routes badly; ranking at install
+  time picks a nearby fast mirror and falls back to the shipped list.
 - Initialize the live pacman keyring: ship and enable `pacman-init.service` plus
   the gnupg tmpfs mount (as releng does), so pacstrap can verify packages.
 - Force a truecolor TUI and quiet the boot: the session exports
