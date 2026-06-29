@@ -189,14 +189,16 @@
   `shell/fish` (with its non-brand greeting) was dropped for `ryoku/apps/fish`.
 
 ### Fixed
-- `shell/quickshell/{visualizer,pill}`: a memory leak on this Qt 6.11 / NVIDIA
-  stack where any continuously-animating element grows RSS without bound (a plain
-  rotating rectangle leaks ~0.9 MB/min and never settles; a frozen visualiser
-  stays flat at ~188 MB). The always-on idle animations were the cause, so the
-  visualiser idle wave now freezes when silent by default (resuming instantly on
-  audio), and the pill bead and WaveMeter are held static at rest. Anything the
-  user is actively watching (music spectrum, weather on an empty desktop) animates
-  as before; only the idle case, with nothing to show, holds still.
+- `shell/quickshell/{visualizer,pill,widgets}` + `shell/ipc`: a memory leak on this
+  Qt 6.11 / NVIDIA stack where any continuously-animating or continuously-composited
+  element grows RSS without bound (a plain rotating rectangle leaks ~0.9 MB/min and
+  never settles; a frozen visualiser stays flat). Fixes: the visualiser idle wave
+  freezes when silent by default (resuming instantly on audio); the pill bead is
+  removed entirely (its 12fps idle-swirl Canvas was the worst pill offender) and the
+  WaveMeter held static; and the desktop widgets, which ride the wallpaper and are
+  invisible whenever a window covers every screen, are unloaded there by the daemon
+  and reloaded the instant an empty desktop returns (they otherwise kept rendering
+  and ran a day's uptime past 1.5 GB). Active content animates as before.
 - `shell/quickshell/pill`: opening a pill surface that grabs the keyboard (the
   control deck, launcher, clipboard, calendar, ...) and closing it left the
   previously focused window un-typeable. The pill is one always-mapped layer that
