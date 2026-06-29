@@ -13,6 +13,12 @@
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
 
 ### Fixed
+- `ryoku update` reconciles a checkout that diverged from its channel instead of
+  dead-ending. A box that ever deployed `unstable-dev` sits on commits
+  `origin/main` lacks, so the fast-forward failed and the Hub kept showing the
+  same commits as pending after every "Update now". On the channel branch with a
+  clean tree it now resets onto `origin/<channel>` (which mirrors upstream and
+  holds no local work to keep) and redeploys. Covered by `channel_test.go`.
 - `doctor` gains a "stale install crypt mapper" reconciler. ryoku-install opens
   the encrypted root as `/dev/mapper/root`; a run that died after the open, or a
   retry in the same live session, left that name held, so the next

@@ -143,7 +143,13 @@ func channelUpdate() (bool, error) {
 	dirty, _ := runOut("git", "-C", repo, "status", "--porcelain")
 	if strings.TrimSpace(head) == ch && strings.TrimSpace(dirty) == "" {
 		if err := run("git", "-C", repo, "merge", "--ff-only", "refs/remotes/origin/"+ch); err != nil {
-			return true, fmt.Errorf("fast-forward to origin/%s failed (history diverges; reconcile with git): %w", ch, err)
+			// Diverged: HEAD holds commits origin/<ch> lacks, so ff is impossible
+			// and the update would dead-end forever. <ch> mirrors upstream (a dirty
+			// tree already skipped above), so reset onto it.
+			fmt.Printf("==> Channel history diverged; reconciling %s onto origin/%s\n", ch, ch)
+			if err := run("git", "-C", repo, "reset", "--hard", "refs/remotes/origin/"+ch); err != nil {
+				return true, fmt.Errorf("reconcile to origin/%s failed: %w", ch, err)
+			}
 		}
 	}
 	publishRun("running", 0.6)

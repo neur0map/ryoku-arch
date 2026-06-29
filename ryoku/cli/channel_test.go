@@ -292,6 +292,53 @@ func TestChannelUpdateDeploysWithoutFastForwardWhenDirty(t *testing.T) {
 	}
 }
 
+func TestChannelUpdateReconcilesDivergence(t *testing.T) {
+	root := t.TempDir()
+	origin := filepath.Join(root, "origin.git")
+	work := filepath.Join(root, "work")
+
+	mustGit(t, "", "init", "--bare", "-b", "main", origin)
+	mustGit(t, "", "clone", origin, work)
+	writeFile(t, filepath.Join(work, "ryoku", "shell", "deploy.sh"), "#!/bin/sh\nexit 0\n")
+	if err := os.Chmod(filepath.Join(work, "ryoku", "shell", "deploy.sh"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustGit(t, work, "add", "-A")
+	mustGit(t, work, "commit", "-m", "seed with deploy stub")
+	mustGit(t, work, "push", "origin", "main")
+
+	// origin/main advances...
+	other := filepath.Join(root, "other")
+	mustGit(t, "", "clone", origin, other)
+	commitPush(t, other, "upstream", "u\n", "upstream fix", "main")
+
+	// ...while local main diverges onto a commit origin/main lacks: no ff possible.
+	writeFile(t, filepath.Join(work, "stray"), "s\n")
+	mustGit(t, work, "add", "-A")
+	mustGit(t, work, "commit", "-m", "stray local commit")
+
+	t.Setenv("RYOKU_REPO", work)
+	t.Setenv("RYOKU_CHANNEL", "main")
+	t.Setenv("XDG_RUNTIME_DIR", root)
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+
+	handled, err := channelUpdate()
+	if err != nil {
+		t.Fatalf("channelUpdate on a diverged checkout: %v", err)
+	}
+	if !handled {
+		t.Fatal("channelUpdate should handle a diverged checkout on the channel")
+	}
+	head := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD"))
+	want := strings.TrimSpace(mustGit(t, work, "rev-parse", "refs/remotes/origin/main"))
+	if head != want {
+		t.Errorf("diverged checkout was not reconciled to origin/main (HEAD %s, want %s)", head, want)
+	}
+	if r, _ := channelStatus(); r.Behind != 0 {
+		t.Errorf("after reconcile, behind = %d, want 0", r.Behind)
+	}
+}
+
 func TestRyokuChannelDefaultAndOverride(t *testing.T) {
 	t.Setenv("RYOKU_CHANNEL", "")
 	if got := ryokuChannel(); got != "main" {
