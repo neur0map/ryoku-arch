@@ -48,14 +48,60 @@ ListView {
         id: row
         required property int index
         width: list.width
-        height: Metrics.rowHeight * list.s
 
         readonly property var entry: list.results[index]
         readonly property bool selected: index === list.selectedIndex
         readonly property var spans: entry ? Fuzzy.highlight(entry.title, list.query) : []
+        readonly property string typeLabel: entry && entry.type ? entry.type : ""
+        // first row of each type group draws a small section header + hairline, so
+        // results are visually grouped (apps, files, packages...) instead of one
+        // undifferentiated list.
+        readonly property bool sectionHead: {
+            if (index === 0) return true;
+            var prev = list.results[index - 1];
+            return !prev || (prev.type || "") !== row.typeLabel;
+        }
+        readonly property real headerH: sectionHead ? 18 * list.s : 0
+        readonly property bool hasIcon: entry && entry.icon && entry.icon.length > 0
+
+        height: Metrics.rowHeight * list.s + headerH
+
+        // section header
+        Item {
+            id: header
+            visible: row.sectionHead
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: row.headerH
+
+            Text {
+                anchors.left: parent.left
+                anchors.leftMargin: Metrics.padRow * list.s
+                anchors.verticalCenter: parent.verticalCenter
+                text: row.typeLabel.toUpperCase()
+                color: Theme.faint
+                font.family: Theme.font
+                font.pixelSize: Metrics.fontEyebrow * list.s
+                font.letterSpacing: 1
+            }
+            Rectangle {
+                anchors.right: parent.right
+                anchors.left: parent.left
+                anchors.leftMargin: Metrics.padRow * list.s + 70 * list.s
+                anchors.rightMargin: Metrics.padRow * list.s
+                anchors.verticalCenter: parent.verticalCenter
+                height: 1
+                color: Theme.hair
+            }
+        }
 
         Rectangle {
-            anchors.fill: parent
+            id: rowBg
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: header.bottom
+            anchors.bottom: parent.bottom
             radius: Metrics.radiusRow * list.s
             visible: row.selected || rowArea.containsMouse
             color: row.selected ? Theme.frameBg : Qt.rgba(0.94, 0.88, 0.84, 0.03)
@@ -65,7 +111,7 @@ ListView {
 
         MouseArea {
             id: rowArea
-            anchors.fill: parent
+            anchors.fill: rowBg
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onPositionChanged: (m) => {
@@ -79,46 +125,36 @@ ListView {
         }
 
         Item {
-            anchors.fill: parent
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: header.bottom
+            anchors.bottom: parent.bottom
             anchors.leftMargin: Metrics.padRow * list.s
             anchors.rightMargin: Metrics.padRow * list.s
 
-            Rectangle {
-                id: iconBg
-                anchors.verticalCenter: parent.verticalCenter
-                width: Metrics.iconSize * list.s
-                height: Metrics.iconSize * list.s
-                radius: 6 * list.s
-                color: Qt.rgba(1, 1, 1, 0.05)
-                visible: !(icon.status === Image.Ready && icon.source != "")
-            }
             Image {
                 id: icon
-                anchors.fill: iconBg
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                width: row.hasIcon ? Metrics.iconSize * list.s : 0
+                height: Metrics.iconSize * list.s
                 sourceSize.width: Math.round(Metrics.iconSize * 2 * list.s)
                 sourceSize.height: Math.round(Metrics.iconSize * 2 * list.s)
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
                 smooth: true
-                visible: status === Image.Ready && source != ""
-                source: row.entry && row.entry.icon ? row.entry.icon : ""
+                visible: row.hasIcon
+                source: row.hasIcon ? row.entry.icon : ""
             }
 
             Column {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: icon.right
-                anchors.leftMargin: 12 * list.s
+                anchors.leftMargin: row.hasIcon ? 11 * list.s : 0
                 anchors.right: verb.left
                 anchors.rightMargin: 10 * list.s
                 spacing: 1 * list.s
 
-                Text {
-                    visible: row.entry && row.entry.type && row.entry.type !== "App"
-                    text: row.entry ? row.entry.type : ""
-                    color: Theme.faint
-                    font.family: Theme.font
-                    font.pixelSize: Metrics.fontEyebrow * list.s
-                }
                 Text {
                     width: parent.width
                     textFormat: Text.StyledText

@@ -75,7 +75,9 @@ ShellRoot {
         PanelWindow {
             id: win
             required property var modelData
-            readonly property real s: (modelData ? modelData.height / 1080 : 1) * Math.max(0.7, Math.min(1.6, Config.fontScale))
+            // cap the monitor-derived scale so a tall display doesn't balloon the
+            // palette; 1.0 at 1080p, at most 1.2 on bigger screens, times fontScale.
+            readonly property real s: Math.min(1.2, (modelData ? modelData.height / 1080 : 1)) * Math.max(0.8, Math.min(1.4, Config.fontScale))
             readonly property bool shown: root.openMon === modelData.name
 
             screen: modelData

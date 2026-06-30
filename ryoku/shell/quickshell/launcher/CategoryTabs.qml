@@ -71,7 +71,7 @@ Item {
         anchors.top: tabRow.bottom
         anchors.topMargin: 8 * root.s
         anchors.left: parent.left
-        text: "install <pkg>    remove <pkg>    search <pkg>"
+        text: "/file   /folder   /image   /video       >install <pkg>   >search <pkg>"
         color: Theme.faint
         font.family: Theme.mono
         font.pixelSize: Metrics.fontEyebrow * root.s

@@ -9,17 +9,18 @@ Item {
     id: root
 
     property real s: 1
-    implicitHeight: 96 * s
+    implicitHeight: 74 * s
 
     readonly property var now: clock.date
-    readonly property string hhmm: Qt.formatTime(now, "HH:mm")
-    readonly property string date: Qt.locale("en_US").toString(now, "dddd, MMMM d")
-    readonly property string greeting: {
+    readonly property string hh: Qt.formatTime(now, "HH")
+    readonly property string mm: Qt.formatTime(now, "mm")
+    readonly property string meta: {
+        var loc = Qt.locale("en_US");
+        var wd = loc.toString(now, "ddd").toUpperCase();
+        var dt = loc.toString(now, "MMM d").toUpperCase();
         var h = now.getHours();
-        if (h < 5) return "Good night";
-        if (h < 12) return "Good morning";
-        if (h < 18) return "Good afternoon";
-        return "Good evening";
+        var g = h < 5 ? "GOOD NIGHT" : h < 12 ? "GOOD MORNING" : h < 18 ? "GOOD AFTERNOON" : "GOOD EVENING";
+        return wd + "  \u00b7  " + dt + "  \u00b7  " + g;
     }
 
     SystemClock {
@@ -27,44 +28,61 @@ Item {
         precision: SystemClock.Minutes
     }
 
+    // left accent rule: the vermilion brand bar the time hangs off, so the rest
+    // screen reads as an intentional masthead, not a boxed card.
     Rectangle {
-        anchors.fill: parent
-        radius: Metrics.radiusRow * root.s
-        color: Theme.frameBg
+        id: rule
+        anchors.left: parent.left
+        anchors.leftMargin: Metrics.padRow * root.s
+        anchors.verticalCenter: parent.verticalCenter
+        width: 3 * root.s
+        height: 52 * root.s
+        radius: 1.5 * root.s
+        color: Theme.verm
+    }
+
+    Row {
+        id: timeRow
+        anchors.left: rule.right
+        anchors.leftMargin: 14 * root.s
+        anchors.top: parent.top
+        anchors.topMargin: 10 * root.s
+        spacing: 0
 
         Text {
-            id: time
-            anchors.left: parent.left
-            anchors.leftMargin: Metrics.padRow * root.s
-            anchors.top: parent.top
-            anchors.topMargin: 14 * root.s
-            text: root.hhmm
+            text: root.hh
             color: Theme.bright
-            font.family: Theme.font
-            font.pixelSize: 40 * root.s
-            font.weight: Font.Light
+            font.family: Theme.mono
+            font.pixelSize: 38 * root.s
+            font.weight: Font.Medium
+            font.features: { "tnum": 1 }
         }
-
         Text {
-            anchors.right: parent.right
-            anchors.rightMargin: Metrics.padRow * root.s
-            anchors.top: parent.top
-            anchors.topMargin: 18 * root.s
-            text: root.date
-            color: Theme.subtle
-            font.family: Theme.font
-            font.pixelSize: 13 * root.s
+            text: ":"
+            color: Theme.verm
+            font.family: Theme.mono
+            font.pixelSize: 38 * root.s
+            font.weight: Font.Medium
         }
-
         Text {
-            anchors.left: parent.left
-            anchors.leftMargin: Metrics.padRow * root.s
-            anchors.top: time.bottom
-            anchors.topMargin: 2 * root.s
-            text: root.greeting
-            color: Theme.dim
-            font.family: Theme.font
-            font.pixelSize: 13 * root.s
+            text: root.mm
+            color: Theme.bright
+            font.family: Theme.mono
+            font.pixelSize: 38 * root.s
+            font.weight: Font.Medium
+            font.features: { "tnum": 1 }
         }
+    }
+
+    Text {
+        anchors.left: rule.right
+        anchors.leftMargin: 15 * root.s
+        anchors.top: timeRow.bottom
+        anchors.topMargin: 2 * root.s
+        text: root.meta
+        color: Theme.faint
+        font.family: Theme.mono
+        font.pixelSize: Metrics.fontEyebrow * root.s
+        font.letterSpacing: 1.5
     }
 }

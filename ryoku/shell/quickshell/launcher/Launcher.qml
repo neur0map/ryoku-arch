@@ -38,7 +38,25 @@ Item {
         return list[0];
     }
     readonly property bool hasMedia: activePlayer !== null
-    readonly property bool actionMode: query.charAt(0) === "/"
+    // route the current query once; everything keys off the matched prefix so the
+    // mode chip, the tabs, and the find delegation stay consistent.
+    readonly property var routed: Dispatcher.route(query)
+    readonly property string modeLabel: {
+        var p = routed.prefix;
+        if (p === "/file") return "FILE";
+        if (p === "/folder") return "FOLDER";
+        if (p === "/image") return "IMAGE";
+        if (p === "/video") return "VIDEO";
+        if (p === "/") return "ACTIONS";
+        if (p === ">") return "PACKAGE";
+        if (p === "=") return "CALC";
+        if (p === ";") return "CLIPBOARD";
+        if (p === "s:") return "SPOTIFY";
+        if (p === "@") return "YT MUSIC";
+        if (p === "?") return "WEB";
+        return "";
+    }
+    readonly property bool actionMode: routed.provider === "actions"
     readonly property var selectedActions: {
         var r = root.results[list.selectedIndex];
         return r && r.actions ? r.actions : [];
@@ -100,6 +118,7 @@ Item {
         s: root.s
         resultCount: root.results.length
         totalCount: root.totalCount
+        modeLabel: root.modeLabel
         onTextChanged: { root.query = text; list.selectedIndex = 0; }
         onMoved: (d) => { if (panel.open) panel.move(d); else if (root.gridMode) appGrid.move(d * root.gridColumnsForMove); else list.move(d); }
         onAccepted: { if (panel.open) panel.run(); else if (root.gridMode) appGrid.activate(); else list.activate(); }
@@ -198,7 +217,7 @@ Item {
         height: root.listH
         s: root.s
         results: root.results
-        query: root.actionMode ? root.query.slice(1) : root.query
+        query: root.routed.query
         onActivated: root.requestClose()
     }
 
