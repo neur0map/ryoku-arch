@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Services.Mpris
 import "Singletons"
 import "providers"
 
@@ -22,6 +23,21 @@ Item {
     readonly property int totalCount: shown ? Dispatcher.results("", 0).length : 0
     readonly property bool resting: query.length === 0
     readonly property bool gridMode: resting && allApps
+
+    // active media player for the rest-state now-playing card.
+    readonly property var activePlayer: {
+        var list = Mpris.players.values;
+        if (!list || list.length === 0)
+            return null;
+        for (var i = 0; i < list.length; i++)
+            if (list[i] && list[i].isPlaying)
+                return list[i];
+        for (var j = 0; j < list.length; j++)
+            if (list[j] && list[j].canControl && list[j].trackTitle)
+                return list[j];
+        return list[0];
+    }
+    readonly property bool hasMedia: activePlayer !== null
     readonly property bool actionMode: query.charAt(0) === "/"
     readonly property var selectedActions: {
         var r = root.results[list.selectedIndex];
@@ -33,8 +49,9 @@ Item {
     readonly property real listH: Math.min(results.length, visibleRows) * (Metrics.rowHeight + Metrics.gapRow) * s
     readonly property real gridH: 380 * s
     readonly property real tabsH: actionMode ? tabs.implicitHeight + 6 * s : 0
+    readonly property real restH: rest.implicitHeight + (hasMedia ? nowPlaying.implicitHeight + Metrics.padRow * s : 0)
     readonly property real bodyH: gridMode ? gridH
-        : (resting ? rest.implicitHeight
+        : (resting ? restH
         : (results.length > 0 ? listH : empty.implicitHeight))
     readonly property real contentH: tabsH + bodyH
 
@@ -139,6 +156,19 @@ Item {
         anchors.leftMargin: Metrics.padOuter * root.s
         anchors.rightMargin: Metrics.padOuter * root.s
         s: root.s
+    }
+
+    NowPlaying {
+        id: nowPlaying
+        visible: root.resting && !root.allApps && root.hasMedia
+        anchors.top: rest.bottom
+        anchors.topMargin: Metrics.padRow * root.s
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Metrics.padOuter * root.s
+        anchors.rightMargin: Metrics.padOuter * root.s
+        s: root.s
+        player: root.activePlayer
     }
 
     ResultGrid {
