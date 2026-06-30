@@ -104,6 +104,17 @@ Item {
         NumberAnimation { duration: Motion.morph; easing.type: Motion.easeMorph; easing.bezierCurve: Motion.morphCurve }
     }
 
+    // open/close morph: the card inflates from its top edge (where the search row
+    // sits) and fades, rather than popping in at full size. Synced to the window
+    // timer in shell.qml so the close plays fully before the window drops.
+    transformOrigin: Item.Top
+    opacity: shown ? 1 : 0
+    scale: shown ? 1 : 0.92
+    Behavior on opacity { NumberAnimation { duration: Motion.window; easing.type: Easing.OutCubic } }
+    Behavior on scale {
+        NumberAnimation { duration: Motion.window; easing.type: Motion.easeMorph; easing.bezierCurve: Motion.morphCurve }
+    }
+
     Providers { id: providers }
 
     Binding {

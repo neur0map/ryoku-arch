@@ -27,7 +27,7 @@ Singleton {
     // budget on a low-bounce spring so the open/close is the felt moment.
     readonly property int panel:    140
     readonly property int viewPush: 180
-    readonly property int window:   200
+    readonly property int window:   240
     readonly property real windowSpring:  3.0
     readonly property real windowDamping: 0.85
     // selected-row highlight tracks the new row without blocking input.
