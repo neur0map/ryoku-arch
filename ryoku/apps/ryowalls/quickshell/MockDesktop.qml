@@ -19,13 +19,14 @@ Item {
     readonly property color cCyan:   Wallhaven.col(6, "#6f9aa0")
     readonly property color cAccent: cBlue
 
-    // wallpaper backdrop.
+    // wallpaper backdrop. the larger thumb keeps the preview crisp, not upscaled.
     Image {
         anchors.fill: parent
         asynchronous: true
         cache: true
         fillMode: Image.PreserveAspectCrop
-        source: Wallhaven.selected ? Wallhaven.selected.thumb : ""
+        sourceSize: Qt.size(Math.ceil(width * 1.3), Math.ceil(height * 1.3))
+        source: Wallhaven.selected ? (Wallhaven.selected.large || Wallhaven.selected.thumb) : ""
     }
     Rectangle { anchors.fill: parent; color: Qt.rgba(0, 0, 0, 0.16) }
 

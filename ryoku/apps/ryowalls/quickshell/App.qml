@@ -3,7 +3,9 @@ import QtQuick
 import Quickshell
 import "Singletons"
 
-// Wallhaven downloader: browse on the left, live rice preview on the right.
+// ryowalls: browse wallhaven on the left (or tune the look), live rice preview
+// on the right. The left column swaps between Browse and Tune; the preview is
+// always the visible hero.
 Rectangle {
     id: app
 
@@ -16,6 +18,7 @@ Rectangle {
     }
 
     property bool settingsOpen: false
+    property string mode: "browse"          // browse | tune
     readonly property bool fitOn: Wallhaven.ratios.length > 0
 
     // nearest wallhaven aspect for the primary monitor, for the Fit toggle.
@@ -49,16 +52,23 @@ Rectangle {
         anchors.topMargin: 18
         height: 54
 
-        Column {
+        Row {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 3
-            Row {
-                spacing: 10
-                Text { anchors.verticalCenter: parent.verticalCenter; text: "力"; color: Theme.brand; font.family: Theme.fontJp; font.pixelSize: 22 }
-                Text { anchors.verticalCenter: parent.verticalCenter; text: "Wallhaven"; color: Theme.bright; font.family: Theme.font; font.pixelSize: 26; font.weight: Font.DemiBold }
+            spacing: 11
+            Image {
+                anchors.verticalCenter: parent.verticalCenter
+                source: "logo.svg"
+                sourceSize: Qt.size(30, 30)
+                width: 30
+                height: 30
             }
-            Text { text: "Find a wallpaper, preview the rice, set it."; color: Theme.dim; font.family: Theme.font; font.pixelSize: 12 }
+            Column {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 3
+                Text { text: "ryowalls"; color: Theme.bright; font.family: Theme.font; font.pixelSize: 25; font.weight: Font.DemiBold; font.letterSpacing: 0.3 }
+                Text { text: "Find a wallpaper, preview the rice, set it."; color: Theme.dim; font.family: Theme.font; font.pixelSize: 12 }
+            }
         }
 
         Row {
@@ -81,11 +91,22 @@ Rectangle {
         anchors.topMargin: 10
         height: 40
 
-        Rectangle {
-            id: searchBox
+        Segmented {
+            id: modeToggle
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            width: 300
+            segW: 78
+            model: [{ key: "browse", label: "Browse" }, { key: "tune", label: "Tune" }]
+            current: app.mode
+            onSelected: (k) => app.mode = k
+        }
+
+        Rectangle {
+            id: searchBox
+            anchors.left: modeToggle.right
+            anchors.leftMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            width: 270
             height: 36
             radius: 9
             color: Theme.surfaceLo
@@ -107,7 +128,7 @@ Rectangle {
                 selectByMouse: true
                 selectionColor: Theme.frameBg
                 clip: true
-                onAccepted: Wallhaven.searchLatest(text)
+                onAccepted: { app.mode = "browse"; Wallhaven.searchLatest(text); }
                 Text {
                     anchors.fill: parent
                     visible: input.text.length === 0
@@ -119,61 +140,71 @@ Rectangle {
             }
         }
 
-        Segmented {
-            id: sorter
+        // browse-only controls fade out in Tune mode.
+        Item {
+            id: browseTools
             anchors.left: searchBox.right
-            anchors.leftMargin: 14
-            anchors.verticalCenter: parent.verticalCenter
-            segW: 96
-            model: [{ key: "", label: "Latest" }, { key: "1w", label: "Top week" }, { key: "1M", label: "Top month" }]
-            current: Wallhaven.topRange
-            onSelected: (k) => Wallhaven.searchTop(k)
-        }
-
-        // Fit-to-screen toggle chip.
-        Rectangle {
-            id: fitChip
-            anchors.left: sorter.right
-            anchors.leftMargin: 10
-            anchors.verticalCenter: parent.verticalCenter
-            height: 34
-            width: fitRow.implicitWidth + 24
-            radius: height / 2
-            color: app.fitOn ? Theme.frameBg : Theme.surfaceLo
-            border.width: 1
-            border.color: app.fitOn ? Theme.ember : (fitHover.hovered ? Qt.alpha(Theme.ember, 0.6) : Theme.line)
-            Behavior on border.color { ColorAnimation { duration: Theme.quick } }
-            Behavior on color { ColorAnimation { duration: Theme.quick } }
-            Row {
-                id: fitRow
-                anchors.centerIn: parent
-                spacing: 7
-                Icon { anchors.verticalCenter: parent.verticalCenter; name: "display"; size: 14; tint: app.fitOn ? Theme.ember : Theme.cream }
-                Text { anchors.verticalCenter: parent.verticalCenter; text: "Fit screen"; color: app.fitOn ? Theme.ember : Theme.cream; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Medium }
-            }
-            HoverHandler { id: fitHover; cursorShape: Qt.PointingHandCursor }
-            TapHandler { onTapped: Wallhaven.setRatios(app.fitOn ? "" : app.screenRatio) }
-        }
-
-        // pager.
-        Row {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 8
-            IconBtn { name: "chevron-left"; dim: Wallhaven.page <= 1 || Wallhaven.searching; onClicked: Wallhaven.prevPage() }
-            Text {
+            height: parent.height
+            opacity: app.mode === "browse" ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+
+            Segmented {
+                id: sorter
+                anchors.left: parent.left
+                anchors.leftMargin: 14
                 anchors.verticalCenter: parent.verticalCenter
-                text: "" + Wallhaven.page
-                color: Wallhaven.searching ? Theme.ember : Theme.subtle
-                font.family: Theme.mono
-                font.pixelSize: 13
-                Behavior on color { ColorAnimation { duration: Theme.quick } }
+                segW: 92
+                model: [{ key: "", label: "Latest" }, { key: "1w", label: "Top week" }, { key: "1M", label: "Top month" }]
+                current: Wallhaven.topRange
+                onSelected: (k) => Wallhaven.searchTop(k)
             }
-            IconBtn { name: "chevron-right"; dim: Wallhaven.searching; onClicked: Wallhaven.nextPage() }
+
+            Rectangle {
+                id: fitChip
+                anchors.left: sorter.right
+                anchors.leftMargin: 10
+                anchors.verticalCenter: parent.verticalCenter
+                height: 34
+                width: fitRow.implicitWidth + 24
+                radius: height / 2
+                color: app.fitOn ? Theme.frameBg : Theme.surfaceLo
+                border.width: 1
+                border.color: app.fitOn ? Theme.ember : (fitHover.hovered ? Qt.alpha(Theme.ember, 0.6) : Theme.line)
+                Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+                Behavior on color { ColorAnimation { duration: Theme.quick } }
+                Row {
+                    id: fitRow
+                    anchors.centerIn: parent
+                    spacing: 7
+                    Icon { anchors.verticalCenter: parent.verticalCenter; name: "display"; size: 14; tint: app.fitOn ? Theme.ember : Theme.cream }
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Fit screen"; color: app.fitOn ? Theme.ember : Theme.cream; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Medium }
+                }
+                HoverHandler { id: fitHover; cursorShape: Qt.PointingHandCursor }
+                TapHandler { onTapped: Wallhaven.setRatios(app.fitOn ? "" : app.screenRatio) }
+            }
+
+            Row {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 8
+                IconBtn { name: "chevron-left"; dim: Wallhaven.page <= 1 || Wallhaven.searching; onClicked: Wallhaven.prevPage() }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "" + Wallhaven.page
+                    color: Wallhaven.searching ? Theme.ember : Theme.subtle
+                    font.family: Theme.mono
+                    font.pixelSize: 13
+                    Behavior on color { ColorAnimation { duration: Theme.quick } }
+                }
+                IconBtn { name: "chevron-right"; dim: Wallhaven.searching; onClicked: Wallhaven.nextPage() }
+            }
         }
     }
 
-    // ---- main: browse | preview --------------------------------------------
+    // ---- main: browse | tune  on the left, preview on the right -------------
     Item {
         id: main
         anchors.top: toolbar.bottom
@@ -191,6 +222,19 @@ Rectangle {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: parent.width * 0.46
+            opacity: app.mode === "browse" ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+        }
+
+        TunePanel {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: parent.width * 0.46
+            opacity: app.mode === "tune" ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
         }
 
         Rectangle {

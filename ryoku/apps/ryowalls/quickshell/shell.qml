@@ -1,11 +1,11 @@
 import QtQuick
 import Quickshell
 
-// qs -c wallhaven entry: a floating window, single-instanced by the launch flock.
+// qs -c ryowalls entry: a floating window, single-instanced by the launch flock.
 ShellRoot {
     FloatingWindow {
         id: win
-        title: "Wallhaven"
+        title: "ryowalls"
         minimumSize: Qt.size(940, 620)
         onClosed: Qt.quit()
 

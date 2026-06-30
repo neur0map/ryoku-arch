@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Io
 
 // The app's state: browse results, the preview palette, the apply pipeline and
-// persisted settings, driven through the ryoku-wallhaven engine and ryoku-shell.
+// persisted settings, driven through the ryowalls engine and ryoku-shell.
 Singleton {
     id: root
 
@@ -28,15 +28,64 @@ Singleton {
     property string status
     property string _dlPath
 
-    // ---- settings (persisted to ~/.config/ryoku/wallhaven.json) -------------
+    // ---- settings (persisted to ~/.config/ryoku/ryowalls.json) -------------
     readonly property string apiKey: cfg.apiKey || ""
     readonly property var keyPrefix: apiKey.length > 0 ? ["env", "WALLHAVEN_API_KEY=" + apiKey] : []
 
-    function cmd(args) { return keyPrefix.concat(["ryoku-wallhaven"]).concat(args); }
+    function cmd(args) { return keyPrefix.concat(["ryowalls"]).concat(args); }
 
     // safe palette read: index into the 16 colours with a fallback.
     function col(i, fallback) {
         return (palette && palette.length > i && palette[i]) ? palette[i] : (fallback || "#000000");
+    }
+
+    // ---- tune: the look. Persisted to ryowalls.json, mirrored to the state file
+    // ryoku-shell reads, so preview, Set Wallpaper and Super+W cycles match.
+    // Defaults pass through to the wallust config until you change something.
+    readonly property bool paletteChanged: cfg.tone !== "dark" || cfg.character !== "natural" || cfg.comp
+    readonly property bool compAvailable: {
+        var salient = cfg.character === "salient" || (cfg.tone === "light" && cfg.character === "vivid");
+        return !salient;
+    }
+    readonly property string paletteName: {
+        var fam;
+        if (cfg.tone === "light")
+            fam = cfg.character === "pastel" ? "softlight"
+                : cfg.character === "natural" ? "light" : "saliencelight";
+        else
+            fam = cfg.character === "pastel" ? "softdark"
+                : cfg.character === "vivid" ? "harddark"
+                : cfg.character === "salient" ? "saliencedark" : "dark";
+        return fam + (cfg.comp && root.compAvailable ? "comp" : "") + "16";
+    }
+    readonly property var tuneFlags: {
+        var f = [];
+        if (root.paletteChanged) f = f.concat(["--palette", root.paletteName]);
+        if (cfg.colorspace.length) f = f.concat(["--colorspace", cfg.colorspace]);
+        if (cfg.backend.length) f = f.concat(["--backend", cfg.backend]);
+        if (cfg.saturation > 0) f = f.concat(["--saturation", "" + cfg.saturation]);
+        if (cfg.threshold > 0) f = f.concat(["--threshold", "" + cfg.threshold]);
+        if (cfg.contrast) f.push("--contrast");
+        return f;
+    }
+    readonly property bool tuned: tuneFlags.length > 0
+
+    onTuneFlagsChanged: { root._syncTuneState(); _retune.restart(); }
+    Timer { id: _retune; interval: 220; onTriggered: root._preview() }
+
+    function resetTune() {
+        cfg.tone = "dark"; cfg.character = "natural"; cfg.comp = false;
+        cfg.colorspace = ""; cfg.backend = ""; cfg.saturation = 0; cfg.threshold = 0; cfg.contrast = false;
+        cfgFile.writeAdapter();
+    }
+    function _syncTuneState() {
+        tuneAdapter.palette = root.paletteChanged ? root.paletteName : "";
+        tuneAdapter.colorspace = cfg.colorspace;
+        tuneAdapter.backend = cfg.backend;
+        tuneAdapter.saturation = cfg.saturation;
+        tuneAdapter.threshold = cfg.threshold;
+        tuneAdapter.contrast = cfg.contrast;
+        tuneState.writeAdapter();
     }
 
     // ---- search -------------------------------------------------------------
@@ -85,10 +134,15 @@ Singleton {
         if (!item)
             return;
         selected = item;
+        _preview();
+    }
+    function _preview() {
+        if (!selected)
+            return;
         palette = [];
         paletteLoading = true;
         palProc.running = false;
-        palProc.command = cmd(["palette", item.thumb]);
+        palProc.command = cmd(["palette", selected.thumb].concat(root.tuneFlags));
         palProc.running = true;
     }
 
@@ -98,6 +152,7 @@ Singleton {
         if (!it || busy)
             return;
         busy = true;
+        root._syncTuneState();
         status = "Downloading";
         _dlPath = "";
         dlProc.command = cmd(["download", it.id, it.path]);
@@ -177,15 +232,41 @@ Singleton {
 
     FileView {
         id: cfgFile
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/wallhaven.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/ryowalls.json"
         watchChanges: true
         printErrors: false
         onLoadFailed: cfgFile.writeAdapter()
+        onLoaded: root._syncTuneState()
         JsonAdapter {
             id: cfg
             property string apiKey: ""
             property bool nsfw: false
             property bool fitScreen: false
+            property string tone: "dark"
+            property string character: "natural"
+            property bool comp: false
+            property string colorspace: ""
+            property string backend: ""
+            property int saturation: 0
+            property int threshold: 0
+            property bool contrast: false
+        }
+    }
+
+    // mirror of the resolved look for ryoku-shell's theming to read on every set,
+    // so the applied desktop matches the preview. write-only from here.
+    FileView {
+        id: tuneState
+        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku-wallust.json"
+        printErrors: false
+        JsonAdapter {
+            id: tuneAdapter
+            property string palette: ""
+            property string colorspace: ""
+            property string backend: ""
+            property int saturation: 0
+            property int threshold: 0
+            property bool contrast: false
         }
     }
     readonly property var settings: cfg

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Engine for the Wallhaven app: search and download from wallhaven.cc, plus a
+# Engine for ryowalls: search and download from wallhaven.cc, plus a
 # palette verb that prints an image's wallust scheme to stdout without touching
-# the live theme (for the preview). WALLHAVEN_API_KEY raises limits, unlocks NSFW.
+# the live theme (for the preview). The palette verb takes the same tune flags
+# the desktop applies, so the preview is honest. WALLHAVEN_API_KEY raises limits.
 set -euo pipefail
 
 api="https://wallhaven.cc/api/v1"
@@ -42,6 +43,7 @@ search)
 			id: .id,
 			path: .path,
 			thumb: .thumbs.small,
+			large: .thumbs.original,
 			resolution: .resolution,
 			name: .id,
 			wallhaven_url: .url
@@ -59,16 +61,35 @@ download)
 	printf '%s\n' "$out"
 	;;
 palette)
-	url="${1:?image url required}"
+	url=""; pal=""; cs=""; backend=""; sat=""; thr=""; contrast=0
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		--palette) pal="$2"; shift 2 ;;
+		--colorspace) cs="$2"; shift 2 ;;
+		--backend) backend="$2"; shift 2 ;;
+		--saturation) sat="$2"; shift 2 ;;
+		--threshold) thr="$2"; shift 2 ;;
+		--contrast) contrast=1; shift ;;
+		*) [ -z "$url" ] && url="$1"; shift ;;
+		esac
+	done
+	: "${url:?image url required}"
 	tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 	img="$tmp/img"
 	curl -fsSL "${auth[@]}" "$url" -o "$img"
-	# Skip templates, sequences and hooks and point the cache at the scratch
-	# dir, so generating the scheme never disturbs the running desktop.
-	XDG_CACHE_HOME="$tmp/cache" wallust run "$img" -T -s -q --no-hooks --print-scheme
+	# Skip templates, sequences and hooks, cache in the scratch dir: generating
+	# the scheme never disturbs the running desktop. Tune flags mirror the apply.
+	wargs=(run "$img" -T -s -q --no-hooks --print-scheme)
+	[ -n "$pal" ] && wargs+=(-p "$pal")
+	[ -n "$cs" ] && wargs+=(-c "$cs")
+	[ -n "$backend" ] && wargs+=(-b "$backend")
+	[ -n "$sat" ] && wargs+=(--saturation "$sat")
+	[ -n "$thr" ] && wargs+=(-t "$thr")
+	[ "$contrast" = 1 ] && wargs+=(-k)
+	XDG_CACHE_HOME="$tmp/cache" wallust "${wargs[@]}"
 	;;
 *)
-	echo "usage: ryoku-wallhaven search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url>" >&2
+	echo "usage: ryowalls search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url> [--palette <p>] [--colorspace <c>] [--backend <b>] [--saturation <n>] [--threshold <n>] [--contrast]" >&2
 	exit 2
 	;;
 esac

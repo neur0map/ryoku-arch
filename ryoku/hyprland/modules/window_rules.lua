@@ -72,8 +72,8 @@ hl.window_rule({
 })
 
 hl.window_rule({
-    name   = "float-wallhaven",
-    match  = { title = "^(Wallhaven)$" },
+    name   = "float-ryowalls",
+    match  = { title = "^(ryowalls)$" },
     float  = true,
     size   = { 1180, 760 },
     center = true,

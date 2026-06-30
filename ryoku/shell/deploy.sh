@@ -151,7 +151,8 @@ for appdir in "$here"/../apps/*/; do
   cp -a "${appdir}quickshell/." "$cfg/quickshell/$appname/"
   for b in "${appdir}bin/"*; do [[ -f "$b" ]] && install -m755 "$b" "$bindir/$(basename "$b")"; done
   for d in "${appdir}"*.desktop; do [[ -f "$d" ]] && install -Dm644 "$d" "$appshare/applications/$(basename "$d")"; done
-  install -Dm644 "$here/../assets/brand/logo-mark.svg" "$appshare/icons/hicolor/scalable/apps/$appname.svg"
+  icon="${appdir}quickshell/logo.svg"; [[ -f "$icon" ]] || icon="$here/../assets/brand/logo-mark.svg"
+  install -Dm644 "$icon" "$appshare/icons/hicolor/scalable/apps/$appname.svg"
   say "installed app $appname -> $cfg/quickshell/$appname"
 done
 

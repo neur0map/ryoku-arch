@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Wallhaven
+Name=ryowalls
 GenericName=Wallpaper Browser
 Comment=Browse wallhaven.cc, preview the rice, set your wallpaper
-Exec=flock -n -o /tmp/ryoku-wallhaven.lock qs -c wallhaven
+Exec=flock -n -o /tmp/ryowalls.lock qs -c ryowalls
 Terminal=false
-Icon=wallhaven
+Icon=ryowalls
 Categories=Utility;Graphics;
-Keywords=wallpaper;wallhaven;theme;rice;palette;
+Keywords=wallpaper;wallhaven;theme;rice;palette;ryowalls;
