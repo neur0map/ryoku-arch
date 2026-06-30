@@ -56,3 +56,13 @@ hl.layer_rule({
   match   = { namespace = "sidebar-inhibit" },
   no_anim = true,
 })
+
+-- the launcher is a translucent layer-shell overlay; blur its backdrop so the
+-- card reads against any wallpaper. its open/close is QML-driven, so suppress
+-- Hyprland's own layer animation to avoid a double move.
+hl.layer_rule({
+  name    = "launcher-blur",
+  match   = { namespace = "launcher" },
+  blur    = true,
+  no_anim = true,
+})
