@@ -66,7 +66,7 @@ Provider {
         id: proc
         property string expr: ""
         property string out: ""
-        command: ["qalc", "-t", expr]
+        command: [Config.scriptsDir + "ryoku-cmd-calc", expr]
         stdout: SplitParser {
             onRead: data => proc.out += data + "\n"
         }

@@ -16,6 +16,9 @@ import Quickshell.Io
 Singleton {
     id: root
 
+    // where the ryoku-cmd-* leaf helpers live (deployed from hyprland/scripts).
+    // they are not on PATH, so the launcher invokes them by full path.
+    readonly property string scriptsDir: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/"
     // frame = rounded screen border the pill swells out of.
     property alias frameRadius:    adapter.frameRadius
     property alias frameBorder:    adapter.frameBorder

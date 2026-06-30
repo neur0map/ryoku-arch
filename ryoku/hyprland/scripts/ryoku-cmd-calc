@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Evaluate a math expression for the launcher calculator. Prefers qalc (units,
+# currency, natural language); falls back to a safe Python arithmetic evaluator
+# when qalc is absent, so the calculator always works. Prints the result on
+# stdout, nothing on error. The trailing "=" some users type is stripped.
+set -uo pipefail
+
+expr="${1:-}"
+expr="${expr%=}"
+expr="${expr#"${expr%%[![:space:]]*}"}"
+expr="${expr%"${expr##*[![:space:]]}"}"
+[ -z "$expr" ] && exit 0
+
+if command -v qalc >/dev/null 2>&1; then
+  out="$(qalc -t "$expr" 2>/dev/null)"
+  [ -n "$out" ] && { printf '%s\n' "$out"; exit 0; }
+fi
+
+# Python fallback: parse the expression to an AST and evaluate only arithmetic
+# nodes, so no arbitrary code runs. Supports + - * / // % ** and parentheses.
+EXPR="$expr" python3 - <<'PY' 2>/dev/null
+import ast, os, operator
+src = os.environ.get("EXPR", "")
+ops = {
+    ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+    ast.Div: operator.truediv, ast.FloorDiv: operator.floordiv,
+    ast.Mod: operator.mod, ast.Pow: operator.pow,
+    ast.USub: operator.neg, ast.UAdd: operator.pos,
+}
+def ev(n):
+    if isinstance(n, ast.Constant) and isinstance(n.value, (int, float)):
+        return n.value
+    if isinstance(n, ast.BinOp) and type(n.op) in ops:
+        return ops[type(n.op)](ev(n.left), ev(n.right))
+    if isinstance(n, ast.UnaryOp) and type(n.op) in ops:
+        return ops[type(n.op)](ev(n.operand))
+    raise ValueError("unsupported")
+try:
+    v = ev(ast.parse(src, mode="eval").body)
+    print(int(v) if isinstance(v, float) and v.is_integer() else round(v, 10))
+except Exception:
+    pass
+PY

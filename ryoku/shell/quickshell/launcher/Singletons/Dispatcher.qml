@@ -15,11 +15,15 @@ Singleton {
         if (!provider || !provider.providerId)
             return;
         root.registry[provider.providerId] = provider;
-        if (provider.prefix && provider.prefix.length >= 1) {
-            var p = root.prefixes;
+        var p = root.prefixes;
+        if (provider.prefix && provider.prefix.length >= 1)
             p[provider.prefix] = provider.providerId;
-            root.prefixes = p;
-        }
+        // a provider may claim several prefixes (e.g. find: /file /folder /image
+        // /video); each routes to it, and query() gets the matched prefix as mode.
+        var extra = provider.prefixes || [];
+        for (var i = 0; i < extra.length; i++)
+            p[extra[i]] = provider.providerId;
+        root.prefixes = p;
     }
 
     // The provider a prefixed query targets, or "" for the default fan-out.
@@ -42,7 +46,7 @@ Singleton {
         if (r.provider) {
             var p = root.registry[r.provider];
             if (p)
-                rows = p.query(r.query);
+                rows = p.query(r.query, r.prefix);
         } else {
             for (var id in root.registry) {
                 var prov = root.registry[id];

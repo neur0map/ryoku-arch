@@ -16,6 +16,9 @@ Item {
 
     property string providerId: ""
     property string prefix: ""
+    // optional extra prefixes that all route here; query()'s 2nd arg is the
+    // matched prefix, so one provider can serve several modes (find: /file ...).
+    property var prefixes: []
     property bool defaultProvider: true
     // when true and not a default provider, the dispatcher still includes this
     // provider in the fan-out for a numeric-looking query (e.g. the calculator).

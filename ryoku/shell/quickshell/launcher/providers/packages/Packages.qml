@@ -14,7 +14,8 @@ Provider {
     id: packages
 
     providerId: "packages"
-    defaultProvider: true
+    prefix: ">"
+    defaultProvider: false
 
     property bool available: false
     property string cachedQuery: ""
@@ -23,11 +24,14 @@ Provider {
 
     readonly property string terminal: "kitty"
 
-    function parsePrefixed(text) {
+    // text after ">": "search x" / "install x" / "remove x", or a bare query that
+    // defaults to search. So ">yay" searches, ">install yay" installs.
+    function parseOp(text) {
         var m = String(text || "").match(/^(install|remove|search)\s+(.+)$/i);
-        if (!m)
-            return null;
-        return { op: m[1].toLowerCase(), term: m[2].trim() };
+        if (m)
+            return { op: m[1].toLowerCase(), term: m[2].trim() };
+        var t = String(text || "").trim();
+        return t.length ? { op: "search", term: t } : null;
     }
 
     function rowFor(pkg, op) {
@@ -38,7 +42,7 @@ Provider {
             subtitle: pkg.source + (pkg.installed ? "  (installed)" : "") + "  " + pkg.description,
             icon: "",
             type: "Package",
-            score: 30,
+            score: 0,
             actions: [{
                 name: verb,
                 icon: "",
@@ -53,7 +57,7 @@ Provider {
     function query(text) {
         if (!packages.available)
             return [];
-        var p = parsePrefixed(text);
+        var p = parseOp(text);
         if (!p || p.term.length < 2)
             return [];
         if (p.term === packages.cachedQuery)

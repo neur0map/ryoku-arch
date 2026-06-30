@@ -6,12 +6,11 @@ import ".."
 
 // Desktop-application provider: ranks XDG entries by fuzzy match + launch
 // frequency (the same ranker the pill launcher used) and launches the picked one.
-// Registers itself with the dispatcher as the default ">" provider.
+// Registers as a default provider (no prefix): apps are the root search.
 Provider {
     id: apps
 
     providerId: "apps"
-    prefix: ">"
 
     readonly property var entries: {
         var src = DesktopEntries.applications.values;

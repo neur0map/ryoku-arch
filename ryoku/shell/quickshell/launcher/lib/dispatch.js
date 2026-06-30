@@ -12,9 +12,9 @@ function routePrefix(text, prefixes) {
                 best = p;
         }
         if (best.length > 0)
-            return { provider: prefixes[best], query: s.slice(best.length).replace(/^\s+/, "") };
+            return { provider: prefixes[best], query: s.slice(best.length).replace(/^\s+/, ""), prefix: best };
     }
-    return { provider: null, query: s };
+    return { provider: null, query: s, prefix: "" };
 }
 
 // Whether the text reads as a calculation (leading digit), so an unprefixed

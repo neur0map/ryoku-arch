@@ -3,7 +3,7 @@ import "actions"
 import "apps"
 import "calc"
 import "clipboard"
-import "files"
+import "find"
 import "media/mpris"
 import "media/spotify"
 import "media/ytmusic"
@@ -22,7 +22,7 @@ Item {
     Apps { id: appsProvider }
     Calc {}
     Clipboard {}
-    Files {}
+    Find {}
     Mpris {}
     Spotify {}
     YtMusic {}

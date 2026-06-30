@@ -18,11 +18,22 @@ Provider {
 
     property string activeCategory: "All"
 
+    // ryoku-cmd-* helpers are not on PATH; resolve them against scriptsDir. Other
+    // binaries (ryoku-shell, hyprctl, playerctl, sh) are on PATH and pass through.
+    function resolveExec(argv) {
+        if (argv.length > 0 && argv[0].indexOf("ryoku-cmd-") === 0) {
+            var out = argv.slice();
+            out[0] = Config.scriptsDir + argv[0];
+            return out;
+        }
+        return argv;
+    }
+
     function rowFor(entry) {
         return {
             id: "action:" + entry.id,
             title: entry.name,
-            subtitle: entry.category,
+            subtitle: "",
             icon: "",
             type: entry.category,
             score: 0,
@@ -30,7 +41,7 @@ Provider {
             actions: [{
                 name: "Run",
                 icon: "",
-                execute: function () { Quickshell.execDetached(entry.exec); }
+                execute: function () { Quickshell.execDetached(actions.resolveExec(entry.exec)); }
             }]
         };
     }
