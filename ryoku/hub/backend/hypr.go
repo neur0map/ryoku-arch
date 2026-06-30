@@ -327,6 +327,11 @@ func runHypr(args []string) error {
 			return fmt.Errorf("hypr colorsource needs follow|fixed")
 		}
 		return setFollowWallpaper(args[1] == "follow")
+	case "scheme":
+		if len(args) < 2 {
+			return printJSON(map[string]string{"scheme": currentScheme()})
+		}
+		return applyScheme(args[1])
 	default:
 		return fmt.Errorf("unknown hypr subcommand: %s", args[0])
 	}

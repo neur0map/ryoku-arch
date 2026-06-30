@@ -62,6 +62,7 @@ type ThemesResponse struct {
 type themeState struct {
 	Slug            string `json:"slug"`
 	FollowWallpaper bool   `json:"followWallpaper"`
+	Scheme          string `json:"scheme,omitempty"`
 }
 
 func themesDir() string          { return filepath.Join(hyprConfigDir(), "themes") }
@@ -180,6 +181,7 @@ func applyTheme(slug string) error {
 
 	st := loadThemeState()
 	st.Slug = slug
+	st.Scheme = ""
 	saveThemeState(st)
 	applyPalette(dir, st.FollowWallpaper, tf.HasPalette)
 
@@ -193,6 +195,7 @@ func applyTheme(slug string) error {
 func setFollowWallpaper(follow bool) error {
 	st := loadThemeState()
 	st.FollowWallpaper = follow
+	st.Scheme = ""
 	saveThemeState(st)
 	hasPalette := false
 	dir := ""
@@ -222,11 +225,7 @@ func applyPalette(dir string, follow, hasPalette bool) {
 	if err != nil {
 		return
 	}
-	_ = os.MkdirAll(wallustCacheDir(), 0o755)
-	_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(pal), 0o644)
-	_ = atomicWrite(filepath.Join(wallustCacheDir(), "hypr-colors.lua"),
-		[]byte(fmt.Sprintf("return {\n    active = %q,\n    inactive = %q,\n}\n", paletteAccent(pal), pal["background"])), 0o644)
-	_ = atomicWrite(kittyThemePath(), []byte(renderKitty(pal)), 0o644)
+	writePalette(pal)
 }
 
 // paletteAccent = the active-border colour: color4 by wallust convention.

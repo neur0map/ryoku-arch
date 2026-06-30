@@ -70,6 +70,24 @@ Item {
         stdout: StdioCollector { onStreamFinished: page.currentWall = this.text.trim() }
     }
     Process { id: wallApplyProc; stdout: StdioCollector { onStreamFinished: wallStateProc.running = true } }
+
+    // Theme palette mode: follow the wallpaper, or lock a curated light/dark, via
+    // the hub's `hypr scheme` command (same backend as the theme colour source).
+    property string scheme: "follow"
+    function setScheme(k) {
+        page.scheme = k;
+        schemeApplyProc.command = ["ryoku-hub", "hypr", "scheme", k];
+        schemeApplyProc.running = true;
+    }
+    Process {
+        id: schemeQueryProc
+        command: ["ryoku-hub", "hypr", "scheme"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: { try { page.scheme = JSON.parse(this.text).scheme || "follow"; } catch (e) {} }
+        }
+    }
+    Process { id: schemeApplyProc; stdout: StdioCollector { onStreamFinished: schemeQueryProc.running = true } }
     Process {
         id: wallNextProc
         command: ["ryoku-shell", "wallpaper", "next"]
@@ -405,6 +423,29 @@ Item {
         id: wallpaperComp
         Column {
             spacing: 22
+            SettingSection {
+                width: parent.width
+                title: "THEME PALETTE"
+                ChoiceRow {
+                    width: Math.min(parent.width, 460)
+                    label: "Colours"
+                    options: [{ "key": "follow", "label": "Follow wallpaper" }, { "key": "light", "label": "Light" }, { "key": "dark", "label": "Dark" }]
+                    current: page.scheme
+                    onChosen: (k) => page.setScheme(k)
+                }
+                Text {
+                    width: Math.min(parent.width, 620)
+                    wrapMode: Text.WordWrap
+                    text: page.scheme === "light" || page.scheme === "dark"
+                        ? "A fixed " + page.scheme + " palette, kept across wallpaper changes."
+                        : page.scheme === "custom"
+                          ? "A theme owns the palette now. Pick Follow, Light, or Dark to change it."
+                          : "Colours are derived from your wallpaper and update when it changes."
+                    color: Theme.dim
+                    font.family: Theme.font
+                    font.pixelSize: 12
+                }
+            }
             SettingSection {
                 width: parent.width
                 title: "WALLPAPER"
