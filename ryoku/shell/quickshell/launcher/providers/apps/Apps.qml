@@ -68,5 +68,16 @@ Provider {
         return rows;
     }
 
+    // Every app as a flat row sorted by name, for the all-apps grid.
+    function allRows() {
+        var src = apps.entries.slice().sort(function (a, b) {
+            return (a.name || "").toLowerCase().localeCompare((b.name || "").toLowerCase());
+        });
+        var rows = [];
+        for (var i = 0; i < src.length; i++)
+            rows.push(rowFor(src[i]));
+        return rows;
+    }
+
     Component.onCompleted: Dispatcher.register(apps)
 }

@@ -19,7 +19,7 @@ import "windows"
 Item {
     id: providers
     Actions { id: actionsProvider }
-    Apps {}
+    Apps { id: appsProvider }
     Calc {}
     Clipboard {}
     Files {}
@@ -32,6 +32,8 @@ Item {
     Web {}
     Windows {}
 
-    // exposed so the action-mode tabs can narrow the actions provider's list.
+    // exposed so the action-mode tabs can narrow the actions provider's list, and
+    // the all-apps grid can read the full app list.
     property alias actions: actionsProvider
+    property alias apps: appsProvider
 }

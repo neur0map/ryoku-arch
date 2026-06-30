@@ -3,23 +3,25 @@ import Quickshell
 import "Singletons"
 import "providers"
 
-// The command palette body: a search row over either the rest dashboard (empty
-// query), the action-mode tabs + list ("/" prefix), or the ranked result list.
-// Ctrl+K opens the selected row's action panel. Grows and shrinks with its
-// content on the Ryoku morph curve. Providers register with the dispatcher; this
-// view only renders what the dispatcher returns.
+// The command palette body: a search row over the rest dashboard (empty query),
+// the all-apps grid (Ctrl+A from rest), the action-mode tabs + list ("/" prefix),
+// or the ranked result list. Ctrl+K opens the selected row's action panel. Grows
+// and shrinks with its content on the Ryoku morph curve. Providers register with
+// the dispatcher; this view only renders what the dispatcher returns.
 Item {
     id: root
 
     property real s: 1
     property bool shown: false
     property string query: ""
+    property bool allApps: false
 
     signal requestClose()
 
     readonly property var results: shown ? Dispatcher.results(query, Metrics.maxResults) : []
     readonly property int totalCount: shown ? Dispatcher.results("", 0).length : 0
     readonly property bool resting: query.length === 0
+    readonly property bool gridMode: resting && allApps
     readonly property bool actionMode: query.charAt(0) === "/"
     readonly property var selectedActions: {
         var r = root.results[list.selectedIndex];
@@ -29,8 +31,11 @@ Item {
     readonly property real cardW: Metrics.windowW * s
     readonly property int visibleRows: 8
     readonly property real listH: Math.min(results.length, visibleRows) * (Metrics.rowHeight + Metrics.gapRow) * s
+    readonly property real gridH: 380 * s
     readonly property real tabsH: actionMode ? tabs.implicitHeight + 6 * s : 0
-    readonly property real bodyH: resting ? rest.implicitHeight : (results.length > 0 ? listH : empty.implicitHeight)
+    readonly property real bodyH: gridMode ? gridH
+        : (resting ? rest.implicitHeight
+        : (results.length > 0 ? listH : empty.implicitHeight))
     readonly property real contentH: tabsH + bodyH
 
     implicitWidth: cardW
@@ -42,7 +47,6 @@ Item {
 
     Providers { id: providers }
 
-    // the action-mode tabs drive which category the actions provider lists.
     Binding {
         target: providers.actions
         property: "activeCategory"
@@ -53,13 +57,14 @@ Item {
     onShownChanged: {
         if (shown) {
             root.query = "";
+            root.allApps = false;
             search.clear();
             list.selectedIndex = 0;
             panel.open = false;
             Qt.callLater(search.focusField);
         }
     }
-    onQueryChanged: panel.open = false;
+    onQueryChanged: { panel.open = false; if (query.length > 0) root.allApps = false; }
 
     Rectangle {
         anchors.fill: parent
@@ -79,13 +84,16 @@ Item {
         resultCount: root.results.length
         totalCount: root.totalCount
         onTextChanged: { root.query = text; list.selectedIndex = 0; }
-        onMoved: (d) => { if (panel.open) panel.move(d); else list.move(d); }
-        onAccepted: { if (panel.open) panel.run(); else list.activate(); }
-        onDismissed: { if (panel.open) panel.open = false; else root.requestClose(); }
+        onMoved: (d) => { if (panel.open) panel.move(d); else if (root.gridMode) appGrid.move(d * root.gridColumnsForMove); else list.move(d); }
+        onAccepted: { if (panel.open) panel.run(); else if (root.gridMode) appGrid.activate(); else list.activate(); }
+        onDismissed: { if (panel.open) panel.open = false; else if (root.allApps) root.allApps = false; else root.requestClose(); }
         onKeyPressed: (e) => {
             if (e.key === Qt.Key_K && (e.modifiers & Qt.ControlModifier)) {
                 if (root.selectedActions.length > 0)
                     panel.open = !panel.open;
+                e.accepted = true;
+            } else if (e.key === Qt.Key_A && (e.modifiers & Qt.ControlModifier) && root.resting) {
+                root.allApps = !root.allApps;
                 e.accepted = true;
             } else if (root.actionMode && e.key === Qt.Key_Tab) {
                 tabs.cycle(1); e.accepted = true;
@@ -94,6 +102,8 @@ Item {
             }
         }
     }
+
+    readonly property int gridColumnsForMove: Metrics.gridColumns
 
     Rectangle {
         id: divider
@@ -121,7 +131,7 @@ Item {
 
     RestDashboard {
         id: rest
-        visible: root.resting
+        visible: root.resting && !root.allApps
         anchors.top: divider.bottom
         anchors.topMargin: Metrics.padRow * root.s
         anchors.left: parent.left
@@ -129,6 +139,21 @@ Item {
         anchors.leftMargin: Metrics.padOuter * root.s
         anchors.rightMargin: Metrics.padOuter * root.s
         s: root.s
+    }
+
+    ResultGrid {
+        id: appGrid
+        visible: root.gridMode
+        anchors.top: divider.bottom
+        anchors.topMargin: Metrics.padRow * root.s
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Metrics.padOuter * root.s
+        anchors.rightMargin: Metrics.padOuter * root.s
+        height: root.gridH - Metrics.padRow * root.s
+        s: root.s
+        entries: root.gridMode ? providers.apps.allRows() : []
+        onActivated: root.requestClose()
     }
 
     ResultList {
