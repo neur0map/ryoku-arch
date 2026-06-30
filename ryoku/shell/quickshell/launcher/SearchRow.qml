@@ -26,8 +26,6 @@ Item {
     function focusField() { field.forceActiveFocus(); }
     function clear() { field.text = ""; }
 
-    readonly property bool lensAvailable: true
-
     Text {
         id: glyph
         anchors.verticalCenter: parent.verticalCenter
@@ -86,14 +84,43 @@ Item {
     }
 
     Rectangle {
-        id: lens
+        id: songrec
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
         anchors.rightMargin: Metrics.padOuter * root.s
         width: 30 * root.s
         height: 30 * root.s
         radius: Metrics.radiusGlyph * root.s
-        visible: root.lensAvailable
+        color: songrecArea.containsMouse ? Theme.frameBg : Qt.rgba(1, 1, 1, 0.04)
+
+        Text {
+            anchors.centerIn: parent
+            text: "\udb83\udd1e"   // music glyph slot; nerd-font icon
+            color: Theme.iconDim
+            font.family: Theme.mono
+            font.pixelSize: 14 * root.s
+        }
+
+        MouseArea {
+            id: songrecArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                Quickshell.execDetached(["ryoku-cmd-songrec"]);
+                root.dismissed();
+            }
+        }
+    }
+
+    Rectangle {
+        id: lens
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.right: songrec.left
+        anchors.rightMargin: 8 * root.s
+        width: 30 * root.s
+        height: 30 * root.s
+        radius: Metrics.radiusGlyph * root.s
         color: lensArea.containsMouse ? Theme.frameBg : Qt.rgba(1, 1, 1, 0.04)
 
         Text {

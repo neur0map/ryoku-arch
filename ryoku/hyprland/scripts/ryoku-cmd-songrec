@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Recognize the currently playing audio with SongRec (Shazam) and copy the result
+# to the clipboard. The launcher's music-recognition button calls this; it hides
+# the button when songrec is absent, so this only runs when installed.
+set -euo pipefail
+
+app="Recognize music"
+need() { command -v "$1" >/dev/null 2>&1 || { notify-send -u normal "$app" "$1 is not installed"; exit 1; }; }
+
+for c in songrec wl-copy notify-send; do need "$c"; done
+
+notify-send -u low "$app" "Listening..."
+result="$(songrec recognize 2>/dev/null || true)"
+
+if [ -z "$result" ]; then
+  notify-send -u normal "$app" "No match found"
+  exit 0
+fi
+
+printf '%s' "$result" | wl-copy
+notify-send -u normal "$app" "$result"
