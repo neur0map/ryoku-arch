@@ -64,6 +64,7 @@ Provider {
 
     Process {
         id: proc
+        onRunningChanged: Dispatcher.setBusy("calc", running)
         property string expr: ""
         property string out: ""
         command: [Config.scriptsDir + "ryoku-cmd-calc", expr]

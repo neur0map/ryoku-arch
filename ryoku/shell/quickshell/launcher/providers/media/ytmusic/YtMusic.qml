@@ -84,6 +84,7 @@ Provider {
 
     Process {
         id: searchProc
+        onRunningChanged: Dispatcher.setBusy("ytmusic", running)
         property string term: ""
         property string out: ""
         command: ["yt-dlp", "ytsearch12:" + term, "--flat-playlist", "-j", "--no-warnings"]

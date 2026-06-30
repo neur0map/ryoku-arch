@@ -115,6 +115,7 @@ Provider {
 
     Process {
         id: findProc
+        onRunningChanged: Dispatcher.setBusy("find", running)
         property string cacheKey: ""
         property var hits: []
         stdout: SplitParser {

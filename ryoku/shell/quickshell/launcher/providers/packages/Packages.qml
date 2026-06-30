@@ -86,6 +86,7 @@ Provider {
 
     Process {
         id: searchProc
+        onRunningChanged: Dispatcher.setBusy("packages", running)
         property string term: ""
         property string out: ""
         command: ["gpk", "search", term, "--json", "--limit", "30"]

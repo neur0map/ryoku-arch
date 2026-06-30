@@ -37,6 +37,19 @@ Singleton {
     property int revision: 0
     function notifyAsync() { root.revision++; }
 
+    // In-flight async providers, keyed by id so begin/end calls are idempotent
+    // and several can run at once. `busy` is true while any is searching; the
+    // launcher reads it to show a spinner instead of a premature "No matches".
+    property var busyProviders: ({})
+    property int busyRevision: 0
+    readonly property bool busy: { void root.busyRevision; return Object.keys(root.busyProviders).length > 0; }
+    function setBusy(id, on) {
+        var b = root.busyProviders;
+        if (on) b[id] = true; else delete b[id];
+        root.busyProviders = b;
+        root.busyRevision++;
+    }
+
     // Merged, score-sorted, capped result rows for the current query. Reads
     // `revision` so async caches re-pull on resolve.
     function results(text, limit) {

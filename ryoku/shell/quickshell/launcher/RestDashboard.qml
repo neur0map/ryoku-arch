@@ -26,12 +26,13 @@ Item {
         precision: SystemClock.Minutes
     }
 
-    Rectangle {
+    Squircle {
         anchors.fill: parent
-        radius: Metrics.radiusCard * root.s
+        radius: Metrics.radiusCard
+        power: 4
         color: Theme.frameBg
-        border.width: 1
-        border.color: Theme.hair
+        borderColor: Theme.hair
+        borderWidth: 1
 
         Column {
             anchors.left: parent.left

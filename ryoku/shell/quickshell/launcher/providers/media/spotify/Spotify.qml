@@ -88,6 +88,7 @@ Provider {
 
     Process {
         id: searchProc
+        onRunningChanged: Dispatcher.setBusy("spotify", running)
         property string term: ""
         property string out: ""
         command: ["ryoku-shell", "spotify", "search", term]

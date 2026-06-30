@@ -57,6 +57,13 @@ Item {
         return "";
     }
     readonly property bool actionMode: routed.provider === "actions"
+    // tabs + hint row are browsing aids: show them only for a bare "/" (the
+    // action catalog), not once the user types "/play" — then the results take
+    // the space and nothing clips.
+    readonly property bool actionBrowse: actionMode && routed.query.length === 0
+    // an async provider is resolving the current query and nothing has come back
+    // yet: show a spinner, not a premature "No matches".
+    readonly property bool searching: shown && !resting && Dispatcher.busy && results.length === 0
     readonly property var selectedActions: {
         var r = root.results[list.selectedIndex];
         return r && r.actions ? r.actions : [];
@@ -66,11 +73,12 @@ Item {
     readonly property int visibleRows: 8
     readonly property real listH: Math.min(results.length, visibleRows) * (Metrics.rowHeight + Metrics.gapRow) * s
     readonly property real gridH: 380 * s
-    readonly property real tabsH: actionMode ? tabs.implicitHeight + 6 * s : 0
+    readonly property real tabsH: actionBrowse ? tabs.implicitHeight + 6 * s : 0
     readonly property real restH: rest.implicitHeight + (hasMedia ? nowPlaying.implicitHeight + Metrics.padRow * s : 0)
     readonly property real bodyH: gridMode ? gridH
         : (resting ? restH
-        : (results.length > 0 ? listH : empty.height))
+        : (results.length > 0 ? listH
+        : (searching ? loading.height : empty.height)))
     readonly property real contentH: tabsH + bodyH
 
     implicitWidth: cardW
@@ -101,12 +109,13 @@ Item {
     }
     onQueryChanged: { panel.open = false; if (query.length > 0) root.allApps = false; }
 
-    Rectangle {
+    Squircle {
         anchors.fill: parent
-        radius: Metrics.radiusWindow * root.s
+        radius: Metrics.radiusWindow
+        power: 4
         color: Theme.cardTop
-        border.width: 1
-        border.color: Theme.border
+        borderColor: Theme.border
+        borderWidth: 1
     }
 
     SearchRow {
@@ -155,7 +164,7 @@ Item {
 
     CategoryTabs {
         id: tabs
-        visible: root.actionMode
+        visible: root.actionBrowse
         anchors.top: divider.bottom
         anchors.topMargin: 8 * root.s
         anchors.left: parent.left
@@ -208,7 +217,7 @@ Item {
     ResultList {
         id: list
         visible: !root.resting && root.results.length > 0
-        anchors.top: root.actionMode ? tabs.bottom : divider.bottom
+        anchors.top: root.actionBrowse ? tabs.bottom : divider.bottom
         anchors.topMargin: 6 * root.s
         anchors.left: parent.left
         anchors.right: parent.right
@@ -221,10 +230,32 @@ Item {
         onActivated: root.requestClose()
     }
 
+    Row {
+        id: loading
+        visible: root.searching
+        anchors.top: root.actionBrowse ? tabs.bottom : divider.bottom
+        anchors.topMargin: Metrics.padRow * root.s
+        anchors.horizontalCenter: parent.horizontalCenter
+        height: 40 * root.s
+        spacing: 8 * root.s
+        Spinner {
+            anchors.verticalCenter: parent.verticalCenter
+            size: 15 * root.s
+            color: Theme.verm
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Searching\u2026"
+            color: Theme.faint
+            font.family: Theme.font
+            font.pixelSize: 12 * root.s
+        }
+    }
+
     Text {
         id: empty
-        visible: !root.resting && root.results.length === 0
-        anchors.top: root.actionMode ? tabs.bottom : divider.bottom
+        visible: !root.resting && !root.searching && root.results.length === 0
+        anchors.top: root.actionBrowse ? tabs.bottom : divider.bottom
         anchors.topMargin: Metrics.padRow * root.s
         anchors.horizontalCenter: parent.horizontalCenter
         text: "No matches"
