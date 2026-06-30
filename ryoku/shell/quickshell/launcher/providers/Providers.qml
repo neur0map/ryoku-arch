@@ -5,6 +5,7 @@ import "calc"
 import "clipboard"
 import "files"
 import "media/mpris"
+import "media/ytmusic"
 import "packages"
 import "snippets"
 import "web"
@@ -21,6 +22,7 @@ Item {
     Clipboard {}
     Files {}
     Mpris {}
+    YtMusic {}
     Packages {}
     Snippets {}
     Web {}
