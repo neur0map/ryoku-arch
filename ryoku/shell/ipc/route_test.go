@@ -8,7 +8,7 @@ func TestRoute(t *testing.T) {
 	cases := []struct {
 		cmd, config, target, fn string
 	}{
-		{"launcher", "pill", "pill", "launcher"},
+		{"launcher", "launcher", "launcher", "toggle"},
 		{"clipboard", "pill", "pill", "clipboard"},
 		{"link", "pill", "pill", "link"},
 		{"inbox", "pill", "pill", "inbox"},

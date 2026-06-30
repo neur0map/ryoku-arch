@@ -39,6 +39,7 @@ restart_shell() {
   # leftover qs keeps its single-instance lock, so the fresh pill cant come up and
   # the new daemon dies with it. clear any strays before i start again.
   pkill -f 'qs -c pill' >/dev/null 2>&1 || true
+  pkill -f 'qs -c launcher' >/dev/null 2>&1 || true
   pkill -f 'qs -c sidebar' >/dev/null 2>&1 || true
   pkill -f 'qs -c visualizer' >/dev/null 2>&1 || true
   sleep 0.2

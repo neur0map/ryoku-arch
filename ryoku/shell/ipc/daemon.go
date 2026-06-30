@@ -24,6 +24,7 @@ type component struct {
 
 var components = []component{
 	{"pill", true},
+	{"launcher", true},
 	{"sidebar", false},
 	{"visualizer", true},
 	{"widgets", true},
@@ -32,7 +33,6 @@ var components = []component{
 
 // pillSurfaces maps a client command to the pill IpcHandler function it toggles.
 var pillSurfaces = map[string]string{
-	"launcher":         "launcher",
 	"clipboard":        "clipboard",
 	"link":             "link",
 	"inbox":            "inbox",
@@ -342,6 +342,8 @@ func route(cmd string) (config, target, fn string, ok bool) {
 		return "pill", "pill", f, true
 	}
 	switch cmd {
+	case "launcher":
+		return "launcher", "launcher", "toggle", true
 	case "sidebar":
 		return "sidebar", "sidebar", "toggle", true
 	case "visualizer":
