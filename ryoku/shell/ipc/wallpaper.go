@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -197,7 +198,7 @@ func (d *daemon) paintWorker() {
 		if themePaletteLocked() {
 			continue
 		}
-		_ = exec.Command("wallust", "run", pic).Run()
+		_ = exec.Command("wallust", append([]string{"run", pic}, tuneArgs()...)...).Run()
 		_ = exec.Command("hyprctl", "reload", "config-only").Run()
 		select {
 		case d.ledsSig <- struct{}{}:
@@ -223,6 +224,63 @@ func themePaletteLocked() bool {
 		FollowWallpaper bool `json:"followWallpaper"`
 	}{FollowWallpaper: true}
 	return json.Unmarshal(b, &s) == nil && !s.FollowWallpaper
+}
+
+// wallustTune: the wallhaven app's saved look. when present, its fields append to
+// `wallust run` so a set wallpaper (and later Super+W cycles) match what the app
+// previewed. absent or empty fields fall back to the wallust config.
+func wallustTune() string { return filepath.Join(stateDir(), "ryoku-wallust.json") }
+
+func tuneArgs() []string {
+	b, err := os.ReadFile(wallustTune())
+	if err != nil {
+		return nil
+	}
+	var t struct {
+		Palette    string `json:"palette"`
+		Colorspace string `json:"colorspace"`
+		Backend    string `json:"backend"`
+		Saturation int    `json:"saturation"`
+		Threshold  int    `json:"threshold"`
+		Contrast   bool   `json:"contrast"`
+	}
+	if json.Unmarshal(b, &t) != nil {
+		return nil
+	}
+	var a []string
+	if isWallustName(t.Palette) {
+		a = append(a, "-p", t.Palette)
+	}
+	if isWallustName(t.Colorspace) {
+		a = append(a, "-c", t.Colorspace)
+	}
+	if isWallustName(t.Backend) {
+		a = append(a, "-b", t.Backend)
+	}
+	if t.Saturation >= 1 && t.Saturation <= 100 {
+		a = append(a, "--saturation", strconv.Itoa(t.Saturation))
+	}
+	if t.Threshold >= 1 && t.Threshold <= 100 {
+		a = append(a, "-t", strconv.Itoa(t.Threshold))
+	}
+	if t.Contrast {
+		a = append(a, "-k")
+	}
+	return a
+}
+
+// isWallustName: every wallust enum value is a short lowercase-alphanumeric token.
+// reject anything else so a stray tune file can't feed odd args to the process.
+func isWallustName(s string) bool {
+	if s == "" || len(s) > 32 {
+		return false
+	}
+	for _, r := range s {
+		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')) {
+			return false
+		}
+	}
+	return true
 }
 
 // ledsWorker: push accent to OpenRGB. detection is slow (seconds), so it lives on
