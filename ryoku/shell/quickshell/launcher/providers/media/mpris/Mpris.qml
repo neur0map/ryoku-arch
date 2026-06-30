@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Mpris
 import "../../../Singletons"
+import "../.."
 
 // MPRIS provider: surfaces the active media player (Spotify, the YT Music PWA,
 // a browser tab, mpv) as launcher rows. The now-playing row plus transport verbs

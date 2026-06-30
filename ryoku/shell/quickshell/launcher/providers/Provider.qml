@@ -9,7 +9,9 @@ import QtQuick
 //     view? }
 // Lower score ranks higher. `prefix` is one char ("=", ";", "/", ...) or "".
 // `defaultProvider` includes the provider in the unprefixed fan-out.
-QtObject {
+// An Item (not a QtObject) so a provider can hold child objects (Timer, Process,
+// FileView) for its async work; it has no size and never renders.
+Item {
     id: provider
 
     property string providerId: ""

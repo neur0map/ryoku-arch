@@ -157,22 +157,22 @@ ListView {
     // come from Fuzzy.highlight (subsequence positions over the title).
     function markup(title, spans) {
         if (!spans || spans.length === 0)
-            return list.escape(title);
+            return list.escapeHtml(title);
         var out = "";
         var last = 0;
         for (var i = 0; i < spans.length; i++) {
             var sp = spans[i];
             if (sp.start > last)
-                out += list.escape(title.slice(last, sp.start));
-            out += "<font color=\"" + Theme.vermLit + "\">" + list.escape(title.slice(sp.start, sp.start + sp.len)) + "</font>";
+                out += list.escapeHtml(title.slice(last, sp.start));
+            out += "<font color=\"" + Theme.vermLit + "\">" + list.escapeHtml(title.slice(sp.start, sp.start + sp.len)) + "</font>";
             last = sp.start + sp.len;
         }
         if (last < title.length)
-            out += list.escape(title.slice(last));
+            out += list.escapeHtml(title.slice(last));
         return out;
     }
 
-    function escape(s) {
+    function escapeHtml(s) {
         return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 }

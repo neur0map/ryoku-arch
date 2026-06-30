@@ -52,7 +52,7 @@ Item {
     readonly property real restH: rest.implicitHeight + (hasMedia ? nowPlaying.implicitHeight + Metrics.padRow * s : 0)
     readonly property real bodyH: gridMode ? gridH
         : (resting ? restH
-        : (results.length > 0 ? listH : empty.implicitHeight))
+        : (results.length > 0 ? listH : empty.height))
     readonly property real contentH: tabsH + bodyH
 
     implicitWidth: cardW
@@ -212,7 +212,7 @@ Item {
         color: Theme.faint
         font.family: Theme.font
         font.pixelSize: 12 * root.s
-        implicitHeight: 40 * root.s
+        height: 40 * root.s
     }
 
     ActionPanel {
