@@ -1,6 +1,8 @@
 import QtQuick
 import "apps"
 import "calc"
+import "packages"
+import "snippets"
 import "web"
 
 // Instantiates every launcher provider so each registers itself with the
@@ -9,5 +11,7 @@ import "web"
 Item {
     Apps {}
     Calc {}
+    Packages {}
+    Snippets {}
     Web {}
 }
