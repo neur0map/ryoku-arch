@@ -53,7 +53,6 @@ Item {
 
     readonly property bool held: pinned || forcePinned
     readonly property bool calendarOpen: surface === "calendar"
-    readonly property bool launcherOpen: surface === "launcher"
     readonly property bool clipboardOpen: surface === "clipboard"
     readonly property bool wallpaperOpen: surface === "wallpaper"
     readonly property bool mediaOpen: surface === "media"
@@ -82,8 +81,6 @@ Item {
     readonly property real hoverH: 58 * s
     readonly property real calendarW: 318 * s
     readonly property real calendarH: calendar.implicitHeight + 32 * s
-    readonly property real launcherW: 360 * s
-    readonly property real launcherH: 332 * s
     readonly property real clipboardW: 360 * s
     readonly property real clipboardH: 332 * s
     readonly property real wallpaperW: 720 * s
@@ -102,7 +99,6 @@ Item {
 
     readonly property string mode: keyringOpen ? "keyring" : baseMode
     readonly property string baseMode: calendarOpen ? "calendar"
-        : (launcherOpen ? "launcher"
         : (clipboardOpen ? "clipboard"
         : (wallpaperOpen ? "wallpaper"
         : (mediaOpen ? "media"
@@ -117,7 +113,7 @@ Item {
         : (workspacesOpen ? "workspaces"
         : (osdActive && !held ? "osd"
         : (toastActive && !held ? "toast"
-        : (expanded ? "hover" : "rest"))))))))))))))))
+        : (expanded ? "hover" : "rest")))))))))))))))
 
     signal requestSurface(string name)
     signal requestClose()
@@ -184,7 +180,6 @@ Item {
      */
     readonly property var surfaceSize: ({
         calendar:  () => Qt.size(calendarW, calendarH),
-        launcher:  () => Qt.size(launcherW, launcherH),
         clipboard: () => Qt.size(clipboardW, clipboardH),
         wallpaper: () => Qt.size(wallpaperW, wallpaperH),
         media:     () => Qt.size(mediaW, mediaH),
@@ -332,7 +327,6 @@ Item {
      * Null = nothing open, so Ame falls back to the pill's own hover/wake anchor.
      */
     readonly property var ameSurface: mediaOpen ? media
-        : (launcherOpen ? launcher
         : (clipboardOpen ? clip
         : (calendarOpen ? calendar
         : (linkOpen ? link
@@ -343,7 +337,7 @@ Item {
         : (utilitiesOpen ? deck
         : (voiceOpen ? voice
         : (workspacesOpen ? workspaces
-        : (batteryOpen ? battery : null))))))))))))
+        : (batteryOpen ? battery : null)))))))))))
 
     Ame {
         id: ame
@@ -779,18 +773,6 @@ Item {
         openProgress: pill.openProgress
         openW: pill.openW
         openH: pill.openH
-    }
-
-    Launcher {
-        id: launcher
-        s: pill.s
-        open: pill.launcherOpen
-        morphCloseness: pill.morphCloseness
-        shown: pill.displayedSurface === "launcher"
-        openProgress: pill.openProgress
-        openW: pill.openW
-        openH: pill.openH
-        onRequestClose: pill.requestClose()
     }
 
     Clipboard {

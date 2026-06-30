@@ -251,7 +251,6 @@ ShellRoot {
         target: "pill"
         function mixer(mon: string): void { root.togglePopout(mon, "mixer"); }
         function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
-        function launcher(mon: string): void { root.toggleSurface(mon, "launcher"); }
         function power(mon: string): void { root.togglePopout(mon, "power"); }
         function link(mon: string): void { root.toggleSurface(mon, "link"); }
         function inbox(mon: string): void { root.toggleSurface(mon, "inbox"); }
@@ -299,7 +298,7 @@ ShellRoot {
         var fn = parts[0];
         var mon = parts.length > 1 ? parts[1] : "";
         switch (fn) {
-        case "calendar": case "launcher": case "clipboard": case "wallpaper":
+        case "calendar": case "clipboard": case "wallpaper":
         case "link": case "inbox": case "battery": case "sysinfo":
         case "stash": case "toolkit": case "utilities": case "workspaces":
             root.toggleSurface(mon, fn); return true;
