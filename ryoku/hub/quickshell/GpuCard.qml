@@ -271,7 +271,7 @@ Item {
                             elide: Text.ElideRight
                         }
                         Text {
-                            text: "the desktop and a windowed VM draw here"
+                            text: "the desktop draws here"
                             color: Theme.faint
                             font.family: Theme.font
                             font.pixelSize: 9.5 * root.s

@@ -40,15 +40,14 @@
   edited in Ryoku Settings -> Plugins and persisted by `ryoku-plugins-place`, and
   `ryoku-shell plugin <id>` toggles a frame popout. The legacy `wallhaven` plugin
   is reworked as the worked example. See `docs/plugins.md`.
-- `hub/quickshell/GpuPage` + `hub/backend` (`gpu`/`vm`) + `apps/ryoku-vm`: a
-  System -> GPU page with a hardware-capability engine and a Looking-Glass Windows
-  VM. Choose the graphics mode (Hybrid, Performance, Passthrough) and configure +
-  launch a Win11 VM that owns the discrete GPU, gated by checks (CPU virt, IOMMU,
-  isolated dGPU group, which GPU drives the display, RAM, the virt stack) so it
-  refuses anything unsafe. Dynamic vfio bind/unbind via a libvirt hook (no
-  boot-time binding), kvmfr Looking Glass, swtpm + Secure Boot for Win11; a "Ryoku
-  VM" app-launcher entry boots it automatically when the verdict is ready. The
-  one-time "Enable passthrough" is reversible.
+- `hub/quickshell/GpuPage` + `hub/backend/gpu`: a System -> GPU page with a
+  hardware-capability engine. Choose the graphics mode (Hybrid, Performance,
+  Passthrough) and set up the optional GPU-passthrough stack, gated by checks (CPU
+  virt, IOMMU, isolated dGPU group, which GPU drives the display, RAM, the virt
+  stack) so it refuses anything unsafe. Dynamic vfio bind/unbind via a libvirt
+  hook (no boot-time binding), kvmfr Looking Glass, swtpm + Secure Boot. The
+  one-time "Enable passthrough" is reversible. Running virtual machines lives in
+  the `apps/ryovm` app (quickemu/quickget), not the hub.
 - `hyprland/binds` + `hyprland/resize`: working window resize. `Super + Ctrl +
   arrows` resize the active window directly (repeating); the `Super + R` resize
   mode also accepts `hjkl`, exits on `Super + R`, `Esc`, or `Return`, and shows a

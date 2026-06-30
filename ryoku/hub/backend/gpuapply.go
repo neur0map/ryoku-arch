@@ -191,6 +191,12 @@ polkit.addRule(function(action, subject) {
 });
 `
 
+// kvmfrStaticMB = Looking Glass shared-memory size in MiB, written to the kvmfr
+// module's static_size_mb. 128 MiB covers SDR panels up to 2160p and most
+// ultrawides; bumping it just locks down that RAM. Only the passthrough stack
+// uses it (a passthrough VM is launched outside Ryoku, e.g. via libvirt).
+const kvmfrStaticMB = 128
+
 // the passthrough stack. core packages are official, install as one
 // transaction; the Looking Glass pieces live in [ryoku] (or the AUR on plain
 // Arch) and install best-effort, so their absence never blocks the core set.

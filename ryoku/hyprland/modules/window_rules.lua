@@ -80,6 +80,14 @@ hl.window_rule({
 })
 
 hl.window_rule({
+    name   = "float-ryovm",
+    match  = { title = "^(ryovm)$" },
+    float  = true,
+    size   = { 1180, 760 },
+    center = true,
+})
+
+hl.window_rule({
     name   = "float-ryoku-extras",
     match  = { class = "ryoku-extras" },
     float  = true,
@@ -96,7 +104,7 @@ hl.window_rule({
 })
 
 hl.window_rule({
-    name   = "float-ryoku-vm",
+    name   = "float-qemu",
     match  = { class = "[Qq]emu" },
     float  = true,
     size   = { 1280, 800 },

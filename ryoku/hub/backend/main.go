@@ -54,11 +54,6 @@ func main() {
 			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
 			os.Exit(1)
 		}
-	case "vm":
-		if err := runVM(args[1:]); err != nil {
-			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
-			os.Exit(1)
-		}
 	default:
 		usage()
 		os.Exit(2)
@@ -103,6 +98,4 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  ryoku-hub lock list")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub lock set <slug>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub gpu caps|mode")
-	fmt.Fprintln(os.Stderr, "  ryoku-hub vm get|save|xml|launch|stop|status|reset")
-	fmt.Fprintln(os.Stderr, "  ryoku-hub vm snapshot list|create|restore|delete <name>")
 }

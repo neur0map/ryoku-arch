@@ -3,15 +3,6 @@
 ## Unreleased
 
 ### Added
-- GPU > Machine: the VM gains disk quality-of-life, so a launch is no longer a
-  blank slate. A **Snapshots** group saves the disk as named restore points and
-  rolls back to, or deletes, them; **Reset** wipes the disk and every snapshot
-  back to an empty machine; and **Eject installer** clears the install ISO so a
-  finished install boots from its own disk instead of reopening the installer on
-  every launch. Backed by `ryoku-hub vm snapshot list|create|restore|delete` and
-  `ryoku-hub vm reset`, operating on the powered-off qcow2 (the same disk for
-  windowed and passthrough). Destructive actions arm on the first tap and confirm
-  on the second, and snapshot and reset controls disable while the VM is running.
 - Every section whose GUI maps to a real config file gains a `CONFIG` chip next to
   its title (in the shared `PageHeader`): it opens that file in `nvim` (side by
   side, in a kitty window). The Hyprland sections (Input, Appearance, Animations,
@@ -184,30 +175,16 @@
   shell's morph motion (a single sliding selection indicator in the rail).
 
 ### Changed
-- **GPU section, reworked for clarity.** The section now opens on the **Machine**
-  tab: a virtual machine runs in a QEMU window on the GPU that already drives the
-  display (named live from `gpu caps`), needs only QEMU, and offers a one-click
-  install when it is missing. The **Display** choice (Windowed or Passthrough) is
-  now explicit rather than inferred from the guest OS, so a Linux or Windows guest
-  can use either. The **Graphics** tab keeps the render-mode switch and folds GPU
-  passthrough into a clearly labelled advanced block, with the readiness dossier
+- **GPU section is graphics-only.** It chooses which GPU Ryoku renders on (Hybrid
+  / Performance / Passthrough) and sets up the optional GPU-passthrough stack
+  (binds the discrete GPU to vfio so a VM can own it), with the readiness dossier
   behind a disclosure instead of filling the page. The specimen card is a sibling
   of the Profile card (carbon, holographic wash, cursor foil, parallax tilt, the
   Ryoku wave): a VRAM badge, the render GPU as the hero, and both GPUs in a dossier
-  box with a DISPLAY/FREE marker. Messages name the actual GPUs throughout, so it is plain
-  that a windowed VM uses the discrete GPU and passthrough is a separate, optional
-  path. `gpu caps` gains `qemu` and `kvm` flags so the VM tab can tell "install
-  QEMU" apart from "virtualization is off in firmware".
-- Windowed VM presentation: the VM floats at a 1280x800 logical window, and the
-  guest is rendered at that window's PHYSICAL pixels (logical size times the
-  monitor scale, via virtio-gpu `xres`/`yres`), so on a fractionally-scaled
-  (HiDPI) display it maps 1:1 instead of the compositor upscaling and blurring it.
-  On a 1.6x screen the guest comes up at 2048x1280; `RYOKU_VM_SCALE` overrides the
-  detected scale. `zoom-to-fit` absorbs a manual resize and the menu bar starts
-  hidden (`Ctrl+Alt+M` toggles it). The Machine tab lists the in-window controls
-  (lock or release the cursor, fullscreen, menu bar, scaling, the QEMU monitor).
-  The app-launcher entry gains the Ryoku mark as its icon and accurate text
-  instead of a generic placeholder.
+  box with a DISPLAY/FREE marker. Running virtual machines moved to the **ryovm**
+  app: the Machine tab, the windowed-VM launcher, and the `ryoku-hub vm`
+  subcommand (with `qemu.go`/`vmrun.go`/`vmxml.go`/`vmsnapshot.go`) are removed;
+  the hub no longer launches or manages VMs.
 - Add-ons: a plugin's `image` setting opens the system file chooser (via the
   desktop portal) on click, instead of a raw text field.
 - Store: the catalogue refresh moved to a single control to the left of the

@@ -26,6 +26,23 @@ maps to a place under `~/.config` (except the small helper script noted below).
   how the home folders and optional defaults work.
 - `mimeapps.list` The default-application map (text files route to neovim).
 
+## GUI apps (Quickshell)
+
+These are full applications, not `~/.config` seeds: each `<name>/quickshell/`
+ships as `qs -c <name>`, its `bin/` helpers and any Go helper land on `PATH`, and
+its `<name>.desktop` plus `quickshell/logo.svg` register it in the launcher.
+
+- `ryowalls/` Wallpaper browser: search wallhaven, preview the rice, set it.
+  Engine: the `ryowalls` script. Summon with Super+Shift+W.
+- `ryovm/` Virtual-machine manager built on quickemu/quickget: a Library of your
+  machines and a Catalog of ~700 downloadable systems (Windows, macOS, Linux, the
+  BSDs, Android x86). Builds in app with a live progress bar (the `ryovm-fetch` Go
+  helper, under `fetch/`) or from any local ISO; per-VM cores/memory, snapshots,
+  and Window / SPICE / Headless display. Engine: the `ryovm` script. Summon with
+  Super+Shift+V. The GPU-passthrough gaming VM (a single, dedicated VM that owns
+  the discrete GPU) is configured and launched from Ryoku Settings > GPU, not from
+  here.
+
 ## Install paths
 
 | Folder          | Destination                               |

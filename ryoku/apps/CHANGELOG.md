@@ -20,6 +20,20 @@
 - `npm/` ships `~/.npmrc` (global prefix `~/.local`) and `pip/` ships
   `~/.config/pip/pip.conf` (`break-system-packages`), so `npm i -g` and
   `pip install --user` work without root.
+- `ryovm/` a virtual-machine manager (`qs -c ryovm`, Super+Shift+V), built on
+  quickemu/quickget. A **Library** of your machines and a **Catalog** of ~90
+  operating systems (~770 release/edition combos: Windows, macOS, every major
+  Linux, the BSDs, Android x86). Brand logos are prefetched in parallel and
+  cached to `~/.cache/ryoku/ryovm-icons` (a negative cache skips the ~56 OSes
+  with no upstream art, which fall back to a coloured monogram); systems that
+  have a real logo sort into a **Popular** section above the rest. Builds a VM in
+  app with a live progress bar and Cancel (a `ryovm-fetch` Go helper does the
+  parallel download; cancelling wipes the half-image), or from any local ISO via
+  **Load ISO**. Per-VM cores/memory, snapshots, and three display modes: a
+  **Window**, a **SPICE** console, or **Headless** (terminal-only, SSH in). The
+  running view shows the mode's cursor-release shortcut and a stop-to-free note.
+  The `ryovm` engine is the data plane; the GPU-passthrough gaming VM in Ryoku
+  Settings > GPU is a separate, single-VM path.
 
 ### Changed
 - `fish/`: put `~/.local/bin` on `PATH` for every shell (not only interactive),

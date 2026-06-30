@@ -36,6 +36,7 @@ hl.bind(mod .. " + L",         hl.dsp.exec_cmd("ryoku-shell lock"))
 hl.bind(mod .. " + W",         hl.dsp.exec_cmd("ryoku-shell wallpaper"))         -- next wallpaper
 hl.bind(mod .. " + C",         hl.dsp.exec_cmd("ryoku-shell wallpaper-picker"))  -- wallpaper picker
 hl.bind(mod .. " + SHIFT + W", hl.dsp.exec_cmd("ryoku-summon ryowalls flock -n -o /tmp/ryowalls.lock qs -c ryowalls")) -- ryowalls: summon to current workspace
+hl.bind(mod .. " + SHIFT + V", hl.dsp.exec_cmd("ryoku-summon ryovm flock -n -o /tmp/ryovm.lock qs -c ryovm")) -- ryovm: summon to current workspace
 hl.bind(mod .. " + D",         hl.dsp.exec_cmd("ryoku-shell toolkit"))           -- control deck (stash, tools, utilities)
 hl.bind(mod .. " + Tab",       hl.dsp.exec_cmd("ryoku-shell workspaces"))        -- workspace switcher (drag windows between workspaces)
 hl.bind(mod .. " + M",         hl.dsp.exec_cmd("ryoku-shell visualizer"))        -- toggle the desktop audio visualiser

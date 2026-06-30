@@ -151,6 +151,16 @@ for appdir in "$here"/../apps/*/; do
   mkdir -p "$cfg/quickshell/$appname"
   cp -a "${appdir}quickshell/." "$cfg/quickshell/$appname/"
   for b in "${appdir}bin/"*; do [[ -f "$b" ]] && install -m755 "$b" "$bindir/$(basename "$b")"; done
+  # an app may carry Go helper(s): a subdir with a go.mod builds to a bin named
+  # for the module (ryovm/fetch -> ryovm-fetch). keeps "drop in an app dir" true.
+  for gomod in "${appdir}"*/go.mod; do
+    [[ -f "$gomod" ]] || continue
+    helperdir="$(dirname "$gomod")"
+    helper="$(sed -n -E 's/^module[[:space:]]+//p' "$gomod" | head -1)"
+    [[ -n "$helper" ]] || continue
+    say "building $helper"
+    (cd "$helperdir" && go build -o "$helper" .) && install -m755 "$helperdir/$helper" "$bindir/$helper"
+  done
   for d in "${appdir}"*.desktop; do [[ -f "$d" ]] && install -Dm644 "$d" "$appshare/applications/$(basename "$d")"; done
   icon="${appdir}quickshell/logo.svg"; [[ -f "$icon" ]] || icon="$here/../assets/brand/logo-mark.svg"
   install -Dm644 "$icon" "$appshare/icons/hicolor/scalable/apps/$appname.svg"
@@ -201,16 +211,16 @@ mkdir -p "$cfg/wallust";   cp -a "$here/wallust/." "$cfg/wallust/"
 cp -a "$here/../apps/fish/config.fish" "$cfg/fish/config.fish"
 cp -a "$here/kde/kdeglobals" "$cfg/kdeglobals"
 mkdir -p "$cfg/systemd/user"; cp -a "$here/systemd/user/." "$cfg/systemd/user/"
-# Ryoku VM launcher: the wrapper on PATH plus its app-launcher entry (ryoku-hub
-# does the real work). optdepends (qemu, libvirt, looking-glass) install on first
-# "Enable passthrough" from Ryoku Settings > GPU, not here.
-install -m755 "$here/../apps/ryoku-vm/ryoku-vm" "$bindir/ryoku-vm"
-install -Dm644 "$here/../apps/ryoku-vm/ryoku-vm.desktop" \
-  "${XDG_DATA_HOME:-$HOME/.local/share}/applications/ryoku-vm.desktop"
-# the app-launcher icon (the brand mark) so the VM entry shows the logo, not a blank tile.
-install -Dm644 "$here/../assets/brand/logo-mark.svg" \
-  "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps/ryoku-vm.svg"
-command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -qtf "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor" 2>/dev/null || true
+# Refresh the icon cache only when the theme has an index.theme; the user-overlay
+# hicolor dir usually has none, and gtk-update-icon-cache -f on an index-less dir
+# writes an EMPTY cache that Qt then trusts, hiding every icon in it. With no
+# cache, Qt/GTK scan the dir directly (correct), so drop any stale one instead.
+_iconroot="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor"
+if [[ -f "$_iconroot/index.theme" ]] && command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -qtf "$_iconroot" 2>/dev/null || true
+else
+  rm -f "$_iconroot/icon-theme.cache" 2>/dev/null || true
+fi
 command -v systemctl >/dev/null 2>&1 && systemctl --user daemon-reload 2>/dev/null || true
 
 if (( hypr_live && reload )); then

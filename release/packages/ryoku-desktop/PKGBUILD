@@ -14,6 +14,8 @@ pkgdesc="Ryoku desktop: Hyprland + Quickshell configuration, helpers, and runtim
 arch=('any')
 url="https://ryoku.dev"
 license=('GPL-3.0-or-later')
+# go builds the in-tree app helpers (ryovm-fetch); the rest is config + scripts.
+makedepends=('go')
 depends=(
   # Ryoku
   'ryoku-shell'
@@ -82,6 +84,8 @@ optdepends=(
   'edk2-ovmf: UEFI and Secure Boot firmware for the VM'
   'swtpm: TPM 2.0 for the Windows 11 VM'
   'looking-glass: low-latency VM display in a desktop window'
+  'quickemu: build and run virtual machines in ryovm'
+  'spice-gtk: SPICE console + headless VM viewer for ryovm'
 )
 install="$pkgname.install"
 source=()
@@ -105,6 +109,40 @@ package() {
   cp -a "$_repo/ryoku/shell/quickshell/." "$cfg/quickshell/"
   install -d "$cfg/quickshell/hub"
   cp -a "$_repo/ryoku/hub/quickshell/." "$cfg/quickshell/hub/"
+
+  # First-party GUI apps (ryowalls, ryovm): each ryoku/apps/<name>/quickshell
+  # ships as qs -c <name>, with its bin/ helpers on PATH, its .desktop entry,
+  # and its mark as the launcher icon. Mirrors ryoku/shell/deploy.sh so dropping
+  # in a new app dir ships it. The base config lands under /usr/share/ryoku/config
+  # for `ryoku materialize`; bins/desktop/icons go to the system tree directly.
+  local appdir appname icon gomod helperdir helper b d
+  for appdir in "$_repo"/ryoku/apps/*/; do
+    [ -d "${appdir}quickshell" ] || continue
+    appname="$(basename "$appdir")"
+    install -d "$cfg/quickshell/$appname"
+    cp -a "${appdir}quickshell/." "$cfg/quickshell/$appname/"
+    if [ -d "${appdir}bin" ]; then
+      for b in "${appdir}bin/"*; do
+        [ -f "$b" ] && install -Dm755 "$b" "$pkgdir/usr/bin/$(basename "$b")"
+      done
+    fi
+    # Go helper(s): a subdir with go.mod builds to a bin named for the module
+    # (ryovm/fetch -> ryovm-fetch). Mirrors ryoku/shell/deploy.sh.
+    for gomod in "${appdir}"*/go.mod; do
+      [ -f "$gomod" ] || continue
+      helperdir="$(dirname "$gomod")"
+      helper="$(sed -n -E 's/^module[[:space:]]+//p' "$gomod" | head -1)"
+      [ -n "$helper" ] || continue
+      ( cd "$helperdir" && go build -o "$helper" . )
+      install -Dm755 "$helperdir/$helper" "$pkgdir/usr/bin/$helper"
+    done
+    for d in "${appdir}"*.desktop; do
+      [ -f "$d" ] && install -Dm644 "$d" "$pkgdir/usr/share/applications/$(basename "$d")"
+    done
+    icon="${appdir}quickshell/logo.svg"
+    [ -f "$icon" ] || icon="$_repo/ryoku/assets/brand/logo-mark.svg"
+    install -Dm644 "$icon" "$pkgdir/usr/share/icons/hicolor/scalable/apps/$appname.svg"
+  done
 
   # Ryoku.PluginKit: the signature QML kit a shell plugin imports for its
   # content. pure QML, lives on the system import path next to Ryoku.Blobs so
@@ -161,15 +199,6 @@ package() {
   # a plugin's host/position into ~/.config/ryoku/plugins.json.
   install -Dm755 "$_repo/ryoku/shell/quickshell/plugins/ryoku-plugins-place" \
     "$pkgdir/usr/bin/ryoku-plugins-place"
-
-  # Ryoku VM: launcher wrapper on PATH + its app-launcher entry. VM stack
-  # (qemu, libvirt, looking-glass) lives in optdepends; Ryoku Settings > GPU
-  # installs it on the first "Enable passthrough".
-  install -Dm755 "$_repo/ryoku/apps/ryoku-vm/ryoku-vm" "$pkgdir/usr/bin/ryoku-vm"
-  install -Dm644 "$_repo/ryoku/apps/ryoku-vm/ryoku-vm.desktop" \
-    "$pkgdir/usr/share/applications/ryoku-vm.desktop"
-  install -Dm644 "$_repo/ryoku/assets/brand/logo-mark.svg" \
-    "$pkgdir/usr/share/icons/hicolor/scalable/apps/ryoku-vm.svg"
 
   # GPU primary-renderer udev rule: boot-stable /dev/dri/ryoku-gpu-* symlinks
   # that ryoku-gpu pins via AQ_DRM_DEVICES. vendor location = active on boot,

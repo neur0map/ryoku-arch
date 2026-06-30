@@ -1,0 +1,2 @@
+singleton Theme Theme.qml
+singleton Vm Vm.qml

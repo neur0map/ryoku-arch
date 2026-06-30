@@ -1,0 +1,539 @@
+#!/usr/bin/env bash
+# Engine for ryovm: the data plane behind the ryovm app. A thin, JSON-speaking
+# wrapper around quickemu + quickget (the QEMU front-end that auto-downloads
+# ~1000 OSes and runs them with tuned defaults), so the QML never shells out to
+# qemu itself. Every VM is one quickemu .conf under the VMs dir, which makes
+# multi-VM native; the GPU-passthrough gaming VM (Ryoku Settings > GPU) is a
+# separate, single-VM path and is deliberately untouched here.
+#
+# Verbs (all machine-readable verbs print one JSON document to stdout):
+#   caps                              host readiness (quickemu/qemu/kvm/spice)
+#   setup                            install quickemu (AUR) + spice-gtk (repo)
+#   catalog [--refresh]              quickget OS catalogue (cached)
+#   list                             local VMs + live run state
+#   get <name>                       one VM: config + state + snapshots
+#   create <os> <release> [edition]  quickget download+config (streams progress)
+#   import <name> <iso> [guest]      a VM from any ISO (full QEMU, off-catalogue)
+#   launch <name> [window|spice|headless]   start detached
+#   console <name>                   open the SPICE viewer for a running VM
+#   stop <name>                      power off
+#   config <name> <key> <value>     edit one scalar conf key
+#   snapshot <name> list|create|restore|delete [tag]
+#   ssh <name>                       print the ssh command to the guest
+#   delete <name> [--disk-only]      remove the VM (or just wipe its disk)
+#   folder [name]                    print the VMs dir (or one VM dir)
+set -euo pipefail
+
+vms_dir="${RYOVM_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/ryoku/vms}"
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/ryoku"
+catalog_cache="$cache_dir/ryovm-catalog.json"
+icon_dir="$cache_dir/ryovm-icons"
+icon_ttl_days=14                 # refresh a cached OS logo after this many days
+
+die() { printf '%s\n' "$1" >&2; exit "${2:-1}"; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# read one scalar key from a quickemu conf without sourcing it (the confs are
+# ours or quickget's, but parsing beats executing arbitrary shell either way).
+conf_get() { sed -n -E "/^$2=/{s/^$2=\"?([^\"]*)\"?\$/\1/p;q}" "$1" 2>/dev/null; }
+
+# the catalogue OS slug for a conf, used to pick the right brand logo. create and
+# import stamp `ryovm_os`; quickemu ignores the unknown key. Empty when unknown
+# (a hand-rolled conf), so the UI falls back to a generic glyph.
+os_slug() { conf_get "$1" ryovm_os; }
+
+# resolve a VM's runtime triplet from its conf: the on-disk name, its dir, and
+# the absolute disk image. quickget writes relative disk paths, so the dir is
+# resolved against the VMs dir; quickemu names runtime files after the conf.
+vm_paths() {
+	local conf="$1" disk
+	vm_name="$(basename "$conf" .conf)"
+	disk="$(conf_get "$conf" disk_img)"
+	[ -z "$disk" ] && disk="$vm_name/disk.qcow2"
+	case "$disk" in
+		/*) vm_disk="$disk" ;;
+		*)  vm_disk="$vms_dir/$disk" ;;
+	esac
+	vm_subdir="$(dirname "$vm_disk")"
+	vm_pid="$vm_subdir/$vm_name.pid"
+	vm_ports="$vm_subdir/$vm_name.ports"
+}
+
+vm_running() { # $1 = pid file
+	local p
+	[ -r "$1" ] || return 1
+	p="$(head -n1 "$1" 2>/dev/null)"
+	[ -n "$p" ] && kill -0 "$p" 2>/dev/null
+}
+
+port_of() { # $1 = ports file, $2 = name (ssh|spice)
+	[ -r "$1" ] || return 0
+	sed -n -E "/^$2,/{s/^$2,([0-9]+).*/\1/p;q}" "$1"
+}
+
+# the SPICE endpoint from a ports file, as the app reads it: a bare number for a
+# TCP port (headless / remote), or "unix:<path>" for a local socket (windowed
+# SPICE, quickemu's default). Empty when the VM exposes no SPICE.
+spice_target() { # $1 = ports file, $2 = vm subdir
+	[ -r "$1" ] || return 0
+	local tcp unix
+	tcp="$(sed -n -E '/^spice,/{s/^spice,([0-9]+).*/\1/p;q}' "$1")"
+	[ -n "$tcp" ] && { printf '%s' "$tcp"; return 0; }
+	unix="$(sed -n -E '/^unix,/{s/^unix,(.*)/\1/p;q}' "$1")"
+	if [ -n "$unix" ]; then
+		case "$unix" in /*) printf 'unix:%s' "$unix" ;; *) printf 'unix:%s/%s' "$2" "$unix" ;; esac
+	fi
+}
+
+# snapshots as JSON (newest first), tolerant: a running VM holds the disk and a
+# fresh/absent disk has none, so any failure is an empty list, never a hard error
+# (which under set -e would abort the whole verb mid-pipe).
+snaps_json() { # $1 = disk image
+	local out=""
+	[ -e "$1" ] && out="$(qemu-img info --output=json "$1" 2>/dev/null \
+		| jq -c '[.snapshots[]? | {name:."name", date:(."date-sec"|todate)}] | reverse' 2>/dev/null || true)"
+	printf '%s' "${out:-[]}"
+}
+
+conf_path() { # $1 = vm name -> absolute conf path, or die
+	local c="$vms_dir/$1.conf"
+	[ -f "$c" ] || die "no VM named '$1'"
+	printf '%s' "$c"
+}
+
+require_engine() {
+	have quickemu || die "quickemu is not installed. Run setup first."
+}
+
+# ---- caps ------------------------------------------------------------------
+cmd_caps() {
+	local qe qg qemu kvm spice ver=""
+	qe=$(have quickemu && echo true || echo false)
+	qg=$(have quickget && echo true || echo false)
+	qemu=$(have qemu-system-x86_64 && echo true || echo false)
+	kvm=$([ -e /dev/kvm ] && [ -r /dev/kvm ] && echo true || echo false)
+	spice=$( { have spicy || have remote-viewer; } && echo true || echo false)
+	[ "$qe" = true ] && ver="$(quickemu --version 2>/dev/null | sed -n 1p || true)"
+	local ready=false
+	[ "$qe" = true ] && [ "$qemu" = true ] && [ "$kvm" = true ] && ready=true
+	jq -cn --argjson quickemu "$qe" --argjson quickget "$qg" \
+		--argjson qemu "$qemu" --argjson kvm "$kvm" --argjson spice "$spice" \
+		--argjson ready "$ready" --arg version "$ver" \
+		'{quickemu:$quickemu,quickget:$quickget,qemu:$qemu,kvm:$kvm,spice:$spice,ready:$ready,version:$version}'
+}
+
+# ---- setup -----------------------------------------------------------------
+# quickemu is AUR-only; spice-gtk (spicy) is in the official repos. Route both
+# through the Ryoku package helpers so the install matches every other one.
+cmd_setup() {
+	# shellcheck disable=SC2015  # pacman fallback runs if the helper is absent or fails; both are fine
+	have ryoku-pkg-add && ryoku-pkg-add --needed spice-gtk || sudo pacman -S --needed --noconfirm spice-gtk
+	if have ryoku-pkg-aur-add; then
+		ryoku-pkg-aur-add quickemu
+	elif have yay; then
+		yay -S --needed --noconfirm quickemu
+	elif have paru; then
+		paru -S --needed --noconfirm quickemu
+	else
+		die "no AUR helper found (expected yay or paru) to install quickemu"
+	fi
+	have quickemu || die "the install finished but quickemu is still missing; see the output above"
+	echo "Done. quickemu is installed. Launch ryovm to create a VM."
+}
+
+# ---- catalog ---------------------------------------------------------------
+cmd_catalog() {
+	have quickget || die "quickget is not installed. Run setup first."
+	if [ "${1:-}" = "--refresh" ] || [ ! -s "$catalog_cache" ]; then
+		mkdir -p "$cache_dir"
+		# shellcheck disable=SC2015  # on failure, keep a usable cached catalogue if one exists
+		quickget --list-json >"$catalog_cache.tmp" 2>/dev/null && mv "$catalog_cache.tmp" "$catalog_cache" \
+			|| { rm -f "$catalog_cache.tmp"; [ -s "$catalog_cache" ] || die "could not fetch the OS catalogue"; }
+	fi
+	cat "$catalog_cache"
+}
+
+# ---- list ------------------------------------------------------------------
+cmd_list() {
+	mkdir -p "$vms_dir"
+	local first=1
+	printf '['
+	local conf
+	for conf in "$vms_dir"/*.conf; do
+		[ -e "$conf" ] || continue
+		vm_paths "$conf"
+		local guest os disp cores ram disk running ssh spice
+		guest="$(conf_get "$conf" guest_os)"
+		os="$(os_slug "$conf")"
+		disp="$(conf_get "$conf" display)"; [ -z "$disp" ] && disp="gtk"
+		cores="$(conf_get "$conf" cpu_cores)"
+		ram="$(conf_get "$conf" ram)"
+		disk="$(conf_get "$conf" disk_size)"
+		running=false; vm_running "$vm_pid" && running=true
+		ssh=""; spice=""
+		if [ "$running" = true ]; then
+			ssh="$(port_of "$vm_ports" ssh)"; spice="$(spice_target "$vm_ports" "$vm_subdir")"
+		fi
+		[ $first -eq 1 ] && first=0 || printf ','
+		jq -cn --arg name "$vm_name" --arg guest "${guest:-linux}" --arg os "${os:-}" \
+			--arg display "$disp" --arg cores "${cores:-auto}" --arg ram "${ram:-auto}" \
+			--arg disk "${disk:-}" --argjson running "$running" \
+			--arg ssh "${ssh:-}" --arg spice "${spice:-}" \
+			--argjson exists "$([ -e "$vm_disk" ] && echo true || echo false)" \
+			'{name:$name,guest:$guest,os:$os,display:$display,cores:$cores,ram:$ram,disk:$disk,running:$running,installed:$exists,ssh:$ssh,spice:$spice}'
+	done
+	printf ']\n'
+}
+
+# ---- get -------------------------------------------------------------------
+cmd_get() {
+	local conf; conf="$(conf_path "$1")"
+	vm_paths "$conf"
+	local guest os disp cores ram disk running snaps="[]"
+	guest="$(conf_get "$conf" guest_os)"
+	os="$(os_slug "$conf")"
+	disp="$(conf_get "$conf" display)"; [ -z "$disp" ] && disp="gtk"
+	cores="$(conf_get "$conf" cpu_cores)"
+	ram="$(conf_get "$conf" ram)"
+	disk="$(conf_get "$conf" disk_size)"
+	running=false; vm_running "$vm_pid" && running=true
+	local ssh="" spice=""
+	if [ "$running" = true ]; then
+		ssh="$(port_of "$vm_ports" ssh)"; spice="$(spice_target "$vm_ports" "$vm_subdir")"
+	fi
+	snaps="$(snaps_json "$vm_disk")"
+	jq -cn --arg name "$vm_name" --arg guest "${guest:-linux}" --arg os "${os:-}" --arg display "$disp" \
+		--arg cores "${cores:-auto}" --arg ram "${ram:-auto}" --arg disk "${disk:-}" \
+		--argjson running "$running" --arg ssh "${ssh:-}" --arg spice "${spice:-}" \
+		--argjson installed "$([ -e "$vm_disk" ] && echo true || echo false)" \
+		--argjson snapshots "$snaps" --arg conf "$conf" --arg dir "$vm_subdir" \
+		'{name:$name,guest:$guest,os:$os,display:$display,cores:$cores,ram:$ram,disk:$disk,running:$running,installed:$installed,ssh:$ssh,spice:$spice,snapshots:$snapshots,conf:$conf,dir:$dir}'
+}
+
+# ---- create (catalogue OS, in-app download with live progress) --------------
+# Emits one JSON line per step so the app draws a live bar and can cancel: a
+# {"phase":...} for each stage, with the Go fetcher's own {"event":...} progress
+# flowing through during download. The fast path (most Linux distros) resolves a
+# direct URL and downloads it in parallel with ryovm-fetch, then has quickget
+# write the conf from the local image. Windows, macOS and the special-boot OSes
+# fall back to quickget's own downloader (streamed as log lines), since their
+# config needs quickget's full per-OS logic. Cancellation (SIGTERM from the app)
+# is forwarded to the child so a half-image is cleaned up, never left behind.
+
+# OSes whose config quickget must build itself (TPM/virtio, recovery image, or a
+# legacy-boot / non-linux guest); everything else takes the fast Go path.
+create_special() {
+	case "$1" in
+		windows|windows-server|macos|freebsd|ghostbsd|dragonflybsd|netbsd|openbsd|haiku|freedos|kolibrios|openindiana|reactos|batocera|slackware|slax|tinycore|slitaz|slint|easyos|netboot) return 0 ;;
+		*) return 1 ;;
+	esac
+}
+
+emit() { printf '%s\n' "$1"; }
+
+cmd_create() {
+	have quickget || { emit '{"phase":"error","message":"quickget is not installed"}'; exit 1; }
+	local os="${1:-}" release="${2:-}" edition="${3:-}"
+	[ -n "$os" ] && [ -n "$release" ] || { emit '{"phase":"error","message":"create needs <os> <release> [edition]"}'; exit 1; }
+	mkdir -p "$vms_dir"; cd "$vms_dir"
+	local name="$os-$release"; [ -n "$edition" ] && name="$name-$edition"
+	[ -e "$vms_dir/$name.conf" ] && { emit "{\"phase\":\"error\",\"message\":\"$name already exists\"}"; exit 1; }
+
+	local child="" stage=""
+	# set +e in the handler: wait returns the killed child's non-zero status, which
+	# under set -e would abort the trap before it cleans up and reports.
+	trap 'set +e; [ -n "$child" ] && kill -TERM "$child" 2>/dev/null; wait "$child" 2>/dev/null; [ -n "$stage" ] && rm -rf "$stage"; emit "{\"phase\":\"cancelled\"}"; exit 130' TERM INT
+
+	if ! create_special "$os" && have ryovm-fetch; then
+		emit '{"phase":"resolve"}'
+		local url base
+		url="$(quickget --url "$os" "$release" ${edition:+"$edition"} 2>/dev/null | grep -oE 'https?://[^ ]+' | head -1)"
+		base="${url##*/}"
+		case "$base" in
+			*.iso|*.img|*.ISO|*.IMG)
+				stage="$vms_dir/.staging-$name"
+				rm -rf "$stage"; mkdir -p "$stage"
+				emit "{\"phase\":\"download\",\"name\":\"$name\"}"
+				ryovm-fetch "$url" "$stage/$base" & child=$!
+				local rc=0; wait "$child" || rc=$?; child=""
+				[ "$rc" -eq 0 ] || { rm -rf "$stage"; emit '{"phase":"error","message":"download failed"}'; exit 1; }
+				emit '{"phase":"config"}'
+				quickget --create-config "$name" "$stage/$base" >/dev/null 2>&1 || { rm -rf "$stage"; emit '{"phase":"error","message":"could not write the VM config"}'; exit 1; }
+				rm -rf "$stage"
+				grep -q '^ryovm_os=' "$vms_dir/$name.conf" 2>/dev/null || echo "ryovm_os=\"$os\"" >>"$vms_dir/$name.conf"
+				emit "{\"phase\":\"done\",\"name\":\"$name\"}"
+				return 0 ;;
+		esac
+		# no single-file URL: fall through to quickget's own downloader.
+	fi
+
+	# fallback: quickget downloads + configures; stream its output as log lines
+	# through a temp file that tail --pid follows until quickget exits.
+	emit "{\"phase\":\"download\",\"name\":\"$name\",\"fallback\":true}"
+	local logf; logf="$(mktemp)"
+	setsid quickget "$os" "$release" ${edition:+"$edition"} >"$logf" 2>&1 & child=$!
+	tail --pid="$child" -n +1 -f "$logf" 2>/dev/null | while IFS= read -r line; do
+		[ -n "$line" ] && emit "$(jq -cn --arg l "$line" '{phase:"log",line:$l}')"
+	done
+	wait "$child" 2>/dev/null; child=""
+	rm -f "$logf"
+	# stamp + report from whatever quickget produced for this OS.
+	local c made=""
+	for c in "$vms_dir/$os-$release"*.conf; do
+		[ -e "$c" ] || continue
+		grep -q '^ryovm_os=' "$c" || echo "ryovm_os=\"$os\"" >>"$c"
+		made="$(basename "$c" .conf)"
+	done
+	if [ -n "$made" ]; then emit "{\"phase\":\"done\",\"name\":\"$made\"}"; else emit '{"phase":"error","message":"download failed"}'; exit 1; fi
+}
+
+# ---- import (any ISO, off-catalogue, full control) -------------------------
+cmd_import() {
+	local name="${1:?import needs a name}" iso="${2:?import needs an ISO path}" guest="${3:-linux}" os="${4:-}"
+	[ -f "$iso" ] || die "ISO not found: $iso"
+	mkdir -p "$vms_dir"
+	local conf="$vms_dir/$name.conf"
+	[ -e "$conf" ] && die "a VM named '$name' already exists"
+	{
+		echo "guest_os=\"$guest\""
+		echo "disk_img=\"$name/disk.qcow2\""
+		echo "iso=\"$iso\""
+		echo "disk_size=\"64G\""
+		# the guest type doubles as the logo slug when no catalogue OS is given
+		# (windows/macos/android all have brand icons; linux falls back to a glyph).
+		echo "ryovm_os=\"${os:-$guest}\""
+	} >"$conf"
+	echo "Created $conf"
+}
+
+# ---- launch ----------------------------------------------------------------
+# Detach so the engine returns at once and the VM (and any viewer) outlives it.
+# display: window (gtk) | spice (spicy viewer + clipboard) | headless (none).
+cmd_launch() {
+	require_engine
+	local conf; conf="$(conf_path "$1")"
+	local mode="${2:-window}" display
+	case "$mode" in
+		window)   display="gtk" ;;
+		spice)    display="spice" ;;
+		headless) display="none" ;;
+		*) die "launch display must be window|spice|headless" ;;
+	esac
+	vm_paths "$conf"
+	vm_running "$vm_pid" && die "$vm_name is already running"
+	cd "$vms_dir"
+	local log="$vm_subdir/$vm_name.launch.log"
+	mkdir -p "$vm_subdir"
+	setsid quickemu --vm "$vm_name.conf" --display "$display" >"$log" 2>&1 < /dev/null &
+	# quickemu backgrounds qemu then exits; give it a moment and surface a fast
+	# failure (bad firmware, missing tool) instead of a silent no-op launch.
+	sleep 1.2
+	if [ "$mode" != headless ] || ! vm_running "$vm_pid"; then
+		if ! vm_running "$vm_pid"; then
+			die "the VM failed to start:
+$(tail -n 12 "$log" 2>/dev/null)"
+		fi
+	fi
+	echo "launched $vm_name ($mode)"
+}
+
+# ---- console (attach a SPICE viewer to a running VM) -----------------------
+cmd_console() {
+	local conf; conf="$(conf_path "$1")"
+	vm_paths "$conf"
+	vm_running "$vm_pid" || die "$vm_name is not running"
+	local spice; spice="$(spice_target "$vm_ports" "$vm_subdir")"
+	[ -n "$spice" ] || die "$vm_name has no SPICE console; relaunch it in SPICE or Headless mode"
+	local viewer
+	case "$spice" in
+		unix:*)
+			local sock="${spice#unix:}"
+			if have spicy; then viewer=(spicy --title "$vm_name" --uri="spice+unix://$sock")
+			elif have remote-viewer; then viewer=(remote-viewer "spice+unix://$sock")
+			else die "no SPICE viewer found (install spice-gtk)"; fi ;;
+		*)
+			if have spicy; then viewer=(spicy --title "$vm_name" --port "$spice")
+			elif have remote-viewer; then viewer=(remote-viewer "spice://localhost:$spice")
+			else die "no SPICE viewer found (install spice-gtk)"; fi ;;
+	esac
+	setsid "${viewer[@]}" >/dev/null 2>&1 < /dev/null &
+	echo "console opened for $vm_name"
+}
+
+# ---- stop ------------------------------------------------------------------
+cmd_stop() {
+	require_engine
+	local conf; conf="$(conf_path "$1")"
+	vm_paths "$conf"
+	cd "$vms_dir"
+	quickemu --vm "$vm_name.conf" --kill >/dev/null 2>&1 || true
+	echo "stopped $vm_name"
+}
+
+# ---- config (edit one scalar key) ------------------------------------------
+cmd_config() {
+	local conf; conf="$(conf_path "$1")"
+	local key="${2:?config needs a key}" val="${3-}"
+	case "$key" in
+		cpu_cores|ram|disk_size|display|guest_os|secureboot|tpm|iso|ryovm_os) ;;
+		*) die "config key not allowed: $key" ;;
+	esac
+	vm_paths "$conf"
+	vm_running "$vm_pid" && die "stop $vm_name before changing its configuration"
+	if grep -qE "^$key=" "$conf"; then
+		sed -i -E "s|^$key=.*|$key=\"$val\"|" "$conf"
+	else
+		echo "$key=\"$val\"" >>"$conf"
+	fi
+	echo "set $key=$val on $vm_name"
+}
+
+# ---- snapshot --------------------------------------------------------------
+cmd_snapshot() {
+	local conf; conf="$(conf_path "$1")"; shift
+	local sub="${1:?snapshot needs list|create|restore|delete}"; shift || true
+	vm_paths "$conf"
+	[ -e "$vm_disk" ] || die "$vm_name has no disk yet; launch it once first"
+	case "$sub" in
+		list)
+			snaps_json "$vm_disk"; echo ;;
+		create|restore|delete)
+			local tag="${1:?$sub needs a tag}"
+			vm_running "$vm_pid" && die "stop $vm_name before managing snapshots"
+			case "$sub" in
+				create)  qemu-img snapshot -c "$tag" "$vm_disk" && echo "snapshot '$tag' created" ;;
+				restore) qemu-img snapshot -a "$tag" "$vm_disk" && echo "restored '$tag'" ;;
+				delete)  qemu-img snapshot -d "$tag" "$vm_disk" && echo "deleted '$tag'" ;;
+			esac ;;
+		*) die "unknown snapshot subcommand: $sub" ;;
+	esac
+}
+
+# ---- ssh -------------------------------------------------------------------
+cmd_ssh() {
+	local conf; conf="$(conf_path "$1")"
+	vm_paths "$conf"
+	vm_running "$vm_pid" || die "$vm_name is not running"
+	local port; port="$(port_of "$vm_ports" ssh)"
+	[ -n "$port" ] || die "$vm_name has no forwarded SSH port"
+	echo "ssh -p $port ${SUDO_USER:-$USER}@localhost"
+}
+
+# ---- delete ----------------------------------------------------------------
+cmd_delete() {
+	require_engine
+	local conf; conf="$(conf_path "$1")"
+	vm_paths "$conf"
+	vm_running "$vm_pid" && die "stop $vm_name before deleting it"
+	cd "$vms_dir"
+	if [ "${2:-}" = "--disk-only" ]; then
+		quickemu --vm "$vm_name.conf" --delete-disk >/dev/null 2>&1 || true
+		echo "wiped the disk for $vm_name"
+	else
+		quickemu --vm "$vm_name.conf" --delete-vm >/dev/null 2>&1 || true
+		rm -f "$conf"
+		echo "deleted $vm_name"
+	fi
+}
+
+# ---- folder ----------------------------------------------------------------
+cmd_folder() {
+	if [ -n "${1:-}" ]; then
+		local conf; conf="$(conf_path "$1")"; vm_paths "$conf"; printf '%s\n' "$vm_subdir"
+	else
+		mkdir -p "$vms_dir"; printf '%s\n' "$vms_dir"
+	fi
+}
+
+# ---- icon (cached brand logo for an OS slug) -------------------------------
+# Resolves a catalogue OS slug to a local logo path, downloading from the
+# quickemu-icons set on a miss or after the TTL. Prefers the crisp SVG and falls
+# back to the PNG. A `<os>.miss` marker negative-caches a confirmed no-art result
+# (only ~37 of ~93 OSes ship art) so warm launches skip the two 404s. Prints the
+# cached path, or nothing when there's no art (the UI then draws a monogram).
+cmd_icon() {
+	local os="${1:?icon needs an OS slug}"
+	mkdir -p "$icon_dir"
+	local svg="$icon_dir/$os.svg" png="$icon_dir/$os.png" miss="$icon_dir/$os.miss" f
+	for f in "$svg" "$png"; do
+		if [ -s "$f" ]; then
+			local age=$(( ( $(date +%s) - $(stat -c %Y "$f" 2>/dev/null || echo 0) ) / 86400 ))
+			[ "$age" -lt "$icon_ttl_days" ] && { printf '%s\n' "$f"; return 0; }
+		fi
+	done
+	serve_stale() { for f in "$svg" "$png"; do [ -s "$f" ] && { printf '%s\n' "$f"; return 0; }; done; return 1; }
+	# fresh negative cache: known no-art, skip the network.
+	if [ -f "$miss" ]; then
+		local mage=$(( ( $(date +%s) - $(stat -c %Y "$miss" 2>/dev/null || echo 0) ) / 86400 ))
+		[ "$mage" -lt "$icon_ttl_days" ] && { serve_stale || true; return 0; }
+	fi
+	# need the catalogue to know the URLs; absent -> serve any stale cache.
+	[ -s "$catalog_cache" ] || { serve_stale || true; return 0; }
+	local svgurl pngurl
+	svgurl="$(jq -r --arg os "$os" 'first(.[] | select(.OS==$os) | .SVG) // empty' "$catalog_cache" 2>/dev/null)"
+	pngurl="$(jq -r --arg os "$os" 'first(.[] | select(.OS==$os) | .PNG) // empty' "$catalog_cache" 2>/dev/null)"
+	if [ -n "$svgurl" ] && curl -fsSL "$svgurl" -o "$svg.tmp" 2>/dev/null && [ -s "$svg.tmp" ]; then
+		mv "$svg.tmp" "$svg"; rm -f "$png" "$miss"; printf '%s\n' "$svg"; return 0
+	fi
+	rm -f "$svg.tmp"
+	if [ -n "$pngurl" ] && curl -fsSL "$pngurl" -o "$png.tmp" 2>/dev/null && [ -s "$png.tmp" ]; then
+		mv "$png.tmp" "$png"; rm -f "$miss"; printf '%s\n' "$png"; return 0
+	fi
+	rm -f "$png.tmp"
+	: > "$miss"            # record the miss so the next launch skips the network
+	serve_stale || true
+}
+
+# ---- prefetch (warm every catalogue logo in parallel) ----------------------
+# Downloads all OS logos concurrently (honoring the cache + miss markers) so the
+# Catalog paints from local files instead of 93 serial CDN hits, and prints a
+# JSON object {os: "/abs/path"} of the OSes that have art. The UI seeds its path
+# cache from this, so warm tiles render the local file at once (no per-card
+# round-trip) and logo-bearers float to a "Popular" section.
+cmd_prefetch() {
+	[ -s "$catalog_cache" ] || cmd_catalog >/dev/null 2>&1 || true
+	[ -s "$catalog_cache" ] || { echo '{}'; return 0; }
+	mkdir -p "$icon_dir"
+	local self; self="$(command -v ryovm 2>/dev/null || printf '%s' "$0")"
+	jq -r '[.[].OS] | unique | .[]' "$catalog_cache" 2>/dev/null \
+		| xargs -P 12 -I {} "$self" icon {} >/dev/null 2>&1 || true
+	jq -r '[.[].OS] | unique | .[]' "$catalog_cache" 2>/dev/null \
+		| while IFS= read -r os; do
+			for f in "$icon_dir/$os.svg" "$icon_dir/$os.png"; do
+				[ -s "$f" ] && { printf '%s\t%s\n' "$os" "$f"; break; }
+			done
+		done | jq -R 'split("\t") | {(.[0]): .[1]}' | jq -cs 'add // {}'
+}
+
+# ---- paths (where things live + who provides the catalogue) ----------------
+cmd_paths() {
+	jq -cn --arg vms "$vms_dir" --arg cache "$cache_dir" --arg icons "$icon_dir" \
+		--arg catalog "$catalog_cache" \
+		'{vms:$vms,cache:$cache,icons:$icons,catalog:$catalog,
+		  provider:"quickemu + quickget",
+		  icons_provider:"quickemu-icons",
+		  source:"github.com/quickemu-project"}'
+}
+
+cmd="${1:-}"; shift || true
+case "$cmd" in
+	caps)     cmd_caps "$@" ;;
+	setup)    cmd_setup "$@" ;;
+	catalog)  cmd_catalog "$@" ;;
+	list)     cmd_list "$@" ;;
+	get)      cmd_get "$@" ;;
+	create)   cmd_create "$@" ;;
+	import)   cmd_import "$@" ;;
+	launch)   cmd_launch "$@" ;;
+	console)  cmd_console "$@" ;;
+	stop)     cmd_stop "$@" ;;
+	config)   cmd_config "$@" ;;
+	snapshot) cmd_snapshot "$@" ;;
+	ssh)      cmd_ssh "$@" ;;
+	delete)   cmd_delete "$@" ;;
+	folder)   cmd_folder "$@" ;;
+	icon)     cmd_icon "$@" ;;
+	prefetch) cmd_prefetch "$@" ;;
+	paths)    cmd_paths "$@" ;;
+	*) die "usage: ryovm caps|setup|catalog|list|get|create|import|launch|console|stop|config|snapshot|ssh|delete|folder|icon|prefetch|paths" 2 ;;
+esac
