@@ -17,6 +17,9 @@ Singleton {
     readonly property real padRow:    10
     readonly property real gapRow:    2
     readonly property real gapTab:    16
+    // height of a result-list section header (type label + hairline). The list
+    // height calc and the row delegate both read this so they never disagree.
+    readonly property real sectionH: 18
 
     readonly property real radiusWindow: 16
     // rest card: one step inside the window radius (and the Hyprland window

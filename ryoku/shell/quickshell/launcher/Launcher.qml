@@ -71,7 +71,20 @@ Item {
 
     readonly property real cardW: Metrics.windowW * s
     readonly property int visibleRows: 8
-    readonly property real listH: Math.min(results.length, visibleRows) * (Metrics.rowHeight + Metrics.gapRow) * s
+    readonly property int visibleCount: Math.min(results.length, visibleRows)
+    // each distinct type group draws an 18px section header, so the list must be
+    // tall enough for the rows AND their headers — otherwise the last row clips
+    // (the subtitle vanishes and the action verb sits wrong).
+    readonly property int sectionCount: {
+        var n = 0, prev = null;
+        for (var i = 0; i < visibleCount; i++) {
+            var t = results[i] ? (results[i].type || "") : "";
+            if (i === 0 || t !== prev) n++;
+            prev = t;
+        }
+        return n;
+    }
+    readonly property real listH: visibleCount * (Metrics.rowHeight + Metrics.gapRow) * s + sectionCount * Metrics.sectionH * s
     readonly property real gridH: 380 * s
     readonly property real tabsH: actionBrowse ? tabs.implicitHeight + 6 * s : 0
     readonly property real restH: rest.implicitHeight + (hasMedia ? nowPlaying.implicitHeight + Metrics.padRow * s : 0)

@@ -61,7 +61,7 @@ ListView {
             var prev = list.results[index - 1];
             return !prev || (prev.type || "") !== row.typeLabel;
         }
-        readonly property real headerH: sectionHead ? 18 * list.s : 0
+        readonly property real headerH: sectionHead ? Metrics.sectionH * list.s : 0
         readonly property bool hasIcon: entry && entry.icon && entry.icon.length > 0
 
         height: Metrics.rowHeight * list.s + headerH
