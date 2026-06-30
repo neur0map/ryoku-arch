@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell
 import "Singletons"
-import "providers/apps"
+import "providers"
 
 // The command palette body: a search row over either the rest dashboard (empty
 // query) or the ranked result list. Grows and shrinks with its content on the
@@ -32,9 +32,9 @@ Item {
         NumberAnimation { duration: Motion.morph; easing.type: Motion.easeMorph; easing.bezierCurve: Motion.morphCurve }
     }
 
-    // The apps provider registers itself on load; instantiating it here wires it
-    // into the dispatcher. Further providers are added the same way.
-    Apps {}
+    // Every provider registers itself with the dispatcher on load; the aggregator
+    // instantiates them all. The view only renders what the dispatcher returns.
+    Providers {}
 
     onShownChanged: {
         if (shown) {
