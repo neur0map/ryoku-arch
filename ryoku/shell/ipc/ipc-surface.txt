@@ -8,7 +8,6 @@ init
 launcher
 link
 lock
-media
 mixer
 peek
 ping

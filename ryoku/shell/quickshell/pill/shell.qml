@@ -11,7 +11,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
-import Quickshell.Services.Mpris
 import Ryoku.Blobs
 import "Singletons"
 import "popouts"
@@ -257,10 +256,6 @@ ShellRoot {
         function battery(mon: string): void { root.toggleSurface(mon, "battery"); }
         function clipboard(mon: string): void { root.toggleSurface(mon, "clipboard"); }
         function wallpaper(mon: string): void { root.toggleSurface(mon, "wallpaper"); }
-        function media(mon: string): void {
-            if (Mpris.players.values.length > 0)
-                root.toggleSurface(mon, "media");
-        }
         function sysinfo(mon: string): void { root.toggleSurface(mon, "sysinfo"); }
         function stash(mon: string): void { root.toggleSurface(mon, "stash"); }
         function toolkit(mon: string): void { root.toggleSurface(mon, "toolkit"); }
@@ -302,9 +297,6 @@ ShellRoot {
         case "link": case "inbox": case "battery": case "sysinfo":
         case "stash": case "toolkit": case "utilities": case "workspaces":
             root.toggleSurface(mon, fn); return true;
-        case "media":
-            if (Mpris.players.values.length > 0) root.toggleSurface(mon, "media");
-            return true;
         case "mixer": case "power":
             root.togglePopout(mon, fn); return true;
         case "pluginPopout":
@@ -456,7 +448,7 @@ ShellRoot {
                 id: pillRegion
                 readonly property real baseW: Math.max(pill.width, pill.targetW)
                 readonly property real baseX: pill.x + (pill.width - baseW) / 2
-                readonly property real musicPad: musicIsland.visible ? Math.max(0, musicIsland.x + musicIsland.width - (baseX + baseW)) : 0
+                readonly property real musicPad: 0
                 x: baseX
                 y: 0
                 width: baseW + musicPad
@@ -716,10 +708,9 @@ ShellRoot {
                     }
                 }
 
-                // music island buds off the centre island through its own
-                // blob field: a pill-shaped anchor it warps out of and
-                // melts back into. second field (not the frame's) so the
-                // music never fuses the border.
+                // the island field: a second blob field (not the frame's) that
+                // carries the detached floating-pill island style, kept out of
+                // the frame field so it never fuses the border.
                 BlobGroup {
                     id: islandGroup
                     color: Config.matchWallpaper ? Wallust.surface : Config.surfaceColor
@@ -729,20 +720,17 @@ ShellRoot {
                 BlobRect {
                     // island body, in the island field (never the frame
                     // field, so it can't fuse the border).
-                    //   fused                = mirrors pillBlob as the
-                    //                          anchor the music bud melts
-                    //                          into, present only while
-                    //                          music shows.
+                    //   fused                = unused (collapsed to nothing).
                     //   detached (float/none)= IS the visible floating
                     //                          pill, rounded rect below the
-                    //                          frame the music buds off.
+                    //                          frame.
                     // height carries the same reveal curtain as pillBlob.
                     id: islandBlob
                     group: islandGroup
                     x: pill.x
                     y: overlay.fused ? 0 : pill.y
-                    readonly property bool present: overlay.fused ? musicIsland.visible
-                                                                  : (overlay.islandShown || musicIsland.visible)
+                    readonly property bool present: overlay.fused ? false
+                                                                  : overlay.islandShown
                     property real reveal: present ? 1 : 0
                     visible: reveal > 0
                     width: pill.width
@@ -760,26 +748,6 @@ ShellRoot {
                             easing.bezierCurve: Motion.morphCurve
                         }
                     }
-                }
-
-                BlobRect {
-                    // tracks the music island. the smooth-min neck to
-                    // islandBlob stretches and breaks as it slides out (the
-                    // warp) and reforms as it melts back in on close.
-                    id: musicBlob
-                    group: islandGroup
-                    x: musicIsland.x
-                    y: musicIsland.y
-                    // collapse to nothing when hidden. the SDF field
-                    // ignores `visible`, so a sized-but-invisible bud still
-                    // paints wherever another shape in the group does.
-                    // zero size removes it from the field entirely.
-                    width: musicIsland.visible ? musicIsland.width : 0
-                    height: musicIsland.visible ? musicIsland.height : 0
-                    radius: musicIsland.height / 2
-                    deformScale: 0
-                    opacity: Config.islandOpacity
-                    visible: musicIsland.visible
                 }
 
                 DropArea {
@@ -804,7 +772,7 @@ ShellRoot {
                     barWindow: overlay
                     surface: overlay.surface
                     forcePinned: root.peekMon === overlay.modelData.name
-                    satelliteHover: musicIsland.hovered || updateIsland.hovered || activityStrip.hovered
+                    satelliteHover: updateIsland.hovered || activityStrip.hovered
 
                     opacity: overlay.islandShown ? 1 : 0
                     Behavior on opacity {
@@ -843,21 +811,6 @@ ShellRoot {
                     width: pill.width
                     height: overlay.islandShown ? Math.max(0, pill.y) : overlay.revealTrigger
                     HoverHandler { onHoveredChanged: pill.externalHover = hovered }
-                }
-
-                MusicIsland {
-                    id: musicIsland
-                    s: overlay.s
-                    live: !overlay.surfaceOpen
-                    open: overlay.islandShown && !overlay.surfaceOpen && !pill.toastActive && !pill.osdActive
-                    x: {
-                        const start = pill.x + pill.width / 2 - width / 2;
-                        const end = pill.x + pill.width + 18 * overlay.s;
-                        return start + (end - start) * reveal;
-                    }
-                    y: Math.max(pill.y + pill.height / 2 - height / 2, 22)
-                    onHoveredChanged: pill.hoverSuppressed = hovered
-                    onActivated: root.toggleSurface(overlay.modelData.name, "media")
                 }
 
                 ActivityStrip {

@@ -14,7 +14,6 @@ func TestRoute(t *testing.T) {
 		{"inbox", "pill", "pill", "inbox"},
 		{"wallpaper-picker", "pill", "pill", "wallpaper"},
 		{"mixer", "pill", "pill", "mixer"},
-		{"media", "pill", "pill", "media"},
 		{"hide", "pill", "pill", "hide"},
 		{"sysinfo", "pill", "pill", "sysinfo"},
 		{"stash", "pill", "pill", "stash"},

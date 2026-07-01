@@ -55,7 +55,6 @@ Item {
     readonly property bool calendarOpen: surface === "calendar"
     readonly property bool clipboardOpen: surface === "clipboard"
     readonly property bool wallpaperOpen: surface === "wallpaper"
-    readonly property bool mediaOpen: surface === "media"
     readonly property bool linkOpen: surface === "link"
     readonly property bool inboxOpen: surface === "inbox"
     readonly property bool batteryOpen: surface === "battery"
@@ -66,7 +65,6 @@ Item {
     readonly property bool voiceOpen: surface === "voice"
     readonly property bool workspacesOpen: surface === "workspaces"
     readonly property bool keyringOpen: surface === "keyring"
-    readonly property bool hasMedia: Mpris.players.values.length > 0
 
     readonly property bool surfaceOpen: surface.length > 0
     property bool hoverLatch: false
@@ -85,8 +83,6 @@ Item {
     readonly property real clipboardH: 332 * s
     readonly property real wallpaperW: 720 * s
     readonly property real wallpaperH: 146 * s
-    readonly property real mediaW: 390 * s
-    readonly property real mediaH: 150 * s
     readonly property real batteryW: 316 * s
     readonly property real inboxW: 340 * s
     readonly property real sysinfoW: 360 * s
@@ -101,7 +97,6 @@ Item {
     readonly property string baseMode: calendarOpen ? "calendar"
         : (clipboardOpen ? "clipboard"
         : (wallpaperOpen ? "wallpaper"
-        : (mediaOpen ? "media"
         : (linkOpen ? "link"
         : (inboxOpen ? "inbox"
         : (batteryOpen ? "battery"
@@ -113,7 +108,7 @@ Item {
         : (workspacesOpen ? "workspaces"
         : (osdActive && !held ? "osd"
         : (toastActive && !held ? "toast"
-        : (expanded ? "hover" : "rest")))))))))))))))
+        : (expanded ? "hover" : "rest"))))))))))))))
 
     signal requestSurface(string name)
     signal requestClose()
@@ -182,7 +177,6 @@ Item {
         calendar:  () => Qt.size(calendarW, calendarH),
         clipboard: () => Qt.size(clipboardW, clipboardH),
         wallpaper: () => Qt.size(wallpaperW, wallpaperH),
-        media:     () => Qt.size(mediaW, mediaH),
         link:      () => Qt.size(link.desiredW, link.implicitHeight + 26 * s),
         inbox:     () => Qt.size(inboxW, inbox.implicitHeight + 26 * s),
         battery:   () => Qt.size(batteryW, battery.implicitHeight + 26 * s),
@@ -326,8 +320,7 @@ Item {
      * exports its own `ameForm`/`amePoint`; the pill just picks one and maps it.
      * Null = nothing open, so Ame falls back to the pill's own hover/wake anchor.
      */
-    readonly property var ameSurface: mediaOpen ? media
-        : (clipboardOpen ? clip
+    readonly property var ameSurface: clipboardOpen ? clip
         : (calendarOpen ? calendar
         : (linkOpen ? link
         : (inboxOpen ? inbox
@@ -337,7 +330,7 @@ Item {
         : (utilitiesOpen ? deck
         : (voiceOpen ? voice
         : (workspacesOpen ? workspaces
-        : (batteryOpen ? battery : null)))))))))))
+        : (batteryOpen ? battery : null))))))))))
 
     Ame {
         id: ame
@@ -793,18 +786,6 @@ Item {
         open: pill.wallpaperOpen
         morphCloseness: pill.morphCloseness
         shown: pill.displayedSurface === "wallpaper"
-        openProgress: pill.openProgress
-        openW: pill.openW
-        openH: pill.openH
-        onRequestClose: pill.requestClose()
-    }
-
-    Media {
-        id: media
-        s: pill.s
-        open: pill.mediaOpen
-        morphCloseness: pill.morphCloseness
-        shown: pill.displayedSurface === "media"
         openProgress: pill.openProgress
         openW: pill.openW
         openH: pill.openH

@@ -46,8 +46,8 @@ scene and one `BlobGroup`. Ryoku hosts it inside the **pill shell**
   top-centre);
 - the edge popouts (see below).
 
-A second `BlobGroup` (`islandGroup`) carries the music island, deliberately kept
-out of the frame field so it never fuses the border. The pill draws no background
+A second `BlobGroup` (`islandGroup`) carries the detached floating-pill island
+style, deliberately kept out of the frame field so it never fuses the border. The pill draws no background
 of its own; every state is just the blob growing.
 
 ## Edge popouts
