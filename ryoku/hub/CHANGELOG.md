@@ -175,6 +175,15 @@
   shell's morph motion (a single sliding selection indicator in the rail).
 
 ### Changed
+- Colour sourcing is one master, not three toggles. "Colours follow wallpaper"
+  in Appearance -> Themes is the single switch; the Borders "Follow wallpaper
+  palette" and Shell "Match wallpaper" toggles are gone, and window borders and
+  shell chrome now follow that one master (read from `theme.json`
+  `followWallpaper`). The Borders tab shows its fixed-colour fields only when the
+  master is off. The backend no longer runs `wallust` directly: `applyTheme`,
+  `setFollowWallpaper`, and `applyScheme("follow")` write their intent and call
+  `ryoku-shell wallpaper repaint`, so a theme apply or a toggle derives the same
+  palette as a normal wallpaper change (honouring the ryowalls per-image tune).
 - Single-select controls read as one family. The active choice in `ChoiceRow`
   (Input, Displays, GPU, Shell, Widgets, Appearance) and the pick-one pills for
   plugin placement and host now wear the same dark raised pill (`keyTop` +

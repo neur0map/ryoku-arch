@@ -223,6 +223,12 @@
   palette stays static.
 
 ### Changed
+- `ipc/`: the daemon is the single owner of `wallust`. A palette-only `wallpaper
+  repaint` re-derives colours with no image transition, and the hub calls it
+  instead of running wallust itself. Shell chrome (pill, island, widgets,
+  plugins, switcher) reads the one colour master, `theme.json` `followWallpaper`,
+  instead of `shell.json` `matchWallpaper`, so borders and chrome follow the
+  wallpaper together.
 - `quickshell/pill`: the `力 CONTROL DECK` is restructured into a tighter control
   centre (~40% smaller footprint) so it reads less like a generic settings list.
   The right column's six stacked sections collapse to three whitespace-grouped
@@ -315,6 +321,11 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- Wallpaper colours no longer inherit a previous image's tune. `ipc/wallpaper.go`
+  `tuneArgs` applies the ryowalls palette tune only when it is keyed to the
+  current wallpaper (an `image` match), so a Super+W cycle or a different image
+  falls back to default extraction. A green wallpaper is no longer themed with a
+  stale complementary (magenta) palette left from an earlier tuning session.
 - `quickshell/launcher`: three launcher features shipped wired to tools that no
   package set installed, so they silently did nothing on a real machine.
   `system/packages/base.packages` now ships them and `tests/shell-tool-availability.sh`

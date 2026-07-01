@@ -36,6 +36,12 @@
   Settings > GPU is a separate, single-VM path.
 
 ### Changed
+- `ryowalls/`: the palette tune is now per-image and one-time. Setting a
+  wallpaper writes the tune keyed to that image (`ryoku-wallust.json` gains an
+  `image` field); the daemon applies it only while that image is the wallpaper,
+  and a Super+W cycle takes over with default wallust. Tuning no longer writes a
+  global mirror on every change, so a tune can never bleed onto a later
+  wallpaper.
 - `fish/`: put `~/.local/bin` on `PATH` for every shell (not only interactive),
   so user-installed tools and the `ryoku-fastfetch` wrapper resolve.
 - `fastfetch/`: align the readout to the upstream Ryoku config (host/cpu/gpu
