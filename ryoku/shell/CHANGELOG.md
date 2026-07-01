@@ -278,14 +278,19 @@
 
 ### Changed
 - `quickshell/launcher`: the rest card's clock/date strip is reworked from a flat
-  slab into a day-wave scene. The clock and greeting read over a filled wave
-  horizon that encodes the day itself: the stretch behind the sun glows the accent
-  (the day so far), the stretch ahead stays faint (what is left), and a sun by day
-  or a carved crescent moon by night rides the ridge at the current time. It is the
-  same fill-is-elapsed grammar as the NowPlaying seekbar below it, so the resting
-  card and the playing card read as one family instead of the clock reading as a
-  foreign box. The old 力 seal is dropped, a recessed `cardBot` surface with a top
-  sheen replaces the lighter floating fill, the colon breathes like the other clock
+  slab into a solar-arc scene. The clock and greeting read over a filled wave
+  horizon that traces the real day: the stretch behind the marker glows the phase
+  colour (how far through this phase we are), the stretch ahead stays faint (what
+  is left of it), and a sun by day or a carved crescent moon by night rides the
+  ridge at its true position. Day runs from the IP-located sunrise to sunset, night
+  wraps midnight to the next sunrise, both fetched through the same Open-Meteo call
+  as the weather (`daily=sunrise,sunset`, parsed by `sunFrac`); until that resolves
+  the marker falls back to a plain clock. It is the same fill-is-elapsed grammar as
+  the NowPlaying seekbar below it, so the resting card and the playing card read as
+  one family. The sky colours are fixed (golden day, cool night) and deliberately
+  independent of the wallust accent, so the sun stays a sun on any wallpaper. The
+  old 力 seal is dropped, a recessed `cardBot` surface with a top sheen replaces the
+  lighter floating fill, the colon breathes in the phase colour like the other clock
   faces, and the wave drifts only while the palette is shown so an idle launcher
   costs nothing.
 - `ipc/`: the daemon is the single owner of `wallust`. A palette-only `wallpaper

@@ -39,6 +39,12 @@ Singleton {
     readonly property string flameTip:   "#ffd2bf"
     readonly property color todayWarm: "#ff9e64"
     readonly property color ghost:     "#414868"
+    // Rest-card sky: fixed day/night scene colours, deliberately independent of
+    // the wallust accent so the sun stays golden and the night stays cool on any
+    // wallpaper (the wave marks the real solar arc, not the theme).
+    readonly property color sunGold:  "#ffc777"
+    readonly property color moonGlow: "#7aa2f7"
+    readonly property color moonDisc: "#c8d3f5"
     readonly property color frameBg:     Qt.rgba(122/255, 162/255, 247/255, 0.10)
     readonly property color frameBorder: Qt.rgba(122/255, 162/255, 247/255, 0.18)
     readonly property color creamMenu:   Qt.rgba(192/255, 202/255, 245/255, 0.82)

@@ -50,7 +50,7 @@ function formatTemp(temp, unit) {
 function parseForecast(json, unit) {
     var out = {
         available: false, tempNow: 0, temp: "", condition: "", glyph: "cloud",
-        humidity: 0, isDay: true, hourly: [], daily: []
+        humidity: 0, isDay: true, sunrise: -1, sunset: -1, hourly: [], daily: []
     };
     var cur = json && json.current;
     if (!cur || typeof cur.temperature_2m !== "number" || typeof cur.weather_code !== "number")
@@ -74,6 +74,12 @@ function parseForecast(json, unit) {
         }
     }
 
+    var dd = json.daily;
+    if (dd && dd.sunrise && dd.sunset && dd.sunrise.length > 0 && dd.sunset.length > 0) {
+        out.sunrise = hhmmToSec(dd.sunrise[0]);
+        out.sunset = hhmmToSec(dd.sunset[0]);
+    }
+
     out.tempNow = Math.round(cur.temperature_2m);
     out.temp = formatTemp(cur.temperature_2m, unit);
     out.condition = labelFor(cur.weather_code);
@@ -82,6 +88,35 @@ function parseForecast(json, unit) {
     out.isDay = cur.is_day === 1;
     out.available = true;
     return out;
+}
+
+// "2026-07-01T05:24" -> seconds since local midnight, or -1 when unparseable.
+// Open-Meteo emits local wall-clock times (timezone=auto), so the HH:MM slice is
+// the location's clock, matching the device clock the card reads.
+function hhmmToSec(iso) {
+    if (typeof iso !== "string" || iso.length < 16) return -1;
+    var hh = Number(iso.slice(11, 13));
+    var mm = Number(iso.slice(14, 16));
+    if (!isFinite(hh) || !isFinite(mm)) return -1;
+    return hh * 3600 + mm * 60;
+}
+
+// Fraction through the current solar phase and whether it is day, from the
+// current second-of-day and today's sunrise/sunset (also seconds of local day).
+// Day runs sunrise..sunset; night wraps midnight (after sunset to the next
+// sunrise, before sunrise from the prior evening's sunset). Sunrise/sunset drift
+// under a minute across one day, so today's values proxy the adjacent night's
+// ends within a pixel. Returns null when the times are unusable (polar day/night
+// or a missing feed) so the caller falls back to a plain clock.
+function sunFrac(nowSec, sunriseSec, sunsetSec) {
+    if (!isFinite(nowSec) || sunriseSec < 0 || sunsetSec < 0 || sunsetSec <= sunriseSec)
+        return null;
+    var day = 86400;
+    if (nowSec >= sunriseSec && nowSec < sunsetSec)
+        return { frac: (nowSec - sunriseSec) / (sunsetSec - sunriseSec), isDay: true };
+    if (nowSec >= sunsetSec)
+        return { frac: (nowSec - sunsetSec) / ((sunriseSec + day) - sunsetSec), isDay: false };
+    return { frac: (nowSec - (sunsetSec - day)) / (sunriseSec - (sunsetSec - day)), isDay: false };
 }
 
 // Parse ip-api's response to { city, lat, lon }, or null when it failed.
@@ -101,5 +136,5 @@ function parseJson(text) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { glyphFor, labelFor, unitFor, tempSymbol, formatTemp, parseForecast, parseLoc, parseJson };
+    module.exports = { glyphFor, labelFor, unitFor, tempSymbol, formatTemp, parseForecast, parseLoc, parseJson, hhmmToSec, sunFrac };
 }

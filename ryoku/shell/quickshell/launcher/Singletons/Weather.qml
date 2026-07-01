@@ -29,6 +29,8 @@ Singleton {
     property int tempNow: 0
     property int humidity: 0
     property bool isDay: true
+    property int sunrise: -1
+    property int sunset: -1
     property string city: ""
     property var hourly: []
     property var daily: []
@@ -53,6 +55,8 @@ Singleton {
         root.glyph = f.glyph;
         root.humidity = f.humidity;
         root.isDay = f.isDay;
+        root.sunrise = f.sunrise;
+        root.sunset = f.sunset;
         root.hourly = f.hourly;
         root.daily = f.daily;
         root.available = true;
@@ -113,7 +117,7 @@ Singleton {
             + "&longitude=" + root.lon
             + "&current=temperature_2m,weather_code,is_day,relative_humidity_2m"
             + "&hourly=temperature_2m,weather_code&forecast_hours=24"
-            + "&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5"
+            + "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&forecast_days=5"
             + "&timezone=auto&temperature_unit=" + root.unit]
         stdout: StdioCollector {
             onStreamFinished: root.applyForecast(this.text)

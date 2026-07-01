@@ -2,20 +2,26 @@ import QtQuick
 import Quickshell
 import Quickshell.Widgets
 import "Singletons"
+import "lib/weather.js" as Wx
 
-// Zero-query home card. A day-wave scene: the hero clock and greeting read over
-// a filled wave horizon that encodes the day itself. The stretch of wave behind
-// the sun glows the accent (the day so far); the stretch ahead stays faint (what
-// is left); a sun or moon rides the ridge at the current time. It is the same
-// grammar as the NowPlaying seekbar below it (filled = elapsed), so the resting
-// card and the playing card rhyme instead of the clock reading as a foreign
-// slab. Surface is the recessed cardBot with a hairline border and a top sheen
-// so it sits in the window; corner radius steps one inside the window so the
-// nested corners read concentric. Right column carries the weather glance when
-// resolved (glyph + temperature, condition and city, mixed-case date at the
-// base) and falls back to a clean date-only readout while Weather is fetching so
-// the column is never dead space. The wave drifts and the colon breathes only
-// while the launcher is shown, so an idle palette costs nothing.
+// Zero-query home card. A solar-arc scene: the hero clock and greeting read over
+// a filled wave horizon that traces the real day. The wave behind the marker
+// glows the phase colour (how far through this phase we are), the stretch ahead
+// stays faint (what is left of it), and a sun by day or a carved crescent moon by
+// night rides the ridge at the true position. Day runs from the IP-located
+// sunrise to sunset, night wraps midnight to the next sunrise, both fetched
+// through the same Open-Meteo call as the weather; until that resolves the marker
+// falls back to a plain clock. It is the same fill-is-elapsed grammar as the
+// NowPlaying seekbar below it, so the resting card and the playing card read as
+// one family. The sky colours are fixed (golden day, cool night), deliberately
+// independent of the wallust accent so the sun stays a sun on any wallpaper.
+// Surface is the recessed cardBot with a hairline border and a top sheen so it
+// sits in the window; corner radius steps one inside the window so the nested
+// corners read concentric. Right column carries the weather glance when resolved
+// (glyph + temperature, condition and city, mixed-case date at the base) and
+// falls back to a clean date-only readout while Weather is fetching so the column
+// is never dead space. The wave drifts and the colon breathes only while the
+// launcher is shown, so an idle palette costs nothing.
 Item {
     id: root
 
@@ -30,11 +36,17 @@ Item {
         var h = now.getHours();
         return h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
     }
-    // fraction of the day elapsed, midnight to midnight, positions the sun.
-    readonly property real dayFrac: (now.getHours() * 3600 + now.getMinutes() * 60) / 86400
-    // sun by day, moon by night: trust the weather feed once resolved, otherwise
-    // a plain daylight window so the pre-fetch marker is right through the evening.
-    readonly property bool isDay: Weather.available ? Weather.isDay : (now.getHours() >= 6 && now.getHours() < 20)
+    // current second of the local day, the input to the solar arc.
+    readonly property int nowSec: now.getHours() * 3600 + now.getMinutes() * 60
+    // real solar arc from the IP-located sunrise/sunset: day sweeps sunrise..sunset,
+    // night wraps midnight, so the marker crosses its own phase 0..1. Null (polar
+    // day/night or feed not in yet) falls back to a plain clock and a 6..20
+    // daylight guess so the marker is always sensible.
+    readonly property var sun: Weather.available ? Wx.sunFrac(nowSec, Weather.sunrise, Weather.sunset) : null
+    readonly property real dayFrac: sun ? sun.frac : nowSec / 86400
+    readonly property bool isDay: sun ? sun.isDay : (now.getHours() >= 6 && now.getHours() < 20)
+    // fixed sky colour for the phase: golden sun by day, cool moonlight by night.
+    readonly property color phaseColor: isDay ? Theme.sunGold : Theme.moonGlow
     readonly property bool wxReady: Weather.available
 
     SystemClock {
@@ -64,7 +76,7 @@ Item {
             color: Theme.sheen
         }
 
-        // The day wave: a filled horizon spanning the card, clipped to the
+        // The solar wave: a filled horizon spanning the card, clipped to the
         // rounded corners so it never spills. Painted behind the text.
         ClippingRectangle {
             id: waveClip
@@ -80,9 +92,11 @@ Item {
                 anchors.fill: parent
                 property real phase: 0
                 readonly property real frac: root.dayFrac
-                readonly property color accent: Theme.verm
+                // phase sky colour (fixed day/night, never the wallust accent).
+                readonly property color tint: root.phaseColor
 
                 onFracChanged: requestPaint()
+                onTintChanged: requestPaint()
 
                 // Canvas gradients want rgba() strings, not QML color objects
                 // (a color serializes to #aarrggbb and corrupts the stop).
@@ -126,12 +140,12 @@ Item {
                         ctx.stroke();
                     }
 
-                    // elapsed fill (accent) then remaining fill (ghost), both
+                    // elapsed fill (phase tint) then remaining fill (ghost), both
                     // fading up from the baseline so the ridge reads as a horizon.
                     var gA = ctx.createLinearGradient(0, base - amp * 2, 0, h);
-                    gA.addColorStop(0, wave.rgba(wave.accent, 0.0));
-                    gA.addColorStop(0.5, wave.rgba(wave.accent, 0.15));
-                    gA.addColorStop(1, wave.rgba(wave.accent, 0.36));
+                    gA.addColorStop(0, wave.rgba(wave.tint, 0.0));
+                    gA.addColorStop(0.5, wave.rgba(wave.tint, 0.15));
+                    gA.addColorStop(1, wave.rgba(wave.tint, 0.36));
                     fillRegion(0, nodeX, gA);
 
                     var gF = ctx.createLinearGradient(0, base - amp * 2, 0, h);
@@ -141,22 +155,22 @@ Item {
 
                     ctx.lineWidth = 2 * s;
                     ctx.lineCap = "round";
-                    strokeRidge(0, nodeX, wave.rgba(wave.accent, 0.9));
+                    strokeRidge(0, nodeX, wave.rgba(wave.tint, 0.9));
                     strokeRidge(nodeX, w, wave.rgba(Theme.faint, 0.5));
 
-                    // sun / moon node: a soft glow halo, a filled disc, and a
-                    // carved crescent by night.
+                    // sun / moon node: a soft glow halo in the phase tint, a filled
+                    // disc, and a carved crescent by night.
                     var sy = ridge(nodeX);
                     var glow = ctx.createRadialGradient(nodeX, sy, 0, nodeX, sy, 15 * s);
-                    glow.addColorStop(0, wave.rgba(wave.accent, 0.5));
-                    glow.addColorStop(1, wave.rgba(wave.accent, 0.0));
+                    glow.addColorStop(0, wave.rgba(wave.tint, 0.5));
+                    glow.addColorStop(1, wave.rgba(wave.tint, 0.0));
                     ctx.fillStyle = glow;
                     ctx.beginPath();
                     ctx.arc(nodeX, sy, 15 * s, 0, 2 * Math.PI);
                     ctx.fill();
 
                     var r = 5.5 * s;
-                    ctx.fillStyle = root.isDay ? wave.rgba(wave.accent, 1) : wave.rgba(Theme.cream, 0.95);
+                    ctx.fillStyle = root.isDay ? wave.rgba(Theme.sunGold, 1) : wave.rgba(Theme.moonDisc, 0.98);
                     ctx.beginPath();
                     ctx.arc(nodeX, sy, r, 0, 2 * Math.PI);
                     ctx.fill();
@@ -209,11 +223,12 @@ Item {
                 }
                 Text {
                     text: ":"
-                    color: Theme.verm
+                    color: root.phaseColor
                     font.family: Theme.mono
                     font.pixelSize: 34 * root.s
                     font.weight: Font.Medium
-                    // Breathing colon, the shared clock-face heartbeat.
+                    // Breathing colon in the phase tint, the shared clock-face
+                    // heartbeat tied to the sky rather than the wallust accent.
                     SequentialAnimation on opacity {
                         loops: Animation.Infinite
                         NumberAnimation { from: 1; to: 0.3; duration: 620; easing.type: Easing.InOutSine }
