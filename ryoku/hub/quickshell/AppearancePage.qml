@@ -150,6 +150,8 @@ Item {
             page.refreshWalls();
         else if (page.group === "comfort")
             page.refreshComfort();
+        else if (page.group === "borders")
+            schemeQueryProc.running = true;
     }
     Component.onCompleted: { page.refreshWalls(); page.refreshComfort(); }
 
@@ -348,29 +350,20 @@ Item {
         Column {
             spacing: 30
 
-            SettingSection {
-                width: parent.width
-                title: "WINDOW BORDERS"
-                ToggleRow {
-                    width: Math.min(parent.width, 460); label: "Follow wallpaper palette"
-                    checked: store.followWallpaper
-                    onToggled: (v) => store.edit("followWallpaper", v)
-                }
-                Text {
-                    width: Math.min(parent.width, 620)
-                    wrapMode: Text.WordWrap
-                    text: store.followWallpaper
-                        ? "Border colours track the wallust palette derived from your wallpaper."
-                        : "Borders use the fixed colours below, ignoring the wallpaper palette."
-                    color: Theme.dim
-                    font.family: Theme.font
-                    font.pixelSize: 12
-                }
+            Text {
+                width: Math.min(parent.width, 620)
+                wrapMode: Text.WordWrap
+                text: page.scheme === "follow"
+                    ? "Border colours follow the wallpaper palette. Turn off \u201cColours follow wallpaper\u201d in Themes to set fixed colours."
+                    : "Borders use the fixed colours below."
+                color: Theme.dim
+                font.family: Theme.font
+                font.pixelSize: 12
             }
 
             SettingSection {
                 width: parent.width
-                visible: !store.followWallpaper
+                visible: page.scheme !== "follow"
                 title: "FIXED COLOURS"
                 ColorField {
                     width: parent.width; label: "Active window"

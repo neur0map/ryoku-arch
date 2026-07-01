@@ -19,7 +19,7 @@ Item {
         "shadowStrength", "shadowSize", "surfaceColor",
         "islandWidth", "islandHeight", "islandRestCorner", "islandOpenCorner",
         "islandGap", "islandSmoothing", "islandOpacity", "islandStyle", "islandAutohide", "barEnabled",
-        "fontFamily", "fontScale", "matchWallpaper"
+        "fontFamily", "fontScale"
     ]
     readonly property var vizKeys: [
         "enabled", "bars", "height", "thickness", "bloom", "reflection", "idleWave",
@@ -35,7 +35,7 @@ Item {
         "islandWidth": 108, "islandHeight": 38, "islandRestCorner": 18, "islandOpenCorner": 22,
         "islandGap": 8, "islandSmoothing": 24, "islandOpacity": 1,
         "islandStyle": "island", "islandAutohide": false, "barEnabled": false,
-        "fontFamily": "Inter", "fontScale": 1.0, "matchWallpaper": false,
+        "fontFamily": "Inter", "fontScale": 1.0,
         "enabled": true, "bars": 64, "height": 0.42, "thickness": 0.58,
         "bloom": 0.6, "reflection": 0.1, "idleWave": true,
         "style": "bars", "shape": "rounded", "position": "bottom", "mirror": false
@@ -70,7 +70,6 @@ Item {
         property bool barEnabled: false
         property string fontFamily: "Inter"
         property real fontScale: 1.0
-        property bool matchWallpaper: false
         property bool enabled: true
         property int bars: 64
         property real height: 0.42
@@ -205,7 +204,6 @@ Item {
             property bool barEnabled: false
             property string fontFamily: "Inter"
             property real fontScale: 1.0
-            property bool matchWallpaper: false
         }
     }
 
@@ -370,11 +368,6 @@ Item {
                 SettingSection {
                     width: parent.width
                     title: "SURFACE"
-                    ToggleRow {
-                        width: parent.width; label: "Match wallpaper"
-                        checked: draft.matchWallpaper
-                        onToggled: (v) => page.edit("matchWallpaper", v)
-                    }
                     ColorField {
                         width: parent.width; label: "Colour"
                         value: draft.surfaceColor

@@ -31,7 +31,6 @@ Item {
     property int shadowRange: 30
     property bool animations: true
     property string layout: "dwindle"
-    property bool followWallpaper: true
     property string activeBorder: "#e0563b"
     property string inactiveBorder: "#313a4d"
 
@@ -79,7 +78,6 @@ Item {
                 "blurSize": store.blurSize, "blurPasses": store.blurPasses,
                 "shadowEnabled": store.shadowEnabled, "shadowRange": store.shadowRange,
                 "animations": store.animations, "layout": store.layout,
-                "followWallpaper": store.followWallpaper,
                 "activeBorder": store.activeBorder, "inactiveBorder": store.inactiveBorder
             },
             "input": {
@@ -105,7 +103,6 @@ Item {
         store.blurSize = a.blurSize; store.blurPasses = a.blurPasses;
         store.shadowEnabled = a.shadowEnabled; store.shadowRange = a.shadowRange;
         store.animations = a.animations; store.layout = a.layout;
-        store.followWallpaper = a.followWallpaper;
         store.activeBorder = a.activeBorder; store.inactiveBorder = a.inactiveBorder;
         store.kbLayout = i.kbLayout; store.kbVariant = i.kbVariant; store.kbOptions = i.kbOptions;
         store.followMouse = i.followMouse; store.sensitivity = i.sensitivity;
@@ -202,7 +199,6 @@ Item {
         store.blurSize = a.blurSize; store.blurPasses = a.blurPasses;
         store.shadowEnabled = a.shadowEnabled; store.shadowRange = a.shadowRange;
         store.animations = a.animations; store.layout = a.layout;
-        store.followWallpaper = a.followWallpaper;
         store.activeBorder = a.activeBorder; store.inactiveBorder = a.inactiveBorder;
         store.cursorTheme = c.theme; store.cursorSize = c.size;
         store.rev++;
