@@ -75,3 +75,16 @@ func TestTuneArgsPerImageGuard(t *testing.T) {
 		t.Fatalf("image-less file should yield nil, got %v", got)
 	}
 }
+
+func TestWallpaperRepaintSignalsPaintOnly(t *testing.T) {
+	d := &daemon{paintSig: make(chan struct{}, 1)}
+	if err := d.wallpaperApply("repaint", ""); err != nil {
+		t.Fatalf("repaint returned error: %v", err)
+	}
+	select {
+	case <-d.paintSig:
+		// signalled, as expected
+	default:
+		t.Fatal("repaint did not schedule the paint worker")
+	}
+}

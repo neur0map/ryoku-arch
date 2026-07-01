@@ -90,6 +90,14 @@ var transitionPresets = []transition{
 // goes to coalescing background workers via scheduleTheme so rapid Super+W stays
 // smooth. best-effort: a missing wallpaper dir or daemon is a no-op, not an error.
 func (d *daemon) wallpaperApply(mode, arg string) error {
+	// repaint = re-derive the palette / borders / LEDs for the current
+	// wallpaper with no image transition. used by the hub when a settings
+	// change (master toggle, theme) must re-theme without re-animating. needs
+	// no wallpaper daemon: the paint worker reads state and runs wallust.
+	if mode == "repaint" {
+		d.scheduleTheme()
+		return nil
+	}
 	// only init cares if a wallpaper is already up; next/set skip the extra probe
 	// and let ensureWallDaemon do the single check.
 	if mode == "init" && wallDaemonAlive() {
