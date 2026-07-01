@@ -37,6 +37,30 @@ Item {
         for (var i = 0; i < page.plugins.length; i++) if (page.plugins[i].id === id) return true;
         return false;
     }
+    function catalogEntry(id) {
+        for (var i = 0; i < page.catalog.length; i++) if (page.catalog[i].id === id) return page.catalog[i];
+        return null;
+    }
+    // semver compare: -1 if a<b, 0 equal, 1 if a>b. missing/short parts = 0.
+    function cmpSemver(a, b) {
+        var pa = String(a || "0").split(".").map(function (n) { return parseInt(n, 10) || 0; });
+        var pb = String(b || "0").split(".").map(function (n) { return parseInt(n, 10) || 0; });
+        var len = Math.max(pa.length, pb.length);
+        for (var i = 0; i < len; i++) {
+            var x = pa[i] || 0, y = pb[i] || 0;
+            if (x !== y) return x < y ? -1 : 1;
+        }
+        return 0;
+    }
+    // installed plugin (a discover entry) -> the newer catalog version, or ""
+    // when up to date / unknown. Drives the Update affordance on Installed cards.
+    function updateFor(pl) {
+        var inst = (pl && pl.manifest && pl.manifest.version) ? pl.manifest.version : "";
+        var ce = page.catalogEntry(pl ? pl.id : "");
+        var avail = ce ? (ce.version || "") : "";
+        if (!inst || !avail) return "";
+        return page.cmpSemver(avail, inst) > 0 ? avail : "";
+    }
     function refresh() { listProc.running = false; listProc.running = true; }
     function loadCatalog() { catProc.running = false; catProc.running = true; }
     function place(id, field, a, b, c, d) {
@@ -306,7 +330,7 @@ Item {
                                     font.family: Theme.font
                                     font.pixelSize: 12
                                     elide: Text.ElideRight
-                                    width: card.width - 120
+                                    width: card.width - (page.updateFor(card.modelData) !== "" ? 210 : 120)
                                 }
                             }
                             Rectangle {
@@ -325,6 +349,42 @@ Item {
                                 }
                                 TapHandler { onTapped: page.place(card.modelData.id, "enabled", card.on ? "false" : "true") }
                                 HoverHandler { cursorShape: Qt.PointingHandCursor }
+                            }
+                            // Update stamp: shown only when the catalogue has a
+                            // newer version than what's installed. Reinstall pulls
+                            // the latest tree; the list refresh then hides this.
+                            Rectangle {
+                                id: updBtn
+                                visible: page.updateFor(card.modelData) !== ""
+                                anchors.right: parent.right
+                                anchors.rightMargin: 56
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: updLabel.implicitWidth + 20
+                                height: 26
+                                radius: 3
+                                color: updMa.containsMouse ? Theme.frameBg : "transparent"
+                                border.width: 1
+                                border.color: Theme.ember
+                                opacity: page.busyId === card.modelData.id ? 0.6 : 1
+                                Behavior on color { ColorAnimation { duration: Theme.quick } }
+                                Text {
+                                    id: updLabel
+                                    anchors.centerIn: parent
+                                    text: page.busyId === card.modelData.id ? "UPDATING" : ("UPDATE " + page.updateFor(card.modelData))
+                                    color: Theme.ember
+                                    font.family: Theme.mono
+                                    font.pixelSize: 11
+                                    font.weight: Font.Bold
+                                    font.letterSpacing: 1.5
+                                }
+                                MouseArea {
+                                    id: updMa
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    enabled: page.busyId === ""
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: page.install(card.modelData.id)
+                                }
                             }
                         }
 

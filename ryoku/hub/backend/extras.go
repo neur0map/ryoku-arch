@@ -94,6 +94,7 @@ type pluginRegistryEntry struct {
 	Preview     string   `json:"preview,omitempty"`
 	Hosts       []string `json:"hosts,omitempty"`
 	Path        string   `json:"path,omitempty"`
+	Version     string   `json:"version,omitempty"`
 }
 
 type pluginRegistry struct {
@@ -117,6 +118,7 @@ type catalogPlugin struct {
 	Preview     string   `json:"preview,omitempty"`
 	Hosts       []string `json:"hosts,omitempty"`
 	Path        string   `json:"path"`
+	Version     string   `json:"version,omitempty"`
 }
 
 func runExtras(args []string) error {
@@ -318,6 +320,7 @@ func buildPluginCatalog() (map[string][]catalogPlugin, error) {
 			Preview:     e.Preview,
 			Hosts:       e.Hosts,
 			Path:        path,
+			Version:     e.Version,
 		}
 		// best-effort manifest enrichment, same shape as buildCatalog folding
 		// bundle.json into the registry entry: only fill what the registry
@@ -328,6 +331,7 @@ func buildPluginCatalog() (map[string][]catalogPlugin, error) {
 				Description string   `json:"description"`
 				Hosts       []string `json:"hosts"`
 				Tags        []string `json:"tags"`
+				Version     string   `json:"version"`
 			}
 			if json.Unmarshal(b, &man) == nil {
 				if cp.Name == "" {
@@ -341,6 +345,9 @@ func buildPluginCatalog() (map[string][]catalogPlugin, error) {
 				}
 				if len(cp.Tags) == 0 {
 					cp.Tags = man.Tags
+				}
+				if cp.Version == "" {
+					cp.Version = man.Version
 				}
 			}
 		}
