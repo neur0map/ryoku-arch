@@ -27,9 +27,11 @@ Item {
 
     readonly property bool isWidget: menu.scope !== "desktop"
     readonly property bool isClock: menu.scope === "clock"
-    readonly property bool locked: menu.isClock ? Config.clockLocked : Config.weatherLocked
-    readonly property string curAnchor: menu.isClock ? Config.clockAnchor : Config.weatherAnchor
-    readonly property string curDesign: menu.isClock ? Config.clockDesign : Config.weatherDesign
+    readonly property bool isWeather: menu.scope === "weather"
+    readonly property bool isCal: menu.scope === "cal"
+    readonly property bool locked: menu.isWidget ? Config[menu.scope + "Locked"] : false
+    readonly property string curAnchor: menu.isWidget ? Config[menu.scope + "Anchor"] : ""
+    readonly property string curDesign: menu.isWidget ? Config[menu.scope + "Design"] : ""
 
     readonly property var zones: [
         { "zone": "top-left", "glyph": "\u2196" }, { "zone": "top", "glyph": "\u2191" }, { "zone": "top-right", "glyph": "\u2197" },
@@ -43,13 +45,16 @@ Item {
     function cap(s) { return s.length > 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
     function cycleDesign() {
-        if (menu.isClock) {
-            const d = ["digital", "minimal", "analog", "flip", "rings"];
-            Config.set("clockDesign", d[(d.indexOf(Config.clockDesign) + 1) % d.length]);
-        } else {
-            const w = ["card", "minimal", "strip"];
-            Config.set("weatherDesign", w[(w.indexOf(Config.weatherDesign) + 1) % w.length]);
-        }
+        const lists = {
+            clock: ["digital", "minimal", "analog", "flip", "rings"],
+            weather: ["card", "minimal", "strip"],
+            cal: ["month", "minimal", "agenda", "week", "heat"]
+        };
+        const d = lists[menu.scope];
+        if (!d)
+            return;
+        const key = menu.scope + "Design";
+        Config.set(key, d[(d.indexOf(Config[key]) + 1) % d.length]);
     }
     function openSettings() {
         Quickshell.execDetached(["sh", "-c", "ryoku-hub config set section widgets; flock -n -o /tmp/ryoku-hub.lock qs -c hub"]);
@@ -139,12 +144,14 @@ Item {
             // desktop scope.
             MenuRow { visible: !menu.isWidget; k: "Clock"; v: Config.clockEnabled ? "On" : "Off"; on: Config.clockEnabled; closeOnTrigger: false; onTriggered: Config.set("clockEnabled", !Config.clockEnabled) }
             MenuRow { visible: !menu.isWidget; k: "Weather"; v: Config.weatherEnabled ? "On" : "Off"; on: Config.weatherEnabled; closeOnTrigger: false; onTriggered: Config.set("weatherEnabled", !Config.weatherEnabled) }
+            MenuRow { visible: !menu.isWidget; k: "Calendar"; v: Config.calEnabled ? "On" : "Off"; on: Config.calEnabled; closeOnTrigger: false; onTriggered: Config.set("calEnabled", !Config.calEnabled) }
 
             // widget scope.
             MenuRow { visible: menu.isWidget; k: "Design"; v: menu.cap(menu.curDesign); closeOnTrigger: false; onTriggered: menu.cycleDesign() }
             MenuRow { visible: menu.isClock; k: "Date"; v: Config.dateShow ? "On" : "Off"; on: Config.dateShow; closeOnTrigger: false; onTriggered: Config.toggle("dateShow") }
-            MenuRow { visible: menu.isWidget && !menu.isClock; k: "Motion"; v: Config.weatherAnimate ? "On" : "Off"; on: Config.weatherAnimate; closeOnTrigger: false; onTriggered: Config.toggle("weatherAnimate") }
-            MenuRow { visible: menu.isWidget && !menu.isClock; k: "Units"; v: Config.weatherUnit === "C" ? "\u00b0C" : "\u00b0F"; closeOnTrigger: false; onTriggered: Config.set("weatherUnit", Config.weatherUnit === "C" ? "F" : "C") }
+            MenuRow { visible: menu.isWeather; k: "Motion"; v: Config.weatherAnimate ? "On" : "Off"; on: Config.weatherAnimate; closeOnTrigger: false; onTriggered: Config.toggle("weatherAnimate") }
+            MenuRow { visible: menu.isWeather; k: "Units"; v: Config.weatherUnit === "C" ? "\u00b0C" : "\u00b0F"; closeOnTrigger: false; onTriggered: Config.set("weatherUnit", Config.weatherUnit === "C" ? "F" : "C") }
+            MenuRow { visible: menu.isCal; k: "Week start"; v: Config.calWeekStart === "sun" ? "Sun" : "Mon"; closeOnTrigger: false; onTriggered: Config.set("calWeekStart", Config.calWeekStart === "sun" ? "mon" : "sun") }
             MenuRow { visible: menu.isWidget; k: "Lock"; v: menu.locked ? "On" : "Off"; on: menu.locked; closeOnTrigger: false; onTriggered: Config.toggle(menu.scope + "Locked") }
 
             Rule { visible: menu.isWidget }

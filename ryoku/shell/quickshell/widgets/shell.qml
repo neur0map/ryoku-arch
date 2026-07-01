@@ -12,6 +12,7 @@ import Quickshell.Io
 import "Singletons"
 import "clock"
 import "weather"
+import "calendar"
 
 // desktop widgets layer: WlrLayer.Bottom (below windows), one per monitor,
 // carrying the clock and weather. only clicks on bare wallpaper land here,
@@ -102,7 +103,7 @@ ShellRoot {
 
             WidgetGrid {
                 anchors.fill: parent
-                active: clockSlot.dragging || weatherSlot.dragging
+                active: clockSlot.dragging || weatherSlot.dragging || calSlot.dragging
                 gridSize: clockSlot.gridSize
             }
 
@@ -138,6 +139,27 @@ ShellRoot {
                 opacity: Config.weatherOpacity
                 onMenuRequested: (x, y, w) => menu.openFor(w, x, y)
                 Weather {}
+            }
+
+            WidgetSlot {
+                id: calSlot
+                widget: "cal"
+                visible: Config.calEnabled
+                anchor: Config.calAnchor
+                freeX: Config.calX
+                freeY: Config.calY
+                locked: Config.calLocked
+                bg: Config.calBg
+                radius: Config.calRadius
+                scaleCfg: Config.calScale
+                pad: Config.calBg === "none" ? 0 : Math.round(20 * Config.calScale)
+                opacity: Config.calOpacity
+                onMenuRequested: (x, y, w) => menu.openFor(w, x, y)
+                // the calendar's add field types on this wallpaper layer, so the
+                // layer grabs the keyboard while the field holds focus, the same
+                // exclusive grab the plugin tiles use.
+                onEditingChanged: win.kbWanted += editing ? 1 : -1
+                Calendar {}
             }
 
             // one draggable PluginDesktopSlot per enabled desktopWidget plugin.

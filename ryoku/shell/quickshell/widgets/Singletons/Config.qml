@@ -48,6 +48,20 @@ Singleton {
     property alias weatherBg:      adapter.weatherBg       // none | card | glass
     property alias weatherRadius:  adapter.weatherRadius
 
+    // -- calendar ------------------------------------------------------------
+    property alias calEnabled:   adapter.calEnabled
+    property alias calDesign:    adapter.calDesign     // month | minimal | agenda | week
+    property alias calAccent:    adapter.calAccent     // wallust | brand | mono
+    property alias calWeekStart: adapter.calWeekStart  // mon | sun
+    property alias calScale:     adapter.calScale
+    property alias calAnchor:    adapter.calAnchor
+    property alias calX:         adapter.calX
+    property alias calY:         adapter.calY
+    property alias calLocked:    adapter.calLocked
+    property alias calOpacity:   adapter.calOpacity
+    property alias calBg:        adapter.calBg          // none | card | glass
+    property alias calRadius:    adapter.calRadius
+
     // write helpers used by desktop drag + right-click menu. write the same file
     // Settings does; the watch reloads it (no-op for the value just written) so
     // running widgets and the next Settings open agree.
@@ -116,6 +130,19 @@ Singleton {
             property real weatherOpacity: 1.0
             property string weatherBg: "glass"
             property int weatherRadius: 26
+
+            property bool calEnabled: false
+            property string calDesign: "month"
+            property string calAccent: "wallust"
+            property string calWeekStart: "mon"
+            property real calScale: 1.0
+            property string calAnchor: "bottom-right"
+            property int calX: 72
+            property int calY: 64
+            property bool calLocked: false
+            property real calOpacity: 1.0
+            property string calBg: "glass"
+            property int calRadius: 26
         }
     }
 

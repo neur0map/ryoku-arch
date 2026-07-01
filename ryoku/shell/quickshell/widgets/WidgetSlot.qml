@@ -32,9 +32,14 @@ Item {
 
     default property alias content: holder.data
 
-    readonly property Item item: holder.children.length > 0 ? holder.children[0] : null
+    readonly property var item: holder.children.length > 0 ? holder.children[0] : null
     readonly property real cw: slot.item ? slot.item.implicitWidth : 0
     readonly property real ch: slot.item ? slot.item.implicitHeight : 0
+    // true while the hosted widget wants the keyboard (its own `editing` flag,
+    // e.g. the calendar's focused add field). the host raises the layer's
+    // keyboard grab off this, the same way plugin tiles do; clock/weather never
+    // expose it, so they stay input-passive.
+    readonly property bool editing: slot.visible && !!(slot.item && slot.item.editing)
 
     // drag state. while holding (dragging, or briefly after release until
     // the config write lands) the rendered position follows the drag so it
@@ -117,27 +122,11 @@ Item {
         }
     }
 
-    // lift a bare widget off the wallpaper for legibility on any backdrop. a
-    // card/glass panel already gives contrast, so the shadow only applies
-    // when the widget sits directly on the wallpaper.
-    Item {
-        id: holder
-        x: slot.pad
-        y: slot.pad
-        width: slot.cw
-        height: slot.ch
-        layer.enabled: slot.bg === "none"
-        layer.effect: MultiEffect {
-            shadowEnabled: true
-            shadowColor: Qt.rgba(0, 0, 0, 0.5)
-            shadowBlur: 0.8
-            shadowVerticalOffset: 2
-            blurMax: 28
-            autoPaddingEnabled: true
-        }
-    }
-
-    // interaction: drag to move (grid-snapped), right-click for the menu.
+    // interaction grip UNDER the content: left-drag on bare widget area moves
+    // the tile (grid-snapped) and right-click opens the menu, while an
+    // interactive widget (the calendar's day cells and add field) keeps its own
+    // clicks on top. clock/weather have no interactive children, so the whole
+    // surface still drags. a grip above the content would swallow every click.
     MouseArea {
         id: grip
         anchors.fill: parent
@@ -183,6 +172,26 @@ Item {
                 guard.restart();
             }
             grip.leftDown = false;
+        }
+    }
+
+    // lift a bare widget off the wallpaper for legibility on any backdrop. a
+    // card/glass panel already gives contrast, so the shadow only applies
+    // when the widget sits directly on the wallpaper.
+    Item {
+        id: holder
+        x: slot.pad
+        y: slot.pad
+        width: slot.cw
+        height: slot.ch
+        layer.enabled: slot.bg === "none"
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: Qt.rgba(0, 0, 0, 0.5)
+            shadowBlur: 0.8
+            shadowVerticalOffset: 2
+            blurMax: 28
+            autoPaddingEnabled: true
         }
     }
 

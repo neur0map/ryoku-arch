@@ -2,18 +2,20 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import "../lib/events.js" as Model
+import "../calendar/lib/events.js" as Model
 
-// Local calendar events, persisted as a plain JSON array at
-// ~/.local/state/ryoku/events.json. The in-memory `events` is the source of
-// truth: add/remove mutate it and write the file. The file is WATCHED so an
-// edit made on the desktop calendar widget (a separate process sharing this
-// one file, no IPC between them) shows here without a restart. atomicWrites
-// means our own setText lands as a rename, and reloadEvents runs on the
-// resulting onLoaded (after the buffer refreshes), so re-reading our own write
-// is idempotent, not a stale read. All logic lives in lib/events.js so the
-// model is unit-tested under node; this singleton is the thin Quickshell
-// wrapper (persistence + reactive `events`).
+// Local calendar events for the desktop calendar widget, the SAME store the
+// pill's calendar reads and writes: a plain JSON array at
+// ~/.local/state/ryoku/events.json. That shared file is the only link between
+// the two surfaces (they are separate quickshell processes, no IPC), so a note
+// left on a day here shows up in the pill and vice versa.
+//
+// The file IS watched here: the widget stays on the wallpaper, so it must pick
+// up an edit made in the pill without a restart. atomicWrites means our own
+// setText lands as a rename, and reloadEvents runs on the resulting onLoaded
+// (after the buffer refreshes), so re-reading our own write is idempotent, not
+// a stale read. All logic lives in calendar/lib/events.js (node-tested); this
+// singleton is the thin persistence + reactive `events` wrapper.
 Singleton {
     id: root
 

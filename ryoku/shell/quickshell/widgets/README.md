@@ -1,9 +1,9 @@
 # Desktop widgets
 
-These are the clock and weather that sit on the wallpaper. It's all plain QML
-reading one JSON file. There's no framework hiding under it, and I'd like to keep
-it that way, so if you're about to add something clever, check first that the dumb
-version doesn't already do the job.
+These are the clock, weather, and calendar that sit on the wallpaper. It's all
+plain QML reading one JSON file. There's no framework hiding under it, and I'd
+like to keep it that way, so if you're about to add something clever, check first
+that the dumb version doesn't already do the job.
 
 `qs -c widgets` loads `shell.qml`. The daemon keeps it alive (it's the `widgets`
 entry in `ipc/daemon.go`'s `components` list), same as the pill and the
@@ -24,13 +24,17 @@ it up.
       Wallust.qml      the live palette read off the wallpaper
       Now.qml          one second-tick everyone shares
       WeatherData.qml  the Open-Meteo fetch
+      Events.qml       the shared calendar store, watched (see Calendar sync)
     clock/             Clock.qml picks a face; the faces + date strips live here
     weather/           Weather.qml picks a design; skies + day cells live here
+    calendar/          Calendar.qml picks a face; the faces + lib live here
+                       (month, minimal, agenda, week, heat)
 
 A widget is two halves on purpose. The dispatcher (`clock/Clock.qml`,
-`weather/Weather.qml`) is glue: it reads which design is selected, shows it, and
-reports its own size up to the slot. The designs (`ClockDigital`, `WeatherCard`,
-`SkyRain`, and the rest) are the thing you actually see, and they read the
+`weather/Weather.qml`, `calendar/Calendar.qml`) is glue: it reads which design is
+selected, shows it, and reports its own size up to the slot. The designs
+(`ClockDigital`, `WeatherCard`, `CalMonth`, `SkyRain`, and the rest) are the
+thing you actually see, and they read the
 singletons straight (`Now.date`, `Wallust.accent`, `Config.clockSeconds`). I
 didn't thread props down through three layers; a design reaches for what it needs
 the way the visualiser does. You can open any one design file and understand it
@@ -38,7 +42,7 @@ without chasing five others.
 
 ## What it should look like
 
-Two jobs, two looks, and I don't want them blurred together.
+Three jobs, two looks, and I don't want them blurred together.
 
 **The widgets sit on the wallpaper, so they stay bright and quiet.** Text is the
 cool near-white from `Theme.ink`, and the slot drops a soft shadow behind a bare
@@ -74,20 +78,26 @@ and the vermilion accent showing up as a thin hover tick instead of a filled
 blob. If you build more widget chrome later (a config popover, say), build it like
 this. Don't hand me a rounded grey context menu.
 
-## Adding a face or a weather design
+## Adding a face (clock, weather, or calendar)
 
-1. Drop a new file in `clock/` or `weather/`. Make it an `Item`, read the
-   singletons it needs, set `implicitWidth`/`implicitHeight`.
-2. Register it in the dispatcher's `switch` (`Clock.qml` / `Weather.qml`) and add
-   the key to the design list the menu cycles through in `WidgetMenu.qml`
-   (`cycleDesign`).
+1. Drop a new file in `clock/`, `weather/`, or `calendar/`. Make it an `Item`,
+   read the singletons it needs, set `implicitWidth`/`implicitHeight`.
+2. Register it in the dispatcher's `switch` (`Clock.qml` / `Weather.qml` /
+   `Calendar.qml`) and add the key to the design list the menu cycles through in
+   `WidgetMenu.qml` (`cycleDesign`).
 3. Add the option to the design dropdown in the hub
    (`ryoku/hub/quickshell/WidgetsPage.qml`).
 4. If you want it in the hub's live preview, mirror it in `ClockPreview.qml` /
-   `WeatherPreview.qml`. Those are hand re-implementations, not the real designs,
-   because the hub is a separate `qs` config and can't import these files. It's
-   duplication and I know it; it's the same trade the visualiser's `VizPreview`
-   makes. Keep the faces simple and the mirror is cheap.
+   `WeatherPreview.qml` / `CalendarPreview.qml`. Those are hand re-implementations,
+   not the real designs, because the hub is a separate `qs` config and can't
+   import these files. It's duplication and I know it; it's the same trade the
+   visualiser's `VizPreview` makes. Keep the faces simple and the mirror is cheap.
+
+A calendar face that lets you type (the add field) also has to expose an
+`editing` bool that's true while its field holds focus. The dispatcher bubbles it
+up, `WidgetSlot` re-exposes it, and `shell.qml` raises the layer's keyboard grab
+off it (the same grab the plugin tiles and the launcher use). A display-only face
+(like `CalMinimal`) just leaves `editing` unset.
 
 ## The menu and the hub, and how they actually connect
 
@@ -146,6 +156,26 @@ Say you want a new toggle that both the menu and the hub can flip. The loop:
 That's it. No new wiring, no new file format, no signal plumbing. Everything goes
 through the one JSON file, which is the only reason this stayed small.
 
+## Calendar sync (shared with the pill)
+
+The calendar's notes are the same store the pill's calendar uses:
+`~/.local/state/ryoku/events.json`, with the model in `calendar/lib/events.js`.
+There's no IPC; both surfaces are separate `qs` processes that meet at that one
+file, the same way the menu and the hub meet at `widgets.json`.
+
+`Singletons/Events.qml` is the thin wrapper: `add`/`remove` mutate the in-memory
+array and write the file (`atomicWrites`), and the `FileView` is `watchChanges`,
+so a note added on the desktop reloads into the pill and back. Writing our own
+file fires the watch too, but the reload runs on the resulting `onLoaded` (after
+the buffer refreshes), so re-reading our own write is idempotent, not the stale
+read the pill used to guard against by not watching at all.
+
+`events.js` and its node test are duplicated from `pill/lib/` on purpose (a
+self-contained config, the same trade `weather/lib/weather.js` makes); keep the
+two copies identical. `calendar/lib/cal.js` is the month-grid geometry (offsets,
+row counts, week-of), also node-tested. Both run under `node` because they never
+touch QML, `Date.now()`, or `Math.random()`.
+
 ## Things I left dumb on purpose
 
 - The layer takes pointer input across the whole wallpaper now, so a right-click
@@ -157,3 +187,8 @@ through the one JSON file, which is the only reason this stayed small.
   the anchor to `"free"`; the snap pad sets it back to a named zone.
 - One weather fetch for the whole machine. `shell.qml` binds `WeatherData.unit`
   once at the top; every monitor's widget reads the same singleton.
+- The calendar ships off by default; clock and weather are the two that show on a
+  fresh desktop. Turn it on in Settings or the right-click menu.
+- `WidgetSlot`'s drag grip sits UNDER the widget, so the calendar's day cells and
+  add field keep their own clicks while bare chrome still drags. Clock and weather
+  have no interactive children, so the whole surface still drags for them.
