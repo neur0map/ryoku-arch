@@ -90,7 +90,7 @@ Item {
     readonly property real batteryW: 316 * s
     readonly property real inboxW: 340 * s
     readonly property real sysinfoW: 360 * s
-    readonly property real deckW: 660 * s
+    readonly property real deckW: 590 * s
     readonly property real voiceW: 320 * s
     readonly property real toastW: 342 * s
     readonly property real keyringW: 380 * s

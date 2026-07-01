@@ -15,7 +15,7 @@ Item {
     property real s: 1
     signal requestClose()
 
-    implicitHeight: strip.height + 12 * s + waveSig.height
+    implicitHeight: strip.height
 
     readonly property string scripts: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/"
 
@@ -54,95 +54,84 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 60 * tools.s
+        height: 58 * tools.s
 
-        Row {
-            id: tileRow
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 16 * tools.s
+        // five tiles spread evenly across the full column width, hairline
+        // split between each. slot width is derived so the strip fills the
+        // column edge-to-edge instead of floating as a centred cluster.
+        readonly property real slotW: width / tools.items.length
 
-            Repeater {
-                model: tools.items
+        Repeater {
+            model: tools.items
 
-                delegate: Item {
-                    id: tile
-                    required property var modelData
-                    required property int index
+            delegate: Item {
+                id: tile
+                required property var modelData
+                required property int index
 
-                    readonly property bool lit: tools.hovered === tile.modelData.key
+                readonly property bool lit: tools.hovered === tile.modelData.key
 
-                    width: 40 * tools.s
-                    height: 60 * tools.s
+                width: strip.slotW
+                height: strip.height
+                x: index * strip.slotW
 
-                    transform: Translate {
-                        y: tile.lit ? -3 * tools.s : 0
-                        Behavior on y { NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard } }
+                transform: Translate {
+                    y: tile.lit ? -3 * tools.s : 0
+                    Behavior on y { NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard } }
+                }
+
+                Rectangle {
+                    id: btn
+                    anchors.top: parent.top
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 38 * tools.s
+                    height: 38 * tools.s
+                    radius: 3 * tools.s
+                    color: tile.lit ? Theme.frameBg : "transparent"
+                    border.width: 1
+                    border.color: tile.lit ? Theme.frameBorder : Theme.border
+                    Behavior on color { ColorAnimation { duration: Motion.fast } }
+                    Behavior on border.color { ColorAnimation { duration: Motion.fast } }
+
+                    GlyphIcon {
+                        anchors.centerIn: parent
+                        width: 15 * tools.s
+                        height: 15 * tools.s
+                        name: tile.modelData.glyph
+                        color: tile.lit ? Theme.cream : Theme.iconDim
+                        stroke: 1.6
                     }
+                }
 
-                    Rectangle {
-                        id: btn
-                        anchors.top: parent.top
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        width: 40 * tools.s
-                        height: 40 * tools.s
-                        radius: 3 * tools.s
-                        color: tile.lit ? Theme.frameBg : "transparent"
-                        border.width: 1
-                        border.color: tile.lit ? Theme.frameBorder : Theme.border
-                        Behavior on color { ColorAnimation { duration: Motion.fast } }
-                        Behavior on border.color { ColorAnimation { duration: Motion.fast } }
+                Text {
+                    anchors.top: btn.bottom
+                    anchors.topMargin: 6 * tools.s
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: tile.modelData.label
+                    color: tile.lit ? Theme.cream : Theme.subtle
+                    font.family: Theme.font
+                    font.pixelSize: 9.5 * tools.s
+                }
 
-                        GlyphIcon {
-                            anchors.centerIn: parent
-                            width: 15 * tools.s
-                            height: 15 * tools.s
-                            name: tile.modelData.glyph
-                            color: tile.lit ? Theme.cream : Theme.iconDim
-                            stroke: 1.6
-                        }
-                    }
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onEntered: tools.hovered = tile.modelData.key
+                    onExited: if (tools.hovered === tile.modelData.key) tools.hovered = ""
+                    onClicked: tools.launch(tile.modelData.argv)
+                }
 
-                    Text {
-                        anchors.top: btn.bottom
-                        anchors.topMargin: 6 * tools.s
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: tile.modelData.label
-                        color: tile.lit ? Theme.cream : Theme.subtle
-                        font.family: Theme.font
-                        font.pixelSize: 9.5 * tools.s
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: tools.hovered = tile.modelData.key
-                        onExited: if (tools.hovered === tile.modelData.key) tools.hovered = ""
-                        onClicked: tools.launch(tile.modelData.argv)
-                    }
-
-                    // hairline divider to the next tile.
-                    Rectangle {
-                        visible: tile.index < tools.items.length - 1
-                        width: 1
-                        height: 22 * tools.s
-                        color: Theme.hair
-                        x: tile.width + (tileRow.spacing - width) / 2
-                        y: (btn.height - height) / 2
-                    }
+                // hairline divider on the leading edge of every slot but the first.
+                Rectangle {
+                    visible: tile.index > 0
+                    width: 1
+                    height: 22 * tools.s
+                    color: Theme.hair
+                    x: 0
+                    y: (btn.height - height) / 2
                 }
             }
         }
-    }
-
-    // Ryoku wave signature under the strip.
-    WaveMeter {
-        id: waveSig
-        anchors.top: strip.bottom
-        anchors.topMargin: 12 * tools.s
-        anchors.left: parent.left
-        anchors.right: parent.right
-        s: tools.s
-        frac: 1
     }
 }

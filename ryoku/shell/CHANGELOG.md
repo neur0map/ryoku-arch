@@ -19,13 +19,12 @@
   the standalone component in `ipc/daemon.go`. Adds `ryoku-cmd-songrec`.
 - `deploy.sh` installs the Ryoku VM launcher icon (the brand mark) into the user
   icon theme, so the **Ryoku VM** app entry shows the logo instead of a blank tile.
-- `quickshell/pill` Control Deck: a **Game Mode** row in Utilities, a labeled
-  switch styled like Keep-Awake that flips `Flags.gameMode` (the one-click
+- `quickshell/pill` Control Deck: a **Game Mode** control in the deck, a session
+  tile that flips `Flags.gameMode` (the one-click
   competitive toggle). The shell bridges the flag to `ryoku-cmd-game-mode` the way
   Keep-Awake bridges the caffeine helper, and pulls Do-Not-Disturb on while it is
   active (`Flags` saves and restores the prior DND so it never clobbers a user who
-  keeps DND on independently). The deck's flat switch is extracted to
-  `DeckSwitch.qml` and shared by the Keep-Awake and Game-Mode rows. Covered by
+  keeps DND on independently). Covered by
   `tests/game-mode.sh`.
 - A desktop plugin's right-click menu renders the plugin's own settings inline from
   its `metadata.settings` schema - choice chips, a toggle, a slider, and an image
@@ -207,6 +206,19 @@
   palette stays static.
 
 ### Changed
+- `quickshell/pill`: the `力 CONTROL DECK` is restructured into a tighter control
+  centre (~40% smaller footprint) so it reads less like a generic settings list.
+  The right column's six stacked sections collapse to three whitespace-grouped
+  zones: **Tools** (the capture-launcher strip, now spread edge-to-edge), a new
+  **Controls** zone, and **Record**. Controls unifies what were three separate
+  sections: Keep-Awake and Game-Mode become two wide session stat-tiles (glyph,
+  label, live value; the whole tile taps to toggle and tints when on) over the
+  wifi/bluetooth/mic/DND/night quick-toggle row. Record folds the recordings list
+  in under one eyebrow with the count. Section eyebrows drop from eight to four,
+  the interior hairline rules give way to spacing, the decorative Tools WaveMeter
+  is gone, the masthead is slimmer, and the surface narrows from 660 to 590
+  scale-units. This also removes the void where Stash stretched to match the
+  taller right column. No functionality is dropped.
 - `quickshell/pill`: the mixer popout is reworked from a row of vertical faders
   into an audio control center, while keeping the frame-edge melt and the
   `ryoku-shell mixer` pin. OUTPUT and INPUT each show the active device with an
@@ -230,13 +242,13 @@
 - `quickshell/pill`: Stash, Tools, and Utilities are unified into one wide
   `力 CONTROL DECK` surface instead of three separate pill popouts, opened by
   `Super+D` (the old `Super+Z` and `Super+U` binds are removed). Single view, no
-  sub-tabs: a 力 masthead over two hairline-split columns (Stash left; Tools over
-  Utilities right), corner registration ticks, mono micro-labels and tabular
+  sub-tabs: a 力 masthead over two hairline-split columns (Stash left; Tools,
+  Controls and Record right), corner registration ticks, mono micro-labels and tabular
   figures in the hub Profile dossier idiom. Stash drops onto a filling tray with
   the Profile's square spec grid; its action bar is evenly spaced; the Send,
   Receive, Download and Task sub-screens are dismissed by a single Back control
   in the stash header beside the file count. New `DeckSurface`, `DeckStash`,
-  `DeckTools`, `DeckUtilities`, `DeckSegmented`, `MicroLabel`, `SpecRow`,
+  `DeckTools`, `DeckControls`, `DeckRecord`, `DeckSegmented`, `MicroLabel`, `SpecRow`,
   `CornerTicks`; the standalone `StashSurface`, `ToolkitSurface`, and
   `UtilitiesSurface` are retired, and the old Caffeine tile drops out (Keep-Awake
   covers it).

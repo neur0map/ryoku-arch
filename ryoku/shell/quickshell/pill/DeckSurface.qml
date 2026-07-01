@@ -3,25 +3,25 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "Singletons"
 
-// 力 CONTROL DECK = the wide single-view dashboard. pulls Stash (file drop +
-// LocalSend), Tools (screen-capture helpers), Utilities (recorder, keep-awake,
-// quick toggles, recordings) into one panel in the Ryoku Hub dossier idiom.
-// no sub-tabs, everything visible at once across two hairline-split columns
-// (Stash left, Tools-over-Utilities right) under a 力 masthead with corner
-// ticks. Super+D/Z/U all open this one surface. implicitHeight comes from
-// content; Ame is off.
+// 力 CONTROL DECK = the single-view dashboard. two hairline-split columns under
+// a 力 masthead with corner ticks: Stash left (file drop + LocalSend), a
+// Tools / Controls / Record stack right. Tools = screen-capture launchers;
+// Controls = the unified control centre (Keep-Awake + Game-Mode session tiles
+// over the wifi/bt/mic/dnd/night quick-toggles); Record = capture + recordings
+// list. zones are grouped by whitespace, not rules. Super+D opens it.
+// implicitHeight comes from content; Ame is off.
 PillSurface {
     id: root
 
-    mTop: 16
-    mLeft: 18
-    mRight: 18
-    mBottom: 16
+    mTop: 14
+    mLeft: 16
+    mRight: 16
+    mBottom: 14
 
     ameForm: "off"
 
-    readonly property real headerH: 30 * s
-    readonly property real gutter: 20 * s
+    readonly property real headerH: 24 * s
+    readonly property real gutter: 18 * s
 
     implicitHeight: content.implicitHeight
 
@@ -40,7 +40,7 @@ PillSurface {
             Row {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 9 * root.s
+                spacing: 8 * root.s
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
@@ -48,14 +48,14 @@ PillSurface {
                     color: Theme.brand
                     font.family: Theme.fontJp
                     font.weight: Font.Medium
-                    font.pixelSize: 17 * root.s
+                    font.pixelSize: 15 * root.s
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "CONTROL DECK"
                     color: Theme.subtle
                     font.family: Theme.mono
-                    font.pixelSize: 10 * root.s
+                    font.pixelSize: 9 * root.s
                     font.weight: Font.DemiBold
                     font.letterSpacing: 2.4 * root.s
                     font.capitalization: Font.AllUppercase
@@ -65,7 +65,7 @@ PillSurface {
 
         Rectangle { width: parent.width; height: 1; color: Theme.hair }
 
-        Item { width: 1; height: 16 * root.s }
+        Item { width: 1; height: 14 * root.s }
 
         // body: two hairline-split columns.
         Item {
@@ -74,7 +74,7 @@ PillSurface {
             height: bodyRow.height
 
             readonly property real colsW: width - root.gutter * 2 - 1
-            readonly property real leftW: Math.floor(colsW * 0.52)
+            readonly property real leftW: Math.floor(colsW * 0.50)
             readonly property real rightW: colsW - leftW
             readonly property real bodyH: Math.max(leftCol.minH, rightStack.implicitHeight)
 
@@ -118,15 +118,15 @@ PillSurface {
                     color: Theme.hair
                 }
 
-                // right: Tools over Utilities.
+                // right: Tools / Controls / Record, grouped by whitespace.
                 Column {
                     id: rightStack
                     width: bodyHolder.rightW
-                    spacing: 18 * root.s
+                    spacing: 16 * root.s
 
                     Column {
                         width: parent.width
-                        spacing: 12 * root.s
+                        spacing: 10 * root.s
                         MicroLabel { label: "Tools"; s: root.s }
                         DeckTools {
                             width: parent.width
@@ -135,13 +135,43 @@ PillSurface {
                         }
                     }
 
-                    Rectangle { width: parent.width; height: 1; color: Theme.hair }
+                    Column {
+                        width: parent.width
+                        spacing: 10 * root.s
+                        MicroLabel { label: "Controls"; s: root.s }
+                        DeckControls {
+                            width: parent.width
+                            s: root.s
+                            active: root.open
+                        }
+                    }
 
                     Column {
                         width: parent.width
-                        spacing: 12 * root.s
-                        MicroLabel { label: "Utilities"; s: root.s }
-                        DeckUtilities {
+                        spacing: 10 * root.s
+
+                        Item {
+                            width: parent.width
+                            height: recEye.implicitHeight
+
+                            MicroLabel { id: recEye; label: "Record"; s: root.s }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: recEye.verticalCenter
+                                visible: recordZone.recCount > 0
+                                text: recordZone.recCount < 10 ? "0" + recordZone.recCount : String(recordZone.recCount)
+                                color: Theme.faint
+                                font.family: Theme.mono
+                                font.pixelSize: 10 * root.s
+                                font.weight: Font.DemiBold
+                                font.letterSpacing: 1.4 * root.s
+                                font.features: { "tnum": 1 }
+                            }
+                        }
+
+                        DeckRecord {
+                            id: recordZone
                             width: parent.width
                             s: root.s
                             active: root.open
