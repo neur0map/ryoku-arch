@@ -55,14 +55,16 @@ Item {
                     width: cellText.implicitWidth + 26
                     height: 26
                     radius: 7
-                    color: cell.active ? Theme.ember : "transparent"
+                    color: cell.active ? Theme.keyTop : "transparent"
+                    border.width: cell.active ? 1 : 0
+                    border.color: Theme.line
                     Behavior on color { ColorAnimation { duration: Theme.quick } }
 
                     Text {
                         id: cellText
                         anchors.centerIn: parent
                         text: cell.modelData.label
-                        color: cell.active ? Theme.onAccent : (cellHov.hovered ? Theme.cream : Theme.dim)
+                        color: cell.active ? Theme.bright : (cellHov.hovered ? Theme.cream : Theme.dim)
                         font.family: Theme.font
                         font.pixelSize: 12
                         font.weight: cell.active ? Font.DemiBold : Font.Medium

@@ -355,15 +355,15 @@ Item {
                                             : hostCell.modelData === "desktopWidget" ? "Desktop widget"
                                             : hostCell.modelData
                                         width: hcText.implicitWidth + 22; height: 28; radius: 8
-                                        color: active ? Theme.ember : Theme.surfaceLo
+                                        color: active ? Theme.keyTop : Theme.surfaceLo
                                         border.width: 1
-                                        border.color: active ? Theme.ember : Theme.line
+                                        border.color: Theme.line
                                         Behavior on color { ColorAnimation { duration: Theme.quick } }
                                         Text {
                                             id: hcText
                                             anchors.centerIn: parent
                                             text: hostCell.nice
-                                            color: hostCell.active ? Theme.onAccent : Theme.dim
+                                            color: hostCell.active ? Theme.bright : Theme.dim
                                             font.family: Theme.font
                                             font.pixelSize: 12
                                             font.weight: hostCell.active ? Font.DemiBold : Font.Medium

@@ -164,11 +164,11 @@ Item {
                 required property var modelData
                 readonly property bool active: ed.edge === edgeCell.modelData.k
                 width: el.implicitWidth + 18; height: 24; radius: 7
-                color: active ? Theme.ember : Theme.surfaceLo
-                border.width: 1; border.color: active ? Theme.ember : Theme.line
+                color: active ? Theme.keyTop : Theme.surfaceLo
+                border.width: 1; border.color: Theme.line
                 Text {
                     id: el; anchors.centerIn: parent; text: edgeCell.modelData.l
-                    color: edgeCell.active ? Theme.onAccent : Theme.dim
+                    color: edgeCell.active ? Theme.bright : Theme.dim
                     font.family: Theme.font; font.pixelSize: 11; font.weight: edgeCell.active ? Font.DemiBold : Font.Medium
                 }
                 TapHandler {

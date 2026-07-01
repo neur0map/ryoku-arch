@@ -175,6 +175,11 @@
   shell's morph motion (a single sliding selection indicator in the rail).
 
 ### Changed
+- Single-select controls read as one family. The active choice in `ChoiceRow`
+  (Input, Displays, GPU, Shell, Widgets, Appearance) and the pick-one pills for
+  plugin placement and host now wear the same dark raised pill (`keyTop` +
+  hairline, bright label) as the `Segmented` tab bar and the nav rail, instead of
+  a solid ember block. The brand orange stays an accent, never a fill.
 - **GPU section is graphics-only.** It chooses which GPU Ryoku renders on (Hybrid
   / Performance / Passthrough) and sets up the optional GPU-passthrough stack
   (binds the discrete GPU to vfio so a VM can own it), with the readiness dossier
