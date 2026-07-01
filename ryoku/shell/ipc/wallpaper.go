@@ -237,6 +237,7 @@ func tuneArgs() []string {
 		return nil
 	}
 	var t struct {
+		Image      string `json:"image"`
 		Palette    string `json:"palette"`
 		Colorspace string `json:"colorspace"`
 		Backend    string `json:"backend"`
@@ -245,6 +246,13 @@ func tuneArgs() []string {
 		Contrast   bool   `json:"contrast"`
 	}
 	if json.Unmarshal(b, &t) != nil {
+		return nil
+	}
+	// per-image: the tune only applies to the image it was set on. a plain
+	// wallpaper change (Super+W, a different image) no longer matches, so it
+	// falls back to default extraction. keyed by path, a stale tune can never
+	// bleed onto another wallpaper.
+	if t.Image == "" || t.Image != readState() {
 		return nil
 	}
 	var a []string
