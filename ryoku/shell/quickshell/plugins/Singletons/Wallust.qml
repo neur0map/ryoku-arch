@@ -4,14 +4,15 @@ import Quickshell
 import Quickshell.Io
 
 // shell surface palette matched to the wallpaper's terminal background. when
-// Ryoku Settings -> Shell -> Match wallpaper is on (read here from shell.json),
-// surfaces follow the live wallust palette (~/.cache/wallust/colors.json), so
-// the shell reads the same colour as an open terminal. base = terminal (kitty)
-// background exactly; elevated/deep/line shift its value to keep the depth
-// hierarchy. defaults = Ryoku brand palette, so it looks right before the
-// first wallust run.
+// Ryoku Settings -> Shell -> Match wallpaper is on (read here from
+// theme.json.FollowWallpaper, the single colour master shared with the daemon
+// and window borders), surfaces follow the live wallust palette
+// (~/.cache/wallust/colors.json), so the shell reads the same colour as an
+// open terminal. base = terminal (kitty) background exactly; elevated/deep/line
+// shift its value to keep the depth hierarchy. defaults = Ryoku brand palette,
+// so it looks right before the first wallust run.
 Singleton {
-    readonly property bool  matchWallpaper: shellCfg.matchWallpaper
+    readonly property bool  matchWallpaper: shellCfg.followWallpaper
     readonly property color base:     palette.background
     readonly property color elevated: tone(palette.background, 0.05)
     readonly property color deep:     tone(palette.background, -0.03)
@@ -45,14 +46,14 @@ Singleton {
     }
 
     FileView {
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/shell.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/theme.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
         onFileChanged: reload()
         JsonAdapter {
             id: shellCfg
-            property bool matchWallpaper: false
+            property bool followWallpaper: true
         }
     }
 }

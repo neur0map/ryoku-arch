@@ -20,9 +20,9 @@ Singleton {
     readonly property color accent:  vivid(adapter.color4)
     readonly property color accent2: vivid(adapter.color5)
 
-    // shell-wide "Match wallpaper" toggle (shell.json) + the surface ramp it
-    // drives. base = terminal background exactly; rest shift its value.
-    readonly property bool  matchWallpaper: shellCfg.matchWallpaper
+    // shell-wide "Match wallpaper" toggle (theme.json.FollowWallpaper) + the
+    // surface ramp it drives. base = terminal background exactly; rest shift value.
+    readonly property bool  matchWallpaper: shellCfg.followWallpaper
     readonly property color base:     background
     readonly property color elevated: tone(background, 0.05)
     readonly property color deep:     tone(background, -0.03)
@@ -100,14 +100,14 @@ Singleton {
     }
 
     FileView {
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/shell.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/theme.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
         onFileChanged: reload()
         JsonAdapter {
             id: shellCfg
-            property bool matchWallpaper: false
+            property bool followWallpaper: true
         }
     }
 }

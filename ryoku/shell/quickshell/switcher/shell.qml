@@ -21,7 +21,7 @@ ShellRoot {
     id: root
 
     readonly property color dimBg:   Qt.rgba(0, 0, 0, 0.45)
-    readonly property bool matchWallpaper: switchCfg.matchWallpaper
+    readonly property bool matchWallpaper: switchCfg.followWallpaper
     readonly property color wallBase: switchPalette.background
     readonly property color cardTop: matchWallpaper ? wallBase : "#1a1b26"
     readonly property color cardBot: matchWallpaper ? tone(wallBase, -0.03) : "#16161e"
@@ -33,8 +33,9 @@ ShellRoot {
         return Qt.hsva(hue, c.hsvSaturation, Math.max(0, Math.min(1, c.hsvValue + dv)), 1);
     }
 
-    // The shell-wide Match wallpaper toggle (shell.json) and the live palette
-    // (colors.json), mirrored locally since the switcher is its own qs config.
+    // The shell-wide Match wallpaper toggle (theme.json.FollowWallpaper) and
+    // the live palette (colors.json), mirrored locally since the switcher is
+    // its own qs config.
     FileView {
         path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/wallust/colors.json"
         blockLoading: true
@@ -44,12 +45,12 @@ ShellRoot {
         JsonAdapter { id: switchPalette; property color background: "#1a1b26" }
     }
     FileView {
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/shell.json"
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/theme.json"
         blockLoading: true
         watchChanges: true
         printErrors: false
         onFileChanged: reload()
-        JsonAdapter { id: switchCfg; property bool matchWallpaper: false }
+        JsonAdapter { id: switchCfg; property bool followWallpaper: true }
     }
     readonly property color accent:  "#7aa2f7"
     readonly property color cream:   "#c0caf5"

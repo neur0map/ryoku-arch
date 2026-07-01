@@ -62,8 +62,9 @@ Singleton {
     // matchWallpaper: when on, every shell surface (frame, island, popouts,
     // every surface, plus desktop widgets, plugin tiles, the window switcher)
     // follows the live wallust palette instead of the static Tokyo Night
-    // tokens. each component reads this same flag. off by default.
-    property alias matchWallpaper: adapter.matchWallpaper
+    // tokens. sourced from theme.json (`FollowWallpaper`, the single colour
+    // master shared with the daemon and window borders). on by default.
+    property alias matchWallpaper: themeAdapter.followWallpaper
 
     FileView {
         id: file
@@ -95,8 +96,19 @@ Singleton {
             property bool barEnabled: false
             property string fontFamily: "Inter"
             property real fontScale: 1.0
-            property bool matchWallpaper: false
         }
+    }
+
+    // The colour-source master lives in theme.json (single source: the daemon,
+    // window borders and shell chrome all read it). true = follow the wallpaper.
+    FileView {
+        id: themeFile
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/theme.json"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        JsonAdapter { id: themeAdapter; property bool followWallpaper: true }
     }
 
     // seed only on a genuine first run (nothing to load), so a slow or failed
