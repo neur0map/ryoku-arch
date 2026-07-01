@@ -163,7 +163,6 @@ func applyTheme(slug string) error {
 			return fmt.Errorf("theme %q look: %w", slug, err)
 		}
 	}
-	app.FollowWallpaper = true // borders come from the wallust palette, set below
 	o.Appearance = app
 	if err := saveOverrides(o); err != nil {
 		return err

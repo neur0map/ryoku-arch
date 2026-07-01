@@ -9,7 +9,7 @@ import (
 // genLua should only emit what diverges from the shipped defaults: an untouched
 // override -> no hl.config block, base modules stay in charge.
 func TestGenLuaDefaultsAreEmpty(t *testing.T) {
-	out := genLua(defaultOverrides())
+	out := genLua(defaultOverrides(), true)
 	if strings.Contains(out, "hl.config(") {
 		t.Errorf("default overrides emitted a config block:\n%s", out)
 	}
@@ -22,7 +22,7 @@ func TestGenLuaEmitsChangedLeavesOnly(t *testing.T) {
 	o := defaultOverrides()
 	o.Appearance.Rounding = 24
 	o.Appearance.GapsIn = 12
-	out := genLua(o)
+	out := genLua(o, true)
 	if !strings.Contains(out, "rounding = 24") {
 		t.Errorf("rounding override missing:\n%s", out)
 	}
@@ -39,12 +39,11 @@ func TestGenLuaEmitsChangedLeavesOnly(t *testing.T) {
 // Hyprland wants.
 func TestGenLuaBorderColours(t *testing.T) {
 	o := defaultOverrides()
-	if strings.Contains(genLua(o), "col.active_border") {
+	if strings.Contains(genLua(o, true), "col.active_border") {
 		t.Error("borders emitted while following wallpaper")
 	}
-	o.Appearance.FollowWallpaper = false
 	o.Appearance.ActiveBorder = "#ff6a3d"
-	out := genLua(o)
+	out := genLua(o, false)
 	if !strings.Contains(out, `["col.active_border"] = "rgb(ff6a3d)"`) {
 		t.Errorf("active border not in rgb() form:\n%s", out)
 	}
@@ -53,7 +52,7 @@ func TestGenLuaBorderColours(t *testing.T) {
 func TestGenLuaAnimationsToggle(t *testing.T) {
 	o := defaultOverrides()
 	o.Appearance.Animations = false
-	if !strings.Contains(genLua(o), "animations = { enabled = false }") {
+	if !strings.Contains(genLua(o, true), "animations = { enabled = false }") {
 		t.Error("animations disable not emitted")
 	}
 }
@@ -61,8 +60,8 @@ func TestGenLuaAnimationsToggle(t *testing.T) {
 func TestGenLuaTouchpadHyphenKey(t *testing.T) {
 	o := defaultOverrides()
 	o.Input.TapToClick = false
-	if !strings.Contains(genLua(o), `["tap-to-click"] = false`) {
-		t.Errorf("hyphenated touchpad key not bracket-quoted:\n%s", genLua(o))
+	if !strings.Contains(genLua(o, true), `["tap-to-click"] = false`) {
+		t.Errorf("hyphenated touchpad key not bracket-quoted:\n%s", genLua(o, true))
 	}
 }
 
@@ -71,7 +70,7 @@ func TestGenLuaWindowRuleAndKeybind(t *testing.T) {
 	o.WindowRules = []WindowRule{{Class: "Spotify", Action: "float"}}
 	o.WindowRules = append(o.WindowRules, WindowRule{Title: "Picture in picture", Action: "size", Value: "640x360"})
 	o.Keybinds = []Keybind{{Keys: "SUPER + J", Action: "exec", Value: "kitty"}}
-	out := genLua(o)
+	out := genLua(o, true)
 	if !strings.Contains(out, `match = { class = "Spotify" }, float = true`) {
 		t.Errorf("float rule malformed:\n%s", out)
 	}
@@ -89,7 +88,7 @@ func TestGenLuaDropsIncomplete(t *testing.T) {
 	o := defaultOverrides()
 	o.WindowRules = []WindowRule{{Action: "float"}}
 	o.Keybinds = []Keybind{{Keys: "SUPER + K", Action: "exec", Value: ""}}
-	out := genLua(o)
+	out := genLua(o, true)
 	if strings.Contains(out, "hl.window_rule(") {
 		t.Errorf("matchless rule was emitted:\n%s", out)
 	}
@@ -101,7 +100,7 @@ func TestGenLuaDropsIncomplete(t *testing.T) {
 func TestGenLuaCursorStartHook(t *testing.T) {
 	o := defaultOverrides()
 	o.Cursor = Cursor{Theme: "Bibata-Modern-Classic", Size: 32}
-	out := genLua(o)
+	out := genLua(o, true)
 	if !strings.Contains(out, `hl.on("hyprland.start"`) {
 		t.Errorf("cursor change did not register a start hook:\n%s", out)
 	}
@@ -172,12 +171,12 @@ func TestLiveLuaIsFullAndParses(t *testing.T) {
 // base config (input.lua ships follow_mouse = 2). picking "Normal" (1) in the Hub
 // must emit the override so hover-to-focus actually applies; the default must not.
 func TestGenConfigFollowMouseOverride(t *testing.T) {
-	if got := genConfig(defaultOverrides()); strings.Contains(got, "follow_mouse") {
+	if got := genConfig(defaultOverrides(), true); strings.Contains(got, "follow_mouse") {
 		t.Errorf("default follow_mouse must emit no override, got:\n%s", got)
 	}
 	o := defaultOverrides()
 	o.Input.FollowMouse = 1
-	if got := genConfig(o); !strings.Contains(got, "follow_mouse = 1") {
+	if got := genConfig(o, true); !strings.Contains(got, "follow_mouse = 1") {
 		t.Errorf("follow_mouse = 1 must be written so hover-to-focus takes effect, got:\n%s", got)
 	}
 }
