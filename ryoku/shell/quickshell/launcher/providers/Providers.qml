@@ -29,11 +29,13 @@ Item {
     Packages {}
     Script {}
     Snippets {}
-    Web {}
+    Web { id: webProvider }
     Windows {}
 
-    // exposed so the action-mode tabs can narrow the actions provider's list, and
-    // the all-apps grid can read the full app list.
+    // exposed so the action-mode tabs can narrow the actions provider's list,
+    // the all-apps grid can read the full app list, and the launcher can read
+    // the web provider's async DDG instant answer for the AnswerPanel.
     property alias actions: actionsProvider
     property alias apps: appsProvider
+    property alias web: webProvider
 }

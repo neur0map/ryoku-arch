@@ -42,7 +42,7 @@ the dispatcher discovers it by registration, never by an edit to the routing.
 | actions | `/` | system actions (lock, wallpaper, screenshot, night light, media keys, settings) in category tabs |
 | clipboard | `;` | cliphist history, copy or delete |
 | windows | (default) | switch Hyprland windows |
-| web | `?` | web search with `!bang` site shortcuts |
+| web | `?` | web search with `!bang` site shortcuts, plus an inline DuckDuckGo instant answer |
 | files | (default, 3+ chars) | fd file search, open or reveal |
 | snippets | (default) | text expander (`{date}`/`{clipboard}`/`{selection}`/`{cursor}`) + quicklinks (`{query}`) |
 | packages | `install`/`remove`/`search` | GPK across every package manager |
@@ -57,6 +57,11 @@ per-provider parsers), each with a `.test.mjs` run by `node`.
 
 ## Music
 
+The launcher is the *quick* music path: search a track and play it inline. The
+full music experience, a play queue with YouTube Music radio auto-extend,
+playlists, playlist import, and source switching, lives in the RyoTunes deck
+(`Super+M`); see `docs/ryotunes.md`. Both share the same daemon-owned backend.
+
 - **Spotify**: the MPRIS provider controls the running Spotify client (play,
   pause, skip, now-playing) with zero setup. Catalog search, library, and queueing
   go through the Spotify Web API via `ryoku-shell spotify` (PKCE OAuth, token under
@@ -64,11 +69,20 @@ per-provider parsers), each with a `.test.mjs` run by `node`.
   `ryoku-shell spotify auth <client-id>` (a Spotify developer app with the redirect
   `http://127.0.0.1:15298/callback`); playback commands need Premium.
 - **YouTube Music**: the `@` prefix searches with yt-dlp and streams the picked
-  track with mpv (audio only) over an IPC socket. Needs yt-dlp, mpv, and socat; the
-  provider hides itself when they are absent. A signed-in default browser lifts the
-  rate limit through `--cookies-from-browser`.
-- The now-playing card on the rest screen shows album art, title/artist, and the
-  signature wavy seekbar (a sine that animates only while playing).
+  track with mpv (audio only); `mpv-mpris` exposes that mpv over D-Bus so the
+  now-playing card and the MPRIS transport verbs control it just like any other
+  player. Needs yt-dlp and mpv (with mpv-mpris); the provider hides itself when
+  they are absent. A signed-in default browser lifts the rate limit through
+  `--cookies-from-browser`. The stream yields automatically: while it plays it
+  watches MPRIS and stops the moment another player (Spotify, a browser tab, any
+  app) starts, so two streams never overlap.
+- The now-playing card on the rest screen shows album art, title/artist, elapsed
+  and total time, and the signature wavy seekbar (a sine that animates only while
+  playing); the fill advances off a 500ms MPRIS position poll. A live cava wave
+  sweeps behind it while a track plays, gated so the analyser runs only while the
+  launcher is open and something is playing. When the player exposes no cover (an
+  mpv or yt-dlp stream, some browsers), the card fetches one from the keyless
+  iTunes Search API by artist and title.
 
 ## Extending it
 

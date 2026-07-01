@@ -23,7 +23,9 @@ Item {
     readonly property var results: shown ? Dispatcher.results(query, Metrics.maxResults) : []
     readonly property int totalCount: shown ? Dispatcher.results("", 0).length : 0
     readonly property bool resting: query.length === 0
-    readonly property bool gridMode: resting && allApps
+    // grid and help are mutually exclusive body modes; exclude help here too so
+    // no toggle path can leave both drawing over each other.
+    readonly property bool gridMode: resting && allApps && !help
 
     // active media player for the rest-state now-playing card.
     readonly property var activePlayer: {
@@ -58,6 +60,12 @@ Item {
         return "";
     }
     readonly property bool actionMode: routed.provider === "actions"
+    // "?" prefix with a non-empty query and an available DDG answer: the
+    // AnswerPanel takes the body above the Search fallback row. Guarded on
+    // providers.web because the alias resolves after Providers instantiates.
+    readonly property bool answerMode: routed.prefix === "?"
+        && routed.query.length > 0
+        && providers.web && providers.web.answer && providers.web.answer.available
     // tabs + hint row are browsing aids: show them only for a bare "/" (the
     // action catalog), not once the user types "/play" — then the results take
     // the space and nothing clips.
@@ -89,11 +97,14 @@ Item {
     readonly property real gridH: 380 * s
     readonly property real tabsH: actionBrowse ? tabs.implicitHeight + 6 * s : 0
     readonly property real restH: rest.implicitHeight + (hasMedia ? nowPlaying.implicitHeight + Metrics.padRow * s : 0)
+    // Extra body slice for the instant-answer panel; padRow separates it from
+    // the Search fallback row that stays underneath so Enter still targets it.
+    readonly property real answerH: answerMode ? answerPanel.implicitHeight + Metrics.padRow * s : 0
     readonly property real bodyH: help ? helpPanel.implicitHeight
         : gridMode ? gridH
         : (resting ? restH
-        : (results.length > 0 ? listH
-        : (searching ? loading.height : empty.height)))
+        : (answerH + (results.length > 0 ? listH
+        : (searching ? loading.height : empty.height))))
     readonly property real contentH: tabsH + bodyH
 
     implicitWidth: cardW
@@ -170,6 +181,7 @@ Item {
             } else {
                 search.clear();
                 root.allApps = true;
+                root.help = false;
             }
         }
         onHelpToggled: {
@@ -183,6 +195,7 @@ Item {
                 e.accepted = true;
             } else if (e.key === Qt.Key_A && (e.modifiers & Qt.ControlModifier) && root.resting) {
                 root.allApps = !root.allApps;
+                if (root.allApps) root.help = false;
                 e.accepted = true;
             } else if (root.actionMode && e.key === Qt.Key_Tab) {
                 tabs.cycle(1); e.accepted = true;
@@ -242,6 +255,19 @@ Item {
         s: root.s
     }
 
+    AnswerPanel {
+        id: answerPanel
+        visible: root.answerMode
+        anchors.top: divider.bottom
+        anchors.topMargin: Metrics.padRow * root.s
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Metrics.padOuter * root.s
+        anchors.rightMargin: Metrics.padOuter * root.s
+        s: root.s
+        answer: providers.web ? providers.web.answer : ({ available: false })
+    }
+
     NowPlaying {
         id: nowPlaying
         visible: root.resting && !root.allApps && !root.help && root.hasMedia
@@ -273,8 +299,8 @@ Item {
     ResultList {
         id: list
         visible: !root.resting && root.results.length > 0
-        anchors.top: root.actionBrowse ? tabs.bottom : divider.bottom
-        anchors.topMargin: 6 * root.s
+        anchors.top: root.answerMode ? answerPanel.bottom : (root.actionBrowse ? tabs.bottom : divider.bottom)
+        anchors.topMargin: root.answerMode ? Metrics.padRow * root.s : 6 * root.s
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.leftMargin: (Metrics.padOuter - Metrics.padRow) * root.s
@@ -289,7 +315,7 @@ Item {
     Row {
         id: loading
         visible: root.searching
-        anchors.top: root.actionBrowse ? tabs.bottom : divider.bottom
+        anchors.top: root.answerMode ? answerPanel.bottom : (root.actionBrowse ? tabs.bottom : divider.bottom)
         anchors.topMargin: Metrics.padRow * root.s
         anchors.horizontalCenter: parent.horizontalCenter
         height: 40 * root.s
@@ -311,7 +337,7 @@ Item {
     Text {
         id: empty
         visible: !root.resting && !root.searching && root.results.length === 0
-        anchors.top: root.actionBrowse ? tabs.bottom : divider.bottom
+        anchors.top: root.answerMode ? answerPanel.bottom : (root.actionBrowse ? tabs.bottom : divider.bottom)
         anchors.topMargin: Metrics.padRow * root.s
         anchors.horizontalCenter: parent.horizontalCenter
         text: "No matches"

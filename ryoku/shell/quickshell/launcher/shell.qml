@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import Quickshell.Services.Mpris
 import "Singletons"
 
 // The standalone Ryoku command palette: one centered layer-shell overlay, resident
@@ -16,6 +17,25 @@ ShellRoot {
 
     property string openMon: ""
     readonly property bool open: openMon !== ""
+
+    // Any MPRIS player actively playing. Gates the now-playing wave backdrop's
+    // cava process (Spectrum) so it runs only while the launcher is open AND
+    // there is real audio, never on a hidden or silent palette.
+    readonly property bool anyPlaying: {
+        var list = Mpris.players.values;
+        if (!list)
+            return false;
+        for (var i = 0; i < list.length; i++)
+            if (list[i] && list[i].isPlaying)
+                return true;
+        return false;
+    }
+
+    Binding {
+        target: Spectrum
+        property: "active"
+        value: root.open && root.anyPlaying
+    }
 
     function focusedMonitor() {
         var m = Hyprland.focusedMonitor;

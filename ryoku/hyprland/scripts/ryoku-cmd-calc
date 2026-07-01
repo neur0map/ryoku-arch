@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Evaluate a math expression for the launcher calculator. Prefers qalc (units,
 # currency, natural language); falls back to a safe Python arithmetic evaluator
-# when qalc is absent, so the calculator always works. Prints the result on
-# stdout, nothing on error. The trailing "=" some users type is stripped.
+# when qalc is absent or cannot parse the input, so the calculator always works.
+# Prints the result on stdout, nothing on error. A trailing "=" is stripped.
 set -uo pipefail
 
 expr="${1:-}"
@@ -11,33 +11,99 @@ expr="${expr#"${expr%%[![:space:]]*}"}"
 expr="${expr%"${expr##*[![:space:]]}"}"
 [ -z "$expr" ] && exit 0
 
+# Normalize the multiplication and division a person types by hand into the
+# operators qalc and Python expect: the cross and dot signs, a bare `x`/`X`
+# between two operands ("4+3x43", "12 x 34"), and " of " as multiply so a
+# percentage reads naturally ("15% of 200"). The x rule runs twice so a chain
+# like "2x3x4" converts fully. qalc reads a bare `x` as a variable, so this
+# helps both the qalc path and the Python fallback below.
+expr="$(printf '%s' "$expr" | sed -E \
+  -e 's/×/*/g' -e 's/÷/\//g' \
+  -e 's/[[:space:]]+[oO][fF][[:space:]]+/ * /g' \
+  -e 's/([0-9)])[[:space:]]*[xX][[:space:]]*([0-9(.])/\1*\2/g' \
+  -e 's/([0-9)])[[:space:]]*[xX][[:space:]]*([0-9(.])/\1*\2/g')"
+
+# qalc is the primary engine (units, currency, functions). Gate on its exit
+# code, not just its output: for input it cannot parse (an unknown word like
+# "firefox") qalc still exits nonzero while printing a garbage unit string, so a
+# nonzero exit must fall through to the Python evaluator instead of printing it.
 if command -v qalc >/dev/null 2>&1; then
-  out="$(qalc -t "$expr" 2>/dev/null)"
-  [ -n "$out" ] && { printf '%s\n' "$out"; exit 0; }
+  if out="$(qalc -t "$expr" 2>/dev/null)" && [ -n "$out" ]; then
+    printf '%s\n' "$out"
+    exit 0
+  fi
 fi
 
-# Python fallback: parse the expression to an AST and evaluate only arithmetic
-# nodes, so no arbitrary code runs. Supports + - * / // % ** and parentheses.
+# Python fallback: parse to an AST and evaluate only whitelisted arithmetic,
+# named constants, and math-module calls. NEVER passes the raw string to eval or
+# exec. Supports + - * / // % ** and parens; also ^ as power, X% and "X% of Y"
+# and "A +/- B%" as percentage, the constants pi/e/tau, and unary math calls
+# from a fixed whitelist (sqrt, sin, cos, tan, asin, acos, atan, log, ln, log2,
+# log10, exp, abs, floor, ceil, round, factorial, degrees, radians, hypot, pow).
 EXPR="$expr" python3 - <<'PY' 2>/dev/null
-import ast, os, operator
+import ast, math, operator, os, re
+
 src = os.environ.get("EXPR", "")
+# `^` in a calculator means power, not xor; translate before parsing so the AST
+# sees `**` and no BitXor node is ever emitted.
+src = src.replace("^", "**")
+# "X of Y" between operands means multiplication, so "15% of 200" reads as
+# "15% * 200"; anchored on whitespace to avoid mangling function names.
+src = re.sub(r"\s+of\s+", " * ", src, flags=re.IGNORECASE)
+# "A + B%" and "A - B%" apply the percentage to the left operand, so
+# "200 + 10%" evaluates as 200 + 200*10/100 = 220. Consumes the trailing % so
+# the bare-% rule below leaves the rewritten expression alone.
+src = re.sub(
+    r"(\d+(?:\.\d+)?)\s*([+\-])\s*(\d+(?:\.\d+)?)\s*%",
+    r"(\1\2\1*\3/100)", src)
+# Bare "X%" means X/100, but only when % is not followed by a digit; that keeps
+# ordinary modulo like "7 % 3" working through the ast.Mod path.
+src = re.sub(r"(\d+(?:\.\d+)?)\s*%(?!\s*\d)", r"(\1/100)", src)
+
 ops = {
     ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
     ast.Div: operator.truediv, ast.FloorDiv: operator.floordiv,
     ast.Mod: operator.mod, ast.Pow: operator.pow,
     ast.USub: operator.neg, ast.UAdd: operator.pos,
 }
+consts = {"pi": math.pi, "e": math.e, "tau": math.tau}
+calls = {
+    "sqrt": math.sqrt, "sin": math.sin, "cos": math.cos, "tan": math.tan,
+    "asin": math.asin, "acos": math.acos, "atan": math.atan,
+    "log": math.log, "ln": math.log, "log2": math.log2, "log10": math.log10,
+    "exp": math.exp, "abs": abs, "floor": math.floor, "ceil": math.ceil,
+    "round": round, "factorial": math.factorial,
+    "degrees": math.degrees, "radians": math.radians,
+    "hypot": math.hypot, "pow": math.pow,
+}
+
 def ev(n):
-    if isinstance(n, ast.Constant) and isinstance(n.value, (int, float)):
+    if isinstance(n, ast.Constant) and isinstance(n.value, (int, float)) \
+            and not isinstance(n.value, bool):
         return n.value
     if isinstance(n, ast.BinOp) and type(n.op) in ops:
         return ops[type(n.op)](ev(n.left), ev(n.right))
     if isinstance(n, ast.UnaryOp) and type(n.op) in ops:
         return ops[type(n.op)](ev(n.operand))
+    if isinstance(n, ast.Name):
+        if n.id in consts:
+            return consts[n.id]
+        raise ValueError("name")
+    if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and not n.keywords:
+        fn = calls.get(n.func.id)
+        if fn is None:
+            raise ValueError("call")
+        return fn(*[ev(a) for a in n.args])
     raise ValueError("unsupported")
+
 try:
     v = ev(ast.parse(src, mode="eval").body)
-    print(int(v) if isinstance(v, float) and v.is_integer() else round(v, 10))
+    if isinstance(v, bool):
+        raise ValueError("bool")
+    if isinstance(v, float):
+        print(int(v) if v.is_integer() else round(v, 10))
+    else:
+        print(v)
 except Exception:
     pass
 PY

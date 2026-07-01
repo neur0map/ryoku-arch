@@ -17,6 +17,23 @@
   `docs/launcher.md`. Blur via the `launcher` layer rule in
   `hyprland/modules/decoration.lua`; the `launcher` verb moves from the pill to
   the standalone component in `ipc/daemon.go`. Adds `ryoku-cmd-songrec`.
+- `quickshell/launcher` web provider: a `?` query now shows an inline DuckDuckGo
+  instant answer above the search row (heading, wrapped abstract, source), so
+  `?what is nmap` answers in place instead of only offering a Google search. The
+  answer is fetched keyless and async (`providers/web/ddg.js`, node-tested;
+  rendered by `AnswerPanel.qml`); a `!bang` skips the fetch and goes straight to
+  the chosen site, and the search row stays as the always-present fallback.
+- `quickshell/launcher` now-playing: when the media player exposes no cover art
+  (an mpv or yt-dlp stream, some browsers), the card fetches one from the keyless
+  iTunes Search API by artist and title, once per track
+  (`providers/media/albumart.js`, node-tested), so the music-note placeholder is
+  a last resort rather than the norm.
+- `quickshell/launcher` now-playing: a live cava spectrum wave now sweeps behind
+  the card, the same filled smoothed curve the desktop visualiser draws, tinted
+  vermilion and eased per frame so it flows with the music. A launcher-local
+  `Singletons/Spectrum.qml` reads the PipeWire monitor, gated in `shell.qml` to
+  run only while the launcher is open and a player is actually playing (never on
+  a hidden or silent palette); the path geometry is `lib/spectrum.js`, node-tested.
 - `deploy.sh` installs the Ryoku VM launcher icon (the brand mark) into the user
   icon theme, so the **Ryoku VM** app entry shows the logo instead of a blank tile.
 - `quickshell/pill` Control Deck: a **Game Mode** control in the deck, a session
@@ -298,6 +315,57 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- `quickshell/launcher`: three launcher features shipped wired to tools that no
+  package set installed, so they silently did nothing on a real machine.
+  `system/packages/base.packages` now ships them and `tests/shell-tool-availability.sh`
+  gates all three so the gap cannot reopen.
+  - Calculator: `libqalculate` was never packaged, so `ryoku-cmd-calc` fell back
+    to a Python evaluator that only did `+ - * / // % **`. `2^10`, `sqrt(16)`,
+    `sin(0)`, `15% of 200`, `pi`, `4+3x43`, and units/currency returned nothing.
+    Ships `libqalculate` (qalc is the primary path, now gated on its exit code so
+    input it cannot parse falls through instead of printing a garbage unit
+    string) and hardens the AST-safe fallback to also handle `^` as power,
+    `X%`/`X% of Y`/`A +/- B%` percentages, the constants `pi`/`e`/`tau`, and a
+    whitelist of `math` functions, so the calculator works even without qalc. The
+    script also normalizes hand-typed multiply and divide (`x`/`X` between
+    operands, `×`, `÷`, ` of `) so `4+3x43` reads as `4+3*43`. `lib/dispatch.js
+    looksNumeric` now routes an unprefixed `sqrt(16)`, `(1+2)*3`, `.5`, or `-3` to
+    the calculator (it stays false for app names like `route66`).
+    `providers/calc/Calc.qml` no longer starves its own debounce when another
+    provider re-runs the results binding. Covered by `tests/calc-eval.sh` (which
+    stubs qalc to force the fallback path) and expanded `dispatch.test.mjs` cases.
+  - Music: `mpv-mpris` was never packaged, so the YouTube Music mpv stream never
+    appeared as an MPRIS player and neither the now-playing card nor the transport
+    verbs could see or control it. Ships `mpv-mpris` (autoloaded from
+    `/etc/mpv/scripts`). `providers/media/mpris/Mpris.qml matches()` no longer
+    leaks the now-playing row into unrelated searches (a substring test against the
+    joined keyword list matched any query containing a common letter). `YtMusic.qml`
+    stops racing the previous mpv when starting a new stream, and `NowPlaying.qml`
+    gains working prev/play-pause/next transport controls. Ships `songrec` for the
+    Recognize Music action. `docs/launcher.md` drops the stale socat claim.
+  - Rest card: the clock and weather glance rendered weather as text with no icon
+    and an unbalanced right column. `RestDashboard.qml` is redesigned with a vector
+    weather glyph (new `WeatherGlyph.qml`, sharing the pill's glyph paths), the
+    temperature, condition and city, and today hi/lo, balanced against the clock,
+    with a clean date-only fallback while weather is still fetching.
+- `quickshell/launcher` now-playing: the YouTube Music stream now yields when
+  another player starts. `YtMusic.qml` watches MPRIS while its mpv is streaming
+  and stops the moment a different player (identity not `mpv`, so Spotify, a
+  browser tab, any app) begins playing, so two streams never overlap and the
+  card follows whatever is actually playing. The watcher runs only during
+  playback, so it costs nothing at rest.
+- `quickshell/launcher` now-playing: the cava wave backdrop no longer flickers
+  or leaves the analyser running when nothing plays. Its visibility follows the
+  fade rather than the per-frame path (an empty path just draws nothing), each
+  band keeps a small floor so the curve does not collapse between beats, and the
+  seekbar now advances: MPRIS never pushes `position`, so `NowPlaying.qml` polls
+  it every 500ms while playing, with elapsed and total time labels flanking the
+  transport and the fill gliding between polls.
+- `quickshell/launcher` Audio Visualizer action: fired the plain `visualizer`
+  verb, which only flips the desktop visualiser's enabled flag while it sits on
+  the bottom layer behind every window, so a maximised window hid any change. It
+  now fires `visualizer-overlay`, which raises the visualiser over the windows
+  (and enables it), so the action actually shows it.
 - `quickshell/ryoshot`: the screenshot key (`Super + S`) silently stopped working
   after a **Save** from the toolbar. Save grabbed the shot to the auto-path, then
   ran `kdialog` to pick a destination - but `kdialog` is a KDE tool that Ryoku

@@ -44,10 +44,15 @@ Provider {
             return [];
         if (t === calc.cachedText)
             return calc.cachedResult.length ? [rowFor(t, calc.cachedResult)] : [];
-        // New expression: schedule an evaluation without touching state inside the
-        // binding, and show nothing until it resolves.
-        calc.pendingText = t;
-        debounce.restart();
+        // New expression: schedule an evaluation without touching state inside
+        // the binding, and show nothing until it resolves. Guard the restart on
+        // pendingText too, so a re-query for the same in-flight expression (any
+        // other provider bumping Dispatcher.revision re-runs results()) does
+        // not keep pushing the debounce forward and starve the calc process.
+        if (t !== calc.pendingText) {
+            calc.pendingText = t;
+            debounce.restart();
+        }
         return [];
     }
 

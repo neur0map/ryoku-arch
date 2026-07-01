@@ -35,7 +35,7 @@ Provider {
         return withTrack ? withTrack : (controllable ? controllable : list[0]);
     }
 
-    readonly property string mediaWords: "play pause next previous skip music media song track pause resume stop volume"
+    readonly property var mediaWords: ["play", "pause", "next", "previous", "skip", "music", "media", "song", "track", "resume", "stop", "volume"]
 
     function nowPlayingRow() {
         var p = mpris.player;
@@ -55,10 +55,16 @@ Provider {
         };
     }
 
+    // Route the row on either a media verb (a query that equals a media word or
+    // is a prefix of one) or the current track's title/artist. Substring on the
+    // joined word list was wrong: a single common letter like `a`/`e` matched
+    // any word containing it, leaking the row into unrelated searches.
     function matches(text) {
         var q = text.toLowerCase();
-        if (mpris.mediaWords.indexOf(q) !== -1 || mediaWords.split(" ").some(function (w) { return w.indexOf(q) === 0; }))
-            return true;
+        for (var i = 0; i < mpris.mediaWords.length; i++) {
+            if (mpris.mediaWords[i].indexOf(q) === 0)
+                return true;
+        }
         var p = mpris.player;
         var hay = ((p.trackTitle || "") + " " + Theme.joinArtists(p.trackArtists, p.trackArtist)).toLowerCase();
         return hay.indexOf(q) !== -1;

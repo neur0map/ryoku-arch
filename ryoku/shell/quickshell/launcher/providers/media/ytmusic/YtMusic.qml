@@ -1,16 +1,20 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.Mpris
 import "../../../Singletons"
 import "ytmusic.js" as YtMusic
 import "../.."
 
 // YouTube Music provider: searches YouTube with yt-dlp and streams the picked
-// track with mpv (audio only) over an IPC socket, the inir pipeline. Routed by a
-// dedicated prefix so a plain query never forks yt-dlp. Search is async + cached;
-// playback spawns mpv (reaped on the next play / on hide). Availability-gated on
-// yt-dlp + mpv. Browser cookies (--cookies-from-browser) lift the rate limit when
-// a default browser is signed in.
+// track with mpv (audio only) over an IPC socket, the mpv-mpris pipeline. Routed
+// by a dedicated prefix so a plain query never forks yt-dlp. Search is async +
+// cached; playback spawns mpv (reaped on the next play, on hide, or when another
+// media player starts). Availability-gated on yt-dlp + mpv. Browser cookies
+// (--cookies-from-browser) lift the rate limit when a default browser is signed
+// in. mpv-mpris makes the stream a first-class MPRIS player, so the now-playing
+// card and transport control it like any other; it also yields the moment a
+// different player (Spotify, a browser tab) starts, so two streams never overlap.
 Provider {
     id: ytmusic
 
@@ -22,19 +26,57 @@ Provider {
     property string cachedQuery: ""
     property var cachedRows: []
     property string pendingQuery: ""
+    property string pendingVideoId: ""
+    property string pendingTitle: ""
 
     readonly property string ipcSocket: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-ytmusic-mpv.sock"
     readonly property string browser: Quickshell.env("BROWSER") || "firefox"
 
+    // Kill any previous mpv, wait for the socket to disappear, then start the
+    // new stream. Sequencing kill -> play through killProc.onExited avoids the
+    // race where an immediate spawn beat pkill and inherited (or was killed
+    // alongside) the outgoing process, leaving a zombie or a dangling socket.
     function play(track) {
-        // Stop any current stream, then start mpv on the track's audio. mpv
-        // resolves the stream URL itself via yt-dlp (ytdl_hook).
+        pendingVideoId = track.id;
+        pendingTitle = track.title;
+        playProc.running = false;
         killProc.running = false;
         killProc.running = true;
-        playProc.videoId = track.id;
-        playProc.title = track.title;
+    }
+
+    // Stop our stream for good: clear the pending track first so killProc's
+    // onExited does not treat this as a track change and respawn mpv.
+    function stop() {
+        pendingVideoId = "";
+        pendingTitle = "";
         playProc.running = false;
-        playProc.running = true;
+        killProc.running = false;
+        killProc.running = true;
+    }
+
+    // Whether some OTHER media player (Spotify, a browser tab, an app) is
+    // playing right now. mpv-mpris publishes our own stream with identity
+    // "mpv", so anything else playing means the user started different audio
+    // and we should yield instead of stacking two streams.
+    function otherPlaying() {
+        var list = Mpris.players.values;
+        if (!list)
+            return false;
+        for (var i = 0; i < list.length; i++) {
+            var p = list[i];
+            if (p && p.isPlaying && String(p.identity || "").toLowerCase() !== "mpv")
+                return true;
+        }
+        return false;
+    }
+
+    // While our mpv streams, watch for another player taking over and bow out.
+    // Runs only during playback (playProc.running), so it costs nothing at rest.
+    Timer {
+        interval: 1000
+        repeat: true
+        running: playProc.running
+        onTriggered: if (ytmusic.otherPlaying()) ytmusic.stop();
     }
 
     function rowFor(track) {
@@ -116,7 +158,21 @@ Provider {
 
     Process {
         id: killProc
-        command: ["sh", "-c", "pkill -f 'mpv.*ryoku-ytmusic-mpv\\.sock' 2>/dev/null; rm -f " + ytmusic.ipcSocket + "; true"]
+        // pkill only signals: poll until the process is really gone (up to ~1s)
+        // before removing the socket, so playProc never lands on a stale one.
+        command: ["sh", "-c",
+            "pkill -f 'mpv.*ryoku-ytmusic-mpv\\.sock' 2>/dev/null; " +
+            "i=0; while [ $i -lt 20 ] && pgrep -f 'mpv.*ryoku-ytmusic-mpv\\.sock' >/dev/null 2>&1; do sleep 0.05; i=$((i+1)); done; " +
+            "rm -f " + ytmusic.ipcSocket + "; true"]
+        onExited: {
+            if (ytmusic.pendingVideoId.length === 0)
+                return;
+            playProc.videoId = ytmusic.pendingVideoId;
+            playProc.title = ytmusic.pendingTitle;
+            ytmusic.pendingVideoId = "";
+            ytmusic.pendingTitle = "";
+            playProc.running = true;
+        }
     }
 
     Component.onCompleted: {

@@ -6,3 +6,4 @@ singleton Metrics Metrics.qml
 singleton Frecency Frecency.qml
 singleton Dispatcher Dispatcher.qml
 singleton Weather Weather.qml
+singleton Spectrum Spectrum.qml
