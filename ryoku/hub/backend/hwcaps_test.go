@@ -95,14 +95,13 @@ func TestBuildCapabilityVerdicts(t *testing.T) {
 			wantVerdict:  "incapable",
 		},
 		{
-			name: "intel iommu off but fixable",
+			name: "intel iommu off is a firmware fix, not a cmdline one",
 			mutate: func(in *capInputs) {
 				in.cpuVendor = "Intel"
 				in.iommuOn = false
-				in.iommuFixable = true
 			},
-			wantStrategy: "live-bind",
-			wantVerdict:  "needs-setup",
+			wantStrategy: "none",
+			wantVerdict:  "incapable",
 		},
 		{
 			name:         "stack not installed",

@@ -90,7 +90,6 @@ type capInputs struct {
 	cpuVirt        bool
 	kvm            bool
 	iommuOn        bool
-	iommuFixable   bool             // Intel host with IOMMU off: addable via kernel cmdline
 	groupOf        map[string]int   // slot -> IOMMU group number
 	groupMembers   map[int][]string // IOMMU group -> member PCI slots
 	chassis        string           // laptop | desktop
@@ -228,12 +227,13 @@ func buildChecks(in capInputs, host, pass *GPU) (checks []Check, hardFail bool) 
 		add(Check{ID: "kvm", Level: "fail", Label: "KVM", Value: "/dev/kvm missing", Hint: "Enable virtualization in firmware; load the kvm modules."})
 	}
 
-	switch {
-	case in.iommuOn:
+	if in.iommuOn {
 		add(Check{ID: "iommu", Level: "ok", Label: "IOMMU", Value: "enabled"})
-	case in.iommuFixable:
-		add(Check{ID: "iommu", Level: "warn", Label: "IOMMU", Value: "off (fixable)", Hint: "Ryoku can add intel_iommu=on (one reboot)."})
-	default:
+	} else {
+		// IOMMU groups absent = VT-d/AMD-Vi is off in firmware. Modern kernels
+		// already default intel_iommu=on when VT-d is present, so a kernel
+		// cmdline token cannot substitute for the firmware switch; the only
+		// real fix is the BIOS/UEFI setting.
 		hardFail = true
 		add(Check{ID: "iommu", Level: "fail", Label: "IOMMU", Value: "off", Hint: "Enable IOMMU / VT-d / AMD-Vi in firmware."})
 	}
@@ -384,7 +384,6 @@ func detectCapability() (Capability, error) {
 	in.cpuVendor, in.cpuVirt = readCPUVirt(root)
 	in.kvm = fileExists(filepath.Join(root, "dev/kvm"))
 	in.iommuOn = dirHasEntries(filepath.Join(root, "sys/kernel/iommu_groups"))
-	in.iommuFixable = !in.iommuOn && strings.EqualFold(in.cpuVendor, "Intel")
 	in.chassis = readChassis(root)
 	in.ramTotalMB, in.ramFreeMB = readMeminfo(root)
 	for _, r := range recs {

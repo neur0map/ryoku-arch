@@ -306,10 +306,8 @@ func pacmanInstall(pkgs []string) error {
 	return cmd.Run()
 }
 
-// pkgInstalled: is this package locally installed? pkgInRepo: is it available
-// from a configured pacman repo? both stay quiet (output discarded).
+// pkgInstalled: is this package locally installed? stays quiet (output discarded).
 func pkgInstalled(p string) bool { return exec.Command("pacman", "-Q", p).Run() == nil }
-func pkgInRepo(p string) bool    { return exec.Command("pacman", "-Si", p).Run() == nil }
 
 func snapshot(desc string) {
 	if _, err := exec.LookPath("snapper"); err != nil {
@@ -326,25 +324,4 @@ func run(name string, args ...string) {
 
 func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
-}
-
-// addCmdlineTokens appends each missing token to a Limine cmdline: line. pure,
-// so the (rare, Intel-only) bootloader edit is tested without a reboot.
-func addCmdlineTokens(conf string, tokens []string) (string, bool) {
-	lines := strings.Split(conf, "\n")
-	changed := false
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if !strings.HasPrefix(trimmed, "cmdline:") {
-			continue
-		}
-		for _, tok := range tokens {
-			if !strings.Contains(line, tok) {
-				line += " " + tok
-				changed = true
-			}
-		}
-		lines[i] = line
-	}
-	return strings.Join(lines, "\n"), changed
 }

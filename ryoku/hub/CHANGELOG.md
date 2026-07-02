@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Fixed
+- GPU page no longer offers to "fix" a disabled IOMMU it cannot fix. On an
+  Intel host with IOMMU off, the capability engine used to show a warn ("Ryoku
+  can add intel_iommu=on") and a `needs-setup` verdict with an Enable button,
+  but the enable path never touched the kernel cmdline, and the one function
+  that would (`addCmdlineTokens`) edited the `cmdline:` line that
+  `limine-mkinitcpio-hook` regenerates on every kernel update, so any such
+  edit silently reverted. Modern kernels already default `intel_iommu=on` when
+  VT-d is present, so empty IOMMU groups mean VT-d is off in firmware, which
+  only the BIOS/UEFI can change. IOMMU-off is now an honest hard fail for
+  every vendor ("Enable IOMMU / VT-d / AMD-Vi in firmware."), matching the AMD
+  path. Removed the unreachable `addCmdlineTokens`/`iommuFixable`/`pkgInRepo`
+  dead code and their tests; `hwcaps_test.go` asserts the corrected verdict.
+
 ### Added
 - Every section whose GUI maps to a real config file gains a `CONFIG` chip next to
   its title (in the shared `PageHeader`): it opens that file in `nvim` (side by

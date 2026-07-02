@@ -54,22 +54,6 @@ func TestApplyPlanDryRunWritesNothing(t *testing.T) {
 		t.Error("a dry-run must not write any file")
 	}
 }
-
-func TestAddCmdlineTokens(t *testing.T) {
-	conf := "/boot/vmlinuz\n    cmdline: quiet splash\nmodule_path: boot():/boot\n"
-	out, changed := addCmdlineTokens(conf, []string{"intel_iommu=on", "iommu=pt"})
-	if !changed {
-		t.Fatal("expected the cmdline to change")
-	}
-	if !strings.Contains(out, "quiet splash intel_iommu=on iommu=pt") {
-		t.Errorf("cmdline = %q", out)
-	}
-	out2, changed2 := addCmdlineTokens(out, []string{"intel_iommu=on", "iommu=pt"})
-	if changed2 || out2 != out {
-		t.Error("adding the same tokens twice must be a no-op")
-	}
-}
-
 func containsFile(files []managedFile, rel, want string) bool {
 	for _, f := range files {
 		if f.rel == rel {
