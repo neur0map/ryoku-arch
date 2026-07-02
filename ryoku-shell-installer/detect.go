@@ -35,18 +35,20 @@ type facts struct {
 	otherNet  []string // enabled network stacks other than NetworkManager
 	nmEnabled bool
 
-	aurHelper   string
-	rivalPkgs   []string // conflicting shell packages installed
-	blockerPkgs []string // packages that abort the pacman transaction if left
-	softUnits   []string // enabled user units that fight the shell
-	niriFound   bool
-	kbLayout    string
-	userShell   string
-	ryokuOnBox  bool // ryoku-desktop already installed
-	hostname    string
-	username    string
-	homeDir     string
-	hyprCfgDirs []string // pre-existing ~/.config/{hypr,quickshell,niri}
+	aurHelper     string
+	rivalPkgs     []string // conflicting shell packages installed
+	blockerPkgs   []string // packages that abort the pacman transaction if left
+	omarchyRepo   bool     // [omarchy] stanza in pacman.conf
+	omarchyMirror bool     // mirrorlist pinned to Omarchy's package mirror
+	softUnits     []string // enabled user units that fight the shell
+	niriFound     bool
+	kbLayout      string
+	userShell     string
+	ryokuOnBox    bool // ryoku-desktop already installed
+	hostname      string
+	username      string
+	homeDir       string
+	hyprCfgDirs   []string // pre-existing ~/.config/{hypr,quickshell,niri}
 }
 
 // rival quickshell stacks; ordered meta -> shell -> runtime so pacman removal
@@ -126,6 +128,19 @@ func parseOSRelease(text string) (id, like, name string) {
 		}
 	}
 	return
+}
+
+var omarchyStanzaRe = regexp.MustCompile(`(?m)^\[omarchy\]`)
+
+// true when an active Server line routes packages through Omarchy's mirror.
+func mirrorlistHasOmarchy(list string) bool {
+	for _, ln := range strings.Split(list, "\n") {
+		t := strings.TrimSpace(ln)
+		if strings.HasPrefix(t, "Server") && strings.Contains(t, "omarchy") {
+			return true
+		}
+	}
+	return false
 }
 
 // niri config keeps xkb layout as `layout "us,de"` inside an xkb block.
@@ -217,6 +232,16 @@ func detect() *facts {
 		f.ryokuOnBox = pacmanHas("ryoku-desktop")
 		f.niriFound = pacmanHas("niri")
 	}
+
+	// an ex-Omarchy box keeps the [omarchy] repo and, worse, Omarchy's own
+	// mirror for core/extra; a converted machine must depend on neither.
+	if b, err := os.ReadFile("/etc/pacman.conf"); err == nil {
+		f.omarchyRepo = omarchyStanzaRe.Match(b)
+	}
+	if b, err := os.ReadFile("/etc/pacman.d/mirrorlist"); err == nil {
+		f.omarchyMirror = mirrorlistHasOmarchy(string(b))
+	}
+
 	for _, unit := range softConflictUnits {
 		if unitEnabled("user", unit) {
 			f.softUnits = append(f.softUnits, unit)

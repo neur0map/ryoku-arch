@@ -28,11 +28,12 @@ a bubbletea TUI sharing the ISO installer's visual language:
 1. **Scan** the machine: distro, GPU, display manager, network stack, rival
    quickshell shells (Noctalia, DankMaterialShell, Caelestia, iNiR),
    conflicting user daemons (dunst/mako/waybar/swww/…), a niri setup to
-   migrate from, keyboard layout, btrfs.
+   migrate from, an Omarchy install to retire (repo + mirror pin), keyboard
+   layout, btrfs.
 2. **Plan** review with per-item toggles (NVIDIA drivers, SDDM switch,
    NetworkManager switch, rival-shell removal, AUR extras, fish shell).
 3. **Install**, streamed step by step:
-   `pacman -Syu` → tools → sparse payload clone → config backup (with a
+   legacy-repo retirement → `pacman -Syu` → tools → sparse payload clone → config backup (with a
    generated `restore.sh`) → `[ryoku]` repo + keyring trust → conflict removal
    → desktop packages → GPU drivers → SDDM/qylock/network wiring →
    `ryoku materialize` + seeds (wallpapers, brand, keyboard layout salvaged

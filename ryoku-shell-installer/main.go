@@ -98,7 +98,11 @@ func buildItems(f *facts, p *plan) []planItem {
 	if len(f.softUnits) > 0 {
 		it = append(it, planItem{"Disable conflicting daemons", "disables " + strings.Join(f.softUnits, ", "), &p.softOff})
 	}
+	if f.omarchyRepo || f.omarchyMirror {
+		it = append(it, planItem{"Retire the Omarchy repo", "drops [omarchy] from pacman.conf, restores a standard Arch mirrorlist, removes omarchy-keyring", &p.omarchy})
+	}
 	it = append(it, planItem{"AUR extras", "wallust + awww (wallpaper engine), Bibata cursor, LocalSend, Handy", &p.aur})
+	it = append(it, planItem{"Developer toolchain", "go, rust, node, python (ISO parity); ryoku recovery rebuilds from source and needs go", &p.devtools})
 	if !strings.HasSuffix(f.userShell, "/fish") {
 		it = append(it, planItem{"fish as login shell", "Ryoku's default shell; your current one stays installed", &p.fish})
 	}
@@ -324,6 +328,9 @@ func (m model) viewPlan() string {
 	if f.ryokuOnBox {
 		row("ryoku", "already installed; this run repairs and reconciles it")
 	}
+	if f.omarchyRepo || f.omarchyMirror {
+		row("previous", "Omarchy install detected; its repo and mirror pin get retired")
+	}
 	if !f.online {
 		s.WriteString(fg(cRed, gWarn+" repo.ryoku.dev unreachable, the install will fail without network") + "\n")
 	}
@@ -460,8 +467,8 @@ func runHeadless(dry bool, ref, payload string) int {
 	f := detect()
 	p := defaultPlan(f)
 	fmt.Printf("system: %s | gpu: %s | dm: %s\n", f.distroName, f.gpuSummary(), f.currentDM)
-	fmt.Printf("plan: nvidia=%v sddm=%v networkmanager=%v remove-shells=%v aur=%v fish=%v\n",
-		p.nvidia, p.switchDM, p.switchNet, p.rivals, p.aur, p.fish)
+	fmt.Printf("plan: nvidia=%v sddm=%v networkmanager=%v remove-shells=%v aur=%v fish=%v devtools=%v omarchy-cleanup=%v\n",
+		p.nvidia, p.switchDM, p.switchNet, p.rivals, p.aur, p.fish, p.devtools, p.omarchy)
 	e := newEngine(f, p, dry, ref, payload)
 	ev := e.runFrom(0)
 	for msg := range ev {

@@ -52,6 +52,11 @@ var sessionPkgs = []string{
 // the standard Ryoku extras. all best-effort, verify flags the critical two.
 var aurPkgs = []string{"wallust", "awww-git", "bibata-cursor-theme-bin", "localsend-bin", "handy-bin"}
 
+// system/packages/dev.packages: the toolchains every ISO machine ships.
+// ryoku recovery rebuilds the desktop from source and hard-requires go+git,
+// so skipping this set leaves the panic button dead.
+var devPkgs = []string{"go", "nodejs", "npm", "rust", "python", "python-pip", "python-pipx", "mise"}
+
 var sparsePaths = []string{
 	"ryoku/lockscreen", "ryoku/assets", "ryoku/apps",
 	"system/hardware/drivers", "release/packages/ryoku-keyring",
@@ -65,6 +70,8 @@ type plan struct {
 	softOff   bool // disable conflicting user daemons
 	aur       bool // AUR extras
 	fish      bool // fish as login shell
+	devtools  bool // dev.packages toolchains (go/rust/node/python; recovery needs go)
+	omarchy   bool // retire the [omarchy] repo and mirror pin
 }
 
 func defaultPlan(f *facts) *plan {
@@ -76,6 +83,8 @@ func defaultPlan(f *facts) *plan {
 		softOff:   true,
 		aur:       true,
 		fish:      !strings.HasSuffix(f.userShell, "/fish"),
+		devtools:  true,
+		omarchy:   f.omarchyRepo || f.omarchyMirror,
 	}
 }
 
@@ -111,6 +120,7 @@ type engine struct {
 	backupDir       string
 	restorePath     string
 	prevBackups     int
+	pendingRestore  []string // undo lines queued before restore.sh exists
 
 	steps []estep
 }
@@ -119,8 +129,10 @@ func newEngine(f *facts, p *plan, dry bool, ref, payloadOverride string) *engine
 	e := &engine{f: f, p: p, dry: dry, ref: ref, payloadOverride: payloadOverride}
 	e.openLog()
 	// repo trust comes before conflict removal on purpose: nothing gets
-	// uninstalled until the [ryoku] db has actually been fetched.
+	// uninstalled until the [ryoku] db has actually been fetched. legacy
+	// sources go first so the full upgrade already runs on clean mirrors.
 	e.steps = []estep{
+		{"legacy", "Retiring the previous distro's package sources", stepLegacy},
 		{"sysupgrade", "Updating the system (pacman -Syu)", stepSysupgrade},
 		{"tools", "Installing installer tools (git, base-devel)", stepTools},
 		{"payload", "Fetching the Ryoku payload", stepPayload},
@@ -250,7 +262,88 @@ func (e *engine) sudoSh(script string) error {
 	return e.cmd("", nil, "sudo", "-n", "sh", "-c", script)
 }
 
+// sudoWrite replaces a root-owned file with the given content via tee.
+func (e *engine) sudoWrite(path, content string) error {
+	if e.dry {
+		e.say("DRYRUN: write " + path)
+		return nil
+	}
+	e.say("$ sudo tee " + path)
+	c := exec.Command("sudo", "-n", "tee", path)
+	c.Stdin = strings.NewReader(content)
+	c.Stdout, c.Stderr = io.Discard, io.Discard
+	if err := c.Run(); err != nil {
+		return fmt.Errorf("write %s: %w", path, err)
+	}
+	return nil
+}
+
+// stripPacmanSection drops one [section] and its body from pacman.conf text.
+func stripPacmanSection(conf, section string) string {
+	var out []string
+	skip := false
+	for _, ln := range strings.Split(conf, "\n") {
+		t := strings.TrimSpace(ln)
+		if strings.HasPrefix(t, "[") && strings.HasSuffix(t, "]") {
+			skip = t == "["+section+"]"
+		}
+		if !skip {
+			out = append(out, ln)
+		}
+	}
+	return strings.Join(out, "\n")
+}
+
 // ---- steps ----
+
+// an ex-Omarchy machine still trusts the [omarchy] repo and routes core/extra
+// through Omarchy's own mirror; a Ryoku box must depend on neither. originals
+// are kept as *.pre-ryoku and the undo lands in restore.sh.
+func stepLegacy(e *engine) error {
+	if !e.p.omarchy || (!e.f.omarchyRepo && !e.f.omarchyMirror) {
+		e.say("no previous distro package sources to retire")
+		return nil
+	}
+	if e.f.omarchyRepo {
+		conf, err := os.ReadFile("/etc/pacman.conf")
+		if err != nil {
+			return err
+		}
+		stripped := stripPacmanSection(string(conf), "omarchy")
+		if stripped != string(conf) {
+			if err := e.sudo("cp", "/etc/pacman.conf", "/etc/pacman.conf.pre-ryoku"); err != nil {
+				return err
+			}
+			if err := e.sudoWrite("/etc/pacman.conf", stripped); err != nil {
+				return err
+			}
+			e.say("dropped the [omarchy] repository (original at /etc/pacman.conf.pre-ryoku)")
+			e.pendingRestore = append(e.pendingRestore,
+				"sudo cp /etc/pacman.conf.pre-ryoku /etc/pacman.conf")
+		}
+	}
+	if e.f.omarchyMirror {
+		if err := e.sudo("cp", "/etc/pacman.d/mirrorlist", "/etc/pacman.d/mirrorlist.pre-ryoku"); err != nil {
+			return err
+		}
+		ml := "# restored by ryoku-shell-install: the previous Omarchy install pinned its\n" +
+			"# own package mirror here. original at mirrorlist.pre-ryoku; rank your own\n" +
+			"# mirrors with reflector if you want more than the worldwide CDN.\n" +
+			"Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch\n"
+		if err := e.sudoWrite("/etc/pacman.d/mirrorlist", ml); err != nil {
+			return err
+		}
+		e.say("restored a standard Arch mirrorlist (original at /etc/pacman.d/mirrorlist.pre-ryoku)")
+		e.pendingRestore = append(e.pendingRestore,
+			"sudo cp /etc/pacman.d/mirrorlist.pre-ryoku /etc/pacman.d/mirrorlist")
+	}
+	if !e.dry && pacmanHas("omarchy-keyring") {
+		if err := e.sudo("pacman", "-R", "--noconfirm", "omarchy-keyring"); err != nil {
+			e.say("warning: could not remove omarchy-keyring (continuing)")
+		}
+	}
+	return nil
+}
 
 func stepSysupgrade(e *engine) error {
 	return e.sudo("pacman", "-Syu", "--noconfirm")
@@ -338,6 +431,12 @@ func stepBackup(e *engine) error {
 			return err
 		}
 	}
+	// undo lines queued by steps that ran before this file existed (legacy
+	// package-source retirement runs first).
+	for _, ln := range e.pendingRestore {
+		e.recordRestore(ln)
+	}
+	e.pendingRestore = nil
 	saveOne := func(rel string, move bool) error {
 		src := filepath.Join(e.f.homeDir, rel)
 		dst := filepath.Join(e.backupDir, rel)
@@ -487,6 +586,9 @@ func stepPackages(e *engine) error {
 	pkgs := append(append([]string{}, ryokuPkgs...), sessionPkgs...)
 	if e.f.ucodePkg != "" {
 		pkgs = append(pkgs, e.f.ucodePkg)
+	}
+	if e.p.devtools {
+		pkgs = append(pkgs, devPkgs...)
 	}
 	return e.sudo(append([]string{"pacman", "-S", "--needed", "--noconfirm"}, pkgs...)...)
 }
@@ -747,6 +849,17 @@ func stepVerify(e *engine) error {
 	}
 	if !has("wallust") || !has("awww") {
 		e.say(gWarn + " wallust/awww missing (AUR): wallpapers and palettes will not work until installed")
+	}
+	if e.p.devtools {
+		check(has("go"), "go toolchain on PATH (ryoku recovery rebuilds from source)")
+	} else {
+		e.say(gWarn + " developer toolchain skipped: ryoku recovery needs go; install with: sudo pacman -S go")
+	}
+	if e.p.omarchy {
+		conf2, _ := os.ReadFile("/etc/pacman.conf")
+		if omarchyStanzaRe.Match(conf2) {
+			e.say(gWarn + " the [omarchy] repository is still in /etc/pacman.conf")
+		}
 	}
 	if len(bad) > 0 {
 		return fmt.Errorf("%d check(s) failed: %s", len(bad), strings.Join(bad, "; "))
