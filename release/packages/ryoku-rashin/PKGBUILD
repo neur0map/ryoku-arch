@@ -26,8 +26,12 @@ _repo="$startdir/../../.."
 build() {
   cd "$_repo/ryoku/rashin/backend"
   CGO_ENABLED=0 go build -trimpath -o "$srcdir/ryoku-rashin" .
+  # Pre-index the monorepo: the installed target has no checkout, so the
+  # vault's ryoku-repo.md ships as a snapshot generated from this exact tree.
+  "$srcdir/ryoku-rashin" repo-index "$_repo" "$srcdir/ryoku-repo.md"
 }
 
 package() {
   install -Dm755 "$srcdir/ryoku-rashin" "$pkgdir/usr/bin/ryoku-rashin"
+  install -Dm644 "$srcdir/ryoku-repo.md" "$pkgdir/usr/share/ryoku/rashin/ryoku-repo.md"
 }

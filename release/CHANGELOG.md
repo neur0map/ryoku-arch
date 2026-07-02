@@ -11,6 +11,11 @@
   the user enables it (optional means not running, not absent). It carries no
   runtime depends: Hermes is per-user opt-in, and kitty and xdg-open come with
   the desktop.
+- `ryoku-rashin` pre-indexes the monorepo at package build: `build()` runs the
+  freshly built binary's `repo-index` over the release tree and `package()`
+  installs the snapshot to `/usr/share/ryoku/rashin/ryoku-repo.md`, so the
+  installed target (which has no checkout) ships with the source map its agent
+  vault folds in on every reindex.
 - `ryoku-desktop` ships the Nautilus stash menu extension
   (`ryoku/apps/nautilus/ryoku-stash-menu.py`) to
   `/usr/share/nautilus-python/extensions/`, so the file-manager Install / Compress
