@@ -4,6 +4,21 @@
 # desktop needs. branding + templates come from system/boot/ (owned by the
 # boot engineer); this step deploys them and fills in the dynamic bits
 # (root cmdline, encrypt/nvidia toggles) only known here.
+#
+# layout contract (matches limine-entry-tool, the stack behind
+# limine-mkinitcpio-hook and limine-snapper-sync):
+#   /boot/limine.conf              THE config. branding globals + entries.
+#                                  the tool regenerates entries here and
+#                                  limine-snapper-sync adds the Snapshots
+#                                  submenu here, preserving our globals.
+#   EFI/limine/limine_x64.efi      the booted binary. limine-install (the
+#                                  tool's pacman hook) refreshes this exact
+#                                  path on every limine upgrade, so the
+#                                  firmware never boots a stale bootloader.
+#   EFI/BOOT/BOOTX64.EFI           removable-path fallback, same refresh.
+# any limine.conf in another search location (/boot/limine/, EFI/limine/,
+# ...) shadows the entries file -- Limine stops at the first match -- so
+# those candidates are actively removed.
 
 ryoku_bootloader() {
   CMDLINE=$(ryoku_cmdline)
@@ -29,6 +44,41 @@ ryoku_bootloader() {
   ryoku_boot_install_efi
   log "enabling services: sddm, NetworkManager"
   run arch-chroot /mnt systemctl enable sddm.service NetworkManager.service
+}
+
+# finalize: runs after the AUR step. when limine-mkinitcpio-hook landed there,
+# its pacman hooks already rebuilt the menu in /boot/limine.conf as the
+# /+Ryoku UKI tree -- our flat placeholder entry is then clutter, and
+# default_entry must point past the tree directory (entry 1) at the newest
+# UKI (entry 2; a directory can't autoboot). offline installs (no hook) keep
+# the flat entry and default_entry: 1 untouched.
+ryoku_bootloader_finalize() {
+  local conf=/mnt/boot/limine.conf
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    log "DRYRUN: promote $conf to the tool-managed menu (when the /+ tree exists)"
+    return 0
+  fi
+  [[ -f $conf ]] || return 0
+  grep -q '^/+' "$conf" || return 0
+  log "limine-mkinitcpio-hook owns the menu: dropping the flat placeholder entry"
+  ryoku_boot_limine_promote "$conf"
+  # the hook's rewrite re-serialized the file; make sure Windows is still there.
+  ryoku_windows_entry
+}
+
+# promote CONF: drop the flat "/Ryoku Linux" placeholder (entry line + its
+# indented options) and point default_entry at the first UKI inside the
+# /+Ryoku tree. pure file surgery, atomic, no chroot -- unit-tested by
+# tests/limine-bootloader.sh.
+ryoku_boot_limine_promote() {
+  local conf=$1 tmp
+  tmp=$(mktemp) || return 1
+  awk '
+    $0 == "/Ryoku Linux" { skip = 1; next }
+    skip && /^[[:space:]]+[^[:space:]]/ { next }
+    { skip = 0; print }
+  ' "$conf" | sed 's/^default_entry: 1$/default_entry: 2/' >"$tmp"
+  mv "$tmp" "$conf"
 }
 
 # chroot_has: does $1 exist inside the target? dry-run = false, so the flow
@@ -79,10 +129,14 @@ ryoku_boot_default_limine() {
   write_file /mnt/etc/default/limine <<<"$content"
 }
 
-# limine_conf: write /boot/limine/limine.conf. branding header from the repo
-# (trailing placeholder entry stripped) or a built-in fallback. with_entry
-# appends a plain linux-protocol entry for the mkinitcpio -P path;
-# branding_only leaves entries to the limine hook.
+# limine_conf: write /boot/limine.conf (the ESP root -- the one location
+# limine-entry-tool manages, so the hook's UKI entries and the snapshot
+# submenu land in the file the firmware actually reads). branding header from
+# the repo (trailing placeholder entry stripped) or a built-in fallback.
+# with_entry appends a plain linux-protocol entry for the mkinitcpio -P path
+# and points default_entry at it (the flat menu has no tree directory to
+# skip); branding_only keeps default_entry: 2 and leaves entries to the
+# limine hook. shadowing candidates are removed either way.
 ryoku_boot_limine_conf() {
   local mode=$1
   local src="$RYOKU_REPO/system/boot/limine/limine.conf"
@@ -92,8 +146,11 @@ ryoku_boot_limine_conf() {
   else
     branding=$(ryoku_builtin_limine_branding)
   fi
+  if [[ $mode == with_entry ]]; then
+    branding=$(printf '%s\n' "$branding" | sed 's/^default_entry: 2$/default_entry: 1/')
+  fi
 
-  run mkdir -p /mnt/boot/limine
+  ryoku_boot_limine_conflicts
   {
     printf '%s\n' "$branding"
     if [[ $mode == with_entry ]]; then
@@ -106,7 +163,21 @@ ryoku_boot_limine_conf() {
     module_path: boot():/initramfs-linux.img
 EOF
     fi
-  } | write_file /mnt/boot/limine/limine.conf
+  } | write_file /mnt/boot/limine.conf
+}
+
+# conflicts: remove every limine.conf candidate that would shadow the ESP-root
+# config (Limine stops at its first match; limine-install warns about exactly
+# this list). matters on re-runs of this installer and on an ESP reused from
+# another distro. the empty /boot/limine dir is dropped too.
+ryoku_boot_limine_conflicts() {
+  run rm -f \
+    /mnt/boot/EFI/limine/limine.conf \
+    /mnt/boot/EFI/BOOT/limine.conf \
+    /mnt/boot/boot/limine/limine.conf \
+    /mnt/boot/boot/limine.conf \
+    /mnt/boot/limine/limine.conf
+  run_sh "rmdir /mnt/boot/limine 2>/dev/null || true"
 }
 
 # windows_entry: find an installed Windows on ANY drive (not only the reused
@@ -118,7 +189,7 @@ EOF
 # re-asserts it on later kernel updates. dry-run skips (probe mounts).
 ryoku_windows_entry() {
   local helper="$RYOKU_REPO/system/boot/limine/ryoku-windows-entry"
-  local conf=/mnt/boot/limine/limine.conf
+  local conf=/mnt/boot/limine.conf
   [[ -x $helper && -f $conf ]] || return 0
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
     log "dry-run: skipping Windows boot-entry detection"
@@ -129,17 +200,21 @@ ryoku_windows_entry() {
   fi
 }
 
-# install_efi: drop the Limine EFI binary on the ESP (both limine/ and the
-# removable EFI/BOOT fallback) and register a boot entry.
+# install_efi: drop the Limine EFI binary on the ESP and register a boot
+# entry. paths match limine-install (limine-entry-tool) exactly --
+# EFI/limine/limine_x64.efi + the EFI/BOOT fallback -- so the tool's pacman
+# hook keeps refreshing the very binary the firmware boots on every limine
+# package upgrade, and its NVRAM dedup (partition uuid + loader path)
+# recognizes our entry instead of adding a second one.
 ryoku_boot_install_efi() {
   log "installing Limine EFI binary + boot entry"
   run mkdir -p /mnt/boot/EFI/BOOT /mnt/boot/EFI/limine
-  run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/boot/EFI/limine/limine.efi
+  run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/boot/EFI/limine/limine_x64.efi
   run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/boot/EFI/BOOT/BOOTX64.EFI
   local esp_partnum
   esp_partnum=$(part_num "$ESP_DEV"); : "${esp_partnum:=1}"
   run arch-chroot /mnt efibootmgr --create --disk "$RYOKU_DISK" --part "$esp_partnum" \
-    --label Ryoku --loader '\EFI\limine\limine.efi' --unicode
+    --label Ryoku --loader '\EFI\limine\limine_x64.efi' --unicode
   # boot the installed system on the next reboot even if the USB installer
   # is still in (firmware tends to prefer removable media otherwise).
   if [[ -z "${RYOKU_DRYRUN:-}" ]]; then
@@ -163,7 +238,7 @@ EOF
 ryoku_builtin_limine_branding() {
   cat <<'EOF'
 timeout: 3
-default_entry: 1
+default_entry: 2
 interface_branding: Ryoku Bootloader
 interface_branding_color: F25623
 interface_help_color: F25623

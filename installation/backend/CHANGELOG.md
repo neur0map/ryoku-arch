@@ -3,6 +3,25 @@
 ## Unreleased
 
 ### Fixed
+- Snapshots (and every generated kernel entry) now actually appear in the boot
+  menu. The bootloader step wrote the branded config to
+  `/boot/limine/limine.conf`, a location Limine scans BEFORE
+  `/boot/limine.conf`, the only file `limine-entry-tool` (the stack behind
+  `limine-mkinitcpio-hook` and `limine-snapper-sync`) manages, so the
+  generated UKI tree and the snapper Snapshots submenu were shadowed forever
+  and the firmware kept showing the frozen install-time menu. The config now
+  lands at `/boot/limine.conf`, shadowing candidates are removed, and a new
+  post-AUR `ryoku_bootloader_finalize` retires the flat placeholder entry and
+  repoints `default_entry` at the newest UKI once the hook owns the menu.
+  Existing installs are healed by the new `ryoku doctor` "limine boot menu
+  layout" reconciler. Covered by `tests/limine-bootloader.sh`.
+- The Limine binary the firmware boots is no longer frozen at install time.
+  The EFI install used a hand-rolled path (`EFI/limine/limine.efi`) that no
+  pacman hook ever refreshes; it now uses `EFI/limine/limine_x64.efi` + the
+  `EFI/BOOT` fallback, exactly what `limine-install` refreshes on every
+  `limine` package upgrade (and its NVRAM dedup adopts our entry instead of
+  registering a second one), so the booted menu stops drifting stale against
+  the installed package (old rendering, missing upstream fixes).
 - The installer no longer wipes the disk before it can fetch packages.
   `pacstrap` resolves mirror hostnames, but a live box can have a default route
   (so the TUI reports "online") and still no working resolver, so the install

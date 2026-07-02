@@ -94,8 +94,10 @@ stages live in `lib/`, split by concern (see `lib/README.md`). The `configure`
 stage runs two: the chroot config (`chroot.sh`) then the desktop install
 (`deploy.sh`: add the `[ryoku]` repo, `pacman -S` the Ryoku packages, then
 `ryoku materialize`), both under the one `configure` sentinel. After the
-bootloader and AUR steps, `snapshots.sh` wires up Btrfs snapshots (snapper
-`root`, snap-pac, `limine-snapper-sync`).
+bootloader and AUR steps, `ryoku_bootloader_finalize` promotes the Limine menu
+to the tool-managed UKI tree (when `limine-mkinitcpio-hook` landed), then
+`snapshots.sh` wires up Btrfs snapshots (snapper `root`, snap-pac,
+`limine-snapper-sync`).
 
 ## What it consumes from the repo
 

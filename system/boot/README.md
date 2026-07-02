@@ -16,8 +16,12 @@ puts its name and colors on it.
 ## What's here
 
 - `limine/limine.conf` The bootloader's look: the "Ryoku Bootloader" branding,
-  the orange accent, and the Greek Noir terminal palette. The actual boot
-  entries are filled in automatically; this file owns the branding.
+  the orange accent, and the Greek Noir terminal palette. Deployed to
+  `/boot/limine.conf` (the ESP root), the ONE config `limine-entry-tool`
+  manages: the boot entries (kernels, snapshots) are regenerated into that
+  same file around these globals. A limine.conf anywhere else on the ESP
+  (`/boot/limine/`, `EFI/limine/`, ...) shadows it -- Limine stops at its
+  first match -- so the installer removes those candidates.
 - `limine/default.conf` Settings for the tool that builds the boot entries
   (deployed to `/etc/default/limine`). It names the OS "Ryoku", builds a UKI
   called `ryoku`, sets the kernel command line, and wires up snapshot entries.
@@ -29,12 +33,15 @@ puts its name and colors on it.
 ## UKI, in one line
 
 A Unified Kernel Image bundles the kernel, the initramfs, and the command line
-into one EFI file (`ryoku.efi`). One file to load, easy to sign.
+into one EFI file (`EFI/Linux/ryoku_linux.efi`). One file to load, easy to sign.
 
 ## How the installer uses this
 
-During install the backend copies these files into place: `limine/*` to
-`/boot` and `/etc/default/limine`, `plymouth/ryoku/` to
-`/usr/share/plymouth/themes/ryoku`, and the hooks into `/etc/mkinitcpio.conf`.
-The `encrypt` hook and the `cryptdevice=` command line are kept only when the
-user chose disk encryption.
+During install the backend copies these files into place: `limine/limine.conf`
+to `/boot/limine.conf`, `limine/default.conf` to `/etc/default/limine`,
+`plymouth/ryoku/` to `/usr/share/plymouth/themes/ryoku`, and the hooks into
+`/etc/mkinitcpio.conf`. The Limine binary lands on
+`EFI/limine/limine_x64.efi` (+ the `EFI/BOOT/BOOTX64.EFI` fallback), the same
+paths `limine-install` refreshes on every `limine` package upgrade, so the
+booted bootloader never goes stale. The `encrypt` hook and the `cryptdevice=`
+command line are kept only when the user chose disk encryption.

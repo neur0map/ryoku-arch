@@ -21,8 +21,13 @@ exposes the functions the entrypoint calls in order.
   repo, trust its key, `pacman -S` the Ryoku packages, run `ryoku materialize`,
   then seed the unpackaged bits (brand assets, wallpapers, `~/.npmrc`, the editor
   defaults, and the qylock + SDDM theme).
-- `bootloader.sh` Limine install and branding, the initramfs build, the kernel
-  cmdline, and enabling services.
+- `bootloader.sh` Limine install and branding: `/boot/limine.conf` (the ESP
+  root, the one location `limine-entry-tool` manages; shadowing candidates
+  are removed), the EFI binary on the tool-refreshed
+  `EFI/limine/limine_x64.efi` path, the initramfs build, the kernel cmdline,
+  and enabling services. `ryoku_bootloader_finalize` (after the AUR step)
+  retires the flat placeholder entry once `limine-mkinitcpio-hook` owns the
+  menu.
 - `snapshots.sh` Btrfs snapshots (runs after the AUR step): a snapper `root`
   config, snap-pac registration, the snapper cleanup timer, and
   `limine-snapper-sync` for snapshot boot entries.

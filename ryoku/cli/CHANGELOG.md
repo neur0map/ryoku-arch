@@ -13,6 +13,24 @@
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
 
 ### Fixed
+- `doctor` gains a "limine boot menu layout" reconciler. Earlier installers
+  wrote the branded config to `/boot/limine/limine.conf`, a location Limine
+  scans BEFORE `/boot/limine.conf` (the only file `limine-entry-tool`
+  manages), so the generated UKI entries and the snapper Snapshots submenu
+  were shadowed forever: the boot menu stayed frozen at its install-time
+  shape. They also hand-copied the bootloader to `EFI/limine/limine.efi`, a
+  path no pacman hook refreshes, so the booted binary silently aged while the
+  `limine` package moved on (stale, off-looking menu rendering). The
+  reconciler merges the shadow's branding into `/boot/limine.conf` (keeping
+  every generated entry, foreign entry, and non-branding global), removes the
+  shadow, repoints `default_entry` past the `/+Ryoku` directory at the newest
+  UKI, re-deploys the binary onto the tool-refreshed
+  `EFI/limine/limine_x64.efi` via `limine-install`, retires the stale NVRAM
+  entry, and re-syncs the Windows chainload entry. Config first, binary
+  second: the box stays bootable at every interruption point. Covered by
+  `doctor_test.go`.
+- `doctor` now checks that `limine-snapper-sync.service` is *enabled*, not just
+  installed: the package alone never syncs a snapshot into the boot menu.
 - `doctor` gains an "SDDM greeter theme" reconciler. Picking a lockscreen skin in
   Ryoku Settings copies it into the SDDM greeter dir; a catalogue skin downloaded
   into a 0700 user-owned temp dir was copied verbatim, so the unprivileged `sddm`

@@ -28,6 +28,15 @@ for finer detail.
   being deferred. The legacy `wallhaven` plugin is reworked as the worked
   example.
 
+### Fixed
+- Limine now shows the generated boot menu: the branded config moved from
+  `/boot/limine/limine.conf` (which Limine scans first, shadowing everything
+  `limine-entry-tool` generates into `/boot/limine.conf`: the UKI tree and the
+  snapper Snapshots submenu) to `/boot/limine.conf` itself, and the EFI binary
+  moved onto the path the tool's pacman hook refreshes
+  (`EFI/limine/limine_x64.efi`), so the booted bootloader stops aging against
+  the installed package. `ryoku doctor` migrates existing installs in place.
+
 ### Notes
 - The previous Arch tree stays on the `main` branch as reference. The NixOS work
   moved to its own repository.

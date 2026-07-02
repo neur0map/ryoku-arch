@@ -90,6 +90,7 @@ func reconcilers() []reconciler {
 	return []reconciler{
 		{"swap kept out of snapshots", reconcileSwapSubvolume},
 		{"snapper configuration", reconcileSnapper},
+		{"limine boot menu layout", reconcileLimineLayout},
 		{"pacman database lock", reconcilePacmanLock},
 		{"stale install crypt mapper", reconcileStaleCryptMapper},
 		{"ryoku package channel", reconcileRyokuChannel},
@@ -371,6 +372,7 @@ type snapperState struct {
 	snapperInstalled    bool
 	snapPacInstalled    bool
 	limineSyncInstalled bool
+	limineSyncEnabled   bool
 }
 
 // planSnapper picks the branch from observed state. pure, no IO. the
@@ -404,6 +406,8 @@ func planSnapper(s snapperState) (snapperOutcome, []string) {
 	}
 	if !s.limineSyncInstalled {
 		problems = append(problems, "limine-snapper-sync is not installed, so snapshots are not in the Limine boot menu (ryoku-pkg-aur-add limine-snapper-sync)")
+	} else if !s.limineSyncEnabled {
+		problems = append(problems, "limine-snapper-sync.service is disabled, so new snapshots never reach the Limine boot menu (sudo systemctl enable --now limine-snapper-sync.service)")
 	}
 	if len(problems) == 0 {
 		return snapperOK, nil
@@ -421,6 +425,7 @@ func gatherSnapperState() snapperState {
 		snapperInstalled:    has("snapper"),
 		snapPacInstalled:    pkgInstalled("snap-pac"),
 		limineSyncInstalled: pkgInstalled("limine-snapper-sync"),
+		limineSyncEnabled:   unitEnabled("limine-snapper-sync.service"),
 	}
 	if fi, err := os.Stat("/.snapshots"); err == nil {
 		s.snapshotsExists = true
@@ -567,6 +572,381 @@ func writeRootFile(path, contents, mode string) error {
 		return err
 	}
 	return run("sudo", "install", "-D", "-m", mode, "-o", "root", "-g", "root", tmp.Name(), path)
+}
+
+// ---- reconciler: limine boot menu layout --------------------------------------
+
+// limine-entry-tool (the stack behind limine-mkinitcpio-hook and
+// limine-snapper-sync) manages exactly one config: /boot/limine.conf, the ESP
+// root. Limine itself scans /boot/limine/limine.conf BEFORE /boot/limine.conf
+// on the same partition, so a config in that older location shadows every
+// generated entry -- UKIs, the Snapshots submenu, everything -- and the
+// firmware keeps showing the frozen install-time menu. earlier installers
+// wrote exactly that shadow file, and also hand-copied the Limine binary to
+// EFI/limine/limine.efi, a path the tool never refreshes (it deploys
+// EFI/limine/limine_x64.efi), so the booted bootloader silently ages while
+// the package updates. this reconciler migrates both: merge the shadow's
+// branding into the tool-managed config and remove it, then re-deploy the
+// binary onto the tool's path and retire the stale NVRAM entry.
+//
+// limineBranding mirrors system/boot/limine/limine.conf (the globals): keep
+// the two in sync so a doctored box matches a fresh install.
+const limineBranding = `timeout: 3
+default_entry: 2
+interface_branding: Ryoku Bootloader
+interface_branding_color: F25623
+interface_help_color: F25623
+hash_mismatch_panic: no
+
+term_background: 171717
+backdrop: 171717
+term_palette: 171717;aeab94;F25623;4D4D4D;88A57D;F56E0F;8A8A8A;bcbfbc
+term_palette_bright: 333333;aeab94;F25623;4D4D4D;88A57D;F56E0F;8A8A8A;757d75
+term_foreground: CCD0CF
+term_foreground_bright: CCD0CF
+term_background_bright: 333333
+`
+
+const (
+	limineESPConf   = "/boot/limine.conf"
+	limineShadow    = "/boot/limine/limine.conf"
+	limineLegacyEFI = "/boot/EFI/limine/limine.efi"
+	limineToolEFI   = "/boot/EFI/limine/limine_x64.efi"
+)
+
+type limineLayoutOutcome int
+
+const (
+	limineLayoutSkip limineLayoutOutcome = iota
+	limineLayoutOK
+	limineLayoutUnreadable
+	limineLayoutMigrate
+)
+
+// limineLayoutState: the slice of /boot reconcileLimineLayout looks at,
+// lifted to a value so planLimineLayout stays unit-testable.
+type limineLayoutState struct {
+	limineInstalled bool
+	espConfExists   bool
+	espConf         string // "" when absent or unreadable
+	espConfReadable bool
+	shadowExists    bool
+	shadowConf      string
+	shadowReadable  bool
+	legacyEFIExists bool
+	toolEFIExists   bool
+	installerTool   bool // limine-install on PATH
+}
+
+// planLimineLayout picks the branch from observed state. pure, no IO.
+func planLimineLayout(s limineLayoutState) (limineLayoutOutcome, []string) {
+	if !s.limineInstalled {
+		return limineLayoutSkip, nil
+	}
+	if !s.espConfExists && !s.shadowExists {
+		// not a limine-booted box (or the ESP isn't at /boot); nothing to own.
+		return limineLayoutSkip, nil
+	}
+	if (s.espConfExists && !s.espConfReadable) || (s.shadowExists && !s.shadowReadable) {
+		return limineLayoutUnreadable, nil
+	}
+	var actions []string
+	if s.shadowExists {
+		actions = append(actions, fmt.Sprintf("merge %s into %s and remove it (it shadows the generated boot entries: kernels, snapshots)", limineShadow, limineESPConf))
+	} else if limineHasBootTree(s.espConf) && limineDefaultEntry(s.espConf) == "1" {
+		actions = append(actions, "point default_entry at the newest kernel (entry 1 is the Ryoku directory, which cannot autoboot)")
+	}
+	if s.legacyEFIExists {
+		actions = append(actions, fmt.Sprintf("retire the stale hand-copied bootloader %s for the package-refreshed %s", limineLegacyEFI, limineToolEFI))
+	}
+	if len(actions) == 0 {
+		return limineLayoutOK, nil
+	}
+	return limineLayoutMigrate, actions
+}
+
+func gatherLimineLayoutState() limineLayoutState {
+	s := limineLayoutState{
+		limineInstalled: pkgInstalled("limine"),
+		legacyEFIExists: exists(limineLegacyEFI),
+		toolEFIExists:   exists(limineToolEFI),
+		installerTool:   has("limine-install"),
+	}
+	if b, err := os.ReadFile(limineESPConf); err == nil {
+		s.espConfExists, s.espConfReadable, s.espConf = true, true, string(b)
+	} else if exists(limineESPConf) {
+		s.espConfExists = true
+	}
+	if b, err := os.ReadFile(limineShadow); err == nil {
+		s.shadowExists, s.shadowReadable, s.shadowConf = true, true, string(b)
+	} else if exists(limineShadow) {
+		s.shadowExists = true
+	}
+	return s
+}
+
+func reconcileLimineLayout(checkOnly bool) recResult {
+	st := gatherLimineLayoutState()
+	outcome, actions := planLimineLayout(st)
+	switch outcome {
+	case limineLayoutSkip:
+		return okRes("not a limine-managed boot on this box")
+	case limineLayoutUnreadable:
+		return warnRes("cannot read the limine config under /boot to verify the boot menu layout").
+			withFix("sudo ryoku doctor")
+	case limineLayoutOK:
+		return okRes("boot menu lives in /boot/limine.conf; nothing shadows it")
+	}
+	if checkOnly {
+		return wouldRes("limine boot layout needs migration: %s", strings.Join(actions, "; ")).
+			withFix("ryoku doctor (applies the migration)")
+	}
+	return migrateLimineLayout(st)
+}
+
+// migrateLimineLayout applies the plan: config first (that alone puts the
+// generated kernel + snapshot entries back on screen at next boot), then the
+// binary. every step is separately recoverable; the box stays bootable at
+// any interruption point because the merged config is written before the
+// shadow is removed, and the tool EFI is deployed before the legacy one is
+// retired.
+func migrateLimineLayout(st limineLayoutState) recResult {
+	var done []string
+
+	if st.shadowExists || (limineHasBootTree(st.espConf) && limineDefaultEntry(st.espConf) == "1") {
+		merged := mergeLimineConf(st.espConf, st.shadowConf)
+		if st.espConfExists {
+			_ = run("sudo", "cp", limineESPConf, limineESPConf+".ryoku-bak")
+		}
+		if err := writeBootFile(limineESPConf, merged); err != nil {
+			return failRes("writing %s: %v", limineESPConf, err).
+				withFix("re-run with sudo available; the old configs were left untouched")
+		}
+		done = append(done, "merged boot menu into "+limineESPConf)
+		if st.shadowExists {
+			if err := run("sudo", "rm", "-f", limineShadow); err != nil {
+				return failRes("removing the shadowing %s: %v (the merged config is written, but limine still reads the shadow)", limineShadow, err).
+					withFix("sudo rm %s", limineShadow)
+			}
+			_ = exec.Command("sudo", "rmdir", "/boot/limine").Run() // only if empty
+			done = append(done, "removed the shadowing "+limineShadow)
+		}
+	}
+
+	if st.legacyEFIExists {
+		if st.installerTool {
+			// deploys EFI/limine/limine_x64.efi + the EFI/BOOT fallback and
+			// registers the NVRAM entry (deduped by partition uuid + path).
+			if err := run("sudo", "limine-install"); err != nil {
+				return warnRes("boot menu migrated (%s), but limine-install failed: %v", strings.Join(done, "; "), err).
+					withFix("sudo limine-install, then sudo rm %s", limineLegacyEFI)
+			}
+		} else if exists("/usr/share/limine/BOOTX64.EFI") {
+			// no tool (offline box): at least un-stale the booted binary.
+			if err := run("sudo", "cp", "/usr/share/limine/BOOTX64.EFI", limineToolEFI); err != nil {
+				return warnRes("boot menu migrated (%s), but could not deploy %s: %v", strings.Join(done, "; "), limineToolEFI, err).
+					withFix("sudo cp /usr/share/limine/BOOTX64.EFI %s", limineToolEFI)
+			}
+		}
+		if exists(limineToolEFI) {
+			for _, boot := range staleLimineBootNums(efibootmgrOutput()) {
+				_ = run("sudo", "efibootmgr", "-q", "-b", boot, "-B")
+			}
+			if err := run("sudo", "rm", "-f", limineLegacyEFI); err != nil {
+				return warnRes("boot menu migrated (%s), but could not remove the stale %s: %v", strings.Join(done, "; "), limineLegacyEFI, err).
+					withFix("sudo rm %s", limineLegacyEFI)
+			}
+			done = append(done, "bootloader binary now on the package-refreshed path")
+		}
+	}
+
+	// the shadow (or the rewrite) may have carried a Windows chainload block;
+	// re-assert it against the merged config. best-effort, needs root mounts.
+	if has("ryoku-windows-entry") {
+		_ = exec.Command("sudo", "ryoku-windows-entry", "sync").Run()
+	}
+
+	return fixedRes("%s (snapshots and new kernels appear in the boot menu from the next boot)", strings.Join(done, "; "))
+}
+
+// limineHasBootTree: has limine-mkinitcpio-hook taken over the file? its OS
+// entry is an expanded directory ("/+Ryoku"); the flat installer placeholder
+// and foreign entries never start with "/+".
+func limineHasBootTree(conf string) bool {
+	for _, line := range strings.Split(conf, "\n") {
+		if strings.HasPrefix(line, "/+") {
+			return true
+		}
+	}
+	return false
+}
+
+// limineDefaultEntry: the value of the global default_entry option, "" when
+// absent.
+func limineDefaultEntry(conf string) string {
+	for _, line := range strings.Split(conf, "\n") {
+		if v, ok := strings.CutPrefix(strings.TrimSpace(line), "default_entry:"); ok {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
+}
+
+// limineBrandedKeys: global options the canonical branding header owns. when
+// merging, lines carrying these are dropped from the existing prelude so the
+// header's values win without duplicates. everything else a user (or the
+// tool) put in the prelude -- quiet, remember_last_entry, interface_resolution,
+// macros -- survives.
+var limineBrandedKeys = []string{
+	"timeout:", "default_entry:", "interface_branding:",
+	"interface_branding_color:", "interface_branding_colour:",
+	"interface_help_color:", "interface_help_colour:",
+	"interface_help_color_bright:", "interface_help_colour_bright:",
+	"hash_mismatch_panic:", "term_background:", "backdrop:",
+	"term_palette:", "term_palette_bright:", "term_foreground:",
+	"term_foreground_bright:", "term_background_bright:",
+}
+
+// mergeLimineConf builds the migrated /boot/limine.conf: the canonical Ryoku
+// branding header, then whatever non-branding globals the base prelude
+// carried, then the base's entries verbatim. the base is the ESP-root config
+// when the tool's boot tree lives there (never throw generated entries
+// away), else the shadow (the menu the firmware was actually showing).
+// default_entry falls back to 1 when the menu is still flat: with no
+// directory at entry 1, 2 would autoboot the second flat entry (e.g.
+// Windows).
+func mergeLimineConf(espConf, shadowConf string) string {
+	base := espConf
+	if !limineHasBootTree(espConf) && shadowConf != "" {
+		base = shadowConf
+	}
+	prelude, body := splitLimineConf(base)
+
+	var kept []string
+	for _, line := range strings.Split(prelude, "\n") {
+		t := strings.TrimSpace(line)
+		if t == "" || strings.HasPrefix(t, "#") {
+			continue // comments restate the old header; the new one replaces them
+		}
+		if limineBrandedKey(t) {
+			continue
+		}
+		kept = append(kept, line)
+	}
+
+	header := limineBranding
+	if !limineHasBootTree(base) {
+		header = strings.Replace(header, "default_entry: 2\n", "default_entry: 1\n", 1)
+	}
+
+	var b strings.Builder
+	b.WriteString("# Ryoku limine config -- branding globals + generated entries. managed by\n")
+	b.WriteString("# limine-mkinitcpio-hook / limine-snapper-sync (entries) and ryoku (globals).\n")
+	b.WriteString(header)
+	if len(kept) > 0 {
+		b.WriteString("\n")
+		b.WriteString(strings.Join(kept, "\n"))
+		b.WriteString("\n")
+	}
+	if body != "" {
+		b.WriteString("\n")
+		b.WriteString(body)
+	}
+	out := b.String()
+	if !strings.HasSuffix(out, "\n") {
+		out += "\n"
+	}
+	return out
+}
+
+func limineBrandedKey(trimmedLine string) bool {
+	l := strings.ToLower(trimmedLine)
+	for _, k := range limineBrandedKeys {
+		if strings.HasPrefix(l, k) {
+			return true
+		}
+	}
+	return false
+}
+
+// splitLimineConf: prelude (global options before the first menu entry) and
+// body (the first "/" entry line to EOF, verbatim -- entries, sub-entries,
+// their comments and fences).
+func splitLimineConf(conf string) (prelude, body string) {
+	lines := strings.Split(conf, "\n")
+	for i, line := range lines {
+		if strings.HasPrefix(line, "/") {
+			return strings.Join(lines[:i], "\n"), strings.Join(lines[i:], "\n")
+		}
+	}
+	return conf, ""
+}
+
+// staleLimineBootNums: NVRAM boot numbers whose loader is the legacy
+// hand-copied \EFI\limine\limine.efi (never \EFI\limine\limine_x64.efi).
+// parsed from `efibootmgr` output lines like
+//
+//	Boot0003* Ryoku HD(1,GPT,...)/\EFI\limine\limine.efi
+func staleLimineBootNums(efibootmgr string) []string {
+	var nums []string
+	for _, line := range strings.Split(efibootmgr, "\n") {
+		if !strings.HasPrefix(line, "Boot") || len(line) < 8 {
+			continue
+		}
+		num := line[4:8]
+		if !isHex4(num) {
+			continue
+		}
+		if strings.Contains(line, `\limine.efi`) {
+			nums = append(nums, num)
+		}
+	}
+	return nums
+}
+
+func isHex4(s string) bool {
+	if len(s) != 4 {
+		return false
+	}
+	for _, c := range s {
+		if !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) {
+			return false
+		}
+	}
+	return true
+}
+
+func efibootmgrOutput() string {
+	out, err := exec.Command("efibootmgr").Output()
+	if err != nil {
+		return ""
+	}
+	return string(out)
+}
+
+// writeBootFile: stage + `sudo cp` (not install -o/-g: the ESP is vfat, which
+// has no owners to set and rejects chown).
+func writeBootFile(path, contents string) error {
+	tmp, err := os.CreateTemp("", "ryoku-limine-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.WriteString(contents); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return run("sudo", "cp", tmp.Name(), path)
+}
+
+// unitEnabled: is the systemd unit enabled (or static/alias -- anything
+// systemctl reports as will-start)? disabled, masked, and not-found all
+// return a non-zero exit.
+func unitEnabled(unit string) bool {
+	return exec.Command("systemctl", "is-enabled", "--quiet", unit).Run() == nil
 }
 
 // ---- reconciler: stale pacman lock -------------------------------------------
