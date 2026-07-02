@@ -118,7 +118,7 @@ func TestACPHandshakePromptStreamPermissionCancel(t *testing.T) {
 	}
 
 	// One user turn with streaming chunks and a tool call.
-	conn.Prompt("hello")
+	conn.Prompt("hello", nil)
 	prompt := fa.read()
 	if prompt.Method != "session/prompt" {
 		t.Fatalf("got %q, want session/prompt", prompt.Method)
@@ -206,4 +206,116 @@ func TestACPDeadChildEmitsDeadState(t *testing.T) {
 	if ev.State != "dead" {
 		t.Fatalf("state %q, want dead", ev.State)
 	}
+}
+
+func TestACPV2ImagesModelsSessions(t *testing.T) {
+	conn, fa := newTestPair(t)
+	defer conn.Close()
+
+	done := make(chan error, 1)
+	go func() { done <- conn.Initialize("/tmp/vault") }()
+	init := fa.read()
+	fa.respond(*init.ID, map[string]any{"protocolVersion": 1})
+	newSess := fa.read()
+	fa.respond(*newSess.ID, map[string]any{
+		"sessionId": "s1",
+		"models": map[string]any{
+			"currentModelId": "openai-codex:gpt-5.5",
+			"availableModels": []map[string]string{
+				{"modelId": "openai-codex:gpt-5.5", "name": "GPT 5.5"},
+				{"modelId": "openai-codex:gpt-5.5-mini", "name": "GPT 5.5 mini"},
+			},
+		},
+	})
+	if err := <-done; err != nil {
+		t.Fatalf("Initialize: %v", err)
+	}
+
+	// Models from session/new surface as a models event.
+	ev := expectEvent(t, conn.Events(), "models")
+	if ev.CurrentModel != "openai-codex:gpt-5.5" || len(ev.Models) != 2 {
+		t.Fatalf("models event %+v", ev)
+	}
+
+	// Image blocks ride the prompt.
+	conn.Prompt("what is this", []PromptImage{{Data: "aGk=", MimeType: "image/png"}})
+	prompt := fa.read()
+	var pp struct {
+		Prompt []map[string]any `json:"prompt"`
+	}
+	_ = json.Unmarshal(prompt.Params, &pp)
+	if len(pp.Prompt) != 2 || pp.Prompt[1]["type"] != "image" || pp.Prompt[1]["mimeType"] != "image/png" {
+		t.Fatalf("prompt blocks %+v", pp.Prompt)
+	}
+	fa.respond(*prompt.ID, map[string]any{"stopReason": "end_turn"})
+	expectEvent(t, conn.Events(), "turn_end")
+
+	// available_commands_update and usage_update translate.
+	fa.update("s1", map[string]any{
+		"sessionUpdate": "available_commands_update",
+		"availableCommands": []map[string]any{
+			{"name": "help", "description": "List commands"},
+			{"name": "model", "description": "Switch model", "input": map[string]string{"hint": "model id"}},
+		},
+	})
+	ev = expectEvent(t, conn.Events(), "commands")
+	if len(ev.Commands) != 2 || ev.Commands[1].Hint != "model id" {
+		t.Fatalf("commands event %+v", ev)
+	}
+	fa.update("s1", map[string]any{"sessionUpdate": "usage_update", "size": 200000, "used": 12345})
+	ev = expectEvent(t, conn.Events(), "usage")
+	if ev.UsageSize != 200000 || ev.UsageUsed != 12345 {
+		t.Fatalf("usage event %+v", ev)
+	}
+
+	// set_model round trip.
+	setDone := make(chan error, 1)
+	go func() { setDone <- conn.SetModel("openai-codex:gpt-5.5-mini") }()
+	setReq := fa.read()
+	if setReq.Method != "session/set_model" {
+		t.Fatalf("got %q, want session/set_model", setReq.Method)
+	}
+	fa.respond(*setReq.ID, map[string]any{})
+	if err := <-setDone; err != nil {
+		t.Fatalf("SetModel: %v", err)
+	}
+
+	// session/list translates to SessionMeta.
+	listDone := make(chan []SessionMeta, 1)
+	go func() { listDone <- conn.ListSessions() }()
+	listReq := fa.read()
+	if listReq.Method != "session/list" {
+		t.Fatalf("got %q, want session/list", listReq.Method)
+	}
+	fa.respond(*listReq.ID, map[string]any{
+		"sessions": []map[string]string{
+			{"sessionId": "old1", "title": "Keybinds", "updatedAt": "2026-07-02T02:00:00Z"},
+		},
+	})
+	sessions := <-listDone
+	if len(sessions) != 1 || sessions[0].Title != "Keybinds" {
+		t.Fatalf("sessions %+v", sessions)
+	}
+
+	// load replays: replay_start, replayed user chunk, replay_end.
+	loadDone := make(chan error, 1)
+	go func() { loadDone <- conn.LoadSession("old1") }()
+	expectEvent(t, conn.Events(), "replay_start")
+	loadReq := fa.read()
+	if loadReq.Method != "session/load" {
+		t.Fatalf("got %q, want session/load", loadReq.Method)
+	}
+	fa.update("old1", map[string]any{
+		"sessionUpdate": "user_message_chunk",
+		"content":       map[string]string{"type": "text", "text": "old question"},
+	})
+	ev = expectEvent(t, conn.Events(), "user_text")
+	if ev.Text != "old question" {
+		t.Fatalf("user_text %+v", ev)
+	}
+	fa.respond(*loadReq.ID, map[string]any{"sessionId": "old1"})
+	if err := <-loadDone; err != nil {
+		t.Fatalf("LoadSession: %v", err)
+	}
+	expectEvent(t, conn.Events(), "replay_end")
 }

@@ -21,20 +21,49 @@ type PermOption struct {
 	Kind string `json:"kind"`
 }
 
+// ModelInfo is one selectable model advertised by the agent.
+type ModelInfo struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
+// CommandInfo is one slash command the agent understands.
+type CommandInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Hint        string `json:"hint,omitempty"`
+}
+
+// SessionMeta is one stored session, for the history drawer.
+type SessionMeta struct {
+	ID        string `json:"id"`
+	Title     string `json:"title"`
+	Cwd       string `json:"cwd,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+}
+
 // AcpEvent is the translated stream ws.go forwards to the dashboard.
 type AcpEvent struct {
-	Type       string // state | agent_text | agent_thought | tool | permission | turn_end
-	State      string
-	Err        string
-	Text       string
-	ToolID     string
-	ToolTitle  string
-	ToolKind   string
-	ToolStatus string
-	RequestID  string
-	PermTitle  string
-	Options    []PermOption
-	StopReason string
+	Type         string // state | agent_text | agent_thought | user_text | tool | permission | turn_end | models | commands | session_info | usage | replay_start | replay_end
+	State        string
+	Err          string
+	Text         string
+	ToolID       string
+	ToolTitle    string
+	ToolKind     string
+	ToolStatus   string
+	RequestID    string
+	PermTitle    string
+	Options      []PermOption
+	StopReason   string
+	Models       []ModelInfo
+	CurrentModel string
+	Commands     []CommandInfo
+	SessionID    string
+	SessionTitle string
+	UsageSize    int
+	UsageUsed    int
 }
 
 type rpcMsg struct {
@@ -61,6 +90,7 @@ type acpConn struct {
 	mu        sync.Mutex
 	pending   map[int64]chan rpcMsg
 	sessionID string
+	vault     string
 	closed    bool
 
 	events chan AcpEvent
@@ -134,8 +164,35 @@ func (c *acpConn) respond(id int64, result any) {
 	_ = c.send(rpcMsg{JSONRPC: "2.0", ID: &id, Result: r})
 }
 
+// sessionResult is the shape session/new|load|resume share: model state rides
+// along with the id.
+type sessionResult struct {
+	SessionID string `json:"sessionId"`
+	Models    *struct {
+		Available []struct {
+			ModelID     string `json:"modelId"`
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		} `json:"availableModels"`
+		CurrentModelID string `json:"currentModelId"`
+	} `json:"models"`
+}
+
+func (c *acpConn) emitModels(res json.RawMessage) {
+	var out sessionResult
+	if json.Unmarshal(res, &out) != nil || out.Models == nil {
+		return
+	}
+	ms := make([]ModelInfo, 0, len(out.Models.Available))
+	for _, m := range out.Models.Available {
+		ms = append(ms, ModelInfo{ID: m.ModelID, Name: m.Name, Description: m.Description})
+	}
+	c.emit(AcpEvent{Type: "models", Models: ms, CurrentModel: out.Models.CurrentModelID})
+}
+
 // Initialize performs the ACP handshake and opens the vault session.
 func (c *acpConn) Initialize(vault string) error {
+	c.vault = vault
 	_, err := c.request("initialize", map[string]any{
 		"protocolVersion": 1,
 		"clientCapabilities": map[string]any{
@@ -145,34 +202,105 @@ func (c *acpConn) Initialize(vault string) error {
 	if err != nil {
 		return err
 	}
-	res, err := c.request("session/new", map[string]any{
-		"cwd":        vault,
-		"mcpServers": []any{},
-	})
+	return c.openSession("session/new", map[string]any{"cwd": vault, "mcpServers": []any{}})
+}
+
+// openSession issues new/load and installs the returned session id.
+func (c *acpConn) openSession(method string, params map[string]any) error {
+	res, err := c.request(method, params)
 	if err != nil {
 		return err
 	}
-	var out struct {
-		SessionID string `json:"sessionId"`
-	}
+	var out sessionResult
 	if err := json.Unmarshal(res, &out); err != nil || out.SessionID == "" {
-		return errors.New("acp session/new: no sessionId")
+		return errors.New(method + ": no sessionId")
 	}
 	c.mu.Lock()
 	c.sessionID = out.SessionID
 	c.mu.Unlock()
+	c.emitModels(res)
 	return nil
 }
 
-// Prompt runs one user turn; the turn_end event carries the stop reason.
-func (c *acpConn) Prompt(text string) {
+// NewSession abandons the current session for a fresh one in the vault.
+func (c *acpConn) NewSession() error {
+	return c.openSession("session/new", map[string]any{"cwd": c.vault, "mcpServers": []any{}})
+}
+
+// LoadSession switches to a stored session; hermes replays its transcript as
+// session/update notifications before the response arrives.
+func (c *acpConn) LoadSession(id string) error {
+	c.emit(AcpEvent{Type: "replay_start"})
+	err := c.openSession("session/load", map[string]any{
+		"sessionId": id, "cwd": c.vault, "mcpServers": []any{},
+	})
+	c.emit(AcpEvent{Type: "replay_end"})
+	return err
+}
+
+// ListSessions fetches stored session metadata over ACP.
+func (c *acpConn) ListSessions() []SessionMeta {
+	res, err := c.request("session/list", map[string]any{})
+	if err != nil {
+		return nil
+	}
+	var out struct {
+		Sessions []struct {
+			SessionID string `json:"sessionId"`
+			Title     string `json:"title"`
+			Cwd       string `json:"cwd"`
+			UpdatedAt string `json:"updatedAt"`
+		} `json:"sessions"`
+	}
+	if json.Unmarshal(res, &out) != nil {
+		return nil
+	}
+	list := make([]SessionMeta, 0, len(out.Sessions))
+	for _, s := range out.Sessions {
+		list = append(list, SessionMeta{ID: s.SessionID, Title: s.Title, Cwd: s.Cwd, UpdatedAt: s.UpdatedAt})
+	}
+	return list
+}
+
+// SetModel switches the session's model.
+func (c *acpConn) SetModel(modelID string) error {
 	c.mu.Lock()
 	sid := c.sessionID
 	c.mu.Unlock()
+	_, err := c.request("session/set_model", map[string]any{
+		"sessionId": sid, "modelId": modelID,
+	})
+	return err
+}
+
+// PromptImage is one attached image: raw base64 plus its mime type.
+type PromptImage struct {
+	Data     string `json:"data"`
+	MimeType string `json:"mimeType"`
+}
+
+// Prompt runs one user turn; the turn_end event carries the stop reason.
+// Images ride along as ACP image content blocks (base64 required by schema).
+func (c *acpConn) Prompt(text string, images []PromptImage) {
+	c.mu.Lock()
+	sid := c.sessionID
+	c.mu.Unlock()
+	blocks := make([]map[string]any, 0, 1+len(images))
+	if text != "" {
+		blocks = append(blocks, map[string]any{"type": "text", "text": text})
+	}
+	for _, im := range images {
+		blocks = append(blocks, map[string]any{
+			"type": "image", "data": im.Data, "mimeType": im.MimeType,
+		})
+	}
+	if len(blocks) == 0 {
+		return
+	}
 	go func() {
 		res, err := c.request("session/prompt", map[string]any{
 			"sessionId": sid,
-			"prompt":    []map[string]string{{"type": "text", "text": text}},
+			"prompt":    blocks,
 		})
 		if err != nil {
 			c.emit(AcpEvent{Type: "state", State: "dead", Err: err.Error()})
@@ -180,6 +308,9 @@ func (c *acpConn) Prompt(text string) {
 		}
 		var out struct {
 			StopReason string `json:"stopReason"`
+			Usage      *struct {
+				TotalTokens int `json:"totalTokens"`
+			} `json:"usage"`
 		}
 		_ = json.Unmarshal(res, &out)
 		c.emit(AcpEvent{Type: "turn_end", StopReason: out.StopReason})
@@ -309,7 +440,20 @@ func (c *acpConn) handleUpdate(params json.RawMessage) {
 			Title      string `json:"title"`
 			Kind       string `json:"kind"`
 			Status     string `json:"status"`
+			// available_commands_update
+			AvailableCommands []struct {
+				Name        string `json:"name"`
+				Description string `json:"description"`
+				Input       *struct {
+					Hint string `json:"hint"`
+				} `json:"input"`
+			} `json:"availableCommands"`
+			// usage_update
+			Size int `json:"size"`
+			Used int `json:"used"`
+			// session_info_update reuses Title; UpdatedAt unused for now.
 		} `json:"update"`
+		SessionID string `json:"sessionId"`
 	}
 	if json.Unmarshal(params, &p) != nil {
 		return
@@ -320,6 +464,8 @@ func (c *acpConn) handleUpdate(params json.RawMessage) {
 		c.emit(AcpEvent{Type: "agent_text", Text: u.Content.Text})
 	case "agent_thought_chunk":
 		c.emit(AcpEvent{Type: "agent_thought", Text: u.Content.Text})
+	case "user_message_chunk":
+		c.emit(AcpEvent{Type: "user_text", Text: u.Content.Text})
 	case "tool_call", "tool_call_update":
 		status := u.Status
 		if status == "" {
@@ -329,6 +475,20 @@ func (c *acpConn) handleUpdate(params json.RawMessage) {
 			Type: "tool", ToolID: u.ToolCallID, ToolTitle: u.Title,
 			ToolKind: u.Kind, ToolStatus: status,
 		})
+	case "available_commands_update":
+		cmds := make([]CommandInfo, 0, len(u.AvailableCommands))
+		for _, cm := range u.AvailableCommands {
+			hint := ""
+			if cm.Input != nil {
+				hint = cm.Input.Hint
+			}
+			cmds = append(cmds, CommandInfo{Name: cm.Name, Description: cm.Description, Hint: hint})
+		}
+		c.emit(AcpEvent{Type: "commands", Commands: cmds})
+	case "usage_update":
+		c.emit(AcpEvent{Type: "usage", UsageSize: u.Size, UsageUsed: u.Used})
+	case "session_info_update":
+		c.emit(AcpEvent{Type: "session_info", SessionID: p.SessionID, SessionTitle: u.Title})
 	}
 }
 

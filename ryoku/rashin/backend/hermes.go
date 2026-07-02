@@ -61,19 +61,48 @@ func HermesStatus() HermesInfo {
 // hermesOnboarded reports whether the user finished hermes's own onboarding.
 // The installer lays a template config.yaml with an EMPTY `model:` line, so
 // file existence alone is a false positive; a chosen model is the artifact of
-// the user actually completing `hermes setup`.
+// the user actually completing `hermes setup`. Two config shapes exist:
+// a scalar (`model: openrouter/x`) and a mapping (`model:` with indented
+// `provider:`/`default:` keys).
 func hermesOnboarded() bool {
+	_, _, ok := hermesModel()
+	return ok
+}
+
+// hermesModel reads the chosen provider and model from config.yaml without a
+// yaml dependency: the model block is flat enough for line parsing.
+func hermesModel() (provider, model string, ok bool) {
 	b, err := os.ReadFile(hermesConfig())
 	if err != nil {
-		return false
+		return "", "", false
 	}
-	for _, line := range strings.Split(string(b), "\n") {
-		trimmed := strings.TrimSpace(line)
-		if rest, ok := strings.CutPrefix(trimmed, "model:"); ok {
-			return strings.TrimSpace(rest) != ""
+	lines := strings.Split(string(b), "\n")
+	for i, line := range lines {
+		rest, found := strings.CutPrefix(strings.TrimSpace(line), "model:")
+		if !found || strings.HasPrefix(strings.TrimSpace(line), "#") {
+			continue
 		}
+		if v := strings.TrimSpace(rest); v != "" {
+			return "", strings.Trim(v, `"'`), true // scalar form
+		}
+		for _, sub := range lines[i+1:] {
+			if strings.TrimSpace(sub) == "" {
+				continue
+			}
+			if !strings.HasPrefix(sub, " ") && !strings.HasPrefix(sub, "\t") {
+				break // mapping block ended
+			}
+			t := strings.TrimSpace(sub)
+			if v, is := strings.CutPrefix(t, "provider:"); is {
+				provider = strings.Trim(strings.TrimSpace(v), `"'`)
+			}
+			if v, is := strings.CutPrefix(t, "default:"); is {
+				model = strings.Trim(strings.TrimSpace(v), `"'`)
+			}
+		}
+		return provider, model, provider != "" || model != ""
 	}
-	return false
+	return "", "", false
 }
 
 func hermesVersion(bin string) string {

@@ -122,6 +122,22 @@ func Serve(cfg Config) error {
 	mux.HandleFunc("POST /api/agents/wire", agentMutation(Wire))
 	mux.HandleFunc("POST /api/agents/unwire", agentMutation(Unwire))
 
+	mux.HandleFunc("GET /api/hermes/skills", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, SkillsReportNow())
+	})
+	mux.HandleFunc("GET /api/hermes/memory", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, MemoryReportNow())
+	})
+	mux.HandleFunc("GET /api/prowl", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, ProwlReportNow())
+	})
+	mux.HandleFunc("GET /api/prowl/search", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, map[string]any{"hits": ProwlSearch(r.URL.Query().Get("q"))})
+	})
+	mux.HandleFunc("GET /api/about", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, AboutReportNow(cfg))
+	})
+
 	mux.HandleFunc("GET /ws/vitals", func(w http.ResponseWriter, r *http.Request) {
 		ws, err := acceptWS(w, r)
 		if err != nil {

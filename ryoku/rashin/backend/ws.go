@@ -17,25 +17,34 @@ import (
 // the next user message after a death.
 
 type wsOut struct {
-	Type       string       `json:"type"`
-	State      string       `json:"state,omitempty"`
-	Model      string       `json:"model,omitempty"`
-	Error      string       `json:"error,omitempty"`
-	Text       string       `json:"text,omitempty"`
-	ID         string       `json:"id,omitempty"`
-	Title      string       `json:"title,omitempty"`
-	Kind       string       `json:"kind,omitempty"`
-	Status     string       `json:"status,omitempty"`
-	RequestID  string       `json:"requestId,omitempty"`
-	Options    []PermOption `json:"options,omitempty"`
-	StopReason string       `json:"stopReason,omitempty"`
+	Type       string        `json:"type"`
+	State      string        `json:"state,omitempty"`
+	Error      string        `json:"error,omitempty"`
+	Text       string        `json:"text,omitempty"`
+	ID         string        `json:"id,omitempty"`
+	Title      string        `json:"title,omitempty"`
+	Kind       string        `json:"kind,omitempty"`
+	Status     string        `json:"status,omitempty"`
+	RequestID  string        `json:"requestId,omitempty"`
+	Options    []PermOption  `json:"options,omitempty"`
+	StopReason string        `json:"stopReason,omitempty"`
+	Models     []ModelInfo   `json:"models,omitempty"`
+	Current    string        `json:"current,omitempty"`
+	Commands   []CommandInfo `json:"commands,omitempty"`
+	SessionID  string        `json:"sessionId,omitempty"`
+	Size       int           `json:"size,omitempty"`
+	Used       int           `json:"used,omitempty"`
+	Sessions   []SessionMeta `json:"sessions,omitempty"`
 }
 
 type wsIn struct {
-	Type      string `json:"type"`
-	Text      string `json:"text"`
-	RequestID string `json:"requestId"`
-	OptionID  string `json:"optionId"`
+	Type      string        `json:"type"`
+	Text      string        `json:"text"`
+	RequestID string        `json:"requestId"`
+	OptionID  string        `json:"optionId"`
+	Images    []PromptImage `json:"images"`
+	ModelID   string        `json:"modelId"`
+	SessionID string        `json:"sessionId"`
 }
 
 type chatClient struct {
@@ -44,10 +53,12 @@ type chatClient struct {
 }
 
 type chatHub struct {
-	mu      sync.Mutex
-	conn    *acpConn
-	clients map[*chatClient]bool
-	last    wsOut // last state frame, replayed to joiners
+	mu       sync.Mutex
+	conn     *acpConn
+	clients  map[*chatClient]bool
+	last     wsOut // last state frame, replayed to joiners
+	models   wsOut // last models frame, replayed to joiners
+	commands wsOut // last commands frame, replayed to joiners
 }
 
 func newChatHub() *chatHub {
@@ -117,6 +128,8 @@ func (h *chatHub) pump(c *acpConn) {
 			h.broadcast(wsOut{Type: "agent_text", Text: ev.Text})
 		case "agent_thought":
 			h.broadcast(wsOut{Type: "agent_thought", Text: ev.Text})
+		case "user_text":
+			h.broadcast(wsOut{Type: "user_text", Text: ev.Text})
 		case "tool":
 			h.broadcast(wsOut{Type: "tool", ID: ev.ToolID, Title: ev.ToolTitle, Kind: ev.ToolKind, Status: ev.ToolStatus})
 		case "permission":
@@ -124,6 +137,26 @@ func (h *chatHub) pump(c *acpConn) {
 		case "turn_end":
 			h.broadcast(wsOut{Type: "turn_end", StopReason: ev.StopReason})
 			h.broadcast(wsOut{Type: "state", State: "ready"})
+		case "models":
+			m := wsOut{Type: "models", Models: ev.Models, Current: ev.CurrentModel}
+			h.mu.Lock()
+			h.models = m
+			h.mu.Unlock()
+			h.broadcast(m)
+		case "commands":
+			m := wsOut{Type: "commands", Commands: ev.Commands}
+			h.mu.Lock()
+			h.commands = m
+			h.mu.Unlock()
+			h.broadcast(m)
+		case "session_info":
+			h.broadcast(wsOut{Type: "session_info", SessionID: ev.SessionID, Title: ev.SessionTitle})
+		case "usage":
+			h.broadcast(wsOut{Type: "usage", Size: ev.UsageSize, Used: ev.UsageUsed})
+		case "replay_start":
+			h.broadcast(wsOut{Type: "replay_start"})
+		case "replay_end":
+			h.broadcast(wsOut{Type: "replay_end"})
 		}
 	}
 	h.dropConn(c)
@@ -134,13 +167,21 @@ func (h *chatHub) handle(ctx context.Context, ws *websocket.Conn) {
 	h.mu.Lock()
 	h.clients[cl] = true
 	h.ensureConnLocked()
-	greeting := h.last
+	greeting := []wsOut{h.last}
+	if h.models.Type != "" {
+		greeting = append(greeting, h.models)
+	}
+	if h.commands.Type != "" {
+		greeting = append(greeting, h.commands)
+	}
 	h.mu.Unlock()
 
 	writerDone := make(chan struct{})
 	go func() {
 		defer close(writerDone)
-		_ = wsjson.Write(ctx, ws, greeting)
+		for _, g := range greeting {
+			_ = wsjson.Write(ctx, ws, g)
+		}
 		for m := range cl.out {
 			if wsjson.Write(ctx, ws, m) != nil {
 				return
@@ -165,13 +206,59 @@ func (h *chatHub) handle(ctx context.Context, ws *websocket.Conn) {
 		switch in.Type {
 		case "user":
 			h.broadcast(wsOut{Type: "state", State: "busy"})
-			conn.Prompt(in.Text)
+			conn.Prompt(in.Text, in.Images)
 		case "cancel":
 			conn.Cancel()
 		case "permission":
 			if id, err := strconv.ParseInt(in.RequestID, 10, 64); err == nil {
 				conn.RespondPermission(id, in.OptionID)
 			}
+		case "set_model":
+			if in.ModelID != "" {
+				go func(c *acpConn, id string) {
+					if err := c.SetModel(id); err == nil {
+						h.mu.Lock()
+						m := h.models
+						m.Current = id
+						h.models = m
+						h.mu.Unlock()
+						h.broadcast(m)
+					}
+				}(conn, in.ModelID)
+			}
+		case "history":
+			go func(c *acpConn, target *chatClient) {
+				sessions := c.ListSessions()
+				h.mu.Lock()
+				if h.clients[target] {
+					select {
+					case target.out <- wsOut{Type: "history", Sessions: sessions}:
+					default:
+					}
+				}
+				h.mu.Unlock()
+			}(conn, cl)
+		case "load":
+			if in.SessionID != "" {
+				go func(c *acpConn, id string) {
+					h.broadcast(wsOut{Type: "state", State: "busy"})
+					if err := c.LoadSession(id); err != nil {
+						h.broadcast(wsOut{Type: "state", State: "ready", Error: "load failed: " + err.Error()})
+						return
+					}
+					h.broadcast(wsOut{Type: "state", State: "ready"})
+				}(conn, in.SessionID)
+			}
+		case "new":
+			go func(c *acpConn) {
+				h.broadcast(wsOut{Type: "replay_start"})
+				h.broadcast(wsOut{Type: "replay_end"})
+				if err := c.NewSession(); err != nil {
+					h.broadcast(wsOut{Type: "state", State: "dead", Error: err.Error()})
+					return
+				}
+				h.broadcast(wsOut{Type: "state", State: "ready"})
+			}(conn)
 		}
 	}
 
