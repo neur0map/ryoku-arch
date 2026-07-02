@@ -59,6 +59,7 @@ type facts struct {
 	username      string
 	homeDir       string
 	hyprCfgDirs   []string // pre-existing ~/.config/{hypr,quickshell,niri}
+	riceFound     []string // known hyprland rices detected by marker paths
 }
 
 // rival quickshell stacks; ordered meta -> shell -> runtime so pacman removal
@@ -85,10 +86,26 @@ var softConflictUnits = []string{
 	"swww.service", "swww-daemon.service", "hyprpaper.service", "wpaperd.service",
 	"swayidle.service", "swayosd.service",
 	"noctalia.service", "dms.service", "inir.service", "caelestia.service",
+	// HyDE ships real user units in ~/.config/systemd/user
+	"hyde-config.service", "hyde-ipc.service",
 	// graphical-session.target units follow the user into the new session:
 	// clipboard watchers fight the stash, gamma daemons fight hyprsunset
 	"cliphist.service", "wl-clip-persist.service", "clipse.service",
 	"wlsunset.service", "gammastep.service",
+}
+
+// known hyprland rices, one marker path under $HOME suffices. the backup of
+// ~/.config/{hypr,quickshell} already kills their exec-once autostart chain;
+// HyDE's user units and end-4's meta packages are handled separately.
+var riceMarkers = []struct {
+	name    string
+	markers []string
+}{
+	{"ML4W", []string{".config/ml4w", ".config/ml4w-dotfiles-settings", ".mydotfiles"}},
+	{"HyDE", []string{".config/hyde", ".local/lib/hyde", ".local/share/hyde"}},
+	{"JaKooLit", []string{".config/hypr/UserConfigs", ".config/hypr/.initial_startup_done", ".config/hypr/UserScripts"}},
+	{"end-4 illogical-impulse", []string{".config/quickshell/ii", ".config/hypr/hyprland"}},
+	{"Caelestia", []string{".config/caelestia"}},
 }
 
 var otherDMUnits = []string{
@@ -229,6 +246,13 @@ func detect() *facts {
 				f.rivalPkgs = append(f.rivalPkgs, p)
 			}
 		}
+		// end-4's meta packages pull the whole illogical-impulse daemon zoo;
+		// plain -R removal, same reasoning as the noctalia metas.
+		for _, p := range strings.Fields(out("pacman", "-Qq")) {
+			if strings.HasPrefix(p, "illogical-impulse-") {
+				f.rivalPkgs = append(f.rivalPkgs, p)
+			}
+		}
 		for _, p := range conflictBlockerPkgs {
 			if pacmanHas(p) {
 				f.blockerPkgs = append(f.blockerPkgs, p)
@@ -267,15 +291,39 @@ func detect() *facts {
 		}
 	}
 
+	for _, r := range riceMarkers {
+		for _, m := range r.markers {
+			if _, err := os.Stat(filepath.Join(f.homeDir, m)); err == nil {
+				f.riceFound = append(f.riceFound, r.name)
+				break
+			}
+		}
+	}
+
+	// a pre-existing hyprland setup (plain or rice): its config tree gets
+	// moved aside by the backup, so its monitor and keyboard intent is
+	// salvaged here first. skipped on a ryoku box, that tree is our own.
+	if !f.ryokuOnBox {
+		if text := loadHyprConfig(f.homeDir); text != "" {
+			layout, variant, options, hasFile := parseHyprInput(text)
+			if !hasFile && (layout != "" || variant != "" || options != "") {
+				f.kbLayout, f.kbVariant, f.kbOptions, f.kbSource = layout, variant, options, "hyprland"
+			}
+			if outs := parseHyprMonitors(text); len(outs) > 0 {
+				f.monOutputs, f.monSource = outs, "hyprland"
+			}
+		}
+	}
+
 	// keyboard + monitor intent, best source first: compositor configs beat
 	// DE stores beat localectl. an xkb keymap file overrides fields, nothing
 	// to salvage then.
 	if niriText := loadNiriConfig(f.homeDir); niriText != "" {
 		layout, variant, options, hasFile := parseNiriXkb(niriText)
-		if !hasFile && (layout != "" || variant != "" || options != "") {
+		if f.kbLayout == "" && !hasFile && (layout != "" || variant != "" || options != "") {
 			f.kbLayout, f.kbVariant, f.kbOptions, f.kbSource = layout, variant, options, "niri"
 		}
-		if outs := parseNiriOutputs(niriText); len(outs) > 0 {
+		if outs := parseNiriOutputs(niriText); len(outs) > 0 && len(f.monOutputs) == 0 {
 			f.monOutputs, f.monSource = outs, "niri"
 		}
 	}

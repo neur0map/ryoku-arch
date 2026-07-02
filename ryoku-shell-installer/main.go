@@ -399,6 +399,9 @@ func (m model) viewPlan() string {
 	if len(f.desktops) > 0 {
 		row("desktops", strings.Join(f.desktops, ", ")+" (kept; still selectable at the login screen)")
 	}
+	if len(f.riceFound) > 0 {
+		row("rice", "found: "+strings.Join(f.riceFound, ", ")+" rice; its daemons are replaced, configs ride the backup")
+	}
 	if len(f.rivalPkgs) > 0 {
 		row("shells", strings.Join(f.rivalPkgs, ", "))
 	}
@@ -551,6 +554,9 @@ func runHeadless(dry bool, ref, payload string) int {
 	}
 	p := defaultPlan(f)
 	fmt.Printf("system: %s | gpu: %s | dm: %s\n", f.distroName, f.gpuSummary(), f.currentDM)
+	if len(f.riceFound) > 0 {
+		fmt.Println("rice found: " + strings.Join(f.riceFound, ", ") + " (daemons replaced, configs ride the backup)")
+	}
 	fmt.Printf("plan: nvidia=%v sddm=%v greeter-theme=%v networkmanager=%v remove-shells=%v aur=%v fish=%v devtools=%v omarchy-cleanup=%v monitor-pins=%v\n",
 		p.nvidia, p.switchDM, p.greeter, p.switchNet, p.rivals, p.aur, p.fish, p.devtools, p.omarchy, p.monPins)
 	e := newEngine(f, p, dry, ref, payload)

@@ -489,6 +489,11 @@ func stepBackup(e *engine) error {
 			return err
 		}
 	}
+	// moving the hypr/quickshell trees is what disarms a rice's exec-once
+	// autostart chain; name it so the log explains the disappearing bar.
+	for _, r := range e.f.riceFound {
+		e.say("rice " + r + ": its autostart lives in the trees moved above; extra configs (waybar, swaync, ...) stay untouched in place")
+	}
 	for _, rel := range backupCopy {
 		if err := saveOne(rel, false); err != nil {
 			return err
