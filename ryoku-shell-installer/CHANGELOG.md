@@ -34,6 +34,10 @@
 
 ### Fixed
 
+- The post-driver initramfs rebuild probes for the box's actual generator
+  (limine-mkinitcpio, mkinitcpio, dracut) and warns instead of aborting the
+  install when none is found or the rebuild fails.
+
 - First boot flashed Hyprland's "Your config has errors" overlay: the shipped
   config pcall-requires optional drop-ins that don't exist on a fresh home and
   Hyprland reports the caught failure anyway. The installer now seeds

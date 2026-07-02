@@ -614,11 +614,25 @@ func stepDrivers(e *engine) error {
 		}
 	}
 	if e.p.nvidia && e.f.hasNvidia {
-		// the scripts install modules but leave the initramfs to the caller.
-		if has("limine-mkinitcpio") {
-			return e.sudo("limine-mkinitcpio")
+		// the scripts leave the initramfs to the caller. probe for whichever
+		// generator the box uses; a missed rebuild is a warning, not an abort,
+		// the next kernel update rebuilds anyway.
+		var err error
+		switch {
+		case has("limine-mkinitcpio"):
+			err = e.sudo("limine-mkinitcpio")
+		case has("mkinitcpio"):
+			err = e.sudo("mkinitcpio", "-P")
+		case has("dracut-rebuild"):
+			err = e.sudo("dracut-rebuild")
+		case has("dracut"):
+			err = e.sudo("dracut", "--regenerate-all", "--force")
+		default:
+			e.say("warning: no known initramfs generator found, skipping the rebuild")
 		}
-		return e.sudo("mkinitcpio", "-P")
+		if err != nil {
+			e.say("warning: initramfs rebuild failed; run it by hand before rebooting (see log)")
+		}
 	}
 	return nil
 }
