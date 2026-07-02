@@ -38,7 +38,8 @@ Rectangle {
         { "key": "layerrules",  "name": "Layer Rules",     "icon": "window",   "group": "Advanced" },
         { "key": "autostart",   "name": "Autostart",       "icon": "rocket",   "group": "Advanced" },
         { "key": "environment", "name": "Environment",     "icon": "variable", "group": "Advanced" },
-        { "key": "performance", "name": "Performance",     "icon": "rocket",   "group": "Advanced" }
+        { "key": "performance", "name": "Performance",     "icon": "rocket",   "group": "Advanced" },
+        { "key": "rashin",      "name": "Rashin",          "icon": "compass",  "group": "Advanced" }
     ]
 
     readonly property var pageMeta: ({
@@ -60,7 +61,8 @@ Rectangle {
         "updates":     { "title": "Updates", "subtitle": "Updates pending for your Ryoku system." },
         "store":       { "title": "Store", "subtitle": "Browse and install shell plugins and extras bundles for the Ryoku desktop." },
         "addons":      { "title": "Add-ons", "subtitle": "Your installed plugins. Open one to change its settings, enable it, or remove it." },
-        "performance": { "title": "Performance", "subtitle": "Opt-in tweaks that trade a little eye-candy for lower CPU, GPU, and memory use on modest hardware." }
+        "performance": { "title": "Performance", "subtitle": "Opt-in tweaks that trade a little eye-candy for lower CPU, GPU, and memory use on modest hardware." },
+        "rashin":      { "title": "Rashin", "subtitle": "Rashin, the compass: an optional local agent OS. A maintained system map plus the Hermes agent give every coding agent instant knowledge of your machine." }
     })
 
     function known(s) {
@@ -250,6 +252,7 @@ Rectangle {
         case "store": return storeComp;
         case "addons": return addonsComp;
         case "performance": return performanceComp;
+        case "rashin": return rashinComp;
         default: return shellComp;
         }
     }
@@ -274,6 +277,7 @@ Rectangle {
     Component { id: connectionsComp; ConnectionsPage {} }
     Component { id: gpuComp; GpuPage {} }
     Component { id: performanceComp; PerformancePage {} }
+    Component { id: rashinComp; RashinPage {} }
 
     Item {
         id: closeBtn

@@ -50,7 +50,8 @@ Item {
         "image": "M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1H3a1 1 0 0 1 -1 -1V6a1 1 0 0 1 1 -1z M8 11a1.5 1.5 0 1 0 0 .01 M21 16l-5-5-7 7",
         "star": "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.6 1-5.8-4.3-4.1 5.9-.9z",
         "chip": "M7 7h10v10H7z M9 3v4 M12 3v4 M15 3v4 M9 17v4 M12 17v4 M15 17v4 M3 9h4 M3 12h4 M3 15h4 M17 9h4 M17 12h4 M17 15h4",
-        "folder": "M3 6a1 1 0 0 1 1 -1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1H4a1 1 0 0 1 -1 -1z"
+        "folder": "M3 6a1 1 0 0 1 1 -1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1H4a1 1 0 0 1 -1 -1z",
+        "compass": "M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0 -20z M14.8 9.2l-2 5.6l-5.6 2l2 -5.6z"
     })
 
     readonly property string d: defs[name] !== undefined ? defs[name] : ""

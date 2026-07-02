@@ -96,6 +96,14 @@ hl.window_rule({
 })
 
 hl.window_rule({
+    name   = "float-ryoku-rashin-setup",
+    match  = { class = "ryoku-rashin-setup" },
+    float  = true,
+    size   = { 900, 600 },
+    center = true,
+})
+
+hl.window_rule({
     name   = "float-looking-glass",
     match  = { class = "looking-glass-client" },
     float  = true,
