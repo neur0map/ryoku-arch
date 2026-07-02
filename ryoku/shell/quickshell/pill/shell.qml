@@ -621,9 +621,23 @@ ShellRoot {
                     x: pill.x
                     y: 0
                     readonly property bool present: overlay.fused && overlay.islandShown
-                    visible: reveal > 0
+                    visible: height > 0
                     width: pill.width
-                    height: (pill.y + pill.height) * reveal
+                    // reveal curtain, floored at the border's inner edge. a
+                    // blob whose bottom edge retreats INSIDE the band makes
+                    // the field carve its melt pocket (the shader's border
+                    // sink) across the blob's full width, and a nearly-flat
+                    // blob can't fill that pocket -- the band opens a
+                    // trapezoid hole to the desktop until the rect finally
+                    // leaves the field at zero. a band-flush blob is
+                    // pixel-identical to the band itself, so snapping
+                    // straight to zero at the inner edge is invisible and
+                    // the pocket regime is never entered.
+                    readonly property real bandInnerY: Math.max(0, (Config.barEnabled ? overlay.barBand : 0) + Config.frameBorder - 50)
+                    height: {
+                        const h = (pill.y + pill.height) * reveal;
+                        return h > bandInnerY ? h : 0;
+                    }
                     topLeftRadius: 0
                     topRightRadius: 0
                     bottomLeftRadius: pill.morphRadius
