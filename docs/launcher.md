@@ -50,7 +50,7 @@ the dispatcher discovers it by registration, never by an edit to the routing.
 | mpris | (default, media words) | now-playing + transport for any player, plus **YT Radio** (seed a YouTube Music radio from whatever is playing) |
 | ytmusic | `@`, pasted YT link | YouTube Music search (InnerTube), pasted track/playlist/mix links, endless radio playback (mpv), saved playlists |
 | script | per-script keyword | run rofi-script / dmenu scripts |
-| rashin ask | `\` | one terse question to the Rashin agent (hermes): a pulsing strip names what it is doing (tool, thinking, writing), the answer renders inline with image previews, and "continue in dashboard" opens the same conversation at `127.0.0.1:3600`. Needs Rashin enabled; see `rashin.md` |
+| rashin ask | `\` | one terse question to the Rashin agent (hermes): a pulsing strip names what it is doing (tool, thinking, writing), then the answer renders as selectable text over action chips. The daemon detects entities in the answer and each becomes a chip: real files open in nvim, folders in the file manager, URLs in the browser, shell commands and hex colors (with a live swatch) copy to the clipboard, plus COPY for the whole answer and CONTINUE IN DASHBOARD. Chips walk with the arrow keys and fire with ENTER; typing re-asks. Needs Rashin enabled; see `rashin.md` |
 
 Ranking and protocol logic live as testable JavaScript in `lib/` and each
 provider's folder (`fuzzy.js`, `dispatch.js`, `rofiscript.js`, `wave.js`,

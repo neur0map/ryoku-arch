@@ -158,6 +158,25 @@ overridden in `~/.config/ryoku/rashin.json` for a cheaper or local model:
 `keyEnv` names the `~/.hermes/.env` variable holding the key when the endpoint
 needs one; hermes-known providers resolve their key automatically.
 
+### Action chips
+
+The `@answer` payload carries an `actions` array: entities the daemon found in
+the answer text and verified against this machine. The launcher renders each as
+a chip that does the obvious thing, so an answer is a launch point, not a
+dead end:
+
+| Kind | Detected as | Chip does |
+|---|---|---|
+| `file` | a path that exists and is a file | opens it in `nvim` (a kitty window) |
+| `dir` | a path that exists and is a directory | opens it in the file manager |
+| `url` | an `http(s)` link | opens it in the browser |
+| `cmd` | a backtick span whose first word is on `PATH` | copies the command |
+| `color` | a hex color, shown with a live swatch | copies the hex |
+
+Plus a COPY chip for the whole answer and CONTINUE IN DASHBOARD. The answer
+text itself is selectable for mouse-copying a fragment. Nonexistent paths and
+non-runnable backtick spans are dropped, so a chip never lies.
+
 ## The dashboard
 
 Hand-authored HTML, CSS, and JS embedded in the binary. No node, no build step,

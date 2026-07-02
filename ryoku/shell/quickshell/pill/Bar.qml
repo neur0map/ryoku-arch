@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Io
 import Quickshell.Services.Mpris
 import Quickshell.Services.SystemTray
 import Quickshell.Wayland
@@ -34,6 +35,23 @@ Item {
     signal powerRequested()
 
     readonly property var loc: Qt.locale("en_US")
+
+    // quickshell's refreshWorkspaces/refreshMonitors parse nothing out of
+    // this Hyprland's IPC, so Hyprland.focusedWorkspace stays null on a
+    // fresh instance until the first workspace event. seed the highlight
+    // once from hyprctl; events own it from the first real switch.
+    property int seedWsId: -1
+    readonly property int activeWsId: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : seedWsId
+
+    Process {
+        running: true
+        command: ["hyprctl", "activeworkspace", "-j"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try { bar.seedWsId = JSON.parse(text).id; } catch (e) {}
+            }
+        }
+    }
 
     SystemClock {
         id: clock
@@ -79,8 +97,7 @@ Item {
                             return null;
                         }
                         readonly property bool occupied: wsDot.ws !== null
-                        readonly property bool active: Hyprland.focusedWorkspace
-                            && Hyprland.focusedWorkspace.id === wsDot.wsId
+                        readonly property bool active: bar.activeWsId === wsDot.wsId
                         visible: occupied || active || wsId <= 5
                         width: active ? 20 * bar.s : 8 * bar.s
                         height: 8 * bar.s
@@ -99,7 +116,14 @@ Item {
                             anchors.fill: parent
                             anchors.margins: -3 * bar.s
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Hyprland.dispatch("workspace " + wsDot.wsId)
+                            // this Hyprland's dispatchers are Lua; the plain
+                            // "workspace N" form is a syntax error. mirror the
+                            // Super+N keybind: pull the workspace to the
+                            // monitor under the cursor, then focus it.
+                            onClicked: {
+                                Hyprland.dispatch('hl.dsp.workspace.move({ workspace = ' + wsDot.wsId + ', monitor = "current" })');
+                                Hyprland.dispatch('hl.dsp.focus({ workspace = ' + wsDot.wsId + ' })');
+                            }
                         }
                     }
                 }

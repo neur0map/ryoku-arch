@@ -165,7 +165,7 @@ func mustAskJSON(text string) string {
 	if text == "" {
 		text = "(no answer)"
 	}
-	b, err := json.Marshal(askAnswer{Text: text, Images: extractImages(text)})
+	b, err := json.Marshal(askAnswer{Text: text, Images: extractImages(text), Actions: extractActions(text)})
 	if err != nil {
 		return `{"text":"(unreadable answer)"}`
 	}

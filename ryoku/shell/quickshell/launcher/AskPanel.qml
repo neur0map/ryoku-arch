@@ -7,9 +7,12 @@ import "Singletons"
 // Quick-ask body panel for the "\" prefix: one terse question to the Rashin
 // agent (hermes), answered inline. Runs `ryoku-rashin ask` and parses its
 // marker lines; while the agent works a pulsing dot names the current step
-// (tool title / thinking / writing), and the finished answer offers a jump
-// into the dashboard chat, which is the same session, already holding this
-// conversation.
+// (tool title / thinking / writing). The finished answer is selectable text
+// over a row of action chips: COPY, then every entity the daemon detected in
+// the answer (files edit in nvim, folders open, URLs browse, commands and
+// colors copy), then the jump into the dashboard chat, which is the same
+// session, already holding this conversation. Chips walk with Up/Down or
+// Tab and fire with Enter.
 Item {
     id: root
 
@@ -21,10 +24,31 @@ Item {
     property string working: ""
     property string answerText: ""
     property var answerImages: []
+    property var answerActions: []
     property string errorText: ""
     property bool permPending: false
+    property string askedQuestion: ""
+    property int selectedChip: 0
+    property string flash: "" // transient "copied" feedback per chip value
 
     readonly property bool busy: phase === "working"
+    // Enter re-asks when the query moved on from what produced this answer.
+    readonly property bool answerCurrent: phase === "done" && question.trim() === askedQuestion
+    readonly property var chips: {
+        if (phase !== "done" && !permPending)
+            return [];
+        var c = [];
+        if (permPending) {
+            c.push({ kind: "dash", value: "", label: "APPROVE IN DASHBOARD" });
+            return c;
+        }
+        c.push({ kind: "copy", value: answerText, label: "COPY" });
+        for (var i = 0; i < answerActions.length; i++)
+            c.push(answerActions[i]);
+        c.push({ kind: "dash", value: "", label: "DASHBOARD" });
+        return c;
+    }
+
     signal finished()
 
     implicitHeight: col.implicitHeight
@@ -35,8 +59,12 @@ Item {
         working = "";
         answerText = "";
         answerImages = [];
+        answerActions = [];
         errorText = "";
         permPending = false;
+        askedQuestion = "";
+        selectedChip = 0;
+        flash = "";
     }
 
     function run() {
@@ -44,17 +72,74 @@ Item {
             return;
         answerText = "";
         answerImages = [];
+        answerActions = [];
         errorText = "";
         permPending = false;
+        flash = "";
+        selectedChip = 0;
+        askedQuestion = question.trim();
         working = "waking the needle";
         phase = "working";
-        askProc.command = ["ryoku-rashin", "ask", question.trim()];
+        askProc.command = ["ryoku-rashin", "ask", askedQuestion];
         askProc.running = true;
     }
 
-    function openDashboard() {
-        Quickshell.execDetached(["xdg-open", "http://127.0.0.1:3600/#/chat"]);
+    function move(d) {
+        if (chips.length === 0)
+            return;
+        selectedChip = Math.max(0, Math.min(chips.length - 1, selectedChip + d));
+    }
+
+    function activate() {
+        var chip = chips[selectedChip];
+        if (chip)
+            root.fire(chip);
+    }
+
+    // What each chip kind does. Copyables flash COPIED in place; openers close
+    // the launcher because focus moves to another window.
+    function fire(chip) {
+        switch (chip.kind) {
+        case "copy":
+        case "cmd":
+        case "color":
+            Quickshell.execDetached(["sh", "-c", "printf '%s' \"$1\" | wl-copy", "_", String(chip.value)]);
+            root.flash = chip.kind + "\u0000" + chip.value;
+            flashTimer.restart();
+            return;
+        case "file":
+            Quickshell.execDetached(["kitty", "-e", "nvim", String(chip.value)]);
+            break;
+        case "dir":
+            Quickshell.execDetached(["xdg-open", String(chip.value)]);
+            break;
+        case "url":
+            Quickshell.execDetached(["xdg-open", String(chip.value)]);
+            break;
+        case "dash":
+            Quickshell.execDetached(["xdg-open", "http://127.0.0.1:3600/#/chat"]);
+            break;
+        }
         root.finished();
+    }
+
+    function chipCaption(chip) {
+        if (root.flash === chip.kind + "\u0000" + chip.value)
+            return "COPIED";
+        switch (chip.kind) {
+        case "file": return "nvim " + chip.label;
+        case "dir": return "open " + chip.label;
+        case "url": return chip.label;
+        case "cmd": return "$ " + chip.label;
+        case "color": return chip.label;
+        default: return chip.label;
+        }
+    }
+
+    Timer {
+        id: flashTimer
+        interval: 1400
+        onTriggered: root.flash = ""
     }
 
     Process {
@@ -72,7 +157,9 @@ Item {
                         var a = JSON.parse(line.slice(8));
                         root.answerText = String(a.text || "");
                         root.answerImages = a.images || [];
+                        root.answerActions = a.actions || [];
                         root.phase = "done";
+                        root.selectedChip = 0;
                     } catch (e) {
                         root.errorText = "unreadable answer";
                         root.phase = "failed";
@@ -94,7 +181,7 @@ Item {
     Column {
         id: col
         width: parent.width
-        spacing: 7 * root.s
+        spacing: 8 * root.s
 
         Text {
             width: parent.width
@@ -126,7 +213,6 @@ Item {
             spacing: 8 * root.s
 
             Rectangle {
-                id: pulse
                 width: 8 * root.s
                 height: 8 * root.s
                 radius: width / 2
@@ -151,20 +237,23 @@ Item {
             }
         }
 
-        // the answer
-        Text {
+        // the answer: selectable, so any fragment can be mouse-copied
+        TextEdit {
             width: parent.width
             visible: root.phase === "done"
             text: root.answerText
             color: Theme.bright
             font.family: Theme.font
             font.pixelSize: Metrics.fontSubtitle * root.s
-            wrapMode: Text.WordWrap
-            maximumLineCount: 10
-            elide: Text.ElideRight
+            wrapMode: TextEdit.Wrap
+            readOnly: true
+            selectByMouse: true
+            selectionColor: Theme.vermDimDeep
+            selectedTextColor: Theme.bright
+            persistentSelection: false
         }
 
-        // image results (image_gen, screenshots) preview inline
+        // image results (image_gen, screenshots) preview inline; click opens
         Row {
             visible: root.phase === "done" && root.answerImages.length > 0
             spacing: 8 * root.s
@@ -172,12 +261,21 @@ Item {
             Repeater {
                 model: root.answerImages
                 delegate: Image {
+                    id: thumb
                     required property string modelData
                     source: "file://" + modelData
                     width: 96 * root.s
                     height: 96 * root.s
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
+
+                    HoverHandler { cursorShape: Qt.PointingHandCursor }
+                    TapHandler {
+                        onTapped: {
+                            Quickshell.execDetached(["xdg-open", thumb.modelData]);
+                            root.finished();
+                        }
+                    }
                 }
             }
         }
@@ -193,44 +291,66 @@ Item {
             maximumLineCount: 3
         }
 
-        // continue into the dashboard: same session, conversation already there
-        Row {
-            visible: root.phase === "done" || root.permPending
+        // action chips: COPY | detected entities | DASHBOARD
+        Flow {
+            width: parent.width
+            visible: root.chips.length > 0
             spacing: 6 * root.s
 
-            Rectangle {
-                width: contRow.implicitWidth + 20 * root.s
-                height: contRow.implicitHeight + 10 * root.s
-                radius: 6 * root.s
-                color: contHover.hovered ? Theme.verm : "transparent"
-                border.color: Theme.verm
-                border.width: 1
+            Repeater {
+                model: root.chips
+                delegate: Rectangle {
+                    id: chipBox
+                    required property var modelData
+                    required property int index
 
-                Row {
-                    id: contRow
-                    anchors.centerIn: parent
-                    spacing: 6 * root.s
-                    Text {
-                        text: root.permPending ? "APPROVE IN DASHBOARD" : "CONTINUE IN DASHBOARD"
-                        color: contHover.hovered ? Theme.cardTop : Theme.verm
-                        font.family: Theme.mono
-                        font.pixelSize: Metrics.fontEyebrow * root.s
-                        font.letterSpacing: 1
+                    readonly property bool current: index === root.selectedChip
+                    width: chipRow.implicitWidth + 18 * root.s
+                    height: chipRow.implicitHeight + 10 * root.s
+                    radius: 6 * root.s
+                    color: current || chipHover.hovered ? Theme.verm : "transparent"
+                    border.color: current || chipHover.hovered ? Theme.verm : Theme.border
+                    border.width: 1
+
+                    Row {
+                        id: chipRow
+                        anchors.centerIn: parent
+                        spacing: 6 * root.s
+
+                        // color chips carry a live swatch
+                        Rectangle {
+                            visible: chipBox.modelData.kind === "color"
+                            width: 10 * root.s
+                            height: 10 * root.s
+                            radius: 2
+                            color: String(chipBox.modelData.value)
+                            border.color: Theme.hair
+                            border.width: 1
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Text {
+                            text: root.chipCaption(chipBox.modelData)
+                            color: chipBox.current || chipHover.hovered ? Theme.cardTop : Theme.subtle
+                            font.family: Theme.mono
+                            font.pixelSize: Metrics.fontEyebrow * root.s
+                            font.letterSpacing: 1
+                        }
                     }
+
+                    HoverHandler { id: chipHover; cursorShape: Qt.PointingHandCursor }
+                    TapHandler { onTapped: root.fire(chipBox.modelData) }
                 }
-
-                HoverHandler { id: contHover; cursorShape: Qt.PointingHandCursor }
-                TapHandler { onTapped: root.openDashboard() }
             }
+        }
 
-            Text {
-                visible: root.phase === "done"
-                anchors.verticalCenter: parent.verticalCenter
-                text: "ESC dismisses"
-                color: Theme.faint
-                font.family: Theme.mono
-                font.pixelSize: Metrics.fontEyebrow * root.s
-            }
+        // key hints under the chips
+        Text {
+            visible: root.chips.length > 0 && !root.permPending
+            text: "\u2191\u2193 walk chips \u00b7 ENTER fires \u00b7 type to re-ask \u00b7 ESC dismisses"
+            color: Theme.faint
+            font.family: Theme.mono
+            font.pixelSize: Metrics.fontEyebrow * root.s
         }
     }
 }

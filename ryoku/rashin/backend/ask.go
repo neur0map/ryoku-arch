@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -60,11 +62,27 @@ func cmdAsk(question string) error {
 }
 
 type askAnswer struct {
-	Text   string   `json:"text"`
-	Images []string `json:"images,omitempty"`
+	Text    string      `json:"text"`
+	Images  []string    `json:"images,omitempty"`
+	Actions []askAction `json:"actions,omitempty"`
 }
 
-var imagePathRe = regexp.MustCompile(`(?:~|/)[^\s"'` + "`" + `)\]]*\.(?:png|jpe?g|webp|gif)`)
+// askAction is one actionable entity found in an answer. The launcher renders
+// them as chips: kind picks the verb (edit / browse / files / copy / swatch),
+// value is the payload, label is display copy.
+type askAction struct {
+	Kind  string `json:"kind"` // file | dir | url | cmd | color
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
+var (
+	imagePathRe = regexp.MustCompile(`(?:~|/)[^\s"'` + "`" + `)\]]*\.(?:png|jpe?g|webp|gif)`)
+	pathRe      = regexp.MustCompile(`(?:~|/)[A-Za-z0-9._+@%/-]+`)
+	urlRe       = regexp.MustCompile(`https?://[^\s"'` + "`" + `<>)\]]+`)
+	tickRe      = regexp.MustCompile("`([^`\n]{2,120})`")
+	colorRe     = regexp.MustCompile(`#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b`)
+)
 
 // extractImages pulls existing image files out of the answer text, so the
 // launcher can preview what image_gen (or a screenshot tool) just produced.
@@ -72,15 +90,89 @@ func extractImages(text string) []string {
 	var out []string
 	seen := map[string]bool{}
 	for _, m := range imagePathRe.FindAllString(text, 6) {
-		p := m
-		if strings.HasPrefix(p, "~") {
-			p = home() + p[1:]
-		}
+		p := expandHome(strings.TrimRight(m, ".,;:!?"))
 		if seen[p] || !fileExists(p) {
 			continue
 		}
 		seen[p] = true
 		out = append(out, p)
+	}
+	return out
+}
+
+func expandHome(p string) string {
+	if strings.HasPrefix(p, "~") {
+		return home() + p[1:]
+	}
+	return p
+}
+
+// extractActions finds the entities an answer talks about and turns each into
+// one launcher chip: real files open in nvim, real directories in the file
+// manager, URLs in the browser, runnable commands and colors copy.
+func extractActions(text string) []askAction {
+	var out []askAction
+	seen := map[string]bool{}
+	add := func(kind, value, label string) {
+		if value == "" || seen[kind+"\x00"+value] || len(out) >= 6 {
+			return
+		}
+		seen[kind+"\x00"+value] = true
+		out = append(out, askAction{Kind: kind, Value: value, Label: label})
+	}
+
+	// URLs first: an answer that cites a page should open it in one key.
+	for _, m := range urlRe.FindAllString(text, 4) {
+		u := strings.TrimRight(m, ".,;:!?)")
+		label := u
+		if i := strings.Index(u, "://"); i >= 0 {
+			label = u[i+3:]
+		}
+		if len(label) > 40 {
+			label = label[:40] + "..."
+		}
+		add("url", u, label)
+	}
+
+	// Paths that really exist on this machine: files edit, directories browse.
+	// The vault's own doc names count too (agents cite them bare).
+	for _, m := range pathRe.FindAllString(text, 12) {
+		p := expandHome(strings.TrimRight(m, ".,;:!?"))
+		if len(p) < 2 || seen["file\x00"+p] || seen["dir\x00"+p] {
+			continue
+		}
+		fi, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		base := filepath.Base(p)
+		if fi.IsDir() {
+			add("dir", p, base+"/")
+		} else {
+			add("file", p, base)
+		}
+	}
+
+	// Backtick spans whose first word is a real executable: copyable commands.
+	for _, m := range tickRe.FindAllStringSubmatch(text, 8) {
+		span := strings.TrimSpace(m[1])
+		first := strings.Fields(span)
+		if len(first) == 0 || strings.ContainsAny(span, "\n") {
+			continue
+		}
+		if _, err := exec.LookPath(first[0]); err != nil {
+			continue
+		}
+		label := span
+		if len(label) > 34 {
+			label = label[:34] + "..."
+		}
+		add("cmd", span, label)
+	}
+
+	// Hex colors: this is a ricing distro, swatches earn their place.
+	for _, m := range colorRe.FindAllString(text, 4) {
+		add("color", m, m)
 	}
 	return out
 }

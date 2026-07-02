@@ -42,6 +42,17 @@
   `/api/about`; the chat WebSocket learns models/commands/history/usage frames.
   Hermes onboarding detection now reads the mapping-form `model:` block, and
   session titles surface correctly.
+- `shell/quickshell/launcher` + `rashin/backend`: a quick-ask answer is now a
+  launch point, not a dead end. The answer text is selectable (mouse-copy any
+  fragment), and `/api/ask` returns an `actions` array of entities the daemon
+  detected in the answer and verified against the machine: real files, real
+  directories, `http(s)` URLs, backtick commands whose first word is on
+  `PATH`, and hex colors. The launcher renders each as a chip that does the
+  obvious thing (file opens in nvim, folder in the file manager, URL in the
+  browser, command and color copy with a live swatch), plus COPY for the whole
+  answer and CONTINUE IN DASHBOARD. Chips walk with the arrow keys and fire
+  with ENTER, typing re-asks, and copyables flash COPIED. Nonexistent paths
+  and non-runnable spans are dropped so a chip never lies.
 - `rashin/backend`: quick asks got fast. `/api/ask` now runs **two lanes**: a
   fabric-style fast lane makes ONE direct streaming chat-completions call on
   the same model connection hermes is configured with (openrouter, openai,

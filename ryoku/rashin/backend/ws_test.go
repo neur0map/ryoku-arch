@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestTranscriptRecordsConversationOnly(t *testing.T) {
 	h := newChatHub()
@@ -45,4 +48,49 @@ func TestExtractImagesFindsRealFilesOnly(t *testing.T) {
 
 func writeFile(p string, b []byte) error {
 	return atomicWrite(p, b, 0o644)
+}
+
+func TestExtractActionsKinds(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	file := dir + "/hypr.conf"
+	if err := writeFile(file, []byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	text := "Edit " + file + " inside " + dir + " or see https://wiki.hyprland.org/Configuring." +
+		" Run `ls -la` then use #C94E44 and `notarealbinary742 --x`."
+	acts := extractActions(text)
+
+	kinds := map[string]string{}
+	for _, a := range acts {
+		kinds[a.Kind] = a.Value
+	}
+	if kinds["file"] != file {
+		t.Fatalf("file action = %q, want %q (all %+v)", kinds["file"], file, acts)
+	}
+	if kinds["dir"] != dir {
+		t.Fatalf("dir action = %q, want %q", kinds["dir"], dir)
+	}
+	if kinds["url"] != "https://wiki.hyprland.org/Configuring" {
+		t.Fatalf("url action = %q (trailing dot must be trimmed)", kinds["url"])
+	}
+	if kinds["cmd"] != "ls -la" {
+		t.Fatalf("cmd action = %q", kinds["cmd"])
+	}
+	if kinds["color"] != "#C94E44" {
+		t.Fatalf("color action = %q", kinds["color"])
+	}
+	for _, a := range acts {
+		if strings.Contains(a.Value, "notarealbinary742") {
+			t.Fatalf("fake binary must not become a cmd action: %+v", a)
+		}
+	}
+}
+
+func TestExtractActionsMissingPathsSkipped(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	acts := extractActions("look at /definitely/not/here.conf")
+	if len(acts) != 0 {
+		t.Fatalf("nonexistent path must yield no action: %+v", acts)
+	}
 }
