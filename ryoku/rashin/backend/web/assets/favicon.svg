@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#0e0d0b"/>
+  <circle cx="32" cy="32" r="26" fill="#C94E44"/>
+  <circle cx="32" cy="32" r="29" fill="none" stroke="#e8d8c9" stroke-width="1.5" stroke-dasharray="2 4"/>
+  <text x="32" y="33" font-family="'Noto Sans CJK JP',sans-serif" font-size="30" font-weight="900"
+        fill="#e8d8c9" text-anchor="middle" dominant-baseline="central">羅</text>
+</svg>

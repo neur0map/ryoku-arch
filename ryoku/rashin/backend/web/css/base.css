@@ -1,0 +1,148 @@
+:root {
+  --paper: #0e0d0b; --paper-2: #14120f; --ink: #e8d8c9; --ink-dim: #8f8378;
+  --red: #C94E44; --red-deep: #9F4125; --teal: #3E6868; --orange: #f3701e;
+  --slate: #4b607f; --tan: #CDA47B; --line: rgba(232,216,201,.18);
+  --ease: cubic-bezier(.16,1,.3,1); --fast: 140ms; --mid: 300ms; --slow: 420ms;
+  --font-display: 'Archivo Black', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-jp: 'Noto Sans CJK JP', sans-serif;
+}
+
+@font-face {
+  font-family: 'Archivo Black';
+  src: url('../fonts/archivo-black.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+body { display: flex; min-height: 100%; }
+
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  background-image: url('../assets/grain.png');
+  background-repeat: repeat;
+  mix-blend-mode: overlay;
+  opacity: .06;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* Left rail: mark, vertical kanji, numbered poster index. */
+.rail {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0;
+  border-right: 1px solid var(--line);
+  background: var(--paper-2);
+  z-index: 30;
+}
+
+.mark { display: block; }
+.disc {
+  display: block;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 1px var(--red-deep) inset;
+}
+
+.kanji {
+  writing-mode: vertical-rl;
+  font-family: var(--font-mono), var(--font-jp);
+  font-size: 26px;
+  letter-spacing: .18em;
+  color: var(--ink);
+  opacity: .85;
+}
+
+.nav { list-style: none; margin: 0; padding: 0; width: 100%; }
+.nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px;
+  font-size: 8px;
+  letter-spacing: .12em;
+  color: var(--ink-dim);
+  border-top: 1px solid var(--line);
+}
+.nav a b { font-size: 13px; font-family: var(--font-display); color: var(--ink); }
+.nav a.active { background: var(--ink); color: var(--paper); }
+.nav a.active b { color: var(--paper); }
+
+/* Main stage. */
+.stage {
+  flex: 1;
+  margin-left: 76px;
+  padding: 34px 40px 48px;
+  max-width: 1100px;
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  letter-spacing: -.01em;
+  margin: 0 0 20px;
+}
+
+.dim { color: var(--ink-dim); }
+
+.eyebrow {
+  font-size: 9px;
+  letter-spacing: .22em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  font-style: normal;
+}
+
+/* Stamp chips: stamped-ink status marks. */
+.stamp {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: .12em;
+  padding: 2px 7px;
+  border: 1px solid currentColor;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.stamp-ok { color: var(--teal); }
+.stamp-bad { color: var(--red); }
+.stamp-idle { color: var(--ink-dim); }
+.stamp-gen { color: var(--red); }
+.stamp-status { color: var(--ink-dim); }
+
+/* Buttons: poster stamps, filled primary and ghost secondary. */
+.btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  border: 1px solid var(--red);
+  background: var(--red);
+  color: var(--paper);
+  cursor: pointer;
+}
+.btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }

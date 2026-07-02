@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ryoku Rashin</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/panels.css">
+  <link rel="stylesheet" href="css/motion.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <nav class="rail" aria-label="Sections">
+    <a class="mark" href="#/overview" aria-label="Ryoku Rashin"><span class="disc"></span></a>
+    <div class="kanji" aria-hidden="true">羅針盤</div>
+    <ul class="nav">
+      <li><a data-nav="overview" href="#/overview"><b>01</b><span>OVERVIEW</span></a></li>
+      <li><a data-nav="vault" href="#/vault"><b>02</b><span>VAULT</span></a></li>
+      <li><a data-nav="agents" href="#/agents"><b>03</b><span>AGENTS</span></a></li>
+      <li><a data-nav="chat" href="#/chat"><b>04</b><span>CHAT</span></a></li>
+    </ul>
+  </nav>
+
+  <main class="stage">
+
+    <section class="panel" data-panel="overview" hidden>
+      <header class="hero" data-hero>
+        <img src="assets/hero.webp" alt="" onerror="this.closest('[data-hero]').classList.add('no-art')">
+        <span class="hero-sun" aria-hidden="true"></span>
+        <span class="hero-tick" aria-hidden="true"></span>
+        <div class="hero-cap"><b>RYOKU RASHIN</b><span>system compass</span></div>
+      </header>
+
+      <div class="metarow">
+        <div><em>HOST</em><span data-v="host">--</span></div>
+        <div><em>KERNEL</em><span data-v="kernel">--</span></div>
+        <div><em>UPTIME</em><span data-v="uptime">--</span></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat" data-accent="teal" data-block="cpu">
+          <span class="stat-corner" aria-hidden="true"></span>
+          <em class="eyebrow">CPU</em>
+          <b class="stat-num" data-v="cpu-pct">--</b>
+          <span class="stat-sub" data-v="cpu-model">--</span>
+        </div>
+        <div class="stat" data-accent="orange" data-block="mem">
+          <span class="stat-corner" aria-hidden="true"></span>
+          <em class="eyebrow">MEM</em>
+          <b class="stat-num" data-v="mem-pct">--</b>
+          <span class="stat-sub" data-v="mem-detail">--</span>
+        </div>
+        <div class="stat" data-accent="slate" data-block="disk">
+          <span class="stat-corner" aria-hidden="true"></span>
+          <em class="eyebrow">DISK</em>
+          <b class="stat-num" data-v="disk-pct">--</b>
+          <span class="stat-sub" data-v="disk-detail">--</span>
+        </div>
+        <div class="stat" data-accent="tan" data-block="gpu">
+          <span class="stat-corner" aria-hidden="true"></span>
+          <em class="eyebrow">GPU</em>
+          <b class="stat-num" data-v="gpu-pct">--</b>
+          <span class="stat-sub" data-v="gpu-name">--</span>
+        </div>
+      </div>
+
+      <div class="staterow">
+        <div><em>DAEMON</em><span class="stamp stamp-idle" data-s="daemon">--</span></div>
+        <div><em>HERMES</em><span class="stamp stamp-idle" data-s="hermes">--</span></div>
+      </div>
+    </section>
+
+    <section class="panel panel-vault" data-panel="vault" hidden>
+      <div class="vault-toolbar">
+        <h2 class="panel-title">VAULT</h2>
+        <button class="btn btn-primary" data-vault-reindex>REINDEX</button>
+      </div>
+      <div class="vault-grid">
+        <ul class="vault-list" data-vault-list><li class="dim">loading...</li></ul>
+        <article class="vault-pane md" data-vault-pane><p class="dim">Select a file.</p></article>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="agents" hidden>
+      <h2 class="panel-title">AGENTS</h2>
+      <div class="agents-list" data-agents-list><p class="dim">loading...</p></div>
+    </section>
+
+    <section class="panel panel-chat" data-panel="chat" hidden>
+      <div class="chat-banner" data-chat-banner data-state="starting">STARTING</div>
+      <div class="chat-stream" data-chat-stream>
+        <div class="chat-empty" data-chat-empty>
+          <img src="assets/chat-empty.webp" alt="" onerror="this.parentElement.hidden = true">
+          <p>The compass is listening. Ask about your machine.</p>
+        </div>
+      </div>
+      <div class="chat-perms" data-chat-perms></div>
+      <form class="chat-bar" data-chat-form>
+        <textarea class="chat-input" data-chat-input rows="1" placeholder="Ask the compass. ENTER sends, SHIFT+ENTER newline."></textarea>
+        <button type="button" class="btn btn-ghost" data-chat-cancel hidden>CANCEL</button>
+        <button type="submit" class="btn btn-primary" data-chat-send>SEND</button>
+      </form>
+    </section>
+
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

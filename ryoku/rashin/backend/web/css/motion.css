@@ -1,0 +1,59 @@
+/* All motion is opt-in: nothing here runs unless the user allows it. */
+@media (prefers-reduced-motion: no-preference) {
+
+  /* Page swap: clip-path wipe from left. */
+  @keyframes wipe {
+    from { clip-path: inset(0 100% 0 0); }
+    to   { clip-path: inset(0 0 0 0); }
+  }
+  .panel.wipe-in { animation: wipe var(--slow) var(--ease); }
+
+  /* Breathing sun on the hero disc overlay. */
+  @keyframes breathe {
+    from { transform: scale(1); }
+    to   { transform: scale(1.02); }
+  }
+  .hero-sun { animation: breathe 6s var(--ease) infinite alternate; }
+
+  /* Rotating tick ring ornament (masked dashed ring). */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hero-tick { animation: spin 60s linear infinite; }
+
+  /* Halftone grain shimmer: jitter the tile in hard steps. */
+  @keyframes grainshift {
+    0%   { background-position: 0 0; }
+    25%  { background-position: -6px 4px; }
+    50%  { background-position: 4px -6px; }
+    75%  { background-position: -4px -4px; }
+    100% { background-position: 0 0; }
+  }
+  .grain { animation: grainshift 8s steps(4) infinite; }
+
+  /* Scanline sweep while a pane refreshes. */
+  @keyframes scan {
+    from { top: -40%; }
+    to   { top: 140%; }
+  }
+  .scanline::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    height: 40%;
+    background: linear-gradient(180deg, transparent, rgba(201,78,68,.14), transparent);
+    animation: scan 900ms linear infinite;
+    pointer-events: none;
+  }
+
+  /* Typewriter block cursor. */
+  @keyframes blink { 50% { opacity: 0; } }
+  .caret { animation: blink 900ms steps(1) infinite; }
+
+  /* Stamp-press feedback and chip hover inversion (fill with the chip color,
+     flip the glyphs to paper). */
+  .btn:active, .hanko:active { transform: translateY(2px); }
+  .stamp { transition: background var(--fast) var(--ease), color var(--fast) var(--ease); }
+  .stamp:hover { color: var(--paper); }
+  .stamp-ok:hover { background: var(--teal); }
+  .stamp-bad:hover, .stamp-gen:hover { background: var(--red); }
+  .stamp-idle:hover, .stamp-status:hover { background: var(--ink-dim); }
+}
