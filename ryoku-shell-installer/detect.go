@@ -45,10 +45,14 @@ type facts struct {
 	omarchyMirror bool     // mirrorlist pinned to Omarchy's package mirror
 	softUnits     []string // enabled user units that fight the shell
 	niriFound     bool
-	niriOutputs   []niriOutput // monitor intent salvaged from the niri config
+	desktops      []string     // installed desktop environments (kept, never removed)
+	kdeSddmConf   bool         // KDE's sddm-kcm drop-in owns /etc/sddm.conf.d
+	monOutputs    []niriOutput // monitor intent salvaged from the old setup
+	monSource     string       // config the outputs came from (niri, GNOME, KDE, ...)
 	kbLayout      string
 	kbVariant     string
 	kbOptions     string
+	kbSource      string // config the keyboard setup came from
 	userShell     string
 	ryokuOnBox    bool // ryoku-desktop already installed
 	hostname      string
@@ -232,6 +236,10 @@ func detect() *facts {
 		}
 		f.ryokuOnBox = pacmanHas("ryoku-desktop")
 		f.niriFound = pacmanHas("niri")
+		f.desktops = detectDesktops()
+	}
+	if _, err := os.Stat("/etc/sddm.conf.d/kde_settings.conf"); err == nil {
+		f.kdeSddmConf = true
 	}
 
 	// an ex-Omarchy box keeps the [omarchy] repo and, worse, Omarchy's own
@@ -259,15 +267,19 @@ func detect() *facts {
 		}
 	}
 
-	// keyboard + monitor intent from the niri config, includes followed.
-	// an xkb keymap file overrides fields, nothing to salvage then.
+	// keyboard + monitor intent, best source first: compositor configs beat
+	// DE stores beat localectl. an xkb keymap file overrides fields, nothing
+	// to salvage then.
 	if niriText := loadNiriConfig(f.homeDir); niriText != "" {
 		layout, variant, options, hasFile := parseNiriXkb(niriText)
-		if !hasFile {
-			f.kbLayout, f.kbVariant, f.kbOptions = layout, variant, options
+		if !hasFile && (layout != "" || variant != "" || options != "") {
+			f.kbLayout, f.kbVariant, f.kbOptions, f.kbSource = layout, variant, options, "niri"
 		}
-		f.niriOutputs = parseNiriOutputs(niriText)
+		if outs := parseNiriOutputs(niriText); len(outs) > 0 {
+			f.monOutputs, f.monSource = outs, "niri"
+		}
 	}
+	f.deSalvage()
 	if f.kbLayout == "" {
 		if m := x11LayoutRe.FindStringSubmatch(out("localectl", "status")); m != nil {
 			f.kbLayout = m[1]

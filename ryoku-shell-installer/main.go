@@ -95,10 +95,19 @@ func buildItems(f *facts, p *plan) []planItem {
 		it = append(it, planItem{"NVIDIA proprietary drivers", d, &p.nvidia, locked})
 	}
 	if dm := f.otherDM(); dm != "" {
-		it = append(it, planItem{"Switch login to SDDM", "disables " + dm + " and enables the Ryoku greeter (at reboot)", &p.switchDM, false})
+		d := "disables " + dm + " and enables SDDM (at reboot)"
+		if len(f.desktops) > 0 {
+			d += "; " + strings.Join(f.desktops, ", ") + " stays installed and selectable at login"
+		}
+		it = append(it, planItem{"Switch login to SDDM", d, &p.switchDM, false})
 	} else if f.currentDM == "" {
 		it = append(it, planItem{"Enable SDDM login", "no display manager found; toggle off to keep starting Hyprland by hand", &p.switchDM, false})
 	}
+	gd := "points the SDDM login screen at the Ryoku qylock greeter"
+	if f.kdeSddmConf {
+		gd = "KDE's login screen settings own SDDM here; toggle on to let the Ryoku theme outrank kde_settings.conf"
+	}
+	it = append(it, planItem{"Ryoku greeter theme", gd, &p.greeter, false})
 	if len(f.otherNet) > 0 {
 		it = append(it, planItem{"Switch to NetworkManager", "disables " + strings.Join(f.otherNet, ", ") + " (at reboot)", &p.switchNet, false})
 	}
@@ -111,8 +120,8 @@ func buildItems(f *facts, p *plan) []planItem {
 	if f.omarchyRepo || f.omarchyMirror {
 		it = append(it, planItem{"Retire the Omarchy repo", "drops [omarchy] from pacman.conf, restores a standard Arch mirrorlist, removes omarchy-keyring", &p.omarchy, false})
 	}
-	if len(f.niriOutputs) > 0 {
-		it = append(it, planItem{"Carry over niri monitor layout", fmt.Sprintf("pins %d output(s) (rotation, scale, position) into monitors_user.lua", len(f.niriOutputs)), &p.niriMon, false})
+	if len(f.monOutputs) > 0 {
+		it = append(it, planItem{"Carry over monitor layout", fmt.Sprintf("pins %d output(s) from your %s setup (rotation, scale, position) into monitors_user.lua", len(f.monOutputs), f.monSource), &p.monPins, false})
 	}
 	it = append(it, planItem{"AUR extras", "wallust + awww (wallpaper engine), Bibata cursor, LocalSend, Handy", &p.aur, false})
 	it = append(it, planItem{"Developer toolchain", "go, rust, node, python (ISO parity); ryoku recovery rebuilds from source and needs go", &p.devtools, false})
@@ -387,6 +396,9 @@ func (m model) viewPlan() string {
 	if f.niriFound {
 		row("compositor", "niri setup detected; its config is backed up, niri stays installed")
 	}
+	if len(f.desktops) > 0 {
+		row("desktops", strings.Join(f.desktops, ", ")+" (kept; still selectable at the login screen)")
+	}
 	if len(f.rivalPkgs) > 0 {
 		row("shells", strings.Join(f.rivalPkgs, ", "))
 	}
@@ -539,8 +551,8 @@ func runHeadless(dry bool, ref, payload string) int {
 	}
 	p := defaultPlan(f)
 	fmt.Printf("system: %s | gpu: %s | dm: %s\n", f.distroName, f.gpuSummary(), f.currentDM)
-	fmt.Printf("plan: nvidia=%v sddm=%v networkmanager=%v remove-shells=%v aur=%v fish=%v devtools=%v omarchy-cleanup=%v\n",
-		p.nvidia, p.switchDM, p.switchNet, p.rivals, p.aur, p.fish, p.devtools, p.omarchy)
+	fmt.Printf("plan: nvidia=%v sddm=%v greeter-theme=%v networkmanager=%v remove-shells=%v aur=%v fish=%v devtools=%v omarchy-cleanup=%v monitor-pins=%v\n",
+		p.nvidia, p.switchDM, p.greeter, p.switchNet, p.rivals, p.aur, p.fish, p.devtools, p.omarchy, p.monPins)
 	e := newEngine(f, p, dry, ref, payload)
 	ev := e.runFrom(0)
 	for msg := range ev {

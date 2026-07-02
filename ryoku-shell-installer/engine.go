@@ -70,7 +70,8 @@ type plan struct {
 	fish      bool // fish as login shell
 	devtools  bool // dev.packages toolchains (go/rust/node/python; recovery needs go)
 	omarchy   bool // retire the [omarchy] repo and mirror pin
-	niriMon   bool // pin the salvaged niri monitor layout in monitors_user.lua
+	monPins   bool // pin the salvaged monitor layout in monitors_user.lua
+	greeter   bool // point SDDM at the Ryoku greeter theme
 }
 
 func defaultPlan(f *facts) *plan {
@@ -87,7 +88,10 @@ func defaultPlan(f *facts) *plan {
 		fish:      !strings.HasSuffix(f.userShell, "/fish"),
 		devtools:  true,
 		omarchy:   f.omarchyRepo || f.omarchyMirror,
-		niriMon:   len(f.niriOutputs) > 0,
+		monPins:   len(f.monOutputs) > 0,
+		// when KDE's sddm-kcm owns sddm.conf.d the user chose that greeter
+		// look; keep it unless they opt in.
+		greeter: !f.kdeSddmConf,
 	}
 }
 
@@ -679,6 +683,47 @@ func stepSession(e *engine) error {
 		return err
 	}
 
+	// greeter theme policy: install-qylock wrote 99-ryoku.conf, but SDDM reads
+	// conf.d lexically and later files win per key, so KDE's kde_settings.conf
+	// outranks it. the greeter toggle decides who ends up on top.
+	switch {
+	case !e.p.greeter:
+		if err := e.sudo("rm", "-f", "/etc/sddm.conf.d/99-ryoku.conf", "/etc/sddm.conf.d/zz-ryoku.conf"); err != nil {
+			return err
+		}
+		e.say("kept your current SDDM greeter theme (the Ryoku theme is installed, not selected)")
+	case e.f.kdeSddmConf:
+		zz := "# written by ryoku-shell-install: sorts after kde_settings.conf so the\n" +
+			"# ryoku greeter theme wins. delete this file to get the KDE greeter back.\n" +
+			"[Theme]\nCurrent=ryoku\n"
+		if err := e.sudoWrite("/etc/sddm.conf.d/zz-ryoku.conf", zz); err != nil {
+			return err
+		}
+		e.recordRestore("sudo rm -f /etc/sddm.conf.d/zz-ryoku.conf /etc/sddm.conf.d/99-ryoku.conf")
+		e.say("Ryoku greeter theme selected past KDE's kde_settings.conf drop-in")
+	default:
+		e.recordRestore("sudo rm -f /etc/sddm.conf.d/99-ryoku.conf")
+	}
+
+	// sddm/setup strips pam_gnome_keyring on purpose: a fresh Ryoku box uses a
+	// passwordless default keyring. an ex-GNOME user instead has a password
+	// protected login keyring from GDM, and without these lines every login
+	// prompts for it (stock Arch /etc/pam.d/sddm only carries kwallet).
+	if e.p.switchDM && hasDesktop(e.f.desktops, "GNOME") {
+		if err := e.sudoSh(`f=/etc/pam.d/sddm
+if [ -f "$f" ] && ! grep -q pam_gnome_keyring "$f"; then
+  printf '%s\n' 'auth        optional    pam_gnome_keyring.so' 'session     optional    pam_gnome_keyring.so    auto_start' >> "$f"
+fi`); err != nil {
+			return err
+		}
+		e.recordRestore(`sudo sed -i '/pam_gnome_keyring\.so/d' /etc/pam.d/sddm`)
+		e.say("kept gnome-keyring auto-unlock working under SDDM (your GNOME login keyring)")
+	}
+	if len(e.f.desktops) > 0 {
+		e.sayf("%s stays installed; pick it from the session menu at the login screen anytime",
+			strings.Join(e.f.desktops, ", "))
+	}
+
 	if e.p.switchNet {
 		for _, n := range e.f.otherNet {
 			if err := e.sudo("systemctl", "disable", n); err != nil {
@@ -717,21 +762,22 @@ func stepConfigs(e *engine) error {
 		return err
 	}
 
-	// niri monitor pins go in before the stub pass, real pins beat a comment stub.
-	if e.p.niriMon && len(e.f.niriOutputs) > 0 {
-		pins, skipped := renderNiriPins(e.f.niriOutputs)
+	// salvaged monitor pins go in before the stub pass, real pins beat a
+	// comment stub. only the hyprland dialect supports desc: names.
+	if e.p.monPins && len(e.f.monOutputs) > 0 {
+		pins, skipped := renderPins(e.f.monOutputs, e.f.monSource == "hyprland", e.f.monSource)
 		for _, name := range skipped {
-			e.sayf("note: niri output %q is matched by description; pin it by connector in monitors_user.lua", name)
+			e.sayf("note: %s output %q is matched by description; pin it by connector in monitors_user.lua", e.f.monSource, name)
 		}
 		if pins != "" {
 			mu := filepath.Join(e.f.homeDir, ".config/hypr/monitors_user.lua")
 			if e.dry {
-				e.say("DRYRUN: write niri monitor pins to ~/.config/hypr/monitors_user.lua")
+				e.sayf("DRYRUN: write %s monitor pins to ~/.config/hypr/monitors_user.lua", e.f.monSource)
 			} else if _, err := os.Lstat(mu); err != nil {
 				if err := os.WriteFile(mu, []byte(pins), 0o644); err != nil {
 					return err
 				}
-				e.say("carried the niri monitor layout into hypr/monitors_user.lua")
+				e.sayf("carried the %s monitor layout into hypr/monitors_user.lua", e.f.monSource)
 			}
 		}
 	}
@@ -739,8 +785,12 @@ func stepConfigs(e *engine) error {
 	// keyboard.lua is user-owned: seeded once, never touched by updates.
 	lua := func(s string) string { return strings.NewReplacer(`"`, ``, `\`, ``).Replace(s) }
 	if e.f.kbLayout != "" && (e.f.kbLayout != "us" || e.f.kbVariant != "" || e.f.kbOptions != "") {
-		e.sayf("seeding keyboard layout %q variant %q options %q into hypr/keyboard.lua",
-			e.f.kbLayout, e.f.kbVariant, e.f.kbOptions)
+		src := e.f.kbSource
+		if src == "" {
+			src = "localectl"
+		}
+		e.sayf("seeding keyboard layout %q variant %q options %q (from %s) into hypr/keyboard.lua",
+			e.f.kbLayout, e.f.kbVariant, e.f.kbOptions, src)
 		if !e.dry {
 			kb := filepath.Join(e.f.homeDir, ".config/hypr/keyboard.lua")
 			content := "-- keyboard layout, carried over by the installer. edits here stick.\n" +
@@ -890,6 +940,11 @@ func stepVerify(e *engine) error {
 	check(err == nil, "Hyprland wayland session registered")
 	if e.p.switchDM {
 		check(unitEnabled("system", "sddm.service"), "sddm.service enabled")
+	}
+	if e.p.switchDM && e.p.greeter {
+		if theme := effectiveSDDMTheme(); theme != "" && theme != "ryoku" {
+			e.say(gWarn + " an SDDM drop-in still selects greeter theme " + theme + "; check /etc/sddm.conf.d")
+		}
 	}
 	if e.f.hasNvidia && e.f.secureBoot && !e.p.nvidia {
 		e.say(gWarn + " Secure Boot is on, so the proprietary NVIDIA driver was skipped: unsigned")

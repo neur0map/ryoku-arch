@@ -202,14 +202,20 @@ func parseNiriXkb(text string) (layout, variant, options string, hasFile bool) {
 	return layout, variant, options, false
 }
 
-// renderNiriPins turns salvaged outputs into monitors_user.lua pins, which
-// autoscale leaves alone. description-style names ("Make Model Serial") can't
-// be matched to a connector here and come back in skipped.
+// renderNiriPins turns salvaged niri outputs into monitors_user.lua pins.
 func renderNiriPins(outs []niriOutput) (pins string, skipped []string) {
+	return renderPins(outs, false, "niri")
+}
+
+// renderPins turns salvaged outputs into monitors_user.lua pins, which
+// autoscale leaves alone. description-style names ("Make Model Serial")
+// can't be matched to a connector and come back in skipped, except for the
+// hyprland source whose desc: pins translate 1:1 (allowDesc).
+func renderPins(outs []niriOutput, allowDesc bool, source string) (pins string, skipped []string) {
 	var b strings.Builder
 	wrote := false
 	for _, o := range outs {
-		if strings.ContainsAny(o.name, " \"\\") {
+		if strings.ContainsAny(o.name, "\"\\") || (!allowDesc && strings.Contains(o.name, " ")) {
 			skipped = append(skipped, o.name)
 			continue
 		}
@@ -228,7 +234,7 @@ func renderNiriPins(outs []niriOutput) (pins string, skipped []string) {
 		}
 		scale, scaleNote := o.scale, ""
 		if scale == "" {
-			scale, scaleNote = "1", " -- niri had no explicit scale; raise this if the panel is HiDPI"
+			scale, scaleNote = "1", " -- "+source+" had no explicit scale; raise this if the panel is HiDPI"
 		}
 		b.WriteString(`hl.monitor({ output = "` + o.name + `", mode = "` + mode + `", position = "` + pos + `", scale = ` + scale)
 		if o.transform != 0 {
@@ -243,7 +249,7 @@ func renderNiriPins(outs []niriOutput) (pins string, skipped []string) {
 	if !wrote {
 		return "", skipped
 	}
-	hdr := "-- migrated from your niri output settings by ryoku-shell-install.\n" +
+	hdr := "-- migrated from your " + source + " output settings by ryoku-shell-install.\n" +
 		"-- ryoku-monitor autoscale leaves the outputs named here alone; edit or\n" +
 		"-- delete lines to hand control back. see monitors_user.lua.example.\n"
 	return hdr + b.String(), skipped
