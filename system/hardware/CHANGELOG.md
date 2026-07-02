@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Security
+- `display/ryoku-monitor`: `apply_specs` now renders monitor string fields
+  (`output`, `mode`, `position`, `mirror`) through jq's `@json`, which emits a
+  properly escaped quoted literal, before interpolating them into the
+  `hl.monitor({ ... })` Lua passed to `hyprctl eval`. The incoming layout JSON
+  (from a saved profile or the Hub) could otherwise carry a value with an
+  embedded `"` that broke out of the Lua string and injected code into the
+  eval. Connector names from the kernel can't contain quotes, so the live path
+  was not reachable, but user-supplied profile JSON is; the escape closes it
+  with no behaviour change (empty/absent fields still render as `""`).
+
 ### Added
 - `network/ryoku-wifi-powersave` + `network/49-ryoku-wifi-powersave.rules`: a
   privileged helper that disables, and later restores, 802.11 power-save on every

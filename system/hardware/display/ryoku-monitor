@@ -414,12 +414,15 @@ apply_specs() {
     [[ -n $args ]] || continue
     apply_monitor "$args"
   done < <(jq -r '
+    # @json renders a string as a quoted, escaped literal (valid Lua too), so a
+    # crafted .output/.mirror in the incoming layout JSON cannot break out of
+    # the Lua string and inject into the hl.monitor(...) call.
     .[] |
-    if .disabled then "output = \"\(.output)\", disabled = true"
-    else "output = \"\(.output)\", mode = \"\(.mode)\", position = \"\(.position)\", scale = \(.scale)"
+    if .disabled then "output = \((.output // "")|@json), disabled = true"
+    else "output = \((.output // "")|@json), mode = \((.mode // "")|@json), position = \((.position // "")|@json), scale = \(.scale)"
       + (if (.transform // 0) != 0 then ", transform = \(.transform)" else "" end)
       + (if (.vrr // 0) != 0 then ", vrr = \(.vrr)" else "" end)
-      + (if (.mirror // "") != "" and (.mirror // "") != "none" then ", mirror = \"\(.mirror)\"" else "" end)
+      + (if (.mirror // "") != "" and (.mirror // "") != "none" then ", mirror = \(.mirror|@json)" else "" end)
     end')
 }
 
