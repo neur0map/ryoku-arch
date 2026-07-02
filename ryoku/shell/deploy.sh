@@ -84,6 +84,12 @@ say "building ryoku-hub"
 (cd "$here/../hub/backend" && go build -o ryoku-hub .)
 install -m755 "$here/../hub/backend/ryoku-hub" "$bindir/ryoku-hub"
 say "installed $bindir/ryoku-hub"
+# Build the Ryoku Rashin backend (the optional agent OS daemon; a separate Go
+# binary that serves the dashboard and bridges the Hermes agent over ACP).
+say "building ryoku-rashin"
+(cd "$here/../rashin/backend" && go build -o ryoku-rashin .)
+install -m755 "$here/../rashin/backend/ryoku-rashin" "$bindir/ryoku-rashin"
+say "installed $bindir/ryoku-rashin"
 say "building ryoku CLI"
 (cd "$here/../cli" && go build -o ryoku .)
 install -m755 "$here/../cli/ryoku" "$bindir/ryoku"

@@ -3,6 +3,22 @@
 ## Unreleased
 
 ### Added
+- `rashin/` + `hub/quickshell/RashinPage.qml` + `hyprland/modules/autostart`:
+  **Ryoku Rashin**, an optional agent OS (off by default). `rashin/backend`
+  (`ryoku-rashin`, one Go program) maintains a machine-generated markdown vault
+  at `~/.local/share/ryoku/rashin/` (system, desktop, and package maps, fenced
+  between `<!-- rashin:generated -->` markers so a reindex never clobbers user or
+  agent notes), serves a hand-authored dashboard embedded under
+  `rashin/backend/web/` on `127.0.0.1:3600` (localhost only), and bridges the
+  Hermes agent over ACP into a web chat. A one-click `setup` installs and
+  onboards Hermes, then wires reversible, marker-fenced vault pointers
+  (`<!-- ryoku-rashin -->`) into every detected agent's global instructions
+  (Claude Code, codex, opencode, omp, Hermes); an existing Hermes is never
+  clobbered, and `serve` re-checks the wiring on start with any drift reported by
+  `status`. The Hub gains a Rashin page in the Advanced group (enable toggle,
+  one-click Hermes setup watched live, open-dashboard button), and `autostart`
+  launches `ryoku-rashin serve --if-enabled`, which exits at once until enabled.
+  See `docs/rashin.md`.
 - `hub/quickshell/PerformancePage` + `shell/quickshell/{visualizer,pill,widgets}`:
   a **Performance Optimizations** section in Ryoku Settings, tweaks for modest
   hardware (most off by default; the visualiser freeze defaults on) and written to

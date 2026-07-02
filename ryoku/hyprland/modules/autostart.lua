@@ -8,6 +8,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("command -v ryoku-gpu >/dev/null 2>&1 && ryoku-gpu persist")
     hl.exec_cmd("ryoku-shell daemon")
     hl.exec_cmd("command -v ryoku-idle >/dev/null 2>&1 && ryoku-idle start")
+    hl.exec_cmd("command -v ryoku-rashin >/dev/null 2>&1 && ryoku-rashin serve --if-enabled")
     hl.exec_cmd("command -v ryoku-leds >/dev/null 2>&1 && ryoku-leds apply")
     hl.exec_cmd("command -v ryoku-mic >/dev/null 2>&1 && ryoku-mic")
     -- Handy starts hidden into the tray; wait for the shell's StatusNotifierWatcher
