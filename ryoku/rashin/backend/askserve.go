@@ -32,7 +32,10 @@ func (s *askSink) marker(kind, detail string) {
 	s.f.Flush()
 }
 
-// handleAsk is the /api/ask HTTP handler on the running daemon.
+// handleAsk is the /api/ask HTTP handler on the running daemon. The turn runs
+// on a background context, not the request's, so closing the launcher (to
+// continue in the dashboard) never aborts the work; only an explicit
+// /api/ask/cancel or the timeout stops it. The CLI is a viewer.
 func (h *chatHub) handleAsk(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" {
@@ -48,8 +51,12 @@ func (h *chatHub) handleAsk(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	sink := &askSink{w: w, f: f}
 
-	ctx, cancel := context.WithTimeout(r.Context(), quickTimeout+2*time.Minute)
+	// Background context: survives the launcher closing. Cancelable by the
+	// user (Escape -> /api/ask/cancel) and bounded by a timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), quickTimeout+2*time.Minute)
 	defer cancel()
+	gen := h.setAskCancel(cancel)
+	defer h.clearAskCancel(gen)
 
 	// The question enters the shared transcript immediately, so a dashboard
 	// opened mid-ask already shows it.
@@ -65,16 +72,27 @@ func (h *chatHub) handleAsk(w http.ResponseWriter, r *http.Request) {
 				sink.marker("working", "writing")
 			}
 			h.broadcast(wsOut{Type: "agent_text", Text: delta})
+		}, func(id, title, status string) {
+			if status == "in_progress" {
+				sink.marker("working", title)
+			}
+			h.broadcast(wsOut{Type: "tool", ID: id, Title: title, Kind: "quick", Status: status})
 		})
 		qcancel()
 		switch {
 		case qerr == nil:
 			h.broadcast(wsOut{Type: "turn_end", StopReason: "end_turn"})
 			h.broadcast(wsOut{Type: "state", State: "ready"})
+			recordAsk(askRecord{At: nowRFC3339(), Question: q, Answer: answer,
+				Images: extractImages(answer), Actions: extractActions(answer)})
 			sink.marker("answer", mustAskJSON(answer))
 			return
 		case qerr == errNeedsTools:
 			sink.marker("working", "needs tools, waking the full agent")
+		case ctx.Err() != nil:
+			h.broadcast(wsOut{Type: "state", State: "ready"})
+			sink.marker("error", "cancelled")
+			return
 		default:
 			// Fast lane broke (endpoint down, bad key): the session lane
 			// still owes the user an answer.
@@ -85,6 +103,45 @@ func (h *chatHub) handleAsk(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.sessionAsk(ctx, sink, q)
+}
+
+// setAskCancel registers the current ask's cancel func, keyed by a generation
+// so a finished ask never clears a newer one. One user, one launcher.
+func (h *chatHub) setAskCancel(c context.CancelFunc) uint64 {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.askGen++
+	h.askCancel = c
+	h.askCancelGen = h.askGen
+	return h.askGen
+}
+
+func (h *chatHub) clearAskCancel(gen uint64) {
+	h.mu.Lock()
+	if h.askCancelGen == gen {
+		h.askCancel = nil
+	}
+	h.mu.Unlock()
+}
+
+func (h *chatHub) handleAskCancel(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	c := h.askCancel
+	h.askCancel = nil
+	conn := h.conn
+	h.mu.Unlock()
+	if c != nil {
+		c()
+		if conn != nil {
+			conn.Cancel() // interrupt a session-lane turn too
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleAskRecent serves the resume list as JSON.
+func (h *chatHub) handleAskRecent(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, RecentAsks(12))
 }
 
 // sessionAsk runs the question through the real hermes session, translating
@@ -154,7 +211,10 @@ func (h *chatHub) sessionAsk(ctx context.Context, sink *askSink, q string) {
 			case "permission":
 				sink.marker("perm", f.Title)
 			case "turn_end":
-				sink.marker("answer", mustAskJSON(strings.TrimSpace(answer.String())))
+				ans := strings.TrimSpace(answer.String())
+				recordAsk(askRecord{At: nowRFC3339(), Question: q, Answer: ans,
+					Images: extractImages(ans), Actions: extractActions(ans)})
+				sink.marker("answer", mustAskJSON(ans))
 				return
 			}
 		}

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -36,6 +37,14 @@ func cmdAsk(question string) error {
 		return fmt.Errorf("usage: ryoku-rashin ask <question>")
 	}
 	cfg := LoadConfig()
+	// Subcommands the launcher drives over the same verb.
+	if question == "--recent" {
+		return askGet(cfg.Port, "/api/ask/recent")
+	}
+	if question == "--cancel" {
+		askPost(cfg.Port, "/api/ask/cancel")
+		return nil
+	}
 	if !pingDaemon(cfg.Port) {
 		emitAsk("error", "rashin is not running; enable it in Ryoku Settings, Advanced, Rashin")
 		os.Exit(1)
@@ -59,6 +68,26 @@ func cmdAsk(question string) error {
 		fmt.Println(sc.Text())
 	}
 	return nil
+}
+
+// askGet prints a daemon GET response verbatim (JSON for --recent).
+func askGet(port int, path string) error {
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d%s", port, path))
+	if err != nil {
+		fmt.Println("[]")
+		return nil
+	}
+	defer resp.Body.Close()
+	io.Copy(os.Stdout, resp.Body)
+	return nil
+}
+
+// askPost fires a daemon POST and ignores the body (for --cancel).
+func askPost(port int, path string) {
+	resp, err := http.Post(fmt.Sprintf("http://127.0.0.1:%d%s", port, path), "", nil)
+	if err == nil {
+		resp.Body.Close()
+	}
 }
 
 type askAnswer struct {

@@ -14,20 +14,26 @@ import (
 )
 
 // quick.go is the fast lane for launcher asks: a fabric-style pattern (one
-// terse system prompt + the vault's generated maps) sent as ONE direct
+// terse system prompt + the vault's generated maps) sent as a direct
 // chat-completions call on the same model connection hermes is configured
-// with. No Python spawn, no agent loop, no tool schemas: most questions come
-// back in a second or two. Questions that actually need tools escalate to the
-// real hermes session (the model answers a sentinel instead).
+// with. No Python spawn, no full agent: most questions come back in a second
+// or two. The model may call a small set of read-only Go tools (quicktools.go)
+// for live state; anything heavier escalates to the real hermes session (the
+// model answers a sentinel instead).
 
 const toolsSentinel = "TOOLS_REQUIRED"
 
+// maxToolRounds bounds the fast-lane agent loop so a quick ask stays quick.
+const maxToolRounds = 4
+
 const quickPattern = `You are Rashin, the resident agent of this Ryoku (Arch Linux, Hyprland) machine, answering a quick ask from the launcher.
+
+You have read-only tools for live state: system_query (packages, updates, service, processes, disk, kernel, gpu, network), read_file, list_dir, search_code (the Ryoku source), and fetch_url (public web pages). Use them when the map below is not enough, then answer.
 
 Rules:
 - Reply with just the answer: one or two sentences, or a tight list. No preamble, no follow-up questions, no markdown headers.
-- The machine map below is current and trustworthy; prefer it over guessing.
-- If the request requires running commands, browsing the live web, reading files beyond the map, summarizing external media, or generating files or images, reply with exactly TOOLS_REQUIRED and nothing else.`
+- The machine map below is current; prefer it and your tools over guessing.
+- Only escalate when the request needs something your tools cannot do: generating or editing files or images, an interactive browser, running a hermes skill, or any action that changes the system. In that case reply with exactly TOOLS_REQUIRED and nothing else.`
 
 // quickTarget is a resolved direct model connection.
 type quickTarget struct {
@@ -143,25 +149,112 @@ func vaultQuickContext() string {
 	return b.String()
 }
 
-// quickComplete streams one chat completion. onDelta fires per content chunk
-// (after the sentinel has been ruled out); the full answer is returned.
-func quickComplete(ctx context.Context, t quickTarget, question string, onDelta func(string)) (string, error) {
+// chatMessage is one turn in the fast-lane conversation.
+type chatMessage struct {
+	Role       string     `json:"role"`
+	Content    string     `json:"content"`
+	ToolCalls  []toolCall `json:"tool_calls,omitempty"`
+	ToolCallID string     `json:"tool_call_id,omitempty"`
+}
+
+type toolCall struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"function"`
+}
+
+// quickComplete runs the fast-lane agent loop: up to maxToolRounds of
+// read-only tool calls, then the final answer. onDelta streams the answer text
+// (after the sentinel is ruled out); onTool fires as each tool runs so the
+// launcher and dashboard can show what it is doing.
+func quickComplete(ctx context.Context, t quickTarget, question string,
+	onDelta func(string), onTool func(id, title, status string)) (string, error) {
+	msgs := []chatMessage{
+		{Role: "system", Content: quickPattern + "\n\n# The machine map\n\n" + vaultQuickContext()},
+		{Role: "user", Content: question},
+	}
+	for round := 0; round <= maxToolRounds; round++ {
+		// The last round forbids tools so the model must answer.
+		allowTools := round < maxToolRounds
+		text, calls, err := quickRound(ctx, t, msgs, allowTools, onDelta)
+		if err != nil {
+			return "", err
+		}
+		if len(calls) == 0 {
+			out := strings.TrimSpace(text)
+			if strings.HasPrefix(out, toolsSentinel) {
+				return "", errNeedsTools
+			}
+			if out == "" {
+				return "", fmt.Errorf("empty answer")
+			}
+			return out, nil
+		}
+		// Record the assistant's tool-call turn, then each tool result.
+		msgs = append(msgs, chatMessage{Role: "assistant", Content: text, ToolCalls: calls})
+		for _, c := range calls {
+			if onTool != nil {
+				onTool(c.ID, toolTitle(c), "in_progress")
+			}
+			result := execQuickTool(ctx, c.Function.Name, c.Function.Arguments)
+			if onTool != nil {
+				onTool(c.ID, toolTitle(c), "completed")
+			}
+			msgs = append(msgs, chatMessage{Role: "tool", ToolCallID: c.ID, Content: result})
+		}
+	}
+	return "", fmt.Errorf("tool loop did not converge")
+}
+
+func toolTitle(c toolCall) string {
+	var a struct {
+		Topic, Arg, Path, Query, URL string
+	}
+	_ = json.Unmarshal([]byte(c.Function.Arguments), &a)
+	switch c.Function.Name {
+	case "system_query":
+		if a.Arg != "" {
+			return "checking " + a.Topic + ": " + a.Arg
+		}
+		return "checking " + a.Topic
+	case "read_file":
+		return "reading " + a.Path
+	case "list_dir":
+		return "listing " + a.Path
+	case "search_code":
+		return "searching code: " + a.Query
+	case "fetch_url":
+		return "fetching " + a.URL
+	default:
+		return c.Function.Name
+	}
+}
+
+// quickRound performs one streaming model call, assembling both the content
+// (streamed via onDelta, head held until the sentinel is ruled out) and any
+// tool_calls (fragmented across deltas by index). Streaming keeps the answer
+// fading in even though the loop can also call tools.
+func quickRound(ctx context.Context, t quickTarget, msgs []chatMessage, allowTools bool,
+	onDelta func(string)) (string, []toolCall, error) {
 	payload := map[string]any{
-		"model":  t.Model,
-		"stream": true,
-		"messages": []map[string]string{
-			{"role": "system", "content": quickPattern + "\n\n# The machine map\n\n" + vaultQuickContext()},
-			{"role": "user", "content": question},
-		},
+		"model":    t.Model,
+		"stream":   true,
+		"messages": msgs,
+	}
+	if allowTools {
+		payload["tools"] = quickToolSchemas()
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		strings.TrimRight(t.BaseURL, "/")+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	if t.Key != "" {
@@ -169,16 +262,18 @@ func quickComplete(ctx context.Context, t quickTarget, question string, onDelta 
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		msg, _ := readCapped(resp, 300)
-		return "", fmt.Errorf("model endpoint %d: %s", resp.StatusCode, msg)
+		return "", nil, fmt.Errorf("model endpoint %d: %s", resp.StatusCode, msg)
 	}
 
 	var answer strings.Builder
-	held := true // buffer the head until it cannot be the sentinel
+	held := true
+	byIndex := map[int]*toolCall{}
+	var order []int
 	sc := bufio.NewScanner(resp.Body)
 	sc.Buffer(make([]byte, 64*1024), 4<<20)
 	for sc.Scan() {
@@ -193,22 +288,45 @@ func quickComplete(ctx context.Context, t quickTarget, question string, onDelta 
 		var chunk struct {
 			Choices []struct {
 				Delta struct {
-					Content string `json:"content"`
+					Content   string `json:"content"`
+					ToolCalls []struct {
+						Index    int    `json:"index"`
+						ID       string `json:"id"`
+						Function struct {
+							Name      string `json:"name"`
+							Arguments string `json:"arguments"`
+						} `json:"function"`
+					} `json:"tool_calls"`
 				} `json:"delta"`
 			} `json:"choices"`
 		}
 		if json.Unmarshal([]byte(data), &chunk) != nil || len(chunk.Choices) == 0 {
 			continue
 		}
-		delta := chunk.Choices[0].Delta.Content
-		if delta == "" {
+		d := chunk.Choices[0].Delta
+		for _, tc := range d.ToolCalls {
+			cur, ok := byIndex[tc.Index]
+			if !ok {
+				cur = &toolCall{Type: "function"}
+				byIndex[tc.Index] = cur
+				order = append(order, tc.Index)
+			}
+			if tc.ID != "" {
+				cur.ID = tc.ID
+			}
+			if tc.Function.Name != "" {
+				cur.Function.Name = tc.Function.Name
+			}
+			cur.Function.Arguments += tc.Function.Arguments
+		}
+		if d.Content == "" {
 			continue
 		}
-		answer.WriteString(delta)
+		answer.WriteString(d.Content)
 		if held {
 			head := strings.TrimSpace(answer.String())
 			if strings.HasPrefix(toolsSentinel, head) || strings.HasPrefix(head, toolsSentinel) {
-				continue // still possibly (or definitely) the sentinel
+				continue
 			}
 			held = false
 			if onDelta != nil {
@@ -217,17 +335,20 @@ func quickComplete(ctx context.Context, t quickTarget, question string, onDelta 
 			continue
 		}
 		if onDelta != nil {
-			onDelta(delta)
+			onDelta(d.Content)
 		}
 	}
-	out := strings.TrimSpace(answer.String())
-	if strings.HasPrefix(out, toolsSentinel) {
-		return "", errNeedsTools
+	var calls []toolCall
+	for _, idx := range order {
+		c := byIndex[idx]
+		if c.Function.Name != "" {
+			if c.ID == "" {
+				c.ID = fmt.Sprintf("call_%d", idx)
+			}
+			calls = append(calls, *c)
+		}
 	}
-	if out == "" {
-		return "", fmt.Errorf("empty answer")
-	}
-	return out, nil
+	return strings.TrimSpace(answer.String()), calls, nil
 }
 
 var errNeedsTools = fmt.Errorf("needs tools")

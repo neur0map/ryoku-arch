@@ -64,6 +64,11 @@ type chatHub struct {
 	// joiner so a chat begun anywhere (launcher ask, another tab) is already
 	// on screen when the dashboard opens.
 	transcript []wsOut
+	// askCancel stops the in-flight quick ask (Escape in the launcher);
+	// askCancelGen keys it so a finished ask never clears a newer one.
+	askCancel    func()
+	askGen       uint64
+	askCancelGen uint64
 }
 
 // transcriptCap bounds the join replay; older frames just scroll away.

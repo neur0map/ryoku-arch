@@ -79,7 +79,7 @@ func TestQuickCompleteStreamsAnswer(t *testing.T) {
 	var streamed strings.Builder
 	got, err := quickComplete(context.Background(),
 		quickTarget{BaseURL: srv.URL, Model: "m", Key: "k"},
-		"kernel?", func(d string) { streamed.WriteString(d) })
+		"kernel?", func(d string) { streamed.WriteString(d) }, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,11 +95,48 @@ func TestQuickCompleteSentinelEscalates(t *testing.T) {
 	streamedAny := false
 	_, err := quickComplete(context.Background(),
 		quickTarget{BaseURL: srv.URL, Model: "m", Key: "k"},
-		"summarize this video", func(string) { streamedAny = true })
+		"summarize this video", func(string) { streamedAny = true }, nil)
 	if err != errNeedsTools {
 		t.Fatalf("err = %v, want errNeedsTools", err)
 	}
 	if streamedAny {
 		t.Fatal("sentinel must never stream to the transcript")
+	}
+}
+
+func TestQuickCompleteToolLoop(t *testing.T) {
+	t.Setenv("RYOKU_RASHIN_VAULT", t.TempDir())
+	// First call: stream a tool_call. Second call: stream the answer.
+	var calls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		if calls == 0 {
+			calls++
+			fmt.Fprint(w, `data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","function":{"name":"system_query","arguments":"{\"topic\":\"kernel\"}"}}]}}]}`+"\n\n")
+			fmt.Fprint(w, "data: [DONE]\n\n")
+			return
+		}
+		fmt.Fprint(w, `data: {"choices":[{"delta":{"content":"Kernel is current."}}]}`+"\n\n")
+		fmt.Fprint(w, "data: [DONE]\n\n")
+	}))
+	defer srv.Close()
+
+	var tools []string
+	got, err := quickComplete(context.Background(),
+		quickTarget{BaseURL: srv.URL, Model: "m", Key: "k"},
+		"what kernel?", nil,
+		func(id, title, status string) {
+			if status == "in_progress" {
+				tools = append(tools, title)
+			}
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "Kernel is current." {
+		t.Fatalf("answer %q", got)
+	}
+	if len(tools) != 1 || !strings.Contains(tools[0], "kernel") {
+		t.Fatalf("tool events %v", tools)
 	}
 }

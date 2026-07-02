@@ -594,7 +594,10 @@ ShellRoot {
                     height: overlay.barVisibleH
                     s: overlay.s
                     contentTop: 0
-                    surfaceOpen: overlay.surfaceOpen
+                    // hold the clock away until the drop panel has fully
+                    // melted back into the band, not just until the surface
+                    // state clears -- otherwise it overprints the retract.
+                    surfaceOpen: overlay.surfaceOpen || pillBlob.visible
                     trayWindow: overlay
                     onCalendarRequested: root.toggleSurface(overlay.modelData.name, "calendar")
                     onPowerRequested: root.togglePopout(overlay.modelData.name, "power")
@@ -602,66 +605,44 @@ ShellRoot {
 
                 BlobRect {
                     // fused pill body, in the frame's field: neck melts
-                    // into the top border. blobs only leave the SDF field
-                    // by collapsing to zero (field ignores `visible`, do
-                    // not "fix" that), so presence rides geometry. open =
-                    // fused melt out of the frame/bar; the bar close fades
-                    // in place at full size (no shrink), so a retracting
-                    // content-less blob doesn't swell the bar's edge.
+                    // into the top border (or the bar band). blobs only
+                    // leave the SDF field by collapsing to zero (field
+                    // ignores `visible`, do not "fix" that), so presence
+                    // rides geometry. bar and island share one morph: the
+                    // blob tracks the LIVE pill geometry, so panel and
+                    // content grow and shrink in lockstep. (an earlier bar
+                    // close held the panel at full size while the pill
+                    // melted to rest inside it -- content visibly collapsed
+                    // in a dead slab, then the slab blinked away. never
+                    // desync the two geometries.)
                     id: pillBlob
                     group: blobGroup
-                    readonly property real dropW: pill.openW
-                    // `geo` drives geometry: grows on open and, on a bar
-                    // close, is held at full then snapped to 0 once
-                    // invisible (no shrink melt). `closeFade` = bar-close
-                    // opacity. island mode keeps `reveal` for its original
-                    // melt-shrink close, untouched.
                     property real reveal: 0
-                    property real geo: 0
-                    property real closeFade: 0
-                    x: Config.barEnabled ? (overlay.width - pillBlob.dropW * geo) / 2 : pill.x
+                    x: pill.x
                     y: 0
                     readonly property bool present: overlay.fused && overlay.islandShown
-                    visible: Config.barEnabled ? geo > 0 : reveal > 0
-                    width: Config.barEnabled ? (pillBlob.dropW * geo) : pill.width
-                    height: Config.barEnabled ? (pill.y + pill.openH) * geo : (pill.y + pill.height) * reveal
+                    visible: reveal > 0
+                    width: pill.width
+                    height: (pill.y + pill.height) * reveal
                     topLeftRadius: 0
                     topRightRadius: 0
                     bottomLeftRadius: pill.morphRadius
                     bottomRightRadius: pill.morphRadius
                     deformScale: 0
-                    opacity: Config.islandOpacity * (Config.barEnabled ? Math.max(0, Math.min(1, (geo - 0.35) / 0.4)) * closeFade : 1)
+                    opacity: Config.islandOpacity
                     states: State {
                         name: "shown"
                         when: pillBlob.present
-                        PropertyChanges { pillBlob.reveal: 1; pillBlob.geo: 1; pillBlob.closeFade: 1 }
+                        PropertyChanges { pillBlob.reveal: 1 }
                     }
                     transitions: [
                         Transition {
                             to: "shown"
-                            NumberAnimation { properties: "reveal,geo"; duration: Motion.morph; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.morphCurve }
+                            NumberAnimation { property: "reveal"; duration: Motion.morph; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.morphCurve }
                         },
                         Transition {
                             from: "shown"
-                            SequentialAnimation {
-                                PropertyAction { property: "geo"; value: 1 }
-                                PropertyAction { property: "closeFade"; value: 1 }
-                                // bar: hold the panel opaque while content
-                                // fades out, so surface text dissolves
-                                // against the solid panel, never against
-                                // the busy desktop (a translucent panel
-                                // double-exposes both). island has no panel
-                                // to hold, melt-shrinks here.
-                                ParallelAnimation {
-                                    PauseAnimation { duration: Config.barEnabled ? Motion.morph : 0 }
-                                    NumberAnimation { property: "reveal"; to: 0; duration: Motion.morph; easing.type: Easing.OutCubic }
-                                }
-                                // bar: the now-empty panel fades quickly;
-                                // a solid fade reads smooth with no text
-                                // double-exposure.
-                                NumberAnimation { property: "closeFade"; to: 0; duration: Config.barEnabled ? 170 : 0; easing.type: Easing.OutCubic }
-                                PropertyAction { property: "geo"; value: 0 }
-                            }
+                            NumberAnimation { property: "reveal"; to: 0; duration: Motion.morph; easing.type: Easing.OutCubic }
                         }
                     ]
                 }

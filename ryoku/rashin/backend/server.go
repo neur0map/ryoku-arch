@@ -141,6 +141,8 @@ func Serve(cfg Config) error {
 		writeJSON(w, AboutReportNow(cfg))
 	})
 	mux.HandleFunc("POST /api/ask", hub.handleAsk)
+	mux.HandleFunc("POST /api/ask/cancel", hub.handleAskCancel)
+	mux.HandleFunc("GET /api/ask/recent", hub.handleAskRecent)
 
 	mux.HandleFunc("GET /ws/vitals", func(w http.ResponseWriter, r *http.Request) {
 		ws, err := acceptWS(w, r)

@@ -108,7 +108,7 @@ Subcommands:
 | `serve [--if-enabled]` | HTTP and WebSocket on `127.0.0.1:3600`, embedded dashboard. `--if-enabled` exits 0 immediately when the gate is off (the autostart path) |
 | `index` | Regenerate all vault maps: `system.md`, `desktop.md`, `packages.md`, `ryoku-repo.md`, `user.md` |
 | `repo-index <root> [out]` | Build the Ryoku source map from a checkout; used by the PKGBUILD and `deploy.sh` |
-| `ask <question>` | One-shot quick ask, built for the launcher's `\` prefix: POSTs to the daemon's `/api/ask` and pipes streamed `@working`/`@perm`/`@answer` marker lines to stdout. See "Quick asks: two lanes" below |
+| `ask <question>` | One-shot quick ask, built for the launcher's `\` prefix: POSTs to `/api/ask` and pipes streamed `@working`/`@perm`/`@answer` markers to stdout. `ask --recent` prints the resume history as JSON; `ask --cancel` stops the running turn. See "Quick asks: two lanes" below |
 | `setup` | One-click actuator: install Hermes, run its onboarding, wire, enable |
 | `wire [agent]` | Apply vault pointers to all detected agents, or one named agent |
 | `unwire [agent]` | Remove vault pointers, keeping the file |
@@ -134,18 +134,26 @@ covers `GET /api/status`, `GET /api/vitals` (also pushed on `WS /ws/vitals`),
 
 A launcher ask does not always need the full agent. `/api/ask` routes it:
 
-1. **Fast lane (fabric-style).** When hermes's configured provider speaks
-   plain chat-completions (openrouter, openai, groq, ollama, or a local
-   endpoint), the daemon makes ONE direct streaming call on that same model
-   connection: a terse pattern prompt plus the vault's generated maps as
-   context. No Python spawn, no agent loop, no tool schemas: answers land in
-   a second or two. The model is instructed to reply `TOOLS_REQUIRED` when
-   the request actually needs tools (live web, commands, media, image
-   generation), which escalates the ask.
-2. **Session lane.** OAuth backends (openai-codex) and tool-needing asks go
-   through the real hermes session, which the daemon now **pre-warms at
-   boot**, so even this lane skips the ~10s Python cold start. The terse-mode
-   preamble keeps answers short.
+1. **Fast lane (fabric-style, with tools).** When hermes's configured provider
+   speaks plain chat-completions (openrouter, openai, groq, ollama, or a local
+   endpoint), the daemon runs a bounded agent loop on that same model
+   connection: a terse pattern prompt plus the vault's generated maps, and a
+   small set of READ-ONLY Go-native tools that run in milliseconds:
+   `system_query` (packages, updates, service, processes, disk, kernel, gpu,
+   network), `read_file`, `list_dir`, `search_code` (prowl-agent), and
+   `fetch_url`. Up to four tool rounds, then the answer, usually a second or
+   two. The model replies `TOOLS_REQUIRED` only when the ask needs something
+   these tools cannot do (generating or editing files or images, an
+   interactive browser, running a hermes skill, or changing the system), which
+   escalates it.
+2. **Session lane.** OAuth backends (openai-codex) and escalated asks go
+   through the real hermes session with its full Python toolset, which the
+   daemon **pre-warms at boot** so even this lane skips the ~10s cold start.
+   The terse-mode preamble keeps answers short.
+
+The fast lane's tools are deliberately a small, safe, Go-native set, not the
+full hermes toolset: that is the trade that keeps it fast. Heavy or
+system-changing work is exactly what escalates to the session lane.
 
 Both lanes write the conversation into the shared transcript, so "continue in
 dashboard" always opens the full exchange. The fast lane's connection can be
@@ -176,6 +184,22 @@ dead end:
 Plus a COPY chip for the whole answer and CONTINUE IN DASHBOARD. The answer
 text itself is selectable for mouse-copying a fragment. Nonexistent paths and
 non-runnable backtick spans are dropped, so a chip never lies.
+
+### Continue while it works, and cancel
+
+While the agent is still working, two options sit under the pulsing strip:
+**CONTINUE IN DASHBOARD** opens the dashboard chat, where the same turn is
+streaming live (the daemon runs each turn on a background context, so it keeps
+going even after the launcher closes), and **CANCEL** stops it. Escape cancels
+a working ask; the daemon interrupts both the fast lane and any session-lane
+turn.
+
+### `\resume`
+
+Typing `\resume` lists recent quick asks (persisted at
+`$XDG_STATE_HOME/ryoku/rashin-asks.jsonl`, newest first). Picking one recalls
+its stored answer instantly, chips and all, with no model call. Every completed
+ask, from either lane, is recorded there.
 
 ## The dashboard
 

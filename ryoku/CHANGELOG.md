@@ -3,6 +3,23 @@
 ## Unreleased
 
 ### Added
+- `rashin/backend` + `shell/quickshell/launcher`: the quick ask got real
+  powers. The fast lane is now a bounded agent loop, not a one-shot: on a
+  direct-provider connection it can call a small set of read-only Go-native
+  tools (`system_query` for packages/updates/service/processes/disk/kernel/
+  gpu/network, `read_file`, `list_dir`, `search_code` via prowl-agent, and
+  `fetch_url`), up to four rounds, then answer, all still in a second or two.
+  Tools are deliberately a safe Go set, not hermes's Python toolset; anything
+  heavier (file or image generation, a real browser, a skill, system changes)
+  replies `TOOLS_REQUIRED` and escalates to the pre-warmed session lane. Tool
+  runs surface as cards in the dashboard and as the working label in the
+  launcher. Every turn now runs on a background context, so **CONTINUE IN
+  DASHBOARD** can open the live turn mid-flight and it keeps going after the
+  launcher closes (proven: a SIGKILL'd CLI still completed the turn into
+  hermes state.db and the ask history); **CANCEL** / Escape stops it via
+  `/api/ask/cancel`. `\resume` lists recent asks from a persisted JSONL
+  (`$XDG_STATE_HOME/ryoku/rashin-asks.jsonl`) and recalls a cached answer with
+  its chips, no model call. New verbs: `ask --recent`, `ask --cancel`.
 - `rashin/` + `hub/quickshell/RashinPage.qml` + `hyprland/modules/autostart`:
   **Ryoku Rashin**, an optional agent OS (off by default). `rashin/backend`
   (`ryoku-rashin`, one Go program) maintains a machine-generated markdown vault
