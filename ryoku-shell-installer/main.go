@@ -136,6 +136,51 @@ func buildItems(f *facts, p *plan) []planItem {
 	return it
 }
 
+// section headers keep a crowded plan readable; below ~10 toggles the flat
+// list reads fine and headers would only add noise.
+var planGroups = []struct {
+	title  string
+	labels []string
+}{
+	{"session & hardware", []string{"NVIDIA proprietary drivers", "Switch login to SDDM", "Enable SDDM login", "Ryoku greeter theme", "Switch to NetworkManager"}},
+	{"migration & cleanup", []string{"Remove rival shells", "Disable conflicting daemons", "Retire the Omarchy repo", "Carry over monitor layout"}},
+	{"extras", []string{"AUR extras", "Developer toolchain", "fish as login shell"}},
+}
+
+// groupPlanItems inserts non-selectable header rows (on == nil) between
+// sections once the toggle list grows past ten entries.
+func groupPlanItems(items []planItem) []planItem {
+	if len(items) <= 10 {
+		return items
+	}
+	group := map[string]string{}
+	for _, g := range planGroups {
+		for _, l := range g.labels {
+			group[l] = g.title
+		}
+	}
+	var out []planItem
+	last := ""
+	for _, it := range items {
+		if g := group[it.label]; g != "" && g != last {
+			out = append(out, planItem{label: g})
+			last = g
+		}
+		out = append(out, it)
+	}
+	return out
+}
+
+// firstToggle returns the first selectable row (headers carry no toggle).
+func firstToggle(items []planItem) int {
+	for i, it := range items {
+		if it.on != nil {
+			return i
+		}
+	}
+	return 0
+}
+
 func (m *model) startInstall() tea.Cmd {
 	m.eng = newEngine(m.f, m.p, m.dry, m.ref, m.payload)
 	m.events = m.eng.runFrom(0)
@@ -155,7 +200,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case scanMsg:
 		m.f = msg.f
 		m.p = defaultPlan(m.f)
-		m.items = buildItems(m.f, m.p)
+		m.items = groupPlanItems(buildItems(m.f, m.p))
+		m.sel = firstToggle(m.items)
 		if needsManjaroAck(m.f) {
 			m.state = "ack"
 		} else {
@@ -232,15 +278,21 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 		case "q":
 			return m, tea.Quit
 		case "j", "down":
-			if m.sel < len(m.items)-1 {
-				m.sel++
+			for i := m.sel + 1; i < len(m.items); i++ {
+				if m.items[i].on != nil {
+					m.sel = i
+					break
+				}
 			}
 		case "k", "up":
-			if m.sel > 0 {
-				m.sel--
+			for i := m.sel - 1; i >= 0; i-- {
+				if m.items[i].on != nil {
+					m.sel = i
+					break
+				}
 			}
 		case " ", "space":
-			if len(m.items) > 0 && !m.items[m.sel].locked {
+			if len(m.items) > 0 && m.items[m.sel].on != nil && !m.items[m.sel].locked {
 				*m.items[m.sel].on = !*m.items[m.sel].on
 			}
 		case "enter":
@@ -432,6 +484,10 @@ func (m model) viewPlan() string {
 
 	var t strings.Builder
 	for i, it := range m.items {
+		if it.on == nil {
+			t.WriteString("  " + fg(cSub, "· "+it.label) + "\n")
+			continue
+		}
 		cur := "  "
 		if i == m.sel {
 			cur = fg(cBrand, gSel)
@@ -439,6 +495,9 @@ func (m model) viewPlan() string {
 		state := fg(cGreen, gOn)
 		if !*it.on {
 			state = fg(cDim, gOff)
+		}
+		if it.locked {
+			state = fg(cYell, gOff)
 		}
 		lbl := fg(cText, padTo(it.label, 30))
 		if i == m.sel {

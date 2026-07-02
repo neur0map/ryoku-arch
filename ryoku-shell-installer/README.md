@@ -18,6 +18,12 @@ Preview without changing anything:
 curl -fsSL .../install.sh | bash -s -- --dry-run
 ```
 
+Remove the Ryoku desktop again:
+
+```bash
+ryoku-shell-install --uninstall        # or: ... | bash -s -- --uninstall
+```
+
 ## What it does
 
 `install.sh` is a dumb bootstrap: it verifies the machine is Arch-based
@@ -25,13 +31,17 @@ x86_64, downloads the prebuilt `ryoku-shell-install` binary (checksummed) from
 this directory, and hands it the real terminal. Everything else is the binary,
 a bubbletea TUI sharing the ISO installer's visual language:
 
-1. **Scan** the machine: distro, GPU, display manager, network stack, rival
-   quickshell shells (Noctalia, DankMaterialShell, Caelestia, iNiR),
-   conflicting user daemons (dunst/mako/waybar/swww/…), a niri setup to
-   migrate from, an Omarchy install to retire (repo + mirror pin), keyboard
-   layout, btrfs.
+1. **Scan** the machine: distro, GPU, Secure Boot state, display manager,
+   network stack, installed desktops (GNOME/KDE/Cinnamon/Xfce), rival
+   quickshell shells (Noctalia, DankMaterialShell, Caelestia, iNiR), known
+   Hyprland rices (ML4W, HyDE, JaKooLit, end-4, Caelestia), conflicting user
+   daemons (dunst/mako/waybar/swww/…), a plain Hyprland, niri or sway setup
+   to migrate from, an Omarchy install to retire (repo + mirror pin),
+   keyboard layout, btrfs, and an interrupted previous run to resume.
 2. **Plan** review with per-item toggles (NVIDIA drivers, SDDM switch,
-   NetworkManager switch, rival-shell removal, AUR extras, fish shell).
+   greeter theme, NetworkManager switch, rival-shell removal, monitor-layout
+   carry-over, AUR extras, fish shell); sections group the list when it gets
+   long.
 3. **Install**, streamed step by step:
    legacy-repo retirement → `pacman -Syu` → tools → sparse payload clone → config backup (with a
    generated `restore.sh`) → `[ryoku]` repo + keyring trust → conflict removal
@@ -45,9 +55,31 @@ everything. Nothing here ever needs re-running.
 
 Migration policy: rival shells are uninstalled (toggle), conflicting daemons
 are disabled but never uninstalled, the old display manager is disabled (not
-removed), niri stays installed as a fallback session, and every config the
-install touches is saved to `~/.local/state/ryoku/shell-install/backup-<ts>/`
-first, `restore.sh` included.
+removed), desktop environments are never uninstalled and stay selectable at
+the login screen, niri and sway stay installed as fallback sessions, and
+every config the install touches is saved to
+`~/.local/state/ryoku/shell-install/backup-<ts>/` first, `restore.sh`
+included. Monitor layout and keyboard intent are salvaged with compositor
+configs first: Hyprland (`monitor=`/`monitorv2`/`input`, includes and `$vars`
+followed) beats niri beats sway, then KDE (`kxkbrc`,
+`kwinoutputconfig.json`), then GNOME (gsettings input-sources,
+`monitors.xml`), then `localectl`.
+
+Safety gates: non-systemd systems (Artix and friends) are refused outright.
+With Secure Boot enforcing, the NVIDIA toggle is forced off and locked,
+because Arch kernels reject unsigned DKMS modules and the driver script
+blacklists nouveau; sign with sbctl or disable Secure Boot, then re-run.
+Manjaro requires a typed acknowledgement in the TUI and is refused under
+`--yes` unless `RYOKU_ALLOW_MANJARO=1` is set.
+
+Lifecycle: an interrupted run records its completed steps in
+`~/.local/state/ryoku/shell-install-state.json`; the next run offers a
+resume toggle (automatic with `--yes`) that skips finished steps and
+continues the same backup. `--uninstall` removes the ryoku packages, drops
+the `[ryoku]` repo stanza, and walks the backup chain newest to oldest,
+running each `restore.sh` with confirmation; those scripts also re-enable
+the services and display manager their run disabled. Session packages
+(sddm, pipewire, NetworkManager, …) are left installed.
 
 ## Development
 
