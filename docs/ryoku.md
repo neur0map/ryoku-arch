@@ -48,6 +48,10 @@ built from it; the live machine is only ever a deployment target.
   `ryoku-desktop`, and sets up the boot chain. The desktop comes from signed
   packages and the ISO prebuilds the installer, so an install needs no build
   toolchain.
+- **Rashin** (`ryoku/rashin/`, optional and off by default) is the agent OS: a
+  machine-generated knowledge vault, a local daemon with a web dashboard, and a
+  one-click Hermes setup, so any coding agent starts with an exact map of the
+  machine. Enabled from Ryoku Settings under Advanced. See `docs/rashin.md`.
 
 ## Working on it
 

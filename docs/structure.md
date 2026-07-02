@@ -63,6 +63,13 @@ truth for the live desktop.
   rules, autostart, environment, the shell, and the desktop widgets). The product is "Ryoku Settings"; the binary and
   config keep the internal `hub` name. Deployed to `~/.config/quickshell/hub`;
   built by the shell's `deploy.sh`.
+- `rashin/` Ryoku Rashin, the optional agent OS (off by default): `backend/`
+  (`ryoku-rashin`, one Go program that maintains the markdown knowledge vault at
+  `~/.local/share/ryoku/rashin/`, serves the embedded dashboard on
+  `127.0.0.1:3600`, and bridges the Hermes agent over ACP) with its hand-authored
+  web dashboard embedded under `backend/web/` (no build step). The Hub's
+  `RashinPage.qml` is the control surface (enable, one-click Hermes setup, open
+  dashboard); built by the shell's `deploy.sh`. See `docs/rashin.md`.
 - `assets/` `brand/` the 力 logo and icons, and `wallpapers/` the shipped
   wallpaper set (installs to `~/Pictures/Wallpapers`).
 
@@ -101,8 +108,8 @@ System-level definition installed into the target.
 
 - The desktop ships as signed pacman packages from the `[ryoku]` repository
   (`release/packages/`). `ryoku-desktop` is the umbrella: it depends on
-  `ryoku-shell`, `ryoku-hub`, `ryoku`, `ryoku-blobs`, and `ryoku-keyring`, and
-  lays the base config under `/usr/share/ryoku/config`.
+  `ryoku-shell`, `ryoku-hub`, `ryoku-rashin`, `ryoku`, `ryoku-blobs`, and
+  `ryoku-keyring`, and lays the base config under `/usr/share/ryoku/config`.
 - The installer adds the `[ryoku]` repo, imports the keyring, and installs
   `ryoku-desktop`; per-user config is then copied into `~/.config` by
   `ryoku materialize`, which clobbers Ryoku-owned files and prunes dropped ones
@@ -129,8 +136,9 @@ raw.githubusercontent.com serves them with no release infrastructure.
 ## `release/` packaging
 
 - `packages/` one directory per pacman package in the `[ryoku]` repo
-  (`ryoku-shell`, `ryoku-hub`, `ryoku`, `ryoku-blobs`, `ryoku-desktop`,
-  `ryoku-keyring`), each a `PKGBUILD` that builds from the checked-out monorepo.
+  (`ryoku-shell`, `ryoku-hub`, `ryoku-rashin`, `ryoku`, `ryoku-blobs`,
+  `ryoku-desktop`, `ryoku-keyring`), each a `PKGBUILD` that builds from the
+  checked-out monorepo.
 - `repo/` builds the signed `[ryoku]` repo from those PKGBUILDs: `build-repo.sh`
   runs `makepkg`, signs every artifact with the release key, and `repo-add`s the
   signed `ryoku.db` into `out/`, laid out exactly as the public mirror serves it.
