@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Security
+- `ipc`: the `ryoku-shell` control socket is now created owner-only (0700). It
+  drives session-scoped actions (surface toggles, wallpaper, dictation), and
+  `net.Listen` left it at the ambient umask (0755 at the usual 022), so the
+  socket node was world-traversable; when `XDG_RUNTIME_DIR` was unset it fell
+  back to `/tmp`, where another local user could reach it. Forcing the umask
+  around `Listen` makes it 0700 atomically, with no world-visible window.
+
 ### Added
 - `ipc`: a new `ryoku-shell stash-send <file>` command opens the control deck's
   LocalSend picker on that file (a new pill `stashSend` IpcHandler that shows the

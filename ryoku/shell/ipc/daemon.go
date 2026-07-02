@@ -80,7 +80,14 @@ func runDaemon() error {
 		return fmt.Errorf("a daemon is already running at %s", path)
 	}
 	_ = os.Remove(path)
+	// The control socket drives session-scoped actions; keep it owner-only so a
+	// second local user can't connect. net.Listen would otherwise leave it at
+	// the ambient umask (0755 at the usual 022 -> unconnectable by others, but
+	// that is luck, not policy). Forcing the umask around Listen makes the
+	// socket 0700 atomically, with no world-visible window to chmod after.
+	old := syscall.Umask(0o077)
 	ln, err := net.Listen("unix", path)
+	syscall.Umask(old)
 	if err != nil {
 		return err
 	}
