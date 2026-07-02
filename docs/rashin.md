@@ -108,6 +108,7 @@ Subcommands:
 | `serve [--if-enabled]` | HTTP and WebSocket on `127.0.0.1:3600`, embedded dashboard. `--if-enabled` exits 0 immediately when the gate is off (the autostart path) |
 | `index` | Regenerate all vault maps: `system.md`, `desktop.md`, `packages.md`, `ryoku-repo.md`, `user.md` |
 | `repo-index <root> [out]` | Build the Ryoku source map from a checkout; used by the PKGBUILD and `deploy.sh` |
+| `ask <question>` | One-shot quick ask, built for the launcher's `\` prefix: joins the shared session over the chat WebSocket, sends the question in terse mode (just the answer, no preamble), streams `@working`/`@perm`/`@answer` marker lines to stdout, and exits at turn end. The conversation is then waiting in the dashboard chat |
 | `setup` | One-click actuator: install Hermes, run its onboarding, wire, enable |
 | `wire [agent]` | Apply vault pointers to all detected agents, or one named agent |
 | `unwire [agent]` | Remove vault pointers, keeping the file |

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 const usage = `ryoku-rashin: the Ryoku agent OS daemon
@@ -12,6 +13,7 @@ usage: ryoku-rashin <command>
   serve [--if-enabled]   run the dashboard and agent bridge on 127.0.0.1
   index                  regenerate the vault maps (system, desktop, packages, repo, user)
   repo-index <root> [out]  build the Ryoku source map from a checkout (build/deploy time)
+  ask <question>         one-shot quick ask against the shared session (launcher)
   setup                  one-click Hermes install, onboarding, and wiring
   wire [agent]           apply vault pointers (all detected agents, or one)
   unwire [agent]         remove vault pointers
@@ -35,6 +37,8 @@ func main() {
 		err = cmdIndex()
 	case "repo-index":
 		err = cmdRepoIndex(argOr(2, ""), argOr(3, ""))
+	case "ask":
+		err = cmdAsk(strings.Join(os.Args[2:], " "))
 	case "setup":
 		err = cmdSetup()
 	case "wire":

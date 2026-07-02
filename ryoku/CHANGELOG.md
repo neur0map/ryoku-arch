@@ -42,6 +42,20 @@
   `/api/about`; the chat WebSocket learns models/commands/history/usage frames.
   Hermes onboarding detection now reads the mapping-form `model:` block, and
   session titles surface correctly.
+- `shell/quickshell/launcher` + `rashin/backend`: the launcher learns to ask
+  the agent. A `\` prefix routes to Rashin: type `\why is my mic quiet?`,
+  ENTER, and a pulsing strip names what hermes is doing (the running tool,
+  thinking, writing) until one deliberately terse answer renders inline,
+  image results (image_gen, screenshots) previewing as thumbnails. It rides
+  a new `ryoku-rashin ask` one-shot that joins the daemon's shared session
+  over the chat WebSocket with a quick-mode preamble only the model sees,
+  and streams `@working`/`@perm`/`@answer` markers to stdout. Because it is
+  the same session, the new CONTINUE IN DASHBOARD button opens the exact
+  conversation, already on screen: the chat hub now keeps a per-session
+  transcript (capped at 400 frames) and replays it to every joining client,
+  which also means refreshing the dashboard no longer blanks the chat. A
+  pending tool approval surfaces as APPROVE IN DASHBOARD. The `\` prefix
+  joins the launcher help sheet.
 - `rashin/systemd` + `rashin/backend` + `hyprland/modules/autostart`: the
   daemon now runs as a **systemd user unit** (`ryoku-rashin.service`) instead
   of riding the Hyprland session. `ryoku-rashin enable` does

@@ -45,6 +45,7 @@ type wsIn struct {
 	Images    []PromptImage `json:"images"`
 	ModelID   string        `json:"modelId"`
 	SessionID string        `json:"sessionId"`
+	Quick     bool          `json:"quick"`
 }
 
 type chatClient struct {
@@ -59,7 +60,14 @@ type chatHub struct {
 	last     wsOut // last state frame, replayed to joiners
 	models   wsOut // last models frame, replayed to joiners
 	commands wsOut // last commands frame, replayed to joiners
+	// transcript is the current session's conversation, replayed to every
+	// joiner so a chat begun anywhere (launcher ask, another tab) is already
+	// on screen when the dashboard opens.
+	transcript []wsOut
 }
+
+// transcriptCap bounds the join replay; older frames just scroll away.
+const transcriptCap = 400
 
 func newChatHub() *chatHub {
 	return &chatHub{
@@ -68,12 +76,42 @@ func newChatHub() *chatHub {
 	}
 }
 
+// transcriptWorthy: the conversation itself, not ephemeral status.
+func transcriptWorthy(t string) bool {
+	switch t {
+	case "user_text", "agent_text", "agent_thought", "tool", "permission", "turn_end":
+		return true
+	}
+	return false
+}
+
+// recordLocked appends a frame to the session transcript; h.mu held.
+func (h *chatHub) recordLocked(m wsOut) {
+	if !transcriptWorthy(m.Type) {
+		return
+	}
+	if len(h.transcript) >= transcriptCap {
+		h.transcript = h.transcript[len(h.transcript)-transcriptCap/2:]
+	}
+	h.transcript = append(h.transcript, m)
+}
+
 func (h *chatHub) broadcast(m wsOut) {
+	h.broadcastExcept(m, nil)
+}
+
+// broadcastExcept sends to every client but skip (the author of a user_text
+// already renders it locally).
+func (h *chatHub) broadcastExcept(m wsOut, skip *chatClient) {
 	h.mu.Lock()
 	if m.Type == "state" {
 		h.last = m
 	}
+	h.recordLocked(m)
 	for c := range h.clients {
+		if c == skip {
+			continue
+		}
 		select {
 		case c.out <- m:
 		default: // slow client: drop frame rather than block the hub
@@ -174,6 +212,14 @@ func (h *chatHub) handle(ctx context.Context, ws *websocket.Conn) {
 	if h.commands.Type != "" {
 		greeting = append(greeting, h.commands)
 	}
+	// Replay the running conversation so a joiner lands mid-session with the
+	// transcript already on screen (this is how a launcher ask is waiting in
+	// the dashboard when the user clicks "continue").
+	var replay []wsOut
+	if len(h.transcript) > 0 {
+		replay = append([]wsOut{{Type: "replay_start"}}, h.transcript...)
+		replay = append(replay, wsOut{Type: "replay_end"})
+	}
 	h.mu.Unlock()
 
 	writerDone := make(chan struct{})
@@ -181,6 +227,9 @@ func (h *chatHub) handle(ctx context.Context, ws *websocket.Conn) {
 		defer close(writerDone)
 		for _, g := range greeting {
 			_ = wsjson.Write(ctx, ws, g)
+		}
+		for _, r := range replay {
+			_ = wsjson.Write(ctx, ws, r)
 		}
 		for m := range cl.out {
 			if wsjson.Write(ctx, ws, m) != nil {
@@ -205,8 +254,16 @@ func (h *chatHub) handle(ctx context.Context, ws *websocket.Conn) {
 		}
 		switch in.Type {
 		case "user":
+			// The author renders its own message; everyone else (and the
+			// transcript) gets it as user_text. Quick asks ride a terse
+			// preamble that only hermes sees.
+			h.broadcastExcept(wsOut{Type: "user_text", Text: in.Text}, cl)
 			h.broadcast(wsOut{Type: "state", State: "busy"})
-			conn.Prompt(in.Text, in.Images)
+			prompt := in.Text
+			if in.Quick {
+				prompt = quickPreamble + prompt
+			}
+			conn.Prompt(prompt, in.Images)
 		case "cancel":
 			conn.Cancel()
 		case "permission":
@@ -241,6 +298,9 @@ func (h *chatHub) handle(ctx context.Context, ws *websocket.Conn) {
 		case "load":
 			if in.SessionID != "" {
 				go func(c *acpConn, id string) {
+					h.mu.Lock()
+					h.transcript = nil // the ACP replay rebuilds it
+					h.mu.Unlock()
 					h.broadcast(wsOut{Type: "state", State: "busy"})
 					if err := c.LoadSession(id); err != nil {
 						h.broadcast(wsOut{Type: "state", State: "ready", Error: "load failed: " + err.Error()})
@@ -251,6 +311,9 @@ func (h *chatHub) handle(ctx context.Context, ws *websocket.Conn) {
 			}
 		case "new":
 			go func(c *acpConn) {
+				h.mu.Lock()
+				h.transcript = nil
+				h.mu.Unlock()
 				h.broadcast(wsOut{Type: "replay_start"})
 				h.broadcast(wsOut{Type: "replay_end"})
 				if err := c.NewSession(); err != nil {

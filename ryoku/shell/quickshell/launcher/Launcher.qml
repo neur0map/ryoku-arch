@@ -67,6 +67,7 @@ Item {
         if (p === ";") return "CLIPBOARD";
         if (p === "@") return "YT MUSIC";
         if (p === "?") return "WEB";
+        if (askMode) return "RASHIN";
         return "";
     }
     readonly property bool actionMode: routed.provider === "actions"
@@ -80,6 +81,10 @@ Item {
     // action catalog), not once the user types "/play"; then the results take
     // the space and nothing clips.
     readonly property bool actionBrowse: actionMode && routed.query.length === 0
+    // "\" prefix: a one-shot quick ask to the Rashin agent. No provider claims
+    // it; the panel owns the whole body and the Enter key while active.
+    readonly property bool askMode: query.length > 0 && query[0] === "\\"
+    readonly property string askQuestion: askMode ? query.slice(1).replace(/^\s+/, "") : ""
     // an async provider is resolving the current query and nothing has come back
     // yet: show a spinner, not a premature "No matches".
     readonly property bool searching: shown && !resting && Dispatcher.busy && results.length === 0
@@ -115,6 +120,7 @@ Item {
     readonly property real answerH: answerMode ? answerPanel.implicitHeight + Metrics.padRow * s : 0
     readonly property real bodyH: help ? helpPanel.implicitHeight
         : gridMode ? gridH
+        : askMode ? askPanel.implicitHeight + Metrics.padRow * s
         : (resting ? restH
         : (answerH + (results.length > 0 ? listH
         : (searching ? loading.height : empty.height))))
@@ -169,7 +175,12 @@ Item {
             Qt.callLater(search.focusField);
         }
     }
-    onQueryChanged: { panel.open = false; if (query.length > 0) { root.allApps = false; root.help = false; } }
+    onQueryChanged: {
+        panel.open = false;
+        if (query.length > 0) { root.allApps = false; root.help = false; }
+        // leaving ask mode drops any in-flight or finished ask
+        if (query.length === 0 || query[0] !== "\\") askPanel.reset();
+    }
 
     Squircle {
         anchors.fill: parent
@@ -204,7 +215,7 @@ Item {
         helpActive: root.help
         onTextChanged: { root.query = text; list.selectedIndex = 0; }
         onMoved: (d) => { if (panel.open) panel.move(d); else if (root.gridMode) appGrid.move(d * root.gridColumnsForMove); else list.move(d); }
-        onAccepted: { if (panel.open) panel.run(); else if (root.gridMode) appGrid.activate(); else list.activate(); }
+        onAccepted: { if (root.askMode) askPanel.run(); else if (panel.open) panel.run(); else if (root.gridMode) appGrid.activate(); else list.activate(); }
         onDismissed: { if (panel.open) panel.open = false; else if (root.help) root.help = false; else if (root.allApps) root.allApps = false; else root.requestClose(); }
         onGridToggled: {
             if (root.gridMode) {
@@ -299,6 +310,20 @@ Item {
         answer: providers.web ? providers.web.answer : ({ available: false })
     }
 
+    AskPanel {
+        id: askPanel
+        visible: root.askMode
+        anchors.top: divider.bottom
+        anchors.topMargin: Metrics.padRow * root.s
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Metrics.padOuter * root.s
+        anchors.rightMargin: Metrics.padOuter * root.s
+        s: root.s
+        question: root.askQuestion
+        onFinished: root.requestClose()
+    }
+
     NowPlaying {
         id: nowPlaying
         visible: root.resting && !root.allApps && !root.help && root.hasMedia
@@ -362,7 +387,7 @@ Item {
 
     ResultList {
         id: list
-        visible: !root.resting && root.results.length > 0
+        visible: !root.resting && !root.askMode && root.results.length > 0
         anchors.top: root.answerMode ? answerPanel.bottom : (root.actionBrowse ? tabs.bottom : divider.bottom)
         anchors.topMargin: root.answerMode ? Metrics.padRow * root.s : 6 * root.s
         anchors.left: parent.left
@@ -378,7 +403,7 @@ Item {
 
     Row {
         id: loading
-        visible: root.searching
+        visible: root.searching && !root.askMode
         anchors.top: root.answerMode ? answerPanel.bottom : (root.actionBrowse ? tabs.bottom : divider.bottom)
         anchors.topMargin: Metrics.padRow * root.s
         anchors.horizontalCenter: parent.horizontalCenter
@@ -400,7 +425,7 @@ Item {
 
     Text {
         id: empty
-        visible: !root.resting && !root.searching && root.results.length === 0
+        visible: !root.resting && !root.searching && !root.askMode && root.results.length === 0
         anchors.top: root.answerMode ? answerPanel.bottom : (root.actionBrowse ? tabs.bottom : divider.bottom)
         anchors.topMargin: Metrics.padRow * root.s
         anchors.horizontalCenter: parent.horizontalCenter

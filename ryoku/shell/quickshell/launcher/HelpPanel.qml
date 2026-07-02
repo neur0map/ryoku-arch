@@ -18,7 +18,8 @@ Item {
         { k: "=",      d: "calculator" },
         { k: ";",      d: "clipboard history" },
         { k: "@",      d: "YouTube Music search" },
-        { k: "?",      d: "web search (supports !bangs)" }
+        { k: "?",      d: "web search (supports !bangs)" },
+        { k: "\\",     d: "ask the Rashin agent (one terse answer)" }
     ]
     readonly property var keyRows: [
         { k: "Enter",  d: "run the selection" },
