@@ -19,6 +19,13 @@
   optional bundles from the `ryoku-extras` catalogue.
 
 ### Fixed
+- `hardware/drivers/nvidia.sh`: keeps an already-installed NVIDIA module
+  package instead of forcing a -dkms one next to it. CachyOS ships
+  kernel-matched prebuilt modules (`linux-cachyos-nvidia-open`) that conflict
+  with `nvidia-open-dkms`, so the old behaviour aborted the whole transaction
+  under `--noconfirm`. The initramfs pacman hook also lost its
+  `Depends=mkinitcpio` and now probes for limine-mkinitcpio, mkinitcpio, or
+  dracut, and prebuilt module packages join its trigger list.
 - `hardware/display/ryoku-monitor`: autoscale picked absurd scales inside
   virtual machines. A hypervisor fabricates the guest display's EDID, so the
   px/mm density math ran on fiction (a plausible fake physical size sails past

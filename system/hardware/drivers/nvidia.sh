@@ -88,28 +88,39 @@ if ! has_nvidia; then
   exit 0
 fi
 
-# DKMS builds against every installed kernel, so headers must match the
-# kernels actually on the box (linux-zen/-lts/-cachyos included), not just
-# stock linux. pkgbase names the owning package for each module tree.
-headers=()
-for pb in /usr/lib/modules/*/pkgbase; do
-  [[ -r $pb ]] || continue
-  read -r kernel <"$pb"
-  headers+=("${kernel}-headers")
-done
-(( ${#headers[@]} > 0 )) || headers=(linux-headers)
-mapfile -t headers < <(printf '%s\n' "${headers[@]}" | sort -u)
+# an installed module package stays: CachyOS boxes ship kernel-matched
+# prebuilt modules (linux-cachyos-nvidia-open) that provide NVIDIA-MODULE,
+# and adding a -dkms package conflicts with it, aborting the transaction.
+have_module_pkg() {
+  pacman -Qq 2>/dev/null | grep -qE '^(nvidia(-open)?(-dkms|-lts)?|linux-.*-nvidia(-open)?)$'
+}
 
-pkgs=(nvidia-utils libva-nvidia-driver "${headers[@]}")
-if nvidia_has_gsp; then
-  echo "nvidia.sh: GSP-capable NVIDIA GPU (Turing+), using the open kernel modules."
-  pkgs=(nvidia-open-dkms "${pkgs[@]}")
+if have_module_pkg; then
+  echo "nvidia.sh: an NVIDIA kernel module package is already installed, keeping it"
+  install_pkgs nvidia-utils libva-nvidia-driver
 else
-  echo "nvidia.sh: pre-Turing NVIDIA GPU, using the proprietary kernel modules."
-  pkgs=(nvidia-dkms "${pkgs[@]}")
-fi
+  # DKMS builds against every installed kernel, so headers must match the
+  # kernels actually on the box (linux-zen/-lts/-cachyos included), not just
+  # stock linux. pkgbase names the owning package for each module tree.
+  headers=()
+  for pb in /usr/lib/modules/*/pkgbase; do
+    [[ -r $pb ]] || continue
+    read -r kernel <"$pb"
+    headers+=("${kernel}-headers")
+  done
+  (( ${#headers[@]} > 0 )) || headers=(linux-headers)
+  mapfile -t headers < <(printf '%s\n' "${headers[@]}" | sort -u)
 
-install_pkgs "${pkgs[@]}"
+  pkgs=(nvidia-utils libva-nvidia-driver "${headers[@]}")
+  if nvidia_has_gsp; then
+    echo "nvidia.sh: GSP-capable NVIDIA GPU (Turing+), using the open kernel modules."
+    pkgs=(nvidia-open-dkms "${pkgs[@]}")
+  else
+    echo "nvidia.sh: pre-Turing NVIDIA GPU, using the proprietary kernel modules."
+    pkgs=(nvidia-dkms "${pkgs[@]}")
+  fi
+  install_pkgs "${pkgs[@]}"
+fi
 
 # early KMS + the boot-race fix. DRM modeset is mandatory for a working
 # NVIDIA Wayland session, and the modules have to come from the initramfs
@@ -144,7 +155,11 @@ fi
 # path) when present, else plain mkinitcpio.
 echo "nvidia.sh: installing initramfs-rebuild pacman hook"
 run "${PRIV[@]}" mkdir -p /etc/pacman.d/hooks
-write_root /etc/pacman.d/hooks/ryoku-nvidia.hook <<'EOF'
+# prebuilt module packages (linux-cachyos-nvidia-open etc.) join the trigger
+# list; the Exec probes for the generator so dracut boxes work too, and no
+# Depends=mkinitcpio, which would make pacman skip the hook there.
+{
+  cat <<'EOF'
 [Trigger]
 Operation=Install
 Operation=Upgrade
@@ -153,10 +168,13 @@ Type=Package
 Target=nvidia-open-dkms
 Target=nvidia-dkms
 Target=nvidia-utils
+EOF
+  pacman -Qq 2>/dev/null | grep -E '^linux-.*-nvidia(-open)?$' | sed 's/^/Target=/'
+  cat <<'EOF'
 
 [Action]
 Description=Rebuilding the initramfs for the updated NVIDIA modules...
-Depends=mkinitcpio
 When=PostTransaction
-Exec=/bin/sh -c 'if command -v limine-mkinitcpio >/dev/null 2>&1; then limine-mkinitcpio; else mkinitcpio -P; fi'
+Exec=/bin/sh -c 'if command -v limine-mkinitcpio >/dev/null 2>&1; then limine-mkinitcpio; elif command -v mkinitcpio >/dev/null 2>&1; then mkinitcpio -P; elif command -v dracut-rebuild >/dev/null 2>&1; then dracut-rebuild; elif command -v dracut >/dev/null 2>&1; then dracut --regenerate-all --force; fi'
 EOF
+} | write_root /etc/pacman.d/hooks/ryoku-nvidia.hook
