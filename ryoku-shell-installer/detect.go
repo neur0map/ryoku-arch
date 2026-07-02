@@ -45,6 +45,7 @@ type facts struct {
 	omarchyMirror bool     // mirrorlist pinned to Omarchy's package mirror
 	softUnits     []string // enabled user units that fight the shell
 	niriFound     bool
+	swayFound     bool         // sway config present; sway stays as a fallback session
 	desktops      []string     // installed desktop environments (kept, never removed)
 	kdeSddmConf   bool         // KDE's sddm-kcm drop-in owns /etc/sddm.conf.d
 	monOutputs    []niriOutput // monitor intent salvaged from the old setup
@@ -325,6 +326,16 @@ func detect() *facts {
 		}
 		if outs := parseNiriOutputs(niriText); len(outs) > 0 && len(f.monOutputs) == 0 {
 			f.monOutputs, f.monSource = outs, "niri"
+		}
+	}
+	if swayText := loadSwayConfig(f.homeDir); swayText != "" {
+		f.swayFound = true
+		layout, variant, options, hasFile := parseSwayInput(swayText)
+		if f.kbLayout == "" && !hasFile && (layout != "" || variant != "" || options != "") {
+			f.kbLayout, f.kbVariant, f.kbOptions, f.kbSource = layout, variant, options, "sway"
+		}
+		if outs := parseSwayOutputs(swayText); len(outs) > 0 && len(f.monOutputs) == 0 {
+			f.monOutputs, f.monSource = outs, "sway"
 		}
 	}
 	f.deSalvage()

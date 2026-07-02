@@ -396,6 +396,9 @@ func (m model) viewPlan() string {
 	if f.niriFound {
 		row("compositor", "niri setup detected; its config is backed up, niri stays installed")
 	}
+	if f.swayFound {
+		row("compositor", "sway setup detected; its config is backed up, sway stays installed")
+	}
 	if len(f.desktops) > 0 {
 		row("desktops", strings.Join(f.desktops, ", ")+" (kept; still selectable at the login screen)")
 	}

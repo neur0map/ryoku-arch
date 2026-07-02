@@ -407,7 +407,7 @@ var backupMove = []string{
 	".local/share/quickshell-lockscreen", ".local/share/qylock",
 }
 var backupCopy = []string{
-	".config/niri", ".config/kitty", ".config/fish", ".config/nvim",
+	".config/niri", ".config/sway", ".config/kitty", ".config/fish", ".config/nvim",
 	".config/fastfetch", ".config/yazi", ".config/wallust", ".config/kdeglobals",
 	".config/starship.toml", ".config/mimeapps.list",
 	".config/systemd/user", // raw symlink tree, restore.sh puts wants wiring back as-was
