@@ -41,3 +41,10 @@ localsend-bin
 
 # Speech-to-text for the pill Super+` voice dictation (tap-to-toggle + mic wave).
 handy-bin
+
+# Display + UI fonts the shell/Hub use to match the Ryoku brand (the website's
+# type stack): Fraunces (variable serif, editorial headlines) and Space Grotesk
+# (UI sans). Inter, JetBrains Mono and Noto CJK ship from the official repo (see
+# base.packages). AUR-only, so built post-install.
+ttf-fraunces-variable
+otf-space-grotesk
