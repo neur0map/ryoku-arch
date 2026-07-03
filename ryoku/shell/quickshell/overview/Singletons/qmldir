@@ -1,0 +1,4 @@
+singleton Theme Theme.qml
+singleton Config Config.qml
+singleton Wallust Wallust.qml
+singleton Motion Motion.qml

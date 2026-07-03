@@ -3,6 +3,24 @@
 ## Unreleased
 
 ### Added
+- `shell/quickshell/overview` + `hyprland`: a new full-screen workspace overview
+  (Super+Tab), a launcher-style expo that replaces the pill's workspace switcher.
+  The compositor blurs the desktop (an `overview` layer rule) and a filmstrip
+  shows the current desktop's workspaces as scaled mini-desktops with LIVE window
+  previews (Quickshell `ScreencopyView` captures off-workspace toplevels, no
+  compositor plugin). Click a workspace to switch, click a window to focus, drag
+  a window between workspaces or up onto the desktop strip, hover a window for a
+  ✕ that closes it, scroll/Tab to cycle the selection, Enter to commit, Esc to
+  dismiss. Subtle Ryoku chrome: sharp corners, hard offset shadows, one
+  vermillion accent, mono zero-padded workspace numerals with a small app-icon
+  roster. A second level sits on top: DESKTOPS, each a block of ten workspace
+  ids with its own 01..10 set; the top strip switches desktops (or Super+Alt+Tab
+  cycles them) so you can keep separate sets of workspaces for different work.
+  Empty gaps render as thin numbered slats so they stay visible and reachable
+  without eating a full cell. `hyprland/scripts/ryoku-workspace` derives the
+  current desktop from the active workspace and makes `Super+N` / `Super+Alt+N`
+  desktop-relative (on desktop 2, `Super+3` focuses ws13, never ws3, and windows
+  never jump desktops); the redundant Alt+Tab window switcher bind is removed.
 - `rashin/backend` + `shell/quickshell/launcher`: the quick ask got real
   powers. The fast lane is now a bounded agent loop, not a one-shot: on a
   direct-provider connection it can call a small set of read-only Go-native

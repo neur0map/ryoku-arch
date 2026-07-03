@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Desktop-relative workspace navigation, and the single source of truth for the
+# "desktop" concept the Ryoku overview shows.
+#
+# A desktop is a block of PER workspace ids: desktop d owns ids
+# [d*PER+1 .. d*PER+PER]. The current desktop is DERIVED from the focused
+# monitor's active workspace, so Super+N always targets the Nth workspace of the
+# desktop you are on (on desktop 2, Super+3 -> ws13, never ws3) and a window sent
+# with Super+Alt+N stays on the current desktop instead of jumping to desktop 1.
+#
+# PER must match the overview's `perDesktop`
+# (ryoku/shell/quickshell/overview/Overview.qml). It is the one design constant;
+# the live desktop is computed, never stored, so it can never drift.
+#
+#   ryoku-workspace desktop          print the current desktop index (0-based)
+#   ryoku-workspace focus <1..PER>   focus the Nth workspace of the current desktop
+#   ryoku-workspace move  <1..PER>   move the active window there (and follow it)
+#
+set -euo pipefail
+
+PER=10
+
+active_ws() { hyprctl activeworkspace -j | jq -r '.id' 2>/dev/null || echo 0; }
+
+current_desktop() {
+  local a
+  a=$(active_ws)
+  # special (negative) or unresolved -> desktop 0.
+  if [[ -z $a || $a -lt 1 ]]; then
+    echo 0
+  else
+    echo $(( (a - 1) / PER ))
+  fi
+}
+
+# slot (1..PER) -> absolute workspace id on the current desktop.
+target_ws() {
+  local slot=$1 desk
+  desk=$(current_desktop)
+  echo $(( desk * PER + slot ))
+}
+
+cmd=${1:-}
+case "$cmd" in
+  desktop)
+    current_desktop
+    ;;
+  focus)
+    ws=$(target_ws "${2:?slot 1..$PER required}")
+    # pull the target to the focused monitor first (same as the old bind), so the
+    # keys drive whichever screen the mouse is on, then focus it. This is a
+    # lua-config Hyprland, so dispatch the hl.dsp.* lua form (a plain
+    # "dispatch workspace N" is parsed as invalid Lua and rejected).
+    hyprctl dispatch "hl.dsp.workspace.move({ workspace = $ws, monitor = \"current\" })" >/dev/null 2>&1 || true
+    hyprctl dispatch "hl.dsp.focus({ workspace = $ws })" >/dev/null
+    ;;
+  move)
+    ws=$(target_ws "${2:?slot 1..$PER required}")
+    hyprctl dispatch "hl.dsp.window.move({ workspace = $ws })" >/dev/null
+    ;;
+  *)
+    echo "usage: ryoku-workspace {desktop|focus <1..$PER>|move <1..$PER>}" >&2
+    exit 2
+    ;;
+esac

@@ -20,7 +20,6 @@ hl.bind(mod .. " + CTRL + Left",   hl.dsp.window.resize({ x = -40, y = 0,   rela
 hl.bind(mod .. " + CTRL + Right",  hl.dsp.window.resize({ x = 40,  y = 0,   relative = true }), { repeating = true }) -- resize window wider
 hl.bind(mod .. " + CTRL + Up",     hl.dsp.window.resize({ x = 0,   y = -40, relative = true }), { repeating = true }) -- resize window shorter
 hl.bind(mod .. " + CTRL + Down",   hl.dsp.window.resize({ x = 0,   y = 40,  relative = true }), { repeating = true }) -- resize window taller
-hl.bind("ALT + Tab",               hl.dsp.exec_cmd("flock -n -o /tmp/ryoku-switcher.lock qs -c switcher")) -- window switcher (MRU; Tab/arrows cycle, Enter/release picks, Esc cancels)
 
 -- Apps
 hl.bind(mod .. " + Return",    hl.dsp.exec_cmd("kitty"))
@@ -38,7 +37,8 @@ hl.bind(mod .. " + C",         hl.dsp.exec_cmd("ryoku-shell wallpaper-picker")) 
 hl.bind(mod .. " + SHIFT + W", hl.dsp.exec_cmd("ryoku-summon ryowalls flock -n -o /tmp/ryowalls.lock qs -c ryowalls")) -- ryowalls: summon to current workspace
 hl.bind(mod .. " + SHIFT + V", hl.dsp.exec_cmd("ryoku-summon ryovm flock -n -o /tmp/ryovm.lock qs -c ryovm")) -- ryovm: summon to current workspace
 hl.bind(mod .. " + D",         hl.dsp.exec_cmd("ryoku-shell toolkit"))           -- control deck (stash, tools, utilities)
-hl.bind(mod .. " + Tab",       hl.dsp.exec_cmd("ryoku-shell workspaces"))        -- workspace switcher (drag windows between workspaces)
+hl.bind(mod .. " + Tab",       hl.dsp.exec_cmd("flock -n -o /tmp/ryoku-overview.lock qs -c overview")) -- workspace overview (expo: live previews, drag windows between workspaces, cycle)
+hl.bind(mod .. " + ALT + Tab", hl.dsp.exec_cmd("flock -n -o /tmp/ryoku-overview.lock qs -c overview")) -- workspace overview, stepping desktops (Alt+Tab again inside cycles desktops)
 hl.bind(mod .. " + M",         hl.dsp.exec_cmd("ryoku-shell visualizer"))        -- toggle the desktop audio visualiser
 hl.bind(mod .. " + SHIFT + M", hl.dsp.exec_cmd("ryoku-shell visualizer-overlay")) -- raise the visualiser over windows (flip back to desktop)
 hl.bind(mod .. " + grave",     hl.dsp.exec_cmd("ryoku-shell voice"))             -- tap: Handy speech-to-text + mic wave (tap again to stop)
@@ -51,13 +51,13 @@ hl.bind(mod .. " + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"))                
 hl.bind(mod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
 hl.bind(mod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
--- Workspaces. Super+N shows workspace N on the monitor under the cursor: the
--- workspace is first pulled to the focused monitor, so the same keys drive
--- whichever screen the mouse is on instead of always yanking focus to the
--- laptop. Super+Alt+N sends the active window to that workspace, on that screen.
-local function ws_to_current(i)
-    hl.dispatch(hl.dsp.workspace.move({ workspace = i, monitor = "current" }))
-end
+-- Workspaces. Super+N focuses the Nth workspace OF THE CURRENT DESKTOP (a
+-- desktop is a block of 10 workspace ids; see scripts/ryoku-workspace and the
+-- overview). On desktop 2, Super+3 -> ws13, never ws3, so each desktop keeps its
+-- own 1..10 and windows never jump desktops. The helper also pulls the target to
+-- the monitor under the cursor, so the keys drive whichever screen the mouse is
+-- on. Super+Alt+N sends the active window to that slot, staying on this desktop.
+local ws_helper = (os.getenv("HOME") or "") .. "/.config/hypr/scripts/ryoku-workspace"
 
 hl.bind(mod .. " + H",          hl.dsp.workspace.toggle_special("scratch"))     -- toggle the scratchpad (special workspace)
 hl.bind(mod .. " + SHIFT + H",  function() hl.dispatch(hl.dsp.window.float({ action = "enable" })); hl.dispatch(hl.dsp.window.resize({ x = 1280, y = 800, exact = true })); hl.dispatch(hl.dsp.window.center()); hl.dispatch(hl.dsp.window.move({ workspace = "special:scratch", silent = true })) end) -- stash the active window in the scratchpad
@@ -65,14 +65,8 @@ hl.bind(mod .. " + mouse_up",   hl.dsp.focus({ workspace = "r-1" }))            
 hl.bind(mod .. " + mouse_down", hl.dsp.focus({ workspace = "r+1" }))            -- next workspace
 for i = 1, 10 do
     local key = i % 10 -- 10 maps to the 0 key
-    hl.bind(mod .. " + " .. key, function()
-        ws_to_current(i)
-        hl.dispatch(hl.dsp.focus({ workspace = i }))
-    end)
-    hl.bind(mod .. " + ALT + " .. key, function()
-        ws_to_current(i)
-        hl.dispatch(hl.dsp.window.move({ workspace = i }))
-    end)
+    hl.bind(mod .. " + " .. key,          hl.dsp.exec_cmd(ws_helper .. " focus " .. i)) -- focus slot i of the current desktop
+    hl.bind(mod .. " + ALT + " .. key,    hl.dsp.exec_cmd(ws_helper .. " move " .. i))  -- send active window to slot i of the current desktop
 end
 
 -- Media and volume keys

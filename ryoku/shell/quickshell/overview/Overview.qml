@@ -1,0 +1,484 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import Quickshell.Hyprland
+import Quickshell.Wayland
+import "Singletons"
+
+/**
+ * The overview body for one monitor. Two levels, macOS-style:
+ *
+ *   ┌──────────────────────────────────────────────────────────┐
+ *   │       [ DESKTOP 01 ] [ 02 ] [ + ]        the desktop strip  │
+ *   ├──────────────────────────────────────────────────────────┤
+ *   │  ┌─────┐ ┃ ┌─────┐ ┌─────┐ ┃  the viewed desktop's spaces  │
+ *   │  │ 01  │ ┃2┃ 03  │ │ 04  │ +┃  as a FILMSTRIP: windowed     │
+ *   │  └─────┘ ┃ └─────┘ └─────┘ ┃  spaces are full preview cells,│
+ *   │          empty ones are thin numbered slats (the gaps stay  │
+ *   │          visible + reachable without eating a full cell).   │
+ *   └──────────────────────────────────────────────────────────┘
+ *
+ * Hyprland has no native "desktop" and only creates a workspace when it is first
+ * visited, so gaps (e.g. ws3 when you hold 1,2,4) do not exist in the model. The
+ * filmstrip renders every SLOT 1..N in order regardless: a slot with windows is a
+ * full live-preview cell, an empty slot is a thin number slat (click/drop creates
+ * and enters it). A desktop is a block of workspace ids (desktop d owns ids
+ * [d*perDesktop+1 .. d*perDesktop+perDesktop]); the strip switches which block
+ * shows. Drag a window onto another slot to move it, or onto a desktop card to
+ * move it to that desktop.
+ *
+ * Motion model: scroll / Tab move a SELECTION highlight (no switch, no flicker);
+ * Enter or a click commits and closes.
+ */
+Item {
+    id: root
+
+    property real s: 1
+    property string screenName: ""
+    property bool active: false
+    property bool dataReady: false
+    property bool focusHere: false
+    signal requestClose()
+
+    // ---- monitor geometry (logical, matching hyprctl client coords) ----------
+    readonly property var mon: {
+        var ms = Hyprland.monitors.values;
+        for (var i = 0; i < ms.length; i++)
+            if (ms[i] && ms[i].name === root.screenName)
+                return ms[i];
+        return null;
+    }
+    readonly property var monObj: root.mon ? root.mon.lastIpcObject : null
+    readonly property real monScale: (root.monObj && root.monObj.scale > 0) ? root.monObj.scale : 1
+    readonly property real monLW: (root.monObj && root.monObj.width  > 0) ? root.monObj.width  / root.monScale : 2560
+    readonly property real monLH: (root.monObj && root.monObj.height > 0) ? root.monObj.height / root.monScale : 1600
+    readonly property real monX: (root.monObj && typeof root.monObj.x === "number") ? root.monObj.x : 0
+    readonly property real monY: (root.monObj && typeof root.monObj.y === "number") ? root.monObj.y : 0
+    readonly property real aspect: root.monLW > 0 ? root.monLH / root.monLW : 0.625
+    // Active workspace from the monitor's IPC object (activeWorkspace.id in the
+    // hyprctl JSON), reliable in a fresh instance unlike the live cross-ref.
+    readonly property int activeWsId: {
+        if (root.monObj && root.monObj.activeWorkspace && typeof root.monObj.activeWorkspace.id === "number")
+            return root.monObj.activeWorkspace.id;
+        if (root.mon && root.mon.activeWorkspace)
+            return root.mon.activeWorkspace.id;
+        return -1;
+    }
+
+    // ---- desktops = blocks of workspace ids -----------------------------------
+    readonly property int perDesktop: 10
+    function deskOf(id) { return id > 0 ? Math.floor((id - 1) / root.perDesktop) : 0; }
+    readonly property int activeDesktop: root.deskOf(root.activeWsId)
+
+    readonly property var allWsIds: {
+        var out = [];
+        var all = Hyprland.workspaces.values;
+        for (var i = 0; i < all.length; i++) {
+            var w = all[i];
+            if (w && w.id > 0 && w.monitor && w.monitor.name === root.screenName)
+                out.push(w.id);
+        }
+        out.sort(function (a, b) { return a - b; });
+        return out;
+    }
+    readonly property int maxOccDesk: {
+        var m = 0;
+        for (var i = 0; i < root.allWsIds.length; i++)
+            m = Math.max(m, root.deskOf(root.allWsIds[i]));
+        return Math.max(m, root.activeDesktop);
+    }
+    readonly property int newDesktopIdx: root.maxOccDesk + 1
+    readonly property var deskList: {
+        var out = [];
+        for (var d = 0; d <= root.newDesktopIdx; d++)
+            out.push(d);
+        return out;
+    }
+    property int viewedDesktop: 0
+    function wsHasWindows(id) {
+        var tl = Hyprland.toplevels.values;
+        for (var i = 0; i < tl.length; i++) {
+            var o = tl[i] && tl[i].lastIpcObject;
+            if (o && tl[i].workspace && tl[i].workspace.id === id && o.mapped !== false)
+                return true;
+        }
+        return false;
+    }
+    function deskDots(d) {
+        var out = [];
+        for (var i = 0; i < root.allWsIds.length; i++)
+            if (root.deskOf(root.allWsIds[i]) === d)
+                out.push(root.wsHasWindows(root.allWsIds[i]));
+        return out;
+    }
+    function switchToDesktop(d) {
+        root.viewedDesktop = d;
+        root.selected = 0;
+    }
+
+    // ---- the viewed desktop's block + its occupancy ---------------------------
+    readonly property int blockBase: root.viewedDesktop * root.perDesktop
+    // ids of THIS desktop that exist in Hyprland.
+    readonly property var wsList: {
+        var out = [];
+        for (var i = 0; i < root.allWsIds.length; i++)
+            if (root.deskOf(root.allWsIds[i]) === root.viewedDesktop)
+                out.push(root.allWsIds[i]);
+        return out;
+    }
+    // highest 1-based position occupied in this block (0 = desktop empty).
+    readonly property int maxPos: {
+        var m = 0;
+        for (var i = 0; i < root.wsList.length; i++)
+            m = Math.max(m, root.wsList[i] - root.blockBase);
+        return m;
+    }
+    // next free position's id (clamped to the block), for the "+" add slot.
+    readonly property int newWsId: {
+        var nx = root.blockBase + root.maxPos + 1;
+        return nx > root.blockBase + root.perDesktop ? root.blockBase + root.perDesktop : nx;
+    }
+    // FILMSTRIP model: positions 1..maxPos (full if windowed, else thin slat),
+    // then a trailing thin "+" add slot. An empty desktop shows one big "+".
+    readonly property var slotModel: {
+        var out = [];
+        if (root.maxPos === 0) {
+            out.push({ pos: 1, wsId: -1, add: true, full: true });
+            return out;
+        }
+        for (var p = 1; p <= root.maxPos; p++) {
+            var id = root.blockBase + p;
+            out.push({ pos: p, wsId: id, add: false, full: root.wsHasWindows(id) });
+        }
+        if (root.maxPos < root.perDesktop)
+            out.push({ pos: root.maxPos + 1, wsId: -1, add: true, full: false });
+        return out;
+    }
+    readonly property int slotCount: root.slotModel.length
+
+    // ---- desktop card geometry (shared with DesktopStrip + the drag hit-test) -
+    readonly property real deskCardW: 122 * root.s
+    readonly property real deskCardH: 58 * root.s
+    readonly property real deskGap: 14 * root.s
+    readonly property real stripTopMargin: 40 * root.s
+
+    // ---- filmstrip layout: one row, full cells + thin slats -------------------
+    readonly property real regionTop: root.stripTopMargin + root.deskCardH + 46 * root.s
+    readonly property real regionBottom: root.height - 78 * root.s
+    readonly property real availW: root.width - 2 * (72 * root.s)
+    readonly property real availH: Math.max(150 * root.s, root.regionBottom - root.regionTop)
+    readonly property real rowGap: 16 * root.s
+    readonly property real thinW: 60 * root.s
+    readonly property int nFull: {
+        var n = 0;
+        for (var i = 0; i < root.slotModel.length; i++)
+            if (root.slotModel[i].full) n++;
+        return n;
+    }
+    readonly property int nThin: root.slotCount - root.nFull
+    // full-cell height: as large as fits both the width budget (after thin slats)
+    // and the region height, capped so a lone window doesn't balloon.
+    readonly property real cellH: {
+        var budget = root.availW - root.nThin * root.thinW - Math.max(0, root.slotCount - 1) * root.rowGap;
+        var fullWByW = root.nFull > 0 ? budget / root.nFull : budget;
+        var h = Math.min(root.availH, fullWByW * root.aspect, 470 * root.s);
+        return Math.max(150 * root.s, h);
+    }
+    readonly property real fullW: root.cellH / root.aspect
+    function slotW(slot) { return slot.full ? root.fullW : root.thinW; }
+    readonly property real stripWidth: {
+        var w = 0;
+        for (var i = 0; i < root.slotModel.length; i++)
+            w += root.slotW(root.slotModel[i]) + (i > 0 ? root.rowGap : 0);
+        return w;
+    }
+
+    // ---- selection: scroll / Tab move it, Enter or click commits -------------
+    property int selected: 0
+    property bool seeded: false
+    function trySeed() {
+        if (root.seeded || !root.dataReady || root.activeWsId <= 0)
+            return;
+        root.viewedDesktop = root.activeDesktop;
+        root.selected = Math.max(0, root.slotIndexOfWs(root.activeWsId));
+        root.seeded = true;
+    }
+    onDataReadyChanged: root.trySeed()
+    onActiveWsIdChanged: root.trySeed()
+    function slotIndexOfWs(id) {
+        for (var i = 0; i < root.slotModel.length; i++)
+            if (root.slotModel[i].wsId === id)
+                return i;
+        return -1;
+    }
+    function cycle(d) {
+        var n = root.slotCount;
+        if (n === 0) return;
+        root.selected = ((root.selected + d) % n + n) % n;
+    }
+    function cycleDesktop(d) {
+        var list = root.deskList;
+        if (list.length === 0) return;
+        var cur = list.indexOf(root.viewedDesktop);
+        if (cur < 0) cur = 0;
+        var nx = ((cur + d) % list.length + list.length) % list.length;
+        root.switchToDesktop(list[nx]);
+    }
+    function activateSelected() {
+        if (root.selected < 0 || root.selected >= root.slotModel.length)
+            return;
+        var slot = root.slotModel[root.selected];
+        root.switchWs(slot.add ? root.newWsId : slot.wsId);
+    }
+
+    // ---- actions (lua-config hyprland: dispatch via the hl.dsp API) -----------
+    function normAddr(a) { return (a && a.indexOf("0x") === 0) ? a : "0x" + a; }
+    function switchWs(id) {
+        Hyprland.dispatch('hl.dsp.focus({ workspace = ' + id + ' })');
+        root.requestClose();
+    }
+    function focusWindow(tl, addr) {
+        if (tl && tl.wayland)
+            tl.wayland.activate();
+        else if (addr)
+            Hyprland.dispatch('hl.dsp.focus({ window = "address:' + root.normAddr(addr) + '" })');
+        root.requestClose();
+    }
+    function moveWindow(addr, wsId) {
+        if (!addr) return;
+        Hyprland.dispatch('hl.dsp.window.move({ workspace = ' + wsId + ', window = "address:' + root.normAddr(addr) + '" })');
+        Hyprland.refreshToplevels();
+        Hyprland.refreshWorkspaces();
+    }
+    function closeWindow(tl, addr) {
+        if (tl && tl.wayland)
+            tl.wayland.close();
+        else if (addr)
+            Hyprland.dispatch('hl.dsp.window.close({ window = "address:' + root.normAddr(addr) + '" })');
+        Hyprland.refreshToplevels();
+        Hyprland.refreshWorkspaces();
+    }
+    function landingWsForDesk(d) {
+        var lo = -1;
+        for (var i = 0; i < root.allWsIds.length; i++)
+            if (root.deskOf(root.allWsIds[i]) === d && (lo < 0 || root.allWsIds[i] < lo))
+                lo = root.allWsIds[i];
+        return lo > 0 ? lo : d * root.perDesktop + 1;
+    }
+
+    // ---- hand-tracked drag state ----------------------------------------------
+    readonly property int noWs: -999
+    property bool dragging: false
+    property string dragAddr: ""
+    property int dragSrcWs: noWs
+    property int dragTargetWs: noWs
+    property int dragTargetDesk: noWs
+    property real dragX: 0
+    property real dragY: 0
+    property var dragTl: null
+    function endDrag() {
+        root.dragging = false;
+        root.dragTargetWs = root.noWs;
+        root.dragTargetDesk = root.noWs;
+        root.dragSrcWs = root.noWs;
+        root.dragAddr = "";
+        root.dragTl = null;
+    }
+    function updateDrag(rx, ry) {
+        root.dragX = rx;
+        root.dragY = ry;
+        var d = root.deskAtRoot(rx, ry);
+        if (d !== root.noWs) {
+            root.dragTargetDesk = d;
+            root.dragTargetWs = root.noWs;
+        } else {
+            root.dragTargetDesk = root.noWs;
+            root.dragTargetWs = root.targetAtRoot(rx, ry);
+        }
+    }
+    function commitDrop() {
+        if (root.dragTargetDesk !== root.noWs && root.dragTargetDesk !== root.deskOf(root.dragSrcWs))
+            root.moveWindow(root.dragAddr, root.landingWsForDesk(root.dragTargetDesk));
+        else if (root.dragTargetWs !== root.noWs && root.dragTargetWs !== root.dragSrcWs)
+            root.moveWindow(root.dragAddr, root.dragTargetWs);
+    }
+    // walk the variable-width filmstrip to resolve the slot under a point (in
+    // gridWrap coords). Empty slots map to their real id (creates on drop).
+    function cellAt(px, py) {
+        if (py < 0 || py > root.cellH)
+            return root.noWs;
+        var x = 0;
+        for (var i = 0; i < root.slotModel.length; i++) {
+            var w = root.slotW(root.slotModel[i]);
+            if (px >= x && px <= x + w) {
+                var slot = root.slotModel[i];
+                return slot.add ? root.newWsId : slot.wsId;
+            }
+            x += w + root.rowGap;
+        }
+        return root.noWs;
+    }
+    function targetAtRoot(px, py) {
+        return root.cellAt(px - gridWrap.x, py - gridWrap.y);
+    }
+    function deskAtRoot(px, py) {
+        var lx = px - stripWrap.x;
+        var ly = py - stripWrap.y;
+        if (ly < 0 || ly > root.deskCardH || lx < 0)
+            return root.noWs;
+        var unit = root.deskCardW + root.deskGap;
+        var i = Math.floor(lx / unit);
+        if (lx - i * unit > root.deskCardW)
+            return root.noWs;
+        if (i < 0 || i >= root.deskList.length)
+            return root.noWs;
+        return root.deskList[i];
+    }
+
+    // ---- poster mark, top-left ------------------------------------------------
+    Row {
+        id: mark
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.leftMargin: 52 * root.s
+        anchors.topMargin: 46 * root.s
+        spacing: 11 * root.s
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "力"
+            color: Theme.brand
+            font.family: Theme.fontJp
+            font.pixelSize: 20 * root.s
+        }
+        Column {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 1 * root.s
+            Text {
+                text: "OVERVIEW"
+                color: Theme.cream
+                font.family: Theme.mono
+                font.pixelSize: 12 * root.s
+                font.letterSpacing: 3 * root.s
+                font.weight: Font.DemiBold
+            }
+            Text {
+                text: "DESKTOP " + ("0" + (root.viewedDesktop + 1)).slice(-2)
+                color: Theme.faint
+                font.family: Theme.mono
+                font.pixelSize: 9 * root.s
+                font.letterSpacing: 2 * root.s
+            }
+        }
+    }
+
+    // ---- desktop strip (top centre) -------------------------------------------
+    Item {
+        id: stripWrap
+        x: (root.width - stripInner.width) / 2
+        y: root.stripTopMargin
+        width: stripInner.width
+        height: root.deskCardH
+        DesktopStrip {
+            id: stripInner
+            s: root.s
+            ov: root
+        }
+    }
+
+    // ---- the filmstrip --------------------------------------------------------
+    Item {
+        id: gridWrap
+        x: (root.width - width) / 2
+        y: root.regionTop + Math.max(0, (root.availH - height) / 2)
+        width: root.stripWidth
+        height: root.cellH
+
+        Row {
+            id: strip
+            anchors.fill: parent
+            spacing: root.rowGap
+
+            Repeater {
+                model: root.slotModel
+                delegate: WorkspaceCell {
+                    id: cell
+                    required property var modelData
+                    required property int index
+                    width: root.slotW(cell.modelData)
+                    height: root.cellH
+                    s: root.s
+                    ov: root
+                    idx: cell.index
+                    wsId: cell.modelData.wsId
+                    isAdd: cell.modelData.add === true
+                    full: cell.modelData.full === true
+                    selected: root.selected === cell.index
+                }
+            }
+        }
+    }
+
+    // ---- footer hint ----------------------------------------------------------
+    Text {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 38 * root.s
+        text: "SCROLL / TAB  CYCLE      ALT+TAB  DESKTOP      DRAG  MOVE      \u2715  CLOSE      ENTER  GO      ESC  DISMISS"
+        color: Theme.faint
+        font.family: Theme.mono
+        font.pixelSize: 10 * root.s
+        font.letterSpacing: 2 * root.s
+        opacity: 0.85
+    }
+
+    WheelHandler {
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: (e) => {
+            if (e.angleDelta.y === 0) return;
+            root.cycle(e.angleDelta.y < 0 ? 1 : -1);
+        }
+    }
+
+    // ---- carried-window ghost -------------------------------------------------
+    Item {
+        anchors.fill: parent
+        z: 100
+
+        Rectangle {
+            visible: ghost.visible
+            width: ghost.width
+            height: ghost.height
+            x: ghost.x + 8 * root.s
+            y: ghost.y + 8 * root.s
+            radius: Theme.radius
+            color: Theme.shadow
+            opacity: 0.8
+            antialiasing: false
+        }
+
+        Rectangle {
+            id: ghost
+            visible: root.dragging
+            width: 150 * root.s
+            height: Math.round(150 * root.s * root.aspect)
+            x: root.dragX - width / 2
+            y: root.dragY - height / 2
+            radius: Theme.radius
+            color: Theme.tileBg
+            border.width: 2
+            border.color: Theme.brand
+            antialiasing: true
+            scale: root.dragging ? 1 : 0.9
+            Behavior on scale { NumberAnimation { duration: Motion.fast; easing.type: Motion.easeExpo } }
+
+            ScreencopyView {
+                anchors.fill: parent
+                anchors.margins: 2
+                captureSource: root.dragTl
+                live: false
+                visible: root.dragTl !== null
+            }
+        }
+    }
+}

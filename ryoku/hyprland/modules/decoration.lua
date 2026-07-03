@@ -54,3 +54,14 @@ hl.layer_rule({
   blur    = true,
   no_anim = true,
 })
+
+-- the workspace overview (qs -c overview, Super+Tab) is a full-screen layer-shell
+-- expo: blur the desktop behind it so only the workspace cells and their live
+-- window previews read on top. QML drives its open/close, so suppress Hyprland's
+-- own layer animation (no double move).
+hl.layer_rule({
+  name    = "overview-blur",
+  match   = { namespace = "overview" },
+  blur    = true,
+  no_anim = true,
+})
