@@ -1,7 +1,9 @@
 package main
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -224,6 +226,85 @@ func TestGenGesture(t *testing.T) {
 	o.Input.SwipeFingers = 2
 	if !strings.Contains(genGesture(o), "fingers = 3") {
 		t.Errorf("fingers should clamp to >= 3: %q", genGesture(o))
+	}
+}
+
+// once input settings were saved, all three kb_* keys are pinned even at their
+// defaults, so a non-us keyboard.lua can no longer silently win over the UI.
+// every other key keeps the diff-against-defaults behavior.
+func TestGenConfigPinsKbAfterInputSave(t *testing.T) {
+	o := defaultOverrides()
+	o.inputSaved = true
+	out := genConfig(o, true)
+	for _, want := range []string{`kb_layout = "us"`, `kb_variant = ""`, `kb_options = ""`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("saved input must pin %s:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "repeat_rate") {
+		t.Errorf("unchanged repeat_rate was emitted:\n%s", out)
+	}
+}
+
+// a snapshot arriving through save/preview counts as saved input, so the very
+// first save already pins the kb_* keys.
+func TestParseOverridesMarksInputSaved(t *testing.T) {
+	o, err := parseOverrides(`{}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !o.inputSaved {
+		t.Error("parseOverrides did not mark input as saved")
+	}
+}
+
+// storeHasInput: only a store that actually carries an input section counts,
+// so a legacy or foreign store does not flip the kb pinning on.
+func TestStoreHasInput(t *testing.T) {
+	for s, want := range map[string]bool{
+		`{"input":{"kbLayout":"fr"}}`: true,
+		`{"input":{}}`:                true,
+		`{"appearance":{}}`:           false,
+		`{"input":null}`:              false,
+		`not json`:                    false,
+	} {
+		if got := storeHasInput([]byte(s)); got != want {
+			t.Errorf("storeHasInput(%s) = %t, want %t", s, got, want)
+		}
+	}
+}
+
+// parseXkbVariants filters the "! variant" block to one layout; a layout field
+// listing several codes matches each of them.
+func TestParseXkbVariants(t *testing.T) {
+	lst := "! variant\n" +
+		"  azerty          fr: French (AZERTY)\n" +
+		"  nodeadkeys      fr: French (no dead keys)\n" +
+		"  wang            be: Belgian (Wang 724 AZERTY)\n" +
+		"  shared          fr,be: Shared variant\n" +
+		"\n" +
+		"! option\n" +
+		"  grp             Switching to another layout\n"
+	p := filepath.Join(t.TempDir(), "base.lst")
+	if err := os.WriteFile(p, []byte(lst), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := parseXkbVariants(p, "fr")
+	if len(got) != 3 {
+		t.Fatalf("fr variants = %v, want 3 entries", got)
+	}
+	if got[0]["code"] != "azerty" || got[0]["name"] != "French (AZERTY)" {
+		t.Errorf("first fr variant = %v", got[0])
+	}
+	if got[2]["code"] != "shared" {
+		t.Errorf("comma-separated layout list not matched: %v", got[2])
+	}
+	if be := parseXkbVariants(p, "be"); len(be) != 2 {
+		t.Errorf("be variants = %v, want wang + shared", be)
+	}
+	// the option block must not leak in, and an unknown layout yields nothing.
+	if xx := parseXkbVariants(p, "grp"); len(xx) != 0 {
+		t.Errorf("option block leaked into variants: %v", xx)
 	}
 }
 

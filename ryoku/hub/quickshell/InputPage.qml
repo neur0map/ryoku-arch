@@ -37,6 +37,146 @@ Item {
         }
     }
 
+    // ------ layout composition ----------------------------------------------
+    // kb_layout may hold "fr,us" (primary + secondary with a switch chord);
+    // the two dropdowns edit the halves and recompose the comma form. The
+    // variant applies to the primary layout, so a secondary keeps its slot
+    // empty ("azerty," aligns variants to layouts positionally in xkb).
+
+    function primaryLayout() { return String(store.kbLayout || "").split(",")[0]; }
+    function secondaryLayout() {
+        var parts = String(store.kbLayout || "").split(",");
+        return parts.length > 1 ? parts[1] : "";
+    }
+    function primaryVariant() { return String(store.kbVariant || "").split(",")[0]; }
+
+    function setLayouts(primary, secondary) {
+        store.edit("kbLayout", secondary ? primary + "," + secondary : primary);
+        var v = page.primaryVariant();
+        store.edit("kbVariant", secondary && v ? v + "," : v);
+    }
+    function setVariant(v) {
+        store.edit("kbVariant", page.secondaryLayout() && v ? v + "," : v);
+    }
+
+    // xkb variants for the primary layout, refetched when it changes.
+    property var variantOptions: [{ "key": "", "label": "Default" }]
+
+    Process {
+        id: variantsProc
+        property string forLayout: ""
+        command: ["ryoku-hub", "hypr", "variants", forLayout]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var out = [{ "key": "", "label": "Default" }];
+                try {
+                    var arr = JSON.parse(this.text);
+                    for (var i = 0; i < arr.length; i++)
+                        out.push({ "key": arr[i].code, "label": arr[i].name + " (" + arr[i].code + ")" });
+                } catch (e) {}
+                page.variantOptions = out;
+            }
+        }
+    }
+    function refreshVariants() {
+        var l = page.primaryLayout();
+        if (l.length === 0 || variantsProc.forLayout === l)
+            return;
+        variantsProc.forLayout = l;
+        variantsProc.running = false;
+        variantsProc.running = true;
+    }
+    Connections {
+        target: store
+        function onKbLayoutChanged() { page.refreshVariants(); }
+    }
+    Component.onCompleted: refreshVariants()
+
+    // ------ curated remaps over kb_options ----------------------------------
+    // Each picker owns one xkb option family; anything it doesn't recognise
+    // stays in the free-text field, so power users lose nothing. All state
+    // lives in the single store.kbOptions string.
+
+    readonly property var capsIds: ["caps:escape", "ctrl:nocaps", "caps:swapescape", "caps:none"]
+    readonly property var composeIds: ["compose:ralt", "compose:menu"]
+    readonly property var grpIds: ["grp:alt_shift_toggle", "grp:win_space_toggle", "grp:caps_toggle"]
+    readonly property string swapId: "altwin:swap_alt_win"
+
+    function optTokens() {
+        var raw = String(store.kbOptions || "").split(",");
+        var out = [];
+        for (var i = 0; i < raw.length; i++) {
+            var t = raw[i].trim();
+            if (t.length)
+                out.push(t);
+        }
+        return out;
+    }
+    function pickFrom(ids) {
+        var toks = page.optTokens();
+        for (var i = 0; i < toks.length; i++)
+            if (ids.indexOf(toks[i]) !== -1)
+                return toks[i];
+        return "";
+    }
+    function knownIds() {
+        return page.capsIds.concat(page.composeIds).concat(page.grpIds).concat([page.swapId]);
+    }
+    function extraOptions() {
+        var known = page.knownIds();
+        var toks = page.optTokens();
+        var out = [];
+        for (var i = 0; i < toks.length; i++)
+            if (known.indexOf(toks[i]) === -1)
+                out.push(toks[i]);
+        return out.join(",");
+    }
+    // rebuild kb_options with one family replaced; "" drops the family.
+    function setOption(ids, value) {
+        var toks = page.optTokens();
+        var out = [];
+        for (var j = 0; j < toks.length; j++)
+            if (ids.indexOf(toks[j]) === -1)
+                out.push(toks[j]);
+        if (value.length)
+            out.push(value);
+        store.edit("kbOptions", out.join(","));
+    }
+    function setExtra(text) {
+        var known = page.knownIds();
+        var keep = [];
+        var toks = page.optTokens();
+        for (var i = 0; i < toks.length; i++)
+            if (known.indexOf(toks[i]) !== -1)
+                keep.push(toks[i]);
+        var raw = String(text || "").split(",");
+        for (var j = 0; j < raw.length; j++) {
+            var t = raw[j].trim();
+            if (t.length)
+                keep.push(t);
+        }
+        store.edit("kbOptions", keep.join(","));
+    }
+
+    // localectl converts the X11 keymap to the nearest console keymap too, so
+    // one privileged call covers the SDDM greeter AND the TTY. polkit prompts.
+    property string sysApplyState: ""
+    Process {
+        id: sysApplyProc
+        command: ["localectl", "set-x11-keymap",
+            String(store.kbLayout || "us"), "",
+            String(store.kbVariant || ""), String(store.kbOptions || "")]
+        onExited: (code, status) => {
+            page.sysApplyState = code === 0 ? "ok" : "err";
+            sysApplyClear.restart();
+        }
+    }
+    Timer {
+        id: sysApplyClear
+        interval: 6000
+        onTriggered: page.sysApplyState = ""
+    }
+
     // label left, entry right. commits on editing-finished (not per keystroke)
     // and re-binds to the draft on focus loss so Reset/Revert refresh the shown
     // text after a manual edit.
@@ -144,21 +284,101 @@ Item {
                     width: Math.min(parent.width, 460); label: "Layout"
                     fieldWidth: 240
                     options: page.layoutOptions
-                    current: store.kbLayout
-                    placeholder: store.kbLayout
-                    onChosen: (k) => store.edit("kbLayout", k)
+                    current: page.primaryLayout()
+                    placeholder: page.primaryLayout()
+                    onChosen: (k) => page.setLayouts(k, page.secondaryLayout())
+                }
+                Dropdown {
+                    width: Math.min(parent.width, 460); label: "Style"
+                    fieldWidth: 240
+                    options: page.variantOptions
+                    current: page.primaryVariant()
+                    placeholder: "Default"
+                    onChosen: (k) => page.setVariant(k)
+                }
+                Dropdown {
+                    width: Math.min(parent.width, 460); label: "Second layout"
+                    fieldWidth: 240
+                    options: [{ "key": "", "label": "None" }].concat(page.layoutOptions)
+                    current: page.secondaryLayout()
+                    placeholder: "None"
+                    onChosen: (k) => page.setLayouts(page.primaryLayout(), k)
+                }
+                ChoiceRow {
+                    width: Math.min(parent.width, 460); label: "Switch layouts"
+                    visible: page.secondaryLayout().length > 0
+                    options: [
+                        { "key": "", "label": "Off" },
+                        { "key": "grp:alt_shift_toggle", "label": "Alt+Shift" },
+                        { "key": "grp:win_space_toggle", "label": "Super+Space" }
+                    ]
+                    current: page.pickFrom(page.grpIds)
+                    onChosen: (k) => page.setOption(page.grpIds, k)
+                }
+            }
+
+            SettingSection {
+                width: parent.width
+                title: "KEY REMAPS"
+                ChoiceRow {
+                    width: Math.min(parent.width, 460); label: "Caps Lock"
+                    options: [
+                        { "key": "", "label": "Default" },
+                        { "key": "caps:escape", "label": "Escape" },
+                        { "key": "ctrl:nocaps", "label": "Ctrl" },
+                        { "key": "caps:swapescape", "label": "Swap Esc" },
+                        { "key": "caps:none", "label": "Off" }
+                    ]
+                    current: page.pickFrom(page.capsIds)
+                    onChosen: (k) => page.setOption(page.capsIds, k)
+                }
+                ToggleRow {
+                    width: Math.min(parent.width, 460); label: "Swap Alt and Super"
+                    checked: page.pickFrom([page.swapId]) === page.swapId
+                    onToggled: (v) => page.setOption([page.swapId], v ? page.swapId : "")
+                }
+                ChoiceRow {
+                    width: Math.min(parent.width, 460); label: "Compose key"
+                    options: [
+                        { "key": "", "label": "Off" },
+                        { "key": "compose:ralt", "label": "Right Alt" },
+                        { "key": "compose:menu", "label": "Menu" }
+                    ]
+                    current: page.pickFrom(page.composeIds)
+                    onChosen: (k) => page.setOption(page.composeIds, k)
                 }
                 TextFieldRow {
-                    width: Math.min(parent.width, 460); label: "Variant"
-                    placeholder: "e.g. dvorak, colemak\u2026"
-                    text: store.kbVariant
-                    onCommitted: (v) => store.edit("kbVariant", v)
+                    width: Math.min(parent.width, 460); label: "Extra options"
+                    placeholder: "raw xkb options, comma-separated\u2026"
+                    text: page.extraOptions()
+                    onCommitted: (v) => page.setExtra(v)
                 }
-                TextFieldRow {
-                    width: Math.min(parent.width, 460); label: "Options"
-                    placeholder: "e.g. ctrl:nocaps, grp:alt_shift_toggle\u2026"
-                    text: store.kbOptions
-                    onCommitted: (v) => store.edit("kbOptions", v)
+                Item {
+                    width: Math.min(parent.width, 460)
+                    height: 34
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width - sysBtn.width - 14
+                        text: page.sysApplyState === "ok" ? "Applied to login screen and console"
+                            : page.sysApplyState === "err" ? "Not applied (cancelled or failed)"
+                            : "Login screen and TTY keep their own keymap"
+                        elide: Text.ElideRight
+                        color: page.sysApplyState === "ok" ? Theme.ok
+                            : page.sysApplyState === "err" ? Theme.ember : Theme.faint
+                        font.family: Theme.font
+                        font.pixelSize: 12
+                    }
+                    HubButton {
+                        id: sysBtn
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        label: "Apply system-wide"
+                        icon: "check"
+                        enabled: !store.dirty && !sysApplyProc.running
+                        onClicked: sysApplyProc.running = true
+                    }
                 }
             }
 

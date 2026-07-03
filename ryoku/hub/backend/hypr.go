@@ -139,6 +139,12 @@ type Overrides struct {
 	Keybinds    []Keybind    `json:"keybinds"`
 	Anim        Anim         `json:"anim"`
 	LayerRules  []LayerRule  `json:"layerRules"`
+
+	// inputSaved: the store carries an explicit input section, i.e. the user has
+	// saved input settings through the hub at least once. genConfig then pins the
+	// kb_* keys unconditionally, so a saved layout (even "us") beats keyboard.lua,
+	// which loads earlier and would otherwise silently win.
+	inputSaved bool
 }
 
 // defaultOverrides mirrors the shipped Hyprland modules (decoration.lua,
@@ -194,9 +200,19 @@ func generatedLuaPath() string {
 
 // loadOverrides: read the store, overlay on the defaults. a partial or older
 // store still yields a complete object (missing fields keep the default).
+// while no input settings were ever saved, the kb_* baseline comes from the
+// live compositor (keyboard.lua may have seeded a non-us layout at install),
+// so the hub reports the truth instead of the hardcoded "us".
 func loadOverrides() Overrides {
 	o := defaultOverrides()
-	if b, err := os.ReadFile(hyprStorePath()); err == nil {
+	b, err := os.ReadFile(hyprStorePath())
+	if err == nil {
+		o.inputSaved = storeHasInput(b)
+	}
+	if !o.inputSaved {
+		liveKbDefaults(&o.Input)
+	}
+	if err == nil {
 		_ = json.Unmarshal(b, &o)
 	}
 	if o.Env == nil {
@@ -221,6 +237,48 @@ func loadOverrides() Overrides {
 		o.LayerRules = []LayerRule{}
 	}
 	return o
+}
+
+// storeHasInput reports whether the stored JSON carries an explicit input
+// section. saveOverrides always writes the full struct, so a present input key
+// means the user saved input settings at least once.
+func storeHasInput(b []byte) bool {
+	var probe struct {
+		Input json.RawMessage `json:"input"`
+	}
+	if json.Unmarshal(b, &probe) != nil {
+		return false
+	}
+	return len(probe.Input) > 0 && string(probe.Input) != "null"
+}
+
+// liveKbDefaults asks the running compositor for its effective kb_* values
+// (`hyprctl getoption -j`, read-only) so the unsaved baseline matches the real
+// session. on failure (headless, no hyprctl) the hardcoded defaults stand.
+func liveKbDefaults(in *Input) {
+	opts := []struct {
+		name string
+		dst  *string
+	}{
+		{"input:kb_layout", &in.KbLayout},
+		{"input:kb_variant", &in.KbVariant},
+		{"input:kb_options", &in.KbOptions},
+	}
+	for _, o := range opts {
+		b, err := exec.Command("hyprctl", "getoption", o.name, "-j").Output()
+		if err != nil {
+			continue
+		}
+		var v struct {
+			Str string `json:"str"`
+		}
+		if json.Unmarshal(b, &v) != nil {
+			continue
+		}
+		if s := strings.TrimSpace(v.Str); s != "" {
+			*o.dst = s
+		}
+	}
 }
 
 func saveOverrides(o Overrides) error {
@@ -263,13 +321,15 @@ func parseOverrides(s string) (Overrides, error) {
 	if err := json.Unmarshal([]byte(s), &o); err != nil {
 		return o, fmt.Errorf("parse overrides JSON: %w", err)
 	}
+	// a hub snapshot carries explicit input values; saving it pins the kb_* keys.
+	o.inputSaved = true
 	return o, nil
 }
 
 // runHypr: dispatch for `ryoku-hub hypr <sub> [arg]`.
 func runHypr(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("hypr needs get|defaults|save|preview|restore|cursors|layouts")
+		return fmt.Errorf("hypr needs get|defaults|save|preview|restore|cursors|layouts|variants")
 	}
 	switch args[0] {
 	case "get":
@@ -314,6 +374,11 @@ func runHypr(args []string) error {
 		return printJSON(listCursorThemes())
 	case "layouts":
 		return printJSON(listKbLayouts())
+	case "variants":
+		if len(args) < 2 {
+			return fmt.Errorf("hypr variants needs a layout code")
+		}
+		return printJSON(listKbVariants(args[1]))
 	case "themes":
 		return printJSON(listThemes())
 	case "theme":
@@ -419,7 +484,10 @@ func genLua(o Overrides, follow bool) string {
 }
 
 // genConfig: one hl.config({...}) holding only the general / decoration / input
-// / animations leaves that diverge from the defaults.
+// / animations leaves that diverge from the defaults. exception: once input
+// settings were saved, the kb_* keys are pinned unconditionally, because
+// keyboard.lua loads before settings.lua and a diffed-away "us" would let it
+// silently win over what the UI shows.
 func genConfig(o Overrides, follow bool) string {
 	d := defaultOverrides()
 	var general, deco, input []string
@@ -476,14 +544,21 @@ func genConfig(o Overrides, follow bool) string {
 	}
 
 	in, di := o.Input, d.Input
-	if in.KbLayout != di.KbLayout {
-		input = append(input, fmt.Sprintf("kb_layout = %s", luaStr(in.KbLayout)))
-	}
-	if in.KbVariant != di.KbVariant {
-		input = append(input, fmt.Sprintf("kb_variant = %s", luaStr(in.KbVariant)))
-	}
-	if in.KbOptions != di.KbOptions {
-		input = append(input, fmt.Sprintf("kb_options = %s", luaStr(in.KbOptions)))
+	if o.inputSaved {
+		input = append(input,
+			fmt.Sprintf("kb_layout = %s", luaStr(in.KbLayout)),
+			fmt.Sprintf("kb_variant = %s", luaStr(in.KbVariant)),
+			fmt.Sprintf("kb_options = %s", luaStr(in.KbOptions)))
+	} else {
+		if in.KbLayout != di.KbLayout {
+			input = append(input, fmt.Sprintf("kb_layout = %s", luaStr(in.KbLayout)))
+		}
+		if in.KbVariant != di.KbVariant {
+			input = append(input, fmt.Sprintf("kb_variant = %s", luaStr(in.KbVariant)))
+		}
+		if in.KbOptions != di.KbOptions {
+			input = append(input, fmt.Sprintf("kb_options = %s", luaStr(in.KbOptions)))
+		}
 	}
 	if in.FollowMouse != di.FollowMouse {
 		input = append(input, fmt.Sprintf("follow_mouse = %d", in.FollowMouse))
@@ -832,6 +907,66 @@ func listKbLayouts() []map[string]string {
 		for _, c := range []string{"us", "gb", "de", "fr", "es", "it", "ru", "jp"} {
 			out = append(out, map[string]string{"code": c, "name": strings.ToUpper(c)})
 		}
+	}
+	return out
+}
+
+// listKbVariants: X11 variant codes for one layout from the xkb rules base,
+// each as {code, name}. an unknown layout (or an absent base) yields [].
+func listKbVariants(layout string) []map[string]string {
+	out := parseXkbVariants("/usr/share/X11/xkb/rules/base.lst", layout)
+	if len(out) == 0 {
+		out = parseXkbVariants("/usr/share/X11/xkb/rules/evdev.lst", layout)
+	}
+	if out == nil {
+		out = []map[string]string{}
+	}
+	return out
+}
+
+// parseXkbVariants reads the "! variant" block of an xkb rules .lst file and
+// keeps the entries for one layout. lines look like
+// "  <variant>  <layout>: <description>"; the layout field can carry several
+// comma-separated codes, so it is split before matching.
+func parseXkbVariants(path, layout string) []map[string]string {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	var out []map[string]string
+	in := false
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		t := strings.TrimSpace(sc.Text())
+		if strings.HasPrefix(t, "!") {
+			in = t == "! variant"
+			continue
+		}
+		if !in || t == "" {
+			continue
+		}
+		fields := strings.Fields(t)
+		if len(fields) < 2 {
+			continue
+		}
+		code := fields[0]
+		rest := strings.TrimSpace(strings.TrimPrefix(t, code))
+		layouts, desc, ok := strings.Cut(rest, ":")
+		if !ok {
+			continue
+		}
+		match := false
+		for _, l := range strings.Split(layouts, ",") {
+			if strings.TrimSpace(l) == layout {
+				match = true
+				break
+			}
+		}
+		if !match {
+			continue
+		}
+		out = append(out, map[string]string{"code": code, "name": strings.TrimSpace(desc)})
 	}
 	return out
 }

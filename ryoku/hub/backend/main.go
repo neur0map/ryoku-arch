@@ -91,6 +91,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  ryoku-hub config get <key>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub config set <key> <value>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub hypr get|defaults|cursors|layouts")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub hypr variants <layout>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub hypr save|preview <json>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub hypr restore")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub extras catalog|cache")
