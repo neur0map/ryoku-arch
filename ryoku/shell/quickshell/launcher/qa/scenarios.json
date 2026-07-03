@@ -9,7 +9,9 @@
         "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'toggle\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/t1.out; sleep .7; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/s1.json",
         "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'toggle\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/dev/null; sleep .7"
       ],
-      "asserts": [".open == false"],
+      "asserts": [
+        ".open == false"
+      ],
       "shell_asserts": [
         "grep -q '^ok' /tmp/launcher-qa-fixtures/t1.out",
         "jq -e '.open == true' /tmp/launcher-qa-fixtures/s1.json >/dev/null"
@@ -22,21 +24,40 @@
       "steps": [
         "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'frobnicate\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/err.out"
       ],
-      "asserts": [".open == false"],
-      "shell_asserts": ["grep -q '^err' /tmp/launcher-qa-fixtures/err.out"]
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "grep -q '^err' /tmp/launcher-qa-fixtures/err.out"
+      ]
     },
     {
       "id": "show-resets-clean",
       "name": "Reopening resets query, grid, help to a clean rest state",
       "covers": "Launcher.onShownChanged reset",
-      "steps": ["show", "type kitty", "hide", "show"],
-      "asserts": [".open == true", ".query == \"\"", ".resting == true", ".gridMode == false", ".help == false"]
+      "steps": [
+        "show",
+        "type kitty",
+        "hide",
+        "show"
+      ],
+      "asserts": [
+        ".open == true",
+        ".query == \"\"",
+        ".resting == true",
+        ".gridMode == false",
+        ".help == false"
+      ]
     },
     {
       "id": "app-exact",
       "name": "Exact app name puts the app first with Launch verb",
       "covers": "apps provider ranking + primary action",
-      "steps": ["show", "type kitty", "settle"],
+      "steps": [
+        "show",
+        "type kitty",
+        "settle"
+      ],
       "asserts": [
         ".resultCount >= 1",
         ".results[0].title == \"kitty\"",
@@ -49,22 +70,40 @@
       "id": "app-prefix-rank",
       "name": "Name-prefix match outranks looser matches",
       "covers": "fuzzy 3-tier ranking",
-      "steps": ["show", "type neo", "settle"],
-      "asserts": [".results[0].title | test(\"^Neo\"; \"i\")"]
+      "steps": [
+        "show",
+        "type neo",
+        "settle"
+      ],
+      "asserts": [
+        ".results[0].title | test(\"^Neo\"; \"i\")"
+      ]
     },
     {
       "id": "app-subsequence",
       "name": "Character subsequence still finds the app",
       "covers": "fuzzy tier 3 subsequence",
-      "steps": ["show", "type fntfrg", "settle"],
-      "asserts": ["[.results[] | select(.title == \"FontForge\")] | length == 1"]
+      "steps": [
+        "show",
+        "type fntfrg",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.title == \"FontForge\")] | length == 1"
+      ]
     },
     {
       "id": "app-genericname",
       "name": "Match via generic name / keywords (terminal finds kitty)",
       "covers": "fuzzy haystack includes genericName+keywords",
-      "steps": ["show", "type terminal", "settle"],
-      "asserts": ["[.results[] | select(.title == \"kitty\" and .type == \"App\")] | length == 1"]
+      "steps": [
+        "show",
+        "type terminal",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.title == \"kitty\" and .type == \"App\")] | length == 1"
+      ]
     },
     {
       "id": "app-launch-frecency",
@@ -72,9 +111,15 @@
       "covers": "activation, execDetached, Frecency.bump persistence",
       "steps": [
         "sh mkdir -p /tmp/launcher-qa-fixtures; hyprctl clients -j | jq '[.[]|select(.class==\"kitty\")]|length' >/tmp/launcher-qa-fixtures/kitty.before; jq -r '[to_entries[]|select(.key|test(\"kitty\";\"i\"))|.value] | add // 0' ~/.local/state/ryoku/launcher-usage.json 2>/dev/null >/tmp/launcher-qa-fixtures/frec.before || echo 0 >/tmp/launcher-qa-fixtures/frec.before",
-        "show", "type kitty", "settle", "key Return", "sleep 2"
+        "show",
+        "type kitty",
+        "settle",
+        "key Return",
+        "sleep 2"
       ],
-      "asserts": [".open == false"],
+      "asserts": [
+        ".open == false"
+      ],
       "shell_asserts": [
         "b=$(cat /tmp/launcher-qa-fixtures/kitty.before); a=$(hyprctl clients -j | jq '[.[]|select(.class==\"kitty\")]|length'); [ \"$a\" -gt \"$b\" ]",
         "b=$(cat /tmp/launcher-qa-fixtures/frec.before); a=$(jq -r '[to_entries[]|select(.key|test(\"kitty\";\"i\"))|.value] | add // 0' ~/.local/state/ryoku/launcher-usage.json); [ \"$a\" -gt \"$b\" ]"
@@ -87,7 +132,11 @@
       "id": "nomatch-web-fallback",
       "name": "Unmatched plain query still offers exactly the web fallback row",
       "covers": "web provider low-ranked fallback",
-      "steps": ["show", "type qzwxecrv", "settle"],
+      "steps": [
+        "show",
+        "type qzwxecrv",
+        "settle"
+      ],
       "asserts": [
         ".resultCount == 1",
         ".results[0].subtitle == \"Search Google\"",
@@ -99,66 +148,141 @@
       "id": "grid-open",
       "name": "Ctrl+A at rest opens the all-apps grid",
       "covers": "gridMode toggle",
-      "steps": ["show", "ctrl a", "sleep 0.6"],
-      "asserts": [".gridMode == true", ".open == true"],
+      "steps": [
+        "show",
+        "ctrl a",
+        "sleep 0.6"
+      ],
+      "asserts": [
+        ".gridMode == true",
+        ".open == true"
+      ],
       "screenshot": true
     },
     {
       "id": "grid-escape-back",
       "name": "Escape leaves the grid but keeps the palette open",
       "covers": "escape precedence: grid before close",
-      "steps": ["show", "ctrl a", "sleep 0.5", "key Escape", "sleep 0.4"],
-      "asserts": [".gridMode == false", ".open == true", ".resting == true"]
+      "steps": [
+        "show",
+        "ctrl a",
+        "sleep 0.5",
+        "key Escape",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".gridMode == false",
+        ".open == true",
+        ".resting == true"
+      ]
     },
     {
       "id": "help-open",
       "name": "F1 opens the help cheat-sheet",
       "covers": "help panel toggle",
-      "steps": ["show", "key F1", "sleep 0.6"],
-      "asserts": [".help == true", ".open == true"],
+      "steps": [
+        "show",
+        "key F1",
+        "sleep 0.6"
+      ],
+      "asserts": [
+        ".help == true",
+        ".open == true"
+      ],
       "screenshot": true
     },
     {
       "id": "help-escape-back",
       "name": "Escape leaves help but keeps the palette open",
       "covers": "escape precedence: help before close",
-      "steps": ["show", "key F1", "sleep 0.5", "key Escape", "sleep 0.4"],
-      "asserts": [".help == false", ".open == true"]
+      "steps": [
+        "show",
+        "key F1",
+        "sleep 0.5",
+        "key Escape",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".help == false",
+        ".open == true"
+      ]
     },
     {
       "id": "nav-down-moves",
       "name": "Arrow keys move the selection",
       "covers": "keyboard selection movement",
-      "steps": ["show", "type a", "settle", "key Down Down", "sleep 0.3"],
-      "asserts": [".selectedIndex == 2", ".resultCount >= 3"]
+      "steps": [
+        "show",
+        "type a",
+        "settle",
+        "key Down Down",
+        "sleep 0.3"
+      ],
+      "asserts": [
+        ".selectedIndex == 2",
+        ".resultCount >= 3"
+      ]
     },
     {
       "id": "nav-clamp-end",
       "name": "Selection clamps at the last result",
       "covers": "selection clamping",
-      "steps": ["show", "type kitty", "settle", "key Down Down Down Down Down Down Down Down", "sleep 0.3"],
-      "asserts": [".selectedIndex == .resultCount - 1"]
+      "steps": [
+        "show",
+        "type kitty",
+        "settle",
+        "key Down Down Down Down Down Down Down Down",
+        "sleep 0.3"
+      ],
+      "asserts": [
+        ".selectedIndex == .resultCount - 1"
+      ]
     },
     {
       "id": "panel-open",
       "name": "Ctrl+K opens the action panel for the selected row",
       "covers": "ActionPanel open + selectedActions",
-      "steps": ["show", "type kitty", "settle", "ctrl k", "sleep 0.5"],
-      "asserts": [".panelOpen == true", ".selectedActions | length >= 1"],
+      "steps": [
+        "show",
+        "type kitty",
+        "settle",
+        "ctrl k",
+        "sleep 0.5"
+      ],
+      "asserts": [
+        ".panelOpen == true",
+        ".selectedActions | length >= 1"
+      ],
       "screenshot": true
     },
     {
       "id": "panel-escape-first",
       "name": "Escape closes the action panel before anything else",
       "covers": "escape precedence: panel first",
-      "steps": ["show", "type kitty", "settle", "ctrl k", "sleep 0.4", "key Escape", "sleep 0.4"],
-      "asserts": [".panelOpen == false", ".open == true", ".query == \"kitty\""]
+      "steps": [
+        "show",
+        "type kitty",
+        "settle",
+        "ctrl k",
+        "sleep 0.4",
+        "key Escape",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".panelOpen == false",
+        ".open == true",
+        ".query == \"kitty\""
+      ]
     },
     {
       "id": "actions-catalog",
       "name": "Bare / lists the full 24-action catalog with tabs",
       "covers": "actions provider + category tabs browse",
-      "steps": ["show", "type /", "settle"],
+      "steps": [
+        "show",
+        "type /",
+        "settle"
+      ],
       "asserts": [
         ".actionMode == true",
         ".modeLabel == \"ACTIONS\"",
@@ -171,26 +295,47 @@
       "id": "actions-filter-exact",
       "name": "/night narrows to exactly Night Light",
       "covers": "action fuzzy filter",
-      "steps": ["show", "type /night", "settle"],
-      "asserts": [".resultCount == 1", ".results[0].title == \"Night Light\""]
+      "steps": [
+        "show",
+        "type /night",
+        "settle"
+      ],
+      "asserts": [
+        ".resultCount == 1",
+        ".results[0].title == \"Night Light\""
+      ]
     },
     {
       "id": "actions-category-word",
       "name": "/media matches the whole Media category",
       "covers": "category keyword matching",
-      "steps": ["show", "type /media", "settle"],
-      "asserts": [".resultCount == 5", "[.results[].type] | unique == [\"Media\"]"]
+      "steps": [
+        "show",
+        "type /media",
+        "settle"
+      ],
+      "asserts": [
+        ".resultCount == 5",
+        "[.results[].type] | unique == [\"Media\"]"
+      ]
     },
     {
       "id": "actions-tab-cycle",
       "name": "Tab cycles category tabs and narrows the list, Shift+Tab restores",
       "covers": "CategoryTabs cycle + provider narrowing",
       "steps": [
-        "show", "type /", "settle", "key Tab", "sleep 0.5",
+        "show",
+        "type /",
+        "settle",
+        "key Tab",
+        "sleep 0.5",
         "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/tabs.state",
-        "key ISO_Left_Tab", "sleep 0.5"
+        "key ISO_Left_Tab",
+        "sleep 0.5"
       ],
-      "asserts": [".resultCount == 24"],
+      "asserts": [
+        ".resultCount == 24"
+      ],
       "shell_asserts": [
         "jq -e '([.results[].type] | unique == [\"System\"]) and .resultCount < 24' /tmp/launcher-qa-fixtures/tabs.state >/dev/null"
       ]
@@ -199,7 +344,11 @@
       "id": "actions-subsequence",
       "name": "/scn subsequence-matches Screenshot and Screen Record",
       "covers": "action subsequence matching",
-      "steps": ["show", "type /scn", "settle"],
+      "steps": [
+        "show",
+        "type /scn",
+        "settle"
+      ],
       "asserts": [
         "[.results[] | select(.title == \"Screenshot\")] | length == 1",
         "[.results[] | select(.title == \"Screen Record\")] | length == 1"
@@ -209,7 +358,11 @@
       "id": "calc-prefix",
       "name": "=2+2 shows 4 in CALC mode",
       "covers": "calc provider prefix mode",
-      "steps": ["show", "type =2+2", "settle"],
+      "steps": [
+        "show",
+        "type =2+2",
+        "settle"
+      ],
       "asserts": [
         ".modeLabel == \"CALC\"",
         ".results[0].title == \"4\"",
@@ -221,23 +374,47 @@
       "id": "calc-numeric-fallback",
       "name": "Numeric-looking plain query gets a calc row without prefix",
       "covers": "calc numericFallback in fan-out",
-      "steps": ["show", "type 17*3", "settle"],
-      "asserts": ["[.results[] | select(.type == \"Calc\" and .title == \"51\")] | length == 1"]
+      "steps": [
+        "show",
+        "type 17*3",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.type == \"Calc\" and .title == \"51\")] | length == 1"
+      ]
     },
     {
       "id": "calc-units",
       "name": "Unit conversion works (=100 cm to m)",
       "covers": "qalc unit conversion pass-through",
-      "steps": ["show", "type =100 cm to m", "settle"],
-      "asserts": [".results[0].type == \"Calc\"", ".results[0].title | test(\"^1\\\\s?m$\")"]
+      "steps": [
+        "show",
+        "type =100 cm to m",
+        "settle"
+      ],
+      "asserts": [
+        ".results[0].type == \"Calc\"",
+        ".results[0].title | test(\"^1\\\\s?m$\")"
+      ]
     },
     {
       "id": "calc-copy-on-enter",
       "name": "Enter on a calc result copies it to the clipboard and closes",
       "covers": "calc Copy action",
-      "steps": ["sh wl-copy qa-sentinel-before", "show", "type =6*7", "settle", "key Return", "sleep 1"],
-      "asserts": [".open == false"],
-      "shell_asserts": ["[ \"$(wl-paste -n 2>/dev/null)\" = \"42\" ]"]
+      "steps": [
+        "sh wl-copy qa-sentinel-before",
+        "show",
+        "type =6*7",
+        "settle",
+        "key Return",
+        "sleep 1"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "[ \"$(wl-paste -n 2>/dev/null)\" = \"42\" ]"
+      ]
     },
     {
       "id": "clip-list",
@@ -245,9 +422,14 @@
       "covers": "clipboard provider listing",
       "steps": [
         "sh printf 'qa-clip-alpha-7391' | cliphist store",
-        "show", "type ;", "settle"
+        "show",
+        "type ;",
+        "settle"
       ],
-      "asserts": [".modeLabel == \"CLIPBOARD\"", ".resultCount >= 1"],
+      "asserts": [
+        ".modeLabel == \"CLIPBOARD\"",
+        ".resultCount >= 1"
+      ],
       "screenshot": true
     },
     {
@@ -256,9 +438,13 @@
       "covers": "clipboard substring filter",
       "steps": [
         "sh printf 'qa-clip-alpha-7391' | cliphist store",
-        "show", "type ;qa-clip", "settle"
+        "show",
+        "type ;qa-clip",
+        "settle"
       ],
-      "asserts": ["[.results[] | select(.title | contains(\"qa-clip-alpha-7391\"))] | length >= 1"]
+      "asserts": [
+        "[.results[] | select(.title | contains(\"qa-clip-alpha-7391\"))] | length >= 1"
+      ]
     },
     {
       "id": "clip-recopy",
@@ -266,11 +452,52 @@
       "covers": "clipboard Copy action",
       "steps": [
         "sh printf 'qa-clip-alpha-7391' | cliphist store; wl-copy qa-other-content",
-        "show", "type ;qa-clip-alpha", "settle", "key Return", "sleep 1"
+        "show",
+        "type ;qa-clip-alpha",
+        "settle",
+        "key Return",
+        "sleep 1"
       ],
-      "asserts": [".open == false"],
-      "shell_asserts": ["[ \"$(wl-paste -n 2>/dev/null)\" = \"qa-clip-alpha-7391\" ]"],
-      "teardown": ["cliphist list | grep qa-clip | while read -r l; do printf '%s' \"$l\" | cliphist delete; done; wl-copy -c"]
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "[ \"$(wl-paste -n 2>/dev/null)\" = \"qa-clip-alpha-7391\" ]"
+      ],
+      "teardown": [
+        "cliphist list | grep qa-clip | while read -r l; do printf '%s' \"$l\" | cliphist delete; done; wl-copy -c"
+      ]
+    },
+    {
+      "id": "clip-delete-refresh",
+      "name": "Deleting a history entry removes it from cliphist and the list",
+      "covers": "clipboard Delete action end to end",
+      "steps": [
+        "sh printf 'qa-del-one' | cliphist store; sleep 0.2; printf 'qa-del-two' | cliphist store",
+        "show",
+        "type ;qa-del",
+        "settle",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/del.before",
+        "ctrl k",
+        "sleep 0.4",
+        "key Down",
+        "key Return",
+        "sleep 1.2",
+        "show",
+        "type ;qa-del",
+        "settle"
+      ],
+      "asserts": [
+        ".resultCount == 1",
+        "[.results[] | select(.title | contains(\"qa-del-one\"))] | length == 1"
+      ],
+      "shell_asserts": [
+        "jq -e '.resultCount == 2' /tmp/launcher-qa-fixtures/del.before >/dev/null",
+        "! cliphist list | grep -q qa-del-two"
+      ],
+      "teardown": [
+        "cliphist list | grep qa-del | while read -r l; do printf '%s' \"$l\" | cliphist delete; done"
+      ]
     },
     {
       "id": "find-file",
@@ -278,7 +505,9 @@
       "covers": "find provider file mode",
       "steps": [
         "sh touch ~/qa_probe_launcher.txt",
-        "show", "type /file qa_probe_launcher", "settle"
+        "show",
+        "type /file qa_probe_launcher",
+        "settle"
       ],
       "asserts": [
         ".modeLabel == \"FILE\"",
@@ -293,10 +522,17 @@
       "covers": "find provider folder mode",
       "steps": [
         "sh mkdir -p ~/qa_probe_dir",
-        "show", "type /folder qa_probe_dir", "settle"
+        "show",
+        "type /folder qa_probe_dir",
+        "settle"
       ],
-      "asserts": [".modeLabel == \"FOLDER\"", "[.results[] | select(.title == \"qa_probe_dir\")] | length == 1"],
-      "teardown": ["rmdir ~/qa_probe_dir 2>/dev/null || true"]
+      "asserts": [
+        ".modeLabel == \"FOLDER\"",
+        "[.results[] | select(.title == \"qa_probe_dir\")] | length == 1"
+      ],
+      "teardown": [
+        "rmdir ~/qa_probe_dir 2>/dev/null || true"
+      ]
     },
     {
       "id": "find-image",
@@ -304,26 +540,49 @@
       "covers": "find provider image extension filter",
       "steps": [
         "sh mkdir -p ~/Pictures; printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' | base64 -d > ~/Pictures/qa_probe_img.png",
-        "show", "type /image qa_probe_img", "settle"
+        "show",
+        "type /image qa_probe_img",
+        "settle"
       ],
-      "asserts": [".modeLabel == \"IMAGE\"", "[.results[] | select(.title == \"qa_probe_img.png\")] | length == 1"],
-      "teardown": ["rm -f ~/Pictures/qa_probe_img.png"]
+      "asserts": [
+        ".modeLabel == \"IMAGE\"",
+        "[.results[] | select(.title == \"qa_probe_img.png\")] | length == 1"
+      ],
+      "teardown": [
+        "rm -f ~/Pictures/qa_probe_img.png"
+      ]
     },
     {
       "id": "find-empty-state",
       "name": "/file with no hits shows the empty state, not a hang",
       "covers": "find empty result + No matches UI",
-      "steps": ["show", "type /file zzzznoexistfile", "settle"],
-      "asserts": [".resultCount == 0", ".searching == false"],
+      "steps": [
+        "show",
+        "type /file zzzznoexistfile",
+        "settle"
+      ],
+      "asserts": [
+        ".resultCount == 0",
+        ".searching == false"
+      ],
       "screenshot": true,
-      "teardown": ["rm -f ~/qa_probe_launcher.txt"]
+      "teardown": [
+        "rm -f ~/qa_probe_launcher.txt"
+      ]
     },
     {
       "id": "pkg-search",
       "name": "> searches packages across sources",
       "covers": "packages provider gpk search",
-      "steps": ["show", "type >firefox", "settle 40"],
-      "asserts": [".modeLabel == \"PACKAGE\"", "[.results[] | select(.title | test(\"firefox\"; \"i\"))] | length >= 1"],
+      "steps": [
+        "show",
+        "type >firefox",
+        "settle 40"
+      ],
+      "asserts": [
+        ".modeLabel == \"PACKAGE\"",
+        "[.results[] | select(.title | test(\"firefox\"; \"i\"))] | length >= 1"
+      ],
       "screenshot": true,
       "network": true
     },
@@ -331,17 +590,45 @@
       "id": "pkg-installed-row",
       "name": ">kitty surfaces the installed package",
       "covers": "packages verb/installed marker",
-      "steps": ["show", "type >kitty", "settle 40"],
-      "asserts": ["[.results[] | select((.title | test(\"^kitty\\\\s\")) and (.subtitle | test(\"^pacman\")))] | length >= 1"],
+      "steps": [
+        "show",
+        "type >kitty",
+        "settle 40"
+      ],
+      "asserts": [
+        "[.results[] | select((.title | test(\"^kitty\\\\s\")) and (.subtitle | test(\"^pacman\")))] | length >= 1"
+      ],
       "screenshot": true,
       "network": true
+    },
+    {
+      "id": "pkg-fast-lane",
+      "name": "Package search shows local pacman/aur rows within seconds",
+      "covers": "packages two-phase fast lane",
+      "steps": [
+        "show",
+        "type >ripgrep",
+        "settle 8"
+      ],
+      "asserts": [
+        "[.results[] | select(.title | test(\"^ripgrep\"))] | length >= 1"
+      ],
+      "screenshot": true
     },
     {
       "id": "web-prefix-answer",
       "name": "? query fetches a DDG instant answer panel",
       "covers": "web provider instant answers + AnswerPanel",
-      "steps": ["show", "type ?what is nmap", "settle 15", "sleep 1"],
-      "asserts": [".modeLabel == \"WEB\"", ".answerMode == true"],
+      "steps": [
+        "show",
+        "type ?what is nmap",
+        "settle 15",
+        "sleep 1"
+      ],
+      "asserts": [
+        ".modeLabel == \"WEB\"",
+        ".answerMode == true"
+      ],
       "screenshot": true,
       "network": true
     },
@@ -349,15 +636,28 @@
       "id": "web-bang-engine",
       "name": "?!gh routes the search row to GitHub",
       "covers": "bang engine routing",
-      "steps": ["show", "type ?!gh quickshell", "settle"],
-      "asserts": ["[.results[] | select(.subtitle == \"Search GitHub\")] | length == 1"]
+      "steps": [
+        "show",
+        "type ?!gh quickshell",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.subtitle == \"Search GitHub\")] | length == 1"
+      ]
     },
     {
       "id": "web-plain-no-answer",
       "name": "Plain unprefixed query never fires the answer fetch",
       "covers": "web fallback row without DDG fetch",
-      "steps": ["show", "type nmap", "settle"],
-      "asserts": [".answerMode == false", "[.results[] | select(.subtitle == \"Search Google\")] | length == 1"]
+      "steps": [
+        "show",
+        "type nmap",
+        "settle"
+      ],
+      "asserts": [
+        ".answerMode == false",
+        "[.results[] | select(.subtitle == \"Search Google\")] | length == 1"
+      ]
     },
     {
       "id": "win-row",
@@ -365,7 +665,9 @@
       "covers": "windows provider listing",
       "steps": [
         "sh kitty --title qa-probe-win sh -c 'sleep 180' & sleep 1.5",
-        "show", "type qa-probe-win", "settle"
+        "show",
+        "type qa-probe-win",
+        "settle"
       ],
       "asserts": [
         "[.results[] | select(.title == \"qa-probe-win\" and .type == \"Window\" and .subtitle == \"kitty\")] | length == 1"
@@ -382,10 +684,18 @@
       "steps": [
         "sh hyprctl activewindow -j | jq -r .address >/tmp/launcher-qa-fixtures/orig.addr; kitty --title qa-probe-win sh -c 'sleep 180' & sleep 1.5; hyprctl dispatch \"hl.dsp.focus({ window = \\\"address:$(cat /tmp/launcher-qa-fixtures/orig.addr)\\\" })\"",
         "sleep 0.5",
-        "show", "type qa-probe-win", "settle", "key Return", "sleep 1.5"
+        "show",
+        "type qa-probe-win",
+        "settle",
+        "key Return",
+        "sleep 1.5"
       ],
-      "asserts": [".open == false"],
-      "shell_asserts": ["[ \"$(hyprctl activewindow -j | jq -r .title)\" = \"qa-probe-win\" ]"],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "[ \"$(hyprctl activewindow -j | jq -r .title)\" = \"qa-probe-win\" ]"
+      ],
       "teardown": [
         "pid=$(hyprctl clients -j | jq -r '.[]|select(.title==\"qa-probe-win\").pid' | head -1); [ -n \"$pid\" ] && kill $pid || true",
         "o=$(cat /tmp/launcher-qa-fixtures/orig.addr 2>/dev/null); [ -n \"$o\" ] && hyprctl dispatch \"hl.dsp.focus({ window = \\\"address:$o\\\" })\" || true"
@@ -397,16 +707,23 @@
       "covers": "snippets provider + placeholder expansion",
       "steps": [
         "sh mkdir -p ~/.config/ryoku; printf '[{\"name\":\"qa-sig\",\"body\":\"QA-BODY {date}\"}]' > ~/.config/ryoku/launcher-snippets.json; wl-copy qa-sentinel; sleep 0.5",
-        "show", "type qa-sig", "settle",
+        "show",
+        "type qa-sig",
+        "settle",
         "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/snip.state",
-        "key Return", "sleep 1"
+        "key Return",
+        "sleep 1"
       ],
-      "asserts": [".open == false"],
+      "asserts": [
+        ".open == false"
+      ],
       "shell_asserts": [
         "jq -e '[.results[] | select(.title == \"qa-sig\" and .type == \"Snippet\")] | length == 1' /tmp/launcher-qa-fixtures/snip.state >/dev/null",
         "wl-paste -n 2>/dev/null | grep -q '^QA-BODY 20'"
       ],
-      "teardown": ["rm -f ~/.config/ryoku/launcher-snippets.json; wl-copy -c"]
+      "teardown": [
+        "rm -f ~/.config/ryoku/launcher-snippets.json; wl-copy -c"
+      ]
     },
     {
       "id": "quicklink-row",
@@ -414,10 +731,33 @@
       "covers": "quicklinks provider",
       "steps": [
         "sh mkdir -p ~/.config/ryoku; printf '[{\"name\":\"qa wiki\",\"url\":\"https://wiki.archlinux.org/index.php?search={query}\"}]' > ~/.config/ryoku/launcher-quicklinks.json; sleep 0.5",
-        "show", "type qa wiki", "settle"
+        "show",
+        "type qa wiki",
+        "settle"
       ],
-      "asserts": ["[.results[] | select(.title == \"qa wiki\" and .type == \"Quicklink\")] | length == 1"],
-      "teardown": ["rm -f ~/.config/ryoku/launcher-quicklinks.json"]
+      "asserts": [
+        "[.results[] | select(.title == \"qa wiki\" and .type == \"Quicklink\")] | length == 1"
+      ],
+      "teardown": [
+        "rm -f ~/.config/ryoku/launcher-quicklinks.json"
+      ]
+    },
+    {
+      "id": "quicklink-query-routing",
+      "name": "Quicklink with {query} accepts trailing search text",
+      "covers": "snippets keyword-prefix routing into {query}",
+      "steps": [
+        "sh mkdir -p ~/.config/ryoku; printf '[{\"name\":\"qa wiki\",\"url\":\"https://wiki.archlinux.org/index.php?search={query}\"}]' > ~/.config/ryoku/launcher-quicklinks.json; sleep 0.5",
+        "show",
+        "type qa wiki pacman",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.title == \"qa wiki\" and .type == \"Quicklink\")] | length == 1"
+      ],
+      "teardown": [
+        "rm -f ~/.config/ryoku/launcher-quicklinks.json"
+      ]
     },
     {
       "id": "script-provider",
@@ -425,37 +765,66 @@
       "covers": "script provider rofi protocol pass 1",
       "steps": [
         "sh mkdir -p /tmp/launcher-qa-fixtures ~/.config/ryoku; printf '#!/bin/sh\\necho \"$ROFI_RETV|$ROFI_INFO|$1\" >> /tmp/launcher-qa-fixtures/qaz.log\\nprintf \"QA Row One\\\\nQA Row Two\\\\n\"\\n' > /tmp/launcher-qa-fixtures/qaz.sh; chmod +x /tmp/launcher-qa-fixtures/qaz.sh; printf '[{\"keyword\":\"qaz\",\"name\":\"QA Script\",\"exec\":\"/tmp/launcher-qa-fixtures/qaz.sh\"}]' > ~/.config/ryoku/launcher-scripts.json; rm -f /tmp/launcher-qa-fixtures/qaz.log; sleep 0.5",
-        "show", "type qaz hello", "settle"
+        "show",
+        "type qaz hello",
+        "settle"
       ],
       "asserts": [
         "[.results[] | select(.title == \"QA Row One\")] | length == 1",
         "[.results[] | select(.title == \"QA Row Two\")] | length == 1"
       ],
-      "shell_asserts": ["grep -q '^0|hello|' /tmp/launcher-qa-fixtures/qaz.log"],
-      "teardown": ["rm -f ~/.config/ryoku/launcher-scripts.json"]
+      "shell_asserts": [
+        "grep -q '^0|hello|' /tmp/launcher-qa-fixtures/qaz.log"
+      ],
+      "teardown": [
+        "rm -f ~/.config/ryoku/launcher-scripts.json"
+      ]
     },
     {
       "id": "prefix-chip-modes",
       "name": "Prefix chips label every routed mode correctly",
       "covers": "SearchRow mode chip routing",
       "steps": [
-        "show", "type ;", "sleep 0.4",
+        "show",
+        "type ;",
+        "sleep 0.4",
         "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S | jq -r .modeLabel >/tmp/launcher-qa-fixtures/chips.out",
-        "hide", "show", "type =1", "sleep 0.4",
+        "hide",
+        "show",
+        "type =1",
+        "sleep 0.4",
         "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S | jq -r .modeLabel >>/tmp/launcher-qa-fixtures/chips.out",
-        "hide", "show", "type @x", "sleep 0.4",
+        "hide",
+        "show",
+        "type @x",
+        "sleep 0.4",
         "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S | jq -r .modeLabel >>/tmp/launcher-qa-fixtures/chips.out",
-        "hide", "show", "type /folder x", "sleep 0.4"
+        "hide",
+        "show",
+        "type /folder x",
+        "sleep 0.4"
       ],
-      "asserts": [".modeLabel == \"FOLDER\""],
-      "shell_asserts": ["printf 'CLIPBOARD\\nCALC\\nYT MUSIC\\n' | diff - /tmp/launcher-qa-fixtures/chips.out"]
+      "asserts": [
+        ".modeLabel == \"FOLDER\""
+      ],
+      "shell_asserts": [
+        "printf 'CLIPBOARD\\nCALC\\nYT MUSIC\\n' | diff - /tmp/launcher-qa-fixtures/chips.out"
+      ]
     },
     {
       "id": "yt-search",
       "name": "@ searches YT Music and lists playable tracks",
       "covers": "ytmusic provider InnerTube search",
-      "steps": ["show", "type @never gonna give you up", "settle 25", "sleep 1"],
-      "asserts": [".modeLabel == \"YT MUSIC\"", ".resultCount >= 1"],
+      "steps": [
+        "show",
+        "type @never gonna give you up",
+        "settle 25",
+        "sleep 1"
+      ],
+      "asserts": [
+        ".modeLabel == \"YT MUSIC\"",
+        ".resultCount >= 1"
+      ],
       "screenshot": true,
       "network": true
     },
@@ -463,8 +832,14 @@
       "id": "yt-link-row",
       "name": "Pasted YouTube link surfaces a one-tap Play row unprefixed",
       "covers": "ytmusic urlFallback link parse",
-      "steps": ["show", "type https://www.youtube.com/watch?v=dQw4w9WgXcQ", "settle 15"],
-      "asserts": ["[.results[] | select((.title + .subtitle + .verb) | test(\"play\"; \"i\"))] | length >= 1"],
+      "steps": [
+        "show",
+        "type https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "settle 15"
+      ],
+      "asserts": [
+        "[.results[] | select((.title + .subtitle + .verb) | test(\"play\"; \"i\"))] | length >= 1"
+      ],
       "screenshot": true,
       "network": true
     },
@@ -472,24 +847,44 @@
       "id": "ask-mode-ui",
       "name": "Backslash enters Rashin ask mode with RASHIN chip",
       "covers": "ask mode routing + panel",
-      "steps": ["show", "type \\what is ryoku", "sleep 0.8"],
-      "asserts": [".askMode == true", ".modeLabel == \"RASHIN\""],
+      "steps": [
+        "show",
+        "type \\what is ryoku",
+        "sleep 0.8"
+      ],
+      "asserts": [
+        ".askMode == true",
+        ".modeLabel == \"RASHIN\""
+      ],
       "screenshot": true
     },
     {
       "id": "ask-resume-list",
       "name": "Bare backslash shows the ask panel in resume/recall state",
       "covers": "ask resume list",
-      "steps": ["show", "type \\", "sleep 0.8"],
-      "asserts": [".askMode == true"],
+      "steps": [
+        "show",
+        "type \\",
+        "sleep 0.8"
+      ],
+      "asserts": [
+        ".askMode == true"
+      ],
       "screenshot": true
     },
     {
       "id": "rest-dashboard",
       "name": "Rest state shows the dashboard (clock, greeting, weather glance)",
       "covers": "RestDashboard visual",
-      "steps": ["show", "sleep 1.2"],
-      "asserts": [".resting == true", ".open == true", ".resultCount == .totalCount"],
+      "steps": [
+        "show",
+        "sleep 1.2"
+      ],
+      "asserts": [
+        ".resting == true",
+        ".open == true",
+        ".resultCount == .totalCount"
+      ],
       "screenshot": true
     },
     {
@@ -498,11 +893,40 @@
       "covers": "NowPlaying card + hasMedia stack",
       "steps": [
         "sh mkdir -p /tmp/launcher-qa-fixtures; node -e 'const fs=require(\"fs\");const sr=8000,n=sr*60;const b=Buffer.alloc(44+n*2);b.write(\"RIFF\",0);b.writeUInt32LE(36+n*2,4);b.write(\"WAVE\",8);b.write(\"fmt \",12);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(sr,24);b.writeUInt32LE(sr*2,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);b.write(\"data\",36);b.writeUInt32LE(n*2,40);fs.writeFileSync(\"/tmp/launcher-qa-fixtures/QA Probe Tone.wav\",b)'; mpv --no-terminal --volume=0 --loop=inf --pause '/tmp/launcher-qa-fixtures/QA Probe Tone.wav' & echo $! >/tmp/launcher-qa-fixtures/mpv.pid; sleep 2.5",
-        "show", "sleep 1"
+        "show",
+        "sleep 1"
       ],
-      "asserts": [".hasMedia == true", ".resting == true"],
+      "asserts": [
+        ".hasMedia == true",
+        ".resting == true"
+      ],
       "screenshot": true,
-      "teardown": ["kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null || true"]
+      "teardown": [
+        "kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null || true"
+      ]
+    },
+    {
+      "id": "media-single-letter",
+      "name": "A single letter never summons the media row; two letters do",
+      "covers": "mpris match minimum length",
+      "steps": [
+        "sh kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null; sleep 0.3; mpv --no-terminal --volume=0 --loop=inf --pause '/tmp/launcher-qa-fixtures/QA Probe Tone.wav' & echo $! >/tmp/launcher-qa-fixtures/mpv.pid; sleep 2.5",
+        "show",
+        "type p",
+        "settle",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/p1.state",
+        "type a",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.type == \"Now Playing\")] | length == 1"
+      ],
+      "shell_asserts": [
+        "jq -e '[.results[] | select(.type == \"Now Playing\")] | length == 0' /tmp/launcher-qa-fixtures/p1.state >/dev/null"
+      ],
+      "teardown": [
+        "kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null || true"
+      ]
     },
     {
       "id": "media-pause-action",
@@ -510,11 +934,21 @@
       "covers": "mpris provider transport action",
       "steps": [
         "sh kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null; sleep 0.5; mpv --no-terminal --volume=0 --loop=inf '/tmp/launcher-qa-fixtures/QA Probe Tone.wav' & echo $! >/tmp/launcher-qa-fixtures/mpv.pid; sleep 2.5",
-        "show", "type pause", "settle", "key Return", "sleep 1.5"
+        "show",
+        "type pause",
+        "settle",
+        "key Return",
+        "sleep 1.5"
       ],
-      "asserts": [".open == false"],
-      "shell_asserts": ["playerctl -p mpv status | grep -q Paused"],
-      "teardown": ["kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null || true"]
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "playerctl -p mpv status | grep -q Paused"
+      ],
+      "teardown": [
+        "kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null || true"
+      ]
     }
   ]
 }

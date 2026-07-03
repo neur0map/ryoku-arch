@@ -77,7 +77,11 @@ Provider {
             onRead: data => proc.out += data + "\n"
         }
         onStarted: proc.out = ""
-        onExited: {
+        onExited: (code, status) => {
+            // a killed (superseded) eval must not cache its partial output
+            // under the newer expression's key.
+            if (status !== 0)
+                return;
             var result = Calc.parseResult(proc.out);
             calc.cachedText = proc.expr;
             calc.cachedResult = result ? result : "";

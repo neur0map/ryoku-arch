@@ -104,13 +104,19 @@ Provider {
         var t = (text || "").trim();
         // A pasted link short-circuits search: offer to play it directly.
         var parsed = YtMusic.parseYtUrl(t);
-        if (parsed)
+        if (parsed) {
+            debounce.stop();
             return [ytmusic.linkRow(t, parsed)];
-        if (t.length < 2)
+        }
+        if (t.length < 2) {
+            debounce.stop();
             return [];
+        }
         var cached = ytmusic.cacheLookup(t);
-        if (ytmusic.cache[t])
+        if (ytmusic.cache[t]) {
+            debounce.stop();
             return cached.map(ytmusic.rowFor);   // exact hit: no refetch
+        }
         ytmusic.pendingQuery = t;
         // Mark busy on the next tick (not during this binding eval) so the
         // launcher shows its spinner the instant a cold search starts, instead of
@@ -122,7 +128,12 @@ Provider {
         return cached ? cached.map(ytmusic.rowFor) : [];
     }
 
-    function markBusy() { Dispatcher.setBusy("ytmusic", true); }
+    function markBusy() {
+        // only if a search is still pending or in flight; the query may have
+        // been abandoned (cleared, link-pasted, cache-hit) since the callLater.
+        if (debounce.running || searchProc.running || fallbackProc.running)
+            Dispatcher.setBusy("ytmusic", true);
+    }
 
     Timer {
         id: debounce
@@ -152,20 +163,22 @@ Provider {
             "-H", "Content-Type: application/json",
             "-H", "User-Agent: Mozilla/5.0",
             "--data-raw", YtMusic.innertubeBody(term)]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var rows = YtMusic.parse(this.text);
-                if (rows.length > 0) {
-                    ytmusic.cachePut(searchProc.term, rows);
-                    Dispatcher.setBusy("ytmusic", false);
-                    Dispatcher.notifyAsync();
-                } else {
-                    // InnerTube empty/unreachable: try the yt-dlp fallback.
-                    fallbackProc.term = searchProc.term;
-                    fallbackProc.out = "";
-                    fallbackProc.running = false;
-                    fallbackProc.running = true;
-                }
+        stdout: StdioCollector { id: searchOut }
+        onExited: (code, status) => {
+            // killed = superseded by a newer term; never cache its partial body.
+            if (status !== 0)
+                return;
+            var rows = code === 0 ? YtMusic.parse(searchOut.text) : [];
+            if (rows.length > 0) {
+                ytmusic.cachePut(searchProc.term, rows);
+                Dispatcher.setBusy("ytmusic", false);
+                Dispatcher.notifyAsync();
+            } else {
+                // InnerTube empty/unreachable: try the yt-dlp fallback.
+                fallbackProc.term = searchProc.term;
+                fallbackProc.out = "";
+                fallbackProc.running = false;
+                fallbackProc.running = true;
             }
         }
     }
@@ -179,7 +192,18 @@ Provider {
         stdout: SplitParser {
             onRead: line => fallbackProc.out += line + "\n"
         }
-        onExited: {
+        onStarted: fallbackProc.out = ""
+        onExited: (code, status) => {
+            // killed = superseded. Non-zero = yt-dlp or network failure: clear
+            // the spinner but cache nothing, so the same query retries instead
+            // of pinning "no matches" until LRU eviction.
+            if (status !== 0)
+                return;
+            if (code !== 0) {
+                Dispatcher.setBusy("ytmusic", false);
+                Dispatcher.notifyAsync();
+                return;
+            }
             ytmusic.cachePut(fallbackProc.term, YtMusic.parseFlat(fallbackProc.out));
             Dispatcher.setBusy("ytmusic", false);
             Dispatcher.notifyAsync();

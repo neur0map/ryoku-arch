@@ -100,9 +100,19 @@ Provider {
         for (var i = 0; i < snippets.snippetList.length; i++)
             if (Fuzzy.score(snippets.matchable(snippets.snippetList[i]), q) < 99)
                 rows.push(snippets.snippetRow(snippets.snippetList[i]));
-        for (var j = 0; j < snippets.quicklinkList.length; j++)
-            if (Fuzzy.score(snippets.matchable(snippets.quicklinkList[j]), text.toLowerCase()) < 99)
-                rows.push(snippets.quicklinkRow(snippets.quicklinkList[j], text));
+        for (var j = 0; j < snippets.quicklinkList.length; j++) {
+            var link = snippets.quicklinkList[j];
+            // "name rest..." routes the rest into the {query} placeholder, so
+            // a templated link can carry arbitrary search text; the plain
+            // fuzzy path alone could never match name + extra words.
+            var kw = String(link.keyword || link.name || "").toLowerCase();
+            if (kw.length > 0 && q.indexOf(kw + " ") === 0) {
+                rows.push(snippets.quicklinkRow(link, text.slice(kw.length + 1).trim()));
+                continue;
+            }
+            if (Fuzzy.score(snippets.matchable(link), q) < 99)
+                rows.push(snippets.quicklinkRow(link, text));
+        }
         return rows;
     }
 

@@ -92,7 +92,12 @@ Provider {
         stdout: StdioCollector {
             id: ddgOut
         }
-        onExited: {
+        onExited: (code, status) => {
+            // killed = superseded by a newer keystroke; non-zero = network
+            // failure. Cache neither, so the same query can retry instead of
+            // pinning an empty answer for the session.
+            if (status !== 0 || code !== 0)
+                return;
             web.cachedAnswer = Ddg.parseAnswer(ddgOut.text);
             web.cachedQuery = ddgProc.q;
             Dispatcher.notifyAsync();

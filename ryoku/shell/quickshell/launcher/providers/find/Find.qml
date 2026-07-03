@@ -61,7 +61,10 @@ Provider {
     }
 
     function shortPath(path) {
-        return String(path).replace(find.home, "~");
+        // prefix-anchored: an unanchored replace would also rewrite a home
+        // path embedded mid-string.
+        var p = String(path);
+        return p.indexOf(find.home) === 0 ? "~" + p.slice(find.home.length) : p;
     }
 
     // Section label per mode, so folder results read FOLDER, not FILE.
@@ -135,7 +138,11 @@ Provider {
             onRead: line => { if (line.trim().length) findProc.hits.push(line.trim()); }
         }
         onStarted: findProc.hits = []
-        onExited: {
+        onExited: (code, status) => {
+            // killed (superseded) or fd error: skip the cache write. fd exits
+            // 1 for a clean zero-match run, which is a real, cacheable result.
+            if (status !== 0 || code > 1)
+                return;
             find.cachedKey = findProc.cacheKey;
             find.cachedRows = findProc.hits.slice();
             Dispatcher.notifyAsync();

@@ -68,6 +68,10 @@ Provider {
     // any word containing it, leaking the row into unrelated searches.
     function matches(text) {
         var q = text.toLowerCase();
+        // two chars minimum: a bare "p" or "n" on the way to an app name should
+        // not summon the media row, via verb prefix or title substring alike.
+        if (q.length < 2)
+            return false;
         for (var i = 0; i < mpris.mediaWords.length; i++) {
             if (mpris.mediaWords[i].indexOf(q) === 0)
                 return true;

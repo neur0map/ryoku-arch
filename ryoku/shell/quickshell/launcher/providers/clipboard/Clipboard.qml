@@ -40,6 +40,14 @@ Provider {
                 } },
                 { name: "Delete", icon: "", execute: function () {
                     Quickshell.execDetached(["sh", "-c", "printf '%s' \"$1\" | cliphist delete", "_", String(entry.id)]);
+                    // drop the row locally so the list updates now, not after
+                    // the staleness window re-runs cliphist list.
+                    var kept = [];
+                    for (var i = 0; i < clipboard.entries.length; i++)
+                        if (clipboard.entries[i].id !== entry.id)
+                            kept.push(clipboard.entries[i]);
+                    clipboard.entries = kept;
+                    Dispatcher.notifyAsync();
                 } }
             ]
         };

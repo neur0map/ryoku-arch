@@ -72,9 +72,41 @@ Provider {
         interval: 120
         repeat: false
         onTriggered: {
+            packages.fullFor = "";
             searchProc.term = packages.pendingQuery;
             searchProc.running = false;
             searchProc.running = true;
+            fastProc.term = packages.pendingQuery;
+            fastProc.running = false;
+            fastProc.running = true;
+        }
+    }
+
+    // Fast lane: pacman/aur answer from gpk's scan cache in well under a
+    // second, while the full sweep hits live registries (npm, cargo, pip...)
+    // and can take tens of seconds. Local rows show immediately; the full
+    // set replaces them when it lands. fullFor marks a term the full sweep
+    // has already answered so a slow fast-lane result never regresses it.
+    property string fullFor: ""
+
+    Process {
+        id: fastProc
+        property string term: ""
+        property string out: ""
+        command: ["gpk", "search", term, "--json", "--limit", "30", "--manager", "pacman,aur"]
+        stdout: SplitParser {
+            onRead: data => fastProc.out += data + "\n"
+        }
+        onStarted: fastProc.out = ""
+        onExited: (code, status) => {
+            // gpk: 0 = results, 2 = clean no-results, 1 = error.
+            if (status !== 0 || code === 1)
+                return;
+            if (packages.fullFor === fastProc.term)
+                return;
+            packages.cachedQuery = fastProc.term;
+            packages.cachedRows = Gpk.parse(fastProc.out);
+            Dispatcher.notifyAsync();
         }
     }
 
@@ -94,7 +126,13 @@ Provider {
             onRead: data => searchProc.out += data + "\n"
         }
         onStarted: searchProc.out = ""
-        onExited: {
+        onExited: (code, status) => {
+            // killed = superseded; exit 1 = gpk failure. Cache neither, so a
+            // transient failure does not pin stale rows to a term. Exit 2 is
+            // a clean no-results run and caches like a hit.
+            if (status !== 0 || code === 1)
+                return;
+            packages.fullFor = searchProc.term;
             packages.cachedQuery = searchProc.term;
             packages.cachedRows = Gpk.parse(searchProc.out);
             Dispatcher.notifyAsync();

@@ -29,13 +29,18 @@ Singleton {
 
     Process {
         id: cavaProc
-        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 || exit 0; cfg=$(mktemp); printf '%s\\n' '[general]' 'framerate = 30' 'bars = " + root.bars + "' '' '[input]' 'method = pipewire' '' '[output]' 'method = raw' 'raw_target = /dev/stdout' 'data_format = ascii' 'ascii_max_range = 100' 'channels = mono' 'mono_option = average' '' '[smoothing]' 'noise_reduction = 45' > \"$cfg\"; cava -p \"$cfg\"; rc=$?; rm -f \"$cfg\"; exit $rc"]
+        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 || exit 127; cfg=$(mktemp); printf '%s\\n' '[general]' 'framerate = 30' 'bars = " + root.bars + "' '' '[input]' 'method = pipewire' '' '[output]' 'method = raw' 'raw_target = /dev/stdout' 'data_format = ascii' 'ascii_max_range = 100' 'channels = mono' 'mono_option = average' '' '[smoothing]' 'noise_reduction = 45' > \"$cfg\"; cava -p \"$cfg\"; rc=$?; rm -f \"$cfg\"; exit $rc"]
         running: root.active
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => root.readBars(line)
         }
-        onExited: if (root.active) restartTimer.restart()
+        // 127 = cava not installed; retrying every 1.2s would spawn a probe
+        // shell forever on such systems.
+        onExited: (code, status) => {
+            if (root.active && code !== 127)
+                restartTimer.restart();
+        }
     }
 
     Timer {

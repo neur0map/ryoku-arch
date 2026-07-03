@@ -128,6 +128,15 @@ Singleton {
         interval: 900000
         running: true
         repeat: true
-        onTriggered: root.fetchWeather()
+        // a failed first geolocate (offline boot, DNS hiccup) used to leave
+        // weather dead until restart; retry the IP lookup on the same cadence.
+        onTriggered: {
+            if (!root.located) {
+                if (!ipProc.running)
+                    ipProc.running = true;
+                return;
+            }
+            root.fetchWeather();
+        }
     }
 }

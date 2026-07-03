@@ -117,7 +117,11 @@ Provider {
             onRead: line => listProc.out += line + "\n"
         }
         onStarted: listProc.out = ""
-        onExited: {
+        onExited: (code, status) => {
+            // a killed (superseded) run must not cache truncated rows under
+            // the newer query's key.
+            if (status !== 0)
+                return;
             script.cachedKey = listProc.cacheKey;
             script.cachedRows = RofiScript.parse(listProc.out).rows;
             Dispatcher.notifyAsync();
