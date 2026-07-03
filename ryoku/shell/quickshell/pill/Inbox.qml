@@ -94,8 +94,20 @@ PillSurface {
             anchors.verticalCenter: parent.verticalCenter
             width: 2 * root.s
             height: parent.height - 10 * root.s
-            radius: 999
+            radius: Theme.radius
             color: Theme.verm
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.leftMargin: 8 * root.s + Theme.shadowOffset * root.s
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: Theme.shadowOffset * root.s
+            width: 16 * root.s
+            height: 16 * root.s
+            radius: Theme.radius
+            color: Theme.shadowHard
+            antialiasing: false
         }
 
         Rectangle {
@@ -218,29 +230,11 @@ PillSurface {
             width: parent.width
             height: 24 * root.s
 
-            Row {
+            Eyebrow {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 8 * root.s
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "力"
-                    color: Theme.brand
-                    font.family: Theme.fontJp
-                    font.weight: Font.Medium
-                    font.pixelSize: 16 * root.s
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "INBOX"
-                    color: Theme.subtle
-                    font.family: Theme.font
-                    font.pixelSize: 10 * root.s
-                    font.weight: Font.DemiBold
-                    font.capitalization: Font.AllUppercase
-                    font.letterSpacing: 1.6 * root.s
-                }
+                label: "Inbox"
+                s: root.s
             }
 
             Item {
@@ -346,6 +340,18 @@ PillSurface {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: Notifs.toggleExpanded(group.modelData.app)
+                                }
+
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 6 * root.s + Theme.shadowOffset * root.s
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.verticalCenterOffset: Theme.shadowOffset * root.s
+                                    width: 20 * root.s
+                                    height: 20 * root.s
+                                    radius: Theme.radius
+                                    color: Theme.shadowHard
+                                    antialiasing: false
                                 }
 
                                 Rectangle {
@@ -498,9 +504,9 @@ PillSurface {
                 text: "IDLE"
                 color: Theme.ghost
                 opacity: 0.55
-                font.family: Theme.font
+                font.family: Theme.display
                 font.weight: Font.Medium
-                font.pixelSize: 32 * root.s
+                font.pixelSize: 34 * root.s
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter

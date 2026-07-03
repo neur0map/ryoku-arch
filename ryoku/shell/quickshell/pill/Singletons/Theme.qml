@@ -17,6 +17,11 @@ Singleton {
     readonly property color border:   Config.matchWallpaper ? Wallust.line : Qt.rgba(243/255, 237/255, 225/255, 0.14)
     readonly property color lineStrong: Qt.rgba(236/255, 226/255, 205/255, 0.40)
     readonly property color shadow:   Qt.rgba(0, 0, 0, 0.62)
+    // brutalist hard offset shadow: opaque black, no blur (the website's
+    // --shadow / hub's shadow). `shadow` above stays semi-transparent for the
+    // soft blurred drop shadows (tray, wallpaper tiles).
+    readonly property color shadowHard: "#000000"
+    readonly property int shadowOffset: 3
     readonly property color tileBg:   Config.matchWallpaper ? Wallust.elevated : "#1b150e"
     readonly property color subtle:   "#c7bfae"
     readonly property color faint:    "#5c5249"
@@ -50,6 +55,9 @@ Singleton {
     readonly property string font: Config.fontFamily.length > 0 ? Config.fontFamily : "Space Grotesk"
     readonly property string fontJp: "Noto Sans CJK JP"
     readonly property string mono: "JetBrainsMono Nerd Font"
+    // brutalist: inner corners are SHARP. only the outer frame rounds, and it
+    // follows the user's shell rounding knob (Config.frameRadius / Hyprland's
+    // decoration:rounding) in shell.qml. inside our surfaces we stay sharp.
     readonly property int radius: 0
     readonly property int shadowStep: 6
 

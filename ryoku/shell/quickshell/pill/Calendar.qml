@@ -95,38 +95,35 @@ PillSurface {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 24 * root.s
+        height: 46 * root.s
 
-        Row {
+        Column {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 8 * root.s
+            spacing: 5 * root.s
+
+            Eyebrow {
+                label: "Calendar"
+                s: root.s
+            }
 
             Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "力"
-                color: Theme.brand
-                font.family: Theme.fontJp
-                font.weight: Font.Medium
-                font.pixelSize: 16 * root.s
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
+                id: monthTitle
                 text: root.loc.standaloneMonthName(root.viewMonth, Locale.LongFormat)
                     + " " + root.viewYear
-                color: Theme.subtle
-                font.family: Theme.font
-                font.pixelSize: 11 * root.s
+                color: Theme.bright
+                font.family: Theme.display
+                font.pixelSize: 21 * root.s
                 font.weight: Font.DemiBold
-                font.capitalization: Font.AllUppercase
-                font.letterSpacing: 1.0 * root.s
+                font.letterSpacing: -0.4 * root.s
             }
         }
 
         Row {
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 2 * root.s
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 2 * root.s
+            spacing: 4 * root.s
 
             Repeater {
                 model: [-1, 1]
@@ -134,9 +131,9 @@ PillSurface {
                 Rectangle {
                     id: nav
                     required property int modelData
-                    width: 22 * root.s
-                    height: 22 * root.s
-                    radius: Motion.rSmall * root.s
+                    width: 24 * root.s
+                    height: 24 * root.s
+                    radius: Theme.radius
                     color: navArea.containsMouse ? Theme.frameBg : "transparent"
                     border.width: navArea.containsMouse ? 1 : 0
                     border.color: Theme.frameBorder
@@ -237,7 +234,7 @@ PillSurface {
                     anchors.centerIn: parent
                     width: 22 * root.s
                     height: 22 * root.s
-                    radius: Motion.rSmall * root.s
+                    radius: Theme.radius
                     color: cellArea.containsMouse && cell.inMonth && !cell.current
                         ? Qt.rgba(0.94, 0.88, 0.84, 0.04) : "transparent"
                 }
@@ -246,18 +243,19 @@ PillSurface {
                     anchors.centerIn: parent
                     width: 24 * root.s
                     height: 24 * root.s
-                    radius: Motion.rSmall * root.s
+                    radius: Theme.radius
                     visible: cell.current
-                    color: Qt.alpha(Theme.verm, 0.18)
+                    color: Qt.alpha(Theme.verm, 0.16)
                     border.width: 1
                     border.color: Qt.alpha(Theme.verm, 0.55)
+                    antialiasing: false
                 }
 
                 Rectangle {
                     anchors.centerIn: parent
                     width: 24 * root.s
                     height: 24 * root.s
-                    radius: Motion.rSmall * root.s
+                    radius: Theme.radius
                     visible: cell.selected && !cell.current
                     color: "transparent"
                     border.width: 1
@@ -268,7 +266,7 @@ PillSurface {
                     anchors.centerIn: parent
                     text: cell.inMonth ? cell.dayNum : cell.ghostNum
                     color: cell.inMonth
-                        ? (cell.current ? Theme.todayWarm
+                        ? (cell.current ? Theme.verm
                             : (cell.weekend ? Theme.subtle : Theme.cream))
                         : Theme.ghost
                     opacity: cell.inMonth && !cell.current && !cell.weekend ? 0.85 : 1.0
@@ -430,7 +428,7 @@ PillSurface {
                         anchors.verticalCenter: parent.verticalCenter
                         width: 18 * root.s
                         height: 18 * root.s
-                        radius: Motion.rSmall * root.s
+                        radius: Theme.radius
                         color: delArea.containsMouse ? Theme.frameBg : "transparent"
 
                         Text {
@@ -452,38 +450,59 @@ PillSurface {
                 }
             }
 
-            Rectangle {
+            Item {
                 width: parent.width
-                height: 26 * root.s
-                radius: Motion.rSmall * root.s
-                color: addField.activeFocus ? Theme.frameBg : Qt.rgba(0.94, 0.88, 0.84, 0.03)
-                border.width: 1
-                border.color: addField.activeFocus ? Theme.frameBorder : Theme.hair
+                height: 26 * root.s + Theme.shadowOffset * root.s
 
-                TextField {
-                    id: addField
-                    anchors.fill: parent
-                    anchors.leftMargin: 9 * root.s
-                    anchors.rightMargin: 9 * root.s
-                    verticalAlignment: TextInput.AlignVCenter
-                    background: null
-                    padding: 0
-                    color: Theme.cream
-                    font.family: Theme.font
-                    font.pixelSize: 11 * root.s
-                    placeholderText: "Add for this day (e.g. 09:30 standup)"
-                    placeholderTextColor: Theme.faint
-                    selectByMouse: true
-                    selectionColor: Theme.verm
-                    onAccepted: {
-                        if (Events.addEntry(root.selectedKey, text))
-                            text = "";
-                    }
-                    Keys.onPressed: (e) => {
-                        if (e.key === Qt.Key_Escape) {
-                            addField.text = "";
-                            addField.focus = false;
-                            e.accepted = true;
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.leftMargin: Theme.shadowOffset * root.s
+                    anchors.topMargin: Theme.shadowOffset * root.s
+                    width: parent.width
+                    height: 26 * root.s
+                    radius: Theme.radius
+                    visible: addField.activeFocus
+                    color: Theme.verm
+                    antialiasing: false
+                }
+
+                Rectangle {
+                    id: addFieldBox
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    width: parent.width
+                    height: 26 * root.s
+                    radius: Theme.radius
+                    color: addField.activeFocus ? Theme.frameBg : Qt.rgba(0.94, 0.88, 0.84, 0.03)
+                    border.width: 1
+                    border.color: addField.activeFocus ? Theme.frameBorder : Theme.hair
+
+                    TextField {
+                        id: addField
+                        anchors.fill: parent
+                        anchors.leftMargin: 9 * root.s
+                        anchors.rightMargin: 9 * root.s
+                        verticalAlignment: TextInput.AlignVCenter
+                        background: null
+                        padding: 0
+                        color: Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 11 * root.s
+                        placeholderText: "Add for this day (e.g. 09:30 standup)"
+                        placeholderTextColor: Theme.faint
+                        selectByMouse: true
+                        selectionColor: Theme.verm
+                        onAccepted: {
+                            if (Events.addEntry(root.selectedKey, text))
+                                text = "";
+                        }
+                        Keys.onPressed: (e) => {
+                            if (e.key === Qt.Key_Escape) {
+                                addField.text = "";
+                                addField.focus = false;
+                                e.accepted = true;
+                            }
                         }
                     }
                 }

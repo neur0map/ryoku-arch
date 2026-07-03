@@ -42,6 +42,18 @@ Item {
     }
 
     Rectangle {
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.leftMargin: Theme.shadowOffset * root.s
+        anchors.topMargin: Theme.shadowOffset * root.s
+        width: 28 * root.s
+        height: 28 * root.s
+        radius: Theme.radius
+        color: Theme.shadowHard
+        antialiasing: false
+    }
+
+    Rectangle {
         id: iconTile
         anchors.left: parent.left
         anchors.top: parent.top
@@ -179,34 +191,56 @@ Item {
             Repeater {
                 model: root.acts
 
-                Rectangle {
+                Item {
                     id: actPill
                     required property var modelData
                     required property int index
 
-                    height: 20 * root.s
-                    width: actText.implicitWidth + 18 * root.s
-                    radius: 999
-                    color: Theme.tileBg
-                    border.width: 1
-                    border.color: Theme.border
+                    height: 20 * root.s + Theme.shadowOffset * root.s
+                    width: actText.implicitWidth + 18 * root.s + Theme.shadowOffset * root.s
 
-                    Text {
-                        id: actText
-                        anchors.centerIn: parent
-                        text: actPill.modelData.text
-                        color: actPill.index === 0 ? Theme.vermLit : Theme.dim
-                        font.family: Theme.font
-                        font.pixelSize: 9.5 * root.s
-                        font.weight: Font.DemiBold
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.leftMargin: Theme.shadowOffset * root.s
+                        anchors.topMargin: Theme.shadowOffset * root.s
+                        width: actText.implicitWidth + 18 * root.s
+                        height: 20 * root.s
+                        radius: Theme.radius
+                        color: Theme.shadowHard
+                        antialiasing: false
                     }
 
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            actPill.modelData.invoke();
-                            Notifs.removePopup(root.notif);
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        width: actText.implicitWidth + 18 * root.s
+                        height: 20 * root.s
+                        radius: Theme.radius
+                        color: tagArea.containsMouse ? Theme.frameBg : Theme.tileBg
+                        border.width: 1
+                        border.color: actPill.index === 0 ? Qt.alpha(Theme.verm, 0.6) : Theme.border
+                        antialiasing: false
+
+                        Text {
+                            id: actText
+                            anchors.centerIn: parent
+                            text: actPill.modelData.text
+                            color: actPill.index === 0 ? Theme.vermLit : Theme.dim
+                            font.family: Theme.font
+                            font.pixelSize: 9.5 * root.s
+                            font.weight: Font.DemiBold
+                        }
+
+                        MouseArea {
+                            id: tagArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                actPill.modelData.invoke();
+                                Notifs.removePopup(root.notif);
+                            }
                         }
                     }
                 }

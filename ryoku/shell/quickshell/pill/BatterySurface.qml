@@ -1,14 +1,13 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Layouts
 import "Singletons"
 
-// 蓄 BATTERY surface = laptop battery, carbon dossier idiom. percentage as
-// hero over its state subline, bold Ryoku wave as the gauge, 2x2 stat grid
-// (rate / time / capacity / health) under a hairline with mono micro-labels
-// and tabular figures. charging warms the percentage, subline and wave to
-// flame tones. exposes implicitHeight from content.
+// BATTERY surface = laptop battery, carbon dossier idiom. an eyebrow header,
+// percentage as hero over its state subline, bold Ryoku wave as the gauge, then
+// rate / time / capacity / health as figures split by hairlines, mono
+// micro-labels and tabular figures. charging warms the percentage, subline and
+// wave to flame tones. exposes implicitHeight from content.
 PillSurface {
     id: root
 
@@ -33,29 +32,11 @@ PillSurface {
             width: parent.width
             height: 22 * root.s
 
-            Row {
+            Eyebrow {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 8 * root.s
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "力"
-                    color: Theme.brand
-                    font.family: Theme.fontJp
-                    font.weight: Font.Medium
-                    font.pixelSize: 16 * root.s
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "BATTERY"
-                    color: Theme.subtle
-                    font.family: Theme.font
-                    font.pixelSize: 10 * root.s
-                    font.weight: Font.DemiBold
-                    font.capitalization: Font.AllUppercase
-                    font.letterSpacing: 1.6 * root.s
-                }
+                label: "Battery"
+                s: root.s
             }
 
             Text {
@@ -152,19 +133,18 @@ PillSurface {
 
         Item { width: 1; height: 16 * root.s }
 
-        // stat grid: rate, time, capacity, health
-        GridLayout {
+        // stat quadrants: rate / time over capacity / health, figures split by
+        // hairlines (the dossier idiom), no boxes. mono micro-labels, tabular figures.
+        Column {
+            id: statGrid
             width: parent.width
-            columns: 2
-            columnSpacing: 0
-            rowSpacing: 16 * root.s
+            spacing: 0
 
             component Stat: Column {
                 id: stat
                 property string label: ""
                 property string value: ""
                 property bool warm: false
-                Layout.fillWidth: true
                 spacing: 3 * root.s
 
                 Text {
@@ -178,7 +158,7 @@ PillSurface {
                 Text {
                     text: stat.label
                     color: Theme.faint
-                    font.family: Theme.font
+                    font.family: Theme.mono
                     font.pixelSize: 8.5 * root.s
                     font.weight: Font.DemiBold
                     font.capitalization: Font.AllUppercase
@@ -186,25 +166,79 @@ PillSurface {
                 }
             }
 
-            Stat {
-                label: "Rate"
-                value: Math.abs(Battery.rateW) >= 0.05
-                    ? (Battery.rateW > 0 ? "+" : "\u2212") + Math.abs(Battery.rateW).toFixed(1) + " W"
-                    : "0 W"
-                warm: Battery.charging
+            component StatRow: Item {
+                width: statGrid.width
+                height: 46 * root.s
+                default property alias content: cells.data
+                Row { id: cells; anchors.fill: parent }
             }
-            Stat {
-                label: "Time"
-                value: Battery.hasTime ? Battery.timeStr : (Battery.full ? "Full" : "\u2014")
+
+            StatRow {
+                Item {
+                    width: parent.width / 2
+                    height: parent.height
+                    Stat {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        label: "Rate"
+                        value: Math.abs(Battery.rateW) >= 0.05
+                            ? (Battery.rateW > 0 ? "+" : "\u2212") + Math.abs(Battery.rateW).toFixed(1) + " W"
+                            : "0 W"
+                        warm: Battery.charging
+                    }
+                }
+                Item {
+                    width: parent.width / 2
+                    height: parent.height
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 1
+                        height: 28 * root.s
+                        color: Theme.hair
+                    }
+                    Stat {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 18 * root.s
+                        anchors.verticalCenter: parent.verticalCenter
+                        label: "Time"
+                        value: Battery.hasTime ? Battery.timeStr : (Battery.full ? "Full" : "\u2014")
+                    }
+                }
             }
-            Stat {
-                label: "Capacity"
-                value: Battery.capacityWh >= 1 ? Battery.capacityWh.toFixed(1) + " Wh" : "\u2014"
-            }
-            Stat {
-                label: "Health"
-                value: Battery.healthSupported ? Battery.health + "%" : "\u2014"
-                warm: Battery.healthSupported
+
+            Rectangle { width: parent.width; height: 1; color: Theme.hair }
+
+            StatRow {
+                Item {
+                    width: parent.width / 2
+                    height: parent.height
+                    Stat {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        label: "Capacity"
+                        value: Battery.capacityWh >= 1 ? Battery.capacityWh.toFixed(1) + " Wh" : "\u2014"
+                    }
+                }
+                Item {
+                    width: parent.width / 2
+                    height: parent.height
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 1
+                        height: 28 * root.s
+                        color: Theme.hair
+                    }
+                    Stat {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 18 * root.s
+                        anchors.verticalCenter: parent.verticalCenter
+                        label: "Health"
+                        value: Battery.healthSupported ? Battery.health + "%" : "\u2014"
+                        warm: Battery.healthSupported
+                    }
+                }
             }
         }
 
