@@ -64,13 +64,24 @@ Provider {
         return String(path).replace(find.home, "~");
     }
 
-    function rowFor(path) {
+    // Section label per mode, so folder results read FOLDER, not FILE.
+    function kindFor(mode) {
+        if (mode === "folder") return "Folder";
+        if (mode === "image") return "Image";
+        if (mode === "video") return "Video";
+        return "File";
+    }
+
+    function rowFor(rawPath, kind) {
+        // fd prints directories with a trailing slash; strip it or the
+        // basename comes out empty and the row renders with no title.
+        var path = String(rawPath).replace(/\/+$/, "");
         return {
             id: "find:" + path,
             title: baseName(path),
             subtitle: shortPath(path.replace(/\/[^/]*$/, "")),
             icon: "",
-            type: "File",
+            type: kind || "File",
             score: 0,
             actions: [
                 { name: "Open", icon: "", execute: function () { Quickshell.execDetached(["xdg-open", path]); } },
@@ -87,8 +98,10 @@ Provider {
         if (t.length < 1)
             return [];
         var key = mode + "\u0000" + t;
-        if (key === find.cachedKey)
-            return find.cachedRows.map(find.rowFor);
+        if (key === find.cachedKey) {
+            var kind = find.kindFor(mode);
+            return find.cachedRows.map(function (p) { return find.rowFor(p, kind); });
+        }
         find.pendingMode = mode;
         find.pendingQuery = t;
         debounce.restart();

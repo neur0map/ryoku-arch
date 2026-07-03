@@ -57,6 +57,10 @@ ShellRoot {
 
     readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-launcher.sock"
 
+    // the Launcher body on the monitor currently (or last) shown; lets the
+    // socket's `state` command snapshot what the palette is displaying.
+    property var activeLauncher: null
+
     // "<fn> [mon]" from the daemon's fast path; returns false on an unknown
     // command so the daemon falls back to the qs ipc client.
     function runCommand(line) {
@@ -84,7 +88,17 @@ ShellRoot {
         handler: Socket {
             id: cmdSock
             parser: SplitParser {
-                onRead: line => cmdSock.write((root.runCommand(line) ? "ok" : "err") + "\n")
+                onRead: line => {
+                    var l = line.trim();
+                    if (l === "state") {
+                        var dump = root.activeLauncher ? root.activeLauncher.stateDump() : {};
+                        dump.open = root.open;
+                        dump.monitor = root.openMon;
+                        cmdSock.write(JSON.stringify(dump) + "\n");
+                    } else {
+                        cmdSock.write((root.runCommand(l) ? "ok" : "err") + "\n");
+                    }
+                }
             }
         }
     }
@@ -112,7 +126,12 @@ ShellRoot {
 
             // a brief grace so the close morph can play before the window drops.
             Timer { id: closing; interval: Motion.window; repeat: false }
-            onShownChanged: if (!shown) closing.restart()
+            onShownChanged: {
+                if (shown)
+                    root.activeLauncher = launcher;
+                else
+                    closing.restart();
+            }
 
             // dim + click-out scrim.
             Rectangle {

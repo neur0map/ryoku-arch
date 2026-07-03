@@ -66,6 +66,9 @@ Provider {
     Process {
         id: listProc
         command: ["cliphist", "list"]
+        // mark the dispatcher busy on the cold-cache load so the launcher
+        // shows the spinner instead of flashing "No matches".
+        onRunningChanged: Dispatcher.setBusy("clipboard", running)
         stdout: StdioCollector {
             onStreamFinished: {
                 var lines = this.text.split("\n");

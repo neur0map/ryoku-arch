@@ -70,8 +70,15 @@ Singleton {
                 else if (prov && prov.urlFallback && Dispatch.looksYtUrl(r.query))
                     rows = rows.concat(prov.query(r.query));
             }
+            // QV4's Array.sort is not stable, so a bare score sort scrambles
+            // equal-score rows and destroys each provider's internal ranking
+            // (apps pre-rank by match tier + frecency). Tag emission order and
+            // use it as the tiebreak.
+            for (var n = 0; n < rows.length; n++)
+                rows[n]._ord = n;
             rows.sort(function (a, b) {
-                return (a.score || 0) - (b.score || 0);
+                var d = (a.score || 0) - (b.score || 0);
+                return d !== 0 ? d : a._ord - b._ord;
             });
         }
         var cap = limit && limit > 0 ? limit : rows.length;

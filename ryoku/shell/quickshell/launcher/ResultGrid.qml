@@ -25,6 +25,8 @@ Flickable {
     contentHeight: column.height
     boundsBehavior: Flickable.StopAtBounds
 
+    // Items carry their flat index so tiles can tell whether they hold the
+    // keyboard selection (Enter launches entries[selectedIndex]).
     readonly property var sections: {
         var groups = [];
         var current = null;
@@ -36,7 +38,7 @@ Flickable {
                 current = { letter: letter, items: [] };
                 groups.push(current);
             }
-            current.items.push(grid.entries[i]);
+            current.items.push({ e: grid.entries[i], flat: i });
         }
         return groups;
     }
@@ -46,6 +48,18 @@ Flickable {
             return;
         grid.selectedIndex = Math.max(0, Math.min(grid.entries.length - 1, grid.selectedIndex + delta));
     }
+
+    // Keep the selected tile on screen while arrowing through the grid.
+    function reveal(item) {
+        var y = item.mapToItem(column, 0, 0).y;
+        if (y < grid.contentY + 8 * grid.s)
+            grid.contentY = Math.max(0, y - 8 * grid.s);
+        else if (y + grid.tile > grid.contentY + grid.height - 8 * grid.s)
+            grid.contentY = Math.min(Math.max(0, grid.contentHeight - grid.height), y + grid.tile - grid.height + 8 * grid.s);
+    }
+
+    // Fresh view every time the grid is summoned.
+    onVisibleChanged: if (visible) { selectedIndex = 0; contentY = 0; }
 
     function activate() {
         var e = grid.entries[grid.selectedIndex];
@@ -157,11 +171,14 @@ Flickable {
                         Rectangle {
                             id: tile
                             required property int index
-                            readonly property var entry: sectionCol.section.items[index]
+                            readonly property var item: sectionCol.section.items[index]
+                            readonly property var entry: item.e
+                            readonly property bool sel: grid.selectedIndex === item.flat
                             width: grid.tile
                             height: grid.tile
                             radius: Metrics.radiusRow * grid.s
-                            color: tileArea.containsMouse ? Theme.frameBg : "transparent"
+                            color: sel || tileArea.containsMouse ? Theme.frameBg : "transparent"
+                            onSelChanged: if (sel) grid.reveal(tile)
 
                             Column {
                                 anchors.centerIn: parent
@@ -197,6 +214,9 @@ Flickable {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
+                                // keep pointer and keyboard on one selection so
+                                // Enter always launches the highlighted tile.
+                                onEntered: grid.selectedIndex = tile.item.flat
                                 onClicked: grid.launch(tile.entry)
                             }
                         }

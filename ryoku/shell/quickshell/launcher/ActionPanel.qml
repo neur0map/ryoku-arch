@@ -43,6 +43,9 @@ Item {
         color: Theme.cardBot
         border.width: 1
         border.color: Theme.frameBorder
+        // the panel's height is capped at 5 rows by the launcher; without a
+        // clip a 6th+ action would paint over the card below the panel.
+        clip: true
 
         Column {
             anchors.fill: parent

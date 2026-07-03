@@ -93,6 +93,44 @@ Item {
         return r && r.actions ? r.actions : [];
     }
 
+    // Machine-readable snapshot for the command socket's `state` command; the
+    // QA runner asserts against this instead of scraping pixels.
+    function stateDump() {
+        var rs = [];
+        var n = Math.min(results.length, 12);
+        for (var i = 0; i < n; i++) {
+            var r = results[i] || {};
+            rs.push({
+                title: String(r.title || ""),
+                subtitle: String(r.subtitle || ""),
+                type: String(r.type || ""),
+                verb: String(r.verb || "")
+            });
+        }
+        var acts = [];
+        for (var j = 0; j < selectedActions.length; j++)
+            acts.push(String(selectedActions[j].name || ""));
+        return {
+            query: query,
+            resting: resting,
+            gridMode: gridMode,
+            help: help,
+            askMode: askMode,
+            answerMode: answerMode,
+            actionMode: actionMode,
+            modeLabel: modeLabel,
+            searching: searching,
+            busy: Dispatcher.busy,
+            resultCount: results.length,
+            totalCount: totalCount,
+            selectedIndex: list.selectedIndex,
+            panelOpen: panel.open,
+            selectedActions: acts,
+            hasMedia: hasMedia,
+            results: rs
+        };
+    }
+
     readonly property real cardW: Metrics.windowW * s
     readonly property int visibleRows: 8
     readonly property int visibleCount: Math.min(results.length, visibleRows)
@@ -172,6 +210,8 @@ Item {
             search.clear();
             list.selectedIndex = 0;
             panel.open = false;
+            // a category picked last session must not silently narrow "/"
+            tabs.activeIndex = 0;
             Qt.callLater(search.focusField);
         }
     }
@@ -240,9 +280,14 @@ Item {
                 if (root.allApps) root.help = false;
                 e.accepted = true;
             } else if (root.actionMode && e.key === Qt.Key_Tab) {
-                tabs.cycle(1); e.accepted = true;
+                // only cycle while the tab bar is visible; with a typed action
+                // query it would invisibly narrow the results. Still accept so
+                // Tab can't walk focus off the search field.
+                if (root.actionBrowse) tabs.cycle(1);
+                e.accepted = true;
             } else if (root.actionMode && e.key === Qt.Key_Backtab) {
-                tabs.cycle(-1); e.accepted = true;
+                if (root.actionBrowse) tabs.cycle(-1);
+                e.accepted = true;
             }
         }
     }

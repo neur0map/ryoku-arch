@@ -247,8 +247,10 @@ Item {
                     font.weight: Font.Medium
                     // Breathing colon in the phase tint, the shared clock-face
                     // heartbeat tied to the sky rather than the wallust accent.
+                    // Gated on visibility so a hidden palette really is idle.
                     SequentialAnimation on opacity {
                         loops: Animation.Infinite
+                        running: root.visible
                         NumberAnimation { from: 1; to: 0.3; duration: 620; easing.type: Easing.InOutSine }
                         NumberAnimation { from: 0.3; to: 1; duration: 620; easing.type: Easing.InOutSine }
                     }

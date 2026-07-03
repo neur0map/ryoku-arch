@@ -72,6 +72,7 @@ ShellRoot {
                 continue;
             out.push({
                 addr: o.address,
+                tl: tl[i],
                 title: o.title || o.class || "window",
                 cls: (o.class || "").toLowerCase(),
                 fh: typeof o.focusHistoryID === "number" ? o.focusHistoryID : 999
@@ -102,8 +103,12 @@ ShellRoot {
 
     function activate() {
         var w = root.wins[root.sel];
-        if (w && w.addr)
-            Hyprland.dispatch("focuswindow address:" + w.addr);
+        // foreign-toplevel activation; the plain-text dispatch is rejected by
+        // the lua-config hyprland ("focuswindow" is not a lua expression).
+        if (w && w.tl && w.tl.wayland)
+            w.tl.wayland.activate();
+        else if (w && w.addr)
+            Hyprland.dispatch('hl.dsp.focus({ window = "address:' + w.addr + '" })');
         Qt.quit();
     }
 

@@ -98,9 +98,21 @@ Column {
                     }
                 }
 
+                MouseArea {
+                    id: hover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Radio.playCached(Playlists.tracksFor(chip.entry.id))
+                }
+
                 // remove affordance, only on hover so the chip stays clean.
+                // Declared after (and z-raised above) the chip-body MouseArea,
+                // otherwise the body area swallows the \u00d7 click and replays
+                // the playlist the user meant to delete.
                 Text {
                     id: remove
+                    z: 1
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.rightMargin: 5 * root.s
@@ -109,7 +121,7 @@ Column {
                     color: rmArea.containsMouse ? Theme.vermLit : Theme.faint
                     font.family: Theme.font
                     font.pixelSize: 12 * root.s
-                    visible: hover.containsMouse
+                    visible: hover.containsMouse || rmArea.containsMouse
                     MouseArea {
                         id: rmArea
                         anchors.fill: parent
@@ -118,15 +130,6 @@ Column {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: Playlists.remove(chip.entry.id)
                     }
-                }
-
-                MouseArea {
-                    id: hover
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    // remove sits above this; tapping the chip body replays it.
-                    onClicked: Radio.playCached(Playlists.tracksFor(chip.entry.id))
                 }
             }
         }

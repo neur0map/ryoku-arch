@@ -6,13 +6,38 @@ import "../../lib/fuzzy.js" as Fuzzy
 import ".."
 
 // Open-window switcher: lists Hyprland toplevels, fuzzy-matched by title and
-// class, and focuses the picked one. A secondary action moves the window to the
-// current workspace. Default-ranked just below apps so "fire" surfaces a running
-// Firefox window under the app entry.
+// class, and focuses the picked one. Default-ranked just below apps so "fire"
+// surfaces a running Firefox window under the app entry.
 Provider {
     id: windows
 
     providerId: "windows"
+
+    // lastIpcObject only fills on an IPC refresh, so a window opened since the
+    // last refresh would be invisible to the switcher; nudge one per burst of
+    // queries. The refresh is async: results catch up a keystroke later.
+    Timer { id: refreshGate; interval: 800; repeat: false }
+
+    // Focusing must wait until the palette's close morph unmaps its exclusive-
+    // focus layer: focusing earlier gets overridden when the unmap hands focus
+    // to the window under the cursor (input:mouse_refocus).
+    property var pendingFocus: null
+    Timer {
+        id: focusDelay
+        interval: Motion.window + 110
+        repeat: false
+        onTriggered: {
+            var e = windows.pendingFocus;
+            windows.pendingFocus = null;
+            if (!e)
+                return;
+            var w = e.toplevel ? e.toplevel.wayland : null;
+            if (w)
+                w.activate();
+            else
+                windows.focusWindow(e.address);
+        }
+    }
 
     function normAddr(addr) {
         var a = String(addr || "");
@@ -35,6 +60,7 @@ Provider {
                 continue;
             out.push({
                 address: o.address,
+                toplevel: t,
                 title: o.title || o.class || "Window",
                 cls: o.class || "",
                 keywords: [o.class || ""]
@@ -54,12 +80,19 @@ Provider {
             actions: [{
                 name: "Focus",
                 icon: "",
-                execute: function () { windows.focusWindow(e.address); }
+                execute: function () {
+                    windows.pendingFocus = e;
+                    focusDelay.restart();
+                }
             }]
         };
     }
 
     function query(text) {
+        if (!refreshGate.running) {
+            Hyprland.refreshToplevels();
+            refreshGate.start();
+        }
         var list = windows.entries();
         var q = (text || "").trim().toLowerCase();
         var rows = [];
