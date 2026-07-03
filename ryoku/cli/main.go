@@ -44,6 +44,8 @@ func main() {
 		err = cmdSnapshots()
 	case "status":
 		err = cmdStatus(os.Args[2:])
+	case "version", "--version", "-v":
+		err = cmdVersion(os.Args[2:])
 	case "reload":
 		err = run("ryoku-shell", "reload")
 	case "deploy":
@@ -69,6 +71,7 @@ func usage() {
   rollback [id]  restore a snapper snapshot (no id: list them)
   snapshots      list snapper snapshots
   status         version, commits behind the channel, snapshot count
+  version        print the running version (--branch = channel · sha)
   materialize    lay the base configs into ~/.config (keeps your overrides)
   reload         restart the shell and reload Hyprland
   deploy         DEV ONLY: deploy from a repo checkout (RYOKU_REPO)

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Ryoku-branded fastfetch wrapper.
-# kitty -> kitty graphics protocol logo. else chafa. no chafa = no logo.
-set -euo pipefail
+# Ryoku-branded fastfetch. The emblem is rendered natively by fastfetch's
+# kitty-direct logo (image left, dossier right). fastfetch auto-enables "pipe
+# mode" when it thinks stdout isn't a real TTY, which SILENTLY disables image
+# logos and falls back to ASCII -- so in kitty we force `--pipe false` to keep
+# the image. Outside kitty: chafa if present, else fastfetch's default.
+set -uo pipefail
 
 config="${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/config.jsonc"
-
-if [ ! -f "$config" ]; then
-  exec fastfetch "$@"
-fi
+[ -f "$config" ] || exec fastfetch "$@"
 
 if [ -n "${KITTY_WINDOW_ID:-}" ] || [ "${TERM:-}" = "xterm-kitty" ]; then
-  exec fastfetch --config "$config" "$@"
+  exec fastfetch --config "$config" --pipe false "$@"
 fi
 
 if command -v chafa >/dev/null 2>&1; then
