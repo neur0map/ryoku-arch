@@ -19,7 +19,6 @@ func TestRoute(t *testing.T) {
 		{"stash", "pill", "pill", "stash"},
 		{"toolkit", "pill", "pill", "toolkit"},
 		{"utilities", "pill", "pill", "utilities"},
-		{"sidebar", "sidebar", "sidebar", "toggle"},
 	}
 	for _, c := range cases {
 		config, target, fn, ok := route(c.cmd)

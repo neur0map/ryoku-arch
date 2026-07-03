@@ -45,18 +45,6 @@ hl.config({
   },
 })
 
-hl.layer_rule({
-  name    = "sidebar-noanim",
-  match   = { namespace = "sidebar" },
-  no_anim = true,
-})
-
-hl.layer_rule({
-  name    = "sidebar-inhibit-noanim",
-  match   = { namespace = "sidebar-inhibit" },
-  no_anim = true,
-})
-
 -- the launcher is a translucent layer-shell overlay; blur its backdrop so the
 -- card reads against any wallpaper. its open/close is QML-driven, so suppress
 -- Hyprland's own layer animation to avoid a double move.

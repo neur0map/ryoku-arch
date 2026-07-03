@@ -15,7 +15,6 @@ power
 quit
 reload
 set
-sidebar
 stash
 status
 sysinfo

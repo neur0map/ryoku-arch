@@ -25,7 +25,6 @@ type component struct {
 var components = []component{
 	{"pill", true},
 	{"launcher", true},
-	{"sidebar", false},
 	{"visualizer", true},
 	{"widgets", true},
 	{"plugins", true},
@@ -350,8 +349,6 @@ func route(cmd string) (config, target, fn string, ok bool) {
 	switch cmd {
 	case "launcher":
 		return "launcher", "launcher", "toggle", true
-	case "sidebar":
-		return "sidebar", "sidebar", "toggle", true
 	case "visualizer":
 		return "visualizer", "visualizer", "toggle", true
 	case "visualizer-overlay":

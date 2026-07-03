@@ -9,7 +9,6 @@ var CATALOG = [
     { id: "open-clipboard",   name: "Clipboard History",  category: "System",     icon: "clipboard",   exec: ["ryoku-shell", "clipboard"] },
     { id: "open-sysinfo",     name: "System Info",        category: "System",     icon: "info",        exec: ["ryoku-shell", "sysinfo"] },
     { id: "open-toolkit",     name: "Control Deck",       category: "System",     icon: "grid",        exec: ["ryoku-shell", "toolkit"] },
-    { id: "open-sidebar",     name: "Sidebar",            category: "System",     icon: "panel",       exec: ["ryoku-shell", "sidebar"] },
     { id: "toggle-caffeine",  name: "Keep Awake",         category: "System",     icon: "coffee",      exec: ["ryoku-cmd-caffeine"] },
     { id: "toggle-game-mode", name: "Game Mode",          category: "System",     icon: "gamepad",     exec: ["ryoku-cmd-game-mode"] },
     { id: "mirror-displays",  name: "Mirror Displays",    category: "System",     icon: "monitor",     exec: ["ryoku-cmd-mirror"] },

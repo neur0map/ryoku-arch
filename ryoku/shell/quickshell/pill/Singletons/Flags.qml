@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Io
 
 // session flags in a little JSON file, watched for outside changes so every
-// daemon (pill, sidebar) shares one DND / Keep-Awake / Game-Mode state. no
+// daemon (pill, launcher) shares one DND / Keep-Awake / Game-Mode state. no
 // extra notif server or idle inhibitor. flip in one surface, the rest catch
 // up on the next file event, and it survives a daemon restart.
 // keepAwakeSince = epoch ms Keep-Awake last turned on (0 when off), so every
@@ -46,7 +46,7 @@ Singleton {
         watchChanges: true
         printErrors: false
         // atomic writes (temp + rename): a SIGTERM during a shell refresh, or
-        // pill + sidebar writing at once, can't leave a half-written file that
+        // two surfaces writing at once, can't leave a half-written file that
         // fails parse on next load and silently drops Keep-Awake back to off.
         atomicWrites: true
         onFileChanged: reload()

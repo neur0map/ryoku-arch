@@ -1,1 +1,0 @@
-../../pill/Singletons/Flags.qml

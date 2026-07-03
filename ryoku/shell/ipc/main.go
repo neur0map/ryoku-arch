@@ -71,7 +71,6 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "usage:")
 	fmt.Fprintln(os.Stderr, "  ryoku-shell daemon")
 	fmt.Fprintln(os.Stderr, "  ryoku-shell <launcher|clipboard|link|wallpaper-picker|mixer|calendar|power|battery|peek|hide>")
-	fmt.Fprintln(os.Stderr, "  ryoku-shell sidebar")
 	fmt.Fprintln(os.Stderr, "  ryoku-shell lock")
 	fmt.Fprintln(os.Stderr, "  ryoku-shell wallpaper [next|init|set <path>]")
 	fmt.Fprintln(os.Stderr, "  ryoku-shell voice")
