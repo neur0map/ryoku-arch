@@ -9,7 +9,10 @@ set -uo pipefail
 title="${1:?window title required}"; shift
 [ "$#" -gt 0 ] || { echo "ryoku-summon: launch command required" >&2; exit 2; }
 
-addr="$(hyprctl clients -j 2>/dev/null | jq -r --arg t "$title" '[.[] | select(.title == $t)][0].address // empty' 2>/dev/null || true)"
+# match the live title first, then the initial title: a window whose app
+# retitles itself dynamically would otherwise fall through to the flock
+# launcher, which exits nonzero on the held lock and looks like a dead key.
+addr="$(hyprctl clients -j 2>/dev/null | jq -r --arg t "$title" '([.[] | select(.title == $t)] + [.[] | select(.initialTitle == $t)])[0].address // empty' 2>/dev/null || true)"
 
 if [ -n "$addr" ]; then
 	ws="$(hyprctl activeworkspace -j 2>/dev/null | jq -r '.id' 2>/dev/null || true)"
