@@ -27,6 +27,7 @@ Rectangle {
         { "key": "connections", "name": "Connections",     "icon": "wifi",     "group": "System" },
         { "key": "gpu",         "name": "GPU",             "icon": "chip",     "group": "System" },
         { "key": "updates",     "name": "Updates",         "icon": "download", "pinned": "bottom" },
+        { "key": "credits",     "name": "Credits",         "icon": "heart",    "pinned": "bottom" },
         { "key": "appearance",  "name": "Appearance",      "icon": "palette",  "group": "Desktop" },
         { "key": "animations",  "name": "Animations",      "icon": "motion",   "group": "Desktop" },
         { "key": "lockscreen",  "name": "Lockscreen",      "icon": "lock",     "group": "Desktop" },
@@ -59,6 +60,7 @@ Rectangle {
         "connections": { "title": "Connections", "subtitle": "Wi-Fi networks, Bluetooth devices, and your hotspot, all in one place." },
         "gpu":         { "title": "GPU", "subtitle": "Choose which GPU Ryoku renders on. GPU passthrough is an optional advanced path that frees the discrete GPU for a VM; run virtual machines from the ryovm app." },
         "updates":     { "title": "Updates", "subtitle": "Updates pending for your Ryoku system." },
+        "credits":     { "title": "Credits", "subtitle": "The projects, communities, and people Ryoku is built on, and the alpha and beta testers who keep it honest." },
         "store":       { "title": "Store", "subtitle": "Browse and install shell plugins and extras bundles for the Ryoku desktop." },
         "addons":      { "title": "Add-ons", "subtitle": "Your installed plugins. Open one to change its settings, enable it, or remove it." },
         "performance": { "title": "Performance", "subtitle": "Opt-in tweaks that trade a little eye-candy for lower CPU, GPU, and memory use on modest hardware." },
@@ -257,6 +259,7 @@ Rectangle {
         case "environment": return environmentComp;
         case "widgets": return widgetsComp;
         case "updates": return updatesComp;
+        case "credits": return creditsComp;
         case "connections": return connectionsComp;
         case "gpu": return gpuComp;
         case "store": return storeComp;
@@ -282,6 +285,7 @@ Rectangle {
     Component { id: shellComp; ShellSettingsPage {} }
     Component { id: widgetsComp; WidgetsPage {} }
     Component { id: updatesComp; UpdatesPage {} }
+    Component { id: creditsComp; CreditsPage {} }
     Component { id: storeComp; StorePage {} }
     Component { id: addonsComp; AddonsPage {} }
     Component { id: connectionsComp; ConnectionsPage {} }

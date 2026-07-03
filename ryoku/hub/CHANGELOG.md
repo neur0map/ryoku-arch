@@ -29,6 +29,16 @@
   dead code and their tests; `hwcaps_test.go` asserts the corrected verdict.
 
 ### Added
+- **Credits** section (pinned in the nav under a heart): a showcase "thank you"
+  screen, Profile's twin in build and mood. kansha (感謝) meets the Three Graces
+  of Greek myth: the marble trio dissolves off the right the way Lady Justice
+  anchors the Profile (dissolve baked into the asset's alpha, so it melts into
+  the canvas with no seam). The projects Ryoku stands on read as editorial type
+  lines (name, then role · author in mono, hairline rules, no boxes), each
+  opening its home with a click where one is known; a separate band credits the
+  alpha and beta testers who keep finding the bugs. `CreditsPage.qml`, a `heart`
+  glyph in `Icon.qml`, wired into `Hub.qml`; art (`art/three-graces.png`)
+  generated with fal.ai and alpha-ramped locally.
 - Every section whose GUI maps to a real config file gains a `CONFIG` chip next to
   its title (in the shared `PageHeader`): it opens that file in `nvim` (side by
   side, in a kitty window). The Hyprland sections (Input, Appearance, Animations,
