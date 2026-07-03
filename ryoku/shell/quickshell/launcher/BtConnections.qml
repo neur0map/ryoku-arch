@@ -50,6 +50,24 @@ Flow {
         return "\u{F00AF}";                                    // bluetooth rune
     }
 
+    // Generated device-portrait art (launcher/art/bt/), keyed by the same
+    // BlueZ classes as glyphFor. Missing art falls back to the glyph.
+    function artFor(d) {
+        var ic = (d && d.icon) ? String(d.icon) : "";
+        var cat = "";
+        if (ic.indexOf("headset") !== -1 || ic.indexOf("headphone") !== -1)
+            cat = "headphones";
+        else if (ic.indexOf("mouse") !== -1) cat = "mouse";
+        else if (ic.indexOf("keyboard") !== -1) cat = "keyboard";
+        else if (ic.indexOf("gaming") !== -1) cat = "gamepad";
+        else if (ic.indexOf("phone") !== -1) cat = "phone";
+        else if (ic.indexOf("watch") !== -1) cat = "watch";
+        else if (ic.indexOf("audio") !== -1) cat = "speaker";
+        else if (ic.indexOf("computer") !== -1) cat = "computer";
+        else cat = "generic";
+        return "art/bt/" + cat + ".png";
+    }
+
     // BlueZ reports battery as 0..1 or 0..100 depending on the transport.
     function batteryLevel(d) {
         if (!d || d.battery === undefined || d.battery === null) return -1;
@@ -72,6 +90,27 @@ Flow {
             color: Theme.cardTop
             border.width: 1
             border.color: Theme.border
+            clip: true
+
+            // the device portrait fills the card like the rest card's hero
+            // art; a scrim keeps the name and battery readable over it.
+            Image {
+                id: portrait
+                anchors.fill: parent
+                anchors.margins: 1
+                source: root.artFor(card.modelData)
+                fillMode: Image.PreserveAspectCrop
+                sourceSize.width: Math.round(344 * root.s)
+                asynchronous: true
+                smooth: true
+                visible: status === Image.Ready
+            }
+            Rectangle {
+                anchors.fill: parent
+                visible: portrait.visible
+                color: "#000000"
+                opacity: 0.22
+            }
 
             // swallow clicks so tapping the bubble doesn't hit the click-out
             // scrim behind it and close the palette.
@@ -109,8 +148,10 @@ Flow {
                 elide: Text.ElideRight
             }
 
-            // the class pictogram, big like a device portrait.
+            // the class pictogram, big like a device portrait; stands in
+            // whenever the class has no shipped art.
             Text {
+                visible: !portrait.visible
                 anchors.left: parent.left
                 anchors.leftMargin: 13 * root.s
                 anchors.bottom: parent.bottom
