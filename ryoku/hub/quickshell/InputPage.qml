@@ -30,7 +30,7 @@ Item {
                     var arr = JSON.parse(this.text);
                     var out = [];
                     for (var i = 0; i < arr.length; i++)
-                        out.push({ "key": arr[i].code, "label": arr[i].name + " (" + arr[i].code + ")" });
+                        out.push({ "key": arr[i].code, "label": arr[i].name, "hint": arr[i].code });
                     page.layoutOptions = out;
                 } catch (e) {}
             }
@@ -59,8 +59,19 @@ Item {
         store.edit("kbVariant", page.secondaryLayout() && v ? v + "," : v);
     }
 
-    // xkb variants for the primary layout, refetched when it changes.
+    // xkb variants for the primary layout, refetched when it changes. xkb
+    // names repeat the language ("French (AZERTY)", "Belgian (alt.)"); inside
+    // an already-chosen layout that prefix is noise, so it is stripped and the
+    // qualifier alone becomes the label ("AZERTY", "alt."), code as the hint.
     property var variantOptions: [{ "key": "", "label": "Default" }]
+
+    function variantLabel(name) {
+        var m = String(name || "").match(/^[^(]+\((.+)\)$/);
+        if (!m)
+            return name;
+        var q = m[1].trim();
+        return q.charAt(0).toUpperCase() + q.slice(1);
+    }
 
     Process {
         id: variantsProc
@@ -72,7 +83,7 @@ Item {
                 try {
                     var arr = JSON.parse(this.text);
                     for (var i = 0; i < arr.length; i++)
-                        out.push({ "key": arr[i].code, "label": arr[i].name + " (" + arr[i].code + ")" });
+                        out.push({ "key": arr[i].code, "label": page.variantLabel(arr[i].name), "hint": arr[i].code });
                 } catch (e) {}
                 page.variantOptions = out;
             }

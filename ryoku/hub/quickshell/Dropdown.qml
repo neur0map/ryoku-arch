@@ -5,8 +5,9 @@ import "Singletons"
 
 // labelled select for lists too long for a segmented control (resolutions,
 // cursor themes, keyboard layouts). field shows the current label; tap drops a
-// scrollable list. `options` = [{ key, label }] or plain strings. reports
-// chosen(key).
+// scrollable list. `options` = [{ key, label, hint? }] or plain strings; the
+// optional hint renders dim and right-aligned in the list (a code, a size),
+// keeping the label itself clean. reports chosen(key).
 Item {
     id: root
 
@@ -121,7 +122,7 @@ Item {
                 Text {
                     anchors.left: parent.left
                     anchors.leftMargin: 12
-                    anchors.right: parent.right
+                    anchors.right: optHint.visible ? optHint.left : parent.right
                     anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     elide: Text.ElideRight
@@ -130,6 +131,18 @@ Item {
                     font.family: Theme.font
                     font.pixelSize: 13
                     font.weight: opt.active ? Font.DemiBold : Font.Medium
+                }
+
+                Text {
+                    id: optHint
+                    anchors.right: parent.right
+                    anchors.rightMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: text.length > 0
+                    text: opt.n.hint || ""
+                    color: Theme.faint
+                    font.family: Theme.mono
+                    font.pixelSize: 11
                 }
 
                 HoverHandler { id: optHov; cursorShape: Qt.PointingHandCursor }
