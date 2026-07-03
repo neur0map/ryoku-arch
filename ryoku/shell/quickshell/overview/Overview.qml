@@ -162,35 +162,68 @@ Item {
     readonly property real deskGap: 14 * root.s
     readonly property real stripTopMargin: 40 * root.s
 
-    // ---- filmstrip layout: one row, full cells + thin slats -------------------
+    // ---- layout: cells wrap into as many rows as needed, shrinking so every
+    // row fits the width AND all rows fit the height (no overflow, no scroll) ---
     readonly property real regionTop: root.stripTopMargin + root.deskCardH + 46 * root.s
     readonly property real regionBottom: root.height - 78 * root.s
     readonly property real availW: root.width - 2 * (72 * root.s)
     readonly property real availH: Math.max(150 * root.s, root.regionBottom - root.regionTop)
-    readonly property real rowGap: 16 * root.s
-    readonly property real thinW: 60 * root.s
-    readonly property int nFull: {
-        var n = 0;
-        for (var i = 0; i < root.slotModel.length; i++)
-            if (root.slotModel[i].full) n++;
-        return n;
+    readonly property real rowGap: 18 * root.s
+    readonly property real thinRatio: 0.42  // a thin slat's width = full cell * this
+
+    // Pack the slots into rows for a given full-cell height h, greedily wrapping
+    // when the next cell would overflow availW. Returns the rows (each a list of
+    // slot indices) and the total block height, or null if a single cell can't
+    // even fit the width. Full cells are h/aspect wide; thin slats are narrower.
+    function packRows(h) {
+        var fw = h / root.aspect;
+        var tw = fw * root.thinRatio;
+        var rows = [], row = [], rowW = 0;
+        for (var i = 0; i < root.slotModel.length; i++) {
+            var w = root.slotModel[i].full ? fw : tw;
+            if (w > root.availW)
+                return null;
+            var add = (row.length > 0 ? root.rowGap : 0) + w;
+            if (rowW + add > root.availW && row.length > 0) {
+                rows.push(row); row = []; rowW = 0; add = w;
+            }
+            row.push(i); rowW += add;
+        }
+        if (row.length > 0) rows.push(row);
+        var blockH = rows.length * h + Math.max(0, rows.length - 1) * root.rowGap;
+        return { rows: rows, blockH: blockH };
     }
-    readonly property int nThin: root.slotCount - root.nFull
-    // full-cell height: as large as fits both the width budget (after thin slats)
-    // and the region height, capped so a lone window doesn't balloon.
-    readonly property real cellH: {
-        var budget = root.availW - root.nThin * root.thinW - Math.max(0, root.slotCount - 1) * root.rowGap;
-        var fullWByW = root.nFull > 0 ? budget / root.nFull : budget;
-        var h = Math.min(root.availH, fullWByW * root.aspect, 470 * root.s);
-        return Math.max(150 * root.s, h);
-    }
-    readonly property real fullW: root.cellH / root.aspect
-    function slotW(slot) { return slot.full ? root.fullW : root.thinW; }
-    readonly property real stripWidth: {
-        var w = 0;
-        for (var i = 0; i < root.slotModel.length; i++)
-            w += root.slotW(root.slotModel[i]) + (i > 0 ? root.rowGap : 0);
-        return w;
+    // Largest full-cell height (capped) whose packing fits the height budget.
+    // Search downward in fixed steps; monotone, so the first fit is the biggest.
+    readonly property var lay: {
+        var hi = Math.min(root.availH, 460 * root.s);
+        var lo = 132 * root.s;
+        var step = 6 * root.s;
+        var chosen = null, chosenH = lo;
+        for (var h = hi; h >= lo; h -= step) {
+            var p = root.packRows(h);
+            if (p && p.blockH <= root.availH) { chosen = p; chosenH = h; break; }
+        }
+        if (!chosen) { chosen = root.packRows(lo) || { rows: [[]], blockH: lo }; chosenH = lo; }
+        // place each slot: rows centred horizontally, block centred vertically.
+        var fw = chosenH / root.aspect;
+        var tw = fw * root.thinRatio;
+        var items = [];
+        var y0 = Math.max(0, (root.availH - chosen.blockH) / 2);
+        for (var r = 0; r < chosen.rows.length; r++) {
+            var ids = chosen.rows[r];
+            var rw = 0;
+            for (var a = 0; a < ids.length; a++)
+                rw += (root.slotModel[ids[a]].full ? fw : tw) + (a > 0 ? root.rowGap : 0);
+            var x = (root.availW - rw) / 2;
+            var yy = y0 + r * (chosenH + root.rowGap);
+            for (var c = 0; c < ids.length; c++) {
+                var w = root.slotModel[ids[c]].full ? fw : tw;
+                items[ids[c]] = { x: x, y: yy, w: w, h: chosenH };
+                x += w + root.rowGap;
+            }
+        }
+        return { items: items, cellH: chosenH, width: root.availW, height: chosen.blockH };
     }
 
     // ---- selection: scroll / Tab move it, Enter or click commits -------------
@@ -302,19 +335,16 @@ Item {
         else if (root.dragTargetWs !== root.noWs && root.dragTargetWs !== root.dragSrcWs)
             root.moveWindow(root.dragAddr, root.dragTargetWs);
     }
-    // walk the variable-width filmstrip to resolve the slot under a point (in
-    // gridWrap coords). Empty slots map to their real id (creates on drop).
+    // resolve the slot under a point (in gridWrap coords) against the wrapped
+    // layout boxes. Empty slots map to their real id (creates on drop).
     function cellAt(px, py) {
-        if (py < 0 || py > root.cellH)
-            return root.noWs;
-        var x = 0;
+        var it = root.lay.items;
         for (var i = 0; i < root.slotModel.length; i++) {
-            var w = root.slotW(root.slotModel[i]);
-            if (px >= x && px <= x + w) {
+            var b = it[i];
+            if (b && px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) {
                 var slot = root.slotModel[i];
                 return slot.add ? root.newWsId : slot.wsId;
             }
-            x += w + root.rowGap;
         }
         return root.noWs;
     }
@@ -386,35 +416,36 @@ Item {
         }
     }
 
-    // ---- the filmstrip --------------------------------------------------------
+    // ---- the wrapped grid -----------------------------------------------------
+    // gridWrap spans the whole available region; each cell is placed absolutely
+    // from lay.items (rows centred, block centred), so hit-test == render.
     Item {
         id: gridWrap
-        x: (root.width - width) / 2
-        y: root.regionTop + Math.max(0, (root.availH - height) / 2)
-        width: root.stripWidth
-        height: root.cellH
+        x: 72 * root.s
+        y: root.regionTop
+        width: root.availW
+        height: root.availH
 
-        Row {
-            id: strip
-            anchors.fill: parent
-            spacing: root.rowGap
-
-            Repeater {
-                model: root.slotModel
-                delegate: WorkspaceCell {
-                    id: cell
-                    required property var modelData
-                    required property int index
-                    width: root.slotW(cell.modelData)
-                    height: root.cellH
-                    s: root.s
-                    ov: root
-                    idx: cell.index
-                    wsId: cell.modelData.wsId
-                    isAdd: cell.modelData.add === true
-                    full: cell.modelData.full === true
-                    selected: root.selected === cell.index
-                }
+        Repeater {
+            model: root.slotModel
+            delegate: WorkspaceCell {
+                id: cell
+                required property var modelData
+                required property int index
+                readonly property var box: root.lay.items[cell.index] || ({ x: 0, y: 0, w: 10, h: 10 })
+                x: cell.box.x
+                y: cell.box.y
+                width: cell.box.w
+                height: cell.box.h
+                s: root.s
+                ov: root
+                idx: cell.index
+                wsId: cell.modelData.wsId
+                isAdd: cell.modelData.add === true
+                full: cell.modelData.full === true
+                selected: root.selected === cell.index
+                Behavior on x { enabled: cell.appeared; NumberAnimation { duration: Motion.standard; easing.type: Motion.easeExpo } }
+                Behavior on y { enabled: cell.appeared; NumberAnimation { duration: Motion.standard; easing.type: Motion.easeExpo } }
             }
         }
     }
