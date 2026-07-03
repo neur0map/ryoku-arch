@@ -135,10 +135,10 @@ Prefer to build it yourself? The archiso profile and build script live in
 One line converts an existing Arch machine into a Ryoku box: it backs up your
 configs (with a `restore.sh` to undo), trusts the signed `[ryoku]` repo, migrates
 you off conflicting shells and daemons, and wires up the full desktop. It never
-partitions a disk. On this branch the installer runs from `unstable-dev`:
+partitions a disk.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/ryoku-shell-installer/install.sh | RYOKU_SHELL_REF=unstable-dev bash
+curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/ryoku-shell-installer/install.sh | bash
 ```
 
 Preview everything it would do without changing anything by appending
