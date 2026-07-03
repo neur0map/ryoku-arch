@@ -31,6 +31,10 @@ Provider {
         if (m)
             return { op: m[1].toLowerCase(), term: m[2].trim() };
         var t = String(text || "").trim();
+        // a bare verb mid-typing (">install ") is an incomplete command, not
+        // a search for the literal word; searching it flashed unrelated rows.
+        if (/^(install|remove|search)$/i.test(t))
+            return null;
         return t.length ? { op: "search", term: t } : null;
     }
 
@@ -49,6 +53,10 @@ Provider {
                 execute: function () {
                     var gpkOp = op === "remove" ? "remove" : "install";
                     Quickshell.execDetached([packages.terminal, "-e", "gpk", gpkOp, pkg.name]);
+                    // the install/remove will change what a re-search should
+                    // show; drop the cached rows so the next query refetches.
+                    packages.cachedQuery = "";
+                    packages.fullFor = "";
                 }
             }]
         };

@@ -123,6 +123,7 @@ Item {
             busy: Dispatcher.busy,
             resultCount: results.length,
             totalCount: totalCount,
+            busyIds: Object.keys(Dispatcher.busyProviders),
             selectedIndex: list.selectedIndex,
             panelOpen: panel.open,
             selectedActions: acts,

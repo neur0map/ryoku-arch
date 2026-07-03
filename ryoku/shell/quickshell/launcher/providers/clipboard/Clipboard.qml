@@ -75,8 +75,12 @@ Provider {
         id: listProc
         command: ["cliphist", "list"]
         // mark the dispatcher busy on the cold-cache load so the launcher
-        // shows the spinner instead of flashing "No matches".
-        onRunningChanged: Dispatcher.setBusy("clipboard", running)
+        // shows the spinner instead of flashing "No matches". Deferred: this
+        // process is started from inside query(), i.e. mid-results-eval, and
+        // flipping dispatcher state synchronously there corrupts the busy set.
+        onRunningChanged: Qt.callLater(function () {
+            Dispatcher.setBusy("clipboard", listProc.running);
+        })
         stdout: StdioCollector {
             onStreamFinished: {
                 var lines = this.text.split("\n");

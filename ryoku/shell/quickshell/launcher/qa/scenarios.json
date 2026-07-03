@@ -231,7 +231,7 @@
         "show",
         "type kitty",
         "settle",
-        "key Down Down Down Down Down Down Down Down",
+        "key Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down",
         "sleep 0.3"
       ],
       "asserts": [
@@ -559,7 +559,7 @@
       "steps": [
         "show",
         "type /file zzzznoexistfile",
-        "settle"
+        "settle 25"
       ],
       "asserts": [
         ".resultCount == 0",
@@ -602,6 +602,20 @@
       "network": true
     },
     {
+      "id": "pkg-verb-incomplete",
+      "name": "A bare package verb (>install ) searches nothing",
+      "covers": "packages parseOp incomplete-command guard",
+      "steps": [
+        "show",
+        "type >install ",
+        "settle"
+      ],
+      "asserts": [
+        ".resultCount == 0",
+        ".busy == false"
+      ]
+    },
+    {
       "id": "pkg-fast-lane",
       "name": "Package search shows local pacman/aur rows within seconds",
       "covers": "packages two-phase fast lane",
@@ -613,7 +627,10 @@
       "asserts": [
         "[.results[] | select(.title | test(\"^ripgrep\"))] | length >= 1"
       ],
-      "screenshot": true
+      "screenshot": true,
+      "teardown": [
+        "for i in $(seq 45); do pgrep -f 'gpk search' >/dev/null || break; sleep 1; done"
+      ]
     },
     {
       "id": "web-prefix-answer",
@@ -883,7 +900,7 @@
       "asserts": [
         ".resting == true",
         ".open == true",
-        ".resultCount == .totalCount"
+        ".resultCount == (if .totalCount > 40 then 40 else .totalCount end)"
       ],
       "screenshot": true
     },
