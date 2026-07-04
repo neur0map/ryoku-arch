@@ -447,8 +447,8 @@
     Ships `libqalculate` (qalc is the primary path, now gated on its exit code so
     input it cannot parse falls through instead of printing a garbage unit
     string) and hardens the AST-safe fallback to also handle `^` as power,
-    `X%`/`X% of Y`/`A +/- B%` percentages, the constants `pi`/`e`/`tau`, and a
-    whitelist of `math` functions, so the calculator works even without qalc. The
+    `X%`/`X% of Y`/`A +/- B%` percentages, the constants `pi`/`e`/`tau`, and an
+    allowlist of `math` functions, so the calculator works even without qalc. The
     script also normalizes hand-typed multiply and divide (`x`/`X` between
     operands, `×`, `÷`, ` of `) so `4+3x43` reads as `4+3*43`. `lib/dispatch.js
     looksNumeric` now routes an unprefixed `sqrt(16)`, `(1+2)*3`, `.5`, or `-3` to
