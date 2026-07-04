@@ -233,6 +233,22 @@ func TestPartReadyRequiresCommittedStrategy(t *testing.T) {
 	}
 }
 
+// A blocked partition step must say WHY, so Tab never dies silently. The common
+// trap: accepting the default "alongside" on a disk with no ESP to reuse.
+func TestPartBlockReasonExplainsBlockedTab(t *testing.T) {
+	m := model{picks: map[string]string{"disk": "alongside"}, diskG: 256, freeG: 200}
+	if r := m.partBlockReason(); r == "" {
+		t.Fatal("partBlockReason empty for alongside with no reusable ESP; Tab would die silently")
+	}
+	m = model{picks: map[string]string{"disk": "whole"}, diskG: 256}
+	if r := m.partBlockReason(); r != "" {
+		t.Fatalf("partBlockReason %q for a valid whole-disk layout; want none", r)
+	}
+	if !m.partReady() {
+		t.Fatal("partReady false while partBlockReason is empty; they must agree")
+	}
+}
+
 // disk-strategy picker pre-selects items[0], so a quick Enter commits the first
 // item. listing alongside first turns a fast Enter into the safe option
 // (alongside is gated by free-space / ESP checks elsewhere); whole first turned

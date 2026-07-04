@@ -1442,22 +1442,30 @@ func (m *model) partKey(k string) {
 	}
 }
 
-// partReady reports whether the chosen layout can be installed: the disk meets
-// the floor, and the disk strategy is one we know how to drive. An empty
-// strategy used to slip through here and reach the backend as a silent wipe.
-func (m model) partReady() bool {
+// partBlockReason says why the chosen layout can't install yet, or "" when it can,
+// so a blocked Tab on the partition step can explain itself instead of doing nothing.
+func (m model) partBlockReason() string {
 	if m.diskG < minDiskGiB {
-		return false
+		return fmt.Sprintf("Disk is %dG; Ryoku needs at least %dG. Press esc to pick another.", m.diskG, minDiskGiB)
 	}
 	switch m.picks["disk"] {
 	case "whole":
-		return true
+		return ""
 	case "alongside":
-		return m.hasKeptESP() && m.freeG >= alongsideMinRootGiB
+		if !m.hasKeptESP() {
+			return "No existing EFI partition to install alongside. Press esc and choose 'Erase whole disk'."
+		}
+		if m.freeG < alongsideMinRootGiB {
+			return fmt.Sprintf("Only %dG free; alongside needs %dG. Shrink Windows first, or press esc and choose 'Erase whole disk'.", m.freeG, alongsideMinRootGiB)
+		}
+		return ""
 	default:
-		return false
+		return "Choose a disk strategy first (press esc)."
 	}
 }
+
+// partReady reports whether the chosen layout can be installed.
+func (m model) partReady() bool { return m.partBlockReason() == "" }
 
 func (m model) layoutSummary() string {
 	n := 2 // @, @nix always
@@ -1781,8 +1789,8 @@ func (m model) partBody(inner int) string {
 		fg(cText, "Limine") + "\n")
 	b.WriteString(m.diskBar(m.layoutSegs(), inner, m.selSeg()) + "\n\n")
 
-	if m.diskG < minDiskGiB { // WIRE: real size from blockdev --getsize64
-		b.WriteString(bold(cRed, fmt.Sprintf("⚠ disk is %dG, Ryoku needs at least %dG. Use a larger disk.", m.diskG, minDiskGiB)) + "\n\n")
+	if r := m.partBlockReason(); r != "" {
+		b.WriteString(bold(cRed, "⚠ "+r) + "\n\n")
 	}
 
 	rows := m.layoutRows()
