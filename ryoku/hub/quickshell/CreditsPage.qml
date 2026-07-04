@@ -38,7 +38,8 @@ Item {
         { "name": "bhimio1",      "url": "https://github.com/bhimio1" },
         { "name": "povargg",      "url": "https://github.com/povargg" },
         { "name": "godspeed1709", "url": "https://github.com/godspeed1709" },
-        { "name": "VortexVirus",  "url": "https://github.com/VortexVirus" }
+        { "name": "VortexVirus",  "url": "https://github.com/VortexVirus" },
+        { "name": "Lowingx",      "url": "https://github.com/Lowingx" }
     ]
 
     function openUrl(u) {
