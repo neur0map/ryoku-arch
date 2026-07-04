@@ -154,10 +154,10 @@ type Overrides struct {
 func defaultOverrides() Overrides {
 	return Overrides{
 		Appearance: Appearance{
-			GapsIn: 8, GapsOut: 26, BorderSize: 3, Rounding: 16,
-			ActiveOpacity: 0.96, InactiveOpacity: 0.90,
-			BlurEnabled: true, BlurSize: 8, BlurPasses: 3,
-			ShadowEnabled: true, ShadowRange: 30,
+			GapsIn: 12, GapsOut: 18, BorderSize: 2, Rounding: 2,
+			ActiveOpacity: 1, InactiveOpacity: 0.94,
+			BlurEnabled: true, BlurSize: 4, BlurPasses: 1,
+			ShadowEnabled: true, ShadowRange: 45,
 			Animations: true, Layout: "dwindle",
 			ActiveBorder: "#e0563b", InactiveBorder: "#313a4d",
 		},

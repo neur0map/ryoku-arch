@@ -11,6 +11,15 @@
   around `Listen` makes it 0700 atomically, with no world-visible window.
 
 ### Added
+- Ryoku now ships the reference desktop feel as the default look. Shell
+  (`quickshell/*/Singletons/Config.qml` + the hub's reset baseline): a thinner,
+  softer frame (radius 9, border 59, smoothing 8, shadow 0.63/12), a **floating**
+  island that reveals on hover, and JetBrains Mono Nerd Font at 1.3x. Windows
+  (`hyprland/modules/decoration.lua` + `hub` `defaultOverrides`): near-square
+  rounding 2, gaps 12/18, border 2, blur 4/1, opacity 1/0.94. Seeded on first
+  run, so fresh installs get it; existing configs are untouched, and Reset to
+  defaults adopts it. Hardware and private bits (monitors, cursor, widgets,
+  wallpapers, input) stay at the shipped baseline.
 - `plugin/` (`Ryoku.Blobs`) and `quickshell/pill`: the frame, pill and popouts
   gain a 1-2px outline along their shared silhouette, in the wallust hue Hyprland
   uses for window borders (raw `color4`, exposed as `Wallust.border`). `BlobGroup`

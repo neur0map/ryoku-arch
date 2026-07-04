@@ -23,12 +23,12 @@ func TestGenLuaDefaultsAreEmpty(t *testing.T) {
 func TestGenLuaEmitsChangedLeavesOnly(t *testing.T) {
 	o := defaultOverrides()
 	o.Appearance.Rounding = 24
-	o.Appearance.GapsIn = 12
+	o.Appearance.GapsIn = 20
 	out := genLua(o, true)
 	if !strings.Contains(out, "rounding = 24") {
 		t.Errorf("rounding override missing:\n%s", out)
 	}
-	if !strings.Contains(out, "gaps_in = 12") {
+	if !strings.Contains(out, "gaps_in = 20") {
 		t.Errorf("gaps_in override missing:\n%s", out)
 	}
 	// border_size untouched -> must not appear.
@@ -135,8 +135,8 @@ func TestParseOverridesPartialKeepsDefaults(t *testing.T) {
 	if o.Appearance.Rounding != 20 {
 		t.Errorf("rounding = %d, want 20", o.Appearance.Rounding)
 	}
-	if o.Appearance.BorderSize != 3 {
-		t.Errorf("borderSize = %d, want default 3", o.Appearance.BorderSize)
+	if o.Appearance.BorderSize != 2 {
+		t.Errorf("borderSize = %d, want default 2", o.Appearance.BorderSize)
 	}
 	if o.Input.KbLayout != "us" {
 		t.Errorf("kbLayout = %q, want default us", o.Input.KbLayout)
@@ -149,7 +149,7 @@ func TestParseOverridesPartialKeepsDefaults(t *testing.T) {
 func TestLiveLuaIsFullAndParses(t *testing.T) {
 	lua := liveLua(defaultOverrides())
 	for _, want := range []string{
-		"gaps_in = 8", "rounding = 16", "active_opacity = 0.96",
+		"gaps_in = 12", "rounding = 2", "active_opacity = 1.0",
 		"kb_layout = \"us\"", "follow_mouse = 2",
 		"[\"tap-to-click\"] = true", "animations = { enabled = true }",
 		"setcursor Bibata-Modern-Ice 24",

@@ -80,28 +80,28 @@ Singleton {
 
         JsonAdapter {
             id: adapter
-            property real frameRadius: 16
-            property real frameBorder: 66
-            property real frameSmoothing: 30
+            property real frameRadius: 9
+            property real frameBorder: 59
+            property real frameSmoothing: 8
             property real frameOpacity: 1
-            property real shadowStrength: 0.5
-            property real shadowSize: 26
-            property color surfaceColor: "#16110b"
-            property real islandWidth: 108
-            property real islandHeight: 38
-            property real islandRestCorner: 18
-            property real islandOpenCorner: 22
-            property real islandGap: 8
+            property real shadowStrength: 0.63
+            property real shadowSize: 12
+            property color surfaceColor: "#0f1115"
+            property real islandWidth: 109
+            property real islandHeight: 34
+            property real islandRestCorner: 6
+            property real islandOpenCorner: 28
+            property real islandGap: 0
             property real islandSmoothing: 24
             property real islandOpacity: 1
-            property string islandStyle: "island"
-            property bool islandAutohide: false
+            property string islandStyle: "floating"
+            property bool islandAutohide: true
             property bool barEnabled: false
             property real barHeight: 26
             property bool barShowTitle: true
             property bool barShowMedia: true
-            property string fontFamily: "Space Grotesk"
-            property real fontScale: 1.0
+            property string fontFamily: "JetBrainsMono Nerd Font"
+            property real fontScale: 1.3
         }
     }
 

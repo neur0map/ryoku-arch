@@ -31,13 +31,13 @@ Item {
     // mirror of the shells' canonical defaults (pill Singletons/Config.qml +
     // visualizer Singletons/Config.qml). only used for "Reset to defaults".
     readonly property var defaults: ({
-        "frameRadius": 16, "frameBorder": 66, "frameSmoothing": 30, "frameOpacity": 1,
-        "shadowStrength": 0.5, "shadowSize": 26, "surfaceColor": "#1a1b26",
-        "islandWidth": 108, "islandHeight": 38, "islandRestCorner": 18, "islandOpenCorner": 22,
-        "islandGap": 8, "islandSmoothing": 24, "islandOpacity": 1,
-        "islandStyle": "island", "islandAutohide": false,
+        "frameRadius": 9, "frameBorder": 59, "frameSmoothing": 8, "frameOpacity": 1,
+        "shadowStrength": 0.63, "shadowSize": 12, "surfaceColor": "#0f1115",
+        "islandWidth": 109, "islandHeight": 34, "islandRestCorner": 6, "islandOpenCorner": 28,
+        "islandGap": 0, "islandSmoothing": 24, "islandOpacity": 1,
+        "islandStyle": "floating", "islandAutohide": true,
         "barEnabled": false, "barHeight": 26, "barShowTitle": true, "barShowMedia": true,
-        "fontFamily": "Inter", "fontScale": 1.0,
+        "fontFamily": "JetBrainsMono Nerd Font", "fontScale": 1.3,
         "enabled": true, "bars": 64, "height": 0.42, "thickness": 0.58,
         "bloom": 0.6, "reflection": 0.1, "idleWave": true,
         "style": "bars", "shape": "rounded", "position": "bottom", "mirror": false
@@ -53,28 +53,28 @@ Item {
 
     QtObject {
         id: draft
-        property real frameRadius: 16
-        property real frameBorder: 66
-        property real frameSmoothing: 30
+        property real frameRadius: 9
+        property real frameBorder: 59
+        property real frameSmoothing: 8
         property real frameOpacity: 1
-        property real shadowStrength: 0.5
-        property real shadowSize: 26
-        property color surfaceColor: "#1a1b26"
-        property real islandWidth: 108
-        property real islandHeight: 38
-        property real islandRestCorner: 18
-        property real islandOpenCorner: 22
-        property real islandGap: 8
+        property real shadowStrength: 0.63
+        property real shadowSize: 12
+        property color surfaceColor: "#0f1115"
+        property real islandWidth: 109
+        property real islandHeight: 34
+        property real islandRestCorner: 6
+        property real islandOpenCorner: 28
+        property real islandGap: 0
         property real islandSmoothing: 24
         property real islandOpacity: 1
-        property string islandStyle: "island"
-        property bool islandAutohide: false
+        property string islandStyle: "floating"
+        property bool islandAutohide: true
         property bool barEnabled: false
         property real barHeight: 26
         property bool barShowTitle: true
         property bool barShowMedia: true
-        property string fontFamily: "Inter"
-        property real fontScale: 1.0
+        property string fontFamily: "JetBrainsMono Nerd Font"
+        property real fontScale: 1.3
         property bool enabled: true
         property int bars: 64
         property real height: 0.42
@@ -190,28 +190,28 @@ Item {
 
         JsonAdapter {
             id: shellA
-            property real frameRadius: 16
-            property real frameBorder: 66
-            property real frameSmoothing: 30
+            property real frameRadius: 9
+            property real frameBorder: 59
+            property real frameSmoothing: 8
             property real frameOpacity: 1
-            property real shadowStrength: 0.5
-            property real shadowSize: 26
-            property color surfaceColor: "#1a1b26"
-            property real islandWidth: 108
-            property real islandHeight: 38
-            property real islandRestCorner: 18
-            property real islandOpenCorner: 22
-            property real islandGap: 8
+            property real shadowStrength: 0.63
+            property real shadowSize: 12
+            property color surfaceColor: "#0f1115"
+            property real islandWidth: 109
+            property real islandHeight: 34
+            property real islandRestCorner: 6
+            property real islandOpenCorner: 28
+            property real islandGap: 0
             property real islandSmoothing: 24
             property real islandOpacity: 1
-            property string islandStyle: "island"
-            property bool islandAutohide: false
+            property string islandStyle: "floating"
+            property bool islandAutohide: true
             property bool barEnabled: false
             property real barHeight: 26
             property bool barShowTitle: true
             property bool barShowMedia: true
-            property string fontFamily: "Inter"
-            property real fontScale: 1.0
+            property string fontFamily: "JetBrainsMono Nerd Font"
+            property real fontScale: 1.3
         }
     }
 
