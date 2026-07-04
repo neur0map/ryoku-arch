@@ -31,7 +31,7 @@ bool BlobMaterialShader::updateUniformData(RenderState& state, QSGMaterial* newM
     Q_UNUSED(oldMaterial);
     auto* mat = static_cast<BlobMaterial*>(newMaterial);
     QByteArray* buf = state.uniformData();
-    Q_ASSERT(buf->size() >= 1440);
+    Q_ASSERT(buf->size() >= 1460);
 
     if (state.isMatrixDirty()) {
         const QMatrix4x4 m = state.combinedMatrix();
@@ -99,6 +99,16 @@ bool BlobMaterialShader::updateUniformData(RenderState& state, QSGMaterial* newM
         memcpy(buf->data() + base + 48, d3, 16);
         memcpy(buf->data() + base + 64, r.radius, 16);
     }
+
+    // Border color as vec4 (offset 1440) + width (offset 1456)
+    const float border[4] = {
+        static_cast<float>(mat->m_borderColor.redF()),
+        static_cast<float>(mat->m_borderColor.greenF()),
+        static_cast<float>(mat->m_borderColor.blueF()),
+        static_cast<float>(mat->m_borderColor.alphaF()),
+    };
+    memcpy(buf->data() + 1440, border, 16);
+    memcpy(buf->data() + 1456, &mat->m_borderWidth, 4);
 
     return true;
 }

@@ -18,9 +18,10 @@ there for the components it supervises), so the target builds nothing.
 
 Four pieces, one field:
 
-- `BlobGroup` the field itself. Holds the shapes, the body `color`, and
-  `smoothing` (the blend radius: how far two shapes reach to fuse). Everything in
-  one group is one surface.
+- `BlobGroup` the field itself. Holds the shapes, the body `color`, `smoothing`
+  (the blend radius: how far two shapes reach to fuse), and an optional
+  `borderColor`/`borderWidth` outline drawn along the field's silhouette.
+  Everything in one group is one surface.
 - `BlobInvertedRect` the border. A full-bleed rect with a rounded rectangular
   hole; the hole is the window area, the leftover ring is the frame.
 - `BlobRect` a body (the pill, or a popout). A rounded rect with per-corner radii

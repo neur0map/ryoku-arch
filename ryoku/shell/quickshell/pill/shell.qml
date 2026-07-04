@@ -561,6 +561,8 @@ ShellRoot {
                 BlobGroup {
                     id: blobGroup
                     color: Config.matchWallpaper ? Wallust.surface : Config.surfaceColor
+                    borderColor: Wallust.border
+                    borderWidth: 1.5
                     smoothing: Config.frameSmoothing
                     shadowStrength: Config.shadowStrength
                     shadowSize: Config.shadowSize
@@ -726,6 +728,8 @@ ShellRoot {
                 BlobGroup {
                     id: islandGroup
                     color: Config.matchWallpaper ? Wallust.surface : Config.surfaceColor
+                    borderColor: Wallust.border
+                    borderWidth: 1.5
                     smoothing: Config.islandSmoothing
                 }
 

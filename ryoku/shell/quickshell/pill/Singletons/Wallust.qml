@@ -29,6 +29,8 @@ Singleton {
     readonly property color surface:  base
     readonly property color accent:   vivid(adapter.color4)
     readonly property color accent2:  vivid(adapter.color5)
+    // Raw color4, the exact hue Hyprland's border uses (hypr-colors.lua active = color4).
+    readonly property color border:   adapter.color4
 
     // Shift a colour's HSV value by dv (hue and saturation kept), so a ramp from
     // the wallpaper background sits at predictable depths.

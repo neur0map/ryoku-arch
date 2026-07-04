@@ -44,6 +44,22 @@ void BlobGroup::setShadowSize(qreal v) {
     markDirty();
 }
 
+void BlobGroup::setBorderColor(const QColor& c) {
+    if (m_borderColor == c)
+        return;
+    m_borderColor = c;
+    emit borderColorChanged();
+    markDirty();
+}
+
+void BlobGroup::setBorderWidth(qreal v) {
+    if (m_borderWidth == v)
+        return;
+    m_borderWidth = v;
+    emit borderWidthChanged();
+    markDirty();
+}
+
 void BlobGroup::addShape(BlobShape* shape) {
     if (!shape || m_shapes.contains(shape))
         return;

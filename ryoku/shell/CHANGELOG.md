@@ -11,6 +11,11 @@
   around `Listen` makes it 0700 atomically, with no world-visible window.
 
 ### Added
+- `plugin/` (`Ryoku.Blobs`) and `quickshell/pill`: the frame, pill and popouts
+  gain a 1-2px outline along their shared silhouette, in the wallust hue Hyprland
+  uses for window borders (raw `color4`, exposed as `Wallust.border`). `BlobGroup`
+  gained `borderColor`/`borderWidth`; the SDF shader paints a band just inside the
+  rim, so the melted shapes read as one lined body, not per-shape strokes.
 - `quickshell/launcher` **Bluetooth bubbles**: connected devices float as their
   own compact square-cornered cards under the palette window, one per device,
   the Android quick-pair tile in Ryoku grammar -- name up top, a big

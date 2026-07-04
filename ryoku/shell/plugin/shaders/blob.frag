@@ -21,6 +21,8 @@ layout(std140, binding = 0) uniform buf {
     vec4 invertedOuter;
     vec4 invertedInner;
     vec4 rectData[80];
+    vec4 borderColor;
+    float borderWidth;
 };
 
 float sdRoundedBox(vec2 p, vec2 center, vec2 halfSize, float radius) {
@@ -283,5 +285,9 @@ void main() {
     float bodyA = ownPixel ? bodyAlpha : 0.0;
     // Body color over the (black) shadow, premultiplied.
     float outA = bodyA + shadowAlpha * (1.0 - bodyA);
-    fragColor = vec4(color.rgb * bodyA, outA) * qt_Opacity;
+    // 1-2px outline in borderColor along the silhouette rim (a band just inside sdf = 0)
+    vec3 bodyRgb = (borderWidth > 0.0 && borderColor.a > 0.0)
+        ? mix(color.rgb, borderColor.rgb, borderColor.a * smoothstep(-borderWidth - fw, -borderWidth + fw, mergedSdf))
+        : color.rgb;
+    fragColor = vec4(bodyRgb * bodyA, outA) * qt_Opacity;
 }

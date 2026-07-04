@@ -33,6 +33,8 @@ public:
     int m_rectCount = 0;
     int m_myIndex = -2;
     QColor m_color{ 0x44, 0x88, 0xff };
+    QColor m_borderColor{ 0, 0, 0, 0 };
+    float m_borderWidth = 0.0f;
     int m_hasInverted = 0;
     float m_invertedRadius = 0;
     float m_shadowStrength = 0;
