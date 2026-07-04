@@ -123,12 +123,16 @@ jobs:
           no_check_bucket = true
           EOF
 
-          # R2_BUCKET is the bucket (or bucket/prefix) backing repo.ryoku.dev.
-          # The repo is served from https://repo.ryoku.dev/stable/x86_64/, so publish
-          # the freshly built x86_64/ dir into <bucket>/x86_64/. Use sync, not
-          # copy, so superseded packages and any rotated-out signatures are
-          # pruned from the bucket instead of lingering forever.
+          # Build output publishes into <bucket>/x86_64/ (served at
+          # repo.ryoku.dev/stable/x86_64/). Order matters (issue #21): if ryoku.db
+          # goes live before the packages and .sig files it lists, SigLevel=Required
+          # installs fail with "Maximum file size exceeded", because a missing .sig
+          # returns an HTML 404 that overruns pacman's signature size cap. So push
+          # packages and sigs first, the db last, then prune superseded versions.
           dest="$R2_BUCKET"
           src="$GITHUB_WORKSPACE/release/repo/out/x86_64"
-          rclone sync "$src" "Ryoku:$dest/x86_64/" -P
-          echo "::notice::Synced [ryoku] repo to Ryoku:$dest/x86_64/ (stale objects pruned)"
+          remote="Ryoku:$dest/x86_64/"
+          rclone copy "$src" "$remote" --exclude 'ryoku.db*' --exclude 'ryoku.files*' -P
+          rclone copy "$src" "$remote" --include 'ryoku.db*' --include 'ryoku.files*' -P
+          rclone sync "$src" "$remote" -P
+          echo "::notice::Published [ryoku] repo to $remote (packages first, db last, stale pruned)"

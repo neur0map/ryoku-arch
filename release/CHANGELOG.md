@@ -61,6 +61,13 @@
   install and `ryoku update` both deliver the new shell.
 
 ### Fixed
+- Installs no longer fail with "Maximum file size exceeded" from repo.ryoku.dev
+  (issue #21). The publish workflow uploaded the repo in one `rclone sync` with no
+  ordering guarantee, so a partial or mid-flight run could leave the live `ryoku.db`
+  naming a package whose `.sig` was not up yet; pacman fetches that missing `.sig`
+  as an HTML 404 that overruns its signature size cap and aborts under
+  `SigLevel=Required`. Publish now goes packages + sigs first, db last, prune last,
+  so the db is never ahead of what it references.
 - `ryoku-desktop`: depend on `bluez` + `bluez-utils`, and one-shot enable + start
   `bluetooth.service` from the `.install` (guarded by a marker under
   `/var/lib/ryoku` so a user who later disables the service stays disabled
