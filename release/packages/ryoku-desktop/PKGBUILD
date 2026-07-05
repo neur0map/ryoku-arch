@@ -47,6 +47,12 @@ depends=(
   'fastfetch'
   'yazi'
   'neovim'
+  # file manager + its stash right-click integration. nautilus-python loads
+  # ryoku-stash-menu.py (Install/Compress/Send with Ryoku); a hard depend, not
+  # optional, so `ryoku update` pulls it onto existing boxes that predate it (an
+  # optdepend never installs on -Syu) and the right-click menu actually shows up.
+  'nautilus'
+  'nautilus-python'
   # tools the shipped autostart, pill, ryoshot, and helper scripts call by name
   'hypridle'
   'brightnessctl'
@@ -87,8 +93,6 @@ optdepends=(
   'openrgb: keyboard and LED accent sync via ryoku-leds'
   'wtype: voice-dictation typing on Wayland (Handy)'
   'mpv: webcam mirror and media playback'
-  'nautilus: graphical file manager'
-  'nautilus-python: Ryoku stash actions in the Nautilus right-click menu'
   'chromium: web browser'
   'qemu-desktop: GPU-passthrough VM (Ryoku Settings > GPU)'
   'libvirt: VM management for the passthrough VM'

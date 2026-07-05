@@ -61,6 +61,13 @@
   install and `ryoku update` both deliver the new shell.
 
 ### Fixed
+- `ryoku-desktop`: make `nautilus` + `nautilus-python` hard depends instead of
+  optional. The Ryoku stash actions (Install/Compress/Send with Ryoku) ship as a
+  nautilus-python extension, but nautilus-python was only an optdepend and
+  `pacman -Syu` never pulls optdepends, so existing boxes updated without it and
+  the right-click menu never loaded. As a depend it reaches every path: pacstrap
+  via `base.packages`, the standalone installer transitively, and existing boxes
+  on `ryoku update` since the auto-generated `pkgver` bumps.
 - Installs no longer fail with "Maximum file size exceeded" from repo.ryoku.dev
   (issue #21). The publish workflow uploaded the repo in one `rclone sync` with no
   ordering guarantee, so a partial or mid-flight run could leave the live `ryoku.db`
