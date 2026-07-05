@@ -785,3 +785,111 @@ func TestReconcileFastfetchEmblem(t *testing.T) {
 		}
 	})
 }
+
+// hasRyokuBootEntry answers the boot-critical guard: does some ACTIVE NVRAM
+// entry already boot the package-refreshed limine, so `ryoku update` may retire
+// the legacy entry / the healing reconciler can stand down? "present" means an
+// active entry (BootXXXX* ...) either loads \limine_x64.efi or carries the
+// limine-install label "Limine" (VenHw, no file path). The legacy \limine.efi
+// entry, inactive entries, foreign entries, and empty output must all read NOT
+// present. Fixtures mirror real efibootmgr: a header block, then one entry per
+// line with a TAB between label and device path.
+func TestHasRyokuBootEntry(t *testing.T) {
+	const header = "BootCurrent: 0004\nTimeout: 3\nBootOrder: 0004,0002\n"
+	const legacy = "Boot0003* Ryoku\tHD(1,GPT,abcd)/File(\\EFI\\limine\\limine.efi)\n"
+	cases := []struct {
+		name       string
+		efibootmgr string
+		want       bool
+	}{
+		{
+			"limine-install VenHw entry, label Limine, no file path",
+			header + "Boot0004* Limine\tVenHw(99e275e7-75a0-4b37-a2e6-c5385e6c00cb)\n",
+			true,
+		},
+		{
+			"installer Ryoku entry loading limine_x64.efi",
+			header + "Boot0002* Ryoku\tHD(1,GPT,abcd)/File(\\EFI\\limine\\limine_x64.efi)\n",
+			true,
+		},
+		{
+			"only the legacy limine.efi entry: migration owns it, not present",
+			header + legacy,
+			false,
+		},
+		{
+			"inactive limine entry only (no *): not active, not present",
+			header + "Boot0005  Limine\tVenHw(99e275e7-75a0-4b37-a2e6-c5385e6c00cb)\n",
+			false,
+		},
+		{
+			"only a foreign Windows Boot Manager entry",
+			header + "Boot0000* Windows Boot Manager\tHD(1,GPT,aaa)/File(\\EFI\\Microsoft\\Boot\\bootmgfw.efi)\n",
+			false,
+		},
+		{"empty efibootmgr output", "", false},
+	}
+	for _, c := range cases {
+		if got := hasRyokuBootEntry(c.efibootmgr); got != c.want {
+			t.Errorf("%s: hasRyokuBootEntry = %v, want %v", c.name, got, c.want)
+		}
+	}
+
+	// the legacy-only fixture is exactly what staleLimineBootNums must claim, so
+	// the layout migration (not the healing reconciler) converts it.
+	if got := staleLimineBootNums(header + legacy); len(got) != 1 || got[0] != "0003" {
+		t.Errorf("staleLimineBootNums(legacy) = %v, want [0003]", got)
+	}
+}
+
+// limineBootLabel extracts the label field of an efibootmgr line: the text
+// after BootXXXX and an optional *, up to the first TAB (space-separated
+// fallback when there is no tab). A label with spaces must survive intact
+// (run to the tab, not the first space), and a non-entry header line must yield
+// "" because isHex4(line[4:8]) fails.
+func TestLimineBootLabel(t *testing.T) {
+	cases := []struct {
+		name string
+		line string
+		want string
+	}{
+		{"limine-install label", "Boot0004* Limine\tVenHw(99e275e7-75a0-4b37-a2e6-c5385e6c00cb)", "Limine"},
+		{"installer label", "Boot0002* Ryoku\tHD(1,GPT,abcd)/File(\\EFI\\limine\\limine_x64.efi)", "Ryoku"},
+		{"spaced label runs to the tab", "Boot0000* Windows Boot Manager\tHD(1,GPT,aaa)/File(\\EFI\\Microsoft\\Boot\\bootmgfw.efi)", "Windows Boot Manager"},
+		{"space-separated fallback, no tab", "Boot0006* Limine VenHw(x)", "Limine"},
+		{"BootOrder header is not an entry", "BootOrder: 0004,0002", ""},
+		{"BootCurrent header is not an entry", "BootCurrent: 0004", ""},
+	}
+	for _, c := range cases {
+		if got := limineBootLabel(c.line); got != c.want {
+			t.Errorf("%s: limineBootLabel(%q) = %q, want %q", c.name, c.line, got, c.want)
+		}
+	}
+}
+
+// parseEspDiskPart derives the efibootmgr --disk/--part pair the boot-entry
+// writer needs. It trims all three inputs and refuses (ok=false) unless the
+// mount source is under /dev/ and both the parent-disk name and partition
+// number are non-empty; on success the disk is "/dev/"+pkname and the part is
+// the trimmed partition number.
+func TestParseEspDiskPart(t *testing.T) {
+	cases := []struct {
+		name               string
+		source, pkname, part string
+		wantDisk, wantPart string
+		wantOK             bool
+	}{
+		{"nvme, part has trailing newline", "/dev/nvme0n1p1", "nvme0n1", "1\n", "/dev/nvme0n1", "1", true},
+		{"sata, padded part number", "/dev/sda2", "sda", " 2 ", "/dev/sda", "2", true},
+		{"source not under /dev", "mapper/foo", "sda", "1", "", "", false},
+		{"empty pkname", "/dev/sda1", "", "1", "", "", false},
+		{"empty partition", "/dev/sda1", "sda", "", "", "", false},
+	}
+	for _, c := range cases {
+		disk, part, ok := parseEspDiskPart(c.source, c.pkname, c.part)
+		if ok != c.wantOK || disk != c.wantDisk || part != c.wantPart {
+			t.Errorf("%s: parseEspDiskPart(%q,%q,%q) = (%q,%q,%v), want (%q,%q,%v)",
+				c.name, c.source, c.pkname, c.part, disk, part, ok, c.wantDisk, c.wantPart, c.wantOK)
+		}
+	}
+}

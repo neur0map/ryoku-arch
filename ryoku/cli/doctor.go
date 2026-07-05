@@ -91,6 +91,7 @@ func reconcilers() []reconciler {
 		{"swap kept out of snapshots", reconcileSwapSubvolume},
 		{"snapper configuration", reconcileSnapper},
 		{"limine boot menu layout", reconcileLimineLayout},
+		{"limine boot entry", reconcileLimineBootEntry},
 		{"pacman database lock", reconcilePacmanLock},
 		{"stale install crypt mapper", reconcileStaleCryptMapper},
 		{"ryoku package channel", reconcileRyokuChannel},
@@ -741,6 +742,11 @@ func migrateLimineLayout(st limineLayoutState) recResult {
 	}
 
 	if st.legacyEFIExists {
+		// Retire the legacy hand-copied bootloader for the package-refreshed
+		// path, but NEVER before a boot entry points at the new binary. Deleting
+		// the only NVRAM entry with nothing to replace it drops the machine off
+		// the firmware boot menu entirely: the "boot option gone after an
+		// update, not even in the BIOS" failure.
 		if st.installerTool {
 			// deploys EFI/limine/limine_x64.efi + the EFI/BOOT fallback and
 			// registers the NVRAM entry (deduped by partition uuid + path).
@@ -749,13 +755,24 @@ func migrateLimineLayout(st limineLayoutState) recResult {
 					withFix("sudo limine-install, then sudo rm %s", limineLegacyEFI)
 			}
 		} else if exists("/usr/share/limine/BOOTX64.EFI") {
-			// no tool (offline box): at least un-stale the booted binary.
+			// no tool: deploy the fresh binary at the package path, then register
+			// the entry the way the installer does. if the entry cannot be
+			// written, leave the working legacy boot path alone rather than
+			// strand the machine.
 			if err := run("sudo", "cp", "/usr/share/limine/BOOTX64.EFI", limineToolEFI); err != nil {
 				return warnRes("boot menu migrated (%s), but could not deploy %s: %v", strings.Join(done, "; "), limineToolEFI, err).
 					withFix("sudo cp /usr/share/limine/BOOTX64.EFI %s", limineToolEFI)
 			}
+			if !hasRyokuBootEntry(efibootmgrOutput()) {
+				if err := registerRyokuBootEntry(); err != nil {
+					return warnRes("boot menu migrated (%s), but could not register a boot entry for %s (%v); left the current entry in place so the machine still boots", strings.Join(done, "; "), limineToolEFI, err).
+						withFix("install limine-mkinitcpio-hook, then sudo ryoku doctor")
+				}
+			}
 		}
-		if exists(limineToolEFI) {
+		// only retire the stale entry + binary once a live NVRAM entry loads the
+		// package-refreshed bootloader.
+		if exists(limineToolEFI) && hasRyokuBootEntry(efibootmgrOutput()) {
 			for _, boot := range staleLimineBootNums(efibootmgrOutput()) {
 				_ = run("sudo", "efibootmgr", "-q", "-b", boot, "-B")
 			}
@@ -929,6 +946,123 @@ func efibootmgrOutput() string {
 		return ""
 	}
 	return string(out)
+}
+
+// hasRyokuBootEntry: does any active NVRAM entry boot the package-refreshed
+// limine? limine-install registers its entry labeled "Limine" with a VenHw
+// device path (no file path), while the installer writes a "Ryoku" entry
+// loading EFI/limine/limine_x64.efi. Match either, but NOT the legacy
+// \limine.efi entry (staleLimineBootNums owns that). pure, so the "do not
+// retire the old entry until a replacement exists" guard and the missing-entry
+// reconciler are testable without efibootmgr.
+func hasRyokuBootEntry(efibootmgr string) bool {
+	for _, line := range strings.Split(efibootmgr, "\n") {
+		if len(line) < 9 || !strings.HasPrefix(line, "Boot") || !isHex4(line[4:8]) || line[8] != '*' {
+			continue // only active boot entries
+		}
+		if strings.Contains(line, `\limine_x64.efi`) || limineBootLabel(line) == "Limine" {
+			return true
+		}
+	}
+	return false
+}
+
+// limineBootLabel: the label field of an efibootmgr entry line
+// ("Boot0004* Limine\tVenHw(...)" -> "Limine"). efibootmgr separates the label
+// from the device path with a tab; fall back to the first field for
+// space-separated output. "" when the line is not a boot entry.
+func limineBootLabel(line string) string {
+	if len(line) < 8 || !isHex4(line[4:8]) {
+		return ""
+	}
+	rest := strings.TrimSpace(strings.TrimPrefix(line[8:], "*"))
+	if i := strings.IndexByte(rest, '\t'); i >= 0 {
+		return strings.TrimSpace(rest[:i])
+	}
+	if fields := strings.Fields(rest); len(fields) > 0 {
+		return fields[0]
+	}
+	return ""
+}
+
+// parseEspDiskPart derives the efibootmgr --disk (whole device) and --part
+// (number) from the ESP mount source, its parent-disk name (lsblk PKNAME), and
+// the partition's sysfs number. pure: the wrangling that decides what NVRAM
+// entry gets written, tested without real block devices.
+func parseEspDiskPart(source, pkname, partition string) (disk, part string, ok bool) {
+	source = strings.TrimSpace(source)
+	pkname = strings.TrimSpace(pkname)
+	part = strings.TrimSpace(partition)
+	if !strings.HasPrefix(source, "/dev/") || pkname == "" || part == "" {
+		return "", "", false
+	}
+	return "/dev/" + pkname, part, true
+}
+
+// espDiskPart resolves the ESP block device backing /boot into an efibootmgr
+// --disk / --part pair.
+func espDiskPart() (disk, part string, ok bool) {
+	out, err := exec.Command("findmnt", "-n", "-o", "SOURCE", "--target", "/boot").Output()
+	if err != nil {
+		return "", "", false
+	}
+	src := strings.TrimSpace(string(out))
+	pk, err := exec.Command("lsblk", "-no", "PKNAME", src).Output()
+	if err != nil {
+		return "", "", false
+	}
+	partition := readFileSafe("/sys/class/block/" + filepath.Base(src) + "/partition")
+	return parseEspDiskPart(src, string(pk), partition)
+}
+
+// registerRyokuBootEntry writes the UEFI boot entry the installer writes: a
+// "Ryoku" entry loading EFI/limine/limine_x64.efi on the ESP's disk/partition.
+func registerRyokuBootEntry() error {
+	disk, part, ok := espDiskPart()
+	if !ok {
+		return fmt.Errorf("could not determine the ESP disk and partition")
+	}
+	return run("sudo", "efibootmgr", "--create", "--disk", disk, "--part", part,
+		"--label", "Ryoku", "--loader", `\EFI\limine\limine_x64.efi`, "--unicode")
+}
+
+// ---- reconciler: limine UEFI boot entry --------------------------------------
+
+// reconcileLimineBootEntry restores a vanished Ryoku UEFI boot entry. When the
+// firmware has no NVRAM entry loading the package-refreshed bootloader but the
+// binary is on the ESP, the machine has dropped off the boot menu (an earlier
+// migrate bug retired the old entry without writing a replacement) and boots
+// only via the removable EFI/BOOT fallback, if at all. Re-register the entry
+// exactly as the installer does. Idempotent: no-op once an entry loads the
+// bootloader, and it stands aside for the layout migration while a legacy entry
+// is still there to convert.
+func reconcileLimineBootEntry(checkOnly bool) recResult {
+	if !pkgInstalled("limine") || !exists(limineToolEFI) {
+		return okRes("not a limine-managed boot on this box")
+	}
+	if !has("efibootmgr") {
+		return okRes("no efibootmgr to inspect the UEFI boot menu")
+	}
+	out := efibootmgrOutput()
+	if out == "" {
+		return okRes("no UEFI boot entries to check")
+	}
+	if hasRyokuBootEntry(out) {
+		return okRes("Ryoku UEFI boot entry present")
+	}
+	if len(staleLimineBootNums(out)) > 0 {
+		return okRes("legacy limine boot entry present; the layout migration owns it")
+	}
+	fix := `sudo efibootmgr --create --disk <ESP disk> --part <ESP part> --label Ryoku --loader '\EFI\limine\limine_x64.efi' --unicode`
+	if checkOnly {
+		return wouldRes("no UEFI boot entry loads the Ryoku bootloader; the boot option is missing from firmware").
+			withFix(fix)
+	}
+	if err := registerRyokuBootEntry(); err != nil {
+		return failRes("the Ryoku UEFI boot entry is missing and could not be re-registered: %v", err).
+			withFix(fix)
+	}
+	return fixedRes("re-registered the missing Ryoku UEFI boot entry")
 }
 
 // writeBootFile: stage + `sudo cp` (not install -o/-g: the ESP is vfat, which

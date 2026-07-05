@@ -13,6 +13,21 @@
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
 
 ### Fixed
+- `doctor` no longer deletes a machine's only UEFI boot entry, and restores one
+  that already went missing (the "after a `ryoku update` the boot option is gone,
+  not even in the BIOS" report). The "limine boot menu layout" migration retired
+  the legacy hand-copied `\EFI\limine\limine.efi` NVRAM entry whenever
+  `limine_x64.efi` existed, but on a box without `limine-install` it wrote that
+  binary and then removed the entry with nothing registered in its place, so the
+  machine dropped off the firmware boot menu entirely and could not boot. The
+  migration now retires the old entry only once a replacement is present:
+  `limine-install` when it exists, else the installer's own
+  `efibootmgr --create ... --loader \EFI\limine\limine_x64.efi`, and it leaves
+  the working legacy entry alone if neither can. A new "limine boot entry"
+  reconciler re-registers a vanished entry on boxes that still start (via the
+  removable EFI/BOOT fallback); it recognizes both limine-install's "Limine"
+  entry (a VenHw device path, no file path) and the installer's "Ryoku" entry, so
+  it never false-fires on a healthy machine. Covered by `doctor_test.go`.
 - `doctor` gains a "fastfetch readout emblem" reconciler. The branded terminal
   readout draws a `kitty-direct` logo from an image file; when that file is
   missing fastfetch silently drops to its built-in Arch logo (empty stderr), so
