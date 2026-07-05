@@ -83,12 +83,10 @@ ShellRoot {
         IdleInhibitor { window: inhibitWin; enabled: Flags.keepAwake }
     }
 
-    // keyboard-return bounce. the pill overlay never unmaps, so releasing its
-    // Exclusive grab strands the keyboard on the dead layer and a plain refocus
-    // is a no-op. this 1x1 transparent layer grabs the keyboard for a beat then
-    // unmaps; Hyprland's on-unmap refocus (input:mouse_refocus) hands it to the
-    // window under the cursor, the one behind the surface. invisible, no
-    // throwaway window and no focus dispatch.
+    // keyboard-return bounce. the pill overlay never unmaps, and dropping an
+    // Exclusive grab on a mapped layer strands the keyboard (the window looks
+    // active but can't type; focus dispatches don't recover it). this 1x1 helper
+    // takes the grab and unmaps, which makes Hyprland hand the keyboard back.
     property bool kbBounce: false
     Timer {
         id: kbBounceTimer
@@ -178,82 +176,30 @@ ShellRoot {
             root.close();
             return;
         }
-        root.captureReturn(surface);
         root.openMon = mon;
         root.openSurface = surface;
     }
 
-    // the window that held keyboard focus before a focus surface grabbed it.
-    // closing the surface drops the layer's Exclusive grab to None, but Hyprland
-    // leaves the keyboard on the released layer -- the window stays "active" yet
-    // can't type until a real focus change. captured on open, restored on close.
-    property string returnAddr: ""
-
-    // address of the window genuinely focused right now. focusHistoryID 0 is the
-    // last window focused *anywhere*, so on an empty workspace it still points at
-    // whatever was focused on another desktop -- handing focus back to it on close
-    // would drag the whole view across (a terminal on w2 yanking you off an empty
-    // w5). only count it when it sits on a workspace that is actually on-screen;
-    // otherwise nothing is focused here, so return "" and let close() stay put.
-    function focusedWindowAddr() {
-        var tl = Hyprland.toplevels.values;
-        var addr = "", wsid = -1;
-        for (var i = 0; i < tl.length; i++) {
-            var o = tl[i] ? tl[i].lastIpcObject : null;
-            if (o && o.focusHistoryID === 0) {
-                addr = o.address || "";
-                wsid = o.workspace ? o.workspace.id : -1;
-                break;
-            }
-        }
-        if (addr === "")
-            return "";
-        var mons = Hyprland.monitors.values;
-        for (var j = 0; j < mons.length; j++) {
-            var aw = mons[j].activeWorkspace;
-            if (aw && aw.id === wsid)
-                return addr;
-        }
-        return "";
-    }
-
-    // remember the focused window when the first focus surface opens (voice never
-    // grabs the keyboard, so it needs no handback).
-    function captureReturn(surface) {
-        if (surface !== "voice" && root.openSurface === "")
-            root.returnAddr = root.focusedWindowAddr();
-    }
-
-    // hand keyboard focus back after a focus surface drops its grab. the pill
-    // overlay is always mapped, so releasing its Exclusive grab strands the
-    // keyboard: Hyprland still marks the old window active, so re-focusing it is
-    // a no-op, no keyboard enter is re-sent, and the window looks active yet
-    // cannot type (the "cannot type after the keyring popup" bug). the kbBounce
-    // helper above grabs the keyboard for a beat then unmaps; Hyprland's on-unmap
-    // refocus hands it to the window under the cursor, which recovers real
-    // keyboard input where a focus dispatch (cyclenext, focuswindow over IPC)
-    // is a silent no-op on the current Hyprland.
+    // pulse the kbBounce helper so a closed surface hands the keyboard back.
     function restoreFocus() {
         root.kbBounce = true;
         kbBounceTimer.restart();
     }
 
     function close() {
-        // user-driven dismissal of the keyring island (Escape, backdrop,
-        // Cancel) has to tell the daemon to cancel the prompt. a
-        // daemon-driven hide clears Keyring first, so dismiss() is a no-op.
+        // a user dismissal (Escape, backdrop, Cancel) must cancel the keyring
+        // prompt; a daemon-driven hide clears Keyring first, so this is a no-op.
         if (root.openSurface === "keyring")
             Keyring.dismiss();
-        var ret = root.returnAddr;
-        root.returnAddr = "";
+        // voice never grabbed the keyboard, so it has nothing to hand back.
+        var grabbed = root.openSurface !== "" && root.openSurface !== "voice";
         root.openMon = "";
         root.openSurface = "";
-        if (ret !== "")
+        if (grabbed)
             root.restoreFocus();
     }
 
     function show(mon, surface) {
-        root.captureReturn(surface);
         root.openMon = mon;
         root.openSurface = surface;
     }
@@ -320,12 +266,8 @@ ShellRoot {
             root.show(m, "keyring");
         }
         function keyringHide(): void {
-            // daemon-driven teardown: the unlock resolved (or the app withdrew the
-            // prompt). clear() first so close()'s dismiss() is a no-op and we never
-            // cancel an already-resolved prompt -- but still route through close()
-            // so keyboard focus is handed back to the window that raised the
-            // prompt. skipping that left the keyboard stuck on the released pill
-            // layer: after Chrome's keyring unlocked, its window could not type.
+            // daemon-driven teardown (unlock resolved). clear() first so close()'s
+            // dismiss() can't cancel the resolved prompt; close() hands focus back.
             Keyring.clear();
             if (root.openSurface === "keyring")
                 root.close();

@@ -30,6 +30,33 @@ ShellRoot {
         value: Config.weatherUnit
     }
 
+    // hand the keyboard back after a widget text field releases its grab. the
+    // widget layer never unmaps, and dropping an exclusive grab on a mapped
+    // layer strands the keyboard (the focused app can't type). this 1x1 helper
+    // takes the grab and unmaps, which hands the keyboard to a real window.
+    // same mechanism as the pill's kbBounce.
+    property bool kbBounce: false
+    function kbRestore() {
+        root.kbBounce = true;
+        kbBounceT.restart();
+    }
+    Timer {
+        id: kbBounceT
+        interval: 90
+        onTriggered: root.kbBounce = false
+    }
+    PanelWindow {
+        visible: root.kbBounce
+        implicitWidth: 1
+        implicitHeight: 1
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.namespace: "widgets-kbbounce"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+        anchors { top: true; left: true }
+    }
+
     Variants {
         model: Quickshell.screens
 
@@ -52,6 +79,7 @@ ShellRoot {
             // layer-shell routes clicks by input region, not kb interactivity -
             // so drag and the right-click menu always fire.
             property int kbWanted: 0
+            onKbWantedChanged: if (kbWanted === 0) root.kbRestore()
             WlrLayershell.keyboardFocus: kbWanted > 0 ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
             anchors { top: true; left: true; right: true; bottom: true }

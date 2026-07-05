@@ -122,7 +122,11 @@ ShellRoot {
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.namespace: "launcher"
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            // hold the grab until the window unmaps (end of the close morph).
+            // dropping it while still mapped strands the keyboard on the dead
+            // layer: the app looks focused but can't type until a real focus
+            // change. unmapping with the grab held hands the keyboard back.
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
             anchors { top: true; bottom: true; left: true; right: true }
 
