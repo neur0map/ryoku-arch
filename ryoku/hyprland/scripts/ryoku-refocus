@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# ryoku-refocus <address>: hand keyboard focus back to <address> after a pill
+# focus surface (keyring, deck, calendar, ...) drops its exclusive keyboard grab.
+#
+# Why this is not just "focus the window": the pill overlay is always mapped, so
+# releasing its grab (Exclusive -> None) strands the keyboard. Hyprland still
+# marks <address> the active window, so re-focusing it is a no-op, no keyboard
+# enter is re-sent, and the window looks active yet cannot type until a real
+# focus change (the "cannot type after the keyring popup" bug). Only a genuine
+# focus CHANGE re-sends the enter, so we bounce the keyboard off another window
+# and straight back.
+#
+# Bounce off a window already on <address>'s workspace so the desktop never
+# switches. If <address> is alone there, spawn a throwaway on that workspace
+# (floated tiny by the hide-refocus-bounce window rule so it neither shows nor
+# disturbs the layout), bounce off it, then close it.
+set -euo pipefail
+
+addr="${1:-}"
+[[ -n $addr ]] || exit 0
+
+# let the pill's Exclusive keyboard grab actually drop first. close() calls us
+# the instant it clears the surface, but the overlay's keyboardFocus -> None only
+# commits a frame or two later (on-demand render loop); bouncing before the grab
+# is gone lands during it and does nothing.
+sleep 0.2
+
+# a different window on <address>'s own workspace, or "alone" if it is the only
+# one there, or "" if the address is gone.
+bounce=$(hyprctl clients -j | jq -r --arg a "$addr" '
+  (first(.[] | select(.address == $a) | .workspace.id)) as $ws
+  | if $ws == null then ""
+    else (first(.[] | select(.address != $a and .workspace.id == $ws) | .address) // "alone")
+    end')
+[[ -n $bounce ]] || exit 0
+
+bounce_off() {
+  hyprctl --batch \
+    "dispatch hl.dsp.focus({ window = \"address:$1\" }) ; dispatch hl.dsp.focus({ window = \"address:$addr\" })" \
+    >/dev/null 2>&1 || true
+}
+
+if [[ $bounce != "alone" ]]; then
+  bounce_off "$bounce"
+  exit 0
+fi
+
+# Alone on the workspace: bounce off a throwaway. Spawned 1x1 and floated by the
+# window rule, it lives a few frames purely as a focus target, then is closed.
+cls="ryoku-refocus-bounce"
+kitty --class "$cls" -o initial_window_width=1 -o initial_window_height=1 \
+  -o remember_window_size=no -o hide_window_decorations=yes \
+  sh -c 'sleep 1' >/dev/null 2>&1 &
+
+throwaway=""
+for _ in $(seq 1 60); do
+  throwaway=$(hyprctl clients -j | jq -r --arg c "$cls" 'first(.[] | select(.initialClass == $c) | .address) // empty')
+  [[ -n $throwaway ]] && break
+  sleep 0.03
+done
+[[ -n $throwaway ]] || exit 0
+
+tpid=$(hyprctl clients -j | jq -r --arg c "$cls" 'first(.[] | select(.initialClass == $c) | .pid) // empty')
+bounce_off "$throwaway"
+[[ -n $tpid ]] && kill "$tpid" 2>/dev/null || true

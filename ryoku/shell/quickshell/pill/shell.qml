@@ -199,15 +199,19 @@ ShellRoot {
             root.returnAddr = root.focusedWindowAddr();
     }
 
-    // hand keyboard focus back to the window the surface stole it from. a plain
-    // refocus is a no-op (Hyprland still considers it active), so bounce off the
-    // next window to force the keyboard off the released layer, then focus back.
-    // the brief sleep lets the intermediate focus change register before the
-    // focus-back -- the sequence verified to actually recover keyboard input.
+    readonly property string refocusScript: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/ryoku-refocus"
+
+    // hand keyboard focus back to the window the surface stole it from. the pill
+    // overlay is always mapped, so dropping its Exclusive grab strands the
+    // keyboard: Hyprland still marks `addr` active, so re-focusing it is a no-op
+    // and no keyboard enter is re-sent -- the window looks active but cannot type
+    // (the "cannot type after the keyring popup" bug). only a genuine focus
+    // CHANGE fixes it, so ryoku-refocus bounces the keyboard off another window
+    // on `addr`'s workspace (or a throwaway, if `addr` is alone) and straight
+    // back. cyclenext + a plain refocus used to sit here but is a no-op on the
+    // current Hyprland: alt-tab-style focus over IPC does not move the keyboard.
     function restoreFocus(addr) {
-        Quickshell.execDetached(["sh", "-c",
-            "hyprctl dispatch 'hl.dsp.window.cycle_next()'; sleep 0.05; "
-            + "hyprctl dispatch 'hl.dsp.focus({ window = \"address:" + addr + "\" })'"]);
+        Quickshell.execDetached([root.refocusScript, addr]);
     }
 
     function close() {

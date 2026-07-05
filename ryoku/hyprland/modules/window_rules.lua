@@ -4,6 +4,15 @@ hl.window_rule({
     suppress_event = "maximize",
 })
 
+-- ryoku-refocus's throwaway bounce window: float it so it never tiles into the
+-- layout. it is spawned 1x1, lives a few frames purely to give the keyboard a
+-- real focus target to bounce off, then closes itself.
+hl.window_rule({
+    name  = "hide-refocus-bounce",
+    match = { class = "ryoku-refocus-bounce" },
+    float = true,
+})
+
 hl.window_rule({
     name  = "fix-xwayland-drags",
     match = {
