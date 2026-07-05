@@ -164,13 +164,30 @@ ShellRoot {
     // can't type until a real focus change. captured on open, restored on close.
     property string returnAddr: ""
 
-    // address of the currently keyboard-focused window (focusHistoryID 0).
+    // address of the window genuinely focused right now. focusHistoryID 0 is the
+    // last window focused *anywhere*, so on an empty workspace it still points at
+    // whatever was focused on another desktop -- handing focus back to it on close
+    // would drag the whole view across (a terminal on w2 yanking you off an empty
+    // w5). only count it when it sits on a workspace that is actually on-screen;
+    // otherwise nothing is focused here, so return "" and let close() stay put.
     function focusedWindowAddr() {
         var tl = Hyprland.toplevels.values;
+        var addr = "", wsid = -1;
         for (var i = 0; i < tl.length; i++) {
             var o = tl[i] ? tl[i].lastIpcObject : null;
-            if (o && o.focusHistoryID === 0)
-                return o.address || "";
+            if (o && o.focusHistoryID === 0) {
+                addr = o.address || "";
+                wsid = o.workspace ? o.workspace.id : -1;
+                break;
+            }
+        }
+        if (addr === "")
+            return "";
+        var mons = Hyprland.monitors.values;
+        for (var j = 0; j < mons.length; j++) {
+            var aw = mons[j].activeWorkspace;
+            if (aw && aw.id === wsid)
+                return addr;
         }
         return "";
     }
@@ -275,8 +292,15 @@ ShellRoot {
             root.show(m, "keyring");
         }
         function keyringHide(): void {
+            // daemon-driven teardown: the unlock resolved (or the app withdrew the
+            // prompt). clear() first so close()'s dismiss() is a no-op and we never
+            // cancel an already-resolved prompt -- but still route through close()
+            // so keyboard focus is handed back to the window that raised the
+            // prompt. skipping that left the keyboard stuck on the released pill
+            // layer: after Chrome's keyring unlocked, its window could not type.
             Keyring.clear();
-            if (root.openSurface === "keyring") { root.openMon = ""; root.openSurface = ""; }
+            if (root.openSurface === "keyring")
+                root.close();
         }
         function voiceShow(mon: string): void { root.show(mon, "voice"); }
         function voiceHide(): void { if (root.openSurface === "voice") root.close(); }
