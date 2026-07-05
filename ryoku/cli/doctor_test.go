@@ -285,7 +285,12 @@ func TestPlanSnapper(t *testing.T) {
 		s.limineInstalled, s.limineSyncInstalled, s.limineSyncEnabled = false, false, false
 		return s
 	}
-	noLimineSync := func() snapperState { s := consistent; s.limineSyncInstalled = false; s.limineSyncEnabled = false; return s }
+	noLimineSync := func() snapperState {
+		s := consistent
+		s.limineSyncInstalled = false
+		s.limineSyncEnabled = false
+		return s
+	}
 	syncDisabled := func() snapperState { s := consistent; s.limineSyncEnabled = false; return s }
 
 	cases := []struct {
@@ -590,10 +595,10 @@ func TestLimineConfProbes(t *testing.T) {
 // no Ryoku fastfetch logo to defend.
 func TestFastfetchLogoSource(t *testing.T) {
 	cases := []struct {
-		name    string
-		cfg     string
-		want    string
-		wantOK  bool
+		name   string
+		cfg    string
+		want   string
+		wantOK bool
 	}{
 		{
 			name: "logo block source is read verbatim",
@@ -874,10 +879,10 @@ func TestLimineBootLabel(t *testing.T) {
 // the trimmed partition number.
 func TestParseEspDiskPart(t *testing.T) {
 	cases := []struct {
-		name               string
+		name                 string
 		source, pkname, part string
-		wantDisk, wantPart string
-		wantOK             bool
+		wantDisk, wantPart   string
+		wantOK               bool
 	}{
 		{"nvme, part has trailing newline", "/dev/nvme0n1p1", "nvme0n1", "1\n", "/dev/nvme0n1", "1", true},
 		{"sata, padded part number", "/dev/sda2", "sda", " 2 ", "/dev/sda", "2", true},
@@ -891,5 +896,37 @@ func TestParseEspDiskPart(t *testing.T) {
 			t.Errorf("%s: parseEspDiskPart(%q,%q,%q) = (%q,%q,%v), want (%q,%q,%v)",
 				c.name, c.source, c.pkname, c.part, disk, part, ok, c.wantDisk, c.wantPart, c.wantOK)
 		}
+	}
+}
+
+// hyprSetFollowMouse must flip only input.followMouse and preserve every other
+// field, so the healed JSON round-trips cleanly through `ryoku-hub hypr save`.
+func TestHyprFollowMouseRewrite(t *testing.T) {
+	raw := `{"input":{"kbLayout":"us","followMouse":1,"tapToClick":true},"appearance":{"gapsIn":5}}`
+	if fm, ok := hyprGetFollowMouse(raw); !ok || fm != 1 {
+		t.Fatalf("get: got (%d,%v), want (1,true)", fm, ok)
+	}
+	fixed, err := hyprSetFollowMouse(raw, 2)
+	if err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if fm, ok := hyprGetFollowMouse(fixed); !ok || fm != 2 {
+		t.Errorf("after set: got (%d,%v), want (2,true)", fm, ok)
+	}
+	// untouched fields survive.
+	for _, want := range []string{`"kbLayout":"us"`, `"tapToClick":true`, `"gapsIn":5`} {
+		if !strings.Contains(fixed, want) {
+			t.Errorf("healed JSON dropped %s: %s", want, fixed)
+		}
+	}
+}
+
+// A config that never held the retired default (or has no followMouse) is a no-op.
+func TestHyprFollowMouseNotDefault(t *testing.T) {
+	if fm, ok := hyprGetFollowMouse(`{"input":{"followMouse":2}}`); !ok || fm != 2 {
+		t.Errorf("followMouse=2: got (%d,%v)", fm, ok)
+	}
+	if _, ok := hyprGetFollowMouse(`{"input":{}}`); ok {
+		t.Errorf("missing followMouse should report absent")
 	}
 }

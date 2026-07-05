@@ -13,6 +13,14 @@
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
 
 ### Fixed
+- `doctor` restores follow-mouse to the intended default on boxes seeded before
+  it changed. The hub default moved from 1 ("Normal", keyboard focus chases the
+  cursor) to 2 ("Loose", focus detached from the pointer), but an existing
+  `~/.config/ryoku/hypr.json` kept the old 1 baked in, so the generated
+  settings.lua pinned `follow_mouse = 1` over the base module's 2 and keyboard
+  focus followed the mouse (the "cursor issue" seen around the launcher and pill).
+  A one-time reconciler bumps a still-default 1 to 2 and regenerates settings.lua,
+  then records a marker so re-picking "Normal" in Settings afterward is left alone.
 - `ryoku update` no longer overwrites a customized fastfetch readout. `materialize`
   clobbers every shipped config on each update by design; a user's own edits are
   meant to live in a separate override file it never touches (kitty `user.conf`,

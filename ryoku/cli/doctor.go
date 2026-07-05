@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -100,6 +101,7 @@ func reconcilers() []reconciler {
 		{"SDDM greeter theme", reconcileGreeterTheme},
 		{"fastfetch readout emblem", reconcileFastfetchEmblem},
 		{"Hyprland config integrity", reconcileHyprlandConfig},
+		{"follow-mouse default", reconcileFollowMouseDefault},
 		{"ryoku shell daemon", reconcileShellDaemon},
 		{"failed services", reconcileFailedUnits},
 		{"btrfs device health", reconcileBtrfsHealth},
@@ -1405,6 +1407,97 @@ func reconcileFastfetchEmblem(checkOnly bool) recResult {
 		return failRes("could not restore fastfetch emblem: %v", err).withFix("ryoku materialize")
 	}
 	return fixedRes("restored the fastfetch emblem; the readout no longer falls back to the Arch logo")
+}
+
+// ---- reconciler: retired follow-mouse default --------------------------------
+
+// followMouseMarker records that the one-time follow-mouse heal has run, so a
+// later deliberate "Normal" pick in Ryoku Settings is never quietly undone.
+func followMouseMarker() string {
+	return filepath.Join(xdg("XDG_STATE_HOME", ".local/state"), "ryoku", "migrations", "follow-mouse-default")
+}
+
+// hyprGetFollowMouse pulls input.followMouse out of a `ryoku-hub hypr get` JSON.
+func hyprGetFollowMouse(raw string) (int, bool) {
+	var o struct {
+		Input struct {
+			FollowMouse *int `json:"followMouse"`
+		} `json:"input"`
+	}
+	if json.Unmarshal([]byte(raw), &o) != nil || o.Input.FollowMouse == nil {
+		return 0, false
+	}
+	return *o.Input.FollowMouse, true
+}
+
+// hyprSetFollowMouse rewrites input.followMouse in a hypr-get JSON, preserving
+// every other field, ready to hand straight back to `ryoku-hub hypr save`.
+func hyprSetFollowMouse(raw string, v int) (string, error) {
+	var o map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &o); err != nil {
+		return "", err
+	}
+	var in map[string]json.RawMessage
+	if err := json.Unmarshal(o["input"], &in); err != nil {
+		return "", err
+	}
+	in["followMouse"] = json.RawMessage(strconv.Itoa(v))
+	nb, err := json.Marshal(in)
+	if err != nil {
+		return "", err
+	}
+	o["input"] = nb
+	b, err := json.Marshal(o)
+	return string(b), err
+}
+
+// reconcileFollowMouseDefault heals follow-mouse on machines whose
+// ~/.config/ryoku/hypr.json was written when the shipped default was 1. The
+// default later moved to 2 ("Loose": keyboard focus detached from the pointer,
+// the behaviour the base input module sets), but boxes seeded before that kept 1
+// ("Normal") baked in, so the hub pins follow_mouse = 1 in settings.lua over the
+// base 2 and keyboard focus chases the cursor. Restore 2 once, then drop a marker
+// so re-picking "Normal" later sticks. A one-time heal, not a convergent check,
+// precisely because 1 stays a legitimate choice going forward.
+func reconcileFollowMouseDefault(checkOnly bool) recResult {
+	marker := followMouseMarker()
+	if exists(marker) {
+		return okRes("follow-mouse default already reconciled")
+	}
+	mark := func() {
+		if checkOnly {
+			return
+		}
+		_ = os.MkdirAll(filepath.Dir(marker), 0o755)
+		_ = os.WriteFile(marker, []byte("done\n"), 0o644)
+	}
+	hyprJSON := filepath.Join(configHome(), "ryoku", "hypr.json")
+	if !has("ryoku-hub") || !exists(hyprJSON) {
+		mark() // nothing saved to migrate; the base module's follow_mouse = 2 stands.
+		return okRes("no saved hypr input; follow-mouse uses the base default")
+	}
+	raw, err := runOut("ryoku-hub", "hypr", "get")
+	if err != nil {
+		return warnRes("could not read hypr settings to check follow-mouse: %v", err)
+	}
+	fm, ok := hyprGetFollowMouse(raw)
+	if !ok || fm != 1 {
+		mark()
+		return okRes("follow-mouse is not on the retired default")
+	}
+	if checkOnly {
+		return wouldRes("follow-mouse is pinned to the retired default 1; keyboard focus follows the cursor").
+			withFix("ryoku doctor")
+	}
+	fixed, err := hyprSetFollowMouse(raw, 2)
+	if err != nil {
+		return failRes("could not update hypr settings: %v", err)
+	}
+	if err := run("ryoku-hub", "hypr", "save", fixed); err != nil {
+		return failRes("could not save the follow-mouse fix: %v", err).withFix("ryoku doctor")
+	}
+	mark()
+	return fixedRes("restored follow-mouse to 2 (Loose); keyboard focus no longer follows the cursor")
 }
 
 // ---- reconciler: ryoku shell daemon ------------------------------------------
