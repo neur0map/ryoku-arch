@@ -17,11 +17,12 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 
 	// Package ships a managed module and seeds for the generated drop-ins
-	// plus the user-owned keyboard layout.
+	// plus the user-owned keyboard layout and fastfetch readout.
 	writeFile(t, filepath.Join(base, "hypr/hyprland.lua"), "require(\"monitors\")\n")
 	writeFile(t, filepath.Join(base, "hypr/monitors.lua"), "-- seed\n")
 	writeFile(t, filepath.Join(base, "hypr/gpu.lua"), "-- seed\n")
 	writeFile(t, filepath.Join(base, "hypr/keyboard.lua"), "kb_layout = \"us\"\n")
+	writeFile(t, filepath.Join(base, "fastfetch/config.jsonc"), "\"source\": \"ryoku\"\n")
 
 	// fresh install: every file lands, seeds included so first boot works.
 	if err := materialize(); err != nil {
@@ -30,18 +31,21 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	wantFile(t, filepath.Join(dest, "hypr/monitors.lua"), "-- seed")
 	wantFile(t, filepath.Join(dest, "hypr/gpu.lua"), "-- seed")
 	wantFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "kb_layout = \"us\"")
+	wantFile(t, filepath.Join(dest, "fastfetch/config.jsonc"), "ryoku")
 
-	// Runtime regenerates the drop-in seeds; user adds extra keyboard layouts
-	// and a user file.
+	// Runtime regenerates the drop-in seeds; user adds extra keyboard layouts,
+	// a user file, and customizes the fastfetch readout.
 	writeFile(t, filepath.Join(dest, "hypr/monitors.lua"), "DISPLAY\n")
 	writeFile(t, filepath.Join(dest, "hypr/gpu.lua"), "GPUPIN\n")
 	writeFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "kb_layout = \"us,ru,de,fr\"\n")
 	writeFile(t, filepath.Join(dest, "hypr/user.lua"), "USER\n")
-	// later release changes the managed module.
+	writeFile(t, filepath.Join(dest, "fastfetch/config.jsonc"), "\"source\": \"my-custom-logo\"\n")
+	// later release changes the managed module and reworks the shipped readout.
 	writeFile(t, filepath.Join(base, "hypr/hyprland.lua"), "require(\"monitors_user\")\n")
+	writeFile(t, filepath.Join(base, "fastfetch/config.jsonc"), "\"source\": \"ryoku-redesigned\"\n")
 
-	// update: managed file is refreshed; the generated seeds and the user
-	// file stay exactly as the machine had them.
+	// update: managed file is refreshed; the generated seeds, the user file,
+	// and the customized fastfetch readout stay exactly as the machine had them.
 	if err := materialize(); err != nil {
 		t.Fatalf("update materialize: %v", err)
 	}
@@ -50,6 +54,7 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	wantFile(t, filepath.Join(dest, "hypr/gpu.lua"), "GPUPIN")
 	wantFile(t, filepath.Join(dest, "hypr/user.lua"), "USER")
 	wantFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "us,ru,de,fr")
+	wantFile(t, filepath.Join(dest, "fastfetch/config.jsonc"), "my-custom-logo")
 }
 
 // A managed file dropped from a release is pruned; a generated seed is never

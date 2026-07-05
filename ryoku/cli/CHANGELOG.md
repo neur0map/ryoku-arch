@@ -13,6 +13,15 @@
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
 
 ### Fixed
+- `ryoku update` no longer overwrites a customized fastfetch readout. `materialize`
+  clobbers every shipped config on each update by design; a user's own edits are
+  meant to live in a separate override file it never touches (kitty `user.conf`,
+  hypr `user.lua`). fastfetch reads a single config with no include, so editing
+  `fastfetch/config.jsonc` directly was the only way to customize the readout, and
+  the update wiped it out every time. it is now a seed (like `hypr/keyboard.lua`):
+  laid down once on a fresh install, never clobbered after. the emblem it draws
+  stays managed so the logo keeps updating, and `doctor` still restores it, so the
+  Arch-logo fallback does not come back.
 - `doctor` no longer deletes a machine's only UEFI boot entry, and restores one
   that already went missing (the "after a `ryoku update` the boot option is gone,
   not even in the BIOS" report). The "limine boot menu layout" migration retired
