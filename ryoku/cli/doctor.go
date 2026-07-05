@@ -97,6 +97,7 @@ func reconcilers() []reconciler {
 		{"desktop session components", reconcileSessionComponents},
 		{"cursor theme", reconcileCursorTheme},
 		{"SDDM greeter theme", reconcileGreeterTheme},
+		{"fastfetch readout emblem", reconcileFastfetchEmblem},
 		{"Hyprland config integrity", reconcileHyprlandConfig},
 		{"ryoku shell daemon", reconcileShellDaemon},
 		{"failed services", reconcileFailedUnits},
@@ -1188,6 +1189,88 @@ func reconcileGreeterTheme(checkOnly bool) recResult {
 		return failRes("could not fix greeter theme permissions: %v", err).withFix(fix)
 	}
 	return fixedRes("normalized greeter theme so the sddm greeter can read it")
+}
+
+// ---- reconciler: fastfetch readout emblem ------------------------------------
+
+const fastfetchEmblem = "fastfetch-emblem.png"
+
+// fastfetchLogoSource pulls the logo image path out of a fastfetch config.jsonc
+// (JSONC, so it won't json.Unmarshal). the readout declares exactly one
+// "source", the logo image; comment lines are skipped. false when there is no
+// source line, i.e. no Ryoku fastfetch logo to keep alive.
+func fastfetchLogoSource(cfg string) (string, bool) {
+	for _, ln := range strings.Split(cfg, "\n") {
+		ln = strings.TrimSpace(ln)
+		if strings.HasPrefix(ln, "//") || !strings.HasPrefix(ln, `"source"`) {
+			continue
+		}
+		colon := strings.IndexByte(ln, ':')
+		if colon < 0 {
+			continue
+		}
+		rest := ln[colon+1:]
+		a := strings.IndexByte(rest, '"')
+		if a < 0 {
+			continue
+		}
+		b := strings.IndexByte(rest[a+1:], '"')
+		if b < 0 {
+			continue
+		}
+		return rest[a+1 : a+1+b], true
+	}
+	return "", false
+}
+
+// expandTilde resolves a leading ~ to the home dir, matching how fastfetch
+// expands the logo source at runtime.
+func expandTilde(p string) string {
+	switch {
+	case p == "~":
+		return home()
+	case strings.HasPrefix(p, "~/"):
+		return filepath.Join(home(), p[2:])
+	}
+	return p
+}
+
+// reconcileFastfetchEmblem keeps the branded fastfetch readout off the stock
+// Arch logo. config.jsonc draws a kitty-direct logo from an image file; when
+// that file is missing fastfetch SILENTLY drops to its built-in distro logo
+// (empty stderr), so the terminal greets with Arch instead of the Ryoku emblem.
+// the emblem now materializes into the config dir beside config.jsonc, but a box
+// that updated before that shipped points config.jsonc at an emblem it never
+// received. restore it from the packaged base config tree, the same file
+// `ryoku materialize` lays. no-op when the readout resolves, when the logo is
+// user-customized, or on a box with no Ryoku fastfetch config.
+func reconcileFastfetchEmblem(checkOnly bool) recResult {
+	src, ok := fastfetchLogoSource(readFileSafe(filepath.Join(configHome(), "fastfetch", "config.jsonc")))
+	if !ok {
+		return okRes("no Ryoku fastfetch logo configured")
+	}
+	if filepath.Base(src) != fastfetchEmblem {
+		return okRes("fastfetch logo is user-customized")
+	}
+	dst := expandTilde(src)
+	if exists(dst) {
+		return okRes("fastfetch emblem present")
+	}
+	// the canonical copy materialize lays; absent only on a box still on the
+	// pre-fix package, where the cure is to pull it first.
+	base := filepath.Join(baseConfigDir(), "fastfetch", fastfetchEmblem)
+	if !exists(base) {
+		return warnRes("fastfetch emblem missing (%s); the readout shows the Arch logo", dst).
+			withFix("ryoku update")
+	}
+	if checkOnly {
+		return wouldRes("fastfetch emblem missing (%s); the readout shows the Arch logo", dst).
+			withFix("ryoku materialize")
+	}
+	if err := copyFile(base, dst); err != nil {
+		return failRes("could not restore fastfetch emblem: %v", err).withFix("ryoku materialize")
+	}
+	return fixedRes("restored the fastfetch emblem; the readout no longer falls back to the Arch logo")
 }
 
 // ---- reconciler: ryoku shell daemon ------------------------------------------

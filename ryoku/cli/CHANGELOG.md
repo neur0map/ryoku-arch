@@ -13,6 +13,17 @@
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
 
 ### Fixed
+- `doctor` gains a "fastfetch readout emblem" reconciler. The branded terminal
+  readout draws a `kitty-direct` logo from an image file; when that file is
+  missing fastfetch silently drops to its built-in Arch logo (empty stderr), so
+  the terminal greeted with Arch instead of the Ryoku emblem. A redraw renamed
+  the emblem and `config.jsonc` now sources it from `~/.config/fastfetch/` (laid
+  beside the config by `ryoku materialize`), but a box that updated before that
+  shipped points at an emblem it never received. The reconciler restores it from
+  the packaged base config tree, the same file materialize lays; it leaves a
+  user-customized logo alone, warns to run `ryoku update` on a box whose package
+  predates the shipped emblem, and stays idempotent and quiet on a healthy box.
+  Covered by `doctor_test.go`.
 - `doctor` gains a "limine boot menu layout" reconciler. Earlier installers
   wrote the branded config to `/boot/limine/limine.conf`, a location Limine
   scans BEFORE `/boot/limine.conf` (the only file `limine-entry-tool`

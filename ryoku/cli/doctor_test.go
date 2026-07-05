@@ -582,3 +582,206 @@ func TestLimineConfProbes(t *testing.T) {
 		t.Error("default_entry probe misparsed")
 	}
 }
+
+// fastfetchLogoSource lifts the single logo image path out of the JSONC
+// config the reconciler keys on. it must read the value verbatim, skip a
+// "source" that only appears inside a // comment, and report absence rather
+// than guess -- an absent source is how the reconciler recognizes a box with
+// no Ryoku fastfetch logo to defend.
+func TestFastfetchLogoSource(t *testing.T) {
+	cases := []struct {
+		name    string
+		cfg     string
+		want    string
+		wantOK  bool
+	}{
+		{
+			name: "logo block source is read verbatim",
+			cfg: "{\n" +
+				"    \"logo\": {\n" +
+				"        \"type\": \"kitty-direct\",\n" +
+				"        \"source\": \"~/.config/fastfetch/fastfetch-emblem.png\",\n" +
+				"        \"width\": 30\n" +
+				"    }\n" +
+				"}\n",
+			want:   "~/.config/fastfetch/fastfetch-emblem.png",
+			wantOK: true,
+		},
+		{
+			name: "commented-out source is skipped",
+			cfg: "{\n" +
+				"    \"logo\": {\n" +
+				"        // \"source\": \"~/.config/fastfetch/fastfetch-emblem.png\",\n" +
+				"        \"type\": \"builtin\"\n" +
+				"    }\n" +
+				"}\n",
+			wantOK: false,
+		},
+		{
+			name: "no source line",
+			cfg: "{\n" +
+				"    \"logo\": {\n" +
+				"        \"type\": \"builtin\",\n" +
+				"        \"width\": 30\n" +
+				"    }\n" +
+				"}\n",
+			wantOK: false,
+		},
+		{name: "empty config", cfg: "", wantOK: false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, ok := fastfetchLogoSource(c.cfg)
+			if ok != c.wantOK {
+				t.Fatalf("ok = %v, want %v (got source %q)", ok, c.wantOK, got)
+			}
+			if ok && got != c.want {
+				t.Errorf("source = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+// expandTilde must resolve a leading ~ against the home dir the way fastfetch
+// does at runtime, and leave an already-absolute path untouched. asserting
+// against home() (rather than a literal) keeps it robust to how home() is
+// resolved while still pinning the mapping: bare ~ -> home, ~/x/y -> joined,
+// absolute -> verbatim.
+func TestExpandTilde(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	h := home()
+	if got := expandTilde("~"); got != h {
+		t.Errorf("expandTilde(\"~\") = %q, want %q", got, h)
+	}
+	if got, want := expandTilde("~/x/y"), filepath.Join(h, "x/y"); got != want {
+		t.Errorf("expandTilde(\"~/x/y\") = %q, want %q", got, want)
+	}
+	if got := expandTilde("/usr/share/x.png"); got != "/usr/share/x.png" {
+		t.Errorf("absolute path must pass through unchanged, got %q", got)
+	}
+}
+
+// reconcileFastfetchEmblem keeps the branded readout off the stock Arch logo.
+// exercised end to end through real IO in temp dirs (config + packaged base
+// tree), driven entirely by env so it never touches the real HOME or system
+// paths. one subtest per branch of the reconciler's decision.
+func TestReconcileFastfetchEmblem(t *testing.T) {
+	const emblemSrc = "~/.config/fastfetch/fastfetch-emblem.png"
+	baseBytes := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0, 1, 2, 3}
+
+	type dirs struct{ home, base string }
+	setup := func(t *testing.T) dirs {
+		home, base := t.TempDir(), t.TempDir()
+		t.Setenv("HOME", home)
+		t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+		t.Setenv("XDG_STATE_HOME", filepath.Join(home, ".local", "state"))
+		t.Setenv("RYOKU_CONFIG_BASE", base)
+		return dirs{home: home, base: base}
+	}
+	writeConfig := func(t *testing.T, home, source string) {
+		dir := filepath.Join(home, ".config", "fastfetch")
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		cfg := "{\n    \"logo\": {\n        \"type\": \"kitty-direct\",\n" +
+			"        \"source\": \"" + source + "\"\n    }\n}\n"
+		if err := os.WriteFile(filepath.Join(dir, "config.jsonc"), []byte(cfg), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeBlob := func(t *testing.T, path string, b []byte) {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	baseEmblem := func(d dirs) string { return filepath.Join(d.base, "fastfetch", fastfetchEmblem) }
+
+	t.Run("no config file is a quiet ok", func(t *testing.T) {
+		setup(t)
+		if r := reconcileFastfetchEmblem(false); r.status != recOK {
+			t.Fatalf("status=%s detail=%q, want ok", r.status.label(), r.detail)
+		}
+	})
+
+	t.Run("user-customized logo is left alone", func(t *testing.T) {
+		d := setup(t)
+		writeConfig(t, d.home, "~/.config/fastfetch/my-logo.png")
+		writeBlob(t, baseEmblem(d), baseBytes) // present, and must still not be touched
+		if r := reconcileFastfetchEmblem(false); r.status != recOK {
+			t.Fatalf("status=%s detail=%q, want ok", r.status.label(), r.detail)
+		}
+		// the reconciler must create nothing: neither the custom logo it does
+		// not own, nor the emblem beside the config.
+		if p := expandTilde("~/.config/fastfetch/my-logo.png"); exists(p) {
+			t.Errorf("must not create the user's logo at %s", p)
+		}
+		if p := expandTilde(emblemSrc); exists(p) {
+			t.Errorf("must not drop an emblem into the config dir at %s", p)
+		}
+	})
+
+	t.Run("emblem already present resolves ok", func(t *testing.T) {
+		d := setup(t)
+		writeConfig(t, d.home, emblemSrc)
+		writeBlob(t, expandTilde(emblemSrc), baseBytes)
+		if r := reconcileFastfetchEmblem(false); r.status != recOK {
+			t.Fatalf("status=%s detail=%q, want ok", r.status.label(), r.detail)
+		}
+	})
+
+	t.Run("check-only reports the fix without applying it", func(t *testing.T) {
+		d := setup(t)
+		writeConfig(t, d.home, emblemSrc)
+		writeBlob(t, baseEmblem(d), baseBytes)
+		r := reconcileFastfetchEmblem(true)
+		if r.status != recWouldFix {
+			t.Fatalf("status=%s detail=%q, want todo", r.status.label(), r.detail)
+		}
+		if r.remedy != "ryoku materialize" {
+			t.Errorf("remedy = %q, want \"ryoku materialize\"", r.remedy)
+		}
+		if dst := expandTilde(emblemSrc); exists(dst) {
+			t.Errorf("check-only must not create the emblem at %s", dst)
+		}
+	})
+
+	t.Run("missing emblem is restored from the base tree", func(t *testing.T) {
+		d := setup(t)
+		writeConfig(t, d.home, emblemSrc)
+		writeBlob(t, baseEmblem(d), baseBytes)
+		if r := reconcileFastfetchEmblem(false); r.status != recFixed {
+			t.Fatalf("status=%s detail=%q, want fixed", r.status.label(), r.detail)
+		}
+		dst := expandTilde(emblemSrc)
+		got, err := os.ReadFile(dst)
+		if err != nil {
+			t.Fatalf("emblem not restored at %s: %v", dst, err)
+		}
+		if string(got) != string(baseBytes) {
+			t.Errorf("restored bytes = %v, want the base copy %v", got, baseBytes)
+		}
+		// idempotent: with the emblem now present, a second run is a no-op ok.
+		if r := reconcileFastfetchEmblem(false); r.status != recOK {
+			t.Fatalf("second run status=%s, want ok (idempotent)", r.status.label())
+		}
+	})
+
+	t.Run("base tree lacking the emblem warns to update", func(t *testing.T) {
+		d := setup(t)
+		writeConfig(t, d.home, emblemSrc)
+		// no base emblem: pre-fix package, cure is to pull it first.
+		r := reconcileFastfetchEmblem(false)
+		if r.status != recWarn {
+			t.Fatalf("status=%s detail=%q, want warn", r.status.label(), r.detail)
+		}
+		if r.remedy != "ryoku update" {
+			t.Errorf("remedy = %q, want \"ryoku update\"", r.remedy)
+		}
+		if dst := expandTilde(emblemSrc); exists(dst) {
+			t.Errorf("nothing to copy: must not create %s", dst)
+		}
+	})
+}
