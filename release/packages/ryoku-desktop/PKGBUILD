@@ -74,11 +74,8 @@ depends=(
   # enables bluetooth.service once so upgrades from bluez-less installs work.
   'bluez'
   'bluez-utils'
-  # rtkit hands PipeWire's audio thread realtime scheduling over D-Bus, with no
-  # realtime group or PAM limits needed. without it PipeWire runs SCHED_OTHER and
-  # the audio thread is preempted under load (a Discord video call, a Bluetooth
-  # link) and underruns the buffer into crackling/popping. the .install enables
-  # rtkit-daemon once so upgrades from rtkit-less installs pick it up.
+  # rtkit hands PipeWire's audio thread realtime scheduling; without it the
+  # thread runs SCHED_OTHER and crackles under load. .install enables the daemon.
   'rtkit'
   # fonts the shell UI hardcodes (Inter, JetBrainsMono Nerd, Noto Sans CJK)
   'ttf-jetbrains-mono-nerd'
@@ -192,9 +189,8 @@ package() {
   # pipewire: audio follows a newly connected device (BT headset, USB DAC)
   install -d "$cfg/pipewire"
   cp -a "$_repo/ryoku/apps/pipewire/." "$cfg/pipewire/"
-  # wireplumber: system Bluetooth codec policy (mSBC wideband for calls, hi-fi
-  # A2DP codecs for music). a system drop-in under /etc so it is not per-user and
-  # a user can still override it in ~/.config/wireplumber/wireplumber.conf.d/.
+  # wireplumber: Bluetooth codec policy (mSBC calls, hi-fi A2DP); system drop-in,
+  # user-overridable from ~/.config/wireplumber/wireplumber.conf.d/.
   install -Dm644 "$_repo/ryoku/apps/wireplumber/wireplumber.conf.d/51-ryoku-bluetooth.conf" \
     "$pkgdir/etc/wireplumber/wireplumber.conf.d/51-ryoku-bluetooth.conf"
   install -Dm644 "$_repo/ryoku/apps/yazi/yazi.toml"         "$cfg/yazi/yazi.toml"

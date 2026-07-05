@@ -11,18 +11,10 @@ import (
 
 // generatedSeed: base files seeded once on a fresh install, then never
 // clobbered or pruned by an update. The machine owns them after first boot.
-// Two kinds qualify: per-machine files the runtime regenerates (monitors.lua
-// from ryoku-monitor, gpu.lua from ryoku-gpu), and user-owned config the
-// package only seeds a default for (keyboard.lua, the keyboard layout).
-//
-// fastfetch/config.jsonc is the second kind. kitty and Hyprland let a shipped
-// config stay managed because the user's edits live in a separate include
-// (kitty user.conf, hypr user.lua) an update never touches; fastfetch reads a
-// single config file with no include, so editing config.jsonc directly is the
-// only way to customize the readout, and clobbering it on every update wiped
-// that out. seed it once instead. the emblem it draws (fastfetch-emblem.png)
-// stays managed so the logo keeps updating, and ryoku doctor restores it
-// wherever the config points, so this does not bring back the Arch-logo bug.
+// Two kinds qualify: per-machine files the runtime regenerates (monitors.lua,
+// gpu.lua) and user-owned config the package only seeds a default for
+// (keyboard.lua; fastfetch/config.jsonc, which has no include mechanism, so
+// direct edits are the only way to customize the readout).
 // Slash-separated paths, relative to the config base.
 var generatedSeed = map[string]bool{
 	"hypr/monitors.lua":      true,

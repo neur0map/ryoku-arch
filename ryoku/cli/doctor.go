@@ -1451,14 +1451,10 @@ func hyprSetFollowMouse(raw string, v int) (string, error) {
 	return string(b), err
 }
 
-// reconcileFollowMouseDefault heals follow-mouse on machines whose
-// ~/.config/ryoku/hypr.json was written when the shipped default was 1. The
-// default later moved to 2 ("Loose": keyboard focus detached from the pointer,
-// the behaviour the base input module sets), but boxes seeded before that kept 1
-// ("Normal") baked in, so the hub pins follow_mouse = 1 in settings.lua over the
-// base 2 and keyboard focus chases the cursor. Restore 2 once, then drop a marker
-// so re-picking "Normal" later sticks. A one-time heal, not a convergent check,
-// precisely because 1 stays a legitimate choice going forward.
+// reconcileFollowMouseDefault: hypr.json files written before the follow-mouse
+// default moved from 1 to 2 keep the old 1 baked in, so keyboard focus chases
+// the cursor. Restore 2 once and drop a marker, so re-picking "Normal" (1) in
+// Settings afterwards sticks.
 func reconcileFollowMouseDefault(checkOnly bool) recResult {
 	marker := followMouseMarker()
 	if exists(marker) {
