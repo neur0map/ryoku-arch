@@ -8,6 +8,7 @@ set -euo pipefail
 api="https://wallhaven.cc/api/v1"
 dest="$HOME/Pictures/Wallpapers"
 key="${WALLHAVEN_API_KEY:-}"
+ua="Mozilla/5.0"
 
 auth=()
 [ -n "$key" ] && auth=(-H "X-API-Key: $key")
@@ -88,8 +89,70 @@ palette)
 	[ "$contrast" = 1 ] && wargs+=(-k)
 	XDG_CACHE_HOME="$tmp/cache" wallust "${wargs[@]}"
 	;;
+moewalls-search)
+	# Anime / aesthetic live wallpapers from moewalls.com. No API, but it runs
+	# WordPress, so its wp-json feed lists posts with a poster (featuredmedia); the
+	# looping preview.webm derives straight from that poster's path, no per-post
+	# fetch. No query browses the anime category. Same item shape as `search`.
+	query=""; page=1
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		--query) query="$2"; shift 2 ;;
+		--page) page="$2"; shift 2 ;;
+		--json) shift ;;
+		*) shift ;;
+		esac
+	done
+	mw="https://moewalls.com/wp-json/wp/v2/posts"
+	params=(-G "$mw" --data-urlencode "per_page=24" --data-urlencode "page=$page" --data-urlencode "_embed=1")
+	if [ -n "$query" ]; then
+		params+=(--data-urlencode "search=$query")
+	else
+		params+=(--data-urlencode "categories=18") # anime
+	fi
+	resp="$(curl -fsSL -A "$ua" "${params[@]}")"
+	# poster: /uploads/YYYY/MM/BASE-thumb.jpg -> preview: /uploads/preview/YYYY/BASE-preview.webm
+	jq -c '.[]
+		| (._embedded["wp:featuredmedia"][0].source_url // "") as $thumb
+		| ($thumb | sub("/uploads/(?<y>[0-9]{4})/[0-9]{2}/(?<b>[^/]+)-thumb\\.(jpe?g|png)"; "/uploads/preview/\(.y)/\(.b)-preview.webm")) as $vid
+		| ($vid | if . != $thumb then . else "" end) as $webm
+		| {
+			id: (.id|tostring),
+			thumb: $thumb,
+			video: $webm,
+			dl: $webm,
+			resolution: "",
+			name: (.title.rendered | gsub(" Live Wallpaper$"; "")),
+			moewalls_url: .link
+		}' <<<"$resp"
+	;;
+moewalls-download)
+	# Save a moewalls preview.webm into livewalls so the switcher picks it up too.
+	id="${1:?id required}"; url="${2:?url required}"
+	dest="$HOME/Pictures/livewalls"; mkdir -p "$dest"
+	ext="${url##*.}"; [ "${#ext}" -gt 5 ] && ext="webm"
+	out="$dest/moewalls-$id.$ext"
+	curl -fsSL -A "$ua" "$url" -o "$out"
+	printf '%s\n' "$out"
+	;;
+live-list)
+	# Local live wallpapers the user dropped or downloaded. Newest first.
+	dir="$HOME/Pictures/livewalls"; mkdir -p "$dir"
+	find "$dir" -maxdepth 1 -type f \( -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov' \) -printf '%T@\t%p\n' 2>/dev/null \
+		| sort -rn | cut -f2- | while IFS= read -r f; do
+			jq -cn --arg p "$f" --arg n "$(basename "$f")" '{id: $p, thumb: "", video: $p, resolution: "", name: $n}'
+		done
+	;;
+live-import)
+	# Copy the user's own mp4 into livewalls.
+	src="${1:?source required}"; src="${src#file://}"
+	dir="$HOME/Pictures/livewalls"; mkdir -p "$dir"
+	out="$dir/$(basename "$src")"
+	cp -f -- "$src" "$out"
+	printf '%s\n' "$out"
+	;;
 *)
-	echo "usage: ryowalls search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url> [--palette <p>] [--colorspace <c>] [--backend <b>] [--saturation <n>] [--threshold <n>] [--contrast]" >&2
+	echo "usage: ryowalls search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url> [flags] | moewalls-search [--query <q>] [--page <n>] --json | moewalls-download <id> <url> | live-list | live-import <src>" >&2
 	exit 2
 	;;
 esac

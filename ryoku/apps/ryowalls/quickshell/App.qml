@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Dialogs
 import Quickshell
 import "Singletons"
 
@@ -72,11 +73,25 @@ Rectangle {
         }
 
         Row {
+            id: winBtns
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: 4
             IconBtn { name: "gear"; onClicked: app.settingsOpen = true }
             IconBtn { name: "close"; danger: true; onClicked: Qt.quit() }
+        }
+
+        // which library the grid browses: images (wallhaven), local live videos,
+        // or online anime video (moewalls).
+        Segmented {
+            id: sourceToggle
+            anchors.right: winBtns.left
+            anchors.rightMargin: 18
+            anchors.verticalCenter: parent.verticalCenter
+            segW: 84
+            model: [{ key: "wallhaven", label: "Wallhaven" }, { key: "live", label: "Live" }, { key: "moewalls", label: "MoeWalls" }]
+            current: Wallhaven.source
+            onSelected: (k) => { app.mode = "browse"; Wallhaven.setSource(k); }
         }
     }
 
@@ -101,6 +116,7 @@ Rectangle {
             onSelected: (k) => app.mode = k
         }
 
+        // local live wallpapers have nothing to search; the box greys out there.
         Rectangle {
             id: searchBox
             anchors.left: modeToggle.right
@@ -110,6 +126,7 @@ Rectangle {
             height: 36
             radius: Theme.radius
             color: Theme.surfaceLo
+            opacity: Wallhaven.source === "live" ? 0.4 : 1
             border.width: 1
             border.color: input.activeFocus ? Theme.ember : Theme.line
             Behavior on border.color { ColorAnimation { duration: Theme.quick } }
@@ -125,6 +142,7 @@ Rectangle {
                 color: Theme.bright
                 font.family: Theme.font
                 font.pixelSize: 13
+                enabled: Wallhaven.source !== "live"
                 selectByMouse: true
                 selectionColor: Theme.frameBg
                 clip: true
@@ -133,7 +151,7 @@ Rectangle {
                     anchors.fill: parent
                     visible: input.text.length === 0
                     verticalAlignment: Text.AlignVCenter
-                    text: "Search wallhaven"
+                    text: Wallhaven.source === "moewalls" ? "Search MoeWalls anime" : "Search wallhaven"
                     color: Theme.faint
                     font: input.font
                 }
@@ -157,9 +175,35 @@ Rectangle {
                 anchors.leftMargin: 14
                 anchors.verticalCenter: parent.verticalCenter
                 segW: 92
+                visible: Wallhaven.source === "wallhaven"
                 model: [{ key: "", label: "Latest" }, { key: "1w", label: "Top week" }, { key: "1M", label: "Top month" }]
                 current: Wallhaven.topRange
                 onSelected: (k) => Wallhaven.searchTop(k)
+            }
+
+            // add your own mp4 to ~/Pictures/livewalls (Live source only).
+            Rectangle {
+                id: addChip
+                anchors.left: parent.left
+                anchors.leftMargin: 14
+                anchors.verticalCenter: parent.verticalCenter
+                height: 34
+                width: addRow.implicitWidth + 24
+                radius: height / 2
+                visible: Wallhaven.source === "live"
+                color: Theme.surfaceLo
+                border.width: 1
+                border.color: addHover.hovered ? Qt.alpha(Theme.ember, 0.6) : Theme.line
+                Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+                Row {
+                    id: addRow
+                    anchors.centerIn: parent
+                    spacing: 7
+                    Icon { anchors.verticalCenter: parent.verticalCenter; name: "plus"; size: 14; tint: Theme.cream }
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Add mp4"; color: Theme.cream; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Medium }
+                }
+                HoverHandler { id: addHover; cursorShape: Qt.PointingHandCursor }
+                TapHandler { onTapped: addDialog.open() }
             }
 
             Rectangle {
@@ -190,6 +234,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
+                visible: Wallhaven.source !== "live"
                 IconBtn { name: "chevron-left"; dim: Wallhaven.page <= 1 || Wallhaven.searching; onClicked: Wallhaven.prevPage() }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
@@ -282,7 +327,8 @@ Rectangle {
         Text {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            text: "wallhaven.cc"
+            text: Wallhaven.source === "live" ? "~/Pictures/livewalls"
+                : (Wallhaven.source === "moewalls" ? "moewalls.com" : "wallhaven.cc")
             color: Theme.faint
             font.family: Theme.mono
             font.pixelSize: 11
@@ -293,6 +339,13 @@ Rectangle {
         anchors.fill: parent
         open: app.settingsOpen
         onClosed: app.settingsOpen = false
+    }
+
+    FileDialog {
+        id: addDialog
+        title: "Add a live wallpaper"
+        nameFilters: ["Video (*.mp4 *.webm *.mkv *.mov)"]
+        onAccepted: Wallhaven.importLive(selectedFile)
     }
 
     component IconBtn: Item {

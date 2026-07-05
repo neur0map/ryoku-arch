@@ -28,11 +28,42 @@ Singleton {
     property string status
     property string _dlPath
 
+    // ---- source: which library the grid browses -----------------------------
+    // wallhaven (images) | live (local ~/Pictures/livewalls videos) | moewalls
+    // (anime/aesthetic video from moewalls.com). The one app-state singleton
+    // drives all three so the grid, preview and tune keep their bindings.
+    property string source: "wallhaven"
+
     // ---- settings (persisted to ~/.config/ryoku/ryowalls.json) -------------
     readonly property string apiKey: cfg.apiKey || ""
-    readonly property var keyPrefix: apiKey.length > 0 ? ["env", "WALLHAVEN_API_KEY=" + apiKey] : []
+    // only wallhaven takes a key; moewalls is keyless, live is local.
+    readonly property var keyPrefix: source === "wallhaven" && apiKey.length > 0
+        ? ["env", "WALLHAVEN_API_KEY=" + apiKey] : []
 
     function cmd(args) { return keyPrefix.concat(["ryowalls"]).concat(args); }
+
+    // switch library and load its first page. live has no query/pages.
+    function setSource(s) {
+        if (source === s) return;
+        source = s;
+        results = []; selected = null; error = ""; page = 1;
+        reload();
+    }
+    function reload() {
+        if (source === "live") loadLive();
+        else search(query, 1, source === "wallhaven" ? topRange : "");
+    }
+    function loadLive() {
+        searching = true; error = "";
+        searchProc.running = false;
+        searchProc.command = ["ryowalls", "live-list"];
+        searchProc.running = true;
+    }
+    // copy a user's own mp4 into livewalls, then refresh the grid.
+    function importLive(url) {
+        importProc.command = ["ryowalls", "live-import", ("" + url).replace(/^file:\/\//, "")];
+        importProc.running = true;
+    }
 
     // safe palette read: index into the 16 colours with a fallback.
     function col(i, fallback) {
@@ -86,6 +117,7 @@ Singleton {
         tuneAdapter.saturation = cfg.saturation;
         tuneAdapter.threshold = cfg.threshold;
         tuneAdapter.contrast = cfg.contrast;
+        tuneAdapter.frame = cfg.frame;
         tuneState.writeAdapter();
     }
 
@@ -97,10 +129,16 @@ Singleton {
         error = "";
         _searchErr = "";
         searching = true;
-        var args = ["search", "--query", query, "--page", "" + page, "--json"];
-        if (topRange.length > 0) args.push("--top-range", topRange);
-        if (ratios.length > 0) args.push("--ratios", ratios);
-        if (cfg.nsfw && apiKey.length > 0) args.push("--purity", "111");
+        var args;
+        if (source === "moewalls") {
+            args = ["moewalls-search", "--page", "" + page, "--json"];
+            if (query.length > 0) args.push("--query", query);
+        } else {
+            args = ["search", "--query", query, "--page", "" + page, "--json"];
+            if (topRange.length > 0) args.push("--top-range", topRange);
+            if (ratios.length > 0) args.push("--ratios", ratios);
+            if (cfg.nsfw && apiKey.length > 0) args.push("--purity", "111");
+        }
         searchProc.running = false;
         searchProc.command = cmd(args);
         searchProc.running = true;
@@ -141,6 +179,12 @@ Singleton {
         if (!selected)
             return;
         palette = [];
+        // local live videos ship no poster; the daemon derives the real palette
+        // from a frame on set, so skip the preview fetch here.
+        if (!selected.thumb || selected.thumb.length === 0) {
+            paletteLoading = false;
+            return;
+        }
         paletteLoading = true;
         palProc.running = false;
         palProc.command = cmd(["palette", selected.thumb].concat(root.tuneFlags));
@@ -148,15 +192,31 @@ Singleton {
     }
 
     // ---- apply (download full res, then set + theme through the shell) -------
+    // wallhaven downloads the image, moewalls downloads the webm into livewalls,
+    // live is already local so it sets straight away. all three land in the same
+    // set path so the daemon (awww or mpvpaper) fans out on the file type.
     function apply(item) {
         var it = item || selected;
         if (!it || busy)
             return;
+        if (source === "live") { setPath(it.video); return; }
         busy = true;
         status = "Downloading";
         _dlPath = "";
-        dlProc.command = cmd(["download", it.id, it.path]);
+        _setAfter = true;
+        if (source === "moewalls")
+            dlProc.command = cmd(["moewalls-download", it.id, it.dl]);
+        else
+            dlProc.command = cmd(["download", it.id, it.path]);
         dlProc.running = true;
+    }
+    function setPath(path) {
+        if (busy) return;
+        busy = true;
+        _writeTuneFor(path);
+        status = "Setting wallpaper";
+        setProc.command = ["ryoku-shell", "wallpaper", "set", path];
+        setProc.running = true;
     }
     function download(item) {
         var it = item || selected;
@@ -172,11 +232,32 @@ Singleton {
     property bool _setAfter: true
     function openWeb(item) {
         var it = item || selected;
-        if (it && it.wallhaven_url)
-            Qt.openUrlExternally(it.wallhaven_url);
+        var url = it ? (it.wallhaven_url || it.moewalls_url) : "";
+        if (url)
+            Qt.openUrlExternally(url);
     }
 
     function saveSettings() { cfgFile.writeAdapter(); }
+
+    // frame scrubbing for a live wallpaper: persist the second, then re-theme off
+    // the new frame. repaint re-extracts + re-runs wallust without restarting
+    // mpvpaper, so scrubbing stays smooth. debounced since the slider fires often.
+    function retuneFrame(sec) {
+        cfg.frame = sec;
+        cfgFile.writeAdapter();
+        frameDebounce.restart();
+    }
+    Timer {
+        id: frameDebounce
+        interval: 250
+        onTriggered: {
+            if (root.selected && root.selected.video) root._writeTuneFor(root.selected.video);
+            repaintProc.running = false;
+            repaintProc.command = ["ryoku-shell", "wallpaper", "repaint"];
+            repaintProc.running = true;
+        }
+    }
+    Process { id: repaintProc }
 
     // status lines clear themselves so the bar never carries a stale message.
     onStatusChanged: if (status.length > 0) statusClear.restart()
@@ -231,6 +312,14 @@ Singleton {
         }
     }
 
+    Process {
+        id: importProc
+        onExited: code => {
+            if (code === 0 && root.source === "live") root.loadLive();
+            else if (code !== 0) root.status = "Import failed";
+        }
+    }
+
     FileView {
         id: cfgFile
         path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/ryowalls.json"
@@ -251,6 +340,10 @@ Singleton {
             property int saturation: 0
             property int threshold: 0
             property bool contrast: false
+            // live wallpapers: which second of the video wallust samples, and
+            // whether mpvpaper pauses while a window covers it.
+            property real frame: 1
+            property bool pauseWhenCovered: false
         }
     }
 
@@ -269,6 +362,7 @@ Singleton {
             property int saturation: 0
             property int threshold: 0
             property bool contrast: false
+            property real frame: 1
         }
     }
     readonly property var settings: cfg

@@ -113,12 +113,14 @@ Item {
         HubButton {
             icon: "download"
             label: "Save"
+            visible: Wallhaven.source === "wallhaven"
             enabled: Wallhaven.selected !== null && !Wallhaven.busy
             onClicked: Wallhaven.download()
         }
         HubButton {
             icon: "external"
             label: "Open"
+            visible: Wallhaven.source !== "live"
             enabled: Wallhaven.selected !== null
             onClicked: Wallhaven.openWeb()
         }

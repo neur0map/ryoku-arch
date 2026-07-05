@@ -54,8 +54,9 @@ Item {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: Wallhaven.searching ? "Searching wallhaven"
-                : (Wallhaven.error.length > 0 ? Wallhaven.error : "No wallpapers")
+            text: Wallhaven.searching ? "Searching"
+                : (Wallhaven.error.length > 0 ? Wallhaven.error
+                : (Wallhaven.source === "live" ? "No live wallpapers yet" : "No wallpapers"))
             color: Theme.dim
             font.family: Theme.font
             font.pixelSize: 13

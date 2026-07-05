@@ -1,4 +1,5 @@
 import QtQuick
+import QtMultimedia
 import "Singletons"
 
 // Live rice preview: the picked wallpaper under a recoloured pill, terminal and
@@ -27,7 +28,7 @@ Item {
         cache: true
         fillMode: Image.PreserveAspectCrop
         sourceSize: Qt.size(Math.ceil(width), Math.ceil(height))
-        source: Wallhaven.selected ? (Wallhaven.selected.large || Wallhaven.selected.thumb) : ""
+        source: Wallhaven.selected ? (Wallhaven.selected.large || Wallhaven.selected.thumb || "") : ""
     }
     Image {
         anchors.fill: parent
@@ -35,10 +36,26 @@ Item {
         cache: true
         fillMode: Image.PreserveAspectCrop
         sourceSize: Qt.size(Math.ceil(width * 2), Math.ceil(height * 2))
-        source: Wallhaven.selected ? Wallhaven.selected.path : ""
+        source: Wallhaven.selected ? (Wallhaven.selected.path || "") : ""
         opacity: status === Image.Ready ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.medium } }
     }
+
+    // a live wallpaper loops as the backdrop instead of a still frame.
+    MediaPlayer {
+        id: liveMp
+        source: (Wallhaven.selected && Wallhaven.selected.video) ? Wallhaven.selected.video : ""
+        loops: MediaPlayer.Infinite
+        videoOutput: liveOut
+        onSourceChanged: source != "" ? play() : stop()
+    }
+    VideoOutput {
+        id: liveOut
+        anchors.fill: parent
+        fillMode: VideoOutput.PreserveAspectCrop
+        visible: liveMp.playbackState === MediaPlayer.PlayingState
+    }
+
     Rectangle { anchors.fill: parent; color: Qt.rgba(0, 0, 0, 0.16) }
 
     // top pill, the shell island in miniature.

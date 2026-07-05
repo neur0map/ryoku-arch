@@ -18,6 +18,7 @@ const (
 )
 
 func wallDir() string   { return filepath.Join(os.Getenv("HOME"), "Pictures", "Wallpapers") }
+func liveDir() string   { return filepath.Join(os.Getenv("HOME"), "Pictures", "livewalls") }
 func wallState() string { return filepath.Join(stateDir(), "ryoku-wallpaper") }
 func wallBag() string   { return filepath.Join(stateDir(), "ryoku-wallpaper-bag") }
 
@@ -98,10 +99,19 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 		d.scheduleTheme()
 		return nil
 	}
-	// only init cares if a wallpaper is already up; next/set skip the extra probe
-	// and let ensureWallDaemon do the single check.
-	if mode == "init" && wallDaemonAlive() {
-		return nil
+	// only init cares if a wallpaper is already up. a video is the exception:
+	// its mpvpaper died with the previous session and a live awww doesn't restore
+	// it, so relaunch it. next/set skip the probe and let ensureWallDaemon check.
+	if mode == "init" {
+		if cur := readState(); isVideo(cur) && isFile(cur) {
+			if !liveAlive() {
+				return d.showLiveWallpaper(cur)
+			}
+			return nil
+		}
+		if wallDaemonAlive() {
+			return nil
+		}
 	}
 	if !ensureWallDaemon() {
 		return nil
@@ -118,6 +128,10 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 		if pic == "" {
 			return nil
 		}
+		if isVideo(pic) {
+			return d.showLiveWallpaper(pic)
+		}
+		stopLive()
 		return d.showWallpaperInstant(pic)
 	}
 
@@ -141,7 +155,7 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 		return nil
 	}
 
-	if err := d.showWallpaper(pic); err != nil {
+	if err := d.showAny(pic); err != nil {
 		return err
 	}
 	_ = os.MkdirAll(stateDir(), 0o755)
@@ -163,6 +177,94 @@ func (d *daemon) showWallpaper(pic string) error {
 // a new monitor catches up without re-animating the others.
 func (d *daemon) showWallpaperInstant(pic string) error {
 	return exec.Command(wallDaemon, "img", pic, "--transition-type", "none").Run()
+}
+
+// --- live (video) wallpapers: mpvpaper over awww -----------------------------
+//
+// awww is image/GIF only, so a video plays through mpvpaper (mpv on the
+// background layer), whose surface maps over awww's. Only one backend paints at a
+// time: setting a video kills nothing of awww (it just covers it); setting an
+// image kills mpvpaper so awww shows through.
+
+const liveDaemon = "mpvpaper"
+
+func isVideo(p string) bool {
+	switch strings.ToLower(filepath.Ext(p)) {
+	case ".mp4", ".webm", ".mkv", ".mov":
+		return true
+	}
+	return false
+}
+
+func liveAlive() bool { return exec.Command("pgrep", "-x", liveDaemon).Run() == nil }
+func stopLive()       { _ = exec.Command("pkill", "-x", liveDaemon).Run() }
+
+// showAny: route a video to mpvpaper and an image to awww, stopping the other
+// backend so exactly one paints.
+func (d *daemon) showAny(pic string) error {
+	if isVideo(pic) {
+		return d.showLiveWallpaper(pic)
+	}
+	stopLive()
+	return d.showWallpaper(pic)
+}
+
+// showLiveWallpaper: play the video, looping and muted, on the background layer.
+// -f forks so this returns at once. auto-pause (mpv pauses while a window fully
+// covers the wallpaper) rides the ryowalls "pause when covered" toggle.
+func (d *daemon) showLiveWallpaper(pic string) error {
+	stopLive()
+	args := []string{"-f", "-o", "no-audio loop-file=inf hwdec=auto", "ALL", pic}
+	if livePauseWhenCovered() {
+		args = append([]string{"-p"}, args...)
+	}
+	return exec.Command(liveDaemon, args...).Run()
+}
+
+// liveFrame: one still from the video for wallust, which reads an image. offset
+// defaults to a second in; the ryowalls frame slider can move it. "" on failure,
+// so the palette just keeps its previous value.
+func liveFrame(video string) string {
+	out := filepath.Join(stateDir(), "ryoku-live-frame.png")
+	err := exec.Command("ffmpeg", "-y", "-ss", frameOffset(video), "-i", video,
+		"-frames:v", "1", out).Run()
+	if err != nil || !isFile(out) {
+		return ""
+	}
+	return out
+}
+
+// frameOffset: seconds into the video that wallust samples, from the per-video
+// sticky tune; "1" by default.
+func frameOffset(video string) string {
+	b, err := os.ReadFile(wallustTune())
+	if err != nil {
+		return "1"
+	}
+	var t struct {
+		Image string  `json:"image"`
+		Frame float64 `json:"frame"`
+	}
+	if json.Unmarshal(b, &t) == nil && t.Image == video && t.Frame > 0 {
+		return strconv.FormatFloat(t.Frame, 'f', 2, 64)
+	}
+	return "1"
+}
+
+// livePauseWhenCovered: the ryowalls toggle (off by default).
+func livePauseWhenCovered() bool {
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		base = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	b, err := os.ReadFile(filepath.Join(base, "ryoku", "ryowalls.json"))
+	if err != nil {
+		return false
+	}
+	var s struct {
+		PauseWhenCovered bool `json:"pauseWhenCovered"`
+	}
+	return json.Unmarshal(b, &s) == nil && s.PauseWhenCovered
 }
 
 // pickTransition: random preset, never the previous one (consecutive switches
@@ -206,7 +308,14 @@ func (d *daemon) paintWorker() {
 		if themePaletteLocked() {
 			continue
 		}
-		_ = exec.Command("wallust", append([]string{"run", pic}, tuneArgs()...)...).Run()
+		// wallust reads an image, so a video is themed off one extracted frame.
+		src := pic
+		if isVideo(pic) {
+			if src = liveFrame(pic); src == "" {
+				continue
+			}
+		}
+		_ = exec.Command("wallust", append([]string{"run", src}, tuneArgs()...)...).Run()
 		_ = exec.Command("hyprctl", "reload", "config-only").Run()
 		select {
 		case d.ledsSig <- struct{}{}:
@@ -332,22 +441,25 @@ func ensureWallDaemon() bool {
 	return false
 }
 
+// listPics: the Super+W pool. images from ~/Pictures/Wallpapers and videos from
+// ~/Pictures/livewalls, so the switcher cycles both the same way.
 func listPics() []string {
-	root := wallDir()
-	if resolved, err := filepath.EvalSymlinks(root); err == nil {
-		root = resolved
-	}
 	var pics []string
-	_ = filepath.WalkDir(root, func(p string, info os.DirEntry, err error) error {
-		if err != nil || info.IsDir() {
+	for _, root := range []string{wallDir(), liveDir()} {
+		if resolved, err := filepath.EvalSymlinks(root); err == nil {
+			root = resolved
+		}
+		_ = filepath.WalkDir(root, func(p string, info os.DirEntry, err error) error {
+			if err != nil || info.IsDir() {
+				return nil
+			}
+			switch strings.ToLower(filepath.Ext(p)) {
+			case ".jpg", ".jpeg", ".png", ".webp", ".mp4", ".webm", ".mkv", ".mov":
+				pics = append(pics, p)
+			}
 			return nil
-		}
-		switch strings.ToLower(filepath.Ext(p)) {
-		case ".jpg", ".jpeg", ".png", ".webp":
-			pics = append(pics, p)
-		}
-		return nil
-	})
+		})
+	}
 	return pics
 }
 

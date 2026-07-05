@@ -65,6 +65,9 @@ depends=(
   'cava'
   'jq'
   'imagemagick'
+  # live (video) wallpapers: the daemon grabs one frame with ffmpeg to derive the
+  # wallust palette. official repo, so a hard depend reaches existing boxes.
+  'ffmpeg'
   # Hub's ISO picker (GPU passthrough VM) shells out to a file chooser
   'zenity'
   # Game Mode wifi power-save toggle (ryoku-wifi-powersave runs iw)
@@ -87,6 +90,7 @@ depends=(
 optdepends=(
   'wallust: wallpaper-derived color palette (AUR)'
   'awww: animated wallpaper transitions (AUR)'
+  'mpvpaper: video (live) wallpaper playback, ryowalls Live tab (AUR)'
   'tesseract: OCR text grab (pill Super+D)'
   'tesseract-data-eng: English OCR language data'
   'zbar: QR code scanning (pill Super+D)'

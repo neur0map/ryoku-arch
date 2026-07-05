@@ -112,6 +112,15 @@ Item {
             }
 
             SectionHead { text: "Adjust" }
+            // live wallpaper: which second of the clip wallust samples for colours.
+            SliderRow {
+                width: parent.width
+                visible: !!(Wallhaven.selected && Wallhaven.selected.video && ("" + Wallhaven.selected.video).length > 0)
+                label: "Frame"
+                from: 0; to: 10; step: 0.5; decimals: 1
+                value: Wallhaven.settings.frame
+                onModified: (v) => Wallhaven.retuneFrame(v)
+            }
             SliderRow {
                 width: parent.width
                 label: "Saturation"
