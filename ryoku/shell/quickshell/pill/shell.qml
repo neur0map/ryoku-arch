@@ -83,6 +83,31 @@ ShellRoot {
         IdleInhibitor { window: inhibitWin; enabled: Flags.keepAwake }
     }
 
+    // keyboard-return bounce. the pill overlay never unmaps, so releasing its
+    // Exclusive grab strands the keyboard on the dead layer and a plain refocus
+    // is a no-op. this 1x1 transparent layer grabs the keyboard for a beat then
+    // unmaps; Hyprland's on-unmap refocus (input:mouse_refocus) hands it to the
+    // window under the cursor, the one behind the surface. invisible, no
+    // throwaway window and no focus dispatch.
+    property bool kbBounce: false
+    Timer {
+        id: kbBounceTimer
+        interval: 90
+        onTriggered: root.kbBounce = false
+    }
+    PanelWindow {
+        id: kbBounceWin
+        visible: root.kbBounce
+        implicitWidth: 1
+        implicitHeight: 1
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.namespace: "pill-kbbounce"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+        anchors { top: true; left: true }
+    }
+
     // Keep-Awake's durable inhibitor lives outside the shell so it survives
     // a reload/restart. ryoku-cmd-caffeine runs systemd-inhibit via
     // systemd-run (setsid fallback), independent of our lifetime. the
@@ -199,19 +224,18 @@ ShellRoot {
             root.returnAddr = root.focusedWindowAddr();
     }
 
-    readonly property string refocusScript: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/ryoku-refocus"
-
-    // hand keyboard focus back to the window the surface stole it from. the pill
-    // overlay is always mapped, so dropping its Exclusive grab strands the
-    // keyboard: Hyprland still marks `addr` active, so re-focusing it is a no-op
-    // and no keyboard enter is re-sent -- the window looks active but cannot type
-    // (the "cannot type after the keyring popup" bug). only a genuine focus
-    // CHANGE fixes it, so ryoku-refocus bounces the keyboard off another window
-    // on `addr`'s workspace (or a throwaway, if `addr` is alone) and straight
-    // back. cyclenext + a plain refocus used to sit here but is a no-op on the
-    // current Hyprland: alt-tab-style focus over IPC does not move the keyboard.
-    function restoreFocus(addr) {
-        Quickshell.execDetached([root.refocusScript, addr]);
+    // hand keyboard focus back after a focus surface drops its grab. the pill
+    // overlay is always mapped, so releasing its Exclusive grab strands the
+    // keyboard: Hyprland still marks the old window active, so re-focusing it is
+    // a no-op, no keyboard enter is re-sent, and the window looks active yet
+    // cannot type (the "cannot type after the keyring popup" bug). the kbBounce
+    // helper above grabs the keyboard for a beat then unmaps; Hyprland's on-unmap
+    // refocus hands it to the window under the cursor, which recovers real
+    // keyboard input where a focus dispatch (cyclenext, focuswindow over IPC)
+    // is a silent no-op on the current Hyprland.
+    function restoreFocus() {
+        root.kbBounce = true;
+        kbBounceTimer.restart();
     }
 
     function close() {
@@ -225,7 +249,7 @@ ShellRoot {
         root.openMon = "";
         root.openSurface = "";
         if (ret !== "")
-            root.restoreFocus(ret);
+            root.restoreFocus();
     }
 
     function show(mon, surface) {
