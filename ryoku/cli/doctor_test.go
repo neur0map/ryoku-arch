@@ -774,6 +774,29 @@ func TestReconcileFastfetchEmblem(t *testing.T) {
 		}
 	})
 
+	// The recurring "doctor overwrites my custom fastfetch" report: prove the
+	// reconciler only ever restores the emblem PNG and never rewrites config.jsonc.
+	t.Run("restoring the emblem never rewrites config.jsonc", func(t *testing.T) {
+		d := setup(t)
+		writeConfig(t, d.home, emblemSrc)
+		writeBlob(t, baseEmblem(d), baseBytes)
+		cfgPath := filepath.Join(d.home, ".config", "fastfetch", "config.jsonc")
+		before, err := os.ReadFile(cfgPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r := reconcileFastfetchEmblem(false); r.status != recFixed {
+			t.Fatalf("status=%s, want fixed (emblem restored)", r.status.label())
+		}
+		after, err := os.ReadFile(cfgPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(before) != string(after) {
+			t.Errorf("config.jsonc was modified by the emblem reconciler:\n before=%q\n after=%q", before, after)
+		}
+	})
+
 	t.Run("base tree lacking the emblem warns to update", func(t *testing.T) {
 		d := setup(t)
 		writeConfig(t, d.home, emblemSrc)
