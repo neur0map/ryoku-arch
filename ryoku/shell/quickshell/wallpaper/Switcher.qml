@@ -234,7 +234,7 @@ Item {
             clip: true
             visible: body.shown.length > 0
             model: body.shown
-            cacheBuffer: Math.round(1600 * body.s)
+            cacheBuffer: Math.round(cellHeight * 2)
             boundsBehavior: Flickable.StopAtBounds
 
             readonly property int cols: Math.max(3, Math.min(8, Math.floor(width / (250 * body.s))))

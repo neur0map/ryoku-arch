@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtMultimedia
 import "Singletons"
 
 // One wallpaper in the grid. Images show their thumbnail; live (video) ones show
@@ -37,23 +36,16 @@ Rectangle {
         fillMode: Image.PreserveAspectCrop
         sourceSize: Qt.size(Math.ceil(cell.width * 1.5), Math.ceil(cell.height * 1.5))
         source: (cell.item && cell.item.thumb) ? "file://" + cell.item.thumb : ""
-        visible: !vout.visible
     }
 
-    MediaPlayer {
-        id: mp
-        source: cell.playing ? "file://" + cell.item.path : ""
-        loops: MediaPlayer.Infinite
-        videoOutput: vout
-        audioOutput: AudioOutput { muted: true }
-        onSourceChanged: source.toString().length > 0 ? play() : stop()
-    }
-    VideoOutput {
-        id: vout
+    // live preview built only for the picked video, so image cells never spin up
+    // a media pipeline (and QtMultimedia loads only once a clip plays).
+    Loader {
         anchors.fill: parent
         anchors.margins: 1
-        fillMode: VideoOutput.PreserveAspectCrop
-        visible: cell.isLive && mp.playbackState === MediaPlayer.PlayingState
+        active: cell.playing
+        source: "VideoPreview.qml"
+        onLoaded: item.path = cell.item.path
     }
 
     // dim the cells that aren't the pick, so the selection reads clearly.
