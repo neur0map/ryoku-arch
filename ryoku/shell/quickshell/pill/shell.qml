@@ -267,8 +267,8 @@ ShellRoot {
         function mixer(mon: string): void { root.togglePopout(mon, "mixer"); }
         function calendar(mon: string): void { root.togglePopout(mon, "calendar"); }
         function power(mon: string): void { root.togglePopout(mon, "power"); }
-        function link(mon: string): void { root.toggleSurface(mon, "link"); }
-        function inbox(mon: string): void { root.toggleSurface(mon, "inbox"); }
+        function link(mon: string): void { root.togglePopout(mon, "link"); }
+        function inbox(mon: string): void { root.togglePopout(mon, "inbox"); }
         function battery(mon: string): void { root.toggleSurface(mon, "battery"); }
         // status-cluster quick popouts (the compact hover panels; a keybind can
         // also pin one). distinct from the deep surfaces above; side bar only.
@@ -322,12 +322,12 @@ ShellRoot {
         var fn = parts[0];
         var mon = parts.length > 1 ? parts[1] : "";
         switch (fn) {
-        case "link": case "inbox": case "battery":
+        case "battery":
         case "stash": case "toolkit": case "utilities": case "workspaces":
             root.toggleSurface(mon, fn); return true;
         case "mixer": case "power":
             root.togglePopout(mon, fn); return true;
-        case "network": case "bluetooth": case "calendar": case "clipboard":
+        case "network": case "bluetooth": case "calendar": case "clipboard": case "link": case "inbox":
             root.togglePopout(mon, fn); return true;
         case "batteryPopout":
             root.togglePopout(mon, "battery"); return true;
@@ -635,6 +635,8 @@ ShellRoot {
                 Region { x: bluetoothPop.bodyX; y: bluetoothPop.bodyY; width: bluetoothPop.bodyW; height: bluetoothPop.bodyH }
                 Region { x: calendarPop.bodyX; y: calendarPop.bodyY; width: calendarPop.bodyW; height: calendarPop.bodyH }
                 Region { x: clipboardPop.bodyX; y: clipboardPop.bodyY; width: clipboardPop.bodyW; height: clipboardPop.bodyH }
+                Region { x: linkPop.bodyX; y: linkPop.bodyY; width: linkPop.bodyW; height: linkPop.bodyH }
+                Region { x: inboxPop.bodyX; y: inboxPop.bodyY; width: inboxPop.bodyW; height: inboxPop.bodyH }
                 Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
                 Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
             }
@@ -942,6 +944,56 @@ ShellRoot {
                         id: clipContent
                         s: overlay.s
                         open: clipboardPop.prog > 0.5
+                        onCloseRequested: root.popout = ""
+                    }
+                }
+
+                // link popout: the deep wifi/bluetooth surface, from the bar
+                // edge. a keyboard popout (wifi password).
+                Popout {
+                    id: linkPop
+                    group: blobGroup
+                    frameThickness: overlay.barVisibleH
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.barPos
+                    hoverOpen: false
+                    alongCenter: root.popoutCenter
+                    s: overlay.s
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "link" && root.popoutMon === overlay.modelData.name
+                    openW: linkContent.implicitWidth
+                    openH: linkContent.implicitHeight
+
+                    LinkPopout {
+                        id: linkContent
+                        s: overlay.s
+                        open: linkPop.prog > 0.5
+                        onCloseRequested: root.popout = ""
+                    }
+                }
+
+                // inbox popout: the notification centre (the bell), from the bar
+                // edge. pointer-only, dismisses via the focus grab.
+                Popout {
+                    id: inboxPop
+                    group: blobGroup
+                    frameThickness: overlay.barVisibleH
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.barPos
+                    hoverOpen: false
+                    alongCenter: root.popoutCenter
+                    s: overlay.s
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "inbox" && root.popoutMon === overlay.modelData.name
+                    openW: inboxContent.implicitWidth
+                    openH: inboxContent.implicitHeight
+
+                    InboxPopout {
+                        id: inboxContent
+                        s: overlay.s
+                        open: inboxPop.prog > 0.5
                         onCloseRequested: root.popout = ""
                     }
                 }

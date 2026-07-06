@@ -11,7 +11,7 @@ import "Singletons"
 // grows from the bar edge at the icon (down from a top bar, up from a bottom
 // bar), like the reference. requestPopout carries the popout name + the icon's
 // along-axis centre in window coords (the popout's own coordinate space). the
-// bell has no popout yet, so it still opens the inbox surface.
+// bell opens the inbox notification-centre popout at the bell, like the glyphs.
 Grid {
     id: status
 
@@ -165,8 +165,9 @@ Grid {
     }
 
     // notifications: the bell, filled with an accent tint while something waits.
-    // still opens the inbox surface (no bell popout yet).
+    // opens the inbox notification-centre popout at the bell.
     Item {
+        id: bellIcon
         width: status.glyphPx + 4 * status.s
         height: status.glyphPx + 4 * status.s
 
@@ -182,7 +183,7 @@ Grid {
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
-            onClicked: status.requestSurface("inbox")
+            onClicked: status.open("inbox", bellIcon)
         }
     }
 
