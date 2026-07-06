@@ -1,11 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls
 import "Singletons"
 
-// The switcher body: a centered card holding the colour strip, the unified
-// image+video grid, and a footer. Owns the pick + filter state and the keyboard;
-// hovering or arrowing moves the pick, a click or Enter sets it and closes.
+// The switcher body: a card with the colour strip on top, two endless belts of
+// wallpapers below (the top drifts right, the bottom drifts left), and a footer.
+// The belts idle-drift on their own; a scroll pushes them faster and they ease
+// back. Hover a tile to light it, click or Enter to set it, Esc to close.
 Item {
     id: body
 
@@ -15,11 +15,10 @@ Item {
 
     property string typeFilter: "all"   // all | image | live
     property int colorFilter: -1        // -1 = every colour, else a Colors group id
-    property int sel: 0
-    property bool seeded: false
-    readonly property int gap: Math.round(10 * s)
+    property var hoverEntry: null
+    property int kbRow: 0               // which belt Enter picks from when not hovering
 
-    // entries under the current type + colour filter (already colour-sorted).
+    // entries under the current type + colour filter, already colour-sorted.
     readonly property var shown: {
         var out = [];
         var es = Walls.entries;
@@ -33,8 +32,10 @@ Item {
         }
         return out;
     }
+    // split across the two belts so each carries a varied slice.
+    readonly property var topCells: shown.filter((e, i) => i % 2 === 0)
+    readonly property var bottomCells: shown.filter((e, i) => i % 2 === 1)
 
-    // colour groups present under the current type filter, for the strip.
     readonly property var groups: {
         var seen = ({});
         var es = Walls.entries;
@@ -51,75 +52,45 @@ Item {
         return out;
     }
 
-    readonly property var cur: (sel >= 0 && sel < shown.length) ? shown[sel] : null
-
-    function indexOfCurrent() {
-        for (var i = 0; i < shown.length; i++)
-            if (shown[i].path === Walls.current)
-                return i;
-        return -1;
-    }
-    function seed() {
-        if (body.seeded || body.shown.length === 0)
-            return;
-        var i = body.indexOfCurrent();
-        body.sel = i >= 0 ? i : 0;
-        body.seeded = true;
-        centerT.restart();
-    }
-    // let the grid lay out the fresh model before scrolling the pick into view.
-    Timer { id: centerT; interval: 60; onTriggered: grid.positionViewAtIndex(body.sel, GridView.Center) }
-    onShownChanged: {
-        body.seed();
-        if (body.sel >= body.shown.length)
-            body.sel = Math.max(0, body.shown.length - 1);
-    }
-    Connections { target: Walls; function onEntriesChanged() { body.seed(); } }
+    // the pick: whatever's hovered, else the centred tile of the active belt.
+    readonly property var selEntry: hoverEntry ? hoverEntry
+        : (kbRow === 0 ? topRow.centerEntry : bottomRow.centerEntry)
 
     function setType(t) {
         if (body.typeFilter === t)
             return;
         body.typeFilter = t;
         body.colorFilter = -1;
-        body.sel = 0;
+        body.hoverEntry = null;
     }
     function setColor(g) {
         body.colorFilter = (body.colorFilter === g) ? -1 : g;
-        body.sel = 0;
+        body.hoverEntry = null;
     }
-    function move(d) {
-        if (body.shown.length === 0)
+    function apply(entry) {
+        if (!entry)
             return;
-        body.sel = Math.max(0, Math.min(body.shown.length - 1, body.sel + d));
-        grid.positionViewAtIndex(body.sel, GridView.Contain);
-    }
-    function moveRow(d) { body.move(d * grid.cols); }
-    function activate() {
-        if (!body.cur)
-            return;
-        Walls.apply(body.cur.path);
+        Walls.apply(entry.path);
         body.requestClose();
     }
 
-    // keyboard: this body only exists on the focused monitor, so it owns the keys.
     focus: true
     Component.onCompleted: forceActiveFocus()
     Keys.onPressed: (e) => {
-        var shift = (e.modifiers & Qt.ShiftModifier) !== 0;
         if (e.key === Qt.Key_Escape)
             body.requestClose();
-        else if (e.key === Qt.Key_Tab)
-            body.move(shift ? -1 : 1);
-        else if (e.key === Qt.Key_Backtab || e.key === Qt.Key_Left)
-            body.move(-1);
-        else if (e.key === Qt.Key_Right)
-            body.move(1);
-        else if (e.key === Qt.Key_Up)
-            body.moveRow(-1);
-        else if (e.key === Qt.Key_Down)
-            body.moveRow(1);
         else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter || e.key === Qt.Key_Space)
-            body.activate();
+            body.apply(body.selEntry);
+        else if (e.key === Qt.Key_Right) {
+            topRow.boostBy(760);
+            bottomRow.boostBy(-760);
+        } else if (e.key === Qt.Key_Left) {
+            topRow.boostBy(-760);
+            bottomRow.boostBy(760);
+        } else if (e.key === Qt.Key_Up)
+            body.kbRow = 0;
+        else if (e.key === Qt.Key_Down)
+            body.kbRow = 1;
         else
             return;
         e.accepted = true;
@@ -128,13 +99,10 @@ Item {
     Rectangle {
         id: card
         anchors.centerIn: parent
-        width: Math.round(Math.min(parent.width * 0.86, 1640 * body.s))
-        height: Math.round(Math.min(parent.height * 0.86, 1000 * body.s))
+        width: Math.round(Math.min(parent.width * 0.9, 1720 * body.s))
+        height: Math.round(Math.min(parent.height * 0.86, 1040 * body.s))
         radius: Theme.radius
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.cardTop }
-            GradientStop { position: 1.0; color: Theme.cardBot }
-        }
+        color: Theme.cardTop
         border.width: 1
         border.color: Theme.border
 
@@ -220,46 +188,84 @@ Item {
             onPicked: (g) => body.setColor(g)
         }
 
-        // ---- grid ----
-        GridView {
-            id: grid
+        // ---- the two belts ----
+        Item {
+            id: rows
             anchors {
                 left: parent.left; right: parent.right
                 top: strip.bottom; bottom: footer.top
-                topMargin: Math.round(14 * body.s)
+                topMargin: Math.round(16 * body.s)
                 bottomMargin: Math.round(10 * body.s)
-                leftMargin: card.pad
-                rightMargin: card.pad
             }
-            clip: true
             visible: body.shown.length > 0
-            model: body.shown
-            cacheBuffer: Math.round(cellHeight * 2)
-            boundsBehavior: Flickable.StopAtBounds
 
-            readonly property int cols: Math.max(3, Math.min(8, Math.floor(width / (250 * body.s))))
-            cellWidth: Math.floor(width / cols)
-            cellHeight: Math.round(cellWidth * 0.6)
+            readonly property int rowGap: Math.round(20 * body.s)
+            readonly property real rowH: (height - rowGap) / 2
+            readonly property real cH: Math.max(120 * body.s, Math.min(240 * body.s, rowH - 14 * body.s))
+            readonly property real cW: Math.round(cH * 1.55)
+            readonly property int cGap: Math.round(14 * body.s)
 
-            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            WallRow {
+                id: topRow
+                anchors { left: parent.left; right: parent.right; top: parent.top }
+                height: rows.rowH
+                s: body.s
+                dir: 1
+                topRow: true
+                cells: body.topCells
+                cellW: rows.cW
+                cellH: rows.cH
+                gap: rows.cGap
+                bg: Theme.cardTop
+                running: body.active
+                highlightKey: body.hoverEntry ? body.hoverEntry.path : ""
+                onEntered: (e) => body.hoverEntry = e
+                onChosen: (e) => body.apply(e)
+            }
+            WallRow {
+                id: bottomRow
+                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                height: rows.rowH
+                s: body.s
+                dir: -1
+                topRow: false
+                cells: body.bottomCells
+                cellW: rows.cW
+                cellH: rows.cH
+                gap: rows.cGap
+                bg: Theme.cardTop
+                running: body.active
+                highlightKey: body.hoverEntry ? body.hoverEntry.path : ""
+                onEntered: (e) => body.hoverEntry = e
+                onChosen: (e) => body.apply(e)
+            }
 
-            delegate: Item {
-                id: slot
-                required property var modelData
-                required property int index
-                width: grid.cellWidth
-                height: grid.cellHeight
-
-                WallCell {
-                    anchors.fill: parent
-                    anchors.margins: body.gap / 2
-                    s: body.s
-                    item: slot.modelData
-                    selected: slot.index === body.sel
-                    current: slot.modelData.path === Walls.current
-                    onEntered: body.sel = slot.index
-                    onChosen: { Walls.apply(slot.modelData.path); body.requestClose(); }
+            // scroll pushes both belts faster (they ease back to the idle drift).
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: (e) => {
+                    var f = e.angleDelta.y * 3.2;
+                    topRow.boostBy(f);
+                    bottomRow.boostBy(-f);
                 }
+            }
+            HoverHandler {
+                id: rowsHover
+                onHoveredChanged: if (!hovered) body.hoverEntry = null
+            }
+
+            // faint guide marking the tile Enter picks when nothing is hovered.
+            Rectangle {
+                visible: !body.hoverEntry
+                width: Math.round(30 * body.s)
+                height: Math.round(2 * body.s)
+                radius: height / 2
+                color: Theme.brand
+                opacity: 0.5
+                x: (rows.width - width) / 2
+                y: body.kbRow === 0
+                    ? topRow.y + topRow.height - height / 2
+                    : bottomRow.y + bottomRow.height - height / 2
             }
         }
 
@@ -270,7 +276,7 @@ Item {
             visible: body.shown.length === 0
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: Walls.loading ? "力" : "◍"
+                text: "力"
                 color: Theme.faint
                 font.family: Theme.fontJp
                 font.pixelSize: Math.round(34 * body.s)
@@ -298,9 +304,9 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: parent.width - hint.width - Math.round(20 * body.s)
                 elide: Text.ElideRight
-                text: body.cur
-                    ? (body.cur.name + "   " + (body.cur.type === "live" ? "Live" : "Image") + " · " + Colors.names[body.cur.group])
-                    : ""
+                text: body.selEntry
+                    ? (body.selEntry.name + "   " + (body.selEntry.type === "live" ? "Live" : "Image") + " · " + Colors.names[body.selEntry.group] + (body.hoverEntry ? "" : "  · centre"))
+                    : "Scroll to browse, hover a tile to set it"
                 color: Theme.subtle
                 font.family: Theme.font
                 font.pixelSize: Math.round(12 * body.s)
