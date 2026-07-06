@@ -28,7 +28,8 @@ Item {
         { "name": "hyprmod",      "by": "BlueManCZ",      "role": "Hyprland tooling",     "url": "https://github.com/BlueManCZ/hyprmod" },
         { "name": "dotfiles",     "by": "matteogini",     "role": "dotfile craft",        "url": "https://github.com/matteogini/dotfiles" },
         { "name": "inir",         "by": "snowarch",       "role": "launcher grid",        "url": "" },
-        { "name": "DankMaterial", "by": "AvengeMedia",    "role": "material shell",       "url": "" },
+        { "name": "noctalia",     "by": "noctalia-dev",   "role": "shell polish",         "url": "https://github.com/noctalia-dev/noctalia-shell" },
+        { "name": "DankMaterial", "by": "AvengeMedia",    "role": "material shell",       "url": "https://github.com/AvengeMedia/DankMaterialShell" },
         { "name": "Omarchy",      "by": "DHH",            "role": "opinionated Arch",     "url": "" },
         { "name": "CachyOS",      "by": "CachyOS team",   "role": "performance Arch",     "url": "" }
     ]

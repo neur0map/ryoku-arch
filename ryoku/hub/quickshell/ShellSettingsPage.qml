@@ -19,7 +19,7 @@ Item {
         "shadowStrength", "shadowSize", "surfaceColor",
         "islandWidth", "islandHeight", "islandRestCorner", "islandOpenCorner",
         "islandGap", "islandSmoothing", "islandOpacity", "islandStyle", "islandAutohide",
-        "barEnabled", "barHeight", "barShowTitle", "barShowMedia",
+        "barEnabled", "barHeight", "barShowTitle", "barShowMedia", "barShowStatus",
         "fontFamily", "fontScale"
     ]
     readonly property var vizKeys: [
@@ -36,7 +36,7 @@ Item {
         "islandWidth": 109, "islandHeight": 34, "islandRestCorner": 6, "islandOpenCorner": 28,
         "islandGap": 0, "islandSmoothing": 24, "islandOpacity": 1,
         "islandStyle": "floating", "islandAutohide": true,
-        "barEnabled": false, "barHeight": 26, "barShowTitle": true, "barShowMedia": true,
+        "barEnabled": true, "barHeight": 26, "barShowTitle": true, "barShowMedia": true, "barShowStatus": true,
         "fontFamily": "JetBrainsMono Nerd Font", "fontScale": 1.3,
         "enabled": true, "bars": 64, "height": 0.42, "thickness": 0.58,
         "bloom": 0.6, "reflection": 0.1, "idleWave": true,
@@ -69,10 +69,11 @@ Item {
         property real islandOpacity: 1
         property string islandStyle: "floating"
         property bool islandAutohide: true
-        property bool barEnabled: false
+        property bool barEnabled: true
         property real barHeight: 26
         property bool barShowTitle: true
         property bool barShowMedia: true
+        property bool barShowStatus: true
         property string fontFamily: "JetBrainsMono Nerd Font"
         property real fontScale: 1.3
         property bool enabled: true
@@ -111,6 +112,24 @@ Item {
             var kk = keyset[i];
             draft[kk] = adptr[kk];
             c[kk] = adptr[kk];
+        }
+        page.committedVals = c;
+    }
+
+    // a later external write (the shell deck flipping the visualizer on/off)
+    // reloaded into the adapter. pull it into any key the user hasn't locally
+    // edited and move that key's baseline forward, leaving edited keys' drafts
+    // and baselines untouched.
+    function adoptExternal(keyset, adptr) {
+        var c = {};
+        for (var k in page.committedVals)
+            c[k] = page.committedVals[k];
+        for (var i = 0; i < keyset.length; i++) {
+            var kk = keyset[i];
+            if (page.sameVal(draft[kk], page.committedVals[kk])) {
+                draft[kk] = adptr[kk];
+                c[kk] = adptr[kk];
+            }
         }
         page.committedVals = c;
     }
@@ -206,10 +225,11 @@ Item {
             property real islandOpacity: 1
             property string islandStyle: "floating"
             property bool islandAutohide: true
-            property bool barEnabled: false
+            property bool barEnabled: true
             property real barHeight: 26
             property bool barShowTitle: true
             property bool barShowMedia: true
+            property bool barShowStatus: true
             property string fontFamily: "JetBrainsMono Nerd Font"
             property real fontScale: 1.3
         }
@@ -219,10 +239,11 @@ Item {
         id: cfgViz
         path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/visualizer.json"
         blockLoading: true
-        watchChanges: false
+        watchChanges: true
         printErrors: false
         atomicWrites: true
-        onLoaded: { if (!page.vizLoaded) { page.adopt(page.vizKeys, vizA); page.vizLoaded = true; } }
+        onFileChanged: reload()
+        onLoaded: { if (!page.vizLoaded) { page.adopt(page.vizKeys, vizA); page.vizLoaded = true; } else { page.adoptExternal(page.vizKeys, vizA); } }
         onLoadFailed: { if (!page.vizLoaded) { page.adopt(page.vizKeys, vizA); page.vizLoaded = true; } }
 
         JsonAdapter {
@@ -562,6 +583,11 @@ Item {
                         width: parent.width; label: "Now playing"
                         checked: draft.barShowMedia
                         onToggled: (v) => page.edit("barShowMedia", v)
+                    }
+                    ToggleRow {
+                        width: parent.width; label: "Status glyphs (network, battery, inbox)"
+                        checked: draft.barShowStatus
+                        onToggled: (v) => page.edit("barShowStatus", v)
                     }
                 }
             }

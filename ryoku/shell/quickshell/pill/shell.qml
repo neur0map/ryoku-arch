@@ -407,11 +407,13 @@ ShellRoot {
             // toast or OSD does NOT pop a hidden island, so none and the
             // auto-hidden styles stay clean. notifications and the volume
             // OSD still surface in the always-on island and floating
-            // styles, where the island is present anyway.
+            // styles, where the island is present anyway, and in bar mode
+            // they drop out of the band like any summoned surface (the band
+            // is always present, so nothing hidden pops).
             readonly property bool idleShown: styleNone ? false : !autohide
             readonly property bool islandShown: !monFullscreen
                 && (Config.barEnabled
-                    ? pill.surfaceOpen
+                    ? (pill.surfaceOpen || pill.toastActive || pill.osdActive)
                     : (idleShown || pill.surfaceOpen || pill.held || (autohide && pill.hoverLatch)))
             // auto-hide reveal trigger: thin strip under the top frame,
             // hover brings the hidden island down.
@@ -510,10 +512,18 @@ ShellRoot {
                 id: barRegion
                 // bar strip catches input for its options; the edge popouts
                 // keep their hover triggers and bodies so mixer/power still open.
+                // a toast dropped out of the band (bar mode) extends the grab
+                // over the panel so its actions stay clickable.
                 x: 0
                 y: 0
                 width: overlay.width
                 height: overlay.barVisibleH
+                Region {
+                    x: pill.x
+                    y: 0
+                    width: overlay.islandShown ? pill.width : 0
+                    height: overlay.islandShown ? (pill.y + Math.max(pill.height, pill.targetH) + 6 * pill.s) : 0
+                }
                 Region { x: mixerPop.triggerX; y: mixerPop.triggerY; width: mixerPop.triggerW; height: mixerPop.triggerH }
                 Region { x: mixerPop.bodyX; y: mixerPop.bodyY; width: mixerPop.bodyW; height: mixerPop.bodyH }
                 Region { x: powerPop.triggerX; y: powerPop.triggerY; width: powerPop.triggerW; height: powerPop.triggerH }
@@ -597,6 +607,7 @@ ShellRoot {
                     trayWindow: overlay
                     onCalendarRequested: root.toggleSurface(overlay.modelData.name, "calendar")
                     onPowerRequested: root.togglePopout(overlay.modelData.name, "power")
+                    onSurfaceRequested: (name) => root.toggleSurface(overlay.modelData.name, name)
                 }
 
                 BlobRect {

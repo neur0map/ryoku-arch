@@ -114,9 +114,11 @@ Each surface is its own directory under `quickshell/`, each component its own
   desktop's signature surface. See `docs/frame.md`.
 - **pill** the morphing top bar and its popouts (the centerpiece; it grows and
   reshapes between states). This is the reference for the project's motion. Its
-  island has three styles set in Ryoku Settings (the classic fused island, a
-  floating pill, or none, each optionally revealed on hover); the frame is the
-  same in all.
+  default face is the plated bar riding the frame's top edge (the 力 seal, the
+  sliding workspace strip, clock, now-playing, status glyphs, tray); Ryoku
+  Settings can turn the bar off for the three pure island styles (the classic
+  fused island, a floating pill, or none, each optionally revealed on hover).
+  The frame is the same in all.
 - **launcher** the Super-triggered app launcher and command palette, with a
   zero-query rest card (the solar-arc clock and weather). See `docs/launcher.md`.
 - **switcher** the full-screen Alt-Tab window switcher.

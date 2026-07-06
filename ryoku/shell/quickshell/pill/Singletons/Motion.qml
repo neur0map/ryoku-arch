@@ -21,4 +21,10 @@ Singleton {
 
     // looping scan/pairing breath pulse.
     readonly property int pulse: 420
+
+    // bar module feedback: hover fills lift fast; the workspace block's
+    // trailing edge settles at trail while its leading edge moves at fast,
+    // so a switch stretches the block toward the target then contracts.
+    readonly property int hover: 120
+    readonly property int trail: 340
 }

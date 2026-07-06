@@ -2,7 +2,50 @@
 
 ## Unreleased
 
+### Changed
+- Shell -> Bar gained a **Status glyphs** toggle for the bar's new
+  network/battery/inbox cluster, and the bar defaults flipped on to match the
+  shell's new default face (the reset baseline follows).
+
 ### Fixed
+- **Live preview and touchpad toggles work again.** Every appearance/input
+  preview (and any saved tap-to-click divergence) generated
+  `["tap-to-click"]`, a key the Hyprland Lua config rejects; because the
+  whole `hl.config({...})` call is one statement, the error killed the entire
+  block, so no slider previewed and a saved tap-to-click off silently
+  disabled every other override in `settings.lua` on the next login. The
+  generator now emits the hl API's `tap_to_click`.
+- **Window rule actions No blur / No border / No shadow now apply.** They
+  generated `noblur`/`noborder`/`noshadow`, all unknown to `hl.window_rule`,
+  and one bad rule stopped `settings.lua` at that line (everything after it,
+  binds, env, autostart, silently dropped). They map to the real fields now
+  (`no_blur`, `border_size = 0`, `no_shadow`), verified against the live
+  runtime.
+- **Layer rule "Dim around" now applies** (`dim_around` is a bool in the hl
+  API; the old `dim_around = 0.4` errored out the file). The layer "No
+  shadow" action is gone from the page and a stored legacy rule is dropped at
+  generation: layer surfaces lost that effect in Hyprland's rule rewrite, and
+  emitting it would break the whole generated file.
+- **The cursor picked in Appearance now reaches the apps you launch.** The
+  override only ran `hyprctl setcursor` (compositor + XWayland); spawned apps
+  kept reading the base `XCURSOR_*` env from `env.lua`. A diverged cursor now
+  also exports `XCURSOR_THEME/SIZE` and `HYPRCURSOR_THEME/SIZE` from
+  `settings.lua` (a later `hl.env` wins over the base), and `env.lua` gained
+  the missing `HYPRCURSOR_THEME`. Revert/leaving a page also re-asserts the
+  saved cursor, so an unsaved cursor preview no longer sticks until logout.
+- **Reset to defaults on Input resets the workspace-swipe settings too** (the
+  swipe toggle and finger count were skipped before; the reset now walks the
+  full input domain).
+- The Animations tree no longer lists Hyprland's internal leaves
+  (`__internal_fadeCTM`).
+- Desktop Widgets: the page now watches `widgets.json` and folds external
+  edits into unedited fields, so dragging a widget on the desktop while the
+  page is open no longer gets clobbered by the next Save (same treatment for
+  `visualizer.json` on the Shell page, which the deck's quick toggle writes).
+- "Ryoku Default" on the Themes page is the shipped baseline again: its look
+  had drifted to an older rice (rounding 16, gaps 8/26, border 3), so applying
+  it pinned non-default values; its look is now empty and folds to the exact
+  `decoration.lua` defaults, and `HyprStore`'s initial draft matches them too.
 - Connections > Bluetooth no longer shows a dead switch when the service is
   gone. With no org.bluez on the bus (bluez missing or bluetoothd stopped),
   `Bluetooth.defaultAdapter` is null and the old page still rendered "Bluetooth
@@ -29,6 +72,39 @@
   dead code and their tests; `hwcaps_test.go` asserts the corrected verdict.
 
 ### Added
+- **Appearance / Look grew the rest of the decoration surface**, all live
+  previewed: corner softness (`rounding_power`), dim-inactive with strength,
+  blur X-ray, vibrancy and noise, shadow sharpness (`render_power`), the new
+  glow (enabled, range, colour), drag-to-resize at edges (`resize_on_border`),
+  floating-window snapping (`general:snap`), and the scrolling tiling layout
+  next to dwindle/master.
+- **Input covers the pointer and touchpad properly**: left-handed buttons,
+  mouse natural scroll and scroll speed, middle-click paste
+  (`misc:middle_click_paste`), numlock at login, touchpad tap-and-drag,
+  click-by-finger-count, middle-click emulation and scroll speed, and the
+  workspace swipe gained direction, create-new, and distance tuning
+  (`gestures:*`).
+- **Cursor comfort**: hide the cursor after an idle timeout or while typing
+  (`cursor:inactive_timeout`, `cursor:hide_on_key_press`).
+- **Animations rows gained a style picker** for the families that support one
+  (windows pop-in/slide/gnomed, workspace slide/fade variants, layer styles);
+  a base style like `popin 78%` shows as-is until you pick another.
+- **Window rules: the full useful action set.** New actions: maximize, square
+  corners, never dim, no animations, force opaque, blur X-ray, never take
+  focus, hold focus (dialogs), keep aspect ratio, pseudo-tile, block
+  idle/sleep (always/focus/fullscreen), and ignore app request
+  (maximize/fullscreen/activate/activatefocus), the last two with inline
+  choice values. Layer rules gained blur X-ray and show-above-lockscreen.
+- Comfort tab surfaces a failure from `brightnessctl` or the night-light
+  helper instead of pretending the slider applied.
+- Themes now declare their decoration nuances (`roundingPower`,
+  `blurVibrancy`, `blurNoise`) in `theme.json`'s look instead of raw Lua in
+  `init.lua`, so the Appearance sliders reflect the live values after a theme
+  applies; `init.lua` is motion-only. An already-applied theme's stale
+  `theme.lua` self-heals on the next hub open (`hypr get`): its nuance values
+  fold into still-default store fields (the live look does not move) and the
+  copy is rewritten from the migrated, motion-only `init.lua`, so the sliders
+  stop snapping back on Save.
 - **Credits** section (pinned in the nav under a heart): a showcase "thank you"
   screen, Profile's twin in build and mood. kansha (感謝) meets the Three Graces
   of Greek myth: the marble trio dissolves off the right the way Lady Justice

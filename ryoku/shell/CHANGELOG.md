@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+### Added
+- **The top bar is a real bar now, and the default face.** The band used to be
+  naked text floating on the frame's thickened edge; it is now composed of
+  module plates: sharp slabs with a faint warm fill and a hairline edge that
+  lift on hover, so every module reads as touchable (`pill/BarPlate.qml`).
+  What the plates carry:
+  - the 力 seal opens the launcher;
+  - a workspace strip (`pill/BarWorkspaces.qml`) with mono numerals and an
+    accent block that slides behind the active one, leading edge fast and
+    trailing edge slow, so a switch stretches across and contracts (the
+    caelestia trail); occupied numerals read brighter, click jumps, wheel
+    walks neighbours, and cells past five only appear once used;
+  - the clock plate (the anchor the calendar drops from) with the vermilion
+    colon and a tracked mono date;
+  - now-playing (`pill/BarMedia.qml`): art thumb, ping-pong title, play
+    wedge; click toggles, wheel nudges the sink volume, and the live
+    wallpaper's mpv is filtered out so scenery never poses as music;
+  - a status cluster (`pill/BarStatus.qml`): wifi arcs or an ethernet tick
+    (fed by the new gentle `Network` singleton, nmcli without rescans),
+    battery cell + percentage, the inbox bell with an ember dot while
+    something waits, and the DND mark; each glyph routes to its surface
+    (link, battery, inbox);
+  - the tray on a quiet plate with per-icon hover lift, and the power glyph.
+  A wheel over bare band nudges the volume, narrated by the OSD. New shells
+  start with the bar on (`barEnabled` default true); the pure island styles
+  stay one toggle away in Settings -> Shell.
+
+### Fixed
+- Bar mode no longer swallows notifications and the volume OSD. The island
+  logic only summoned the drop panel for open surfaces, so a toast or a
+  volume change rendered nothing while the bar was on; both now melt out of
+  the band like any summoned surface, and the input mask follows the panel
+  so toast actions stay clickable.
+- The resting island shows a small ember tick while notifications wait (and
+  DND is off), so a quiet desktop still answers "did anything ping me".
+
 ### Security
 - `ipc`: the `ryoku-shell` control socket is now created owner-only (0700). It
   drives session-scoped actions (surface toggles, wallpaper, dictation), and

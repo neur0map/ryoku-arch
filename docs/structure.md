@@ -32,8 +32,9 @@ truth for the live desktop.
 - `lockscreen/` `qylock/` (the lock theme and its quickshell lockscreen),
   `install-qylock`, and `sddm/` (the greeter setup).
 - `shell/` the desktop shell subsystem: `quickshell/` (the QML UI: `pill` (the
-  morphing top island, which also draws the screen frame, hosts the edge popouts
-  under `pill/popouts/`, and grows the centre-island control deck (`Super+D`:
+  plated top bar and morphing island, which also draws the screen frame, hosts
+  the edge popouts under `pill/popouts/`, and grows the centre-island control
+  deck (`Super+D`:
   stash, tools, and utilities)), `launcher`, `ryoshot`, and `widgets` (the desktop
   clock and weather on the wallpaper), and `plugins` (the third-party shell
   plugin runtime: `discover.sh` merges the catalogue with the user's

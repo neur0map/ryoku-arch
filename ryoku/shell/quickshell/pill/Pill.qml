@@ -467,6 +467,21 @@ Item {
                 live: pill.opacity > 0.01
             }
         }
+
+        // waiting-notification tick: an ember dot in the pill's corner, so a
+        // resting island still answers "did anything ping me". hover/expand
+        // reveals the full inbox affordance.
+        Rectangle {
+            visible: Notifs.unread > 0 && !Flags.dnd
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.topMargin: 7 * pill.s
+            anchors.rightMargin: 9 * pill.s
+            width: 4.5 * pill.s
+            height: 4.5 * pill.s
+            radius: width / 2
+            color: Theme.flameGlow
+        }
     }
 
     Item {

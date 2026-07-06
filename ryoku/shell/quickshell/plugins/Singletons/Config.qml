@@ -79,7 +79,7 @@ Singleton {
             property real islandOpacity: 1
             property string islandStyle: "floating"
             property bool islandAutohide: true
-            property bool barEnabled: false
+            property bool barEnabled: true
         }
     }
 
