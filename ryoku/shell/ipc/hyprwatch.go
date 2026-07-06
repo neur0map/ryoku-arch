@@ -116,13 +116,11 @@ func (d *daemon) consumeHyprEvents(r io.Reader) {
 	sc := bufio.NewScanner(r)
 	for sc.Scan() {
 		line := sc.Text()
-		if affectsWidgets(line) {
+		if affectsCoverage(line) {
 			select {
 			case d.widgetSig <- struct{}{}:
 			default:
 			}
-		}
-		if livePauseEvent(line) {
 			livePauseReconcile()
 		}
 		if mon, ok := parseFocusedMon(line); ok {

@@ -235,34 +235,15 @@ func liveSockPath() string {
 	return "/tmp/ryoku-mpvpaper.sock"
 }
 
-// events after which the covered state may have changed
-func livePauseEvent(line string) bool {
-	return strings.HasPrefix(line, "fullscreen>>") ||
-		strings.HasPrefix(line, "workspace>>") ||
-		strings.HasPrefix(line, "focusedmon>>")
-}
-
-// pause the live wallpaper while the active workspace has a fullscreen window.
-// Stateless on purpose: switching away from a fullscreen app must resume.
+// pause the live wallpaper while every monitor's desktop is covered, matching
+// how the widget layer parks itself off desktopVisible. Stateless on purpose:
+// uncovering any monitor resumes.
 func livePauseReconcile() {
 	sock := liveSockPath()
 	if _, err := os.Stat(sock); err != nil {
 		return
 	}
-	pause := false
-	if livePauseWhenCovered() {
-		out, err := exec.Command("hyprctl", "activeworkspace", "-j").Output()
-		if err != nil {
-			return
-		}
-		var w struct {
-			HasFullscreen bool `json:"hasfullscreen"`
-		}
-		if json.Unmarshal(out, &w) != nil {
-			return
-		}
-		pause = w.HasFullscreen
-	}
+	pause := livePauseWhenCovered() && !desktopVisible()
 	conn, err := net.Dial("unix", sock)
 	if err != nil {
 		return

@@ -68,7 +68,7 @@ func TestParseDesktopVisible(t *testing.T) {
 	}
 }
 
-func TestAffectsWidgets(t *testing.T) {
+func TestAffectsCoverage(t *testing.T) {
 	relevant := []string{
 		"openwindow>>0x1,1,kitty,kitty",
 		"closewindow>>0x1",
@@ -86,13 +86,13 @@ func TestAffectsWidgets(t *testing.T) {
 		"",
 	}
 	for _, l := range relevant {
-		if !affectsWidgets(l) {
-			t.Errorf("affectsWidgets(%q) = false, want true", l)
+		if !affectsCoverage(l) {
+			t.Errorf("affectsCoverage(%q) = false, want true", l)
 		}
 	}
 	for _, l := range irrelevant {
-		if affectsWidgets(l) {
-			t.Errorf("affectsWidgets(%q) = true, want false", l)
+		if affectsCoverage(l) {
+			t.Errorf("affectsCoverage(%q) = true, want false", l)
 		}
 	}
 }

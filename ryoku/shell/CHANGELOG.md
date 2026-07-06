@@ -424,6 +424,13 @@
   `~/.config/ryoku/theme.json`). Wallpaper-driven themes are unaffected.
 
 ### Fixed
+- `ipc/wallpaper.go`: the "pause live wallpaper when covered" toggle only paused
+  for a fullscreen window, so a wallpaper hidden behind ordinary tiled windows
+  kept playing at full tilt. It now pauses whenever the desktop is covered on
+  every monitor, reusing the same `desktopVisible` coverage test the widget layer
+  parks itself on, and reconciles on the window and workspace events that change
+  coverage (`affectsCoverage`, shared with the widget gate) rather than only on
+  fullscreen toggles.
 - `quickshell/launcher` RyoTunes: a batch of fixes so the built-in music finally
   feels native and fast, all in the engine (`Singletons/Radio.qml`) and its `@`
   provider (`providers/media/ytmusic/YtMusic.qml`).

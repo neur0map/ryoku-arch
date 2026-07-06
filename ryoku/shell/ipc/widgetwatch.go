@@ -123,9 +123,9 @@ func desktopVisible() bool {
 	return parseDesktopVisible(mon, ws)
 }
 
-// affectsWidgets reports whether a Hyprland event line could change which
+// affectsCoverage reports whether a Hyprland event line could change which
 // workspace is visible or how many windows it holds.
-func affectsWidgets(line string) bool {
+func affectsCoverage(line string) bool {
 	for _, p := range []string{"openwindow", "closewindow", "movewindow", "workspace", "focusedmon", "monitoradded", "monitorremoved"} {
 		if strings.HasPrefix(line, p) {
 			return true
