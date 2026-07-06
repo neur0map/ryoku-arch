@@ -1,11 +1,18 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Quickshell.Bluetooth
 import "Singletons"
 
-// status cluster in the reference iconography: Material Symbols for network,
-// bluetooth-adjacent battery, and notifications, tinted like caelestia's
-// m3secondary rail. each glyph is its own click target routing to the surface
-// that owns it (link, battery, inbox). `vertical` stacks the glyphs.
+// status cluster in the reference iconography: Material Symbols for volume,
+// network, bluetooth, battery and notifications, tinted like caelestia's
+// m3secondary rail. `vertical` stacks the glyphs.
+//
+// each glyph owns its interaction the way the reference does: hovering an icon
+// reveals THAT icon's popout (the quick control), a click opens its deep
+// surface. hoverName / hoverCenter report which popout the host should open and
+// where, so a popout emerges from its own icon (per-icon ownership, caelestia's
+// currentName / currentCenter). icons that own no popout (bell, keep-awake)
+// leave hoverName untouched, so hovering them opens nothing.
 Grid {
     id: status
 
@@ -14,16 +21,60 @@ Grid {
 
     signal requestSurface(string name)
 
+    // which popout the hovered icon owns, and that icon's along-axis centre in
+    // window coords (the popout's own coordinate space).
+    property string hoverName: ""
+    property real hoverCenter: 0
+
+    function setHover(on, name, item) {
+        if (on) {
+            hoverName = name;
+            const p = item.mapToItem(null, item.width / 2, item.height / 2);
+            hoverCenter = vertical ? p.y : p.x;
+        } else if (hoverName === name) {
+            hoverName = "";
+        }
+    }
+
     readonly property real glyphPx: 14 * s
 
-    columns: vertical ? 1 : 4
+    columns: vertical ? 1 : 8
     columnSpacing: 9 * s
     rowSpacing: 7 * s
     verticalItemAlignment: Grid.AlignVCenter
     horizontalItemAlignment: Grid.AlignHCenter
 
-    // network: wifi strength or ethernet, Material glyphs.
+    // volume: owns the mixer. hover reveals it; a click toggles mute.
     Item {
+        id: volIcon
+        width: status.glyphPx + 4 * status.s
+        height: status.glyphPx + 4 * status.s
+
+        readonly property var sink: Audio.sink
+        readonly property real vol: sink && sink.audio ? sink.audio.volume : 0
+        readonly property bool muted: sink && sink.audio ? sink.audio.muted : false
+
+        MaterialIcon {
+            anchors.centerIn: parent
+            text: volIcon.muted ? "volume_off"
+                : (volIcon.vol > 0.5 ? "volume_up"
+                : (volIcon.vol > 0 ? "volume_down" : "volume_mute"))
+            fill: 1
+            color: volIcon.muted ? Theme.faint : Theme.subtle
+            font.pixelSize: status.glyphPx
+        }
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onContainsMouseChanged: status.setHover(containsMouse, "mixer", volIcon)
+            onClicked: if (volIcon.sink && volIcon.sink.audio) volIcon.sink.audio.muted = !volIcon.sink.audio.muted
+        }
+    }
+
+    // network: wifi strength or ethernet. hover -> network popout, click -> Link.
+    Item {
+        id: netIcon
         width: status.glyphPx + 4 * status.s
         height: status.glyphPx + 4 * status.s
 
@@ -46,13 +97,44 @@ Grid {
         }
         MouseArea {
             anchors.fill: parent
+            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
+            onContainsMouseChanged: status.setHover(containsMouse, "network", netIcon)
+            onClicked: status.requestSurface("link")
+        }
+    }
+
+    // bluetooth: owns the bluetooth popout. hover -> popout, click -> Link.
+    Item {
+        id: btIcon
+        visible: Bluetooth.defaultAdapter !== null
+        width: status.glyphPx + 4 * status.s
+        height: status.glyphPx + 4 * status.s
+
+        readonly property var adapter: Bluetooth.defaultAdapter
+        readonly property bool anyConnected: Bluetooth.devices.values.some(function (d) { return d && d.connected; })
+
+        MaterialIcon {
+            anchors.centerIn: parent
+            text: !btIcon.adapter || !btIcon.adapter.enabled ? "bluetooth_disabled"
+                : (btIcon.anyConnected ? "bluetooth_connected" : "bluetooth")
+            fill: 1
+            color: btIcon.adapter && btIcon.adapter.enabled ? Theme.subtle : Theme.faint
+            font.pixelSize: status.glyphPx
+        }
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onContainsMouseChanged: status.setHover(containsMouse, "bluetooth", btIcon)
             onClicked: status.requestSurface("link")
         }
     }
 
     // battery: the Material cell family, filled by charge, accent when low.
+    // hover -> battery popout, click -> battery surface.
     Item {
+        id: battIcon
         visible: Battery.present
         width: battRow.implicitWidth
         height: battRow.implicitHeight
@@ -92,12 +174,15 @@ Grid {
         }
         MouseArea {
             anchors.fill: parent
+            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
+            onContainsMouseChanged: status.setHover(containsMouse, "battery", battIcon)
             onClicked: status.requestSurface("battery")
         }
     }
 
     // notifications: the bell, filled with an accent tint while something waits.
+    // surface only, no hover popout.
     Item {
         width: status.glyphPx + 4 * status.s
         height: status.glyphPx + 4 * status.s

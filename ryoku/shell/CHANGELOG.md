@@ -35,6 +35,15 @@
   rescan.
 
 ### Added
+- Status-cluster hover popouts, matching the reference catalog. On a side bar,
+  hovering a status icon reveals its own compact control panel fused to the bar
+  (and melting back into it); a click still opens the deep surface for the full
+  view. A new volume icon opens the mixer (moved off the now-playing module); the
+  wifi icon opens a network panel (enable toggle, rescan, signal-sorted list,
+  inline password connect); a new bluetooth icon opens a device panel (adapter
+  toggle, scan, pair/connect); the battery icon opens a readout (charge, state,
+  time, draw, capacity, health). The network and bluetooth panels reuse the Link
+  surface's own wifi/bluetooth engines, so connect and pair behave identically.
 - **The bar moves and wears two skins.** `barPosition` places the band on any
   frame edge: top, bottom, left, or right. The chosen edge swells and claims
   its own strip; left/right bars recompose vertically (the caelestia layout:

@@ -245,6 +245,11 @@ ShellRoot {
         function link(mon: string): void { root.toggleSurface(mon, "link"); }
         function inbox(mon: string): void { root.toggleSurface(mon, "inbox"); }
         function battery(mon: string): void { root.toggleSurface(mon, "battery"); }
+        // status-cluster quick popouts (the compact hover panels; a keybind can
+        // also pin one). distinct from the deep surfaces above; side bar only.
+        function network(mon: string): void { root.togglePopout(mon, "network"); }
+        function bluetooth(mon: string): void { root.togglePopout(mon, "bluetooth"); }
+        function batteryPopout(mon: string): void { root.togglePopout(mon, "battery"); }
         function clipboard(mon: string): void { root.toggleSurface(mon, "clipboard"); }
         function wallpaper(mon: string): void { root.toggleSurface(mon, "wallpaper"); }
         function sysinfo(mon: string): void { root.toggleSurface(mon, "sysinfo"); }
@@ -300,6 +305,10 @@ ShellRoot {
             root.toggleSurface(mon, fn); return true;
         case "mixer": case "power":
             root.togglePopout(mon, fn); return true;
+        case "network": case "bluetooth":
+            root.togglePopout(mon, fn); return true;
+        case "batteryPopout":
+            root.togglePopout(mon, "battery"); return true;
         case "pluginPopout":
             root.togglePopout(mon, "plugin:" + (parts.length > 2 ? parts[2] : ""));
             return true;
@@ -603,6 +612,9 @@ ShellRoot {
                 Region { x: mixerPop.bodyX; y: mixerPop.bodyY; width: mixerPop.bodyW; height: mixerPop.bodyH }
                 Region { x: powerPop.triggerX; y: powerPop.triggerY; width: powerPop.triggerW; height: powerPop.triggerH }
                 Region { x: powerPop.bodyX; y: powerPop.bodyY; width: powerPop.bodyW; height: powerPop.bodyH }
+                Region { x: networkPop.bodyX; y: networkPop.bodyY; width: networkPop.bodyW; height: networkPop.bodyH }
+                Region { x: batteryPop.bodyX; y: batteryPop.bodyY; width: batteryPop.bodyW; height: batteryPop.bodyH }
+                Region { x: bluetoothPop.bodyX; y: bluetoothPop.bodyY; width: bluetoothPop.bodyW; height: bluetoothPop.bodyH }
                 Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
                 Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
             }
@@ -747,10 +759,10 @@ ShellRoot {
                     ]
                 }
 
-                // mixer popout: on a side bar the now-playing module owns it --
-                // hovering that module opens the mixer at its centre (a tap still
-                // plays/pauses, the wheel still nudges volume); on a top/bottom or
-                // absent bar it stays the left-centre frame feature on the thin lip.
+                // mixer popout: on a side bar the volume status icon owns it --
+                // hovering that icon opens the mixer at its centre; on a
+                // top/bottom or absent bar it stays the left-centre frame
+                // feature on the thin lip.
                 Popout {
                     id: mixerPop
                     group: blobGroup
@@ -759,8 +771,8 @@ ShellRoot {
                     smoothing: Config.frameSmoothing
                     edge: overlay.mixerEdge
                     hoverOpen: !overlay.barVertical
-                    triggerHovered: overlay.barVertical && topBar.mediaHovered
-                    alongCenter: overlay.barVertical ? topBar.mediaCenter : -1
+                    triggerHovered: overlay.barVertical && topBar.statusHoverName === "mixer"
+                    alongCenter: overlay.barVertical ? topBar.statusHoverCenter : -1
                     s: overlay.s
                     active: !overlay.surfaceOpen && !overlay.monFullscreen
                     pinned: root.popout === "mixer" && root.popoutMon === overlay.modelData.name
@@ -794,6 +806,79 @@ ShellRoot {
 
                     Power {
                         s: overlay.s
+                    }
+                }
+
+                // status-icon popouts (side bar only): each owned by its status
+                // cluster icon -- hovering the icon opens it at the icon's centre,
+                // fused to the bar like the mixer. the deep surfaces (Link,
+                // battery) stay the click target for the full view.
+                Popout {
+                    id: networkPop
+                    group: blobGroup
+                    frameThickness: overlay.vBarThick
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.mixerEdge
+                    hoverOpen: false
+                    triggerHovered: overlay.barVertical && topBar.statusHoverName === "network"
+                    alongCenter: overlay.barVertical ? topBar.statusHoverCenter : -1
+                    s: overlay.s
+                    active: overlay.barVertical && !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "network" && root.popoutMon === overlay.modelData.name
+                    openW: netContent.implicitWidth
+                    openH: netContent.implicitHeight
+
+                    NetworkPopout {
+                        id: netContent
+                        s: overlay.s
+                        open: networkPop.prog > 0.5
+                    }
+                }
+
+                Popout {
+                    id: batteryPop
+                    group: blobGroup
+                    frameThickness: overlay.vBarThick
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.mixerEdge
+                    hoverOpen: false
+                    triggerHovered: overlay.barVertical && topBar.statusHoverName === "battery"
+                    alongCenter: overlay.barVertical ? topBar.statusHoverCenter : -1
+                    s: overlay.s
+                    active: overlay.barVertical && !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "battery" && root.popoutMon === overlay.modelData.name
+                    openW: batContent.implicitWidth
+                    openH: batContent.implicitHeight
+
+                    BatteryPopout {
+                        id: batContent
+                        s: overlay.s
+                        open: batteryPop.prog > 0.5
+                    }
+                }
+
+                Popout {
+                    id: bluetoothPop
+                    group: blobGroup
+                    frameThickness: overlay.vBarThick
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.mixerEdge
+                    hoverOpen: false
+                    triggerHovered: overlay.barVertical && topBar.statusHoverName === "bluetooth"
+                    alongCenter: overlay.barVertical ? topBar.statusHoverCenter : -1
+                    s: overlay.s
+                    active: overlay.barVertical && !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "bluetooth" && root.popoutMon === overlay.modelData.name
+                    openW: btContent.implicitWidth
+                    openH: btContent.implicitHeight
+
+                    BluetoothPopout {
+                        id: btContent
+                        s: overlay.s
+                        open: bluetoothPop.prog > 0.5
                     }
                 }
 

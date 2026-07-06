@@ -14,6 +14,12 @@ Item {
 
     property real s: 1
     property bool active: false
+    // compact = embedded as popout content (a bar popout): drop the drill-in
+    // chrome so the host frame owns the header. hides the back chevron and the
+    // redundant "BLUETOOTH" title (the popout supplies its own eyebrow); the
+    // adapter toggle, scan control, and device list all stay. default false is
+    // a strict no-op for the Link surface.
+    property bool compact: false
 
     signal back()
 
@@ -188,6 +194,7 @@ Item {
             spacing: 8 * root.s
 
             Item {
+                visible: !root.compact
                 anchors.verticalCenter: parent.verticalCenter
                 width: 17 * root.s
                 height: 17 * root.s
@@ -210,6 +217,7 @@ Item {
             }
 
             Text {
+                visible: !root.compact
                 anchors.verticalCenter: parent.verticalCenter
                 text: "BLUETOOTH"
                 color: Theme.subtle

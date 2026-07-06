@@ -43,14 +43,12 @@ Item {
     // emerge right at the button instead of the frame's mid-edge.
     readonly property real powerCenter: vertical ? height - 20 * s - vPowerMod.height / 2 : 0
 
-    // the now-playing module owns the mixer popout: its hover opens the mixer
-    // and its centre positions it, so the popout emerges from the module (not
-    // an edge band). mapToItem tracks it as the bottom column relayouts.
-    readonly property bool mediaHovered: vertical && vMediaMod.visible && vMediaMod.hovered
-    readonly property real mediaCenter: (vertical && vMediaMod.visible)
-        ? (bar.height + bar.s + vBottomCol.y + vMediaMod.y + vMediaMod.height,
-           vMediaMod.mapToItem(bar, 0, vMediaMod.height / 2).y)
-        : 0
+    // the status cluster owns the icon popouts: each icon reports which popout
+    // it owns (mixer / network / battery / bluetooth) and its own centre (window
+    // coords), so a popout emerges from its icon. one icon is hovered at a time,
+    // so one popout opens; hovering an icon that owns none opens nothing.
+    readonly property string statusHoverName: vertical ? vStatus.hoverName : ""
+    readonly property real statusHoverCenter: vertical ? vStatus.hoverCenter : 0
 
     property int seedWsId: -1
     readonly property int activeWsId: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : seedWsId
@@ -323,6 +321,7 @@ Item {
                 interactive: false
 
                 BarStatus {
+                    id: vStatus
                     s: bar.s
                     vertical: true
                     onRequestSurface: (name) => bar.surfaceRequested(name)

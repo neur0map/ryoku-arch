@@ -53,6 +53,15 @@ Item {
     // popout emerges from the module. this is caelestia's per-module ownership
     // (currentName/currentCenter) with a fixed module->popout mapping.
     property bool triggerHovered: false
+    // hold the along-centre from when the trigger fired, so the body stays put
+    // when the pointer leaves the owning module for the body: the module's own
+    // hover clears, but the popout must not snap to a re-derived centre. live
+    // while triggered, held otherwise. (both handlers so it captures regardless
+    // of whether triggerHovered or alongCenter settles first.)
+    property real heldAlong: -1
+    onAlongCenterChanged: if (triggerHovered) heldAlong = alongCenter
+    onTriggerHoveredChanged: if (triggerHovered) heldAlong = alongCenter
+    readonly property real effectiveAlong: triggerHovered ? alongCenter : heldAlong
 
     readonly property bool atLeft: edge === "left"
     readonly property bool atRight: edge === "right"
@@ -74,8 +83,8 @@ Item {
     // never sits flush in a corner.
     readonly property real edgeInset: frameThickness + 12 * s
     function alignPos(span, sz) {
-        if (alongCenter >= 0)
-            return Math.max(edgeInset, Math.min(span - sz - edgeInset, alongCenter - sz / 2));
+        if (effectiveAlong >= 0)
+            return Math.max(edgeInset, Math.min(span - sz - edgeInset, effectiveAlong - sz / 2));
         return align === "start" ? edgeInset
              : align === "end" ? span - sz - edgeInset
              : (span - sz) / 2;

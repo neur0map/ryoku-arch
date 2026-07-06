@@ -16,6 +16,7 @@ Item {
 
     property real s: 1
     property bool active: false
+    property bool compact: false
 
     signal back()
 
@@ -51,7 +52,7 @@ Item {
     property string attemptSsid: ""
     property bool attemptWasKnown: false
 
-    implicitHeight: hsBlock.y + hsBlock.height
+    implicitHeight: compact ? (listFrame.y + listFrame.height) : (hsBlock.y + hsBlock.height)
 
     function isSecured(ssid) {
         var sec = securityMap[ssid];
@@ -349,6 +350,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 17 * root.s
                 height: 17 * root.s
+                visible: !root.compact
 
                 GlyphIcon {
                     anchors.fill: parent
@@ -642,7 +644,7 @@ Item {
         anchors.topMargin: 8 * root.s
         anchors.left: parent.left
         anchors.right: parent.right
-        visible: root.wifiOn
+        visible: root.wifiOn && !root.compact
         height: root.wifiOn ? hsCol.implicitHeight + 9 * root.s : 0
         clip: true
 
