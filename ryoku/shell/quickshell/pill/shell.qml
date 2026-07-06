@@ -46,6 +46,18 @@ ShellRoot {
     // sits. set by togglePopoutAt from the bar's click.
     property real popoutCenter: 0
 
+    // popouts that need the keyboard (search / password fields). while one of
+    // these is the pinned popout, the overlay grabs the keyboard the way an open
+    // surface does and hands it back on close; the pointer-only popouts and
+    // voice stay keyboardFocus None.
+    readonly property var kbPopouts: ["clipboard", "link", "keyring", "stash", "toolkit", "utilities", "workspaces"]
+    property string prevPopout: ""
+    onPopoutChanged: {
+        if (kbPopouts.indexOf(prevPopout) >= 0 && kbPopouts.indexOf(popout) < 0)
+            restoreFocus();
+        prevPopout = popout;
+    }
+
     function refresh() {
         Hyprland.refreshMonitors();
         Hyprland.refreshWorkspaces();
@@ -263,7 +275,7 @@ ShellRoot {
         function network(mon: string): void { root.togglePopout(mon, "network"); }
         function bluetooth(mon: string): void { root.togglePopout(mon, "bluetooth"); }
         function batteryPopout(mon: string): void { root.togglePopout(mon, "battery"); }
-        function clipboard(mon: string): void { root.toggleSurface(mon, "clipboard"); }
+        function clipboard(mon: string): void { root.togglePopout(mon, "clipboard"); }
         function stash(mon: string): void { root.toggleSurface(mon, "stash"); }
         // stash-send <file>: open the stash and jump straight to its LocalSend
         // picker for the given file, so the file manager can hand a file to the
@@ -310,13 +322,12 @@ ShellRoot {
         var fn = parts[0];
         var mon = parts.length > 1 ? parts[1] : "";
         switch (fn) {
-        case "clipboard":
         case "link": case "inbox": case "battery":
         case "stash": case "toolkit": case "utilities": case "workspaces":
             root.toggleSurface(mon, fn); return true;
         case "mixer": case "power":
             root.togglePopout(mon, fn); return true;
-        case "network": case "bluetooth": case "calendar":
+        case "network": case "bluetooth": case "calendar": case "clipboard":
             root.togglePopout(mon, fn); return true;
         case "batteryPopout":
             root.togglePopout(mon, "battery"); return true;
@@ -495,6 +506,10 @@ ShellRoot {
             // voice is excluded: it must not grab the keyboard, so Handy's
             // dictation lands in the focused app, not the pill.
             readonly property bool focusSurface: surfaceOpen && surface !== "voice"
+            // a keyboard-needing popout (clipboard/link/keyring/deck/workspaces)
+            // pinned on this monitor: grabs the keyboard like an open surface.
+            readonly property bool kbPopout: root.popoutMon === modelData.name
+                && root.kbPopouts.indexOf(root.popout) >= 0
             readonly property bool modal: focusSurface || pill.held
 
             // true if this monitor's active workspace has a fullscreen window.
@@ -518,7 +533,7 @@ ShellRoot {
             WlrLayershell.layer: WlrLayer.Overlay
             // None, not OnDemand: this layer is always mapped, so OnDemand would
             // hold the keyboard after a surface closes and a launched window can't type.
-            WlrLayershell.keyboardFocus: focusSurface ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            WlrLayershell.keyboardFocus: (focusSurface || kbPopout) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             WlrLayershell.namespace: "pill"
 
             anchors { top: true; left: true; right: true; bottom: true }
@@ -619,6 +634,7 @@ ShellRoot {
                 Region { x: batteryPop.bodyX; y: batteryPop.bodyY; width: batteryPop.bodyW; height: batteryPop.bodyH }
                 Region { x: bluetoothPop.bodyX; y: bluetoothPop.bodyY; width: bluetoothPop.bodyW; height: bluetoothPop.bodyH }
                 Region { x: calendarPop.bodyX; y: calendarPop.bodyY; width: calendarPop.bodyW; height: calendarPop.bodyH }
+                Region { x: clipboardPop.bodyX; y: clipboardPop.bodyY; width: clipboardPop.bodyW; height: clipboardPop.bodyH }
                 Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
                 Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
             }
@@ -642,11 +658,14 @@ ShellRoot {
             FocusScope {
                 id: focusScope
                 anchors.fill: parent
-                focus: overlay.focusSurface
+                focus: overlay.focusSurface || overlay.kbPopout
                 // whole shell hides while a window is fullscreen.
                 visible: !overlay.monFullscreen
 
-                Keys.onEscapePressed: if (!pill.linkBack()) root.close()
+                Keys.onEscapePressed: {
+                    if (overlay.kbPopout) root.popout = "";
+                    else if (!pill.linkBack()) root.close();
+                }
 
                 // frame and pill share one blob field, so the pill reads
                 // as the frame swelling open at top-centre, not a bar on top.
@@ -898,6 +917,31 @@ ShellRoot {
                         id: calContent
                         s: overlay.s
                         open: calendarPop.prog > 0.5
+                    }
+                }
+
+                // clipboard popout: Super+V grows the clipboard search/history
+                // from the bar edge. a keyboard popout (see kbPopouts).
+                Popout {
+                    id: clipboardPop
+                    group: blobGroup
+                    frameThickness: overlay.barVisibleH
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.barPos
+                    hoverOpen: false
+                    alongCenter: root.popoutCenter
+                    s: overlay.s
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "clipboard" && root.popoutMon === overlay.modelData.name
+                    openW: clipContent.implicitWidth
+                    openH: clipContent.implicitHeight
+
+                    ClipboardPopout {
+                        id: clipContent
+                        s: overlay.s
+                        open: clipboardPop.prog > 0.5
+                        onCloseRequested: root.popout = ""
                     }
                 }
 
