@@ -123,7 +123,7 @@ Item {
                 }
             }
 
-            // shown when the GPU can upscale; offers Install via gpk if the tool is missing.
+            // shown when the GPU can upscale; Install covers whichever tool is missing.
             Column {
                 width: parent.width
                 spacing: 5
@@ -132,28 +132,33 @@ Item {
                     width: parent.width
                     height: 30
                     Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "Enhance on save (AI upscale)"; color: Theme.cream; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
-                    Toggle {
-                        visible: Wallhaven.upscaleImage
+                    Row {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        on: Wallhaven.settings.upscale
-                        onToggled: (v) => { Wallhaven.settings.upscale = v; Wallhaven.saveSettings(); }
-                    }
-                    HubButton {
-                        visible: !Wallhaven.upscaleImage
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        icon: "download"
-                        label: "Install"
-                        onClicked: Wallhaven.installUpscaler()
+                        spacing: 10
+                        HubButton {
+                            visible: !Wallhaven.upscaleImage || !Wallhaven.upscaleVideo
+                            anchors.verticalCenter: parent.verticalCenter
+                            icon: "download"
+                            label: "Install"
+                            onClicked: Wallhaven.installUpscaler()
+                        }
+                        Toggle {
+                            visible: Wallhaven.upscaleImage
+                            anchors.verticalCenter: parent.verticalCenter
+                            on: Wallhaven.settings.upscale
+                            onToggled: (v) => { Wallhaven.settings.upscale = v; Wallhaven.saveSettings(); }
+                        }
                     }
                 }
                 Text {
                     width: parent.width
                     wrapMode: Text.WordWrap
-                    text: Wallhaven.upscaleImage
-                        ? "Sharpens low-res wallpapers on your GPU when you save them. Looks noticeably better, but saving takes longer and the file gets bigger (a lot for video)."
-                        : "Needs a Vulkan upscaler (waifu2x for images, video2x for video). Install opens gpk in a terminal; reopen Settings when it finishes."
+                    text: !Wallhaven.upscaleImage
+                        ? "Needs a Vulkan upscaler (waifu2x for images, video2x for video). Install opens gpk in a terminal; reopen Settings when it finishes."
+                        : (!Wallhaven.upscaleVideo
+                            ? "Images enhance on save. Video needs video2x; Install adds it (an AUR build, takes a while)."
+                            : "Sharpens low-res wallpapers on your GPU when you save them. Looks noticeably better, but saving takes longer and the file gets bigger (a lot for video).")
                     color: Theme.dim
                     font.family: Theme.font
                     font.pixelSize: 11

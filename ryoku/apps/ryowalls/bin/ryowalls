@@ -10,17 +10,17 @@ dest="$HOME/Pictures/Wallpapers"
 key="${WALLHAVEN_API_KEY:-}"
 ua="Mozilla/5.0"
 
-# upscale_file: enhance a saved wallpaper in place, gated by RYOWALLS_UPSCALE=1 and
-# whether the tool is installed (Vulkan GPU required). Images are one-shot and
-# fast (waifu2x); videos are slow, so we print the original at once (it plays now)
-# and upscale in the background, swapping the wallpaper in when video2x finishes.
+# enhance a saved wallpaper in place. Images are quick one-shots; videos print
+# right away and video2x swaps the crisp version in when it finishes.
 upscale_file() {
-	local f="$1" ext tmp
+	local f="$1" ext tmp h
 	ext="$(printf '%s' "${f##*.}" | tr '[:upper:]' '[:lower:]')"
 	case "$ext" in
 	jpg | jpeg | png | webp)
-		if command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
-			tmp="$f.up.png"
+		h="$(identify -format '%h' "$f" 2>/dev/null || echo 0)"
+		# 4k sources are already sharp; doubling them is minutes of GPU for nothing
+		if [ "${h:-0}" -lt 2160 ] && command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
+			tmp="$f.up.${ext/jpeg/jpg}"
 			if waifu2x-ncnn-vulkan -i "$f" -o "$tmp" -s 2 -n 2 -m /usr/share/waifu2x-ncnn-vulkan/models-cunet >/dev/null 2>&1 && [ -s "$tmp" ]; then
 				mv -f "$tmp" "$f"
 			else

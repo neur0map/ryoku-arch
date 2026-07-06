@@ -40,12 +40,10 @@ Singleton {
     readonly property var keyPrefix: source === "wallhaven" && apiKey.length > 0
         ? ["env", "WALLHAVEN_API_KEY=" + apiKey] : []
 
-    // upscaleSupported = a Vulkan GPU that could run an upscaler; upscaleImage = the
-    // tool is actually installed. The toggle shows when supported; if the tool is
-    // missing it offers Install (via gpk) instead. RYOWALLS_UPSCALE is injected only
-    // once a tool is present and the toggle is on.
+    // what this machine can enhance: vulkan = capable GPU, the others = tool installed
     property bool upscaleSupported: false
     property bool upscaleImage: false
+    property bool upscaleVideo: false
     Process {
         id: capsProc
         running: true
@@ -56,15 +54,19 @@ Singleton {
                     var c = JSON.parse(text);
                     root.upscaleSupported = !!c.vulkan;
                     root.upscaleImage = !!c.upscaleImage;
+                    root.upscaleVideo = !!c.upscaleVideo;
                 } catch (e) {}
             }
         }
     }
     function refreshCaps() { capsProc.running = false; capsProc.running = true; }
-    // open a terminal and let gpk install the upscalers (it needs a tty for the
-    // privilege prompt). refreshCaps on the next settings open picks them up.
+    // gpk needs a tty for its privilege prompt, so installs open a terminal.
+    // --hold keeps the window up when gpk exits, so errors stay readable.
     function installUpscaler() {
-        Quickshell.execDetached(["kitty", "-e", "sh", "-c", "gpk waifu2x-ncnn-vulkan; gpk video2x"]);
+        if (!upscaleImage)
+            Quickshell.execDetached(["kitty", "--hold", "-e", "gpk", "waifu2x-ncnn-vulkan"]);
+        if (!upscaleVideo)
+            Quickshell.execDetached(["kitty", "--hold", "-e", "gpk", "video2x"]);
     }
 
     function cmd(args) {
@@ -292,7 +294,7 @@ Singleton {
             return;
         if (source === "live") { setPath(it.video); return; }
         busy = true;
-        status = "Downloading";
+        status = (cfg.upscale && root.upscaleImage) ? "Downloading + enhancing" : "Downloading";
         _dlPath = "";
         _setAfter = true;
         if (source === "moewalls")
@@ -320,7 +322,7 @@ Singleton {
         if (!it || busy)
             return;
         busy = true;
-        status = "Downloading";
+        status = (cfg.upscale && root.upscaleImage) ? "Downloading + enhancing" : "Downloading";
         _dlPath = "";
         _setAfter = false;
         dlProc.command = cmd(["download", it.id, it.path]);

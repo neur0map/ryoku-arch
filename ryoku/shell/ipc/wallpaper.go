@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -210,17 +212,56 @@ func (d *daemon) showAny(pic string) error {
 }
 
 // showLiveWallpaper: play the video, looping and muted, on the background layer.
-// -f forks so this returns at once. panscan=1.0 crops the clip to fill the screen
-// (a 16:9 clip on a 16:10 panel otherwise letterboxes, and awww shows through the
-// bands). auto-pause (mpv pauses while a window covers the wallpaper) rides the
-// ryowalls "pause when covered" toggle.
+// panscan fills the screen (a 16:9 clip letterboxes on a 16:10 panel otherwise).
+// The IPC socket is how the daemon pauses it: mpvpaper's own auto-pause never
+// fires under Hyprland, which keeps sending frame callbacks to covered layers.
 func (d *daemon) showLiveWallpaper(pic string) error {
 	stopLive()
-	args := []string{"-f", "-o", "no-audio loop-file=inf hwdec=auto panscan=1.0", "ALL", pic}
-	if livePauseWhenCovered() {
-		args = append([]string{"-p"}, args...)
+	opts := "no-audio loop-file=inf hwdec=auto panscan=1.0 input-ipc-server=" + liveSockPath()
+	return exec.Command(liveDaemon, "-f", "-o", opts, "ALL", pic).Run()
+}
+
+func liveSockPath() string {
+	if rt := os.Getenv("XDG_RUNTIME_DIR"); rt != "" {
+		return filepath.Join(rt, "ryoku-mpvpaper.sock")
 	}
-	return exec.Command(liveDaemon, args...).Run()
+	return "/tmp/ryoku-mpvpaper.sock"
+}
+
+// events after which the covered state may have changed
+func livePauseEvent(line string) bool {
+	return strings.HasPrefix(line, "fullscreen>>") ||
+		strings.HasPrefix(line, "workspace>>") ||
+		strings.HasPrefix(line, "focusedmon>>")
+}
+
+// pause the live wallpaper while the active workspace has a fullscreen window.
+// Stateless on purpose: switching away from a fullscreen app must resume.
+func livePauseReconcile() {
+	sock := liveSockPath()
+	if _, err := os.Stat(sock); err != nil {
+		return
+	}
+	pause := false
+	if livePauseWhenCovered() {
+		out, err := exec.Command("hyprctl", "activeworkspace", "-j").Output()
+		if err != nil {
+			return
+		}
+		var w struct {
+			HasFullscreen bool `json:"hasfullscreen"`
+		}
+		if json.Unmarshal(out, &w) != nil {
+			return
+		}
+		pause = w.HasFullscreen
+	}
+	conn, err := net.Dial("unix", sock)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+	fmt.Fprintf(conn, `{"command":["set_property","pause",%t]}`+"\n", pause)
 }
 
 // liveFrame: one still from the video for wallust, which reads an image. offset

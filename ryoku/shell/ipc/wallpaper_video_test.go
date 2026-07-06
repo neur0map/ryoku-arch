@@ -19,6 +19,21 @@ func TestIsVideo(t *testing.T) {
 	}
 }
 
+func TestLivePauseEvent(t *testing.T) {
+	yes := []string{"fullscreen>>1", "fullscreen>>0", "workspace>>3", "focusedmon>>eDP-1,2"}
+	no := []string{"activewindow>>kitty,~", "openwindow>>abc", "fullscreenv2>>1", "monitorremoved>>HDMI-A-1"}
+	for _, l := range yes {
+		if !livePauseEvent(l) {
+			t.Errorf("livePauseEvent(%q) = false, want true", l)
+		}
+	}
+	for _, l := range no {
+		if livePauseEvent(l) {
+			t.Errorf("livePauseEvent(%q) = true, want false", l)
+		}
+	}
+}
+
 func TestFrameOffset(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_STATE_HOME", dir)

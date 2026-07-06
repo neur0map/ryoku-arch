@@ -122,6 +122,9 @@ func (d *daemon) consumeHyprEvents(r io.Reader) {
 			default:
 			}
 		}
+		if livePauseEvent(line) {
+			livePauseReconcile()
+		}
 		if mon, ok := parseFocusedMon(line); ok {
 			d.setMonitor(mon)
 			continue
