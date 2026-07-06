@@ -86,6 +86,30 @@ var transitionPresets = []transition{
 		"--transition-type", "outer",
 		"--transition-bezier", "0.65,0,0.35,1", "--transition-step", "90",
 	}},
+	// caelestia v2: Material 3 Expressive motion, ported from its shell's
+	// animation tokens (v2.1.0 plugin/src/Caelestia/Config/tokens.hpp). caelestia
+	// switches wallpapers with an opacity crossfade on the expressiveSlowEffects
+	// curve, which celeste_veil reproduces exactly; its other monotonic signature
+	// curves ride our geometric sweeps. Its springy *Spatial curves overshoot
+	// (y>1) and its emphasized curve is a two-segment spline, neither of which
+	// awww's single monotonic bezier can carry, so they are left out.
+	{"celeste_veil", []string{ // caelestia's own wallpaper crossfade, expressiveSlowEffects
+		"--transition-type", "fade",
+		"--transition-bezier", "0.34,0.88,0.34,1",
+	}},
+	{"comet_streak", []string{ // fast-launch, long-glide sweep, emphasizedDecel
+		"--transition-type", "wipe", "--transition-angle", "135",
+		"--transition-bezier", "0.05,0.7,0.1,1", "--transition-step", "100",
+	}},
+	{"aurora_ripple", []string{ // snappy front-loaded wavy sweep, expressiveFastEffects
+		"--transition-type", "wave", "--transition-angle", "120",
+		"--transition-wave", "20,30",
+		"--transition-bezier", "0.31,0.94,0.34,1", "--transition-step", "80",
+	}},
+	{"starfall_bloom", []string{ // iris blooming down from the top, M3 standard
+		"--transition-type", "grow", "--transition-pos", "top",
+		"--transition-bezier", "0.2,0,0,1", "--transition-step", "100",
+	}},
 }
 
 // wallpaperApply: pick a wallpaper per mode (init | set | next | refresh) and show

@@ -35,6 +35,16 @@
   rescan.
 
 ### Added
+- Four wallpaper switch transitions ported from **caelestia shell v2**'s
+  Material 3 Expressive motion (the animation curves in its
+  `plugin/src/Caelestia/Config/tokens.hpp`) join the Super+W rotation.
+  `celeste_veil` reproduces caelestia's own wallpaper crossfade (the
+  `expressiveSlowEffects` curve) exactly; `comet_streak` (emphasized-decelerate
+  wipe), `aurora_ripple` (expressive-fast wave) and `starfall_bloom` (standard
+  iris from the top) carry its other signature curves onto our geometric
+  sweeps. All ride the shared transition speed. caelestia's springy spatial
+  curves overshoot and its emphasized curve is a two-segment spline, so they
+  fall outside awww's single monotonic bezier and are left out.
 - Status-cluster hover popouts, matching the reference catalog. On a side bar,
   hovering a status icon reveals its own compact control panel fused to the bar
   (and melting back into it); a click still opens the deep surface for the full
