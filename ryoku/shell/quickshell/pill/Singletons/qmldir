@@ -13,7 +13,6 @@ singleton Recorder Recorder.qml
 singleton Audio Audio.qml
 singleton VoiceBars VoiceBars.qml
 singleton Weather Weather.qml
-singleton SysInfo SysInfo.qml
 singleton Stash Stash.qml
 singleton Updates Updates.qml
 singleton Apps Apps.qml

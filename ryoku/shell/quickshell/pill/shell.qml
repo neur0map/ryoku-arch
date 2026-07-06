@@ -264,7 +264,6 @@ ShellRoot {
         function bluetooth(mon: string): void { root.togglePopout(mon, "bluetooth"); }
         function batteryPopout(mon: string): void { root.togglePopout(mon, "battery"); }
         function clipboard(mon: string): void { root.toggleSurface(mon, "clipboard"); }
-        function sysinfo(mon: string): void { root.toggleSurface(mon, "sysinfo"); }
         function stash(mon: string): void { root.toggleSurface(mon, "stash"); }
         // stash-send <file>: open the stash and jump straight to its LocalSend
         // picker for the given file, so the file manager can hand a file to the
@@ -312,7 +311,7 @@ ShellRoot {
         var mon = parts.length > 1 ? parts[1] : "";
         switch (fn) {
         case "clipboard":
-        case "link": case "inbox": case "battery": case "sysinfo":
+        case "link": case "inbox": case "battery":
         case "stash": case "toolkit": case "utilities": case "workspaces":
             root.toggleSurface(mon, fn); return true;
         case "mixer": case "power":

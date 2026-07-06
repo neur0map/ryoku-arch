@@ -57,7 +57,6 @@ Item {
     readonly property bool linkOpen: surface === "link"
     readonly property bool inboxOpen: surface === "inbox"
     readonly property bool batteryOpen: surface === "battery"
-    readonly property bool sysinfoOpen: surface === "sysinfo"
     readonly property bool stashOpen: surface === "stash"
     readonly property bool toolkitOpen: surface === "toolkit"
     readonly property bool utilitiesOpen: surface === "utilities"
@@ -85,7 +84,6 @@ Item {
     readonly property real clipboardH: 332 * s
     readonly property real batteryW: 316 * s
     readonly property real inboxW: 340 * s
-    readonly property real sysinfoW: 360 * s
     readonly property real deckW: 590 * s
     readonly property real voiceW: 320 * s
     readonly property real toastW: 342 * s
@@ -99,7 +97,6 @@ Item {
         : (linkOpen ? "link"
         : (inboxOpen ? "inbox"
         : (batteryOpen ? "battery"
-        : (sysinfoOpen ? "sysinfo"
         : (stashOpen ? "stash"
         : (toolkitOpen ? "toolkit"
         : (utilitiesOpen ? "utilities"
@@ -107,7 +104,7 @@ Item {
         : (workspacesOpen ? "workspaces"
         : (osdActive && !held ? "osd"
         : (toastActive && !held ? "toast"
-        : (expanded ? "hover" : "rest")))))))))))))
+        : (expanded ? "hover" : "rest"))))))))))))
 
     signal requestSurface(string name)
     signal requestClose()
@@ -159,7 +156,6 @@ Item {
         link:      () => Qt.size(link.desiredW, link.implicitHeight + 26 * s),
         inbox:     () => Qt.size(inboxW, inbox.implicitHeight + 26 * s),
         battery:   () => Qt.size(batteryW, battery.implicitHeight + 26 * s),
-        sysinfo:   () => Qt.size(sysinfoW, sysinfo.implicitHeight + 32 * s),
         stash:     () => Qt.size(deckW, deck.implicitHeight + 28 * s),
         toolkit:   () => Qt.size(deckW, deck.implicitHeight + 28 * s),
         utilities: () => Qt.size(deckW, deck.implicitHeight + 28 * s),
@@ -303,13 +299,12 @@ Item {
         : (calendarOpen ? calendar
         : (linkOpen ? link
         : (inboxOpen ? inbox
-        : (sysinfoOpen ? sysinfo
         : (stashOpen ? deck
         : (toolkitOpen ? deck
         : (utilitiesOpen ? deck
         : (voiceOpen ? voice
         : (workspacesOpen ? workspaces
-        : (batteryOpen ? battery : null))))))))))
+        : (batteryOpen ? battery : null)))))))))
 
     Ame {
         id: ame
@@ -847,18 +842,6 @@ Item {
         open: pill.batteryOpen
         morphCloseness: pill.morphCloseness
         shown: pill.displayedSurface === "battery"
-        openProgress: pill.openProgress
-        openW: pill.openW
-        openH: pill.openH
-        onRequestClose: pill.requestClose()
-    }
-
-    SysInfoSurface {
-        id: sysinfo
-        s: pill.s
-        open: pill.sysinfoOpen
-        morphCloseness: pill.morphCloseness
-        shown: pill.displayedSurface === "sysinfo"
         openProgress: pill.openProgress
         openW: pill.openW
         openH: pill.openH

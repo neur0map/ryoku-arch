@@ -17,7 +17,6 @@ reload
 set
 stash
 status
-sysinfo
 toggle
 toolkit
 utilities
