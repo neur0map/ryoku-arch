@@ -434,6 +434,14 @@ ShellRoot {
             readonly property real barBand: Math.max(Config.barHeight, barVertical ? 30 : 0) * s
             readonly property real barVisibleH: frameTopVisible + barBand
 
+            // mixer/power popouts follow the bar: on a side (vertical) bar they
+            // sit on that edge and grow from the bar's inner edge, fused with it
+            // as one body; on a top/bottom/absent bar they stay the island
+            // frame's left/right-centre features on the thin lip.
+            readonly property string mixerEdge: barVertical ? barPos : "left"
+            readonly property string powerEdge: barVertical ? barPos : "right"
+            readonly property real vBarThick: barVertical ? barVisibleH : 16
+
             // island appearance, read from the live config. the frame is
             // the same across styles; only the centre island changes.
             //   fused    = classic pill, neck melted into the top frame.
@@ -739,15 +747,16 @@ ShellRoot {
                     ]
                 }
 
-                // mixer popout: grows out of the centre-left frame edge on
-                // hover, melting into the border through the shared blob field.
+                // mixer popout: on a side bar it grows from the bar's inner
+                // edge at the bare-band centre and melts back into it; on a
+                // top/bottom/absent bar it's the left-centre frame feature.
                 Popout {
                     id: mixerPop
                     group: blobGroup
-                    frameThickness: 16
+                    frameThickness: overlay.vBarThick
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: "left"
+                    edge: overlay.mixerEdge
                     s: overlay.s
                     active: !overlay.surfaceOpen && !overlay.monFullscreen
                     pinned: root.popout === "mixer" && root.popoutMon === overlay.modelData.name
@@ -761,14 +770,17 @@ ShellRoot {
                     }
                 }
 
-                // power popout: grows out of the centre-right frame edge on hover.
+                // power popout: on a side bar it grows from the bar's inner
+                // edge right at the power button; else the right-centre frame
+                // feature.
                 Popout {
                     id: powerPop
                     group: blobGroup
-                    frameThickness: 16
+                    frameThickness: overlay.vBarThick
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: "right"
+                    edge: overlay.powerEdge
+                    alongCenter: overlay.barVertical ? topBar.powerCenter : -1
                     s: overlay.s
                     active: !overlay.surfaceOpen && !overlay.monFullscreen
                     pinned: root.popout === "power" && root.popoutMon === overlay.modelData.name

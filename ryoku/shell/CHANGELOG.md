@@ -90,6 +90,12 @@
   so toast actions stay clickable.
 - The resting island shows a small ember tick while notifications wait (and
   DND is off), so a quiet desktop still answers "did anything ping me".
+- Mixer and power popouts fuse with a side bar as one body. On a left or
+  right bar they now grow from the bar's inner edge (power right at its
+  button, the mixer from the bare-band centre) and melt back into the band
+  on close. Before, they grew from a fixed frame inset that landed inside
+  the swelled band, so opening lumped the popout and band into one stuck
+  slab, and the power menu even opened on the edge opposite its button.
 
 ### Security
 - `ipc`: the `ryoku-shell` control socket is now created owner-only (0700). It

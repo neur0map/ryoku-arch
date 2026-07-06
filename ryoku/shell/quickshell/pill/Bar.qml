@@ -38,6 +38,11 @@ Item {
     readonly property bool vertical: position === "left" || position === "right"
     readonly property real moduleSpan: Math.round(bar.band * 0.76)
 
+    // along-axis centre of the vertical power module. a side bar fills the
+    // overlay strip (bar coords == overlay coords), so the power popout can
+    // emerge right at the button instead of the frame's mid-edge.
+    readonly property real powerCenter: vertical ? height - 20 * s - vPowerMod.height / 2 : 0
+
     property int seedWsId: -1
     readonly property int activeWsId: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : seedWsId
 
@@ -314,6 +319,7 @@ Item {
             }
 
             BarModule {
+                id: vPowerMod
                 anchors.horizontalCenter: parent.horizontalCenter
                 s: bar.s
                 vertical: true

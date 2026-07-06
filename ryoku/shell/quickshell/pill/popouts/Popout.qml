@@ -29,6 +29,10 @@ Item {
     property real smoothing: 30
     property string edge: "left"          // "left" | "right" | "top" | "bottom"
     property string align: "center"       // "start" | "center" | "end" (along the edge)
+    // when >= 0, centre the body at this coordinate along the edge (the host
+    // hands the triggering module's centre here so the popout emerges from it,
+    // like caelestia's currentCenter); < 0 falls back to `align`.
+    property real alongCenter: -1
     property real openW: 220
     property real openH: 200
     // size tracks the content's implicit size (the mixer grows as its device
@@ -60,6 +64,8 @@ Item {
     // never sits flush in a corner.
     readonly property real edgeInset: frameThickness + 12 * s
     function alignPos(span, sz) {
+        if (alongCenter >= 0)
+            return Math.max(edgeInset, Math.min(span - sz - edgeInset, alongCenter - sz / 2));
         return align === "start" ? edgeInset
              : align === "end" ? span - sz - edgeInset
              : (span - sz) / 2;
