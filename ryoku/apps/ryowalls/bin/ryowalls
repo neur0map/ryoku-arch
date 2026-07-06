@@ -11,7 +11,7 @@ key="${WALLHAVEN_API_KEY:-}"
 ua="Mozilla/5.0"
 
 # enhance a saved wallpaper in place. Images are quick one-shots; videos print
-# right away and video2x swaps the crisp version in when it finishes.
+# right away and the frame-by-frame upscale swaps the crisp version in later.
 upscale_file() {
 	local f="$1" ext tmp h
 	ext="$(printf '%s' "${f##*.}" | tr '[:upper:]' '[:lower:]')"
@@ -31,9 +31,10 @@ upscale_file() {
 		;;
 	mp4 | webm | mkv | mov)
 		printf '%s\n' "$f"
-		if command -v video2x >/dev/null 2>&1; then
-			# shellcheck disable=SC2016  # $1 is the sh -c positional, expanded inside
-			setsid sh -c 'o="$1.up.mp4"; video2x -i "$1" -o "$o" -p realcugan -s 2 >/dev/null 2>&1 && mv -f "$o" "$1" && ryoku-shell wallpaper set "$1"' _ "$f" >/dev/null 2>&1 </dev/null &
+		# 4k sources are already sharp; upscaling them is a lot of GPU for nothing
+		h="$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$f" 2>/dev/null | head -1)"
+		if [ "${h:-0}" -lt 2160 ] && command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
+			setsid ryowalls upscale-video "$f" >/dev/null 2>&1 </dev/null &
 		fi
 		;;
 	*) printf '%s\n' "$f" ;;
@@ -43,6 +44,25 @@ upscale_file() {
 # finish: print the saved path, upscaling first when the toggle asked for it.
 finish() {
 	if [ "${RYOWALLS_UPSCALE:-}" = 1 ]; then upscale_file "$1"; else printf '%s\n' "$1"; fi
+}
+
+# upscale a video frame by frame: ffmpeg extracts, waifu2x batch-upscales, ffmpeg
+# reassembles at the source rate (audio copied when present). waifu2x ships in the
+# official repo, rebuilt against ncnn, so this keeps working where the AUR video2x
+# broke on an ncnn API change. background worker: the clip plays now, crisp swaps in.
+upscale_video() {
+	local f="$1" d fps
+	command -v ffmpeg >/dev/null 2>&1 || return
+	d="$(mktemp -d)" || return
+	fps="$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$f" 2>/dev/null | head -1)"
+	[ -n "$fps" ] && [ "$fps" != "0/0" ] || fps=30
+	mkdir -p "$d/in" "$d/out"
+	if ffmpeg -y -i "$f" -qscale:v 1 -qmin 1 -qmax 1 -vsync 0 "$d/in/%08d.png" >/dev/null 2>&1 &&
+		waifu2x-ncnn-vulkan -i "$d/in" -o "$d/out" -s 2 -n 2 -m /usr/share/waifu2x-ncnn-vulkan/models-cunet >/dev/null 2>&1 &&
+		ffmpeg -y -framerate "$fps" -i "$d/out/%08d.png" -i "$f" -map 0:v:0 -map 1:a:0? -c:a copy -c:v libx264 -pix_fmt yuv420p -movflags +faststart "$d/final.mp4" >/dev/null 2>&1; then
+		mv -f "$d/final.mp4" "$f" && ryoku-shell wallpaper set "$f"
+	fi
+	rm -rf "$d"
 }
 
 auth=()
@@ -353,14 +373,18 @@ live-import)
 	cp -f -- "$src" "$out"
 	printf '%s\n' "$out"
 	;;
+upscale-video)
+	# background worker for the video enhance path (launched by upscale_file).
+	upscale_video "${1:?video path required}"
+	;;
 caps)
 	# what enhancement the machine can do, so the UI offers, installs, or hides.
-	# vulkan = a GPU that can run the upscalers at all; img/vid = tools installed.
-	vk=false; img=false; vid=false
+	# vulkan = a GPU that can run it; upscaler = the ncnn tool installed (one tool
+	# now sharpens both images and, frame by frame, video).
+	vk=false; up=false
 	[ -n "$(ls /usr/share/vulkan/icd.d/*.json 2>/dev/null)" ] && vk=true
-	{ command -v waifu2x-ncnn-vulkan || command -v realesrgan-ncnn-vulkan; } >/dev/null 2>&1 && img=true
-	command -v video2x >/dev/null 2>&1 && vid=true
-	jq -cn --argjson vk "$vk" --argjson img "$img" --argjson vid "$vid" '{vulkan:$vk,upscaleImage:$img,upscaleVideo:$vid}'
+	{ command -v waifu2x-ncnn-vulkan || command -v realesrgan-ncnn-vulkan; } >/dev/null 2>&1 && up=true
+	jq -cn --argjson vk "$vk" --argjson up "$up" '{vulkan:$vk,upscaler:$up}'
 	;;
 *)
 	echo "usage: ryowalls search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url> [flags] | moewalls-search [--query <q>] [--page <n>] --json | moewalls-download <id> <url> | extras-search [--query <q>] --json | extras-download <id> <url> | live-list | live-import <src>" >&2

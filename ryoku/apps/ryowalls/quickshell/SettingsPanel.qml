@@ -131,7 +131,7 @@ Item {
                 }
             }
 
-            // shown when the GPU can upscale; Install covers whichever tool is missing.
+            // shown when the GPU can upscale; Install pulls the one tool that does it.
             Column {
                 width: parent.width
                 spacing: 5
@@ -145,15 +145,14 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 10
                         HubButton {
-                            visible: !Wallhaven.upscaleImage || !Wallhaven.upscaleVideo
+                            visible: !Wallhaven.upscaler
                             anchors.verticalCenter: parent.verticalCenter
                             icon: "download"
-                            label: !Wallhaven.upscaleImage && !Wallhaven.upscaleVideo ? "Install both"
-                                : (!Wallhaven.upscaleImage ? "Install waifu2x" : "Install video2x")
+                            label: "Install"
                             onClicked: Wallhaven.installUpscaler()
                         }
                         Toggle {
-                            visible: Wallhaven.upscaleImage
+                            visible: Wallhaven.upscaler
                             anchors.verticalCenter: parent.verticalCenter
                             on: Wallhaven.settings.upscale
                             onToggled: (v) => { Wallhaven.settings.upscale = v; Wallhaven.saveSettings(); }
@@ -163,11 +162,9 @@ Item {
                 Text {
                     width: parent.width
                     wrapMode: Text.WordWrap
-                    text: !Wallhaven.upscaleImage
-                        ? "Needs a Vulkan upscaler (waifu2x for images, video2x for video). Install opens gpk: pick the package and confirm the build."
-                        : (!Wallhaven.upscaleVideo
-                            ? "Images enhance on save already. Video needs video2x: Install opens gpk, pick it and confirm (an AUR build, takes a while)."
-                            : "Sharpens low-res wallpapers on your GPU when you save them. Looks noticeably better, but saving takes longer and the file gets bigger (a lot for video).")
+                    text: Wallhaven.upscaler
+                        ? "Sharpens low-res wallpapers on your GPU when you save them, images and video alike. Looks noticeably better, but saving takes longer and the file gets bigger (a lot for video)."
+                        : "Needs a Vulkan upscaler (waifu2x). Install opens gpk: pick the package and confirm."
                     color: Theme.dim
                     font.family: Theme.font
                     font.pixelSize: 11

@@ -40,10 +40,9 @@ Singleton {
     readonly property var keyPrefix: source === "wallhaven" && apiKey.length > 0
         ? ["env", "WALLHAVEN_API_KEY=" + apiKey] : []
 
-    // what this machine can enhance: vulkan = capable GPU, the others = tool installed
+    // what this machine can enhance: vulkan = capable GPU, upscaler = the ncnn tool
     property bool upscaleSupported: false
-    property bool upscaleImage: false
-    property bool upscaleVideo: false
+    property bool upscaler: false
     Process {
         id: capsProc
         running: true
@@ -53,28 +52,22 @@ Singleton {
                 try {
                     var c = JSON.parse(text);
                     root.upscaleSupported = !!c.vulkan;
-                    root.upscaleImage = !!c.upscaleImage;
-                    root.upscaleVideo = !!c.upscaleVideo;
+                    root.upscaler = !!c.upscaler;
                 } catch (e) {}
             }
         }
     }
     function refreshCaps() { capsProc.running = false; capsProc.running = true; }
-    // installs open a terminal: gpk needs a tty for its confirm and sudo prompts.
-    // `gpk install` actually installs; the bare `gpk <pkg>` form only searches. The
-    // manager is pinned to each tool's real home so a box that also carries these in
-    // nix does not stall on an ambiguous pick. --hold keeps a build error readable.
+    // one official-repo upscaler (waifu2x) now sharpens both images and, frame by
+    // frame, video, so Install pulls just that. gpk needs a tty for its confirm and
+    // sudo prompts (--manager pins the official build); --hold keeps errors readable.
     function installUpscaler() {
-        var steps = [];
-        if (!upscaleImage) steps.push("gpk install waifu2x-ncnn-vulkan --manager pacman");
-        if (!upscaleVideo) steps.push("gpk install video2x --manager aur");
-        if (steps.length > 0)
-            Quickshell.execDetached(["kitty", "--hold", "-e", "sh", "-c", steps.join("; ")]);
+        Quickshell.execDetached(["kitty", "--hold", "-e", "gpk", "install", "waifu2x-ncnn-vulkan", "--manager", "pacman"]);
     }
 
     function cmd(args) {
         var pre = keyPrefix.slice();
-        if (cfg.upscale && root.upscaleImage) {
+        if (cfg.upscale && root.upscaler) {
             if (pre.length === 0) pre = ["env"];
             pre = pre.concat(["RYOWALLS_UPSCALE=1"]);
         }
@@ -297,7 +290,7 @@ Singleton {
             return;
         if (source === "live") { setPath(it.video); return; }
         busy = true;
-        status = (cfg.upscale && root.upscaleImage) ? "Downloading + enhancing" : "Downloading";
+        status = (cfg.upscale && root.upscaler) ? "Downloading + enhancing" : "Downloading";
         _dlPath = "";
         _setAfter = true;
         if (source === "moewalls")
@@ -325,7 +318,7 @@ Singleton {
         if (!it || busy)
             return;
         busy = true;
-        status = (cfg.upscale && root.upscaleImage) ? "Downloading + enhancing" : "Downloading";
+        status = (cfg.upscale && root.upscaler) ? "Downloading + enhancing" : "Downloading";
         _dlPath = "";
         _setAfter = false;
         dlProc.command = cmd(["download", it.id, it.path]);
