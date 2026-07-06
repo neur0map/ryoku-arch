@@ -120,6 +120,25 @@ Item {
                 }
             }
 
+            // only shown when the machine has a Vulkan upscaler installed.
+            Column {
+                width: parent.width
+                spacing: 5
+                visible: Wallhaven.upscaleImage
+                Item {
+                    width: parent.width
+                    height: 24
+                    Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "Enhance on save (AI upscale)"; color: Theme.cream; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
+                    Toggle {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        on: Wallhaven.settings.upscale
+                        onToggled: (v) => { Wallhaven.settings.upscale = v; Wallhaven.saveSettings(); }
+                    }
+                }
+                Text { width: parent.width; wrapMode: Text.WordWrap; text: "Sharpens low-res wallpapers on your GPU when you save them. Looks noticeably better, but saving takes longer and the file gets bigger (a lot for video)."; color: Theme.dim; font.family: Theme.font; font.pixelSize: 11 }
+            }
+
             Rectangle { width: parent.width; height: 1; color: Theme.line }
 
             Item {

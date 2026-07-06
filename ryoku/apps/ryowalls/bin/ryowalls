@@ -10,6 +10,41 @@ dest="$HOME/Pictures/Wallpapers"
 key="${WALLHAVEN_API_KEY:-}"
 ua="Mozilla/5.0"
 
+# upscale_file: enhance a saved wallpaper in place, gated by RYOWALLS_UPSCALE=1 and
+# whether the tool is installed (Vulkan GPU required). Images are one-shot and
+# fast (waifu2x); videos are slow, so we print the original at once (it plays now)
+# and upscale in the background, swapping the wallpaper in when video2x finishes.
+upscale_file() {
+	local f="$1" ext tmp
+	ext="$(printf '%s' "${f##*.}" | tr '[:upper:]' '[:lower:]')"
+	case "$ext" in
+	jpg | jpeg | png | webp)
+		if command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
+			tmp="$f.up.png"
+			if waifu2x-ncnn-vulkan -i "$f" -o "$tmp" -s 2 -n 2 -m /usr/share/waifu2x-ncnn-vulkan/models-cunet >/dev/null 2>&1 && [ -s "$tmp" ]; then
+				mv -f "$tmp" "$f"
+			else
+				rm -f "$tmp"
+			fi
+		fi
+		printf '%s\n' "$f"
+		;;
+	mp4 | webm | mkv | mov)
+		printf '%s\n' "$f"
+		if command -v video2x >/dev/null 2>&1; then
+			# shellcheck disable=SC2016  # $1 is the sh -c positional, expanded inside
+			setsid sh -c 'o="$1.up.mp4"; video2x -i "$1" -o "$o" -p realcugan -s 2 >/dev/null 2>&1 && mv -f "$o" "$1" && ryoku-shell wallpaper set "$1"' _ "$f" >/dev/null 2>&1 </dev/null &
+		fi
+		;;
+	*) printf '%s\n' "$f" ;;
+	esac
+}
+
+# finish: print the saved path, upscaling first when the toggle asked for it.
+finish() {
+	if [ "${RYOWALLS_UPSCALE:-}" = 1 ]; then upscale_file "$1"; else printf '%s\n' "$1"; fi
+}
+
 auth=()
 [ -n "$key" ] && auth=(-H "X-API-Key: $key")
 
@@ -59,7 +94,7 @@ download)
 	ext="${url##*.}"; [ "${#ext}" -gt 5 ] && ext="jpg"
 	out="$dest/wallhaven-$id.$ext"
 	curl -fsSL "${auth[@]}" "$url" -o "$out"
-	printf '%s\n' "$out"
+	finish "$out"
 	;;
 palette)
 	url=""; pal=""; cs=""; backend=""; sat=""; thr=""; contrast=0
@@ -121,7 +156,7 @@ moewalls-search)
 			thumb: $thumb,
 			video: $webm,
 			dl: $webm,
-			resolution: "",
+			resolution: "1280x720",
 			name: (.title.rendered | gsub(" Live Wallpaper$"; "")),
 			moewalls_url: .link
 		}' <<<"$resp"
@@ -133,7 +168,7 @@ moewalls-download)
 	ext="${url##*.}"; [ "${#ext}" -gt 5 ] && ext="webm"
 	out="$dest/moewalls-$id.$ext"
 	curl -fsSL -A "$ua" "$url" -o "$out"
-	printf '%s\n' "$out"
+	finish "$out"
 	;;
 motionbgs-search)
 	# motionbgs.com has no API: enumerate posters off the server-rendered listing
@@ -165,9 +200,10 @@ motionbgs-search)
 		| while IFS="$(printf '\t')" read -r id poster; do
 			fname="${poster##*/}"
 			base="$(printf '%s' "$fname" | sed -E 's#\.[0-9]+x[0-9]+##; s#\.jpe?g$##')"
+			res="$(printf '%s' "$fname" | sed -nE 's#.*\.([0-9]+x[0-9]+)\.jpe?g$#\1#p')"
 			jq -cn --arg t "$mb$poster" --arg v "$mb/dl/hd/$id/" --arg d "$mb/dl/4k/$id/" \
-				--arg n "$(printf '%s' "$base" | tr '-' ' ')" --arg id "$id" \
-				'{id:$id,thumb:$t,video:$v,dl:$d,resolution:"",name:$n}'
+				--arg n "$(printf '%s' "$base" | tr '-' ' ')" --arg id "$id" --arg r "$res" \
+				'{id:$id,thumb:$t,video:$v,dl:$d,resolution:$r,name:$n}'
 		done
 	;;
 motionbgs-download)
@@ -175,7 +211,7 @@ motionbgs-download)
 	dest="$HOME/Pictures/livewalls"; mkdir -p "$dest"
 	out="$dest/motionbgs-$id.mp4"
 	curl -fsSL -A "$ua" -e "https://motionbgs.com/" "$url" -o "$out"
-	printf '%s\n' "$out"
+	finish "$out"
 	;;
 library-list)
 	# Browse any GitHub repo of wallpapers the user added. Two shapes, auto-detected
@@ -261,7 +297,7 @@ library-download)
 	mkdir -p "$dest"
 	out="$dest/lib-$(printf '%s' "$url" | md5sum | cut -c1-12).$ext"
 	curl -fsSL -A "$ua" "$url" -o "$out"
-	printf '%s\n' "$out"
+	finish "$out"
 	;;
 extras-search)
 	# Curated live wallpapers from the ryoku-extras repo (livewalls/registry.json).
@@ -299,7 +335,7 @@ extras-download)
 	ext="${url##*.}"; [ "${#ext}" -gt 5 ] && ext="mp4"
 	out="$dest/ryoku-$id.$ext"
 	curl -fsSL -A "$ua" "$url" -o "$out"
-	printf '%s\n' "$out"
+	finish "$out"
 	;;
 live-list)
 	# Local live wallpapers the user dropped or downloaded. Newest first.
@@ -316,6 +352,13 @@ live-import)
 	out="$dir/$(basename "$src")"
 	cp -f -- "$src" "$out"
 	printf '%s\n' "$out"
+	;;
+caps)
+	# what enhancement the machine can do, so the UI only offers what works.
+	img=false; vid=false
+	{ command -v waifu2x-ncnn-vulkan || command -v realesrgan-ncnn-vulkan; } >/dev/null 2>&1 && img=true
+	command -v video2x >/dev/null 2>&1 && vid=true
+	jq -cn --argjson img "$img" --argjson vid "$vid" '{upscaleImage:$img,upscaleVideo:$vid}'
 	;;
 *)
 	echo "usage: ryowalls search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url> [flags] | moewalls-search [--query <q>] [--page <n>] --json | moewalls-download <id> <url> | extras-search [--query <q>] --json | extras-download <id> <url> | live-list | live-import <src>" >&2

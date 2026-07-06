@@ -21,6 +21,13 @@ Rectangle {
     // the hero preview streams the one selected clip, and Save is the only download.
     readonly property bool isLocal: cell.isVideo && !("" + cell.item.video).startsWith("http")
     readonly property bool playing: cell.isLocal && (ma.containsMouse || !cell.hasThumb)
+    readonly property string resText: (cell.item && cell.item.resolution) ? ("" + cell.item.resolution) : ""
+    readonly property int resH: {
+        var p = cell.resText.split("x");
+        return p.length === 2 ? (parseInt(p[1]) || 0) : 0;
+    }
+    // flag clips that would upscale-blur on a 1080p+ screen.
+    readonly property bool lowRes: cell.isVideo && cell.resH > 0 && cell.resH < 1080
 
     radius: Theme.radius
     color: Theme.surfaceLo
@@ -71,12 +78,33 @@ Rectangle {
         color: Qt.rgba(0, 0, 0, 0.3)
     }
 
-    Text {
-        visible: ma.containsMouse
+    // resolution badge; amber warns a low-res clip will look soft upscaled.
+    Rectangle {
+        visible: cell.resText.length > 0
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.margins: 6
-        text: cell.item ? (cell.item.resolution || cell.item.name || "") : ""
+        height: 16
+        width: resLabel.implicitWidth + 12
+        radius: 4
+        color: cell.lowRes ? Qt.rgba(0.85, 0.5, 0.12, 0.92) : Qt.rgba(0, 0, 0, 0.55)
+        Text {
+            id: resLabel
+            anchors.centerIn: parent
+            text: cell.resH >= 2160 ? "4K" : (cell.resH > 0 ? cell.resH + "p" : cell.resText)
+            color: Theme.bright
+            font.family: Theme.mono
+            font.pixelSize: 9
+            font.weight: Font.DemiBold
+        }
+    }
+
+    Text {
+        visible: ma.containsMouse
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: 6
+        text: cell.item ? (cell.item.name || "") : ""
         color: Theme.bright
         font.family: Theme.mono
         font.pixelSize: 10

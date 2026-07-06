@@ -40,7 +40,26 @@ Singleton {
     readonly property var keyPrefix: source === "wallhaven" && apiKey.length > 0
         ? ["env", "WALLHAVEN_API_KEY=" + apiKey] : []
 
-    function cmd(args) { return keyPrefix.concat(["ryowalls"]).concat(args); }
+    // upscaling is offered only when the machine can do it (a Vulkan upscaler is
+    // installed); the toggle then injects RYOWALLS_UPSCALE so downloads enhance.
+    property bool upscaleImage: false
+    Process {
+        id: capsProc
+        running: true
+        command: ["ryowalls", "caps"]
+        stdout: StdioCollector {
+            onStreamFinished: { try { root.upscaleImage = !!JSON.parse(text).upscaleImage; } catch (e) {} }
+        }
+    }
+
+    function cmd(args) {
+        var pre = keyPrefix.slice();
+        if (cfg.upscale && root.upscaleImage) {
+            if (pre.length === 0) pre = ["env"];
+            pre = pre.concat(["RYOWALLS_UPSCALE=1"]);
+        }
+        return pre.concat(["ryowalls"]).concat(args);
+    }
 
     // ---- user-added libraries (any GitHub repo of wallpapers) ---------------
     // Ryoku hosts nothing: the user points ryowalls at repos at their discretion.
@@ -406,6 +425,8 @@ Singleton {
             // whether mpvpaper pauses while a window covers it.
             property real frame: 1
             property bool pauseWhenCovered: false
+            // enhance saved wallpapers with a Vulkan upscaler (sharper, but slower + bigger).
+            property bool upscale: false
             // user-added wallpaper libraries: [{name, repo, branch, path}]
             property var libraries: []
         }
