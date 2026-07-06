@@ -93,12 +93,15 @@
   `PATH` and works from day one.
 
 ### Fixed
-- `ryowalls/`: the AI-upscale Install button lingered after the tool finished
-  installing, since the app only re-checked for the upscalers when the Settings
-  panel was reopened. It now re-checks whenever the window regains focus
-  (`App.qml`, `Window.active`), so returning from the gpk install terminal flips
-  Install to the live toggle on its own; the Settings copy drops the now-stale
-  "reopen Settings" step.
+- `ryowalls/`: the AI-upscale Install button did nothing useful. It ran a bare
+  `gpk <pkg>`, which only searches and prints matches, so a click never installed
+  anything; and even once a tool was present the button lingered until Settings
+  was reopened. It now runs `gpk install <pkg>` with the manager pinned to each
+  tool's real home (`waifu2x-ncnn-vulkan` from pacman, `video2x` from aur) so the
+  install actually runs, and re-checks the upscalers whenever the window regains
+  focus (`App.qml`, `Window.active`) so Install flips to the live toggle on its
+  own once the tool lands. The Settings copy drops the now-stale "reopen Settings"
+  step.
 - `fastfetch/`: the readout fell back to the Arch logo on machines that updated
   (fresh installs were fine). `config.jsonc` now points its emblem at
   `~/.config/fastfetch/fastfetch-emblem.png`, laid beside the config by

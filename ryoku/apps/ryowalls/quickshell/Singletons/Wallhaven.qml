@@ -60,13 +60,14 @@ Singleton {
         }
     }
     function refreshCaps() { capsProc.running = false; capsProc.running = true; }
-    // gpk needs a tty for its privilege prompt, so installs open a terminal.
-    // One window, sequential (parallel gpk fights over the pacman lock);
-    // --hold keeps it up when gpk exits, so errors stay readable.
+    // installs open a terminal: gpk needs a tty for its confirm and sudo prompts.
+    // `gpk install` actually installs; the bare `gpk <pkg>` form only searches. The
+    // manager is pinned to each tool's real home so a box that also carries these in
+    // nix does not stall on an ambiguous pick. --hold keeps a build error readable.
     function installUpscaler() {
         var steps = [];
-        if (!upscaleImage) steps.push("echo ':: waifu2x-ncnn-vulkan (image upscaler)'; gpk waifu2x-ncnn-vulkan");
-        if (!upscaleVideo) steps.push("echo ':: video2x (video upscaler)'; gpk video2x");
+        if (!upscaleImage) steps.push("gpk install waifu2x-ncnn-vulkan --manager pacman");
+        if (!upscaleVideo) steps.push("gpk install video2x --manager aur");
         if (steps.length > 0)
             Quickshell.execDetached(["kitty", "--hold", "-e", "sh", "-c", steps.join("; ")]);
     }
