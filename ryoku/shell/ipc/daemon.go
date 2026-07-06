@@ -35,7 +35,6 @@ var pillSurfaces = map[string]string{
 	"clipboard":        "clipboard",
 	"link":             "link",
 	"inbox":            "inbox",
-	"wallpaper-picker": "wallpaper",
 	"mixer":            "mixer",
 	"calendar":         "calendar",
 	"power":            "power",

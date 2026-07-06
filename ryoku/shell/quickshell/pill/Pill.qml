@@ -54,7 +54,6 @@ Item {
     readonly property bool held: pinned || forcePinned
     readonly property bool calendarOpen: surface === "calendar"
     readonly property bool clipboardOpen: surface === "clipboard"
-    readonly property bool wallpaperOpen: surface === "wallpaper"
     readonly property bool linkOpen: surface === "link"
     readonly property bool inboxOpen: surface === "inbox"
     readonly property bool batteryOpen: surface === "battery"
@@ -84,8 +83,6 @@ Item {
     readonly property real calendarH: calendar.implicitHeight + 32 * s
     readonly property real clipboardW: 360 * s
     readonly property real clipboardH: 332 * s
-    readonly property real wallpaperW: 720 * s
-    readonly property real wallpaperH: 146 * s
     readonly property real batteryW: 316 * s
     readonly property real inboxW: 340 * s
     readonly property real sysinfoW: 360 * s
@@ -99,7 +96,6 @@ Item {
     readonly property string mode: keyringOpen ? "keyring" : baseMode
     readonly property string baseMode: calendarOpen ? "calendar"
         : (clipboardOpen ? "clipboard"
-        : (wallpaperOpen ? "wallpaper"
         : (linkOpen ? "link"
         : (inboxOpen ? "inbox"
         : (batteryOpen ? "battery"
@@ -111,7 +107,7 @@ Item {
         : (workspacesOpen ? "workspaces"
         : (osdActive && !held ? "osd"
         : (toastActive && !held ? "toast"
-        : (expanded ? "hover" : "rest"))))))))))))))
+        : (expanded ? "hover" : "rest")))))))))))))
 
     signal requestSurface(string name)
     signal requestClose()
@@ -124,25 +120,6 @@ Item {
      */
     function linkBack() {
         return pill.linkOpen ? link.back() : false;
-    }
-
-    /**
-     * Slide the open wallpaper strip's focus by `dir` thumbs; +1 is right (older)
-     * and -1 is left (newer). No-op unless the wallpaper surface is open.
-     */
-    function wallpaperMove(dir) {
-        if (pill.wallpaperOpen)
-            wall.move(dir);
-    }
-
-    /**
-     * Apply the wallpaper strip's focused thumb through ryoku-shell wallpaper. The
-     * surface stays open so the pick can be iterated. No-op unless the
-     * wallpaper surface is open.
-     */
-    function wallpaperActivate() {
-        if (pill.wallpaperOpen)
-            wall.activate();
     }
 
     onSurfaceOpenChanged: if (surfaceOpen) pinned = false
@@ -179,7 +156,6 @@ Item {
     readonly property var surfaceSize: ({
         calendar:  () => Qt.size(calendarW, calendarH),
         clipboard: () => Qt.size(clipboardW, clipboardH),
-        wallpaper: () => Qt.size(wallpaperW, wallpaperH),
         link:      () => Qt.size(link.desiredW, link.implicitHeight + 26 * s),
         inbox:     () => Qt.size(inboxW, inbox.implicitHeight + 26 * s),
         battery:   () => Qt.size(batteryW, battery.implicitHeight + 26 * s),
@@ -835,18 +811,6 @@ Item {
         open: pill.clipboardOpen
         morphCloseness: pill.morphCloseness
         shown: pill.displayedSurface === "clipboard"
-        openProgress: pill.openProgress
-        openW: pill.openW
-        openH: pill.openH
-        onRequestClose: pill.requestClose()
-    }
-
-    Wallpaper {
-        id: wall
-        s: pill.s
-        open: pill.wallpaperOpen
-        morphCloseness: pill.morphCloseness
-        shown: pill.displayedSurface === "wallpaper"
         openProgress: pill.openProgress
         openW: pill.openW
         openH: pill.openH

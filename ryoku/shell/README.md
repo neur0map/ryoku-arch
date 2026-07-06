@@ -52,7 +52,7 @@ socket and one place that knows how to talk to the components:
 | Command | Effect |
 |---|---|
 | `ryoku-shell daemon` | start the shell: supervise `pill`, bring up clipboard history and the wallpaper, then serve the socket |
-| `launcher`, `clipboard`, `link`, `inbox`, `wallpaper-picker`, `mixer`, `calendar`, `power`, `battery`, `media`, `peek`, `hide` | toggle a pill surface on the active monitor |
+| `launcher`, `clipboard`, `link`, `inbox`, `mixer`, `calendar`, `power`, `battery`, `media`, `peek`, `hide` | toggle a pill surface on the active monitor |
 | `lock` | lock the screen with qylock (the shell ships no lock of its own) |
 | `wallpaper [next\|init\|set <path>]` | change the wallpaper and retheme |
 | `voice` | tap ``Super+` `` to toggle Handy transcription and the live mic wave surface (tap again to stop) |

@@ -23,5 +23,4 @@ toolkit
 utilities
 voice
 wallpaper
-wallpaper-picker
 workspaces

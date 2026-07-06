@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Changed
+- **The wallpaper picker is a full-screen switcher now.** Super+C opens a
+  Super+Tab-style overlay instead of the pill filmstrip: images and live video
+  wallpapers share one grid, auto-sorted into colour groups. A swatch strip
+  filters by colour and an All/Images/Live row by kind; arrows or hover move
+  the pick, a click or Enter sets it, Esc closes, and it opens centred on the
+  wallpaper already on screen. Live cells preview muted on the pick. The pill's
+  wallpaper surface and the old thumbnail script are gone; the switcher keeps
+  its own thumbnail and dominant-colour index under `~/.cache/ryoku-wp-thumbs`.
 - **The island's top gap is closable.** The strip reserved under the fused
   island now tracks the compact pill instead of the legacy height knob (the
   old reserve left a fat empty band above the windows), and a new
