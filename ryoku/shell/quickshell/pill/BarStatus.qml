@@ -7,33 +7,25 @@ import "Singletons"
 // network, bluetooth, battery and notifications, tinted like caelestia's
 // m3secondary rail. `vertical` stacks the glyphs.
 //
-// each glyph owns its interaction the way the reference does: hovering an icon
-// reveals THAT icon's popout (the quick control), a click opens its deep
-// surface. hoverName / hoverCenter report which popout the host should open and
-// where, so a popout emerges from its own icon (per-icon ownership, caelestia's
-// currentName / currentCenter). icons that own no popout (bell, keep-awake)
-// leave hoverName untouched, so hovering them opens nothing.
+// each glyph opens its own popout on CLICK, positioned at the glyph: the popout
+// grows from the bar edge at the icon (down from a top bar, up from a bottom
+// bar), like the reference. requestPopout carries the popout name + the icon's
+// along-axis centre in window coords (the popout's own coordinate space). the
+// bell has no popout yet, so it still opens the inbox surface.
 Grid {
     id: status
 
     property real s: 1
     property bool vertical: false
 
+    signal requestPopout(string name, real center)
     signal requestSurface(string name)
 
-    // which popout the hovered icon owns, and that icon's along-axis centre in
-    // window coords (the popout's own coordinate space).
-    property string hoverName: ""
-    property real hoverCenter: 0
-
-    function setHover(on, name, item) {
-        if (on) {
-            hoverName = name;
-            const p = item.mapToItem(null, item.width / 2, item.height / 2);
-            hoverCenter = vertical ? p.y : p.x;
-        } else if (hoverName === name) {
-            hoverName = "";
-        }
+    // open a named popout anchored at an icon: report the icon's centre along
+    // the bar axis (x on a top/bottom bar, y on a side bar) in window coords.
+    function open(name, item) {
+        const p = item.mapToItem(null, item.width / 2, item.height / 2);
+        requestPopout(name, vertical ? p.y : p.x);
     }
 
     readonly property real glyphPx: 14 * s
@@ -44,7 +36,7 @@ Grid {
     verticalItemAlignment: Grid.AlignVCenter
     horizontalItemAlignment: Grid.AlignHCenter
 
-    // volume: owns the mixer. hover reveals it; a click toggles mute.
+    // volume: click opens the mixer.
     Item {
         id: volIcon
         width: status.glyphPx + 4 * status.s
@@ -65,14 +57,12 @@ Grid {
         }
         MouseArea {
             anchors.fill: parent
-            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onContainsMouseChanged: status.setHover(containsMouse, "mixer", volIcon)
-            onClicked: if (volIcon.sink && volIcon.sink.audio) volIcon.sink.audio.muted = !volIcon.sink.audio.muted
+            onClicked: status.open("mixer", volIcon)
         }
     }
 
-    // network: wifi strength or ethernet. hover -> network popout, click -> Link.
+    // network: click opens the network popout.
     Item {
         id: netIcon
         width: status.glyphPx + 4 * status.s
@@ -97,14 +87,12 @@ Grid {
         }
         MouseArea {
             anchors.fill: parent
-            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onContainsMouseChanged: status.setHover(containsMouse, "network", netIcon)
-            onClicked: status.requestSurface("link")
+            onClicked: status.open("network", netIcon)
         }
     }
 
-    // bluetooth: owns the bluetooth popout. hover -> popout, click -> Link.
+    // bluetooth: click opens the bluetooth popout.
     Item {
         id: btIcon
         visible: Bluetooth.defaultAdapter !== null
@@ -124,15 +112,12 @@ Grid {
         }
         MouseArea {
             anchors.fill: parent
-            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onContainsMouseChanged: status.setHover(containsMouse, "bluetooth", btIcon)
-            onClicked: status.requestSurface("link")
+            onClicked: status.open("bluetooth", btIcon)
         }
     }
 
-    // battery: the Material cell family, filled by charge, accent when low.
-    // hover -> battery popout, click -> battery surface.
+    // battery: click opens the battery popout.
     Item {
         id: battIcon
         visible: Battery.present
@@ -174,15 +159,13 @@ Grid {
         }
         MouseArea {
             anchors.fill: parent
-            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onContainsMouseChanged: status.setHover(containsMouse, "battery", battIcon)
-            onClicked: status.requestSurface("battery")
+            onClicked: status.open("battery", battIcon)
         }
     }
 
     // notifications: the bell, filled with an accent tint while something waits.
-    // surface only, no hover popout.
+    // still opens the inbox surface (no bell popout yet).
     Item {
         width: status.glyphPx + 4 * status.s
         height: status.glyphPx + 4 * status.s

@@ -53,15 +53,15 @@ Item {
     // popout emerges from the module. this is caelestia's per-module ownership
     // (currentName/currentCenter) with a fixed module->popout mapping.
     property bool triggerHovered: false
-    // hold the along-centre from when the trigger fired, so the body stays put
-    // when the pointer leaves the owning module for the body: the module's own
-    // hover clears, but the popout must not snap to a re-derived centre. live
-    // while triggered, held otherwise. (both handlers so it captures regardless
-    // of whether triggerHovered or alongCenter settles first.)
+    // hold the along-centre while the popout is open, so it stays put when the
+    // pointer leaves the owning icon for the body. it's live while the icon is
+    // the trigger (hover) or the popout is pinned (a click); held otherwise so
+    // the close animation retracts at the icon, not a re-derived centre.
     property real heldAlong: -1
-    onAlongCenterChanged: if (triggerHovered) heldAlong = alongCenter
+    onAlongCenterChanged: if (triggerHovered || pinned) heldAlong = alongCenter
     onTriggerHoveredChanged: if (triggerHovered) heldAlong = alongCenter
-    readonly property real effectiveAlong: triggerHovered ? alongCenter : heldAlong
+    onPinnedChanged: if (pinned) heldAlong = alongCenter
+    readonly property real effectiveAlong: (triggerHovered || pinned) ? alongCenter : heldAlong
 
     readonly property bool atLeft: edge === "left"
     readonly property bool atRight: edge === "right"

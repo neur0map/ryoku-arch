@@ -41,6 +41,10 @@ ShellRoot {
     // monitor. hover is the usual trigger; this is the keybind path.
     property string popout: ""
     property string popoutMon: ""
+    // along-axis centre of the bar icon that opened the current popout (window
+    // coords), so the popout blob grows from that icon on whatever edge the bar
+    // sits. set by togglePopoutAt from the bar's click.
+    property real popoutCenter: 0
 
     function refresh() {
         Hyprland.refreshMonitors();
@@ -228,6 +232,13 @@ ShellRoot {
         }
         root.popout = name;
         root.popoutMon = mon;
+    }
+
+    // open a popout at a bar icon: record the icon's along-axis centre, then pin
+    // the popout (toggle). the blob grows from the icon on any bar edge.
+    function togglePopoutAt(mon, name, center) {
+        root.popoutCenter = center;
+        root.togglePopout(mon, name);
     }
 
     // open the Hub on its Updates section. the update island is an entry
@@ -699,7 +710,7 @@ ShellRoot {
                     surfaceOpen: overlay.barTop && (overlay.surfaceOpen || pillBlob.visible)
                     trayWindow: overlay
                     onCalendarRequested: root.toggleSurface(overlay.modelData.name, "calendar")
-                    onPowerRequested: root.togglePopout(overlay.modelData.name, "power")
+                    onPopoutRequested: (name, center) => root.togglePopoutAt(overlay.modelData.name, name, center)
                     onSurfaceRequested: (name) => root.toggleSurface(overlay.modelData.name, name)
                 }
 
@@ -768,13 +779,12 @@ ShellRoot {
                 Popout {
                     id: mixerPop
                     group: blobGroup
-                    frameThickness: overlay.vBarThick
+                    frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.mixerEdge
-                    hoverOpen: !overlay.barVertical
-                    triggerHovered: overlay.barVertical && topBar.statusHoverName === "mixer"
-                    alongCenter: overlay.barVertical ? topBar.statusHoverCenter : -1
+                    edge: overlay.barPos
+                    hoverOpen: false
+                    alongCenter: root.popoutCenter
                     s: overlay.s
                     active: !overlay.surfaceOpen && !overlay.monFullscreen
                     pinned: root.popout === "mixer" && root.popoutMon === overlay.modelData.name
@@ -794,12 +804,12 @@ ShellRoot {
                 Popout {
                     id: powerPop
                     group: blobGroup
-                    frameThickness: overlay.vBarThick
+                    frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.powerEdge
-                    alongCenter: overlay.barVertical ? topBar.powerCenter : -1
-                    hoverOpen: !overlay.barVertical
+                    edge: overlay.barPos
+                    alongCenter: root.popoutCenter
+                    hoverOpen: false
                     s: overlay.s
                     active: !overlay.surfaceOpen && !overlay.monFullscreen
                     pinned: root.popout === "power" && root.popoutMon === overlay.modelData.name
@@ -818,15 +828,14 @@ ShellRoot {
                 Popout {
                     id: networkPop
                     group: blobGroup
-                    frameThickness: overlay.vBarThick
+                    frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.mixerEdge
+                    edge: overlay.barPos
                     hoverOpen: false
-                    triggerHovered: overlay.barVertical && topBar.statusHoverName === "network"
-                    alongCenter: overlay.barVertical ? topBar.statusHoverCenter : -1
+                    alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: overlay.barVertical && !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
                     pinned: root.popout === "network" && root.popoutMon === overlay.modelData.name
                     openW: netContent.implicitWidth
                     openH: netContent.implicitHeight
@@ -841,15 +850,14 @@ ShellRoot {
                 Popout {
                     id: batteryPop
                     group: blobGroup
-                    frameThickness: overlay.vBarThick
+                    frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.mixerEdge
+                    edge: overlay.barPos
                     hoverOpen: false
-                    triggerHovered: overlay.barVertical && topBar.statusHoverName === "battery"
-                    alongCenter: overlay.barVertical ? topBar.statusHoverCenter : -1
+                    alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: overlay.barVertical && !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
                     pinned: root.popout === "battery" && root.popoutMon === overlay.modelData.name
                     openW: batContent.implicitWidth
                     openH: batContent.implicitHeight
@@ -864,15 +872,14 @@ ShellRoot {
                 Popout {
                     id: bluetoothPop
                     group: blobGroup
-                    frameThickness: overlay.vBarThick
+                    frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.mixerEdge
+                    edge: overlay.barPos
                     hoverOpen: false
-                    triggerHovered: overlay.barVertical && topBar.statusHoverName === "bluetooth"
-                    alongCenter: overlay.barVertical ? topBar.statusHoverCenter : -1
+                    alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: overlay.barVertical && !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
                     pinned: root.popout === "bluetooth" && root.popoutMon === overlay.modelData.name
                     openW: btContent.implicitWidth
                     openH: btContent.implicitHeight
@@ -882,6 +889,12 @@ ShellRoot {
                         s: overlay.s
                         open: bluetoothPop.prog > 0.5
                     }
+                }
+
+                HyprlandFocusGrab {
+                    active: root.popout !== "" && root.popoutMon === overlay.modelData.name
+                    windows: [overlay]
+                    onCleared: if (root.popoutMon === overlay.modelData.name) root.popout = ""
                 }
 
                 // plugin frame popouts: every enabled plugin whose host is

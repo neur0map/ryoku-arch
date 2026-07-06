@@ -31,24 +31,12 @@ Item {
     // fades under it so the two never overprint.
     property bool surfaceOpen: false
 
+    signal popoutRequested(string name, real center)
     signal calendarRequested()
-    signal powerRequested()
     signal surfaceRequested(string name)
 
     readonly property bool vertical: position === "left" || position === "right"
     readonly property real moduleSpan: Math.round(bar.band * 0.76)
-
-    // along-axis centre of the vertical power module. a side bar fills the
-    // overlay strip (bar coords == overlay coords), so the power popout can
-    // emerge right at the button instead of the frame's mid-edge.
-    readonly property real powerCenter: vertical ? height - 20 * s - vPowerMod.height / 2 : 0
-
-    // the status cluster owns the icon popouts: each icon reports which popout
-    // it owns (mixer / network / battery / bluetooth) and its own centre (window
-    // coords), so a popout emerges from its icon. one icon is hovered at a time,
-    // so one popout opens; hovering an icon that owns none opens nothing.
-    readonly property string statusHoverName: vertical ? vStatus.hoverName : ""
-    readonly property real statusHoverCenter: vertical ? vStatus.hoverCenter : 0
 
     property int seedWsId: -1
     readonly property int activeWsId: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : seedWsId
@@ -178,6 +166,7 @@ Item {
 
                 BarStatus {
                     s: bar.s
+                    onRequestPopout: (name, center) => bar.popoutRequested(name, center)
                     onRequestSurface: (name) => bar.surfaceRequested(name)
                 }
             }
@@ -199,11 +188,12 @@ Item {
             }
 
             BarModule {
+                id: hPowerMod
                 anchors.verticalCenter: parent.verticalCenter
                 s: bar.s
                 height: bar.moduleSpan
                 padX: 10 * bar.s
-                onTapped: bar.powerRequested()
+                onTapped: bar.popoutRequested("power", hPowerMod.mapToItem(null, hPowerMod.width / 2, hPowerMod.height / 2).x)
 
                 MaterialIcon {
                     text: "power_settings_new"
@@ -324,6 +314,7 @@ Item {
                     id: vStatus
                     s: bar.s
                     vertical: true
+                    onRequestPopout: (name, center) => bar.popoutRequested(name, center)
                     onRequestSurface: (name) => bar.surfaceRequested(name)
                 }
             }
@@ -335,7 +326,7 @@ Item {
                 vertical: true
                 width: bar.moduleSpan
                 padY: 10 * bar.s
-                onTapped: bar.powerRequested()
+                onTapped: bar.popoutRequested("power", vPowerMod.mapToItem(null, vPowerMod.width / 2, vPowerMod.height / 2).y)
 
                 MaterialIcon {
                     text: "power_settings_new"
