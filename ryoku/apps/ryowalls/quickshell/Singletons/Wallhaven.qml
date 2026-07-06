@@ -97,7 +97,7 @@ Singleton {
     function setLibraryType(t) {
         if (libraryType === t) return;
         libraryType = t;
-        if (source === "lib") { page = 1; reload(); }
+        if (source === "lib" || source === "local") { page = 1; reload(); }
     }
     // accepts "owner/repo", "owner/repo@branch", "owner/repo/sub/dir", or a github URL.
     function addLibrary(input) {
@@ -128,11 +128,13 @@ Singleton {
     function setSource(s) {
         if (source === s) return;
         source = s;
-        results = []; selected = null; error = ""; page = 1;
+        if (s === "local") libraryType = "all";
+        results = []; selected = null; error = ""; page = 1; localSelection = [];
         reload();
     }
     function reload() {
         if (source === "live") loadLive();
+        else if (source === "local") loadLocal();
         else search(query, 1, source === "wallhaven" ? topRange : "");
     }
     function loadLive() {
@@ -145,6 +147,36 @@ Singleton {
     function importLive(url) {
         importProc.command = ["ryowalls", "live-import", ("" + url).replace(/^file:\/\//, "")];
         importProc.running = true;
+    }
+
+    // ---- local wallpapers: browse and prune what is already on disk ---------
+    function loadLocal() {
+        searching = true; error = "";
+        var args = ["ryowalls", "local-list", "--type", libraryType];
+        if (query.length > 0) args = args.concat(["--query", query]);
+        searchProc.running = false;
+        searchProc.command = args;
+        searchProc.running = true;
+    }
+    property var localSelection: []
+    function localSelected(item) { return !!item && root.localSelection.indexOf(item.id) >= 0; }
+    function toggleLocalSelect(item) {
+        if (!item) return;
+        var s = root.localSelection.slice();
+        var i = s.indexOf(item.id);
+        if (i >= 0) s.splice(i, 1); else s.push(item.id);
+        root.localSelection = s;
+    }
+    function selectAllLocal() { root.localSelection = root.results.map(r => r.id); }
+    function clearLocalSelection() { root.localSelection = []; }
+    function removeLocalSelected() {
+        if (root.localSelection.length === 0) return;
+        rmProc.command = ["ryowalls", "local-remove"].concat(root.localSelection);
+        rmProc.running = true;
+    }
+    Process {
+        id: rmProc
+        onExited: { root.localSelection = []; if (root.source === "local") root.loadLocal(); }
     }
 
     // safe palette read: index into the 16 colours with a fallback.
@@ -207,6 +239,7 @@ Singleton {
         error = "";
         _searchErr = "";
         searching = true;
+        if (source === "local") { loadLocal(); return; }
         var args;
         if (source === "moewalls") {
             args = ["moewalls-search", "--page", "" + page, "--json"];
@@ -289,6 +322,7 @@ Singleton {
         if (!it || busy)
             return;
         if (source === "live") { setPath(it.video); return; }
+        if (source === "local") { setPath(it.video && ("" + it.video).length > 0 ? it.video : it.path); return; }
         busy = true;
         status = (cfg.upscale && root.upscaler) ? "Downloading + enhancing" : "Downloading";
         _dlPath = "";

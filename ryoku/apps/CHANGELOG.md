@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- `ryowalls/`: a **Local** source browses the wallpapers already on the machine,
+  images from `~/Pictures/Wallpapers` and live clips from `~/Pictures/livewalls`,
+  in one grid with the same All/Images/Live filter the library source uses.
+  Setting one is instant (no re-download), and each tile carries a selection
+  checkbox so saved wallpapers can be pruned one at a time or in bulk: Select all,
+  then Delete behind a confirm. The engine gains `local-list` and a `local-remove`
+  that only ever unlinks files under those two folders (`App.qml`, `WallCell.qml`,
+  `WallGrid.qml`, `Singletons/Wallhaven.qml`, and the `ryowalls` engine).
 - `fish/conf.d/rashin.fish` the terminal weave for Ryoku Rashin's `rashin`
   command: an interactive wrapper that drops a proposed command on the prompt,
   an **Alt+R** binding that transmutes the current command line into a

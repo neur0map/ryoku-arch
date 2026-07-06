@@ -13,6 +13,10 @@ Rectangle {
     property bool active: false
     signal picked()
     signal opened()
+    // Local source: mark this tile for deletion without stealing the pick click.
+    property bool selectable: false
+    property bool selected: false
+    signal toggledSelect()
 
     readonly property bool isVideo: !!(cell.item && cell.item.video && ("" + cell.item.video).length > 0)
     readonly property bool hasThumb: !!(cell.item && cell.item.thumb && ("" + cell.item.thumb).length > 0)
@@ -77,6 +81,15 @@ Rectangle {
         visible: ma.containsMouse && !cell.active
         color: Qt.rgba(0, 0, 0, 0.3)
     }
+    // marked-for-delete wash.
+    Rectangle {
+        visible: cell.selected
+        anchors.fill: parent
+        radius: parent.radius
+        color: Qt.alpha(Theme.ember, 0.14)
+        border.width: 1.5
+        border.color: Theme.ember
+    }
 
     // resolution badge; amber warns a low-res clip will look soft upscaled.
     Rectangle {
@@ -132,5 +145,20 @@ Rectangle {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
         onClicked: (e) => { if (e.button === Qt.RightButton) cell.opened(); else cell.picked(); }
+    }
+
+    // selection checkbox (Local source): sits above the pick MouseArea so a tap
+    // here toggles the mark instead of previewing.
+    Rectangle {
+        visible: cell.selectable
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.margins: 6
+        width: 20; height: 20; radius: 5
+        color: cell.selected ? Theme.ember : Qt.rgba(0, 0, 0, 0.5)
+        border.width: 1
+        border.color: cell.selected ? Theme.ember : Qt.alpha(Theme.cream, 0.7)
+        Icon { anchors.centerIn: parent; visible: cell.selected; name: "check"; size: 12; weight: 2.2; tint: Theme.onAccent }
+        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: cell.toggledSelect() }
     }
 }

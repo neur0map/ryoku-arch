@@ -37,6 +37,9 @@ Item {
                 active: Wallhaven.selected && Wallhaven.selected.id === parent.modelData.id
                 onPicked: Wallhaven.select(parent.modelData)
                 onOpened: Wallhaven.openWeb(parent.modelData)
+                selectable: Wallhaven.source === "local"
+                selected: Wallhaven.localSelection.indexOf(parent.modelData.id) >= 0
+                onToggledSelect: Wallhaven.toggleLocalSelect(parent.modelData)
             }
         }
     }

@@ -32,6 +32,7 @@ Rectangle {
     readonly property var builtins: [
         { key: "wallhaven", label: "Wallhaven" },
         { key: "live", label: "Live" },
+        { key: "local", label: "Local" },
         { key: "moewalls", label: "MoeWalls" },
         { key: "motionbgs", label: "motionbgs" },
         { key: "ryoku", label: "Ryoku" }
@@ -187,10 +188,11 @@ Rectangle {
                     anchors.fill: parent
                     visible: input.text.length === 0
                     verticalAlignment: Text.AlignVCenter
-                    text: Wallhaven.source === "moewalls" ? "Search MoeWalls anime"
+                    text: Wallhaven.source === "local" ? "Search saved wallpapers"
+                        : (Wallhaven.source === "moewalls" ? "Search MoeWalls anime"
                         : (Wallhaven.source === "motionbgs" ? "Search motionbgs"
                         : (Wallhaven.source === "ryoku" ? "Search Ryoku wallpapers"
-                        : (Wallhaven.source === "lib" ? "Search " + Wallhaven.libraryName : "Search wallhaven")))
+                        : (Wallhaven.source === "lib" ? "Search " + Wallhaven.libraryName : "Search wallhaven"))))
                     color: Theme.faint
                     font: input.font
                 }
@@ -227,7 +229,7 @@ Rectangle {
                 anchors.leftMargin: 14
                 anchors.verticalCenter: parent.verticalCenter
                 segW: 74
-                visible: Wallhaven.source === "lib"
+                visible: Wallhaven.source === "lib" || Wallhaven.source === "local"
                 model: [{ key: "all", label: "All" }, { key: "images", label: "Images" }, { key: "live", label: "Live" }]
                 current: Wallhaven.libraryType
                 onSelected: (k) => Wallhaven.setLibraryType(k)
@@ -286,7 +288,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
-                visible: Wallhaven.source !== "live" && Wallhaven.source !== "ryoku"
+                visible: Wallhaven.source !== "live" && Wallhaven.source !== "ryoku" && Wallhaven.source !== "local"
                 IconBtn { name: "chevron-left"; dim: Wallhaven.page <= 1 || Wallhaven.searching; onClicked: Wallhaven.prevPage() }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
@@ -297,6 +299,25 @@ Rectangle {
                     Behavior on color { ColorAnimation { duration: Theme.quick } }
                 }
                 IconBtn { name: "chevron-right"; dim: Wallhaven.searching; onClicked: Wallhaven.nextPage() }
+            }
+            // Local source: bulk-select + delete controls.
+            Row {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 8
+                visible: Wallhaven.source === "local"
+                HubButton {
+                    label: Wallhaven.localSelection.length > 0 ? "Clear" : "Select all"
+                    icon: Wallhaven.localSelection.length > 0 ? "close" : "check"
+                    onClicked: Wallhaven.localSelection.length > 0 ? Wallhaven.clearLocalSelection() : Wallhaven.selectAllLocal()
+                }
+                HubButton {
+                    visible: Wallhaven.localSelection.length > 0
+                    primary: true
+                    icon: "trash"
+                    label: "Delete " + Wallhaven.localSelection.length
+                    onClicked: confirmDelete.open = true
+                }
             }
         }
     }
@@ -379,11 +400,12 @@ Rectangle {
         Text {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            text: Wallhaven.source === "live" ? "~/Pictures/livewalls"
+            text: Wallhaven.source === "local" ? "~/Pictures"
+                : (Wallhaven.source === "live" ? "~/Pictures/livewalls"
                 : (Wallhaven.source === "moewalls" ? "moewalls.com"
                 : (Wallhaven.source === "motionbgs" ? "motionbgs.com"
                 : (Wallhaven.source === "ryoku" ? "ryoku-extras"
-                : (Wallhaven.source === "lib" ? "github.com/" + Wallhaven.libraryRepo : "wallhaven.cc"))))
+                : (Wallhaven.source === "lib" ? "github.com/" + Wallhaven.libraryRepo : "wallhaven.cc")))))
             color: Theme.faint
             font.family: Theme.mono
             font.pixelSize: 11
@@ -483,6 +505,50 @@ Rectangle {
         title: "Add a live wallpaper"
         nameFilters: ["Video (*.mp4 *.webm *.mkv *.mov)"]
         onAccepted: Wallhaven.importLive(selectedFile)
+    }
+
+    // confirm before deleting local wallpapers off disk.
+    Item {
+        id: confirmDelete
+        anchors.fill: parent
+        property bool open: false
+        visible: opacity > 0
+        opacity: open ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+        Rectangle {
+            anchors.fill: parent
+            color: Qt.rgba(0, 0, 0, 0.55)
+            TapHandler { onTapped: if (!cCardHover.hovered) confirmDelete.open = false }
+        }
+        Rectangle {
+            anchors.centerIn: parent
+            width: 380
+            height: cCol.implicitHeight + 40
+            radius: Theme.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Theme.cardTop }
+                GradientStop { position: 1.0; color: Theme.cardBot }
+            }
+            border.width: 1
+            border.color: Theme.line
+            HoverHandler { id: cCardHover }
+            Column {
+                id: cCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 20
+                spacing: 16
+                Text { text: "Delete wallpapers"; color: Theme.bright; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Text { width: parent.width; wrapMode: Text.WordWrap; text: "Remove " + Wallhaven.localSelection.length + " wallpaper(s) from disk? This cannot be undone."; color: Theme.dim; font.family: Theme.font; font.pixelSize: 12 }
+                Row {
+                    anchors.right: parent.right
+                    spacing: 10
+                    HubButton { label: "Cancel"; onClicked: confirmDelete.open = false }
+                    HubButton { primary: true; icon: "trash"; label: "Delete"; onClicked: { Wallhaven.removeLocalSelected(); confirmDelete.open = false; } }
+                }
+            }
+        }
     }
 
     component SrcRow: Rectangle {

@@ -132,7 +132,7 @@ palette)
 	: "${url:?image url required}"
 	tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 	img="$tmp/img"
-	curl -fsSL "${auth[@]}" "$url" -o "$img"
+	if [ -f "$url" ]; then cp -- "$url" "$img"; else curl -fsSL "${auth[@]}" "$url" -o "$img"; fi
 	# Skip templates, sequences and hooks, cache in the scratch dir: generating
 	# the scheme never disturbs the running desktop. Tune flags mirror the apply.
 	wargs=(run "$img" -T -s -q --no-hooks --print-scheme)
@@ -377,6 +377,42 @@ upscale-video)
 	# background worker for the video enhance path (launched by upscale_file).
 	upscale_video "${1:?video path required}"
 	;;
+local-list)
+	# Wallpapers already on this machine: images in ~/Pictures/Wallpapers and live
+	# clips in ~/Pictures/livewalls, in one grid so you can reset or prune them.
+	# Newest first. --type all|images|live narrows, --query filters by filename.
+	ltype="all"; query=""
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		--type) ltype="$2"; shift 2 ;;
+		--query) query="$2"; shift 2 ;;
+		--json) shift ;;
+		*) shift ;;
+		esac
+	done
+	ql="$(printf '%s' "$query" | tr '[:upper:]' '[:lower:]')"
+	{
+		[ "$ltype" = live ] || find "$HOME/Pictures/Wallpapers" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -printf '%T@\timage\t%p\n' 2>/dev/null
+		[ "$ltype" = images ] || find "$HOME/Pictures/livewalls" -maxdepth 1 -type f \( -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov' \) -printf '%T@\tvideo\t%p\n' 2>/dev/null
+	} | sort -rn | cut -f2- | while IFS="$(printf '\t')" read -r kind f; do
+		n="$(basename "$f")"
+		[ -z "$ql" ] || case "$(printf '%s' "$n" | tr '[:upper:]' '[:lower:]')" in *"$ql"*) ;; *) continue ;; esac
+		if [ "$kind" = video ]; then
+			jq -cn --arg p "$f" --arg n "$n" '{id:$p, thumb:"", video:$p, resolution:"", name:$n}'
+		else
+			jq -cn --arg p "$f" --arg n "$n" '{id:$p, path:$p, thumb:$p, large:$p, resolution:"", name:$n}'
+		fi
+	done
+	;;
+local-remove)
+	# Delete on-disk wallpapers the UI picked. Guard hard: only unlink files under
+	# ~/Pictures/Wallpapers or ~/Pictures/livewalls, never anything else.
+	for f in "$@"; do
+		case "$f" in
+		"$HOME/Pictures/Wallpapers/"* | "$HOME/Pictures/livewalls/"*) [ -f "$f" ] && rm -f -- "$f" ;;
+		esac
+	done
+	;;
 caps)
 	# what enhancement the machine can do, so the UI offers, installs, or hides.
 	# vulkan = a GPU that can run it; upscaler = the ncnn tool installed (one tool
@@ -387,7 +423,7 @@ caps)
 	jq -cn --argjson vk "$vk" --argjson up "$up" '{vulkan:$vk,upscaler:$up}'
 	;;
 *)
-	echo "usage: ryowalls search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url> [flags] | moewalls-search [--query <q>] [--page <n>] --json | moewalls-download <id> <url> | extras-search [--query <q>] --json | extras-download <id> <url> | live-list | live-import <src>" >&2
+	echo "usage: ryowalls search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url> [flags] | moewalls-search [--query <q>] [--page <n>] --json | moewalls-download <id> <url> | extras-search [--query <q>] --json | extras-download <id> <url> | live-list | live-import <src> | local-list [--type <t>] [--query <q>] | local-remove <path>..." >&2
 	exit 2
 	;;
 esac
