@@ -486,9 +486,8 @@ ShellRoot {
             // band is always present, so nothing hidden pops).
             readonly property bool idleShown: styleNone ? false : !autohide
             readonly property bool islandShown: !monFullscreen
-                && (barTop
-                    ? (pill.surfaceOpen || pill.toastActive || pill.osdActive)
-                    : (idleShown || pill.surfaceOpen || pill.held || (autohide && pill.hoverLatch)))
+                && (pill.surfaceOpen || pill.toastActive || pill.osdActive
+                    || (!Config.barEnabled && (idleShown || pill.held || (autohide && pill.hoverLatch))))
             // auto-hide reveal trigger: thin strip under the top frame,
             // hover brings the hidden island down.
             readonly property real revealTrigger: pillTop + 14 * s
