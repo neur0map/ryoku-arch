@@ -663,7 +663,6 @@ ShellRoot {
                     height: overlay.barMaskH
                     s: overlay.s
                     position: overlay.barPos
-                    frameEdge: overlay.frameTopVisible
                     band: overlay.barBand
                     // hold the clock away until the drop panel has fully
                     // melted back into the band, not just until the surface
@@ -725,7 +724,7 @@ ShellRoot {
                     transitions: [
                         Transition {
                             to: "shown"
-                            NumberAnimation { property: "reveal"; duration: Motion.morph; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.morphCurve }
+                            NumberAnimation { property: "reveal"; duration: Motion.emphasized; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.emphasizedCurve }
                         },
                         Transition {
                             from: "shown"

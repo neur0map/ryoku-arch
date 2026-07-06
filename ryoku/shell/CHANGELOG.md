@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### Changed
+- **The bar skins are the references now, not our riff on them.** After fair
+  pushback that the plate slabs looked bad on round shells, the two bar
+  styles are carried one-to-one from the credited shells: `noctalia` (fully
+  rounded capsule modules on the band, dot workspaces whose active pill
+  widens into an accent lozenge with its number, the stacked clock that
+  folds to one line on thin bands) and `caelestia` (the numbered workspace
+  cell strip inside one container pill with the sliding indicator and its
+  stretchy leading/trailing edges, the calendar-glyph clock, the column
+  layout on side bars). Iconography moved to Material Symbols Rounded
+  (`ttf-material-symbols-variable`, now in the base set) with the caelestia
+  hover/press feel on every module: an 8% overlay and a soft ripple from the
+  press point, and the Material 3 expressive curve family drives the module,
+  island and reveal motion. Content centres across the full band, so modules
+  no longer crowded the bar's bottom edge.
+- **The resting island hugs its content.** One line: the clock beside the
+  date (or the sounding track with a pulsing eq), workspace ticks
+  underneath, and nothing else; the big half-empty slab is gone, and the
+  Width/Height knobs went with it (the hub notes the island sizes itself).
+- The battery readout works on AC again everywhere (bar, island hover, the
+  battery surface): UPower's synthetic display device drops off some
+  versions once the cell sits full, so the Battery singleton now reads the
+  physical battery. Wifi signal in the bar's status cluster reads the active
+  connection's strength instead of an in-use marker nmcli omits without a
+  rescan.
+
 ### Added
 - **The bar moves and wears two skins.** `barPosition` places the band on any
   frame edge: top, bottom, left, or right. The chosen edge swells and claims

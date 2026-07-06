@@ -116,9 +116,11 @@ Each surface is its own directory under `quickshell/`, each component its own
   reshapes between states). This is the reference for the project's motion. Its
   default face is the module bar riding one frame edge (the 力 seal, the
   sliding workspace strip, clock, now-playing, status glyphs, tray), placeable
-  top, bottom, left, or right, in two skins: sharp washi plates or fully
-  rounded capsules. A top bar hides the resting island; the other edges keep
-  it. Ryoku Settings can turn the bar off for the three pure island styles
+  top, bottom, left, or right, in two skins carried one-to-one from the
+  credited reference shells: Noctalia (capsule modules, dot workspaces, the
+  stacked clock) and Caelestia (the numbered cell strip with the sliding
+  indicator, Material Symbols iconography, the column layout on side bars).
+  A top bar hides the resting island; the other edges keep it. Ryoku Settings can turn the bar off for the three pure island styles
   (the classic fused island, a floating pill, or none, each optionally
   revealed on hover). The frame is the same in all.
 - **launcher** the Super-triggered app launcher and command palette, with a

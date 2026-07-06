@@ -72,8 +72,11 @@ Item {
     readonly property bool toastActive: Notifs.popups.length > 0
     readonly property bool osdActive: osd.flashing
 
-    readonly property real restW: Config.islandWidth * s
-    readonly property real restH: Config.islandHeight * s
+    // the resting island hugs its content: a short, wide lozenge. these are
+    // design constants, not knobs; a big empty pill for a small clock was the
+    // old look's failure. (islandWidth/Height in the config are legacy keys.)
+    readonly property real restW: restCol.implicitWidth + 26 * s
+    readonly property real restH: restCol.implicitHeight + 13 * s
     readonly property real hoverPad: 20 * s
     readonly property real hoverW: hoverRow.implicitWidth + 2 * hoverPad
     readonly property real hoverH: 58 * s
@@ -194,7 +197,7 @@ Item {
 
     readonly property size targetSize: {
         const f = surfaceSize[mode];
-        return f ? f() : Qt.size(Math.max(restW, restCol.implicitWidth + 32 * s), restH);
+        return f ? f() : Qt.size(restW, restH);
     }
     readonly property real targetW: targetSize.width
     readonly property real targetH: targetSize.height
@@ -265,9 +268,9 @@ Item {
         NumberAnimation { target: pill; property: "kanjiFlash"; to: 0; duration: 320; easing.type: Easing.OutCubic }
     }
 
-    Behavior on width { NumberAnimation { duration: Motion.morph; easing.type: Motion.easeMorph; easing.bezierCurve: Motion.morphCurve } }
-    Behavior on height { NumberAnimation { duration: Motion.morph; easing.type: Motion.easeMorph; easing.bezierCurve: Motion.morphCurve } }
-    Behavior on morphRadius { NumberAnimation { duration: Motion.morph; easing.type: Motion.easeMorph; easing.bezierCurve: Motion.morphCurve } }
+    Behavior on width { NumberAnimation { duration: Motion.emphasized; easing.type: Motion.easeMorph; easing.bezierCurve: Motion.emphasizedCurve } }
+    Behavior on height { NumberAnimation { duration: Motion.emphasized; easing.type: Motion.easeMorph; easing.bezierCurve: Motion.emphasizedCurve } }
+    Behavior on morphRadius { NumberAnimation { duration: Motion.emphasized; easing.type: Motion.easeMorph; easing.bezierCurve: Motion.emphasizedCurve } }
 
     function insideRounded(px, py, w, h, r) {
         if (px < 0 || py < 0 || px > w || py > h)
@@ -392,68 +395,63 @@ Item {
         Column {
             id: restCol
             anchors.centerIn: parent
-            spacing: 3 * pill.s
+            spacing: 2.5 * pill.s
 
-            // the clock hero: tabular HH:MM around the vermilion colon.
+            // one line: the clock beside its context (the date, or the
+            // sounding track with a tiny eq), ticks underneath. short and
+            // wide, like a handset island, not the old stacked slab.
             Row {
-                id: restClock
                 anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 0
+                spacing: 7 * pill.s
+
+                Row {
+                    id: restClock
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 0
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: clock.hh
+                        color: Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 13.5 * pill.s
+                        font.weight: Font.Bold
+                        font.features: { "tnum": 1 }
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: ":"
+                        color: Theme.brand
+                        font.family: Theme.font
+                        font.pixelSize: 13.5 * pill.s
+                        font.weight: Font.Bold
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: clock.mm
+                        color: Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 13.5 * pill.s
+                        font.weight: Font.Bold
+                        font.features: { "tnum": 1 }
+                    }
+                }
 
                 Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: clock.hh
-                    color: Theme.cream
-                    font.family: Theme.font
-                    font.pixelSize: 15.5 * pill.s
-                    font.weight: Font.Bold
-                    font.letterSpacing: -0.3 * pill.s
-                    font.features: { "tnum": 1 }
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: ":"
-                    color: Theme.brand
-                    font.family: Theme.font
-                    font.pixelSize: 15.5 * pill.s
-                    font.weight: Font.Bold
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: clock.mm
-                    color: Theme.cream
-                    font.family: Theme.font
-                    font.pixelSize: 15.5 * pill.s
-                    font.weight: Font.Bold
-                    font.letterSpacing: -0.3 * pill.s
-                    font.features: { "tnum": 1 }
-                }
-            }
-
-            // the context line: the date at rest, the sounding track while
-            // music plays (with a tiny eq pulsing beside it).
-            Item {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: Media.playing ? nowLine.implicitWidth : dateLine.implicitWidth
-                height: Math.max(dateLine.implicitHeight, nowLine.implicitHeight)
-
-                Text {
-                    id: dateLine
-                    anchors.centerIn: parent
                     visible: !Media.playing
+                    anchors.verticalCenter: parent.verticalCenter
                     text: clock.weekday + " " + clock.daymon
                     color: Theme.dim
                     font.family: Theme.mono
                     font.pixelSize: 6.5 * pill.s
                     font.weight: Font.DemiBold
-                    font.letterSpacing: 1.6 * pill.s
+                    font.letterSpacing: 1.4 * pill.s
                     font.capitalization: Font.AllUppercase
                 }
 
                 Row {
-                    id: nowLine
-                    anchors.centerIn: parent
                     visible: Media.playing
+                    anchors.verticalCenter: parent.verticalCenter
                     spacing: 5 * pill.s
 
                     Row {
@@ -491,7 +489,7 @@ Item {
                     Marquee {
                         anchors.verticalCenter: parent.verticalCenter
                         readonly property real natW: nowMetrics.advanceWidth
-                        width: Math.min(natW + 2, 108 * pill.s)
+                        width: Math.min(natW + 2, 96 * pill.s)
                         active: Media.playing && rest.visible
                         text: Media.line
                         color: Theme.subtle

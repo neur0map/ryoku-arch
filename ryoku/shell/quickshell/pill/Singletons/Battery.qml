@@ -24,27 +24,30 @@ Singleton {
         return dev;
     }
 
-    readonly property bool present: dev !== null && dev.ready && dev.isLaptopBattery && dev.isPresent
-    readonly property real frac: dev ? Math.max(0, Math.min(1, dev.percentage)) : 0
+    // presence comes from the physical battery pick: the synthetic display
+    // device drops ready/isLaptopBattery on some upower versions once the
+    // cell sits fully charged on AC, which blanked every battery readout.
+    readonly property bool present: batDev !== null && batDev.isLaptopBattery && batDev.isPresent
+    readonly property real frac: batDev ? Math.max(0, Math.min(1, batDev.percentage)) : 0
     readonly property int pct: Math.round(frac * 100)
-    readonly property int state: dev ? dev.state : UPowerDeviceState.Unknown
+    readonly property int state: batDev ? batDev.state : UPowerDeviceState.Unknown
 
     readonly property bool charging: state === UPowerDeviceState.Charging
     readonly property bool full: state === UPowerDeviceState.FullyCharged || pct >= 100
     readonly property bool discharging: state === UPowerDeviceState.Discharging
     readonly property bool low: !charging && pct <= 20
 
-    readonly property real rateW: !dev ? 0
-        : (discharging ? -dev.changeRate : (charging ? dev.changeRate : 0))
-    readonly property real capacityWh: dev ? dev.energyCapacity : 0
+    readonly property real rateW: !batDev ? 0
+        : (discharging ? -batDev.changeRate : (charging ? batDev.changeRate : 0))
+    readonly property real capacityWh: batDev ? batDev.energyCapacity : 0
 
     readonly property bool healthSupported: batDev ? batDev.healthSupported : false
     readonly property int health: batDev ? Math.round(batDev.healthPercentage) : 0
 
-    readonly property bool hasTime: !dev ? false
-        : (charging ? dev.timeToFull > 0 : (discharging ? dev.timeToEmpty > 0 : false))
-    readonly property string timeStr: !dev ? ""
-        : (charging ? fmt(dev.timeToFull) : (discharging ? fmt(dev.timeToEmpty) : ""))
+    readonly property bool hasTime: !batDev ? false
+        : (charging ? batDev.timeToFull > 0 : (discharging ? batDev.timeToEmpty > 0 : false))
+    readonly property string timeStr: !batDev ? ""
+        : (charging ? fmt(batDev.timeToFull) : (discharging ? fmt(batDev.timeToEmpty) : ""))
 
     readonly property string stateLabel: charging ? "Charging"
         : (full ? "On AC · Full"

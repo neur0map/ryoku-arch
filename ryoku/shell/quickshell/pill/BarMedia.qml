@@ -23,19 +23,18 @@ Row {
     }
 
     spacing: 8 * s
-    // art thumb, hairline edge; kanji seal while artless. round under the
-    // capsule skin, sharp under plates. carries the play state alone on a
-    // vertical bar (accent edge while sounding).
+    // art thumb: the noctalia circle, hairline edge; a music glyph while
+    // artless. carries the play state alone on a vertical bar (accent ring
+    // while sounding).
     Rectangle {
         anchors.verticalCenter: parent.verticalCenter
-        width: (media.vertical ? 19 : 17) * media.s
-        height: (media.vertical ? 19 : 17) * media.s
-        radius: Config.barStyle === "capsule" ? width / 2 : 0
+        width: (media.vertical ? 20 : 18) * media.s
+        height: (media.vertical ? 20 : 18) * media.s
+        radius: width / 2
         color: Qt.alpha(Theme.bright, 0.05)
         border.width: 1
-        border.color: media.vertical && media.playing ? Qt.alpha(Theme.verm, 0.8) : Theme.hair
+        border.color: media.playing ? Qt.alpha(Theme.verm, 0.8) : Theme.hair
         clip: true
-
         Image {
             anchors.fill: parent
             anchors.margins: 1
@@ -44,13 +43,12 @@ Row {
             asynchronous: true
             visible: status === Image.Ready
         }
-        Text {
+        MaterialIcon {
             anchors.centerIn: parent
             visible: !media.player || !(media.player.trackArtUrl || "").length
-            text: "音"
+            text: "music_note"
             color: Theme.iconDim
-            font.family: Theme.fontJp
-            font.pixelSize: 9 * media.s
+            font.pixelSize: 10 * media.s
         }
     }
 
@@ -75,34 +73,13 @@ Row {
         }
     }
 
-    // state tick: a vermilion play wedge while sounding, a paused hairline pair.
-    Item {
+    // state glyph: filled play while sounding, pause otherwise.
+    MaterialIcon {
         visible: !media.vertical
         anchors.verticalCenter: parent.verticalCenter
-        width: 8 * media.s
-        height: 9 * media.s
-
-        Canvas {
-            anchors.fill: parent
-            visible: media.playing
-            onPaint: {
-                var c = getContext("2d");
-                c.reset();
-                c.fillStyle = Theme.verm;
-                c.beginPath();
-                c.moveTo(0, 0);
-                c.lineTo(width, height / 2);
-                c.lineTo(0, height);
-                c.closePath();
-                c.fill();
-            }
-        }
-        Row {
-            anchors.centerIn: parent
-            visible: !media.playing
-            spacing: 2.5 * media.s
-            Rectangle { width: 2 * media.s; height: 9 * media.s; color: Theme.dim }
-            Rectangle { width: 2 * media.s; height: 9 * media.s; color: Theme.dim }
-        }
+        text: media.playing ? "play_arrow" : "pause"
+        fill: 1
+        color: media.playing ? Theme.verm : Theme.dim
+        font.pixelSize: 13 * media.s
     }
 }

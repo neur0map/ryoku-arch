@@ -7,29 +7,25 @@ import Quickshell.Services.Pipewire
 import Quickshell.Wayland
 import "Singletons"
 
-// bar content riding one of the frame's thickened edges. the chosen edge
-// swells into a band (BlobInvertedRect in shell.qml) and this draws the
-// options directly on it, in the frame's own scene: no separate program, no
-// seam. modules sit on BarPlate slabs (sharp washi plates or fully rounded
-// capsules, per Config.barStyle) that lift on hover.
-//
-// top/bottom = the horizontal composition: seal + workspace strip + focused
-// title on the left, the clock (the anchor a summoned surface drops from,
-// top bar only) in the centre, now-playing + status + tray + power on the
-// right. left/right = the caelestia composition: seal and workspaces at the
-// top, stacked clock in the middle, art + status + tray + power falling to
-// the bottom. a wheel over bare band nudges the sink volume either way.
+// bar content riding one of the frame's thickened edges, drawn in the frame's
+// own scene: no separate program, no seam. the composition and the module
+// look are carried over from the reference shells (Config.barStyle picks the
+// caelestia or noctalia dialect; both wear fully rounded module pills with
+// the caelestia hover/press feel):
+//   top/bottom = the noctalia-style horizontal row: launcher glyph +
+//     workspaces + focused title left, the stacked clock centred (the anchor
+//     a summoned surface drops from on a top bar), now-playing + status +
+//     tray + power right.
+//   left/right = the caelestia column: logo and workspaces up top, the clock
+//     in the middle, tray + status + power falling to the bottom.
+// a wheel over bare band nudges the sink volume, narrated by the OSD.
 Item {
     id: bar
 
     required property real s
-    // which frame edge carries the band: top | bottom | left | right.
     property string position: "top"
-    // the frame's own visible edge thickness and the band it swelled by;
-    // content centres in the band, clear of the frame's outer lip.
-    property real frameEdge: 0
+    // the band the frame edge swelled by; module pills size against it.
     property real band: 0
-    // window the tray menus anchor to.
     required property var trayWindow
     // a summoned surface drops out of a top bar over the centre; the clock
     // fades under it so the two never overprint.
@@ -40,15 +36,14 @@ Item {
     signal surfaceRequested(string name)
 
     readonly property bool vertical: position === "left" || position === "right"
-    readonly property real plateSpan: Math.round(bar.band * 0.78)
+    readonly property real moduleSpan: Math.round(bar.band * 0.76)
 
-    // quickshell's refreshWorkspaces/refreshMonitors parse nothing out of
-    // this Hyprland's IPC, so Hyprland.focusedWorkspace stays null on a
-    // fresh instance until the first workspace event. seed the highlight
-    // once from hyprctl; events own it from the first real switch.
     property int seedWsId: -1
     readonly property int activeWsId: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : seedWsId
 
+    // quickshell's refreshWorkspaces parses nothing out of this Hyprland's
+    // IPC, so the focused workspace stays null on a fresh instance until the
+    // first event. seed once from hyprctl; events own it from the first switch.
     Process {
         running: true
         command: ["hyprctl", "activeworkspace", "-j"]
@@ -59,8 +54,6 @@ Item {
         }
     }
 
-    // wheel anywhere on the bare band = sink volume. plates sit above this
-    // handler and take their own wheel where they care (workspaces, media).
     readonly property var sink: Pipewire.defaultAudioSink
     function nudgeVolume(steps) {
         if (!sink || !sink.audio)
@@ -72,28 +65,23 @@ Item {
         onWheel: (w) => bar.nudgeVolume(w.angleDelta.y > 0 ? 1 : -1)
     }
 
-    // the band area content occupies: inset from the frame's outer lip so the
-    // options read as riding the band, not the screen edge.
     Item {
         id: face
-        x: bar.position === "left" ? bar.frameEdge : 0
-        y: bar.position === "top" ? bar.frameEdge : 0
-        width: bar.vertical ? bar.band : bar.width
-        height: bar.vertical ? bar.height : bar.band
+        anchors.fill: parent
 
         // ---- horizontal composition (top / bottom) ----------------------
         Row {
             visible: !bar.vertical
             anchors.left: parent.left
-            anchors.leftMargin: 26 * bar.s
+            anchors.leftMargin: 24 * bar.s
             anchors.verticalCenter: parent.verticalCenter
             spacing: 8 * bar.s
 
-            BarPlate {
+            BarModule {
                 anchors.verticalCenter: parent.verticalCenter
                 s: bar.s
-                height: bar.plateSpan
-                padX: 9 * bar.s
+                height: bar.moduleSpan
+                padX: 11 * bar.s
                 onTapped: Quickshell.execDetached(["ryoku-shell", "launcher"])
 
                 Text {
@@ -105,11 +93,11 @@ Item {
                 }
             }
 
-            BarPlate {
+            BarModule {
                 anchors.verticalCenter: parent.verticalCenter
                 s: bar.s
-                height: bar.plateSpan
-                padX: 7 * bar.s
+                height: bar.moduleSpan
+                padX: Config.barStyle === "caelestia" ? 4 * bar.s : 10 * bar.s
                 interactive: false
 
                 BarWorkspaces {
@@ -118,8 +106,6 @@ Item {
                 }
             }
 
-            // focused-window title, live via foreign-toplevel (Hyprland's
-            // model deliberately skips title events to avoid refresh spam).
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: Config.barShowTitle && text.length > 0
@@ -134,16 +120,15 @@ Item {
             }
         }
 
-        BarPlate {
-            id: clockPlate
+        BarModule {
             visible: !bar.vertical
             anchors.centerIn: parent
             s: bar.s
-            height: bar.plateSpan
-            padX: 12 * bar.s
+            height: bar.moduleSpan
+            padX: 13 * bar.s
             opacity: bar.surfaceOpen ? 0 : 1
             interactive: !bar.surfaceOpen
-            Behavior on opacity { NumberAnimation { duration: 170; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Motion.effects; easing.type: Easing.OutCubic } }
             onTapped: bar.calendarRequested()
 
             BarClock {
@@ -154,14 +139,14 @@ Item {
         Row {
             visible: !bar.vertical
             anchors.right: parent.right
-            anchors.rightMargin: 26 * bar.s
+            anchors.rightMargin: 24 * bar.s
             anchors.verticalCenter: parent.verticalCenter
             spacing: 8 * bar.s
 
-            BarPlate {
+            BarModule {
                 anchors.verticalCenter: parent.verticalCenter
                 s: bar.s
-                height: bar.plateSpan
+                height: bar.moduleSpan
                 visible: Config.barShowMedia && hMedia.present
                 onTapped: hMedia.toggle()
                 onWheeled: (steps) => bar.nudgeVolume(steps)
@@ -172,10 +157,10 @@ Item {
                 }
             }
 
-            BarPlate {
+            BarModule {
                 anchors.verticalCenter: parent.verticalCenter
                 s: bar.s
-                height: bar.plateSpan
+                height: bar.moduleSpan
                 visible: Config.barShowStatus
                 interactive: false
 
@@ -185,12 +170,12 @@ Item {
                 }
             }
 
-            BarPlate {
+            BarModule {
                 anchors.verticalCenter: parent.verticalCenter
                 s: bar.s
-                height: bar.plateSpan
+                height: bar.moduleSpan
                 visible: hTray.count > 0
-                quiet: true
+                padX: 11 * bar.s
                 interactive: false
 
                 BarTray {
@@ -201,38 +186,35 @@ Item {
                 }
             }
 
-            BarPlate {
+            BarModule {
                 anchors.verticalCenter: parent.verticalCenter
                 s: bar.s
-                height: bar.plateSpan
-                padX: 9 * bar.s
-                quiet: true
+                height: bar.moduleSpan
+                padX: 10 * bar.s
                 onTapped: bar.powerRequested()
 
-                GlyphIcon {
-                    width: 14 * bar.s
-                    height: 14 * bar.s
-                    name: "shutdown"
-                    color: Theme.dim
-                    stroke: 1.7
+                MaterialIcon {
+                    text: "power_settings_new"
+                    color: Theme.verm
+                    font.pixelSize: 14 * bar.s
                 }
             }
         }
 
-        // ---- vertical composition (left / right) ------------------------
+        // ---- vertical composition (left / right), the caelestia column --
         Column {
             visible: bar.vertical
             anchors.top: parent.top
-            anchors.topMargin: 22 * bar.s
+            anchors.topMargin: 20 * bar.s
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 8 * bar.s
 
-            BarPlate {
+            BarModule {
                 anchors.horizontalCenter: parent.horizontalCenter
                 s: bar.s
                 vertical: true
-                width: bar.plateSpan
-                padY: 8 * bar.s
+                width: bar.moduleSpan
+                padY: 9 * bar.s
                 onTapped: Quickshell.execDetached(["ryoku-shell", "launcher"])
 
                 Text {
@@ -244,12 +226,12 @@ Item {
                 }
             }
 
-            BarPlate {
+            BarModule {
                 anchors.horizontalCenter: parent.horizontalCenter
                 s: bar.s
                 vertical: true
-                width: bar.plateSpan
-                padY: 7 * bar.s
+                width: bar.moduleSpan
+                padY: Config.barStyle === "caelestia" ? 4 * bar.s : 9 * bar.s
                 interactive: false
 
                 BarWorkspaces {
@@ -260,33 +242,18 @@ Item {
             }
         }
 
-        BarPlate {
-            visible: bar.vertical
-            anchors.centerIn: parent
-            s: bar.s
-            vertical: true
-            width: bar.plateSpan
-            padY: 9 * bar.s
-            onTapped: bar.calendarRequested()
-
-            BarClock {
-                s: bar.s
-                vertical: true
-            }
-        }
-
         Column {
             visible: bar.vertical
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 22 * bar.s
+            anchors.bottomMargin: 20 * bar.s
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 8 * bar.s
 
-            BarPlate {
+            BarModule {
                 anchors.horizontalCenter: parent.horizontalCenter
                 s: bar.s
                 vertical: true
-                width: bar.plateSpan
+                width: bar.moduleSpan
                 visible: Config.barShowMedia && vMedia.present
                 onTapped: vMedia.toggle()
                 onWheeled: (steps) => bar.nudgeVolume(steps)
@@ -298,29 +265,13 @@ Item {
                 }
             }
 
-            BarPlate {
+            BarModule {
                 anchors.horizontalCenter: parent.horizontalCenter
                 s: bar.s
                 vertical: true
-                width: bar.plateSpan
-                padY: 9 * bar.s
-                visible: Config.barShowStatus
-                interactive: false
-
-                BarStatus {
-                    s: bar.s
-                    vertical: true
-                    onRequestSurface: (name) => bar.surfaceRequested(name)
-                }
-            }
-
-            BarPlate {
-                anchors.horizontalCenter: parent.horizontalCenter
-                s: bar.s
-                vertical: true
-                width: bar.plateSpan
+                width: bar.moduleSpan
                 visible: vTray.count > 0
-                quiet: true
+                padY: 11 * bar.s
                 interactive: false
 
                 BarTray {
@@ -332,21 +283,48 @@ Item {
                 }
             }
 
-            BarPlate {
+            BarModule {
                 anchors.horizontalCenter: parent.horizontalCenter
                 s: bar.s
                 vertical: true
-                width: bar.plateSpan
-                padY: 8 * bar.s
-                quiet: true
+                width: bar.moduleSpan
+                padY: 9 * bar.s
+                onTapped: bar.calendarRequested()
+
+                BarClock {
+                    s: bar.s
+                    vertical: true
+                }
+            }
+
+            BarModule {
+                anchors.horizontalCenter: parent.horizontalCenter
+                s: bar.s
+                vertical: true
+                width: bar.moduleSpan
+                padY: 9 * bar.s
+                visible: Config.barShowStatus
+                interactive: false
+
+                BarStatus {
+                    s: bar.s
+                    vertical: true
+                    onRequestSurface: (name) => bar.surfaceRequested(name)
+                }
+            }
+
+            BarModule {
+                anchors.horizontalCenter: parent.horizontalCenter
+                s: bar.s
+                vertical: true
+                width: bar.moduleSpan
+                padY: 10 * bar.s
                 onTapped: bar.powerRequested()
 
-                GlyphIcon {
-                    width: 14 * bar.s
-                    height: 14 * bar.s
-                    name: "shutdown"
-                    color: Theme.dim
-                    stroke: 1.7
+                MaterialIcon {
+                    text: "power_settings_new"
+                    color: Theme.verm
+                    font.pixelSize: 14 * bar.s
                 }
             }
         }

@@ -49,9 +49,8 @@ Singleton {
     // (Bar.qml). barPosition picks the edge: a "top" bar replaces the resting
     // island (the island still summons for surfaces, toasts and the OSD);
     // bottom/left/right bars live on their own edge and the island keeps its
-    // usual top-centre life beside them. barStyle picks the skin: "plates" =
-    // sharp washi slabs with hairlines, "capsule" = fully rounded tonal pills
-    // (the caelestia idiom) for shells riced round.
+    // usual top-centre life beside them. barStyle picks the skin: "noctalia" or
+    // "caelestia", the two reference dialects the modules are carried from.
     // barHeight = the band the edge swells by (scaled per monitor, like
     // island geometry). barShowTitle / barShowMedia / barShowStatus gate the
     // focused-window title, the now-playing readout, and the status cluster.
@@ -105,8 +104,8 @@ Singleton {
             property bool islandAutohide: true
             property bool barEnabled: true
             property string barPosition: "top"
-            property string barStyle: "plates"
-            property real barHeight: 26
+            property string barStyle: "noctalia"
+            property real barHeight: 30
             property bool barShowTitle: true
             property bool barShowMedia: true
             property bool barShowStatus: true

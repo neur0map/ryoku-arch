@@ -4,10 +4,12 @@
 
 ### Changed
 - Shell -> Bar now places the bar on any frame edge (Top / Bottom / Left /
-  Right) and picks its skin (Plates / Capsules), next to the thickness and
+  Right) and picks its skin (Noctalia / Caelestia, both carried one-to-one
+  from the credited shells), next to the thickness and
   content toggles; the **Status glyphs** toggle covers the bar's
   network/battery/inbox cluster. The bar defaults flipped on to match the
-  shell's new default face (the reset baseline follows).
+  shell's new default face (the reset baseline follows), and the island's
+  dead Width/Height knobs gave way to a note: the island sizes itself.
 
 ### Fixed
 - **Live preview and touchpad toggles work again.** Every appearance/input

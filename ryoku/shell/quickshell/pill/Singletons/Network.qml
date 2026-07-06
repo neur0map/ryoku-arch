@@ -25,7 +25,7 @@ Singleton {
         running: true
         command: ["sh", "-c",
             "nmcli -t -f TYPE,STATE d 2>/dev/null | grep ':connected$' | cut -d: -f1; " +
-            "echo --; nmcli -t -f IN-USE,SIGNAL dev wifi list --rescan no 2>/dev/null | grep '^\\*' | cut -d: -f2; " +
+            "echo --; nmcli -t -f ACTIVE,SIGNAL dev wifi list --rescan no 2>/dev/null | grep '^yes' | cut -d: -f2 | head -1; " +
             "echo --; nmcli radio wifi 2>/dev/null"]
         stdout: StdioCollector {
             onStreamFinished: {

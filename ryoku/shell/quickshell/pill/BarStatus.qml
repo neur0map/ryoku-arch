@@ -2,10 +2,10 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "Singletons"
 
-// status cluster: network, battery, notifications, dnd. each glyph is its own
-// click target routing to the surface that owns it (link, battery, inbox), so
-// the bar answers "am I online / charged / pinged" at a glance and one click.
-// `vertical` stacks the glyphs for a side bar.
+// status cluster in the reference iconography: Material Symbols for network,
+// bluetooth-adjacent battery, and notifications, tinted like caelestia's
+// m3secondary rail. each glyph is its own click target routing to the surface
+// that owns it (link, battery, inbox). `vertical` stacks the glyphs.
 Grid {
     id: status
 
@@ -14,40 +14,44 @@ Grid {
 
     signal requestSurface(string name)
 
+    readonly property real glyphPx: 14 * s
+
     columns: vertical ? 1 : 4
-    spacing: 10 * s
+    columnSpacing: 9 * s
+    rowSpacing: 7 * s
     verticalItemAlignment: Grid.AlignVCenter
     horizontalItemAlignment: Grid.AlignHCenter
 
-    // network: wifi arcs or an ethernet plug tick; faint when offline.
+    // network: wifi strength or ethernet, Material glyphs.
     Item {
-        width: 17 * status.s
-        height: 17 * status.s
+        width: status.glyphPx + 4 * status.s
+        height: status.glyphPx + 4 * status.s
 
-        WifiGlyph {
-            anchors.fill: parent
-            visible: Network.kind !== "ethernet"
-            s: status.s * 0.92
-            level: Network.level
-            on: Network.wifiRadio && Network.kind === "wifi"
-        }
-        GlyphIcon {
-            anchors.fill: parent
-            visible: Network.kind === "ethernet"
-            name: "ethernet"
-            color: Theme.subtle
-            stroke: 1.6
+        MaterialIcon {
+            anchors.centerIn: parent
+            text: {
+                if (Network.kind === "ethernet")
+                    return "lan";
+                if (!Network.wifiRadio)
+                    return "wifi_off";
+                if (Network.kind !== "wifi")
+                    return "signal_wifi_off";
+                return Network.level > 0.8 ? "signal_wifi_4_bar"
+                    : (Network.level > 0.55 ? "network_wifi_3_bar"
+                    : (Network.level > 0.3 ? "network_wifi_2_bar" : "network_wifi_1_bar"));
+            }
+            fill: 1
+            color: Network.kind === "" ? Theme.faint : Theme.subtle
+            font.pixelSize: status.glyphPx
         }
         MouseArea {
             anchors.fill: parent
-            anchors.margins: -4 * status.s
             cursorShape: Qt.PointingHandCursor
             onClicked: status.requestSurface("link")
         }
     }
 
-    // battery: cell + tight percentage, only on machines that have one. the
-    // vertical bar keeps just the cell; the percentage has no room sideways.
+    // battery: the Material cell family, filled by charge, accent when low.
     Item {
         visible: Battery.present
         width: battRow.implicitWidth
@@ -55,70 +59,70 @@ Grid {
 
         Row {
             id: battRow
-            spacing: 5 * status.s
+            spacing: 3 * status.s
 
-            BatteryGlyph {
+            MaterialIcon {
                 anchors.verticalCenter: parent.verticalCenter
-                s: status.s * (status.vertical ? 0.72 : 0.9)
-                frac: Battery.frac
-                charging: Battery.charging
-                low: Battery.low
+                text: {
+                    if (Battery.charging)
+                        return "battery_charging_full";
+                    const f = Battery.frac;
+                    if (f > 0.95) return "battery_full";
+                    if (f > 0.8) return "battery_6_bar";
+                    if (f > 0.65) return "battery_5_bar";
+                    if (f > 0.5) return "battery_4_bar";
+                    if (f > 0.35) return "battery_3_bar";
+                    if (f > 0.2) return "battery_2_bar";
+                    return "battery_1_bar";
+                }
+                fill: 1
+                color: Battery.low ? Theme.vermLit : (Battery.charging ? Theme.flameGlow : Theme.subtle)
+                font.pixelSize: status.glyphPx + 1 * status.s
             }
             Text {
                 visible: !status.vertical
                 anchors.verticalCenter: parent.verticalCenter
-                text: Battery.pct
-                color: Battery.low ? Theme.vermLit : (Battery.charging ? Theme.flameGlow : Theme.subtle)
-                font.family: Theme.mono
-                font.pixelSize: 9 * status.s
-                font.weight: Font.DemiBold
+                text: Battery.pct + "%"
+                color: Battery.low ? Theme.vermLit : Theme.subtle
+                font.family: Theme.font
+                font.pixelSize: 9.5 * status.s
+                font.weight: Font.Medium
                 font.features: ({ "tnum": 1 })
             }
         }
         MouseArea {
             anchors.fill: parent
-            anchors.margins: -4 * status.s
             cursorShape: Qt.PointingHandCursor
             onClicked: status.requestSurface("battery")
         }
     }
 
-    // notifications: bell with an ember dot while something waits.
+    // notifications: the bell, filled with an accent tint while something waits.
     Item {
-        width: 16 * status.s
-        height: 16 * status.s
+        width: status.glyphPx + 4 * status.s
+        height: status.glyphPx + 4 * status.s
 
-        GlyphIcon {
-            anchors.fill: parent
-            name: "inbox"
-            color: Notifs.unread > 0 ? Theme.cream : Theme.iconDim
-            stroke: 1.7
-        }
-        Rectangle {
-            visible: Notifs.unread > 0
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.topMargin: -1.5 * status.s
-            anchors.rightMargin: -1.5 * status.s
-            width: 5 * status.s
-            height: 5 * status.s
-            radius: width / 2
-            color: Theme.flameGlow
+        MaterialIcon {
+            anchors.centerIn: parent
+            text: Flags.dnd ? "notifications_off"
+                : (Notifs.unread > 0 ? "notifications_unread" : "notifications")
+            fill: Notifs.unread > 0 && !Flags.dnd ? 1 : 0
+            color: Flags.dnd ? Theme.vermLit
+                : (Notifs.unread > 0 ? Theme.cream : Theme.subtle)
+            font.pixelSize: status.glyphPx
         }
         MouseArea {
             anchors.fill: parent
-            anchors.margins: -4 * status.s
             cursorShape: Qt.PointingHandCursor
             onClicked: status.requestSurface("inbox")
         }
     }
 
-    GlyphIcon {
-        visible: Flags.dnd
-        width: 15 * status.s
-        height: 15 * status.s
-        name: "dnd"
-        color: Theme.vermLit
-        stroke: 1.6
+    // keep-awake shows only while it burns.
+    MaterialIcon {
+        visible: Flags.keepAwake
+        text: "coffee"
+        color: Theme.flameGlow
+        font.pixelSize: status.glyphPx
     }
 }

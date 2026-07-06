@@ -36,7 +36,7 @@ Item {
         "islandWidth": 109, "islandHeight": 34, "islandRestCorner": 6, "islandOpenCorner": 28,
         "islandGap": 0, "islandSmoothing": 24, "islandOpacity": 1,
         "islandStyle": "floating", "islandAutohide": true,
-        "barEnabled": true, "barPosition": "top", "barStyle": "plates", "barHeight": 26, "barShowTitle": true, "barShowMedia": true, "barShowStatus": true,
+        "barEnabled": true, "barPosition": "top", "barStyle": "noctalia", "barHeight": 30, "barShowTitle": true, "barShowMedia": true, "barShowStatus": true,
         "fontFamily": "JetBrainsMono Nerd Font", "fontScale": 1.3,
         "enabled": true, "bars": 64, "height": 0.42, "thickness": 0.58,
         "bloom": 0.6, "reflection": 0.1, "idleWave": true,
@@ -71,8 +71,8 @@ Item {
         property bool islandAutohide: true
         property bool barEnabled: true
         property string barPosition: "top"
-        property string barStyle: "plates"
-        property real barHeight: 26
+        property string barStyle: "noctalia"
+        property real barHeight: 30
         property bool barShowTitle: true
         property bool barShowMedia: true
         property bool barShowStatus: true
@@ -229,8 +229,8 @@ Item {
             property bool islandAutohide: true
             property bool barEnabled: true
             property string barPosition: "top"
-            property string barStyle: "plates"
-            property real barHeight: 26
+            property string barStyle: "noctalia"
+            property real barHeight: 30
             property bool barShowTitle: true
             property bool barShowMedia: true
             property bool barShowStatus: true
@@ -475,15 +475,14 @@ Item {
                 SettingSection {
                     width: parent.width
                     title: "SIZE"
-                    NumberField {
-                        width: parent.width; label: "Width"; unit: "px"
-                        from: 70; to: 220; value: draft.islandWidth
-                        onModified: (v) => page.edit("islandWidth", v)
-                    }
-                    NumberField {
-                        width: parent.width; label: "Height"; unit: "px"
-                        from: 26; to: 64; value: draft.islandHeight
-                        onModified: (v) => page.edit("islandHeight", v)
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: "The resting island hugs its content now: a short lozenge around the clock, its context line, and the workspace ticks. It grows only when a surface opens."
+                        color: Theme.faint
+                        font.family: Theme.font
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
                     }
                 }
 
@@ -568,8 +567,8 @@ Item {
                     ChoiceRow {
                         width: parent.width; label: "Style"
                         options: [
-                            { "key": "plates", "label": "Plates" },
-                            { "key": "capsule", "label": "Capsules" }
+                            { "key": "noctalia", "label": "Noctalia" },
+                            { "key": "caelestia", "label": "Caelestia" }
                         ]
                         current: draft.barStyle
                         onChosen: (k) => page.edit("barStyle", k)
@@ -582,7 +581,7 @@ Item {
                     Text {
                         width: parent.width
                         wrapMode: Text.WordWrap
-                        text: "A bar riding one edge of the frame. Plates are the sharp washi slabs; Capsules are fully rounded pills for shells riced round. A top bar hides the resting island and summoned panels drop out of it; bottom, left and right bars keep the island at the top centre. Windows tuck in right against the band."
+                        text: "A bar riding one edge of the frame. Both skins are carried from their namesake shells: Noctalia is the pill-dot dialect, Caelestia the numbered cell strip. A top bar hides the resting island and summoned panels drop out of it; bottom, left and right bars keep the island at the top centre. Windows tuck in right against the band."
                         color: Theme.faint
                         font.family: Theme.font
                         font.pixelSize: 12
