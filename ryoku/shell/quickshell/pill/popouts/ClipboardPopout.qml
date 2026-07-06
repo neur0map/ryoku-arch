@@ -19,6 +19,11 @@ Item {
     implicitWidth: 360 * root.s
     implicitHeight: 332 * root.s
 
+    // consume clicks on empty areas of the body so they don't fall through to
+    // the overlay backdrop and dismiss the popout (the surface's own controls
+    // sit on top and take their clicks first).
+    MouseArea { anchors.fill: parent }
+
     Clipboard {
         anchors.fill: parent
         s: root.s

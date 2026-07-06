@@ -510,7 +510,7 @@ ShellRoot {
             // pinned on this monitor: grabs the keyboard like an open surface.
             readonly property bool kbPopout: root.popoutMon === modelData.name
                 && root.kbPopouts.indexOf(root.popout) >= 0
-            readonly property bool modal: focusSurface || pill.held
+            readonly property bool modal: focusSurface || pill.held || kbPopout
 
             // true if this monitor's active workspace has a fullscreen window.
             readonly property bool monFullscreen: {
@@ -644,6 +644,7 @@ ShellRoot {
                 enabled: overlay.modal
                 acceptedButtons: Qt.AllButtons
                 onPressed: (mouse) => {
+                    if (overlay.kbPopout) { root.popout = ""; return; }
                     if (mouse.x >= pill.x && mouse.x <= pill.x + pill.width
                             && mouse.y >= pill.y && mouse.y <= pill.y + pill.height)
                         return;
@@ -946,7 +947,7 @@ ShellRoot {
                 }
 
                 HyprlandFocusGrab {
-                    active: root.popout !== "" && root.popoutMon === overlay.modelData.name
+                    active: root.popout !== "" && root.popoutMon === overlay.modelData.name && !overlay.kbPopout
                     windows: [overlay]
                     onCleared: if (root.popoutMon === overlay.modelData.name) root.popout = ""
                 }
