@@ -119,6 +119,7 @@ Item {
         }
 
         BarModule {
+            id: clockMod
             anchors.centerIn: parent
             s: bar.s
             height: bar.moduleSpan
@@ -126,7 +127,7 @@ Item {
             opacity: bar.surfaceOpen ? 0 : 1
             interactive: !bar.surfaceOpen
             Behavior on opacity { NumberAnimation { duration: Motion.effects; easing.type: Easing.OutCubic } }
-            onTapped: bar.calendarRequested()
+            onTapped: bar.popoutRequested("calendar", clockMod.mapToItem(null, clockMod.width / 2, clockMod.height / 2).x)
 
             BarClock {
                 s: bar.s

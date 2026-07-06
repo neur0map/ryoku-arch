@@ -253,7 +253,7 @@ ShellRoot {
     IpcHandler {
         target: "pill"
         function mixer(mon: string): void { root.togglePopout(mon, "mixer"); }
-        function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
+        function calendar(mon: string): void { root.togglePopout(mon, "calendar"); }
         function power(mon: string): void { root.togglePopout(mon, "power"); }
         function link(mon: string): void { root.toggleSurface(mon, "link"); }
         function inbox(mon: string): void { root.toggleSurface(mon, "inbox"); }
@@ -311,13 +311,13 @@ ShellRoot {
         var fn = parts[0];
         var mon = parts.length > 1 ? parts[1] : "";
         switch (fn) {
-        case "calendar": case "clipboard":
+        case "clipboard":
         case "link": case "inbox": case "battery": case "sysinfo":
         case "stash": case "toolkit": case "utilities": case "workspaces":
             root.toggleSurface(mon, fn); return true;
         case "mixer": case "power":
             root.togglePopout(mon, fn); return true;
-        case "network": case "bluetooth":
+        case "network": case "bluetooth": case "calendar":
             root.togglePopout(mon, fn); return true;
         case "batteryPopout":
             root.togglePopout(mon, "battery"); return true;
@@ -619,6 +619,7 @@ ShellRoot {
                 Region { x: networkPop.bodyX; y: networkPop.bodyY; width: networkPop.bodyW; height: networkPop.bodyH }
                 Region { x: batteryPop.bodyX; y: batteryPop.bodyY; width: batteryPop.bodyW; height: batteryPop.bodyH }
                 Region { x: bluetoothPop.bodyX; y: bluetoothPop.bodyY; width: bluetoothPop.bodyW; height: bluetoothPop.bodyH }
+                Region { x: calendarPop.bodyX; y: calendarPop.bodyY; width: calendarPop.bodyW; height: calendarPop.bodyH }
                 Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
                 Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
             }
@@ -874,6 +875,30 @@ ShellRoot {
                         id: btContent
                         s: overlay.s
                         open: bluetoothPop.prog > 0.5
+                    }
+                }
+
+                // calendar popout: opened from the clock module on the bar, the
+                // month calendar grows from the bar edge at the clock.
+                Popout {
+                    id: calendarPop
+                    group: blobGroup
+                    frameThickness: overlay.barVisibleH
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.barPos
+                    hoverOpen: false
+                    alongCenter: root.popoutCenter
+                    s: overlay.s
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "calendar" && root.popoutMon === overlay.modelData.name
+                    openW: calContent.implicitWidth
+                    openH: calContent.implicitHeight
+
+                    CalendarPopout {
+                        id: calContent
+                        s: overlay.s
+                        open: calendarPop.prog > 0.5
                     }
                 }
 
