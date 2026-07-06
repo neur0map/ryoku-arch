@@ -53,26 +53,24 @@
   sweeps. All ride the shared transition speed. caelestia's springy spatial
   curves overshoot and its emphasized curve is a two-segment spline, so they
   fall outside awww's single monotonic bezier and are left out.
-- Status-cluster hover popouts, matching the reference catalog. On a side bar,
-  hovering a status icon reveals its own compact control panel fused to the bar
-  (and melting back into it); a click still opens the deep surface for the full
-  view. A new volume icon opens the mixer (moved off the now-playing module); the
-  wifi icon opens a network panel (enable toggle, rescan, signal-sorted list,
-  inline password connect); a new bluetooth icon opens a device panel (adapter
-  toggle, scan, pair/connect); the battery icon opens a readout (charge, state,
-  time, draw, capacity, health). The network and bluetooth panels reuse the Link
-  surface's own wifi/bluetooth engines, so connect and pair behave identically.
-- **The bar moves and wears two skins.** `barPosition` places the band on any
-  frame edge: top, bottom, left, or right. The chosen edge swells and claims
-  its own strip; left/right bars recompose vertically (the caelestia layout:
-  seal and workspaces up top, a stacked hour-over-minute clock in the middle,
-  art-only now-playing, status, tray and power falling to the bottom), with a
-  band floor so stacked content always fits. `barStyle` picks the skin:
-  `plates` keeps the sharp washi slabs, `capsule` renders every module as a
-  fully rounded tonal pill (the caelestia idiom) for shells riced round, and
-  the workspace block, media art and hover fills all follow the choice. Only
-  a top bar replaces the resting island; bottom and side bars live alongside
-  it, so the island keeps its configured style next to them.
+- Status-cluster click popouts, matching the reference catalog. Clicking a
+  status icon on the bar reveals its own compact control panel growing from the
+  bar edge at that icon (and melting back into it), on a top or bottom bar
+  alike. A volume icon opens the mixer (moved off the now-playing module); the
+  wifi icon a network panel (enable toggle, rescan, signal-sorted list, inline
+  password connect); a bluetooth icon a device panel (adapter toggle, scan,
+  pair/connect); the battery icon a readout (charge, state, time, draw,
+  capacity, health); and the clock opens the month calendar. The network and
+  bluetooth panels reuse the Link surface's own wifi/bluetooth engines, so
+  connect and pair behave identically.
+- **The bar moves and wears two skins.** `barPosition` places the band on the
+  top or bottom frame edge. The chosen edge swells and claims its own strip.
+  `barStyle` picks the skin: `plates` keeps the sharp washi slabs, `capsule`
+  renders every module as a fully rounded tonal pill (the caelestia idiom) for
+  shells riced round, and the workspace block, media art and hover fills all
+  follow the choice. With a bar present the resting clock island is gone -- the
+  bar carries the clock, workspaces, media and status, and summoned panels grow
+  from the bar edge instead of a floating centre pill.
 - **The island rest face is redesigned.** The cramped stacked date and the
   squiggle are gone: the clock is the hero (tabular, vermilion colon), under
   it one tracked mono date line, and under that a row of precise
