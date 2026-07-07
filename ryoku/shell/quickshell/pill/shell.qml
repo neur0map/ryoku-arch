@@ -55,6 +55,10 @@ ShellRoot {
     onPopoutChanged: {
         if (kbPopouts.indexOf(prevPopout) >= 0 && kbPopouts.indexOf(popout) < 0)
             restoreFocus();
+        // dismissing the keyring popout cancels the pending prompt (a no-op if the
+        // daemon already cleared it via keyringHide).
+        if (prevPopout === "keyring" && popout !== "keyring")
+            Keyring.dismiss();
         prevPopout = popout;
     }
 
@@ -298,17 +302,19 @@ ShellRoot {
             Keyring.apply(payload);
             var m = Keyring.mon !== "" ? Keyring.mon
                 : (Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "");
-            root.show(m, "keyring");
+            root.popoutMon = m;
+            root.popoutCenter = -1;
+            root.popout = "keyring";
         }
         function keyringHide(): void {
-            // daemon-driven teardown (unlock resolved). clear() first so close()'s
-            // dismiss() can't cancel the resolved prompt; close() hands focus back.
+            // daemon-driven teardown (unlock resolved). clear() first so the
+            // popout's dismiss (onPopoutChanged) can't cancel the resolved prompt.
             Keyring.clear();
-            if (root.openSurface === "keyring")
-                root.close();
+            if (root.popout === "keyring")
+                root.popout = "";
         }
-        function voiceShow(mon: string): void { root.show(mon, "voice"); }
-        function voiceHide(): void { if (root.openSurface === "voice") root.close(); }
+        function voiceShow(mon: string): void { root.popoutMon = mon; root.popoutCenter = -1; root.popout = "voice"; }
+        function voiceHide(): void { if (root.popout === "voice") root.popout = ""; }
         function peek(mon: string): void { root.peek(mon); }
         function hide(): void { root.close(); }
         // toggle an enabled plugin's frame popout by id (leader menu / keybind).
@@ -342,9 +348,9 @@ ShellRoot {
             root.togglePopout(mon, "plugin:" + (parts.length > 2 ? parts[2] : ""));
             return true;
         case "voiceShow":
-            root.show(mon, "voice"); return true;
+            root.popoutMon = mon; root.popout = "voice"; return true;
         case "voiceHide":
-            if (root.openSurface === "voice") root.close();
+            if (root.popout === "voice") root.popout = "";
             return true;
         case "peek":
             root.peek(mon); return true;
@@ -645,6 +651,8 @@ ShellRoot {
                 Region { x: linkPop.bodyX; y: linkPop.bodyY; width: linkPop.bodyW; height: linkPop.bodyH }
                 Region { x: inboxPop.bodyX; y: inboxPop.bodyY; width: inboxPop.bodyW; height: inboxPop.bodyH }
                 Region { x: deckPop.bodyX; y: deckPop.bodyY; width: deckPop.bodyW; height: deckPop.bodyH }
+                Region { x: voicePop.bodyX; y: voicePop.bodyY; width: voicePop.bodyW; height: voicePop.bodyH }
+                Region { x: keyringPop.bodyX; y: keyringPop.bodyY; width: keyringPop.bodyW; height: keyringPop.bodyH }
                 Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
                 Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
             }
@@ -1032,8 +1040,58 @@ ShellRoot {
                     }
                 }
 
+                // voice popout: the dictation overlay. grabs nothing (excluded
+                // from the focus grab below) so dictation lands in the focused app.
+                Popout {
+                    id: voicePop
+                    group: blobGroup
+                    frameThickness: overlay.barVisibleH
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.barPos
+                    hoverOpen: false
+                    alongCenter: root.popoutCenter
+                    s: overlay.s
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "voice" && root.popoutMon === overlay.modelData.name
+                    openW: voiceContent.implicitWidth
+                    openH: voiceContent.implicitHeight
+
+                    VoicePopout {
+                        id: voiceContent
+                        s: overlay.s
+                        open: voicePop.prog > 0.5
+                        onCloseRequested: root.popout = ""
+                    }
+                }
+
+                // keyring popout: the secret-service password prompt. a keyboard
+                // popout; dismissing it cancels the prompt (onPopoutChanged).
+                Popout {
+                    id: keyringPop
+                    group: blobGroup
+                    frameThickness: overlay.barVisibleH
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.barPos
+                    hoverOpen: false
+                    alongCenter: root.popoutCenter
+                    s: overlay.s
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "keyring" && root.popoutMon === overlay.modelData.name
+                    openW: keyringContent.implicitWidth
+                    openH: keyringContent.implicitHeight
+
+                    KeyringPopout {
+                        id: keyringContent
+                        s: overlay.s
+                        open: keyringPop.prog > 0.5
+                        onCloseRequested: root.popout = ""
+                    }
+                }
+
                 HyprlandFocusGrab {
-                    active: root.popout !== "" && root.popoutMon === overlay.modelData.name && !overlay.kbPopout
+                    active: root.popout !== "" && root.popoutMon === overlay.modelData.name && !overlay.kbPopout && root.popout !== "voice"
                     windows: [overlay]
                     onCleared: if (root.popoutMon === overlay.modelData.name) root.popout = ""
                 }
