@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Dialogs
 import Quickshell
 import Quickshell.Io
 import "Singletons"
@@ -15,14 +14,14 @@ Item {
     id: page
 
     readonly property var keys: [
-        "radius", "weatherUnit", "heroImage", "heroStrength", "showWeather", "showGreeting"
+        "radius", "weatherUnit", "heroImage", "heroStrength", "heroPosX", "heroPosY", "showWeather", "showGreeting"
     ]
 
     // mirror of the launcher's canonical defaults (launcher Singletons/
     // LauncherConfig.qml), for "Reset to defaults" only.
     readonly property var defaults: ({
         "radius": 16, "weatherUnit": "auto", "heroImage": "", "heroStrength": 0.6,
-        "showWeather": true, "showGreeting": true
+        "heroPosX": 0.5, "heroPosY": 0.5, "showWeather": true, "showGreeting": true
     })
 
     property bool loaded: false
@@ -34,6 +33,8 @@ Item {
         property string weatherUnit: "auto"
         property string heroImage: ""
         property real heroStrength: 0.6
+        property real heroPosX: 0.5
+        property real heroPosY: 0.5
         property bool showWeather: true
         property bool showGreeting: true
     }
@@ -158,6 +159,8 @@ Item {
             property string weatherUnit: "auto"
             property string heroImage: ""
             property real heroStrength: 0.6
+            property real heroPosX: 0.5
+            property real heroPosY: 0.5
             property bool showWeather: true
             property bool showGreeting: true
         }
@@ -266,60 +269,133 @@ Item {
                     width: parent.width
                     title: "BACKDROP"
 
-                    // picker: shows the current file (or the shipped default) and
-                    // opens a native chooser.
-                    Item {
+                    // preview of the backdrop, cover-cropped like the launcher
+                    // card. Drag it to choose the part that shows.
+                    Rectangle {
+                        id: prevFrame
                         width: parent.width
-                        implicitHeight: 38
+                        height: Math.round(parent.width * 106 / 560)  // launcher card aspect (560x106)
+                        radius: Theme.radius
+                        color: Theme.surfaceLo
+                        border.width: 1
+                        border.color: dragHov.hovered ? Theme.subtle : Theme.line
+                        clip: true
+                        Behavior on border.color { ColorAnimation { duration: Theme.quick } }
 
-                        Text {
-                            id: bdLabel
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 116
-                            text: "Image"
-                            color: Theme.cream
-                            font.family: Theme.font
-                            font.pixelSize: 14
-                            font.weight: Font.Medium
+                        Image {
+                            id: prevImg
+                            visible: draft.heroImage.length > 0
+                            readonly property real ir: prevImg.implicitHeight > 0 ? prevImg.implicitWidth / prevImg.implicitHeight : 1
+                            readonly property real fr: prevFrame.height > 0 ? prevFrame.width / prevFrame.height : 1
+                            width: prevImg.ir > prevImg.fr ? prevFrame.height * prevImg.ir : prevFrame.width
+                            height: prevImg.ir > prevImg.fr ? prevFrame.height : prevFrame.width / prevImg.ir
+                            x: (prevFrame.width - width) * draft.heroPosX
+                            y: (prevFrame.height - height) * draft.heroPosY
+                            source: draft.heroImage
+                            opacity: draft.heroStrength
+                            asynchronous: true
+                            cache: true
                         }
 
+                        Column {
+                            visible: draft.heroImage.length === 0
+                            anchors.centerIn: parent
+                            spacing: 6
+                            Icon { anchors.horizontalCenter: parent.horizontalCenter; name: "image"; size: 24; tint: Theme.faint }
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Shipped art"
+                                color: Theme.dim
+                                font.family: Theme.font
+                                font.pixelSize: 12
+                            }
+                        }
+
+                        // drag the image to reposition the crop; only a real
+                        // drag on a custom image moves it.
+                        DragHandler {
+                            id: dragH
+                            target: null
+                            enabled: draft.heroImage.length > 0
+                            cursorShape: Qt.SizeAllCursor
+                            property real ox: 0.5
+                            property real oy: 0.5
+                            onActiveChanged: if (dragH.active) { dragH.ox = draft.heroPosX; dragH.oy = draft.heroPosY; }
+                            onActiveTranslationChanged: {
+                                if (!dragH.active)
+                                    return;
+                                var rx = prevImg.width - prevFrame.width;
+                                var ry = prevImg.height - prevFrame.height;
+                                if (rx > 1)
+                                    page.edit("heroPosX", Math.max(0, Math.min(1, dragH.ox - dragH.activeTranslation.x / rx)));
+                                if (ry > 1)
+                                    page.edit("heroPosY", Math.max(0, Math.min(1, dragH.oy - dragH.activeTranslation.y / ry)));
+                            }
+                        }
+
+                        HoverHandler { id: dragHov; enabled: draft.heroImage.length > 0; cursorShape: Qt.SizeAllCursor }
+
                         Rectangle {
-                            anchors.left: bdLabel.right
+                            visible: draft.heroImage.length > 0 && dragHov.hovered
+                            anchors.left: parent.left
+                            anchors.bottom: parent.bottom
+                            anchors.margins: 8
+                            width: dragHint.implicitWidth + 18
+                            height: 24
+                            radius: Theme.radius
+                            color: Qt.rgba(0, 0, 0, 0.6)
+                            Text {
+                                id: dragHint
+                                anchors.centerIn: parent
+                                text: "Drag to reposition"
+                                color: Theme.bright
+                                font.family: Theme.font
+                                font.pixelSize: 11
+                            }
+                        }
+                    }
+
+                    // current file, with a change / reset.
+                    Item {
+                        width: parent.width
+                        implicitHeight: 22
+                        Text {
+                            anchors.left: parent.left
+                            anchors.right: actions.left
+                            anchors.rightMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            elide: Text.ElideMiddle
+                            text: draft.heroImage.length === 0 ? "Shipped art" : ("" + draft.heroImage).replace(/^.*\//, "")
+                            color: draft.heroImage.length === 0 ? Theme.faint : Theme.cream
+                            font.family: Theme.mono
+                            font.pixelSize: 11
+                        }
+                        Row {
+                            id: actions
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            height: 32
-                            radius: Theme.radius
-                            color: Theme.surfaceLo
-                            border.width: 1
-                            border.color: pickHover.hovered ? Theme.subtle : Theme.line
-                            Behavior on border.color { ColorAnimation { duration: Theme.quick } }
-
+                            spacing: 16
                             Text {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 12
-                                anchors.right: bdIcon.left
-                                anchors.rightMargin: 6
-                                anchors.verticalCenter: parent.verticalCenter
-                                elide: Text.ElideLeft
-                                text: draft.heroImage.length === 0
-                                    ? "Shipped art"
-                                    : ("" + draft.heroImage).replace(/^.*\//, "")
-                                color: draft.heroImage.length === 0 ? Theme.faint : Theme.bright
+                                text: "Change\u2026"
+                                color: changeHov.hovered ? Theme.bright : Theme.cream
                                 font.family: Theme.font
-                                font.pixelSize: 13
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
+                                Behavior on color { ColorAnimation { duration: Theme.quick } }
+                                HoverHandler { id: changeHov; cursorShape: Qt.PointingHandCursor }
+                                TapHandler { onTapped: imgPicker.open() }
                             }
-                            Icon {
-                                id: bdIcon
-                                anchors.right: parent.right
-                                anchors.rightMargin: 9
-                                anchors.verticalCenter: parent.verticalCenter
-                                name: "image"
-                                size: 14
-                                tint: pickHover.hovered ? Theme.cream : Theme.dim
+                            Text {
+                                visible: draft.heroImage.length > 0
+                                text: "Use shipped art"
+                                color: resetHover.hovered ? Theme.bright : Theme.dim
+                                font.family: Theme.font
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
+                                Behavior on color { ColorAnimation { duration: Theme.quick } }
+                                HoverHandler { id: resetHover; cursorShape: Qt.PointingHandCursor }
+                                TapHandler { onTapped: page.edit("heroImage", "") }
                             }
-                            HoverHandler { id: pickHover; cursorShape: Qt.PointingHandCursor }
-                            TapHandler { onTapped: imgDlg.open() }
                         }
                     }
 
@@ -327,22 +403,10 @@ Item {
                         width: parent.width
                         wrapMode: Text.WordWrap
                         lineHeight: 1.3
-                        text: "PNG or JPG, about 1600\u00d7640 (a ~5:1 banner). Keep the subject centred \u2014 the sides get cropped and the far left and right sit under the clock and date."
+                        text: "A landscape PNG or JPG, ideally 1600px wide or more. It is cropped to a wide banner and dimmed; drag the preview to pick the part that shows."
                         color: Theme.faint
                         font.family: Theme.font
                         font.pixelSize: 12
-                    }
-
-                    Text {
-                        visible: draft.heroImage.length > 0
-                        text: "Use shipped art"
-                        color: resetHover.hovered ? Theme.bright : Theme.dim
-                        font.family: Theme.font
-                        font.pixelSize: 12
-                        font.weight: Font.DemiBold
-                        Behavior on color { ColorAnimation { duration: Theme.quick } }
-                        HoverHandler { id: resetHover; cursorShape: Qt.PointingHandCursor }
-                        TapHandler { onTapped: page.edit("heroImage", "") }
                     }
 
                     SliderRow {
@@ -355,11 +419,10 @@ Item {
         }
     }
 
-    FileDialog {
-        id: imgDlg
-        title: "Choose a launcher backdrop"
-        nameFilters: ["Images (*.png *.jpg *.jpeg *.bmp)", "All files (*)"]
-        onAccepted: page.edit("heroImage", "" + imgDlg.selectedFile)
+    ImagePicker {
+        id: imgPicker
+        onPicked: (p) => { page.edit("heroImage", p); imgPicker.active = false; }
+        onCanceled: imgPicker.active = false
     }
 
     // --- bottom: status + actions ------------------------------------------
