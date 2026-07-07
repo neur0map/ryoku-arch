@@ -250,8 +250,16 @@ func buildVoxtypeConfig(p voxtypePreset, openaiKey string) string {
 		fmt.Fprintf(&b, "language = %q\n", p.lang)
 		b.WriteString("translate = false\n")
 	}
-	b.WriteString("\n[output]\nmode = \"type\"\nfallback_to_clipboard = true\n\n")
-	b.WriteString("[output.notification]\non_recording_start = false\non_recording_stop = false\non_transcription = false\n")
+	b.WriteString("\n[output]\nmode = \"type\"\nfallback_to_clipboard = true\n")
+	// type into a modifier-suppressing submap so the shell's Super+` keybind does
+	// not eat the injected keys as a shortcut. Ryoku's Hyprland evaluates `hyprctl
+	// dispatch` as Lua, so the submap is entered through hl.dsp (see voxtype.lua).
+	b.WriteString("pre_output_command = " + `"hyprctl dispatch 'hl.dsp.submap(\"voxtype_suppress\")'"` + "\n")
+	b.WriteString("post_output_command = " + `"hyprctl dispatch 'hl.dsp.submap(\"reset\")'"` + "\n\n")
+	b.WriteString("[output.notification]\non_recording_start = false\non_recording_stop = false\non_transcription = false\n\n")
+	// the pill's mic wave is the indicator, so keep Voxtype's own OSD off; it also
+	// avoids the gtk4-layer-shell dependency the OSD would otherwise need.
+	b.WriteString("[osd]\nenabled = false\n")
 	return b.String()
 }
 
