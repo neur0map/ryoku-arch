@@ -15,12 +15,17 @@
   sets it, Esc closes. Live tiles preview muted on the pick. The pill's
   wallpaper surface and the old thumbnail script are gone; the switcher keeps
   its own thumbnail and dominant-colour index under `~/.cache/ryoku-wp-thumbs`.
-- **The island's top gap is closable.** The strip reserved under the fused
-  island now tracks the compact pill instead of the legacy height knob (the
-  old reserve left a fat empty band above the windows), and a new
-  `islandReserve` setting drops the strip entirely: windows rise to the
-  frame and the island floats over them, so the top edge sits as tight as
-  the other three.
+- **The floating pill and centre island are gone.** Everything the pill used to
+  host now opens as a bar-edge popout that grows from the frame at its trigger
+  with the bar painted on top (caelestia's model), so a panel never hides the
+  bar and the bar stays clickable while one is open. `Super+V` clipboard,
+  `Super+D` control deck, `Super+Tab` workspaces, the wifi/bluetooth link
+  surface, the keyring prompt, voice dictation and the notification inbox all
+  moved off the pill; keyboard panels hold the keyboard while open and release
+  it on close. The volume/brightness OSD and notification toasts became small
+  edge windows (the OSD floats above the bar, toasts stack at the top-right).
+  Left/right bar positions and the sysinfo panel were dropped. `Pill.qml`, the
+  island blob fields and the island-reserve machinery are deleted.
 - **The bar skins are the references now, not our riff on them.** After fair
   pushback that the plate slabs looked bad on round shells, the two bar
   styles are carried one-to-one from the credited shells: `noctalia` (fully
@@ -35,12 +40,8 @@
   press point, and the Material 3 expressive curve family drives the module,
   island and reveal motion. Content centres across the full band, so modules
   no longer crowded the bar's bottom edge.
-- **The resting island hugs its content.** One line: the clock beside the
-  date (or the sounding track with a pulsing eq), workspace ticks
-  underneath, and nothing else; the big half-empty slab is gone, and the
-  Width/Height knobs went with it (the hub notes the island sizes itself).
-- The battery readout works on AC again everywhere (bar, island hover, the
-  battery surface): UPower's synthetic display device drops off some
+- The battery readout works on AC again everywhere (the bar and the battery
+  popout): UPower's synthetic display device drops off some
   versions once the cell sits full, so the Battery singleton now reads the
   physical battery. Wifi signal in the bar's status cluster reads the active
   connection's strength instead of an in-use marker nmcli omits without a
@@ -75,16 +76,6 @@
   follow the choice. With a bar present the resting clock island is gone -- the
   bar carries the clock, workspaces, media and status, and summoned panels grow
   from the bar edge instead of a floating centre pill.
-- **The island rest face is redesigned.** The cramped stacked date and the
-  squiggle are gone: the clock is the hero (tabular, vermilion colon), under
-  it one tracked mono date line, and under that a row of precise
-  registration ticks, one per workspace: the active one stretches into an
-  accent dash, occupied ones read brighter, and each tick is clickable.
-  While music plays the date line hands over to a now-playing marquee with a
-  three-bar eq pulsing beside it (wallpaper video filtered out), so the
-  island answers "what is sounding" at a glance, dynamic-island style. The
-  shared player pick moved to a `Media` singleton the bar and island both
-  read.
 - **The top bar is a real bar now, and the default face.** The band used to be
   naked text floating on the frame's thickened edge; it is now composed of
   module plates: sharp slabs with a faint warm fill and a hairline edge that
@@ -108,8 +99,7 @@
     (link, battery, inbox);
   - the tray on a quiet plate with per-icon hover lift, and the power glyph.
   A wheel over bare band nudges the volume, narrated by the OSD. New shells
-  start with the bar on (`barEnabled` default true); the pure island styles
-  stay one toggle away in Settings -> Shell.
+  start with the bar on (`barEnabled` default true).
 
 ### Fixed
 - `ipc/wallpaper.go`: setting a live (video) wallpaper could silently do
