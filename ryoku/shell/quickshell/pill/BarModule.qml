@@ -15,6 +15,7 @@ Item {
     property real padY: 10 * s
     default property alias content: slot.data
     property bool interactive: true
+    property bool filled: true  // a control pill; false = a bare mark (the logo), hover still lifts
     readonly property alias hovered: hoverArea.containsMouse
 
     signal tapped()
@@ -27,7 +28,7 @@ Item {
         id: base
         anchors.fill: parent
         radius: Math.min(width, height) / 2
-        color: Theme.tileBg
+        color: filled ? Theme.tileBg : "transparent"
         clip: true
 
         // caelestia StateLayer: hover overlay at 0.08, press ripple at 0.1.

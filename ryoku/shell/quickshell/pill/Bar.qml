@@ -73,7 +73,8 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 s: bar.s
                 height: bar.moduleSpan
-                padX: 11 * bar.s
+                width: bar.moduleSpan  // square hit area; a bare brand mark, hover lifts a round highlight
+                filled: false
                 onTapped: Quickshell.execDetached(["ryoku-shell", "launcher"])
 
                 Text {
@@ -81,7 +82,7 @@ Item {
                     color: Theme.brand
                     font.family: Theme.fontJp
                     font.weight: Font.Medium
-                    font.pixelSize: 13 * bar.s
+                    font.pixelSize: 11 * bar.s
                 }
             }
 
