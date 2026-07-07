@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Window
 import Quickshell
 import Quickshell.Io
 import "Singletons"
@@ -63,6 +64,17 @@ Item {
             "voxtype setup model; echo; read -n1 -rsp 'Done. Press any key to close\u2026'; echo"]);
     }
 
+    // gpk (GlazePKG, the RyokuArch package manager) needs a tty for its AUR
+    // build and sudo prompts; --hold keeps any error on screen after it exits.
+    function installVoxtype() {
+        Quickshell.execDetached(["kitty", "--hold", "-e", "gpk", "install", "voxtype-bin", "--manager", "aur"]);
+    }
+
+    // when the gpk terminal closes and the Hub regains focus, re-probe so the
+    // page flips from the install prompt to the live settings on its own.
+    readonly property bool windowActive: Window.active
+    onWindowActiveChanged: if (page.windowActive) page.reload()
+
     Component.onCompleted: page.reload()
 
     Process {
@@ -105,7 +117,7 @@ Item {
         visible: page.loaded && !page.installed
         anchors.centerIn: parent
         width: Math.min(parent.width * 0.6, 460)
-        spacing: 12
+        spacing: 16
         Text {
             width: parent.width
             wrapMode: Text.WordWrap
@@ -120,10 +132,22 @@ Item {
             width: parent.width
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
-            text: "Voice dictation needs the voxtype-bin package. Install it, then reopen this page."
+            text: "Voice dictation needs the voxtype-bin package. Install it below; GlazePKG opens in a terminal to confirm, and this page fills in once it finishes."
             color: Theme.subtle
             font.family: Theme.font
             font.pixelSize: 13
+        }
+        Item {
+            width: parent.width
+            height: installBtn.implicitHeight
+            HubButton {
+                id: installBtn
+                anchors.horizontalCenter: parent.horizontalCenter
+                label: "Install Voxtype"
+                icon: "download"
+                primary: true
+                onClicked: page.installVoxtype()
+            }
         }
     }
 
