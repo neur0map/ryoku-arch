@@ -550,6 +550,7 @@ ShellRoot {
                 Region { x: toastPop.bodyX; y: toastPop.bodyY; width: toastPop.bodyW; height: toastPop.bodyH }
                 Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
                 Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
+                Region { x: recHud.hudX; y: recHud.hudY; width: Recorder.active ? recHud.hudW : 0; height: Recorder.active ? recHud.hudH : 0 }
             }
 
             MouseArea {
@@ -1024,6 +1025,13 @@ ShellRoot {
                         if (root.popout.indexOf("plugin:") === 0 && root.popoutMon === overlay.modelData.name)
                             root.popout = "";
                     }
+                }
+
+                RecordHud {
+                    id: recHud
+                    group: blobGroup
+                    s: overlay.s
+                    smoothing: Config.frameSmoothing
                 }
 
             }
