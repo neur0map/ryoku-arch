@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Fixed
+- **Super+` voice dictation opens centred, and Handy stops flickering.** The
+  keybind's socket fast path set the popout without clearing the previous
+  icon's centre, so the mic wave grew from wherever the last popout had opened;
+  it now recentres like every other keybind popout. The tap also toggled Handy
+  via `handy --toggle-transcription`, which launches a second instance to relay
+  the flag; on Wayland, where Handy cannot claim a global shortcut of its own,
+  that popped the app in and out, so the shell now signals the running instance
+  with SIGUSR2.
 - **The desktop and launcher spectrum visualisers work again.** cava's PipeWire
   input backend quits within seconds on current PipeWire, so the bars blanked
   and restarted until the surface showed nothing at all. Both visualisers now

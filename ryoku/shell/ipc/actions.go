@@ -149,20 +149,21 @@ func lockSession() string {
 }
 
 // toggleHandy flips Handy transcription on the running instance (the Super+`
-// tap). Handy is an optional AUR app (handy-bin); when absent this is a no-op
-// and the voice visualizer keeps working as a plain mic meter. the flag is
-// forwarded to the already-running instance via Handy's single-instance plugin,
-// so the process started here exits right away.
+// tap). Handy is an optional AUR app (handy-bin); absent, this is a no-op and
+// the voice surface stays a plain mic meter. SIGUSR2 toggles the live instance
+// in place: on Wayland Handy cannot grab a global shortcut of its own, and
+// `--toggle-transcription` launches a second instance that flickers, so the
+// shell owns Super+` and signals the running Handy instead.
 func toggleHandy() {
 	if _, err := exec.LookPath("handy"); err != nil {
 		return
 	}
-	cmd := exec.Command("handy", "--toggle-transcription")
+	// -n signals only the newest handy, so extras never double-toggle; reap the
+	// short-lived pkill in the background so it does not linger as a zombie.
+	cmd := exec.Command("pkill", "-USR2", "-n", "handy")
 	if err := cmd.Start(); err != nil {
 		return
 	}
-	// reap the short-lived forwarder in the background, else it lingers as a
-	// zombie; toggleHandy fires twice per dictation (key down + key up).
 	go func() { _ = cmd.Wait() }()
 }
 

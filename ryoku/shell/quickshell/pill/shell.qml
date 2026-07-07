@@ -343,7 +343,7 @@ ShellRoot {
             root.togglePopout(mon, "plugin:" + (parts.length > 2 ? parts[2] : ""));
             return true;
         case "voiceShow":
-            root.popoutMon = mon; root.popout = "voice"; return true;
+            root.popoutCenter = -1; root.popoutMon = mon; root.popout = "voice"; return true;
         case "voiceHide":
             if (root.popout === "voice") root.popout = "";
             return true;
