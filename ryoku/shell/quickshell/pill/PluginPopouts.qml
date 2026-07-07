@@ -15,7 +15,7 @@ import "popouts"
  * only); a placement change rewrites plugins.json and the daemon calls
  * reload().
  *
- *   PluginPopouts { group: blobGroup; s: overlay.s; active: !surfaceOpen; ... }
+ *   PluginPopouts { group: blobGroup; s: overlay.s; active: !overlay.monFullscreen; ... }
  */
 Item {
     id: root

@@ -35,8 +35,6 @@ import "popouts"
 ShellRoot {
     id: root
 
-    property string openMon: ""
-    property string openSurface: ""
     property string peekMon: ""
 
     // which edge popout (mixer/power) is pinned by IPC, and on which
@@ -195,37 +193,10 @@ ShellRoot {
         }
     }
 
-    function toggleSurface(mon, surface) {
-        if (root.openMon === mon && root.openSurface === surface) {
-            root.close();
-            return;
-        }
-        root.openMon = mon;
-        root.openSurface = surface;
-    }
-
-    // pulse the kbBounce helper so a closed surface hands the keyboard back.
+    // pulse the kbBounce helper so a dismissed keyboard popout hands the keyboard back.
     function restoreFocus() {
         root.kbBounce = true;
         kbBounceTimer.restart();
-    }
-
-    function close() {
-        // a user dismissal (Escape, backdrop, Cancel) must cancel the keyring
-        // prompt; a daemon-driven hide clears Keyring first, so this is a no-op.
-        if (root.openSurface === "keyring")
-            Keyring.dismiss();
-        // voice never grabbed the keyboard, so it has nothing to hand back.
-        var grabbed = root.openSurface !== "" && root.openSurface !== "voice";
-        root.openMon = "";
-        root.openSurface = "";
-        if (grabbed)
-            root.restoreFocus();
-    }
-
-    function show(mon, surface) {
-        root.openMon = mon;
-        root.openSurface = surface;
     }
 
     function peek(mon) {
@@ -237,7 +208,7 @@ ShellRoot {
     // instead of landing behind the open deck.
     Connections {
         target: Stash
-        function onAuthStepAside() { root.close(); }
+        function onAuthStepAside() { root.popout = ""; }
     }
 
     // pin/unpin an edge popout (mixer/power) on a monitor. re-issuing the
@@ -291,7 +262,7 @@ ShellRoot {
         function stash(mon: string): void { root.togglePopout(mon, "stash"); }
         // stash-send <file>: open the stash and jump straight to its LocalSend
         // picker for the given file, so the file manager can hand a file to the
-        // deck's send flow. show() (not toggle) so it never closes an open deck.
+        // deck's send flow. sets the popout directly (not toggle) so it never closes an open deck.
         function stashSend(mon: string, file: string): void {
             root.popoutMon = mon;
             root.popout = "stash";
@@ -318,7 +289,7 @@ ShellRoot {
         function voiceShow(mon: string): void { root.popoutMon = mon; root.popoutCenter = -1; root.popout = "voice"; }
         function voiceHide(): void { if (root.popout === "voice") root.popout = ""; }
         function peek(mon: string): void { root.peek(mon); }
-        function hide(): void { root.close(); }
+        function hide(): void { root.popout = ""; }
         // toggle an enabled plugin's frame popout by id (leader menu / keybind).
         function pluginPopout(mon: string, id: string): void { root.togglePopout(mon, "plugin:" + id); }
     }
@@ -354,7 +325,7 @@ ShellRoot {
         case "peek":
             root.peek(mon); return true;
         case "hide":
-            root.close(); return true;
+            root.popout = ""; return true;
         default:
             return false;
         }
@@ -463,16 +434,11 @@ ShellRoot {
             readonly property real barBand: Math.max(Config.barHeight, barVertical ? 30 : 0) * s
             readonly property real barVisibleH: frameTopVisible + barBand
 
-            readonly property string surface: root.openMon === modelData.name ? root.openSurface : ""
-            readonly property bool surfaceOpen: surface.length > 0
-            // voice is excluded: it must not grab the keyboard, so Handy's
-            // dictation lands in the focused app, not the pill.
-            readonly property bool focusSurface: surfaceOpen && surface !== "voice"
             // a keyboard-needing popout (clipboard/link/keyring/deck/workspaces)
-            // pinned on this monitor: grabs the keyboard like an open surface.
+            // pinned on this monitor: grabs the keyboard for text entry.
             readonly property bool kbPopout: root.popoutMon === modelData.name
                 && root.kbPopouts.indexOf(root.popout) >= 0
-            readonly property bool modal: focusSurface || kbPopout
+            readonly property bool modal: kbPopout
 
             // true if this monitor's active workspace has a fullscreen window.
             readonly property bool monFullscreen: {
@@ -484,7 +450,7 @@ ShellRoot {
             }
 
             onMonFullscreenChanged: if (monFullscreen) {
-                if (root.openMon === modelData.name) root.close();
+                if (root.popoutMon === modelData.name) root.popout = "";
                 if (root.peekMon === modelData.name) root.peekMon = "";
             }
 
@@ -493,8 +459,8 @@ ShellRoot {
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Overlay
             // None, not OnDemand: this layer is always mapped, so OnDemand would
-            // hold the keyboard after a surface closes and a launched window can't type.
-            WlrLayershell.keyboardFocus: (focusSurface || kbPopout) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            // hold the keyboard after a popout closes and a launched window can't type.
+            WlrLayershell.keyboardFocus: kbPopout ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             WlrLayershell.namespace: "pill"
 
             anchors { top: true; left: true; right: true; bottom: true }
@@ -563,21 +529,17 @@ ShellRoot {
                     // only a true backdrop press dismisses the modal popout.
                     if (overlay.inBarStrip(mouse.x, mouse.y)) return;
                     if (overlay.kbPopout) root.popout = "";
-                    else if (overlay.surfaceOpen) root.close();
                 }
             }
 
             FocusScope {
                 id: focusScope
                 anchors.fill: parent
-                focus: overlay.focusSurface || overlay.kbPopout
+                focus: overlay.kbPopout
                 // whole shell hides while a window is fullscreen.
                 visible: !overlay.monFullscreen
 
-                Keys.onEscapePressed: {
-                    if (overlay.kbPopout) root.popout = "";
-                    else root.close();
-                }
+                Keys.onEscapePressed: if (overlay.kbPopout) root.popout = "";
 
                 // frame and pill share one blob field, so the pill reads
                 // as the frame swelling open at top-centre, not a bar on top.
@@ -626,15 +588,8 @@ ShellRoot {
                     s: overlay.s
                     position: overlay.barPos
                     band: overlay.barBand
-                    // hold the clock away until the drop panel has fully
-                    // melted back into the band, not just until the surface
-                    // state clears -- otherwise it overprints the retract.
-                    // only a top bar hosts the drop, so only it dodges.
-                    surfaceOpen: false
                     trayWindow: overlay
-                    onCalendarRequested: root.toggleSurface(overlay.modelData.name, "calendar")
                     onPopoutRequested: (name, center) => root.togglePopoutAt(overlay.modelData.name, name, center)
-                    onSurfaceRequested: (name) => root.toggleSurface(overlay.modelData.name, name)
                 }
 
                 // mixer popout: on a side bar the volume status icon owns it --
@@ -651,7 +606,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "mixer" && root.popoutMon === overlay.modelData.name
                     openW: mixerContent.implicitWidth
                     openH: mixerContent.implicitHeight
@@ -676,7 +631,7 @@ ShellRoot {
                     alongCenter: root.popoutCenter
                     hoverOpen: false
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "power" && root.popoutMon === overlay.modelData.name
                     openW: 74 * overlay.s
                     openH: 312 * overlay.s
@@ -700,7 +655,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "network" && root.popoutMon === overlay.modelData.name
                     openW: netContent.implicitWidth
                     openH: netContent.implicitHeight
@@ -722,7 +677,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "battery" && root.popoutMon === overlay.modelData.name
                     openW: batContent.implicitWidth
                     openH: batContent.implicitHeight
@@ -744,7 +699,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "bluetooth" && root.popoutMon === overlay.modelData.name
                     openW: btContent.implicitWidth
                     openH: btContent.implicitHeight
@@ -768,7 +723,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "calendar" && root.popoutMon === overlay.modelData.name
                     openW: calContent.implicitWidth
                     openH: calContent.implicitHeight
@@ -792,7 +747,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "clipboard" && root.popoutMon === overlay.modelData.name
                     openW: clipContent.implicitWidth
                     openH: clipContent.implicitHeight
@@ -817,7 +772,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "link" && root.popoutMon === overlay.modelData.name
                     openW: linkContent.implicitWidth
                     openH: linkContent.implicitHeight
@@ -842,7 +797,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "inbox" && root.popoutMon === overlay.modelData.name
                     openW: inboxContent.implicitWidth
                     openH: inboxContent.implicitHeight
@@ -867,7 +822,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: (root.popout === "stash" || root.popout === "toolkit" || root.popout === "utilities")
                             && root.popoutMon === overlay.modelData.name
                     openW: deckContent.implicitWidth
@@ -893,7 +848,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "voice" && root.popoutMon === overlay.modelData.name
                     openW: voiceContent.implicitWidth
                     openH: voiceContent.implicitHeight
@@ -918,7 +873,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "keyring" && root.popoutMon === overlay.modelData.name
                     openW: keyringContent.implicitWidth
                     openH: keyringContent.implicitHeight
@@ -943,7 +898,7 @@ ShellRoot {
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     pinned: root.popout === "workspaces" && root.popoutMon === overlay.modelData.name
                     openW: workspacesContent.implicitWidth
                     openH: workspacesContent.implicitHeight
@@ -969,7 +924,7 @@ ShellRoot {
                     id: pluginPops
                     group: blobGroup
                     s: overlay.s
-                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    active: !overlay.monFullscreen
                     frameThickness: 16
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
@@ -982,8 +937,6 @@ ShellRoot {
                 }
 
             }
-
-            onSurfaceOpenChanged: if (focusSurface) focusScope.forceActiveFocus()
         }
     }
 

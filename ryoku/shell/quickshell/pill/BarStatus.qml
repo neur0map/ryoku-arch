@@ -19,7 +19,6 @@ Grid {
     property bool vertical: false
 
     signal requestPopout(string name, real center)
-    signal requestSurface(string name)
 
     // open a named popout anchored at an icon: report the icon's centre along
     // the bar axis (x on a top/bottom bar, y on a side bar) in window coords.

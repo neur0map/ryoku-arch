@@ -13,9 +13,8 @@ import "Singletons"
 // caelestia or noctalia dialect; both wear fully rounded module pills with
 // the caelestia hover/press feel):
 //   top/bottom = the noctalia-style horizontal row: launcher glyph +
-//     workspaces + focused title left, the stacked clock centred (the anchor
-//     a summoned surface drops from on a top bar), now-playing + status +
-//     tray + power right.
+//     workspaces + focused title left, the stacked clock centred, now-playing
+//     + status + tray + power right.
 //   left/right = the caelestia column: logo and workspaces up top, the clock
 //     in the middle, tray + status + power falling to the bottom.
 // a wheel over bare band nudges the sink volume, narrated by the OSD.
@@ -27,13 +26,8 @@ Item {
     // the band the frame edge swelled by; module pills size against it.
     property real band: 0
     required property var trayWindow
-    // a summoned surface drops out of a top bar over the centre; the clock
-    // fades under it so the two never overprint.
-    property bool surfaceOpen: false
 
     signal popoutRequested(string name, real center)
-    signal calendarRequested()
-    signal surfaceRequested(string name)
 
     readonly property real moduleSpan: Math.round(bar.band * 0.76)
 
@@ -124,9 +118,6 @@ Item {
             s: bar.s
             height: bar.moduleSpan
             padX: 13 * bar.s
-            opacity: bar.surfaceOpen ? 0 : 1
-            interactive: !bar.surfaceOpen
-            Behavior on opacity { NumberAnimation { duration: Motion.effects; easing.type: Easing.OutCubic } }
             onTapped: bar.popoutRequested("calendar", clockMod.mapToItem(null, clockMod.width / 2, clockMod.height / 2).x)
 
             BarClock {
@@ -164,7 +155,6 @@ Item {
                 BarStatus {
                     s: bar.s
                     onRequestPopout: (name, center) => bar.popoutRequested(name, center)
-                    onRequestSurface: (name) => bar.surfaceRequested(name)
                 }
             }
 
