@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -72,6 +73,12 @@ func (d *daemon) watchAudio() {
 		}
 
 		cmd := exec.Command("pactl", "subscribe")
+		// Tie the subscriber's lifetime to ours: on SIGKILL, a crash, or a hard
+		// restart the graceful d.quit cleanup never runs, and this child is
+		// reparented to init. Each orphaned `pactl subscribe` holds a
+		// PipeWire-Pulse client slot; enough of them exhaust the limit and new
+		// streams (e.g. browser/YouTube audio) get refused.
+		cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL}
 		stdout, err := cmd.StdoutPipe()
 		if err == nil {
 			err = cmd.Start()
