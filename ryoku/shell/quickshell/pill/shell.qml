@@ -297,7 +297,7 @@ ShellRoot {
         }
         function toolkit(mon: string): void { root.togglePopout(mon, "toolkit"); }
         function utilities(mon: string): void { root.togglePopout(mon, "utilities"); }
-        function workspaces(mon: string): void { root.toggleSurface(mon, "workspaces"); }
+        function workspaces(mon: string): void { root.togglePopout(mon, "workspaces"); }
         function keyringPrompt(payload: string): void {
             Keyring.apply(payload);
             var m = Keyring.mon !== "" ? Keyring.mon
@@ -336,11 +336,10 @@ ShellRoot {
         var mon = parts.length > 1 ? parts[1] : "";
         switch (fn) {
         case "battery":
-        case "workspaces":
             root.toggleSurface(mon, fn); return true;
         case "mixer": case "power":
             root.togglePopout(mon, fn); return true;
-        case "network": case "bluetooth": case "calendar": case "clipboard": case "link": case "inbox": case "stash": case "toolkit": case "utilities":
+        case "network": case "bluetooth": case "calendar": case "clipboard": case "link": case "inbox": case "stash": case "toolkit": case "utilities": case "workspaces":
             root.togglePopout(mon, fn); return true;
         case "batteryPopout":
             root.togglePopout(mon, "battery"); return true;
@@ -663,6 +662,7 @@ ShellRoot {
                 Region { x: deckPop.bodyX; y: deckPop.bodyY; width: deckPop.bodyW; height: deckPop.bodyH }
                 Region { x: voicePop.bodyX; y: voicePop.bodyY; width: voicePop.bodyW; height: voicePop.bodyH }
                 Region { x: keyringPop.bodyX; y: keyringPop.bodyY; width: keyringPop.bodyW; height: keyringPop.bodyH }
+                Region { x: workspacesPop.bodyX; y: workspacesPop.bodyY; width: workspacesPop.bodyW; height: workspacesPop.bodyH }
                 Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
                 Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
             }
@@ -1115,6 +1115,32 @@ ShellRoot {
                     }
                 }
 
+                // workspaces popout (Super+Tab): the switcher, from the bar edge.
+                // pointer-only (drag is hand-tracked inside the surface).
+                Popout {
+                    id: workspacesPop
+                    group: blobGroup
+                    frameThickness: overlay.barVisibleH
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.barPos
+                    hoverOpen: false
+                    alongCenter: root.popoutCenter
+                    s: overlay.s
+                    active: !overlay.surfaceOpen && !overlay.monFullscreen
+                    pinned: root.popout === "workspaces" && root.popoutMon === overlay.modelData.name
+                    openW: workspacesContent.implicitWidth
+                    openH: workspacesContent.implicitHeight
+
+                    WorkspacesPopout {
+                        id: workspacesContent
+                        s: overlay.s
+                        screenName: overlay.modelData.name
+                        open: workspacesPop.prog > 0.5
+                        onCloseRequested: root.popout = ""
+                    }
+                }
+
                 HyprlandFocusGrab {
                     active: root.popout !== "" && root.popoutMon === overlay.modelData.name && !overlay.kbPopout && root.popout !== "voice"
                     windows: [overlay]
@@ -1181,18 +1207,6 @@ ShellRoot {
                             easing.bezierCurve: Motion.morphCurve
                         }
                     }
-                }
-
-                DropArea {
-                    // drag a file on the island = stash opens for the drop.
-                    // ...except while the workspace switcher is open, where
-                    // its own card drags move windows between workspaces.
-                    enabled: !pill.workspacesOpen
-                    x: pill.x
-                    y: pill.y
-                    width: pill.width
-                    height: pill.height
-                    onEntered: (drag) => root.show(overlay.modelData.name, "stash")
                 }
 
                 Pill {
