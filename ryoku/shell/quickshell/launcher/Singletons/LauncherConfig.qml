@@ -14,6 +14,8 @@ Singleton {
     property alias weatherUnit:  adapter.weatherUnit   // auto (locale) | C | F
     property alias heroImage:    adapter.heroImage     // backdrop file, "" = shipped art
     property alias heroStrength: adapter.heroStrength  // backdrop opacity, 0..1
+    property alias heroPosX:     adapter.heroPosX      // backdrop focal point, 0..1
+    property alias heroPosY:     adapter.heroPosY
     property alias showWeather:  adapter.showWeather   // weather glance on the home card
     property alias showGreeting: adapter.showGreeting  // "Good morning" line
 
@@ -32,6 +34,8 @@ Singleton {
             property string weatherUnit: "auto"
             property string heroImage: ""
             property real heroStrength: 0.6
+            property real heroPosX: 0.5
+            property real heroPosY: 0.5
             property bool showWeather: true
             property bool showGreeting: true
         }

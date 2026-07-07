@@ -33,9 +33,9 @@
 - **The app launcher reads its look from a config the Hub edits.** A new
   `~/.config/ryoku/launcher.json` (watched live) sets the palette's corner
   roundness, the home card's weather units (Auto follows the locale, or force
-  C/F), the backdrop image and its strength, and whether the greeting and
-  weather glance show. Changing the unit refetches, so the reading is always in
-  the unit on screen, never a value wearing the other's symbol.
+  C/F), the backdrop image with its strength and focal spot, and whether the
+  greeting and weather glance show. Changing the unit refetches, so the reading
+  is always in the unit on screen, never a value wearing the other's symbol.
 - **The now-playing module opens a transport on hover.** Hovering the bar's
   media module grows a compact popout from the frame edge at the module: an
   elapsed / total line you can drag to seek, over a prev / play-pause / next

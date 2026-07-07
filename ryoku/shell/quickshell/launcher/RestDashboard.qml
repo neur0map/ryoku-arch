@@ -64,17 +64,22 @@ Item {
         borderWidth: 1
 
         // Backmost layer: the launcher's hero art, dimmed so it reads as
-        // atmosphere. The image and its strength come from the Hub's App
+        // atmosphere. Image, strength, and focal spot come from the Hub's App
         // Launcher page (launcher.json); empty falls back to the shipped
-        // hands-of-creation art. Cover-cropped to the ~5:1 card, subject centred.
+        // hands-of-creation art. Sized to cover the card, shifted to the saved spot.
         ClippingRectangle {
             anchors.fill: parent
             radius: root.cardRadius * root.s
             color: "transparent"
             Image {
-                anchors.fill: parent
+                id: hero
+                readonly property real ir: hero.implicitHeight > 0 ? hero.implicitWidth / hero.implicitHeight : 1
+                readonly property real fr: parent.height > 0 ? parent.width / parent.height : 1
+                width: hero.ir > hero.fr ? parent.height * hero.ir : parent.width
+                height: hero.ir > hero.fr ? parent.height : parent.width / hero.ir
+                x: (parent.width - width) * LauncherConfig.heroPosX
+                y: (parent.height - height) * LauncherConfig.heroPosY
                 source: LauncherConfig.heroImage !== "" ? LauncherConfig.heroImage : "art/hands-adam.png"
-                fillMode: Image.PreserveAspectCrop
                 opacity: LauncherConfig.heroStrength
                 asynchronous: true
                 smooth: true
