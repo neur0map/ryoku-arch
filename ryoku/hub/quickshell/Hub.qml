@@ -34,6 +34,7 @@ Rectangle {
         { "key": "lockscreen",  "name": "Lockscreen",      "icon": "lock",     "group": "Desktop" },
         { "key": "widgets",     "name": "Desktop Widgets", "icon": "widgets",  "group": "Desktop" },
         { "key": "shell",       "name": "Shell",           "icon": "gear",     "group": "Desktop" },
+        { "key": "launcher",    "name": "App Launcher",    "icon": "search",   "group": "Desktop" },
         { "key": "store",       "name": "Store",           "icon": "sparkles", "group": "Add-ons" },
         { "key": "addons",      "name": "Installed",       "icon": "widgets",  "group": "Add-ons" },
         { "key": "windowrules", "name": "Window Rules",    "icon": "window",   "group": "Advanced" },
@@ -59,6 +60,7 @@ Rectangle {
         "environment": { "title": "Environment", "subtitle": "Environment variables for the Hyprland session." },
         "shell":       { "title": "Shell", "subtitle": "Tune the Ryoku shell: the frame, the bar, notifications, and the desktop visualiser." },
         "widgets":     { "title": "Desktop Widgets", "subtitle": "Clock and weather on the wallpaper: pick a design, size, shape, and placement, with a live preview that follows your palette." },
+        "launcher":    { "title": "App Launcher", "subtitle": "Tune the command palette you open with Super+Space: its roundness, the weather units, and the home card's backdrop and greeting." },
         "connections": { "title": "Connections", "subtitle": "Wi-Fi networks, Bluetooth devices, and your hotspot, all in one place." },
         "gpu":         { "title": "GPU", "subtitle": "Choose which GPU Ryoku renders on. GPU passthrough is an optional advanced path that frees the discrete GPU for a VM; run virtual machines from the ryovm app." },
         "updates":     { "title": "Updates", "subtitle": "Updates pending for your Ryoku system." },
@@ -167,6 +169,7 @@ Rectangle {
         case "gpu":         return [hypr + "/gpu.lua", hypr + "/user.lua"];
         case "shell":       return [ryoku + "/shell.json", ryoku + "/visualizer.json"];
         case "widgets":     return [ryoku + "/widgets.json"];
+        case "launcher":    return [ryoku + "/launcher.json"];
         case "performance": return [ryoku + "/performance.json"];
         default:            return [];
         }
@@ -261,6 +264,7 @@ Rectangle {
         case "autostart": return autostartComp;
         case "environment": return environmentComp;
         case "widgets": return widgetsComp;
+        case "launcher": return launcherComp;
         case "updates": return updatesComp;
         case "credits": return creditsComp;
         case "connections": return connectionsComp;
@@ -288,6 +292,7 @@ Rectangle {
     Component { id: environmentComp; EnvironmentPage {} }
     Component { id: shellComp; ShellSettingsPage {} }
     Component { id: widgetsComp; WidgetsPage {} }
+    Component { id: launcherComp; LauncherPage {} }
     Component { id: updatesComp; UpdatesPage {} }
     Component { id: creditsComp; CreditsPage {} }
     Component { id: storeComp; StorePage {} }

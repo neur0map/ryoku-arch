@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- An **App Launcher** page (Desktop): tune the command palette (Super+Space)
+  from the Hub. Set its corner roundness, the home card's weather units
+  (Auto/C/F), whether the greeting and weather show, and the backdrop image,
+  with the size it wants spelled out (about 1600x640, a ~5:1 banner) and a
+  strength slider. It writes `~/.config/ryoku/launcher.json`, which the
+  launcher watches, so a save shows on the next open.
 - A **Dictation** page (System): switch on voice typing and pick the Voxtype
   speech-to-text engine, from local Whisper (Fast or Accurate) to the OpenAI
   API (with a key field). Models download and remove in the Hub with one click,
