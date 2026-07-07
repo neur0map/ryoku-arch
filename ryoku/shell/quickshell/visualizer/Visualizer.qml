@@ -45,9 +45,13 @@ Item {
     property string wavePath: ""
     // sounding = playing now, or just stopped and still easing down.
     readonly property bool sounding: Spectrum.energy > 0.04 || root.activity > 0.02
-    // the idle wave is frozen while silent by default (its animation leaks on
-    // this Qt/NVIDIA stack); a quiet desktop drops to zero CPU. opt out to breathe.
-    readonly property bool idleFrozen: Performance.freezeVisualizerWhenIdle && !AudioActivity.playing
+    // the idle wave breathes only while sound is actually present, and freezes
+    // (clears) on real silence -- keyed off measured energy, not merely an
+    // uncorked stream. a silent-but-open stream (Discord in a call, a browser
+    // tab holding an audio context) otherwise defeats the freeze and leaves idle
+    // lines breathing on a silent desktop. freezing also spares this Qt/NVIDIA
+    // stack the idle animation, which leaks there.
+    readonly property bool idleFrozen: Performance.freezeVisualizerWhenIdle && !root.sounding
     readonly property bool wantIdleWave: Config.idleWave && !root.idleFrozen
     // anything to animate at all? silent, settled, and no wave -> ticker stops.
     readonly property bool animating: root.sounding || root.wantIdleWave || root.maxLevel > 0.004
