@@ -144,17 +144,25 @@ Item {
         }
     ]
 
-    // blob body = a BlobRect in the shared group, tracking the content clip and
-    // reaching a neck past it into the border so smooth-min fuses them. neck
-    // clamped to the body's own extent so it retracts cleanly on close, and
-    // points back toward the edge the body grows from.
+    // blob body = a BlobRect in the shared group. it anchors at the outer frame
+    // edge and grows inward, exactly like shell.qml's pillBlob at the top: the
+    // edge-side corners are zeroed so the body reads as the frame swelling open
+    // -- no separate rounded bottom, no gap -- and a neck of the full frame
+    // thickness + smoothing reaches PAST the body's outer face into the border
+    // field, so smooth-min welds body and frame into one continuous edge. the
+    // content clip stays inset above the band; the bar renders on top of it.
     BlobRect {
         id: bodyBlob
         readonly property real reach: root.frameThickness + root.smoothing
-        readonly property real neckW: root.vertical ? Math.max(0, Math.min(reach, root.bodyW)) : 0
-        readonly property real neckH: root.vertical ? 0 : Math.max(0, Math.min(reach, root.bodyH))
+        readonly property real neckW: root.vertical ? reach : 0
+        readonly property real neckH: root.vertical ? 0 : reach
         group: root.group
-        radius: root.radius
+        // edge-side corners flush (fused into the frame border), inner corners
+        // rounded -- so the body is continuous with the frame edge it grows from.
+        topLeftRadius: (root.atTop || root.atLeft) ? 0 : root.radius
+        topRightRadius: (root.atTop || root.atRight) ? 0 : root.radius
+        bottomLeftRadius: (root.atBottom || root.atLeft) ? 0 : root.radius
+        bottomRightRadius: (root.atBottom || root.atRight) ? 0 : root.radius
         deformScale: 0.000015
         x: root.bodyX - (root.atLeft ? neckW : 0)
         y: root.bodyY - (root.atTop ? neckH : 0)

@@ -738,6 +738,12 @@ ShellRoot {
                 // frame's own scene so there's no separate program, no seam.
                 Bar {
                     id: topBar
+                    // the bar rides ABOVE the popouts: a popout blob fuses to the
+                    // frame edge and grows inward through the band (Popout.qml),
+                    // so the band strip must paint on top or the neck would hide
+                    // the bar modules it grows from. content insets above the band,
+                    // so the bar only ever covers a popout's neck, never its body.
+                    z: 1
                     visible: Config.barEnabled && !overlay.monFullscreen
                     x: overlay.barMaskX
                     y: overlay.barMaskY
