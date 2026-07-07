@@ -221,22 +221,23 @@ func voxtypeRmModel(key string) error {
 }
 
 // buildVoxtypeConfig renders a minimal, schema-valid config.toml for the preset,
-// matching voxtype's own /etc/voxtype/config.toml layout. A preset marker lets
-// the Hub read the selection back.
+// matching Voxtype's own default layout (as shipped by Omarchy): built-in hotkey
+// off, type mode, media paused while recording. A preset marker lets the Hub read
+// the selection back. No modifier-suppress submap is needed: Super+` is a tap, so
+// the keys are released well before Voxtype types.
 func buildVoxtypeConfig(p voxtypePreset, openaiKey string) string {
 	var b strings.Builder
 	b.WriteString("# Ryoku dictation config for Voxtype. Managed by Ryoku Settings > Dictation\n")
 	b.WriteString("# (ryoku-hub voxtype); hand edits are overwritten when you change it there.\n")
 	b.WriteString("# The shell owns Super+` and the pill mic-wave, so the built-in hotkey is off.\n")
 	fmt.Fprintf(&b, "# ryoku-preset: %s\n\n", p.Key)
-	b.WriteString("engine = \"whisper\"\n")
 	b.WriteString("state_file = \"auto\"\n\n")
 	b.WriteString("[hotkey]\nenabled = false\n\n")
-	b.WriteString("[audio]\ndevice = \"default\"\nsample_rate = 16000\nmax_duration_secs = 60\n\n")
+	b.WriteString("[audio]\ndevice = \"default\"\nsample_rate = 16000\nmax_duration_secs = 60\npause_media = true\n\n")
 	b.WriteString("[whisper]\n")
 	if p.Cloud {
 		b.WriteString("mode = \"remote\"\n")
-		b.WriteString("model = \"base.en\"\n") // local fallback field the schema keeps
+		b.WriteString("model = \"base.en\"\n")
 		b.WriteString("language = \"en\"\n")
 		b.WriteString("translate = false\n")
 		b.WriteString("remote_endpoint = \"https://api.openai.com/v1\"\n")
@@ -245,20 +246,14 @@ func buildVoxtypeConfig(p voxtypePreset, openaiKey string) string {
 			fmt.Fprintf(&b, "remote_api_key = %q\n", openaiKey)
 		}
 	} else {
-		b.WriteString("mode = \"local\"\n")
 		fmt.Fprintf(&b, "model = %q\n", p.model)
 		fmt.Fprintf(&b, "language = %q\n", p.lang)
 		b.WriteString("translate = false\n")
 	}
-	b.WriteString("\n[output]\nmode = \"type\"\nfallback_to_clipboard = true\n")
-	// type into a modifier-suppressing submap so the shell's Super+` keybind does
-	// not eat the injected keys as a shortcut. Ryoku's Hyprland evaluates `hyprctl
-	// dispatch` as Lua, so the submap is entered through hl.dsp (see voxtype.lua).
-	b.WriteString("pre_output_command = " + `"hyprctl dispatch 'hl.dsp.submap(\"voxtype_suppress\")'"` + "\n")
-	b.WriteString("post_output_command = " + `"hyprctl dispatch 'hl.dsp.submap(\"reset\")'"` + "\n\n")
+	b.WriteString("\n[output]\nmode = \"type\"\nfallback_to_clipboard = true\ntype_delay_ms = 1\n\n")
 	b.WriteString("[output.notification]\non_recording_start = false\non_recording_stop = false\non_transcription = false\n\n")
-	// the pill's mic wave is the indicator, so keep Voxtype's own OSD off; it also
-	// avoids the gtk4-layer-shell dependency the OSD would otherwise need.
+	// the pill's mic wave is the indicator; keep Voxtype's own OSD off (Ryoku does
+	// not ship gtk4-layer-shell, which the OSD would need).
 	b.WriteString("[osd]\nenabled = false\n")
 	return b.String()
 }
