@@ -1,102 +1,145 @@
 # The frame
 
 The frame is the rounded border that hugs every display edge, and the surface
-that everything grows out of: the centre pill, and the edge popouts (the mixer on
-the left, power on the right). It is one continuous blob body. The border, the
-pill, and every open popout share a single signed-distance field and **melt into
-each other** through a smooth-minimum, so each reads as the frame swelling open,
-never as a panel stacked on top.
+everything grows out of: the module bar riding one edge, and every popout that
+bar opens. It is one continuous blob body. The border and every open popout share
+a single signed-distance field and **melt into each other** through a
+smooth-minimum, so a popout reads as the frame swelling open at its trigger, never
+as a panel stacked on top. The bar itself paints on top of that swollen frame, so
+it stays visible and clickable while a popout is open.
 
 ## The blob field
 
 The merge is real geometry, not layered translucency. It is a compiled Quickshell
 plugin, `Ryoku.Blobs` (C++ scene-graph, SDF metaball shader), because the
-smooth-min and the per-shape physics cannot be done in pure QML at this quality.
-Like the rest of the desktop it **ships as a signed package** (`ryoku-blobs`): built by `ryoku/shell/plugin/build.sh`
-and installed onto the QML import path (`ryoku-shell` points `QML2_IMPORT_PATH`
-there for the components it supervises), so the target builds nothing.
+smooth-min and the per-shape spring cannot be done in pure QML at this quality.
+Like the rest of the desktop it **ships as a signed package** (`ryoku-blobs`):
+built by `ryoku/shell/plugin/build.sh` and installed onto the QML import path
+(`ryoku-shell` points `QML2_IMPORT_PATH` there for the components it supervises),
+so the target builds nothing.
 
-Four pieces, one field:
+The plugin is a handful of types; everything in one `BlobGroup` is one fused
+surface:
 
-- `BlobGroup` the field itself. Holds the shapes, the body `color`, `smoothing`
-  (the blend radius: how far two shapes reach to fuse), and an optional
-  `borderColor`/`borderWidth` outline drawn along the field's silhouette.
-  Everything in one group is one surface.
-- `BlobInvertedRect` the border. A full-bleed rect with a rounded rectangular
-  hole; the hole is the window area, the leftover ring is the frame.
-- `BlobRect` a body (the pill, or a popout). A rounded rect with per-corner radii
-  and a velocity spring (`stiffness`, `damping`, `deformScale`) that squashes it
-  as it moves.
-- `BlobMaterial` the shader that sums the field and smooth-mins the shapes (up to
-  16 per group), so overlaps fuse instead of stacking.
+- **`BlobGroup`** the field. `color` (the body fill), `smoothing` (the blend
+  radius: how far two shapes reach to fuse, default 32), an optional
+  `borderColor` / `borderWidth` outline traced along the field's silhouette, and
+  `shadowStrength` / `shadowSize` for a soft drop shadow. It owns the shapes and
+  the one inverted rect.
+- **`BlobShape`** the base every shape derives from (a `QQuickItem`, so it sizes
+  and positions like any Item, via `x`/`y`/`width`/`height`/`implicitWidth`).
+  Carries `group`, `radius`, and a read-only **`deformMatrix`**: the per-shape
+  squash transform to hand to the content so it deforms *with* the blob
+  (`transform: Matrix4x4 { matrix: someBlob.deformMatrix }`).
+- **`BlobInvertedRect`** the border. A full-bleed rect with a rounded rectangular
+  hole; the hole is the window area, the leftover ring is the frame. Per-edge
+  thickness (`borderTop` / `borderBottom` / `borderLeft` / `borderRight`), so one
+  edge can thicken (the bar band) while the others stay a hairline.
+- **`BlobRect`** a body (a popout). A rounded rect with per-corner radii
+  (`topLeftRadius` … `bottomRightRadius`; `-1` falls back to `radius`) and a
+  **velocity spring** (`stiffness` 200, `damping` 16, `deformScale`) that squashes
+  it along its travel and settles at rest. `exclude` lists sibling rects it must
+  not fuse with.
+- **`BlobMaterial`** the shader BlobGroup runs internally. Sums the field and
+  smooth-mins the shapes (up to 16 per group) so overlaps fuse into one silhouette
+  instead of stacking.
 
-## One field, in the pill shell
+## One field, in the shell
 
-The SDF field is per-process, so everything that must fuse has to live in one
-scene and one `BlobGroup`. Ryoku hosts it inside the **pill shell**
-(`quickshell/pill/shell.qml`), not a standalone config. Its overlay layer holds:
+The SDF field is per-process, so everything that must fuse lives in one scene and
+one `BlobGroup`, hosted in the shell overlay (`quickshell/pill/shell.qml`). Per
+monitor the overlay layer holds:
 
-- a `BlobGroup` whose body `color` is `Theme.cardTop` (the shell card surface, the
-  same token the island uses, so border + pill + popouts are one material);
-- a `BlobInvertedRect` screen border, oversized by 50px so the outer edge clips
-  off-screen and only the inner (window) edge shows. It lives in Hyprland's outer
-  gap (`general:gaps_out`, set a touch larger than the border so tiles sit a
-  sliver inside it), reserves no space, and retracts to nothing on fullscreen;
-- the pill body as a `BlobRect` running from the screen top down through the pill,
-  its neck fused into the top border (the island is the frame swelling open at
-  top-centre);
-- the edge popouts (see below).
+- a **`BlobGroup`** (`blobGroup`) whose `color` is the wallust-matched surface (or
+  `Config.surfaceColor`), with `Wallust.border` / `1.5` as the silhouette outline,
+  so the border and every popout are one material;
+- a **`BlobInvertedRect`** screen border, oversized by 50px so its outer edge
+  clips off-screen and only the inner (window) edge shows. It sits in Hyprland's
+  outer gap (`general:gaps_out`, a touch larger than the border so tiles sit a
+  sliver inside), reserves no space, and retracts on fullscreen. The bar's edge
+  gets `frameBorder + barBand`, so the border swells into a band there; the other
+  edges stay `frameBorder`;
+- the **`Bar`**, drawn in the same scene above the popouts (no separate program,
+  no seam), see `docs/bar.md`;
+- the **popouts**, each a `BlobRect` in `blobGroup` (see below).
 
-A second `BlobGroup` (`islandGroup`) carries the detached floating-pill island
-style, deliberately kept out of the frame field so it never fuses the border. The pill draws no background
-of its own; every state is just the blob growing.
+There is no longer a centre pill or a floating island: the bar is the resting
+face, and every surface it used to host is a bar-edge popout.
 
-## Edge popouts
+## Bar-edge popouts
 
-A surface popout grows out of a vertical frame edge on hover and melts into the
-border through the **same** group. They live in `quickshell/pill/popouts/`, one
-file per popup:
+A popout grows out of the frame edge at its trigger and melts into the border
+through the **same** group. They live in `quickshell/pill/popouts/`, one file per
+popup, wrapped by the reusable `Popout.qml`:
 
-- `Popout.qml` the reusable machinery: the blob body (a `BlobRect` in the shared
-  group), a content slot, the pixel-perfect edge hover trigger, and the reveal. It
-  tracks its content and extends a **neck** into the border, clamped to the body's
-  own width so it retracts in lockstep and never snaps off as a flickering sliver.
-  Opening is a curtain (a clip widens inward from the border, so fixed-size content
-  reveals edge-first without resizing).
-- `Mixer.qml` the left popout: brightness/vibrance/volume/mic ink-faders, each
-  showing its level at rest.
-- `Power.qml` the right popout: a vertical session column with Shutdown enlarged at
-  the centre and press-and-hold on the destructive actions.
+- **`Popout.qml`** the machinery: the blob body (a `BlobRect` in the shared
+  group), a content slot, and the reveal. Its edge-side corners are zeroed and a
+  **neck** of the frame thickness plus smoothing reaches past the body into the
+  border field, so smooth-min welds body and frame into one continuous edge: no
+  separate rounded edge, no gap. `edge` picks the frame side; `alongCenter` slides
+  the body along that edge to emerge from the triggering module (the bar hands it
+  the module's centre); `openW` / `openH` track the content's implicit size, so
+  the body melts to fit as content grows.
+- The content files (`Mixer`, `Power`, `CalendarPopout`, `NetworkPopout`,
+  `MediaPopout`, …) are plain transparent `Item`s that fill the popout; the blob
+  behind them IS the surface, so painting a background would double it. Each takes
+  an `s` scale and an `open` flag (`somePop.prog > 0.5`) that gates any live work
+  (a scanner, a position poll) so a closed popout costs nothing.
 
-Content is a plain transparent `Item` that fills the popout; the blob behind it is
-the surface, so painting a background would double it.
+Opening is a **curtain**: a clip widens inward from the border, so fixed-size
+content reveals edge-first without ever reflowing. Open rides `Motion.spatial`
+(the spring-overshoot curve); close eases out on `Motion.morph` so the body melts
+flush into the border with no re-grow under a pointer that just left.
 
-## The reveal
+## Triggering a popout
 
-Open and close are **directional**:
+Two paths, both routed through `shell.qml`:
 
-- **Open** eases cleanly into place with the project morph curve
-  (`cubic-bezier(0.16, 1, 0.3, 1)`), with no end-overshoot.
-- **Close** uses a lightly-damped `SpringAnimation`, not a curve. A bezier cannot
-  bounce against a flush (zero) close; its overshoot only clamps away invisibly.
-  The spring melts the body fully into the border, then springs back a touch and
-  settles, for the slight close bounce, while the resting state stays exactly
-  flush.
+- **Click / keybind**: a bar module (or a `ryoku-shell` IPC command) calls
+  `togglePopoutAt(mon, name, center)`, which pins `popout`; the matching `Popout`
+  is `pinned` and opens at `center`. Re-issuing the same one closes it.
+- **Hover**: a module reports its hover and centre, and `setHoverPopout` drives
+  the matching `Popout`'s `triggerHovered`; the body's own hover latch keeps it
+  open while the pointer is on the panel, with a short grace so the pointer can
+  cross the bar edge from the module to the body. The now-playing `MediaPopout` is
+  the reference.
 
-Hover is **pixel-perfect to the frame**: the activation zone is exactly the border
-thickness, sitting in the border with no inward overshoot, so it opens only when
-the cursor is on the visible frame. An open popout keeps itself open through its
-own `HoverHandler` until the pointer leaves both.
+Input routing is the overlay window mask: the bar strip and every open popout
+body are unioned into `barRegion`, so they catch input while the rest of the
+screen clicks through. A keyboard popout (search / password field) instead clears
+the mask to a full region so a backdrop press dismisses it, and takes keyboard
+focus on demand so Escape closes it.
 
 ## Adding a popout
 
 1. Add `quickshell/pill/popouts/Foo.qml`: a transparent `Item` (`anchors.fill:
-   parent`, an `s` scale property) holding the content, using the pill's
-   `Singletons` and components.
-2. In `pill/shell.qml`, inside the overlay's blob field, add `Popout { group:
-   blobGroup; frameThickness: 16; radius: 16; smoothing: 30; edge: "left"|"right";
-   Foo {} }`.
-3. Union the popout's `triggerX/Y/W/H` and `bodyX/Y/W/H` into the overlay input
-   mask, so its edge and open body catch input while the rest stays click-through.
-4. Trigger it by hover (built in) and, if it needs a keybind, route the
-   `ryoku-shell` command to `togglePopout` rather than a centre surface.
+   parent`, with `s` and `open` properties), holding the content built from the
+   pill's `Singletons` and components. Report `implicitWidth` / `implicitHeight`
+   so the blob melts to fit.
+2. In `pill/shell.qml`, inside the overlay's blob field, add a `Popout`:
+
+       Popout {
+           id: fooPop
+           group: blobGroup
+           frameThickness: overlay.barVisibleH
+           radius: Config.frameRadius
+           smoothing: Config.frameSmoothing
+           edge: overlay.barPos
+           hoverOpen: false
+           alongCenter: root.popoutCenter
+           s: overlay.s
+           active: !overlay.monFullscreen
+           pinned: root.popout === "foo" && root.popoutMon === overlay.modelData.name
+           openW: fooContent.implicitWidth
+           openH: fooContent.implicitHeight
+           Foo { id: fooContent; s: overlay.s; open: fooPop.prog > 0.5 }
+       }
+
+   For a hover popout, replace `pinned:` with `triggerHovered:` and drive it from
+   the bar's hover (see `MediaPopout` and `mediaPop`).
+3. Union the popout's `bodyX/Y/W/H` (and `triggerX/Y/W/H` if it uses an edge
+   hover band) into `barRegion`, so its open body catches input while the rest
+   stays click-through. Forgetting this makes the body render but ignore the
+   pointer.
+4. Trigger it: route a `ryoku-shell` command to `togglePopout`, and/or wire a bar
+   module's click (`popoutRequested`) or hover (`hoverPopoutRequested`).

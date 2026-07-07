@@ -112,17 +112,15 @@ Each surface is its own directory under `quickshell/`, each component its own
 
 - **frame** the rounded screen border and the popouts that melt into it; the
   desktop's signature surface. See `docs/frame.md`.
-- **pill** the morphing top bar and its popouts (the centerpiece; it grows and
-  reshapes between states). This is the reference for the project's motion. Its
-  default face is the module bar riding one frame edge (the 力 seal, the
-  sliding workspace strip, clock, now-playing, status glyphs, tray), placeable
-  top, bottom, left, or right, in two skins carried one-to-one from the
-  credited reference shells: Noctalia (capsule modules, dot workspaces, the
+- **pill** the shell surface directory (`quickshell/pill/`, the name is
+  historical): the module **bar** riding one frame edge and every popout it
+  opens. The bar is the resting face (the 力 seal, the sliding workspace strip,
+  the focused title, the clock, now-playing, status glyphs, tray, and power),
+  placeable top or bottom, in two skins carried one-to-one from
+  the credited reference shells: Noctalia (capsule modules, dot workspaces, the
   stacked clock) and Caelestia (the numbered cell strip with the sliding
-  indicator, Material Symbols iconography, the column layout on side bars).
-  A top bar hides the resting island; the other edges keep it. Ryoku Settings can turn the bar off for the three pure island styles
-  (the classic fused island, a floating pill, or none, each optionally
-  revealed on hover). The frame is the same in all.
+  indicator, Material Symbols iconography). See
+  `docs/bar.md` for the bar and `docs/frame.md` for the popouts it grows.
 - **launcher** the Super-triggered app launcher and command palette, with a
   zero-query rest card (the solar-arc clock and weather). See `docs/launcher.md`.
 - **switcher** the full-screen Alt-Tab window switcher.
@@ -134,8 +132,8 @@ Each surface is its own directory under `quickshell/`, each component its own
   (scroll/Tab) and desktops (Super+Alt+Tab). A "desktop" is a block of ten
   workspace ids, so each desktop keeps its own 01..10; the same grouping drives
   the desktop-relative Super+N binds (`scripts/ryoku-workspace`).
-- **the keyring island** the GNOME keyring password prompt, grown from the pill
-  centre rather than gcr's centred dialog. The `ryoku-shell` daemon acts as the
+- **the keyring prompt** the GNOME keyring password prompt, grown from the bar
+  edge as a popout rather than gcr's centred dialog. The `ryoku-shell` daemon acts as the
   keyring system prompter and drives it; `KeyringSurface.qml` renders it.
 - **desktop widgets** the clock and weather that sit on the wallpaper, a
   click-through `WlrLayer.Bottom` surface configured in Ryoku Settings' Desktop
@@ -149,24 +147,34 @@ Each surface is its own directory under `quickshell/`, each component its own
 Motion is smooth, short, and purposeful. It exists to explain a state change, not
 to decorate.
 
-- Animate with QML primitives: `Behavior on <property>`, `NumberAnimation`,
-  `PropertyAnimation`, and an explicit `easing.type`. Drive transitions from
-  state, not from imperative timers, wherever possible.
-- Keep durations and easing **consistent** across surfaces. The tokens are
-  `Theme.quick` (120ms), `Theme.medium` (240ms), `Theme.slow` (360ms), eased
-  with `Easing.OutExpo` (the QML twin of the site's `cubic-bezier(0.22,1,0.36,1)`).
-  Match what the `pill` already uses rather than inventing a new curve;
-  consistency is the aesthetic.
-- Respect inhibition and performance: no animation should fight the compositor or
-  repaint when idle. A hidden or resting surface costs nothing.
+- **The `Motion` singleton is the token set** (`pill/Singletons/Motion.qml`).
+  Reach for its durations and curves rather than inventing values: `fast`
+  (140ms) hover/press, `standard` (300ms) general, `morph` (420ms) shape changes
+  and popout close, `emphasized` (400ms, `emphasizedCurve`) slides and indicator
+  travel, `spatial` (500ms, `spatialCurve`, a spring with overshoot) popout open
+  and travel, `effects` (200ms) plain fades. The curves are `cubic-bezier`
+  control-point arrays fed to `easing.bezierCurve` with `easing.type:
+  Easing.BezierSpline`; the caelestia Material-3-expressive family is carried
+  over one-to-one so the bar and its popouts move like the reference.
+- Drive transitions from **state** (`states` + `transitions`), not imperative
+  timers, wherever possible; the popout reveal is the model.
+- **The frame's give is physical, not scripted.** A `BlobRect`'s `stiffness` /
+  `damping` / `deformScale` squash it as it moves and settle it at rest, the
+  liquid feel when a popout grows. See `docs/frame.md`.
+- Respect inhibition and performance: no animation should fight the compositor
+  or repaint when idle. Gate live work (a `MultiEffect`, a poll, a scanner) on
+  the surface being open or visible; a hidden or resting surface costs nothing,
+  and idle blobs snap to rest.
 
 ## Building or replicating an animation
 
-1. Read the closest existing component first; the `pill` shows the project's
-   easing, durations, and structure. Reuse them.
+1. Read the closest existing component first; the bar and its popouts
+   (`quickshell/pill/`) show the project's durations, curves, and structure.
+   Reuse the `Motion` tokens.
 2. Break the target motion into property transitions (size, position, opacity)
-   and the easing between them. Reproduce each with a `Behavior` or a named
-   animation.
+   and the easing between them, and reproduce each with a `Behavior` or a named
+   animation on a `Motion` token. If the frame itself should give, let a
+   `BlobRect` carry it rather than animating geometry by hand.
 3. Prototype live: run the shell from the checkout with `ryoku/shell/dev-run.sh`
    (it launches via `qs -p` with hot-reload), so QML edits show as you save. Tune
    timing against the running surface.
