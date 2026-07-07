@@ -12,15 +12,17 @@ import (
 // generatedSeed: base files seeded once on a fresh install, then never
 // clobbered or pruned by an update. The machine owns them after first boot.
 // Two kinds qualify: per-machine files the runtime regenerates (monitors.lua,
-// gpu.lua) and user-owned config the package only seeds a default for
+// gpu.lua; kitty/current-theme.conf, which wallust rewrites from the wallpaper)
+// and user-owned config the package only seeds a default for
 // (keyboard.lua; fastfetch/config.jsonc, which has no include mechanism, so
 // direct edits are the only way to customize the readout).
 // Slash-separated paths, relative to the config base.
 var generatedSeed = map[string]bool{
-	"hypr/monitors.lua":      true,
-	"hypr/gpu.lua":           true,
-	"hypr/keyboard.lua":      true,
-	"fastfetch/config.jsonc": true,
+	"hypr/monitors.lua":        true,
+	"hypr/gpu.lua":             true,
+	"hypr/keyboard.lua":        true,
+	"fastfetch/config.jsonc":   true,
+	"kitty/current-theme.conf": true,
 }
 
 // Materialize lays the Ryoku-owned base configs into the user's ~/.config,

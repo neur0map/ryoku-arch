@@ -13,6 +13,14 @@
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
 
 ### Fixed
+- `ryoku update` no longer resets the terminal palette to the shipped default.
+  wallust writes the wallpaper-derived colours to `kitty/current-theme.conf`, but
+  `materialize` reclobbers every shipped config on each update, so kitty snapped
+  back to the "Ryoku dark" seed until you reapplied the wallpaper. it is now a
+  seed like the fastfetch readout: laid down once on a fresh install, then left to
+  whatever wallust last wrote. the shell widgets and window borders never had this
+  problem, they read the palette from `~/.cache/wallust`, which the update leaves
+  alone.
 - `doctor` restores follow-mouse to the intended default on boxes seeded before
   it changed. The hub default moved from 1 ("Normal", keyboard focus chases the
   cursor) to 2 ("Loose", focus detached from the pointer), but an existing

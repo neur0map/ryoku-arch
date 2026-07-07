@@ -23,6 +23,7 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	writeFile(t, filepath.Join(base, "hypr/gpu.lua"), "-- seed\n")
 	writeFile(t, filepath.Join(base, "hypr/keyboard.lua"), "kb_layout = \"us\"\n")
 	writeFile(t, filepath.Join(base, "fastfetch/config.jsonc"), "\"source\": \"ryoku\"\n")
+	writeFile(t, filepath.Join(base, "kitty/current-theme.conf"), "background #16110b\n")
 
 	// fresh install: every file lands, seeds included so first boot works.
 	if err := materialize(); err != nil {
@@ -32,6 +33,7 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	wantFile(t, filepath.Join(dest, "hypr/gpu.lua"), "-- seed")
 	wantFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "kb_layout = \"us\"")
 	wantFile(t, filepath.Join(dest, "fastfetch/config.jsonc"), "ryoku")
+	wantFile(t, filepath.Join(dest, "kitty/current-theme.conf"), "16110b")
 
 	// Runtime regenerates the drop-in seeds; user adds extra keyboard layouts,
 	// a user file, and customizes the fastfetch readout.
@@ -40,6 +42,7 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	writeFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "kb_layout = \"us,ru,de,fr\"\n")
 	writeFile(t, filepath.Join(dest, "hypr/user.lua"), "USER\n")
 	writeFile(t, filepath.Join(dest, "fastfetch/config.jsonc"), "\"source\": \"my-custom-logo\"\n")
+	writeFile(t, filepath.Join(dest, "kitty/current-theme.conf"), "background #3a5f8a\n") // wallust from the wallpaper
 	// later release changes the managed module and reworks the shipped readout.
 	writeFile(t, filepath.Join(base, "hypr/hyprland.lua"), "require(\"monitors_user\")\n")
 	writeFile(t, filepath.Join(base, "fastfetch/config.jsonc"), "\"source\": \"ryoku-redesigned\"\n")
@@ -55,6 +58,7 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	wantFile(t, filepath.Join(dest, "hypr/user.lua"), "USER")
 	wantFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "us,ru,de,fr")
 	wantFile(t, filepath.Join(dest, "fastfetch/config.jsonc"), "my-custom-logo")
+	wantFile(t, filepath.Join(dest, "kitty/current-theme.conf"), "3a5f8a")
 }
 
 // A managed file dropped from a release is pruned; a generated seed is never
