@@ -561,6 +561,16 @@ ShellRoot {
             readonly property real barMaskY: barBottom ? height - barVisibleH : 0
             readonly property real barMaskW: barVertical ? barVisibleH : width
             readonly property real barMaskH: barVertical ? height : barVisibleH
+            // true when (x, y) (overlay-window coords) falls on the bar's input
+            // strip. the dismiss backdrop leaves every press here to the bar, so
+            // the bar stays fully usable under a popout -- the way caelestia's
+            // drawer region starts past the bar (x: bar.clampedWidth) and never
+            // overlaps the taskbar with the dismiss surface.
+            function inBarStrip(x, y) {
+                return Config.barEnabled
+                    && x >= barMaskX && x < barMaskX + barMaskW
+                    && y >= barMaskY && y < barMaskY + barMaskH;
+            }
             Region { id: hiddenRegion }
             Region {
                 id: pillRegion
@@ -662,7 +672,16 @@ ShellRoot {
                 enabled: overlay.modal
                 acceptedButtons: Qt.AllButtons
                 onPressed: (mouse) => {
-                    if (overlay.kbPopout) { root.popout = ""; return; }
+                    if (overlay.kbPopout) {
+                        // a press on the bar strip belongs to the bar: its icons
+                        // sit on top and take their own clicks, and the band is
+                        // inert, so clicking anywhere on the bar leaves the popout
+                        // open and the bar usable. only a true backdrop press
+                        // (off the bar and the popout body) dismisses.
+                        if (overlay.inBarStrip(mouse.x, mouse.y)) return;
+                        root.popout = "";
+                        return;
+                    }
                     if (mouse.x >= pill.x && mouse.x <= pill.x + pill.width
                             && mouse.y >= pill.y && mouse.y <= pill.y + pill.height)
                         return;
