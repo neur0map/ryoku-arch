@@ -113,34 +113,36 @@ Item {
             id: header
             anchors { top: parent.top; left: parent.left; right: parent.right }
             anchors.margins: card.pad
-            height: Math.round(40 * body.s)
+            height: Math.round(48 * body.s)
 
-            Text {
-                id: glyph
+            Column {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                text: "力"
-                color: Theme.brand
-                font.family: Theme.fontJp
-                font.pixelSize: Math.round(30 * body.s)
-            }
-            Column {
-                anchors.left: glyph.right
-                anchors.leftMargin: Math.round(12 * body.s)
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 1
-                Text {
-                    text: "Wallpapers"
-                    color: Theme.bright
-                    font.family: Theme.font
-                    font.pixelSize: Math.round(20 * body.s)
-                    font.weight: Font.DemiBold
-                }
-                Text {
-                    text: body.shown.length + " wallpaper" + (body.shown.length === 1 ? "" : "s")
-                    color: Theme.dim
-                    font.family: Theme.font
-                    font.pixelSize: Math.round(11.5 * body.s)
+                spacing: Math.round(6 * body.s)
+
+                Eyebrow { s: body.s; label: "Wallpapers" }
+
+                Row {
+                    spacing: Math.round(8 * body.s)
+                    Text {
+                        id: num
+                        text: "" + body.shown.length
+                        color: Theme.bright
+                        font.family: Theme.display
+                        font.pixelSize: Math.round(23 * body.s)
+                        font.weight: Font.Medium
+                    }
+                    Text {
+                        anchors.baseline: num.baseline
+                        text: body.typeFilter === "image" ? "images"
+                            : body.typeFilter === "live" ? "live"
+                            : "images + live"
+                        color: Theme.dim
+                        font.family: Theme.mono
+                        font.pixelSize: Math.round(10 * body.s)
+                        font.letterSpacing: 1.6 * body.s
+                        font.capitalization: Font.AllUppercase
+                    }
                 }
             }
 
@@ -154,8 +156,8 @@ Item {
                         id: seg
                         required property var modelData
                         readonly property bool on: body.typeFilter === seg.modelData.k
-                        width: Math.round(64 * body.s)
-                        height: Math.round(30 * body.s)
+                        width: Math.round(72 * body.s)
+                        height: Math.round(28 * body.s)
                         color: seg.on ? Theme.frameBg : "transparent"
                         border.width: 1
                         border.color: seg.on ? Theme.brand : Theme.border
@@ -164,9 +166,11 @@ Item {
                             anchors.centerIn: parent
                             text: seg.modelData.l
                             color: seg.on ? Theme.brand : Theme.dim
-                            font.family: Theme.font
-                            font.pixelSize: Math.round(12.5 * body.s)
+                            font.family: Theme.mono
+                            font.pixelSize: Math.round(10 * body.s)
                             font.weight: seg.on ? Font.DemiBold : Font.Normal
+                            font.letterSpacing: 1.4 * body.s
+                            font.capitalization: Font.AllUppercase
                         }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: body.setType(seg.modelData.k) }
                     }

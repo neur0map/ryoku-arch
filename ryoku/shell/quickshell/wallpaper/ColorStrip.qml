@@ -1,10 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Shapes
 import "Singletons"
 
-// The colour category strip: skwd-wall's idea in our sharp language. One swatch
-// per colour group present under the current type filter, plus a leading All.
-// Click a swatch to keep only that colour; click it (or All) again to clear.
+// Colour categories as sliced swatches echoing the tiles: one muted swatch per
+// group, sharp with a cut corner, dark hairline by default and a vermillion
+// frame plus a small lift on the pick. A leading mono ALL clears the filter.
 Item {
     id: strip
 
@@ -13,43 +14,73 @@ Item {
     required property int selected
     signal picked(int g)
 
+    readonly property int swW: Math.round(22 * s)
+    readonly property int cut: Math.round(6 * s)
+
     Row {
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
-        spacing: Math.round(6 * strip.s)
+        spacing: Math.round(5 * strip.s)
 
-        Rectangle {
+        Item {
             id: all
             readonly property bool on: strip.selected === -1
-            width: Math.round(38 * strip.s)
+            width: allTxt.implicitWidth + Math.round(16 * strip.s)
             height: strip.height
-            color: all.on ? Theme.frameBg : "transparent"
-            border.width: 1
-            border.color: all.on ? Theme.brand : Theme.border
+
             Text {
+                id: allTxt
                 anchors.centerIn: parent
-                text: "All"
+                text: "ALL"
                 color: all.on ? Theme.brand : Theme.dim
-                font.family: Theme.font
-                font.pixelSize: Math.round(11.5 * strip.s)
-                font.weight: all.on ? Font.DemiBold : Font.Normal
+                font.family: Theme.mono
+                font.pixelSize: Math.round(9.5 * strip.s)
+                font.weight: Font.DemiBold
+                font.letterSpacing: 2 * strip.s
+            }
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                width: Math.round(18 * strip.s)
+                height: Math.max(1, Math.round(2 * strip.s))
+                color: Theme.brand
+                visible: all.on
             }
             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: strip.picked(-1) }
         }
 
         Repeater {
             model: strip.groups
-            delegate: Rectangle {
+            delegate: Item {
                 id: sw
                 required property var modelData
                 readonly property bool on: strip.selected === sw.modelData
-                width: Math.round(26 * strip.s)
+                readonly property bool dimmed: strip.selected !== -1 && !sw.on
+                width: strip.swW
                 height: strip.height
-                color: hh.hovered ? Qt.lighter(Colors.swatch(sw.modelData), 1.18) : Colors.swatch(sw.modelData)
-                opacity: (strip.selected === -1 || sw.on) ? 1 : 0.45
-                border.width: sw.on ? 2 : 1
-                border.color: sw.on ? Theme.brand : Qt.rgba(0, 0, 0, 0.35)
-                Behavior on opacity { NumberAnimation { duration: Motion.fast } }
+
+                Shape {
+                    id: shp
+                    anchors.fill: parent
+                    y: sw.on ? -Math.round(2 * strip.s) : 0
+                    opacity: sw.dimmed ? 0.4 : 1
+                    preferredRendererType: Shape.CurveRenderer
+                    Behavior on opacity { NumberAnimation { duration: Motion.fast } }
+                    Behavior on y { NumberAnimation { duration: Motion.highlight; easing.type: Motion.easeStandard } }
+
+                    ShapePath {
+                        fillColor: hh.hovered ? Qt.lighter(Colors.swatch(sw.modelData), 1.15) : Colors.swatch(sw.modelData)
+                        strokeColor: sw.on ? Theme.brand : Qt.rgba(0, 0, 0, 0.4)
+                        strokeWidth: sw.on ? Math.max(1, Math.round(1.6 * strip.s)) : 1
+                        startX: strip.cut
+                        startY: 0
+                        PathLine { x: sw.width; y: 0 }
+                        PathLine { x: sw.width; y: sw.height }
+                        PathLine { x: 0; y: sw.height }
+                        PathLine { x: 0; y: strip.cut }
+                        PathLine { x: strip.cut; y: 0 }
+                    }
+                }
 
                 HoverHandler { id: hh; cursorShape: Qt.PointingHandCursor }
                 TapHandler { onTapped: strip.picked(sw.modelData) }
