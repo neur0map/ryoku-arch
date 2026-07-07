@@ -50,7 +50,7 @@ PanelWindow {
     implicitWidth: osd.desiredW
     implicitHeight: osd.desiredH
 
-    // the detached-island material: warm surface fill + hairline border, fully
+    // the surface material: warm surface fill + hairline border, fully
     // rounded like a small panel; no shadow (only the frame's inverted rect
     // casts one).
     Rectangle {
