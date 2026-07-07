@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+- **The desktop and launcher spectrum visualisers work again.** cava's PipeWire
+  input backend quits within seconds on current PipeWire, so the bars blanked
+  and restarted until the surface showed nothing at all. Both visualisers now
+  read the sink monitor through cava's Pulse backend (pipewire-pulse), which is
+  stable here, and exec cava from the launch shell so the surface's exit reaps
+  the analyser instead of leaking a client every time it unloads.
+
 ### Added
 - **The now-playing module opens a transport on hover.** Hovering the bar's
   media module grows a compact popout from the frame edge at the module: an
