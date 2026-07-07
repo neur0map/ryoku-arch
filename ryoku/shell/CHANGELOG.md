@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Fixed
+- **The voice dictation wave tracks the mic instead of stalling.** The mic
+  spectrum used cava's PipeWire input, the same backend that quits within
+  seconds here, so the wave came up late and dropped out mid-sentence while the
+  mic itself was fine. It now reads the mic through cava's Pulse backend and
+  execs cava so the analyser is reaped cleanly, matching the desktop visualiser.
 - **Super+` voice dictation opens centred, and Handy stops flickering.** The
   keybind's socket fast path set the popout without clearing the previous
   icon's centre, so the mic wave grew from wherever the last popout had opened;

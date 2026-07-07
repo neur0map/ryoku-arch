@@ -21,7 +21,8 @@ Singleton {
 
     Process {
         id: cavaProc
-        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 || exit 0; src=$(pactl get-default-source 2>/dev/null); cfg=$(mktemp); printf '%s\\n' '[general]' 'framerate = 30' 'bars = 16' '' '[input]' 'method = pipewire' \"source = $src\" 'active = 1' '' '[output]' 'method = raw' 'raw_target = /dev/stdout' 'data_format = ascii' 'ascii_max_range = 100' 'channels = mono' 'mono_option = average' '' '[smoothing]' 'noise_reduction = 60' > \"$cfg\"; cava -p \"$cfg\"; rc=$?; rm -f \"$cfg\"; exit $rc"]
+        // read the mic via pulse: cava's pipewire backend quits within seconds here, stalling and flapping the wave; exec so the surface's SIGTERM reaps cava with no orphaned mic capture.
+        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 || exit 0; src=$(pactl get-default-source 2>/dev/null); cfg=\"${XDG_RUNTIME_DIR:-/tmp}/ryoku-cava-voice.conf\"; printf '%s\\n' '[general]' 'framerate = 30' 'bars = 16' '' '[input]' 'method = pulse' \"source = $src\" 'active = 1' '' '[output]' 'method = raw' 'raw_target = /dev/stdout' 'data_format = ascii' 'ascii_max_range = 100' 'channels = mono' 'mono_option = average' '' '[smoothing]' 'noise_reduction = 60' > \"$cfg\"; exec cava -p \"$cfg\""]
         running: root.active
         stdout: SplitParser {
             splitMarker: "\n"
