@@ -8,8 +8,18 @@
   elapsed / total line you can drag to seek, over a prev / play-pause / next
   cluster. It melts open through the shared blob field like every other popout
   and stays open while the pointer is on the module or the panel.
+- **The bar shows only the workspaces you're using.** The strip lists the
+  workspaces that own a window plus the active one, so empty numbers vanish
+  and it stays as short as your session; occupancy comes straight from hyprctl
+  so it's right the moment the shell starts. A toggle in Ryoku Settings' Shell
+  section brings back the classic 1..5 run with empties dimmed.
 
 ### Changed
+- **Ryoku Settings' Shell section matches the bar-and-popouts shell.** The
+  Island tab is gone with the island; the live knobs it still drove (the
+  volume/brightness OSD and notification toasts) moved to a Notifications
+  group under Frame, the bar position is top or bottom, and the now-playing
+  cover no longer crowds its title.
 - **The wallpaper picker is a full-screen switcher now.** Super+C opens a
   Super+Tab-style overlay instead of the pill filmstrip: images and live video
   wallpapers ride two endless belts, the top drifting right and the bottom
