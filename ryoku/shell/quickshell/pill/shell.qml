@@ -775,6 +775,7 @@ ShellRoot {
                     smoothing: Config.frameSmoothing
                     edge: overlay.barPos
                     hoverOpen: false
+                    closeDelay: 140  // hover-intent: crossing the border rim never flickers it shut
                     alongCenter: root.hoverPopoutCenter
                     s: overlay.s
                     active: !overlay.monFullscreen && root.popout === ""

@@ -74,6 +74,18 @@ Item {
     property bool active: true
     readonly property bool shouldOpen: active && (hovered || pinned)
 
+    // hover-intent close grace: hold the popout open this many ms after
+    // shouldOpen drops, so crossing the ~2px blob-border rim just outside the
+    // body's hover region never flickers it shut. 0 = close at once (clicks).
+    property int closeDelay: 0
+    property bool heldOpen: false
+    onShouldOpenChanged: {
+        if (shouldOpen) { closeGrace.stop(); heldOpen = true; }
+        else if (closeDelay > 0) closeGrace.restart();
+        else heldOpen = false;
+    }
+    Component.onCompleted: heldOpen = shouldOpen
+
     // 0 = closed (flush in border), 1 = open.
     property real prog: 0
 
@@ -121,7 +133,7 @@ Item {
 
     states: State {
         name: "open"
-        when: root.shouldOpen
+        when: root.heldOpen
         PropertyChanges { root.prog: 1 }
     }
     transitions: [
@@ -143,6 +155,8 @@ Item {
             }
         }
     ]
+
+    Timer { id: closeGrace; interval: root.closeDelay; onTriggered: root.heldOpen = false }
 
     // blob body = a BlobRect in the shared group. it anchors at the outer frame
     // edge and grows inward, exactly like shell.qml's pillBlob at the top: the
@@ -180,7 +194,7 @@ Item {
         height: root.bodyH
         clip: true
         visible: root.prog > 0.004
-        opacity: root.shouldOpen ? 1 : 0
+        opacity: root.heldOpen ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Motion.effects; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.effectsCurve } }
 
         HoverHandler { id: bodyHH }
