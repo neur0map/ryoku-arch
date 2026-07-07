@@ -23,7 +23,7 @@ Row {
         Media.toggle();
     }
 
-    spacing: 8 * s
+    spacing: 11 * s
     // art thumb: the noctalia circle, hairline edge; a music glyph while
     // artless. carries the play state alone on a vertical bar (accent ring
     // while sounding).

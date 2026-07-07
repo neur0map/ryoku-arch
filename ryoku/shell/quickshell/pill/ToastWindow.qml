@@ -60,13 +60,13 @@ PanelWindow {
     implicitWidth: toastW
     implicitHeight: (toastLoader.item ? toastLoader.item.implicitHeight : 44 * s) + 2 * padY
 
-    // the detached-island material: warm surface fill + hairline border, fully
-    // rounded like the pill it replaces (the Toast supplies no background).
+    // warm surface fill + hairline border, fully rounded; the Toast supplies
+    // no background of its own.
     Rectangle {
         anchors.fill: parent
-        radius: Config.islandOpenCorner * win.s
+        radius: Config.osdRadius * win.s
         color: Config.matchWallpaper ? Wallust.surface : Config.surfaceColor
-        opacity: Config.islandOpacity
+        opacity: Config.osdOpacity
         border.width: 1.5
         border.color: Wallust.border
         antialiasing: true

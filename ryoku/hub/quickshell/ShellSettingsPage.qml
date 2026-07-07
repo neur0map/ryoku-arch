@@ -8,7 +8,7 @@ import "Singletons"
 // Shell Settings: live editor for the Ryoku shell's look. every edit hits the
 // running shell at once via ~/.config/ryoku/shell.json (throttled, atomic),
 // which the shell watches. preview = your actual desktop (the frame around
-// this window, the island above it). Save keeps it; Revert and leaving the
+// this window, the bar riding it). Save keeps it; Revert and leaving the
 // section put the saved look back. controls match the value: steppers for
 // exact pixels, sliders for opacity/feel, swatch for colour.
 Item {
@@ -17,9 +17,9 @@ Item {
     readonly property var shellKeys: [
         "frameRadius", "frameBorder", "frameSmoothing", "frameOpacity",
         "shadowStrength", "shadowSize", "surfaceColor",
-        "islandWidth", "islandHeight", "islandRestCorner", "islandOpenCorner",
-        "islandGap", "islandSmoothing", "islandOpacity", "islandStyle", "islandAutohide", "islandReserve",
-        "barEnabled", "barPosition", "barStyle", "barHeight", "barShowTitle", "barShowMedia", "barShowStatus",
+        "osdRadius", "osdOpacity",
+        "barEnabled", "barPosition", "barStyle", "barHeight",
+        "barShowTitle", "barShowMedia", "barShowStatus", "barOccupiedWorkspaces",
         "fontFamily", "fontScale"
     ]
     readonly property var vizKeys: [
@@ -33,10 +33,9 @@ Item {
     readonly property var defaults: ({
         "frameRadius": 9, "frameBorder": 59, "frameSmoothing": 8, "frameOpacity": 1,
         "shadowStrength": 0.63, "shadowSize": 12, "surfaceColor": "#0f1115",
-        "islandWidth": 109, "islandHeight": 34, "islandRestCorner": 6, "islandOpenCorner": 28,
-        "islandGap": 0, "islandSmoothing": 24, "islandOpacity": 1,
-        "islandStyle": "floating", "islandAutohide": true, "islandReserve": true,
-        "barEnabled": true, "barPosition": "top", "barStyle": "noctalia", "barHeight": 30, "barShowTitle": true, "barShowMedia": true, "barShowStatus": true,
+        "osdRadius": 28, "osdOpacity": 1,
+        "barEnabled": true, "barPosition": "top", "barStyle": "noctalia", "barHeight": 30,
+        "barShowTitle": true, "barShowMedia": true, "barShowStatus": true, "barOccupiedWorkspaces": true,
         "fontFamily": "JetBrainsMono Nerd Font", "fontScale": 1.3,
         "enabled": true, "bars": 64, "height": 0.42, "thickness": 0.58,
         "bloom": 0.6, "reflection": 0.1, "idleWave": true,
@@ -60,16 +59,8 @@ Item {
         property real shadowStrength: 0.63
         property real shadowSize: 12
         property color surfaceColor: "#0f1115"
-        property real islandWidth: 109
-        property real islandHeight: 34
-        property real islandRestCorner: 6
-        property real islandOpenCorner: 28
-        property real islandGap: 0
-        property real islandSmoothing: 24
-        property real islandOpacity: 1
-        property string islandStyle: "floating"
-        property bool islandAutohide: true
-        property bool islandReserve: true
+        property real osdRadius: 28
+        property real osdOpacity: 1
         property bool barEnabled: true
         property string barPosition: "top"
         property string barStyle: "noctalia"
@@ -77,6 +68,7 @@ Item {
         property bool barShowTitle: true
         property bool barShowMedia: true
         property bool barShowStatus: true
+        property bool barOccupiedWorkspaces: true
         property string fontFamily: "JetBrainsMono Nerd Font"
         property real fontScale: 1.3
         property bool enabled: true
@@ -219,16 +211,8 @@ Item {
             property real shadowStrength: 0.63
             property real shadowSize: 12
             property color surfaceColor: "#0f1115"
-            property real islandWidth: 109
-            property real islandHeight: 34
-            property real islandRestCorner: 6
-            property real islandOpenCorner: 28
-            property real islandGap: 0
-            property real islandSmoothing: 24
-            property real islandOpacity: 1
-            property string islandStyle: "floating"
-            property bool islandAutohide: true
-            property bool islandReserve: true
+            property real osdRadius: 28
+            property real osdOpacity: 1
             property bool barEnabled: true
             property string barPosition: "top"
             property string barStyle: "noctalia"
@@ -236,6 +220,7 @@ Item {
             property bool barShowTitle: true
             property bool barShowMedia: true
             property bool barShowStatus: true
+            property bool barOccupiedWorkspaces: true
             property string fontFamily: "JetBrainsMono Nerd Font"
             property real fontScale: 1.3
         }
@@ -287,7 +272,6 @@ Item {
         anchors.top: parent.top
         model: [
             { "key": "frame", "label": "Frame" },
-            { "key": "island", "label": "Island" },
             { "key": "bar", "label": "Bar" },
             { "key": "visualizer", "label": "Visualizer" }
         ]
@@ -337,7 +321,7 @@ Item {
             id: loader
             width: flick.width - 12
             height: item ? item.implicitHeight : 0
-            sourceComponent: page.group === "frame" ? frameComp : (page.group === "island" ? islandComp : (page.group === "bar" ? barComp : vizComp))
+            sourceComponent: page.group === "frame" ? frameComp : (page.group === "bar" ? barComp : vizComp)
             onLoaded: {
                 if (!item)
                     return;
@@ -431,121 +415,19 @@ Item {
                         onModified: (v) => page.edit("fontScale", v)
                     }
                 }
-            }
-        }
-    }
-
-    Component {
-        id: islandComp
-        Row {
-            id: islandRow
-            spacing: 56
-            readonly property real colW: (width - spacing) / 2
-
-            Column {
-                width: islandRow.colW
-                spacing: 30
-
-                Text {
-                    width: parent.width
-                    visible: draft.barEnabled
-                    wrapMode: Text.WordWrap
-                    text: "The top bar is on, so the island never rests on screen. These settings shape only the panel that drops out of the bar when a surface opens."
-                    color: Theme.faint
-                    font.family: Theme.font
-                    font.pixelSize: 12
-                    font.weight: Font.Medium
-                }
 
                 SettingSection {
                     width: parent.width
-                    title: "APPEARANCE"
-                    ChoiceRow {
-                        width: parent.width; label: "Style"
-                        options: [{ "key": "island", "label": "Island" }, { "key": "floating", "label": "Floating" }, { "key": "none", "label": "None" }]
-                        current: draft.islandStyle
-                        onChosen: (k) => page.edit("islandStyle", k)
-                    }
-                    ToggleRow {
-                        visible: draft.islandStyle !== "none"
-                        width: parent.width; label: "Reveal on hover"
-                        checked: draft.islandAutohide
-                        onToggled: (v) => page.edit("islandAutohide", v)
-                    }
-                    ToggleRow {
-                        visible: draft.islandStyle === "island" && !draft.islandAutohide
-                        width: parent.width; label: "Reserve space below the island"
-                        checked: draft.islandReserve
-                        onToggled: (v) => page.edit("islandReserve", v)
-                    }
-                    Text {
-                        visible: draft.islandStyle === "island" && !draft.islandAutohide && !draft.islandReserve
-                        width: parent.width
-                        wrapMode: Text.WordWrap
-                        text: "Windows rise to the frame and the island floats over them, closing the top gap."
-                        color: Theme.faint
-                        font.family: Theme.font
-                        font.pixelSize: 12
-                        font.weight: Font.Medium
-                    }
-                }
-
-                SettingSection {
-                    width: parent.width
-                    title: "SIZE"
-                    Text {
-                        width: parent.width
-                        wrapMode: Text.WordWrap
-                        text: "The resting island hugs its content now: a short lozenge around the clock, its context line, and the workspace ticks. It grows only when a surface opens."
-                        color: Theme.faint
-                        font.family: Theme.font
-                        font.pixelSize: 12
-                        font.weight: Font.Medium
-                    }
-                }
-
-                SettingSection {
-                    width: parent.width
-                    title: "CORNERS"
+                    title: "NOTIFICATIONS"
                     NumberField {
-                        width: parent.width; label: "Rest corner"; unit: "px"
-                        from: 0; to: 32; value: draft.islandRestCorner
-                        onModified: (v) => page.edit("islandRestCorner", v)
-                    }
-                    NumberField {
-                        width: parent.width; label: "Open corner"; unit: "px"
-                        from: 0; to: 40; value: draft.islandOpenCorner
-                        onModified: (v) => page.edit("islandOpenCorner", v)
-                    }
-                }
-            }
-
-            Column {
-                width: islandRow.colW
-                spacing: 30
-
-                SettingSection {
-                    width: parent.width
-                    title: "PLACEMENT"
-                    NumberField {
-                        width: parent.width; label: "Top gap"; unit: "px"
-                        from: 0; to: 40; value: draft.islandGap
-                        onModified: (v) => page.edit("islandGap", v)
-                    }
-                }
-
-                SettingSection {
-                    width: parent.width
-                    title: "FEEL"
-                    SliderRow {
-                        width: parent.width; label: "Bud melt"
-                        from: 1; to: 48; step: 1; decimals: 0; value: draft.islandSmoothing
-                        onModified: (v) => page.edit("islandSmoothing", v)
+                        width: parent.width; label: "OSD & toast corner"; unit: "px"
+                        from: 0; to: 40; value: draft.osdRadius
+                        onModified: (v) => page.edit("osdRadius", v)
                     }
                     SliderRow {
                         width: parent.width; label: "Opacity"; percent: true
-                        from: 0.2; to: 1; step: 0.01; value: draft.islandOpacity
-                        onModified: (v) => page.edit("islandOpacity", v)
+                        from: 0.2; to: 1; step: 0.01; value: draft.osdOpacity
+                        onModified: (v) => page.edit("osdOpacity", v)
                     }
                 }
             }
@@ -597,7 +479,7 @@ Item {
                     Text {
                         width: parent.width
                         wrapMode: Text.WordWrap
-                        text: "A bar riding one edge of the frame. Both skins are carried from their namesake shells: Noctalia is the pill-dot dialect, Caelestia the numbered cell strip. A top bar hides the resting island and summoned panels drop out of it; bottom, left and right bars keep the island at the top centre. Windows tuck in right against the band."
+                        text: "A bar riding the top or bottom edge of the frame. Both skins are carried from their namesake shells: Noctalia is the pill-dot dialect, Caelestia the numbered cell strip. Panels grow from the bar edge at whichever module you click or hover, and windows tuck in against the band."
                         color: Theme.faint
                         font.family: Theme.font
                         font.pixelSize: 12
@@ -627,6 +509,11 @@ Item {
                         width: parent.width; label: "Status glyphs (network, battery, inbox)"
                         checked: draft.barShowStatus
                         onToggled: (v) => page.edit("barShowStatus", v)
+                    }
+                    ToggleRow {
+                        width: parent.width; label: "Only occupied workspaces"
+                        checked: draft.barOccupiedWorkspaces
+                        onToggled: (v) => page.edit("barOccupiedWorkspaces", v)
                     }
                 }
             }

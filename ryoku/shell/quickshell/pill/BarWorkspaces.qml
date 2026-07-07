@@ -36,32 +36,55 @@ Item {
         for (var i = 0; i < v.length; i++)
             if (v[i])
                 occ[v[i].id] = true;
+        // a window can be known before its workspace lands in the list above
+        // (this Hyprland's initial workspace refresh is unreliable), so union
+        // the workspaces that own a toplevel.
+        var t = Hyprland.toplevels.values;
+        for (var j = 0; j < t.length; j++)
+            if (t[j] && t[j].workspace)
+                occ[t[j].workspace.id] = true;
         return occ;
     }
-    readonly property int shown: {
-        var n = 5;
-        for (var i = 10; i > 5; i--) {
-            if (occupiedSet[base + i] || activeWsId === base + i) {
-                n = i;
-                break;
+    // which workspaces to show. occupied-only (the default) lists the ones
+    // with windows plus the active one, so empty numbers vanish; otherwise a
+    // contiguous 1..N run (N grows past 5 as higher spaces get used) with
+    // empties dimmed.
+    readonly property var wsList: {
+        var out = [];
+        if (Config.barOccupiedWorkspaces) {
+            for (var i = 1; i <= 10; i++) {
+                var id = base + i;
+                if (occupiedSet[id] || id === activeWsId)
+                    out.push(id);
             }
+            if (out.length === 0)
+                out.push(activeWsId);
+        } else {
+            var n = 5;
+            for (var j = 10; j > 5; j--) {
+                if (occupiedSet[base + j] || activeWsId === base + j) { n = j; break; }
+            }
+            for (var k = 1; k <= n; k++)
+                out.push(base + k);
         }
-        return n;
+        return out;
     }
-    readonly property int activeIdx: Math.max(0, Math.min(shown - 1, activeWsId - base - 1))
+    readonly property int count: wsList.length
+    readonly property int activeIdx: Math.max(0, wsList.indexOf(activeWsId))
 
-    implicitWidth: caelestia ? (vertical ? cellW : shown * cellW)
-        : (vertical ? dotSize : shown * dotSize + (shown - 1) * dotGap + (activeLen - dotSize))
-    implicitHeight: caelestia ? (vertical ? shown * cellH : cellH)
-        : (vertical ? shown * dotSize + (shown - 1) * dotGap + (activeLen - dotSize) : dotSize)
+    implicitWidth: caelestia ? (vertical ? cellW : count * cellW)
+        : (vertical ? dotSize : count * dotSize + (count - 1) * dotGap + (activeLen - dotSize))
+    implicitHeight: caelestia ? (vertical ? count * cellH : cellH)
+        : (vertical ? count * dotSize + (count - 1) * dotGap + (activeLen - dotSize) : dotSize)
 
     function jump(id) {
         Hyprland.dispatch('hl.dsp.workspace.move({ workspace = ' + id + ', monitor = "current" })');
         Hyprland.dispatch('hl.dsp.focus({ workspace = ' + id + ' })');
     }
     function walk(dir) {
-        var next = Math.max(1, Math.min(strip.shown, strip.activeIdx + 1 + dir));
-        strip.jump(strip.base + next);
+        var i = strip.activeIdx + dir;
+        if (i >= 0 && i < strip.wsList.length)
+            strip.jump(strip.wsList[i]);
     }
     WheelHandler {
         onWheel: (w) => strip.walk(w.angleDelta.y > 0 ? -1 : 1)
@@ -104,14 +127,14 @@ Item {
         }
 
         Grid {
-            columns: strip.vertical ? 1 : strip.shown
+            columns: strip.vertical ? 1 : strip.count
             Repeater {
-                model: strip.shown
+                model: strip.wsList
                 delegate: Item {
                     id: cCell
-                    required property int index
-                    readonly property int wsId: strip.base + index + 1
-                    readonly property bool active: index === strip.activeIdx
+                    required property int modelData
+                    readonly property int wsId: cCell.modelData
+                    readonly property bool active: cCell.wsId === strip.activeWsId
                     readonly property bool occupied: strip.occupiedSet[wsId] === true
                     width: strip.cellW
                     height: strip.cellH
@@ -141,19 +164,19 @@ Item {
     Grid {
         visible: !strip.caelestia
         anchors.centerIn: parent
-        columns: strip.vertical ? 1 : strip.shown
+        columns: strip.vertical ? 1 : strip.count
         columnSpacing: strip.dotGap
         rowSpacing: strip.dotGap
         verticalItemAlignment: Grid.AlignVCenter
         horizontalItemAlignment: Grid.AlignHCenter
 
         Repeater {
-            model: strip.shown
+            model: strip.wsList
             delegate: Rectangle {
                 id: nPill
-                required property int index
-                readonly property int wsId: strip.base + index + 1
-                readonly property bool active: index === strip.activeIdx
+                required property int modelData
+                readonly property int wsId: nPill.modelData
+                readonly property bool active: nPill.wsId === strip.activeWsId
                 readonly property bool occupied: strip.occupiedSet[wsId] === true
                 width: strip.vertical ? strip.dotSize : (active ? strip.activeLen : strip.dotSize)
                 height: strip.vertical ? (active ? strip.activeLen : strip.dotSize) : strip.dotSize
