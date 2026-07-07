@@ -106,4 +106,5 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  ryoku-hub gpu caps|mode")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub voxtype get|ensure")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub voxtype set <json>")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub voxtype download|rmmodel <key>")
 }

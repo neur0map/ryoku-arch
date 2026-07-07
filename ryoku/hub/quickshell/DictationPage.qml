@@ -20,7 +20,7 @@ Item {
     property bool installed: false
     property bool loaded: false
     property bool openaiKeySet: false
-    property bool sonioxKeySet: false
+    property string downloading: ""    // preset key whose model is downloading, or ""
     property string busyError: ""
 
     readonly property var sel: {
@@ -31,16 +31,14 @@ Item {
     }
     readonly property string keyKind: page.sel !== null ? page.sel.keyKind : ""
     readonly property bool needsKey: page.keyKind !== ""
-    readonly property bool keyOnFile: page.keyKind === "openai" ? page.openaiKeySet
-                                    : (page.keyKind === "soniox" ? page.sonioxKeySet : false)
-    readonly property bool needDownload: page.sel !== null && page.sel.cloud !== true && page.sel.present !== true
+    readonly property bool keyOnFile: page.openaiKeySet
 
     function reload() { getProc.running = true; }
 
     // apply a full snapshot: the selected preset, the enable state, and any
     // freshly typed key (blank keys are kept by the backend, never wiped).
     function apply(extra) {
-        var req = { "preset": page.selected, "enabled": page.voiceOn, "openaiKey": "", "sonioxKey": "" };
+        var req = { "preset": page.selected, "enabled": page.voiceOn, "openaiKey": "" };
         if (extra)
             for (var k in extra)
                 req[k] = extra[k];
@@ -48,26 +46,54 @@ Item {
         setProc.command = ["ryoku-hub", "voxtype", "set", JSON.stringify(req)];
         setProc.running = true;
     }
-    function choose(key) { page.selected = key; page.apply(null); }
+    // clicking a card selects it; a local model that isn't downloaded is fetched
+    // first (one click gets it), then selected when the download lands.
+    function choose(key) {
+        var p = null;
+        for (var i = 0; i < page.presets.length; i++)
+            if (page.presets[i].key === key)
+                p = page.presets[i];
+        if (p !== null && !p.cloud && !p.present) {
+            page.download(key);
+            return;
+        }
+        page.selected = key;
+        page.apply(null);
+    }
     function setEnabled(on) { page.voiceOn = on; page.apply(null); }
     function saveKey(value) {
         if (value.length === 0)
             return;
-        var e = {};
-        e[page.keyKind === "openai" ? "openaiKey" : "sonioxKey"] = value;
-        page.apply(e);
+        page.apply({ "openaiKey": value });
     }
-    // model downloads run in a terminal: `voxtype setup model` is an interactive
-    // picker, and the files are large, so it belongs in a window the user watches.
-    function downloadModels() {
-        Quickshell.execDetached(["kitty", "--class", "ryoku-dictation", "-e", "sh", "-c",
-            "voxtype setup model; echo; read -n1 -rsp 'Done. Press any key to close\u2026'; echo"]);
+    // download a model in-process, no terminal. the card shows a spinner until it
+    // lands; on success the model is selected. one download at a time.
+    function download(key) {
+        if (page.downloading !== "")
+            return;
+        page.busyError = "";
+        page.downloading = key;
+        dlProc.command = ["ryoku-hub", "voxtype", "download", key];
+        dlProc.running = true;
+    }
+    function removeModel(key) {
+        page.busyError = "";
+        rmProc.command = ["ryoku-hub", "voxtype", "rmmodel", key];
+        rmProc.running = true;
     }
 
     // gpk (GlazePKG, the RyokuArch package manager) needs a tty for its AUR
     // build and sudo prompts; --hold keeps any error on screen after it exits.
     function installVoxtype() {
         Quickshell.execDetached(["kitty", "--hold", "-e", "gpk", "install", "voxtype-bin", "--manager", "aur"]);
+    }
+
+    // remove: gpk drops the package (tty for sudo), then we disable and delete
+    // the user service so no dead unit lingers; config and models stay for a
+    // reinstall.
+    function removeVoxtype() {
+        Quickshell.execDetached(["kitty", "--hold", "-e", "sh", "-c",
+            "gpk remove voxtype-bin && { systemctl --user disable --now voxtype.service 2>/dev/null; rm -f ~/.config/systemd/user/voxtype.service; systemctl --user daemon-reload 2>/dev/null; }"]);
     }
 
     // when the gpk terminal closes and the Hub regains focus, re-probe so the
@@ -89,7 +115,6 @@ Item {
                     page.voiceOn = d.enabled === true;
                     page.installed = d.installed === true;
                     page.openaiKeySet = d.openaiKeySet === true;
-                    page.sonioxKeySet = d.sonioxKeySet === true;
                     page.loaded = true;
                 } catch (e) {
                     console.log("voxtype: get parse failed: " + e);
@@ -99,6 +124,33 @@ Item {
     }
     Process {
         id: setProc
+        stdout: StdioCollector { onStreamFinished: page.reload() }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                var e = this.text.trim();
+                if (e.length > 0)
+                    page.busyError = e;
+            }
+        }
+    }
+    // model download: a spinner shows while it runs; on success select the model
+    // (which re-probes via setProc), otherwise surface the failure.
+    Process {
+        id: dlProc
+        onExited: (code) => {
+            var k = page.downloading;
+            page.downloading = "";
+            if (code === 0) {
+                page.selected = k;
+                page.apply(null);
+            } else {
+                page.busyError = "Download failed (voxtype exited " + code + ").";
+                page.reload();
+            }
+        }
+    }
+    Process {
+        id: rmProc
         stdout: StdioCollector { onStreamFinished: page.reload() }
         stderr: StdioCollector {
             onStreamFinished: {
@@ -132,10 +184,19 @@ Item {
             width: parent.width
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
-            text: "Voice dictation needs the voxtype-bin package. Install it below; GlazePKG opens in a terminal to confirm, and this page fills in once it finishes."
+            text: "Voice dictation needs the voxtype-bin package. GlazePKG opens a terminal to confirm the install, and this page fills in once it finishes."
             color: Theme.subtle
             font.family: Theme.font
             font.pixelSize: 13
+        }
+        Text {
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            text: "About 600 MB for the engine and runtimes, before any model."
+            color: Theme.faint
+            font.family: Theme.mono
+            font.pixelSize: 11
+            font.weight: Font.DemiBold
         }
         Item {
             width: parent.width
@@ -198,13 +259,14 @@ Item {
                     Repeater {
                         model: page.presets
 
-                        // one selectable engine/model row: name, provider · size
-                        // (+ download state for local models), and a one-liner.
-                        // the active one wears the ember edge.
+                        // one engine/model row: name, provider, size, and a
+                        // trailing action (download / spinner / remove). click the
+                        // row to use it; a missing local model downloads first.
                         delegate: Rectangle {
                             id: card
                             required property var modelData
                             readonly property bool active: page.selected === card.modelData.key
+                            readonly property bool busy: page.downloading === card.modelData.key
                             width: parent ? parent.width : 0
                             height: cardCol.height + 24
                             radius: Theme.radius
@@ -217,10 +279,10 @@ Item {
                             Column {
                                 id: cardCol
                                 anchors.left: parent.left
-                                anchors.right: parent.right
+                                anchors.right: action.left
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.leftMargin: 16
-                                anchors.rightMargin: 16
+                                anchors.rightMargin: 12
                                 spacing: 4
 
                                 Row {
@@ -236,8 +298,10 @@ Item {
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: card.modelData.provider + "  \u00b7  " + card.modelData.size
-                                            + (card.modelData.cloud ? "" : (card.modelData.present ? "  \u00b7  downloaded" : "  \u00b7  not downloaded"))
-                                        color: (!card.modelData.cloud && !card.modelData.present) ? Theme.ember : Theme.faint
+                                            + (card.busy ? "  \u00b7  downloading\u2026"
+                                                : (card.modelData.cloud ? ""
+                                                    : (card.modelData.present ? "  \u00b7  downloaded" : "  \u00b7  not downloaded")))
+                                        color: (card.busy || (!card.modelData.cloud && !card.modelData.present)) ? Theme.ember : Theme.faint
                                         font.family: Theme.mono
                                         font.pixelSize: 10
                                         font.weight: Font.DemiBold
@@ -253,26 +317,50 @@ Item {
                                 }
                             }
 
+                            // trailing action: spinner while downloading, else a
+                            // download or remove glyph for local models (cloud: none).
+                            Item {
+                                id: action
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.rightMargin: 12
+                                width: 26
+                                height: 26
+
+                                Spinner {
+                                    anchors.centerIn: parent
+                                    visible: card.busy
+                                    size: 18
+                                }
+                                Icon {
+                                    anchors.centerIn: parent
+                                    visible: !card.busy && !card.modelData.cloud
+                                    name: card.modelData.present ? "trash" : "download"
+                                    size: card.modelData.present ? 16 : 18
+                                    tint: mouseAct.containsMouse
+                                        ? (card.modelData.present ? Theme.bad : Theme.ember)
+                                        : Theme.faint
+                                    Behavior on tint { ColorAnimation { duration: Theme.quick } }
+                                }
+                                MouseArea {
+                                    id: mouseAct
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    enabled: !card.modelData.cloud && !card.busy
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (card.modelData.present)
+                                            page.removeModel(card.modelData.key);
+                                        else
+                                            page.download(card.modelData.key);
+                                    }
+                                }
+                            }
+
                             HoverHandler { id: cardHov; cursorShape: Qt.PointingHandCursor }
                             TapHandler { onTapped: page.choose(card.modelData.key) }
                         }
                     }
-                }
-
-                Text {
-                    width: parent.width
-                    visible: page.needDownload
-                    wrapMode: Text.WordWrap
-                    text: "This model isn't downloaded yet. Download it, then dictation is ready."
-                    color: Theme.ember
-                    font.family: Theme.font
-                    font.pixelSize: 12
-                }
-                HubButton {
-                    label: "Download models"
-                    icon: "download"
-                    primary: page.needDownload
-                    onClicked: page.downloadModels()
                 }
             }
 
@@ -326,7 +414,7 @@ Item {
                                 anchors.fill: parent
                                 verticalAlignment: Text.AlignVCenter
                                 visible: keyInput.text.length === 0
-                                text: page.keyKind === "soniox" ? "Soniox API key" : "OpenAI API key"
+                                text: "OpenAI API key"
                                 color: Theme.faint
                                 font: keyInput.font
                             }
@@ -341,6 +429,26 @@ Item {
                         primary: true
                         onClicked: { page.saveKey(keyInput.text); keyInput.text = ""; }
                     }
+                }
+            }
+
+            // --- package --------------------------------------------------
+            SettingSection {
+                width: parent.width
+                title: "PACKAGE"
+
+                Text {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: "Voxtype is installed (voxtype-bin). Removing it uninstalls the package; your engine choice and downloaded models stay on disk."
+                    color: Theme.dim
+                    font.family: Theme.font
+                    font.pixelSize: 12
+                }
+                HubButton {
+                    label: "Remove Voxtype"
+                    icon: "trash"
+                    onClicked: page.removeVoxtype()
                 }
             }
 

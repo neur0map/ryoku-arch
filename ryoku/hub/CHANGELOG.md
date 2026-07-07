@@ -4,9 +4,10 @@
 
 ### Added
 - A **Dictation** page (System): switch on voice typing and pick the Voxtype
-  speech-to-text engine and model, from local Whisper, Parakeet, and Cohere to
-  the OpenAI and Soniox cloud APIs (with a key field). It writes Voxtype's
-  config and drives its user service; the shell keeps Super+` and the mic wave.
+  speech-to-text engine, from local Whisper (Fast or Accurate) to the OpenAI
+  API (with a key field). Models download and remove in the Hub with one click,
+  no terminal; it writes Voxtype's config and drives its user service, while the
+  shell keeps Super+` and the mic wave.
 
 ### Changed
 - Shell -> Bar now places the bar on any frame edge (Top / Bottom / Left /

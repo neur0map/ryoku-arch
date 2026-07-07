@@ -9,42 +9,45 @@ import (
 	"strings"
 )
 
-// Voxtype dictation backend for Ryoku Settings' Dictation page. Ryoku owns the
-// Super+` keybind and the pill mic-wave, so the config here keeps Voxtype's own
-// hotkey and OSD off and lets the shell drive `voxtype record`. config.toml is
-// regenerated from the chosen preset, so hand edits are overwritten on save.
+// Voxtype dictation backend for Ryoku Settings' Dictation page. Voxtype owns a
+// large config; Ryoku writes a minimal, schema-valid ~/.config/voxtype/config.toml
+// with the built-in hotkey off (the shell owns Super+` and drives `voxtype
+// record`), pins the Whisper engine + model, and manages the user service.
+// Models download and remove in-process, so the Hub never shells out to a
+// terminal. Only engines that work without a root binary swap are offered:
+// local Whisper and Whisper through an OpenAI-compatible API.
 //
-//	ryoku-hub voxtype get         print presets + current state as JSON
-//	ryoku-hub voxtype set <json>  apply a preset (writes config, manages service)
-//	ryoku-hub voxtype ensure      seed a default config + service (autostart)
+//	ryoku-hub voxtype get             presets + current state as JSON
+//	ryoku-hub voxtype set <json>      apply a preset (writes config, manages service)
+//	ryoku-hub voxtype ensure          seed a default config + service (autostart)
+//	ryoku-hub voxtype download <key>  download a preset's model (streams progress)
+//	ryoku-hub voxtype rmmodel <key>   delete a preset's downloaded model
 
-// voxtypePreset is one curated engine/model the Dictation page offers. The
-// lower-case fields map it to config.toml; the exported ones drive the UI.
+// voxtypePreset is one dictation option the page offers. Lower-case fields map
+// it to config.toml and the model store; exported ones drive the UI.
 type voxtypePreset struct {
 	Key      string `json:"key"`
 	Label    string `json:"label"`
 	Provider string `json:"provider"`
 	Detail   string `json:"detail"`
 	Size     string `json:"size"`
-	Cloud    bool   `json:"cloud"`    // sends audio off-device, needs an API key
-	KeyKind  string `json:"keyKind"`  // "openai", "soniox", or ""
-	Present  bool   `json:"present"`  // local model downloaded (get only; cloud = true)
+	Cloud    bool   `json:"cloud"`   // sends audio off-device via a remote API
+	KeyKind  string `json:"keyKind"` // "openai" or ""
+	Present  bool   `json:"present"` // local model on disk (get only; cloud = true)
 
-	engine string // top-level engine
-	model  string // model within the engine (remote_model for cloud whisper)
-	lang   string // language for whisper-local presets
+	model string // whisper model name (local) or remote_model (cloud)
+	lang  string // whisper language
 }
 
-// The curated set: local models from official providers, then the paid cloud
-// backends. Voxtype supports more engines; these are the ones worth surfacing.
+// The curated set. Every entry uses the default Whisper binary, so selecting one
+// never needs sudo or a binary swap. Parakeet and the ONNX engines are omitted:
+// switching to them rewrites the root-owned /usr/bin/voxtype symlink, which the
+// Hub cannot do without a terminal sudo prompt.
 func voxtypePresets() []voxtypePreset {
 	return []voxtypePreset{
-		{Key: "whisper-fast", Label: "Whisper — Fast", Provider: "OpenAI", Detail: "English only, quickest to load. A solid everyday default.", Size: "142 MB", engine: "whisper", model: "base.en", lang: "en"},
-		{Key: "whisper-accurate", Label: "Whisper — Accurate", Provider: "OpenAI", Detail: "Multilingual, higher accuracy, larger download.", Size: "1.6 GB", engine: "whisper", model: "large-v3-turbo", lang: "auto"},
-		{Key: "parakeet", Label: "Parakeet", Provider: "NVIDIA", Detail: "25 European languages with built-in punctuation.", Size: "670 MB", engine: "parakeet", model: "parakeet-tdt-0.6b-v3-int8"},
-		{Key: "cohere", Label: "Cohere Transcribe", Provider: "Cohere", Detail: "Most accurate offline engine, with punctuation and casing.", Size: "1.5 GB", engine: "cohere", model: "cohere-transcribe-q4f16"},
-		{Key: "openai", Label: "OpenAI API", Provider: "OpenAI", Detail: "Cloud Whisper. Needs an OpenAI API key; audio leaves your machine.", Size: "cloud", Cloud: true, KeyKind: "openai", engine: "whisper", model: "whisper-1"},
-		{Key: "soniox", Label: "Soniox", Provider: "Soniox", Detail: "Cloud streaming, 60+ languages. Needs a Soniox API key; audio leaves your machine.", Size: "cloud", Cloud: true, KeyKind: "soniox", engine: "soniox", model: "stt-async-v4"},
+		{Key: "whisper-fast", Label: "Whisper — Fast", Provider: "OpenAI", Detail: "English only, quickest to load. A solid everyday default.", Size: "142 MB", model: "base.en", lang: "en"},
+		{Key: "whisper-accurate", Label: "Whisper — Accurate", Provider: "OpenAI", Detail: "Multilingual, higher accuracy, larger download.", Size: "1.6 GB", model: "large-v3-turbo", lang: "auto"},
+		{Key: "openai", Label: "OpenAI API", Provider: "OpenAI", Detail: "Cloud Whisper through OpenAI's API. Needs a key; audio leaves your machine.", Size: "cloud", Cloud: true, KeyKind: "openai", model: "whisper-1", lang: "en"},
 	}
 }
 
@@ -76,9 +79,14 @@ func voxtypeUnitPath() string {
 	return filepath.Join(configHome(), "systemd", "user", "voxtype.service")
 }
 
+// whisper models land in ~/.local/share/voxtype/models as ggml-<model>.bin.
+func modelFilePath(p voxtypePreset) string {
+	return filepath.Join(dataHome(), "voxtype", "models", "ggml-"+p.model+".bin")
+}
+
 func runVoxtype(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("voxtype needs get|set|ensure")
+		return fmt.Errorf("voxtype needs get|set|ensure|download|rmmodel")
 	}
 	switch args[0] {
 	case "get":
@@ -90,24 +98,32 @@ func runVoxtype(args []string) error {
 		return voxtypeSet(args[1])
 	case "ensure":
 		return voxtypeEnsure()
+	case "download":
+		if len(args) < 2 {
+			return fmt.Errorf("voxtype download needs a preset key")
+		}
+		return voxtypeDownload(args[1])
+	case "rmmodel":
+		if len(args) < 2 {
+			return fmt.Errorf("voxtype rmmodel needs a preset key")
+		}
+		return voxtypeRmModel(args[1])
 	default:
 		return fmt.Errorf("unknown voxtype command: %s", args[0])
 	}
 }
 
-// voxtypeGet reports the catalog plus current state so the page can render.
 func voxtypeGet() error {
 	text := readFileString(voxtypeConfigPath())
 	presets := voxtypePresets()
 	for i := range presets {
-		presets[i].Present = presets[i].Cloud || modelPresent(presets[i])
+		presets[i].Present = presets[i].Cloud || fileExists(modelFilePath(presets[i]))
 	}
 	out := map[string]any{
 		"installed":    onPath("voxtype"),
 		"selected":     selectedPreset(text),
 		"enabled":      voxtypeServiceEnabled(),
 		"openaiKeySet": extractConfigString(text, "remote_api_key") != "" || os.Getenv("VOXTYPE_WHISPER_API_KEY") != "",
-		"sonioxKeySet": extractConfigString(text, "api_key") != "" || os.Getenv("SONIOX_API_KEY") != "",
 		"presets":      presets,
 	}
 	b, err := json.Marshal(out)
@@ -123,11 +139,11 @@ type voxtypeSetReq struct {
 	Preset    string `json:"preset"`
 	Enabled   bool   `json:"enabled"`
 	OpenAIKey string `json:"openaiKey"` // empty keeps the stored key
-	SonioxKey string `json:"sonioxKey"` // empty keeps the stored key
 }
 
-// voxtypeSet writes config.toml for the chosen preset and brings the service to
-// the requested state.
+// voxtypeSet writes a valid config.toml for the chosen preset and brings the
+// service to the requested state. All presets use the Whisper binary, so there
+// is no engine/binary swap.
 func voxtypeSet(arg string) error {
 	var req voxtypeSetReq
 	if err := json.Unmarshal([]byte(arg), &req); err != nil {
@@ -137,18 +153,11 @@ func voxtypeSet(arg string) error {
 	if !ok {
 		return fmt.Errorf("unknown preset: %s", req.Preset)
 	}
-	// keep the stored key when the page leaves the field blank, so a re-save
-	// after a restart does not wipe a key the user already entered.
-	prev := readFileString(voxtypeConfigPath())
 	openaiKey := req.OpenAIKey
 	if openaiKey == "" {
-		openaiKey = extractConfigString(prev, "remote_api_key")
+		openaiKey = extractConfigString(readFileString(voxtypeConfigPath()), "remote_api_key")
 	}
-	sonioxKey := req.SonioxKey
-	if sonioxKey == "" {
-		sonioxKey = extractConfigString(prev, "api_key")
-	}
-	if err := atomicWrite(voxtypeConfigPath(), []byte(buildVoxtypeConfig(p, openaiKey, sonioxKey)), 0o600); err != nil {
+	if err := atomicWrite(voxtypeConfigPath(), []byte(buildVoxtypeConfig(p, openaiKey)), 0o600); err != nil {
 		return err
 	}
 	if req.Enabled {
@@ -168,7 +177,7 @@ func voxtypeSet(arg string) error {
 func voxtypeEnsure() error {
 	if _, err := os.Stat(voxtypeConfigPath()); err != nil {
 		p, _ := presetByKey("whisper-fast")
-		if err := atomicWrite(voxtypeConfigPath(), []byte(buildVoxtypeConfig(p, "", "")), 0o600); err != nil {
+		if err := atomicWrite(voxtypeConfigPath(), []byte(buildVoxtypeConfig(p, "")), 0o600); err != nil {
 			return err
 		}
 	}
@@ -179,51 +188,70 @@ func voxtypeEnsure() error {
 	return nil
 }
 
-// buildVoxtypeConfig renders a complete config.toml for the preset. It is fully
-// generated (with a preset marker the Hub reads back), so it always reflects the
-// current choice and never accumulates stale sections.
-func buildVoxtypeConfig(p voxtypePreset, openaiKey, sonioxKey string) string {
+// voxtypeDownload fetches a preset's Whisper model, streaming voxtype's progress
+// to stdout so the Hub can show it. Blocks until the download finishes.
+func voxtypeDownload(key string) error {
+	p, ok := presetByKey(key)
+	if !ok {
+		return fmt.Errorf("unknown preset: %s", key)
+	}
+	if p.Cloud || p.model == "" {
+		return fmt.Errorf("%s has no downloadable model", key)
+	}
+	cmd := exec.Command("voxtype", "setup", "--download", "--model", p.model, "--no-post-install")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// voxtypeRmModel deletes a preset's downloaded model file.
+func voxtypeRmModel(key string) error {
+	p, ok := presetByKey(key)
+	if !ok {
+		return fmt.Errorf("unknown preset: %s", key)
+	}
+	if p.Cloud {
+		return fmt.Errorf("%s has no local model", key)
+	}
+	if err := os.Remove(modelFilePath(p)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	fmt.Println("ok")
+	return nil
+}
+
+// buildVoxtypeConfig renders a minimal, schema-valid config.toml for the preset,
+// matching voxtype's own /etc/voxtype/config.toml layout. A preset marker lets
+// the Hub read the selection back.
+func buildVoxtypeConfig(p voxtypePreset, openaiKey string) string {
 	var b strings.Builder
 	b.WriteString("# Ryoku dictation config for Voxtype. Managed by Ryoku Settings > Dictation\n")
 	b.WriteString("# (ryoku-hub voxtype); hand edits are overwritten when you change it there.\n")
-	b.WriteString("# The shell owns Super+` and the pill mic-wave, so the built-in hotkey is off\n")
-	b.WriteString("# and the GTK4 OSD stays unused (gtk4-layer-shell is not installed).\n")
+	b.WriteString("# The shell owns Super+` and the pill mic-wave, so the built-in hotkey is off.\n")
 	fmt.Fprintf(&b, "# ryoku-preset: %s\n\n", p.Key)
-	fmt.Fprintf(&b, "engine = %q\n", p.engine)
+	b.WriteString("engine = \"whisper\"\n")
 	b.WriteString("state_file = \"auto\"\n\n")
 	b.WriteString("[hotkey]\nenabled = false\n\n")
-	b.WriteString("[audio]\ndevice = \"default\"\nsample_rate = 16000\n\n")
-	b.WriteString("[output]\nmode = \"type\"\nfallback_to_clipboard = true\ntype_delay_ms = 1\n\n")
-	b.WriteString("[output.notification]\non_recording_start = false\non_recording_stop = false\non_transcription = false\n\n")
-
-	switch p.engine {
-	case "whisper":
-		b.WriteString("[whisper]\n")
-		if p.Key == "openai" {
-			b.WriteString("backend = \"remote\"\n")
-			b.WriteString("remote_endpoint = \"https://api.openai.com\"\n")
-			fmt.Fprintf(&b, "remote_model = %q\n", p.model)
-			if openaiKey != "" {
-				fmt.Fprintf(&b, "remote_api_key = %q\n", openaiKey)
-			}
-		} else {
-			b.WriteString("backend = \"local\"\n")
-			fmt.Fprintf(&b, "model = %q\n", p.model)
-			fmt.Fprintf(&b, "language = %q\n", p.lang)
+	b.WriteString("[audio]\ndevice = \"default\"\nsample_rate = 16000\nmax_duration_secs = 60\n\n")
+	b.WriteString("[whisper]\n")
+	if p.Cloud {
+		b.WriteString("mode = \"remote\"\n")
+		b.WriteString("model = \"base.en\"\n") // local fallback field the schema keeps
+		b.WriteString("language = \"en\"\n")
+		b.WriteString("translate = false\n")
+		b.WriteString("remote_endpoint = \"https://api.openai.com/v1\"\n")
+		fmt.Fprintf(&b, "remote_model = %q\n", p.model)
+		if openaiKey != "" {
+			fmt.Fprintf(&b, "remote_api_key = %q\n", openaiKey)
 		}
-	case "parakeet":
-		fmt.Fprintf(&b, "[parakeet]\nmodel = %q\n", p.model)
-	case "cohere":
-		fmt.Fprintf(&b, "[cohere]\nmodel = %q\nlanguage = \"en\"\n", p.model)
-	case "soniox":
-		b.WriteString("[soniox]\n")
+	} else {
+		b.WriteString("mode = \"local\"\n")
 		fmt.Fprintf(&b, "model = %q\n", p.model)
-		b.WriteString("async_api = true\n") // record start/stop -> record then transcribe on stop
-		b.WriteString("language_hints = [\"en\"]\n")
-		if sonioxKey != "" {
-			fmt.Fprintf(&b, "api_key = %q\n", sonioxKey)
-		}
+		fmt.Fprintf(&b, "language = %q\n", p.lang)
+		b.WriteString("translate = false\n")
 	}
+	b.WriteString("\n[output]\nmode = \"type\"\nfallback_to_clipboard = true\n\n")
+	b.WriteString("[output.notification]\non_recording_start = false\non_recording_stop = false\non_transcription = false\n")
 	return b.String()
 }
 
@@ -242,7 +270,6 @@ func onPath(bin string) bool {
 	return err == nil
 }
 
-// selectedPreset reads the marker the generator wrote; defaults to the first.
 func selectedPreset(configText string) string {
 	for _, ln := range strings.Split(configText, "\n") {
 		ln = strings.TrimSpace(ln)
@@ -254,8 +281,6 @@ func selectedPreset(configText string) string {
 }
 
 // extractConfigString pulls a simple `key = "value"` string out of the config.
-// Whisper's remote key is `remote_api_key` and Soniox's is `api_key`, so the key
-// name alone disambiguates them without full TOML parsing.
 func extractConfigString(configText, key string) string {
 	for _, ln := range strings.Split(configText, "\n") {
 		t := strings.TrimSpace(ln)
@@ -265,28 +290,6 @@ func extractConfigString(configText, key string) string {
 		}
 	}
 	return ""
-}
-
-// modelPresent is a best-effort check for a downloaded local model: Voxtype
-// stores models under ~/.local/share/voxtype/models. A miss just means the page
-// offers a (harmless, idempotent) download.
-func modelPresent(p voxtypePreset) bool {
-	if p.model == "" {
-		return false
-	}
-	dir := filepath.Join(dataHome(), "voxtype", "models")
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return false
-	}
-	// whisper stores ggml-<model>.bin; ONNX engines store a <model>/ directory.
-	needle := strings.TrimSuffix(p.model, ".en")
-	for _, e := range entries {
-		if strings.Contains(e.Name(), p.model) || strings.Contains(e.Name(), needle) {
-			return true
-		}
-	}
-	return false
 }
 
 func userctl(args ...string) error {
@@ -301,10 +304,7 @@ func voxtypeServiceEnabled() bool {
 // systemd writes ~/.config/systemd/user/voxtype.service and enables it). Guarded
 // on the unit file so a later Hub "off" (which disables it) is not undone.
 func ensureVoxtypeUnit() {
-	if _, err := os.Stat(voxtypeUnitPath()); err == nil {
-		return
-	}
-	if !onPath("voxtype") {
+	if fileExists(voxtypeUnitPath()) || !onPath("voxtype") {
 		return
 	}
 	_ = exec.Command("voxtype", "setup", "systemd").Run()
