@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# cap the default mic at Base Volume (0 dB hardware gain) so Handy STT and
+# cap the default mic at Base Volume (0 dB hardware gain) so Voxtype dictation and
 # the pill voice viz get clean input. some laptop codecs let capture run way
 # past 0 dB: WirePlumber maps a 100% source to the codec's max analog gain
 # (often +30 dB), which clips every word into garbage. pull an over-amped

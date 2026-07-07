@@ -50,7 +50,7 @@ var sessionPkgs = []string{
 
 // wallust and awww-git are the shell's wallpaper/palette engine; the rest are
 // the standard Ryoku extras. all best-effort, verify flags the critical two.
-var aurPkgs = []string{"wallust", "awww-git", "bibata-cursor-theme-bin", "localsend-bin", "handy-bin"}
+var aurPkgs = []string{"wallust", "awww-git", "bibata-cursor-theme-bin", "localsend-bin", "voxtype-bin"}
 
 // system/packages/dev.packages; ryoku recovery builds from source and needs go.
 var devPkgs = []string{"go", "nodejs", "npm", "rust", "python", "python-pip", "python-pipx", "mise"}

@@ -100,7 +100,7 @@ optdepends=(
   'wf-recorder: screen-recording fallback for multi-GPU machines'
   'hyprsunset: night-light color temperature (pill Super+U)'
   'openrgb: keyboard and LED accent sync via ryoku-leds'
-  'wtype: voice-dictation typing on Wayland (Handy)'
+  'wtype: voice-dictation typing on Wayland (Voxtype)'
   'mpv: webcam mirror and media playback'
   'chromium: web browser'
   'qemu-desktop: GPU-passthrough VM (Ryoku Settings > GPU)'

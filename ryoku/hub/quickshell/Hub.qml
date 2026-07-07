@@ -24,6 +24,7 @@ Rectangle {
         { "key": "displays",    "name": "Displays",        "icon": "display",  "group": "System" },
         { "key": "input",       "name": "Input",           "icon": "mouse",    "group": "System" },
         { "key": "keybinds",    "name": "Keybinds",        "icon": "keyboard", "group": "System" },
+        { "key": "dictation",   "name": "Dictation",       "icon": "mic",      "group": "System" },
         { "key": "connections", "name": "Connections",     "icon": "wifi",     "group": "System" },
         { "key": "gpu",         "name": "GPU",             "icon": "chip",     "group": "System" },
         { "key": "updates",     "name": "Updates",         "icon": "download", "pinned": "bottom" },
@@ -51,6 +52,7 @@ Rectangle {
         "animations":  { "title": "Animations", "subtitle": "Tune Hyprland's animations and edit bezier curves with a live preview." },
         "input":       { "title": "Input", "subtitle": "Keyboard layout, pointer feel, touchpad behaviour, and key repeat." },
         "keybinds":    { "title": "Keybinds", "subtitle": "Every shortcut in the Ryoku desktop, read live from your Hyprland config, plus your own custom binds." },
+        "dictation":   { "title": "Dictation", "subtitle": "Voice typing with Voxtype: pick a speech-to-text engine and model, add a cloud API key if you use one, and dictate into any app with the voice keybind." },
         "windowrules": { "title": "Window Rules", "subtitle": "Float, size, pin, or place windows by class or title." },
         "layerrules":  { "title": "Layer Rules", "subtitle": "Tweak layer-shell surfaces (bars, launchers) by namespace: blur, dim, no animation." },
         "autostart":   { "title": "Autostart", "subtitle": "Commands that run when the session starts." },
@@ -253,6 +255,7 @@ Rectangle {
         case "animations": return animationsComp;
         case "input": return inputComp;
         case "keybinds": return keybindsComp;
+        case "dictation": return dictationComp;
         case "windowrules": return windowRulesComp;
         case "layerrules": return layerRulesComp;
         case "autostart": return autostartComp;
@@ -278,6 +281,7 @@ Rectangle {
     Component { id: animationsComp; AnimationsPage {} }
     Component { id: inputComp; InputPage {} }
     Component { id: keybindsComp; KeybindsPage { categories: hub.keybindsModel } }
+    Component { id: dictationComp; DictationPage {} }
     Component { id: windowRulesComp; WindowRulesPage {} }
     Component { id: layerRulesComp; LayerRulesPage {} }
     Component { id: autostartComp; AutostartPage {} }

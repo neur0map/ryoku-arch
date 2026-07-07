@@ -171,7 +171,7 @@ wf-recorder
 # ryoku-cmd-nightlight.
 hyprsunset
 
-# Voice dictation (pill Super+`, Handy from handy-bin): wtype types the
+# Voice dictation (pill Super+`, Voxtype from voxtype-bin): wtype types the
 # transcription into the focused app on Wayland.
 wtype
 

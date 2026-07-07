@@ -148,19 +148,18 @@ func lockSession() string {
 	return "ok"
 }
 
-// toggleHandy flips Handy transcription on the running instance (the Super+`
-// tap). Handy is an optional AUR app (handy-bin); absent, this is a no-op and
-// the voice surface stays a plain mic meter. SIGUSR2 toggles the live instance
-// in place: on Wayland Handy cannot grab a global shortcut of its own, and
-// `--toggle-transcription` launches a second instance that flickers, so the
-// shell owns Super+` and signals the running Handy instead.
-func toggleHandy() {
-	if _, err := exec.LookPath("handy"); err != nil {
+// voxtypeRecord starts or stops dictation on the running Voxtype daemon (the
+// Super+` tap). Voxtype is an optional AUR app (voxtype-bin); absent, this is a
+// no-op and the voice surface stays a plain mic meter. `voxtype record` drives
+// the user service in place (Voxtype's own hotkey is disabled so the shell owns
+// Super+`). verb is "start" or "stop".
+func voxtypeRecord(verb string) {
+	if _, err := exec.LookPath("voxtype"); err != nil {
 		return
 	}
-	// -n signals only the newest handy, so extras never double-toggle; reap the
-	// short-lived pkill in the background so it does not linger as a zombie.
-	cmd := exec.Command("pkill", "-USR2", "-n", "handy")
+	// reap the short-lived record client in the background so it does not linger
+	// as a zombie; voxtypeRecord fires once per tap (start on show, stop on hide).
+	cmd := exec.Command("voxtype", "record", verb)
 	if err := cmd.Start(); err != nil {
 		return
 	}

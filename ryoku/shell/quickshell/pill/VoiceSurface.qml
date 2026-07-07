@@ -3,12 +3,12 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "Singletons"
 
-// voice dictation surface grown from the pill centre. Super+` starts Handy's
+// voice dictation surface grown from the pill centre. Super+` starts Voxtype's
 // transcription and opens this; tapping again stops. VoiceBars runs cava on
 // the default mic, the Ryoku wave sits flat in silence and swells with the
 // live spectrum as you speak. island reads as listening.
 //
-// deliberately non-focus-grabbing in the shell, so the keystrokes Handy types
+// deliberately non-focus-grabbing in the shell, so the keystrokes Voxtype types
 // land in the app you're dictating into, not the pill.
 PillSurface {
     id: root

@@ -453,8 +453,8 @@ func (d *daemon) dispatch(line string) string {
 	}
 }
 
-// voice toggles dictation on the Super+` tap: it flips Handy's transcription and
-// the pill voice surface (the live mic wave) together. The first tap starts
+// voice toggles dictation on the Super+` tap: it drives Voxtype's transcription
+// and the pill voice surface (the live mic wave) together. The first tap starts
 // recording and shows the wave; the next stops, transcribes, and hides it.
 // Tap-to-toggle uses only the reliable key-press edge, because Hyprland cannot
 // deliver a key release once its modifier is released first, which would leave a
@@ -465,10 +465,10 @@ func (d *daemon) voice() string {
 	d.voiceOn = !d.voiceOn
 	if d.voiceOn {
 		d.ensure("pill")
-		toggleHandy()
+		voxtypeRecord("start")
 		return pillIpc("voiceShow", d.activeMonitor())
 	}
-	toggleHandy()
+	voxtypeRecord("stop")
 	return pillIpc("voiceHide")
 }
 

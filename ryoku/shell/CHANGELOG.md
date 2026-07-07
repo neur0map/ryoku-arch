@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+- **Voice dictation now runs on Voxtype, not Handy.** Super+` drives Voxtype
+  (from `voxtype-bin`) with `voxtype record start`/`stop` on the tap, and its
+  engine and model are chosen in Ryoku Settings' Dictation page. The pill's mic
+  wave is unchanged; only the transcription engine behind it moved.
+
 ### Fixed
 - **The voice dictation wave tracks the mic instead of stalling.** The mic
   spectrum used cava's PipeWire input, the same backend that quits within

@@ -35,7 +35,7 @@ in the machine.
     device reports as 0 dB hardware gain, no amplification) so a codec that runs
     capture far hotter than unity does not clip speech into distortion. A mic
     already at or below unity is left alone. Launched from Hyprland autostart for
-    Handy speech-to-text and the pill voice visualizer.
+    Voxtype dictation and the pill voice visualizer.
 - `network/`
   - `ryoku-wifi-powersave` Disables, then restores, 802.11 power-save on every
     WiFi device for the shell's Game Mode, via `iw`, so the radio stays fully awake

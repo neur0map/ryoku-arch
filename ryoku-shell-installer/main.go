@@ -136,7 +136,7 @@ func buildItems(f *facts, p *plan) []planItem {
 	if len(f.monOutputs) > 0 {
 		it = append(it, planItem{"Carry over monitor layout", fmt.Sprintf("pins %d output(s) from your %s setup (rotation, scale, position) into monitors_user.lua", len(f.monOutputs), f.monSource), &p.monPins, false})
 	}
-	it = append(it, planItem{"AUR extras", "wallust + awww (wallpaper engine), Bibata cursor, LocalSend, Handy", &p.aur, false})
+	it = append(it, planItem{"AUR extras", "wallust + awww (wallpaper engine), Bibata cursor, LocalSend, Voxtype", &p.aur, false})
 	it = append(it, planItem{"Developer toolchain", "go, rust, node, python (ISO parity); ryoku recovery rebuilds from source and needs go", &p.devtools, false})
 	if !strings.HasSuffix(f.userShell, "/fish") {
 		it = append(it, planItem{"fish as login shell", "Ryoku's default shell; your current one stays installed", &p.fish, false})

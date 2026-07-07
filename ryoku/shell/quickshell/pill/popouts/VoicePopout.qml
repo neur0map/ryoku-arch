@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import ".."
 
-// voice popout content: the Handy dictation overlay, grown from the bar edge.
+// voice popout content: the Voxtype dictation overlay, grown from the bar edge.
 // holds the VoiceSurface pinned open so the Popout blob does the reveal. it
 // grabs NOTHING -- no keyboard, no focus grab -- so dictation lands in the
 // focused app, not here; the daemon shows/hides it. requestClose bubbles up.

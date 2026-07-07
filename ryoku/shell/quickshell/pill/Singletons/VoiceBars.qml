@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Io
 
 // mic spectrum for the voice surface. mirrors AudioBars, but cava reads
-// the default *input* (the mic Handy records from, resolved via
+// the default *input* (the mic Voxtype records from, resolved via
 // `pactl get-default-source`) instead of the playback monitor, so the
 // bars track what's actually spoken. `active` runs it only while the
 // voice surface is open. bars sit near zero on silence (the surface

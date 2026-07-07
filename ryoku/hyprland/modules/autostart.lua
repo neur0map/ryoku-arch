@@ -10,8 +10,9 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("command -v ryoku-idle >/dev/null 2>&1 && ryoku-idle start")
     hl.exec_cmd("command -v ryoku-leds >/dev/null 2>&1 && ryoku-leds apply")
     hl.exec_cmd("command -v ryoku-mic >/dev/null 2>&1 && ryoku-mic")
-    -- Handy starts hidden into the tray; wait for the shell's StatusNotifierWatcher
-    -- first, or at boot Handy outraces it, finds no tray to hide in, and shows its
-    -- window. The pill's tray filters its item out by title.
-    hl.exec_cmd("command -v handy >/dev/null 2>&1 && { for _ in $(seq 40); do busctl --user list 2>/dev/null | grep -q org.kde.StatusNotifierWatcher && break; sleep 0.25; done; handy --start-hidden; }")
+    -- Voxtype dictation: `ryoku-hub voxtype ensure` seeds a default config with
+    -- the built-in hotkey off (the shell owns Super+` and the mic wave), installs
+    -- the user service once, and starts it unless you turned dictation off in the
+    -- Hub. The shell then drives it with `voxtype record` on the Super+` tap.
+    hl.exec_cmd("command -v voxtype >/dev/null 2>&1 && command -v ryoku-hub >/dev/null 2>&1 && ryoku-hub voxtype ensure >/dev/null 2>&1")
 end)

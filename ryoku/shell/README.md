@@ -55,7 +55,7 @@ socket and one place that knows how to talk to the components:
 | `launcher`, `clipboard`, `link`, `inbox`, `mixer`, `calendar`, `power`, `battery`, `media`, `peek`, `hide` | toggle a pill surface on the active monitor |
 | `lock` | lock the screen with qylock (the shell ships no lock of its own) |
 | `wallpaper [next\|init\|set <path>]` | change the wallpaper and retheme |
-| `voice` | tap ``Super+` `` to toggle Handy transcription and the live mic wave surface (tap again to stop) |
+| `voice` | tap ``Super+` `` to toggle Voxtype transcription and the live mic wave surface (tap again to stop) |
 | `visualizer` | toggle the desktop audio visualiser (also `Super+M`) |
 | `reload`, `status`, `ping`, `quit` | manage the daemon |
 
@@ -78,9 +78,9 @@ The Super+D screen toolkit reuses `grim`/`slurp`, `hyprpicker`, `curl`/`jq`, and
 `mpv`, and adds `tesseract` (OCR) and `zbar` (QR scan). The Super+U utilities
 panel adds `gpu-screen-recorder`/`wf-recorder` (screen recording) and
 `hyprsunset` (night light).
-The ``Super+` `` voice dictation drives `handy` (optional, from `handy-bin`) for
-the transcription and `wtype` to type it into the focused app; Handy also appears
-in app search (its desktop entry ships with `handy-bin`) for configuring models.
+The ``Super+` `` voice dictation drives `voxtype` (optional, from `voxtype-bin`)
+for the transcription and `wtype` to type it into the focused app; pick the
+engine and model in Ryoku Settings' Dictation page.
 The keybinds open `kitty` (terminal) and `nautilus` (files). Fonts: JetBrains
 Mono Nerd and Noto; cursor: Bibata. The lock is qylock, from `ryoku/`.
 
