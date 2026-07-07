@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell.Hyprland
+import Quickshell.Io
 import "Singletons"
 
 // the workspace indicator, in the two reference dialects.
@@ -30,20 +31,38 @@ Item {
     readonly property real dotGap: 4 * s
 
     readonly property int base: Math.floor((activeWsId - 1) / 10) * 10
-    readonly property var occupiedSet: {
-        var occ = {};
-        var v = Hyprland.workspaces.values;
-        for (var i = 0; i < v.length; i++)
-            if (v[i])
-                occ[v[i].id] = true;
-        // a window can be known before its workspace lands in the list above
-        // (this Hyprland's initial workspace refresh is unreliable), so union
-        // the workspaces that own a toplevel.
-        var t = Hyprland.toplevels.values;
-        for (var j = 0; j < t.length; j++)
-            if (t[j] && t[j].workspace)
-                occ[t[j].workspace.id] = true;
-        return occ;
+    // occupancy = which workspaces own a window, from hyprctl. Quickshell's
+    // bulk refresh doesn't parse this Hyprland's IPC, so its own workspace and
+    // toplevel models only track what changed since the shell started and miss
+    // windows opened before a reload. re-query at startup and on any
+    // window/workspace event so occupied-only is always right.
+    property var occupiedSet: ({})
+    Process {
+        id: clientsProc
+        command: ["hyprctl", "-j", "clients"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var occ = {};
+                    var cs = JSON.parse(this.text);
+                    for (var i = 0; i < cs.length; i++)
+                        if (cs[i].workspace && cs[i].workspace.id > 0)
+                            occ[cs[i].workspace.id] = true;
+                    strip.occupiedSet = occ;
+                } catch (e) {}
+            }
+        }
+    }
+    Timer { id: occDebounce; interval: 80; onTriggered: clientsProc.running = true }
+    Component.onCompleted: clientsProc.running = true
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            var n = event.name;
+            if (n === "openwindow" || n === "closewindow" || n.indexOf("movewindow") === 0
+                || n.indexOf("createworkspace") === 0 || n.indexOf("destroyworkspace") === 0)
+                occDebounce.restart();
+        }
     }
     // which workspaces to show. occupied-only (the default) lists the ones
     // with windows plus the active one, so empty numbers vanish; otherwise a
