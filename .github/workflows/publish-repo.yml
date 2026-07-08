@@ -73,12 +73,14 @@ jobs:
           # a depends array publishes cleanly and then bricks every user's next
           # pacman -Syu with an unresolvable target. One -Si per dependency
           # here turns that into a failed publish instead.
+          # bash reads the array the same way makepkg does; hand-parsing the
+          # file trips over single-line arrays and comments.
           missing=0
           for p in release/packages/*/PKGBUILD; do
-            deps=$(sed -n '/^depends=(/,/^)/p' "$p" | sed 's/#.*//' \
-              | tr ' \t' '\n\n' | sed -e 's/^depends=(//' -e 's/)$//' -e "s/[\"']//g" \
-              -e 's/[<>=].*$//' | grep -v '^$' || true)
-            for d in $deps; do
+            mapfile -t deps < <(bash -c 'source "$1" >/dev/null 2>&1; printf "%s\n" "${depends[@]:-}"' _ "$p")
+            for d in "${deps[@]}"; do
+              d="${d%%[<>=]*}"
+              [[ -z $d ]] && continue
               case "$d" in ryoku*|gpk) continue ;; esac
               if ! pacman -Si "$d" >/dev/null 2>&1; then
                 echo "::error::$p: dependency '$d' not found in the official repos"
