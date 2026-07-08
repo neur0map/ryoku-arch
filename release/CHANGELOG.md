@@ -21,6 +21,11 @@
   profile allows. Users can override it in `~/.config/wireplumber/wireplumber.conf.d/`.
 
 ### Added
+- `ryoku` and `ryoku-rashin` declare their optional tools: `lua` (the `luac`
+  config-syntax pre-check the Hyprland doctor reconciler prefers) and `sqlite`
+  (the `sqlite3` introspection the rashin agent uses). Both are guarded
+  fallbacks, so absent them the feature degrades rather than breaks; they ride
+  as optdepends, surfaced for the curious.
 - unstable-dev climbs its own version now. A new `unstable-version-bump`
   workflow bumps `VERSION` one patch on every push, rolling to the next minor
   once the patch passes 9 (`0.1.9` -> `0.2.0`), and keeps the hand-set beta line

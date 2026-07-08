@@ -14,7 +14,8 @@ arch=('x86_64')
 url="https://ryoku.dev"
 license=('GPL-3.0-or-later')
 depends=('pacman' 'pacman-contrib' 'snapper')
-optdepends=('yay: AUR package updates during ryoku update')
+optdepends=('yay: AUR package updates during ryoku update'
+            'lua: luac config-syntax pre-check for the Hyprland reconciler in ryoku doctor')
 makedepends=('go')
 source=()
 

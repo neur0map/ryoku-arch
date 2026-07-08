@@ -18,6 +18,7 @@ license=('GPL-3.0-or-later')
 # hermes is per-user opt-in (installed by the one-click setup, never packaged);
 # kitty and xdg-open ship with the desktop.
 depends=()
+optdepends=('sqlite: sqlite3 database introspection for the rashin agent')
 makedepends=('go')
 source=()
 
