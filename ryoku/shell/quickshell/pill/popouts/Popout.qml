@@ -138,13 +138,14 @@ Item {
     readonly property bool hugRight: !vertical && width > 0 && bodyOpenW > 0 && alongX >= width - bodyOpenW - edgeInset - 0.5
 
     // body geometry in window coords; grows inward from the border.
-    readonly property real curW: vertical ? Math.max(0, bodyOpenW * prog) : bodyOpenW
+    readonly property real curW: vertical ? Math.max(0, bodyOpenW * prog)
+                                 : (dipHost && !heldOpen) ? Math.max(0, bodyOpenW * prog) : bodyOpenW
     readonly property real curH: vertical ? bodyOpenH : Math.max(0, bodyOpenH * prog)
     readonly property real bodyX: atLeft ? frameThickness
                                  : atRight ? (width - frameThickness - curW)
                                  : hugRight ? (width - curW)
                                  : hugLeft ? 0
-                                 : alongX
+                                 : alongX + (dipHost && !heldOpen ? (bodyOpenW - curW) / 2 : 0)
     readonly property real bodyY: atTop ? frameThickness
                                  : atBottom ? (height - frameThickness - curH)
                                  : alongY
@@ -223,31 +224,14 @@ Item {
     readonly property real burial: (1 - Math.max(0, Math.min(1, prog))) * smoothing
 
     // triptych's top frame is a hairline that dips between the three lobes. a
-    // popout there fills the band across its OWN span while open (bodyBlob's
-    // neck does that); this backing band HOLDS that fill through the body's
-    // close melt, then eases back down to the dip once the body is gone -- so
-    // the popout melts flush and the frame closes behind it, never popping
-    // against a dip. only this popout's section fills; the other clusters keep
-    // their dips, so the frame stays aware of its own shape.
+    // popout there fills the band across its own span while open (bodyBlob's
+    // neck does that, so the frame swells under it while the other clusters
+    // keep their dips). on close it does not deflate in place and leave a wide
+    // empty band to collapse: it narrows back toward the module it grew from
+    // (curW tracks the melt, centred on the trigger), so the band retracts into
+    // that lobe and the dips return around it -- the popout melts back into the
+    // frame it came out of.
     readonly property bool dipHost: Config.barStyle === "triptych" && atTop
-    readonly property bool bandShown: dipHost && (heldOpen || prog > 0.02)
-
-    BlobRect {
-        id: dipBand
-        group: root.group
-        visible: root.dipHost
-        x: root.bodyX
-        y: 0
-        implicitWidth: root.dipHost ? root.bodyOpenW : 0
-        implicitHeight: root.bandShown ? root.frameThickness : 0
-        topLeftRadius: 0
-        topRightRadius: 0
-        bottomLeftRadius: root.hugLeft ? 0 : Math.min(16 * root.s, root.frameThickness / 2)
-        bottomRightRadius: root.hugRight ? 0 : Math.min(16 * root.s, root.frameThickness / 2)
-        deformScale: 0.000015
-        sinks: false
-        Behavior on implicitHeight { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-    }
 
     BlobRect {
         id: bodyBlob

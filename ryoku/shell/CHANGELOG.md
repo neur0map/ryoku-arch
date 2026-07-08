@@ -19,9 +19,10 @@
   bar dips between the three instead of swelling into one straight band. The
   lobes are `BlobRect`s in the frame's own field. A popout on triptych is
   frame-aware: its own section swells to a full band to host it while the other
-  clusters keep their dips, and on close that band holds through the body's melt
-  then eases back down to the dip, so the popout melts flush instead of popping
-  against the hairline. The other skins keep their straight band.
+  clusters keep their dips, and on close it narrows back toward the module it
+  grew from and melts into that lobe, so the dips return around it rather than a
+  wide band deflating in place and snapping shut. The other skins keep their
+  straight band.
 
 ### Fixed
 - **A runtime frame-border change repaints.** `BlobInvertedRect`'s border
