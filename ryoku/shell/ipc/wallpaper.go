@@ -287,6 +287,16 @@ func (d *daemon) showAny(pic string) error {
 // The IPC socket is how the daemon pauses it: mpvpaper's own auto-pause never
 // fires under Hyprland, which keeps sending frame callbacks to covered layers.
 func (d *daemon) showLiveWallpaper(pic string) error {
+	// no mpvpaper installed: live playback is impossible, but the pick must still
+	// apply, so degrade to a still frame shown through the image daemon. mpvpaper
+	// stays a true optional enhancement (with it the wallpaper moves; without it
+	// it is the clip's frame), so ryowalls reports success either way.
+	if _, err := exec.LookPath(liveDaemon); err != nil {
+		if frame := liveFrame(pic); frame != "" && ensureWallDaemon() {
+			return d.showWallpaper(frame)
+		}
+		return nil
+	}
 	stopLive()
 	sock := liveSockPath()
 	_ = os.Remove(sock) // the killed instance's stale socket

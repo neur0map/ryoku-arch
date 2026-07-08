@@ -9,6 +9,13 @@
   wave is unchanged; only the transcription engine behind it moved.
 
 ### Fixed
+- **Live wallpapers set without mpvpaper now, instead of erroring.** Setting a
+  video called `mpvpaper` unguarded, so on a box without that optional AUR daemon
+  ryowalls reported "Could not set wallpaper" even though the clip downloaded. The
+  shell now falls back to a still frame of the clip (one ffmpeg grab shown through
+  the image daemon) when mpvpaper is absent, so the pick applies and themes: with
+  mpvpaper the wallpaper moves, without it it is the frame. mpvpaper stays a true
+  optional enhancement.
 - **Wallpapers set again on machines that predate the `swww` -> `awww` rename.**
   The shell drove the wallpaper daemon by the hard-coded name `awww`; upstream
   renamed `swww` to `awww`, and a `ryoku update` never pulls the AUR rename, so a
