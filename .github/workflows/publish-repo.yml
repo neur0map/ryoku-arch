@@ -95,10 +95,9 @@ jobs:
           # The bucket already exists, so skip the check (matches build-iso.yml).
           no_check_bucket = true
           EOF
-          # the published bytes come straight from the bucket, not the public
-          # domain: Cloudflare's bot protection 403s datacenter runners.
-          # build-repo.sh adopts these for any filename it rebuilds, so a name
-          # that is already live keeps exactly its live bytes.
+          # build-repo.sh adopts these bytes for any filename it rebuilds, so
+          # a live name keeps its live bytes. read from the bucket, not the
+          # public domain: Cloudflare 403s datacenter runners.
           rclone copy "Ryoku:$R2_BUCKET/x86_64/" "$GITHUB_WORKSPACE/.published-mirror/" --include '*.pkg.tar.zst'
 
       - name: Verify hard dependencies exist in the official repos
@@ -187,13 +186,10 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
           set -euo pipefail
-          # re-read what just went live and check every file the db lists
-          # exists at exactly the size the db records, with its .sig beside
-          # it. a torn upload or a same-name overwrite fails the publish here
-          # instead of failing user installs with "Maximum file size
-          # exceeded" (issue #21, and the 2026-07-08 gpk outage). the bucket
-          # is checked, not the public domain: Cloudflare's bot protection
-          # 403s datacenter runners there.
+          # every file the served db lists must exist at the recorded size
+          # with its .sig, or the publish fails here instead of failing user
+          # installs (issue #21). the bucket is checked, not the public
+          # domain: Cloudflare 403s datacenter runners there.
           remote="Ryoku:$R2_BUCKET/x86_64"
           tmp=$(mktemp -d)
           rclone cat "$remote/ryoku.db" > "$tmp/db"

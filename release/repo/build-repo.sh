@@ -86,22 +86,16 @@ for pkgbuild in "${pkgbuilds[@]}"; do
       && makepkg --force --clean --nodeps --noconfirm --sign --key "$KEY_ID" )
 done
 
-# 3. a published filename never changes bytes. makepkg is not reproducible
-#    (BUILDDATE alone reshuffles the compressed bytes), so a fixed-version
-#    package (gpk, ryoku-keyring) rebuilt here would overwrite its live file
-#    with different bytes on every publish, and any client holding the
-#    previous db, a cached copy, or a .part resume trips pacman's size cap:
-#    "Maximum file size exceeded" (issue #21's second act, the 2026-07-08
-#    gpk install failures). if the mirror already serves a name, the served
-#    bytes replace this build and get re-signed; shipping a real change means
-#    bumping pkgrel, which changes the filename. monorepo packages version
-#    per commit, so they never collide here.
+# 3. a published filename never changes bytes. makepkg is not reproducible,
+#    so a fixed-version package (gpk, ryoku-keyring) rebuilt here would
+#    overwrite its live file with new bytes and break every client holding
+#    the previous db ("Maximum file size exceeded", issue #21). a name the
+#    mirror already serves keeps its served bytes, re-signed; shipping a
+#    change means bumping pkgrel.
 MIRROR=${RYOKU_REPO_MIRROR:-https://repo.ryoku.dev/stable/$REPO_ARCH}
 
-# fetch a published file into $2: from the mirror URL on a dev box, or from a
-# local directory when the caller pre-fetched the bucket (CI: Cloudflare's bot
-# protection 403s datacenter runners on the public domain, so the publish
-# workflow snapshots the bucket and points RYOKU_REPO_MIRROR at it).
+# from the mirror URL on a dev box, or from a directory when CI pre-fetched
+# the bucket (Cloudflare 403s datacenter runners on the public domain).
 fetch_published() {
   case $MIRROR in
     http://* | https://*) curl -fsSL --retry 3 -o "$2" "$MIRROR/$1" 2>/dev/null ;;

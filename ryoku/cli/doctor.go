@@ -1782,17 +1782,11 @@ func portalRoutesHyprland(content string) bool {
 }
 
 // reconcilePortalRouting keeps xdg-desktop-portal pointed at the hyprland
-// backend. a box migrated from another compositor (the shell installer's
-// niri/sway path, or any hand-built setup) can carry a leftover
-// ~/.config/xdg-desktop-portal/portals.conf or an /etc one, and either
-// outranks the packaged hyprland-portals.conf, so the portal keeps loading
-// the old desktop's backend. with xdg-desktop-portal-gnome installed (niri's
-// own docs require it) that backend hangs under Hyprland, and every app that
-// touches the portal bus at startup (GTK apps read the settings portal first
-// thing) waits out a ~25s D-Bus timeout before its window shows: "apps are
-// slow to open". screenshare picks the wrong backend the same way. the shell
-// installer moves the user file aside since 2026-07; this heals the boxes
-// converted before that, and the /etc case the installer never touched.
+// backend. a migrated box can carry a leftover user or /etc portals.conf that
+// outranks the packaged hyprland one; the gnome backend it names hangs under
+// Hyprland and every app that reads the settings portal at startup waits out
+// a ~25s D-Bus timeout ("apps are slow to open"). heals boxes converted
+// before the installer started moving the user file aside, and the /etc case.
 func reconcilePortalRouting(checkOnly bool) recResult {
 	if !exists(filepath.Join(homeDir(), ".config", "hypr")) && !has("Hyprland") {
 		return okRes("not a Hyprland desktop")
