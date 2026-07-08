@@ -3,6 +3,28 @@
 ## Unreleased
 
 ### Added
+- **`ryoku update` hands itself to the freshly installed binary.** The whole
+  update used to run inside the old release's binary, so every fix to
+  materialize or the restart flow shipped one release late (the beta-16
+  breakage was the old updater deploying the new desktop with old semantics).
+  After the pacman step the updater now re-execs `/usr/bin/ryoku update
+  --stage2`, so the release being installed also runs its own deploy and
+  doctor. If the exec fails it finishes in-process exactly as before.
+- **The shell is quiesced while configs swap.** Materialize used to rewrite
+  `~/.config/quickshell` under a running quickshell, which hot-reloaded the
+  half-copied tree against whatever plugin the old process still had mapped,
+  a recipe for glitched and ballooned surfaces right after an update. Stage 2
+  now stops the shell daemon (and reaps orphaned `qs` components using the
+  real component list; the old one named a `sidebar` that never existed and
+  missed `launcher`/`widgets`) before materialize, and starts it after.
+- **New doctor reconcilers for the beta-16 fallout.** `Material Symbols icon
+  font` installs the font on boxes that predate it being a package dependency
+  (every glyph rendered as its ligature name). `stale dev residue` removes
+  home-deployed binaries and QML modules that shadow the packaged install on
+  pacman-channel boxes (one old recovery run used to pin the desktop at that
+  vintage forever). `shell config schema` migrates a pre-rework
+  `~/.config/ryoku/shell.json`: drops the retired island knobs, revives the
+  bar they pointed at, and clamps out-of-range frame geometry.
 - `ryoku doctor` installs the wallpaper backends (`awww` + `mpvpaper`) when a
   desktop lacks them, instead of only printing the command. Both are AUR, so
   `ryoku update` (pacman) never pulls them: a box that predates them can't set a
@@ -19,6 +41,25 @@
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
 
 ### Fixed
+- **Materialize converges `~/.config/quickshell` against the shipped tree.**
+  Pruning used to rely entirely on the recorded manifest, so a box whose state
+  file was missing or stale (a lost state dir, an old `deploy.sh` or recovery
+  run) kept every QML file a release had dropped, sitting live next to the new
+  tree forever. The quickshell dir is wholly Ryoku-owned, so materialize now
+  sweeps anything there the package does not ship; other dirs are mixed with
+  user files and stay manifest-pruned.
+- **`ryoku doctor --check` no longer edits the Hyprland config.** The
+  follow-mouse check shelled out to `ryoku-hub hypr get`, which rewrites
+  `settings.lua`/`theme.lua` as a side effect, breaking the read-only contract
+  of `--check`/`--report`. The check now reads `~/.config/ryoku/hypr.json`
+  directly; only the fix path goes through the hub.
+- **`ryoku recovery` keeps packaged boxes on the pacman channel.** The rescue
+  deploys from a fresh checkout, and that deploy recorded the checkout as the
+  update channel: a packaged box that ran recovery silently stopped getting
+  `pacman -Syu` through `ryoku update` and tracked raw main tip forever. On a
+  box where `ryoku-desktop` is installed, recovery now clears the channel
+  record after deploying, and the next update's doctor removes the leftover
+  home artifacts once the packages are current.
 - **`ryoku doctor` heals the update breakage on users' machines.** A new `limine
   snapshot sync` reconciler aligns `TARGET_OS_NAME` in `/etc/default/limine` with
   the actual Ryoku boot entry name, so `limine-snapper-sync` finds it,

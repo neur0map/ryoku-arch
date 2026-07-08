@@ -103,9 +103,12 @@ func reconcilers() []reconciler {
 		{"pacman database lock", reconcilePacmanLock},
 		{"stale install crypt mapper", reconcileStaleCryptMapper},
 		{"ryoku package channel", reconcileRyokuChannel},
+		{"stale dev residue", reconcileDevResidue},
 		{"desktop session components", reconcileSessionComponents},
 		{"cursor theme", reconcileCursorTheme},
+		{"Material Symbols icon font", reconcileIconFont},
 		{"wallpaper daemons", reconcileWallpaperDaemon},
+		{"shell config schema", reconcileShellConfig},
 		{"SDDM greeter theme", reconcileGreeterTheme},
 		{"fastfetch readout emblem", reconcileFastfetchEmblem},
 		{"Hyprland config integrity", reconcileHyprlandConfig},
@@ -1387,6 +1390,171 @@ func reconcileWallpaperDaemon(checkOnly bool) recResult {
 	return fixedRes("installed the wallpaper backends: %s", pkgs)
 }
 
+// ---- reconciler: Material Symbols icon font ------------------------------------
+
+// reconcileIconFont converges the icon font onto boxes that predate it being a
+// ryoku-desktop dependency: every shell glyph is a Material Symbols ligature
+// (MaterialIcon.qml), so without the font each icon renders as its name in
+// plain text ("network_wifi"). the package depend heals packaged boxes on
+// their next full update; this heals git-channel boxes and anyone already
+// broken today.
+func reconcileIconFont(checkOnly bool) recResult {
+	if !exists(filepath.Join(homeDir(), ".config", "hypr")) && !has("Hyprland") {
+		return okRes("not a Hyprland desktop")
+	}
+	if anyPkgInstalled("ttf-material-symbols-variable", "ttf-material-symbols-variable-git") {
+		return okRes("Material Symbols icon font installed")
+	}
+	if checkOnly {
+		return wouldRes("Material Symbols font missing; every shell icon renders as its ligature name").
+			withFix("ryoku doctor installs ttf-material-symbols-variable")
+	}
+	if err := sudo("pacman", "-S", "--needed", "--noconfirm", "ttf-material-symbols-variable"); err != nil {
+		return failRes("could not install ttf-material-symbols-variable: %v", err).
+			withFix("sudo pacman -S ttf-material-symbols-variable")
+	}
+	return fixedRes("installed the Material Symbols icon font; `ryoku reload` picks it up")
+}
+
+// ---- reconciler: stale dev/recovery residue ------------------------------------
+
+// reconcileDevResidue clears home-installed Ryoku artifacts off a packaged box.
+// deploy.sh (the dev loop, and `ryoku recovery`) installs binaries into
+// ~/.local/bin and QML modules into ~/.local/lib/qt6/qml; both outrank the
+// packaged copies on PATH and the QML import path, so once the box is back on
+// the pacman channel the leftovers pin it to whatever vintage last deployed
+// them and every later package update is silently shadowed. a checkout box
+// (git channel) IS the dev loop: left alone.
+func reconcileDevResidue(checkOnly bool) recResult {
+	if resolveRepo() != "" {
+		return okRes("checkout box; home-deployed artifacts are the live desktop")
+	}
+	if !pkgInstalled("ryoku-desktop") {
+		return okRes("not a packaged install")
+	}
+	var residue []string
+	if qml := filepath.Join(homeDir(), ".local", "lib", "qt6", "qml", "Ryoku"); exists(qml) {
+		residue = append(residue, qml)
+	}
+	for _, b := range []string{"ryoku", "ryoku-shell", "ryoku-hub", "ryoku-rashin"} {
+		p := filepath.Join(homeDir(), ".local", "bin", b)
+		if exists(p) && exists("/usr/bin/"+b) {
+			residue = append(residue, p)
+		}
+	}
+	if len(residue) == 0 {
+		return okRes("no home-deployed artifacts shadowing the packages")
+	}
+	if checkOnly {
+		return wouldRes("stale home-deployed artifacts shadow the packaged install: %s", strings.Join(residue, ", ")).
+			withFix("ryoku doctor removes them; the packaged copies take over on the next reload")
+	}
+	for _, p := range residue {
+		_ = os.RemoveAll(p)
+	}
+	return fixedRes("removed %d home-deployed artifact(s) shadowing the packaged install; `ryoku reload` switches to the packaged shell", len(residue))
+}
+
+// ---- reconciler: shell config schema -------------------------------------------
+
+// legacyIslandKeys: pill-era knobs the popouts rework retired. their presence
+// marks a ~/.config/ryoku/shell.json seeded before the rework, whose values
+// point the shell at a face that no longer exists (islandStyle "floating",
+// barEnabled false): an updated box would come up with no bar and no resting
+// island at all. materialize never touches this file, so only doctor can
+// converge it.
+var legacyIslandKeys = []string{
+	"islandWidth", "islandHeight", "islandRestCorner", "islandOpenCorner",
+	"islandGap", "islandSmoothing", "islandOpacity", "islandStyle", "islandAutohide",
+}
+
+// shellConfigClamps: geometry knobs the renderer consumes raw; a value outside
+// these ranges draws a broken frame (the Hub sliders stay well inside them).
+var shellConfigClamps = map[string][2]float64{
+	"frameBorder":    {50, 120},
+	"frameRadius":    {0, 32},
+	"frameSmoothing": {1, 32},
+	"barHeight":      {16, 64},
+	"fontScale":      {0.7, 1.6},
+}
+
+func reconcileShellConfig(checkOnly bool) recResult {
+	path := filepath.Join(configHome(), "ryoku", "shell.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return okRes("no shell.json yet (seeded on first shell run)")
+	}
+	migrated, changes, err := migrateShellConfig(raw)
+	if err != nil {
+		return warnRes("shell.json does not parse (%v); the shell falls back to defaults", err).
+			withFix("delete %s to re-seed it", path)
+	}
+	if len(changes) == 0 {
+		return okRes("shell.json is on the current schema")
+	}
+	if checkOnly {
+		return wouldRes("shell.json carries pre-rework state: %s", strings.Join(changes, "; ")).
+			withFix("ryoku doctor migrates it in place")
+	}
+	tmp := path + ".ryoku-tmp"
+	if err := os.WriteFile(tmp, migrated, 0o644); err != nil {
+		return failRes("could not write %s: %v", tmp, err)
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		os.Remove(tmp)
+		return failRes("could not replace %s: %v", path, err)
+	}
+	return fixedRes("migrated shell.json to the current schema: %s", strings.Join(changes, "; "))
+}
+
+// migrateShellConfig drops retired pill-era keys, revives the bar they pointed
+// at, and clamps out-of-range geometry. pure, so it is unit-testable; returns
+// the rewritten JSON and a human summary of what changed (empty = no change).
+func migrateShellConfig(raw []byte) ([]byte, []string, error) {
+	var cfg map[string]any
+	if err := json.Unmarshal(raw, &cfg); err != nil {
+		return nil, nil, err
+	}
+	var changes []string
+	legacy := false
+	for _, k := range legacyIslandKeys {
+		if _, ok := cfg[k]; ok {
+			delete(cfg, k)
+			legacy = true
+		}
+	}
+	if legacy {
+		changes = append(changes, "dropped the retired island knobs")
+		// the resting island those files disabled the bar in favour of no
+		// longer exists; without the bar the rework has no shell face at all.
+		if on, ok := cfg["barEnabled"].(bool); ok && !on {
+			cfg["barEnabled"] = true
+			changes = append(changes, "enabled the bar (the resting island it replaced is gone)")
+		}
+		if _, ok := cfg["barPosition"]; !ok {
+			cfg["barPosition"] = "top"
+		}
+	}
+	for k, r := range shellConfigClamps {
+		v, ok := cfg[k].(float64)
+		if !ok {
+			continue
+		}
+		if v < r[0] || v > r[1] {
+			cfg[k] = min(max(v, r[0]), r[1])
+			changes = append(changes, fmt.Sprintf("clamped %s %g into [%g, %g]", k, v, r[0], r[1]))
+		}
+	}
+	if len(changes) == 0 {
+		return nil, nil, nil
+	}
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return nil, nil, err
+	}
+	return append(out, '\n'), changes, nil
+}
+
 // ---- reconciler: desktop session components ----------------------------------
 
 func reconcileSessionComponents(_ bool) recResult {
@@ -1626,11 +1794,9 @@ func reconcileFollowMouseDefault(checkOnly bool) recResult {
 		mark() // nothing saved to migrate; the base module's follow_mouse = 2 stands.
 		return okRes("no saved hypr input; follow-mouse uses the base default")
 	}
-	raw, err := runOut("ryoku-hub", "hypr", "get")
-	if err != nil {
-		return warnRes("could not read hypr settings to check follow-mouse: %v", err)
-	}
-	fm, ok := hyprGetFollowMouse(raw)
+	// check against the saved file directly: `ryoku-hub hypr get` rewrites the
+	// hypr config as a side effect, which a --check/--report run must never do.
+	fm, ok := hyprGetFollowMouse(readFileSafe(hyprJSON))
 	if !ok || fm != 1 {
 		mark()
 		return okRes("follow-mouse is not on the retired default")
@@ -1638,6 +1804,10 @@ func reconcileFollowMouseDefault(checkOnly bool) recResult {
 	if checkOnly {
 		return wouldRes("follow-mouse is pinned to the retired default 1; keyboard focus follows the cursor").
 			withFix("ryoku doctor")
+	}
+	raw, err := runOut("ryoku-hub", "hypr", "get")
+	if err != nil {
+		return warnRes("could not read hypr settings to fix follow-mouse: %v", err)
 	}
 	fixed, err := hyprSetFollowMouse(raw, 2)
 	if err != nil {

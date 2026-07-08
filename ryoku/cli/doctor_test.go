@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -951,5 +952,59 @@ func TestHyprFollowMouseNotDefault(t *testing.T) {
 	}
 	if _, ok := hyprGetFollowMouse(`{"input":{}}`); ok {
 		t.Errorf("missing followMouse should report absent")
+	}
+}
+
+// migrateShellConfig: pill-era files lose the island knobs and get the bar
+// back; out-of-range geometry clamps; a current-schema file is left alone.
+func TestMigrateShellConfig(t *testing.T) {
+	legacy := []byte(`{
+		"islandStyle": "floating", "islandWidth": 109, "islandAutohide": true,
+		"barEnabled": false, "barHeight": 26,
+		"frameBorder": 59, "fontScale": 1.3
+	}`)
+	out, changes, err := migrateShellConfig(legacy)
+	if err != nil || len(changes) == 0 {
+		t.Fatalf("legacy file should migrate: changes=%v err=%v", changes, err)
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal(out, &cfg); err != nil {
+		t.Fatalf("migrated JSON does not parse: %v", err)
+	}
+	for _, k := range legacyIslandKeys {
+		if _, ok := cfg[k]; ok {
+			t.Errorf("retired key %s survived the migration", k)
+		}
+	}
+	if on, _ := cfg["barEnabled"].(bool); !on {
+		t.Error("legacy barEnabled:false must flip on (the island face is gone)")
+	}
+	if pos, _ := cfg["barPosition"].(string); pos != "top" {
+		t.Errorf("missing barPosition should seed to top, got %q", pos)
+	}
+	if v, _ := cfg["barHeight"].(float64); v != 26 {
+		t.Errorf("in-range barHeight must be untouched, got %g", v)
+	}
+
+	clamped := []byte(`{"barPosition": "top", "frameBorder": 900, "barHeight": 4}`)
+	out, changes, err = migrateShellConfig(clamped)
+	if err != nil || len(changes) != 2 {
+		t.Fatalf("out-of-range file should clamp twice: changes=%v err=%v", changes, err)
+	}
+	_ = json.Unmarshal(out, &cfg)
+	if v, _ := cfg["frameBorder"].(float64); v != 120 {
+		t.Errorf("frameBorder 900 should clamp to 120, got %g", v)
+	}
+	if v, _ := cfg["barHeight"].(float64); v != 16 {
+		t.Errorf("barHeight 4 should clamp to 16, got %g", v)
+	}
+
+	modern := []byte(`{"barPosition": "bottom", "barEnabled": false, "barHeight": 30}`)
+	if out, changes, err := migrateShellConfig(modern); out != nil || changes != nil || err != nil {
+		t.Fatalf("current-schema file must pass through untouched: out=%s changes=%v err=%v", out, changes, err)
+	}
+
+	if _, _, err := migrateShellConfig([]byte("not json")); err == nil {
+		t.Fatal("garbage must error, not silently rewrite")
 	}
 }
