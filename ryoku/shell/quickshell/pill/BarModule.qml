@@ -1,11 +1,11 @@
 import QtQuick
 import "Singletons"
 
-// the module container both reference skins share: a fully rounded pill on
-// the band (caelestia's m3surfaceContainer, noctalia's capsule), with the
-// caelestia StateLayer feel on interaction: an 8% overlay lifts on hover and
-// a soft ripple blooms from the press point. content centres; the pill hugs
-// it plus padding on the main axis.
+// the module container, one look per bar skin. rounded skins (noctalia,
+// caelestia) wear the fully rounded pill with the caelestia StateLayer feel
+// (hover overlay + press ripple). aegis is flat on the band with a hairline
+// accent underline that brightens on hover. stele is a sharp engraved cell
+// with L-bracket corners. content centres; the module hugs it plus padding.
 Item {
     id: mod
 
@@ -15,8 +15,11 @@ Item {
     property real padY: 10 * s
     default property alias content: slot.data
     property bool interactive: true
-    property bool filled: true  // a control pill; false = a bare mark (the logo), hover still lifts
+    property bool filled: true  // a control module; false = a bare mark (the logo)
     readonly property alias hovered: hoverArea.containsMouse
+
+    readonly property string style: Config.barStyle
+    readonly property bool rounded: style === "noctalia" || style === "caelestia"
 
     signal tapped()
     signal wheeled(int steps)
@@ -27,20 +30,23 @@ Item {
     Rectangle {
         id: base
         anchors.fill: parent
-        radius: Math.min(width, height) / 2
-        color: filled ? Theme.tileBg : "transparent"
+        radius: mod.rounded ? Math.min(width, height) / 2 : 0
+        color: !mod.filled ? "transparent"
+            : (mod.rounded ? Theme.tileBg
+            : (mod.style === "stele" ? Qt.alpha(Theme.bright, 0.03) : "transparent"))
         clip: true
 
-        // caelestia StateLayer: hover overlay at 0.08, press ripple at 0.1.
         Rectangle {
             anchors.fill: parent
             radius: base.radius
             color: Theme.cream
-            opacity: hoverArea.containsMouse && mod.interactive ? 0.08 : 0
+            opacity: hoverArea.containsMouse && mod.interactive ? (mod.rounded ? 0.08 : 0.05) : 0
             Behavior on opacity { NumberAnimation { duration: Motion.hover; easing.type: Easing.OutCubic } }
         }
+
         Rectangle {
             id: ripple
+            visible: mod.rounded
             property real cx: base.width / 2
             property real cy: base.height / 2
             x: cx - width / 2
@@ -62,7 +68,27 @@ Item {
         }
     }
 
-    // single-root content: the module hugs its implicit size.
+    // aegis: a hairline accent underline on the inner edge, lit on hover.
+    Rectangle {
+        visible: mod.filled && mod.interactive && mod.style === "aegis"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: Math.max(1, mod.s)
+        color: Theme.verm
+        opacity: hoverArea.containsMouse && mod.interactive ? 0.85 : 0.26
+        Behavior on opacity { NumberAnimation { duration: Motion.hover; easing.type: Easing.OutCubic } }
+    }
+
+    // stele: engraved corner brackets, brightening on hover.
+    CornerTicks {
+        visible: mod.filled && mod.style === "stele"
+        anchors.fill: parent
+        s: mod.s
+        len: 6 * mod.s
+        tint: hoverArea.containsMouse && mod.interactive ? Theme.subtle : Theme.hair
+    }
+
     Item {
         id: slot
         anchors.centerIn: parent

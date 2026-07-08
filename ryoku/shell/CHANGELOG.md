@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Added
+- **Two Ryoku-native bar skins beside the two carried ones.** `barStyle` takes
+  `aegis` and `stele` alongside `noctalia` and `caelestia`. Aegis drops the
+  module pills for flat modules on the band, a mono editorial clock led by an
+  accent tick, an accent underline beneath the active workspace and the
+  interactive modules, and tabular mono status: the instrument-panel read.
+  Stele engraves every module as a sharp bracket-cornered cell, frames the
+  active workspace in accent, and splits the clock with a hairline divider.
+  Both ride the same swollen frame edge and grow the same bar-edge popouts as
+  the reference skins.
+
 ### Fixed
 - **A popout close is one monotonic melt again.** The visible dip-then-pop
   was the border sink: the melt buries the body rect fully inside the frame

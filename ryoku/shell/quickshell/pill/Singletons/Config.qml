@@ -36,8 +36,8 @@ Singleton {
 
     // bar = the shell's resting face, drawn on the frame's thickened edge
     // (Bar.qml). barPosition is "top" or "bottom"; barStyle picks the skin,
-    // "noctalia" or "caelestia", the two reference dialects the modules are
-    // carried from. barHeight = the band the edge swells by (scaled per
+    // one of noctalia and caelestia (carried from the reference shells) or the
+    // native aegis and stele. barHeight = the band the edge swells by (scaled per
     // monitor). barShowTitle / barShowMedia / barShowStatus gate the focused
     // window title, the now-playing module, and the status cluster.
     // barOccupiedWorkspaces shows only workspaces with windows (plus the

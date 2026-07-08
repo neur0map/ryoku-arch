@@ -12,13 +12,20 @@ Item {
 
     property real s: 1
     property bool vertical: false
-    readonly property bool caelestia: Config.barStyle === "caelestia"
+    readonly property string style: Config.barStyle
+    readonly property bool caelestia: style === "caelestia"
+    readonly property bool aegis: style === "aegis"
+    readonly property bool stele: style === "stele"
     readonly property var loc: Qt.locale("en_US")
 
     implicitWidth: caelestia ? (vertical ? cvcol.implicitWidth : chrow.implicitWidth)
-                             : nstack.implicitWidth
+        : aegis ? aerow.implicitWidth
+        : stele ? strow.implicitWidth
+        : nstack.implicitWidth
     implicitHeight: caelestia ? (vertical ? cvcol.implicitHeight : chrow.implicitHeight)
-                              : nstack.implicitHeight
+        : aegis ? aerow.implicitHeight
+        : stele ? strow.implicitHeight
+        : nstack.implicitHeight
 
     SystemClock {
         id: sys
@@ -79,6 +86,71 @@ Item {
         }
     }
 
+    // aegis: an accent tick, then mono time and a dim uppercase date kicker.
+    Row {
+        id: aerow
+        visible: clock.aegis && !clock.vertical
+        spacing: 7 * clock.s
+
+        Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.max(1, clock.s)
+            height: 12 * clock.s
+            color: Theme.verm
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: Qt.formatTime(sys.date, "HH:mm")
+            color: Theme.bright
+            font.family: Theme.mono
+            font.pixelSize: 12 * clock.s
+            font.weight: Font.DemiBold
+            font.features: ({ "tnum": 1 })
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: clock.loc.toString(sys.date, "ddd d MMM").toUpperCase()
+            color: Theme.dim
+            font.family: Theme.mono
+            font.pixelSize: 9.5 * clock.s
+            font.weight: Font.Medium
+            font.letterSpacing: 1.5
+        }
+    }
+
+    // stele: mono time, an engraved hairline divider, a wide-tracked date.
+    Row {
+        id: strow
+        visible: clock.stele && !clock.vertical
+        spacing: 8 * clock.s
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: Qt.formatTime(sys.date, "HH:mm")
+            color: Theme.cream
+            font.family: Theme.mono
+            font.pixelSize: 12 * clock.s
+            font.weight: Font.DemiBold
+            font.features: ({ "tnum": 1 })
+            font.letterSpacing: 1
+        }
+        Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.max(1, clock.s)
+            height: 11 * clock.s
+            color: Theme.line
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: clock.loc.toString(sys.date, "ddd dd MMM").toUpperCase()
+            color: Theme.dim
+            font.family: Theme.mono
+            font.pixelSize: 9 * clock.s
+            font.weight: Font.Medium
+            font.letterSpacing: 2.5
+        }
+    }
+
     // ---- noctalia: stacked time over date, or one line on a thin band -------
     // the stacked readout needs room (noctalia runs a 34px bar); under 30 the
     // capsule would clip, so the readout folds to a single line.
@@ -86,7 +158,7 @@ Item {
 
     Column {
         id: nstack
-        visible: !clock.caelestia
+        visible: !clock.caelestia && !clock.aegis && !clock.stele
         spacing: 0
 
         Row {

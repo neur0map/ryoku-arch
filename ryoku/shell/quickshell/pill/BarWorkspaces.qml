@@ -4,7 +4,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import "Singletons"
 
-// the workspace indicator, in the two reference dialects.
+// the workspace indicator, per bar skin.
 //   caelestia = one container pill; equal numeral cells inside it with a
 //               fully rounded accent indicator sliding behind the active one
 //               (emphasized curve, stretchy leading/trailing edges); the
@@ -12,6 +12,8 @@ import "Singletons"
 //   noctalia  = free-standing mini pills, one per workspace: dots for empty,
 //               brighter dots for occupied, and the active one grown into a
 //               wide accent lozenge carrying its number (width animates).
+//   aegis     = numeral cells, the active one marked by an accent underline.
+//   stele     = numeral cells, the active one boxed in an engraved frame.
 // click jumps, wheel walks neighbours. cells past five appear once used.
 Item {
     id: strip
@@ -19,7 +21,11 @@ Item {
     property real s: 1
     property int activeWsId: 1
     property bool vertical: false
-    readonly property bool caelestia: Config.barStyle === "caelestia"
+    readonly property string style: Config.barStyle
+    readonly property bool caelestia: style === "caelestia"
+    readonly property bool aegis: style === "aegis"
+    readonly property bool stele: style === "stele"
+    readonly property bool cells: caelestia || aegis || stele
 
     // caelestia cell metrics (inside the container pill).
     readonly property real cellW: vertical ? 21 * s : 24 * s
@@ -91,9 +97,9 @@ Item {
     readonly property int count: wsList.length
     readonly property int activeIdx: Math.max(0, wsList.indexOf(activeWsId))
 
-    implicitWidth: caelestia ? (vertical ? cellW : count * cellW)
+    implicitWidth: cells ? (vertical ? cellW : count * cellW)
         : (vertical ? dotSize : count * dotSize + (count - 1) * dotGap + (activeLen - dotSize))
-    implicitHeight: caelestia ? (vertical ? count * cellH : cellH)
+    implicitHeight: cells ? (vertical ? count * cellH : cellH)
         : (vertical ? count * dotSize + (count - 1) * dotGap + (activeLen - dotSize) : dotSize)
 
     function jump(id) {
@@ -109,9 +115,9 @@ Item {
         onWheel: (w) => strip.walk(w.angleDelta.y > 0 ? -1 : 1)
     }
 
-    // ---- caelestia dialect ------------------------------------------------
+    // ---- numeral cells: caelestia, aegis, stele --------------------------
     Item {
-        visible: strip.caelestia
+        visible: strip.cells
         anchors.fill: parent
 
         // sliding accent indicator: fully rounded, inset a hair inside the
@@ -139,8 +145,24 @@ Item {
             height: (strip.vertical ? Math.abs(lead - trailEdge) + strip.cellH : strip.cellH) - 2 * inset
 
             Rectangle {
+                visible: strip.caelestia
                 anchors.fill: parent
                 radius: Math.min(width, height) / 2
+                color: Theme.verm
+            }
+            Rectangle {
+                visible: strip.stele
+                anchors.fill: parent
+                color: "transparent"
+                border.width: Math.max(1, strip.s)
+                border.color: Theme.verm
+            }
+            Rectangle {
+                visible: strip.aegis
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: Math.max(2, 2 * strip.s)
                 color: Theme.verm
             }
         }
@@ -161,9 +183,9 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: cCell.wsId - strip.base
-                        color: cCell.active ? Theme.cardBot
+                        color: cCell.active ? (strip.caelestia ? Theme.cardBot : Theme.verm)
                             : (cCell.occupied ? Theme.cream : Qt.alpha(Theme.subtle, 0.45))
-                        font.family: Theme.font
+                        font.family: strip.caelestia ? Theme.font : Theme.mono
                         font.pixelSize: 10.5 * strip.s
                         font.weight: cCell.active ? Font.Bold : Font.Medium
                         font.features: ({ "tnum": 1 })
@@ -181,7 +203,7 @@ Item {
 
     // ---- noctalia dialect ---------------------------------------------------
     Grid {
-        visible: !strip.caelestia
+        visible: !strip.cells
         anchors.centerIn: parent
         columns: strip.vertical ? 1 : strip.count
         columnSpacing: strip.dotGap

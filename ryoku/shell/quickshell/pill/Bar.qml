@@ -9,14 +9,12 @@ import "Singletons"
 
 // bar content riding one of the frame's thickened edges, drawn in the frame's
 // own scene: no separate program, no seam. the composition and the module
-// look are carried over from the reference shells (Config.barStyle picks the
-// caelestia or noctalia dialect; both wear fully rounded module pills with
-// the caelestia hover/press feel):
+// look follow Config.barStyle: noctalia (dot pills) and caelestia (rounded
+// cell strip) are the carried reference dialects; aegis (flat modules with
+// hairline accent underlines) and stele (engraved bracket cells) are ours.
 //   top/bottom = the noctalia-style horizontal row: launcher glyph +
 //     workspaces + focused title left, the stacked clock centred, now-playing
 //     + status + tray + power right.
-//   left/right = the caelestia column: logo and workspaces up top, the clock
-//     in the middle, tray + status + power falling to the bottom.
 // a wheel over bare band nudges the sink volume, narrated by the OSD.
 Item {
     id: bar
@@ -95,7 +93,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 s: bar.s
                 height: bar.moduleSpan
-                padX: Config.barStyle === "caelestia" ? 4 * bar.s : 10 * bar.s
+                padX: Config.barStyle === "noctalia" ? 10 * bar.s : (Config.barStyle === "stele" ? 7 * bar.s : 4 * bar.s)
                 interactive: false
 
                 BarWorkspaces {
