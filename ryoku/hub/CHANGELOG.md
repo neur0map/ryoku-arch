@@ -29,6 +29,9 @@
   (a flat instrument panel: mono editorial clock, accent underlines, no module
   pills) and **Stele** (engraved bracket-cornered cells with an accent-framed
   active workspace). The pick writes `barStyle` and shows on the desktop at once.
+- **Shell -> Bar** adds a third native skin, **Triptych**, to the Style
+  dropdown: it groups the modules into three rounded islands on the band (left,
+  a centre carrying the clock and now-playing, and right).
 
 ### Changed
 - Shell -> Bar now places the bar on any frame edge (Top / Bottom / Left /

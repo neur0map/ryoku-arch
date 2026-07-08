@@ -469,7 +469,8 @@ Item {
                             { "key": "noctalia", "label": "Noctalia", "hint": "pill · dot" },
                             { "key": "caelestia", "label": "Caelestia", "hint": "cell strip" },
                             { "key": "aegis", "label": "Aegis", "hint": "instrument" },
-                            { "key": "stele", "label": "Stele", "hint": "engraved" }
+                            { "key": "stele", "label": "Stele", "hint": "engraved" },
+                            { "key": "triptych", "label": "Triptych", "hint": "islands" }
                         ]
                         current: draft.barStyle
                         onChosen: (k) => page.edit("barStyle", k)
@@ -482,7 +483,7 @@ Item {
                     Text {
                         width: parent.width
                         wrapMode: Text.WordWrap
-                        text: "A bar riding the top or bottom edge of the frame. Noctalia (pill and dot) and Caelestia (numbered cell strip) are carried from their namesake shells; Aegis is a flat instrument panel with hairline accent underlines, Stele an engraved strip of bracketed cells. Panels grow from the bar edge at whichever module you click or hover, and windows tuck in against the band."
+                        text: "A bar riding the top or bottom edge of the frame. Noctalia (pill and dot) and Caelestia (numbered cell strip) are carried from their namesake shells; Aegis is a flat instrument panel with hairline accent underlines, Stele an engraved strip of bracketed cells, and Triptych groups the modules into three rounded islands riding the band. Panels grow from the bar edge at whichever module you click or hover, and windows tuck in against the band."
                         color: Theme.faint
                         font.family: Theme.font
                         font.pixelSize: 12
