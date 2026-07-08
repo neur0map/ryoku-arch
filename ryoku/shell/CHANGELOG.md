@@ -29,6 +29,9 @@
   repaint, so a border-thickness change at runtime, switching bar skins or
   moving the bar between edges, left the old band on screen until the next
   geometry change happened to nudge it. The setters now schedule the repaint.
+- **The stele clock divider is visible again.** Its hairline used `Theme.line`,
+  a token the bar theme does not define, so it resolved to transparent; it now
+  uses `Theme.hair` like the other bar hairlines.
 - **A popout close is one monotonic melt again.** The visible dip-then-pop
   was the border sink: the melt buries the body rect fully inside the frame
   band, which is exactly the state that makes the inverted border's inner

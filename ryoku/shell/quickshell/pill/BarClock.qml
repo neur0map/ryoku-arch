@@ -138,7 +138,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             width: Math.max(1, clock.s)
             height: 11 * clock.s
-            color: Theme.line
+            color: Theme.hair
         }
         Text {
             anchors.verticalCenter: parent.verticalCenter
