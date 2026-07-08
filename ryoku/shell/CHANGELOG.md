@@ -37,9 +37,10 @@
   floating island; as it nears any edge the frame and the island reach for each
   other and merge (both surfaces bulge, like two drops). Let go anywhere, even
   at a corner, and it settles back onto the nearest edge. On a side edge it
-  turns vertical while you hold it. A hide button tucks it to a nub that
-  hovering pops back out, and it melts into the frame when recording ends,
-  leaving no mark.
+  turns vertical while you hold it. A hide button tucks it to a nub with a
+  record dot still pulsing on it, so you can see it is hidden, not gone;
+  hovering that edge pops it back out. It melts into the frame when recording
+  ends, leaving no mark.
 - **The app launcher reads its look from a config the Hub edits.** A new
   `~/.config/ryoku/launcher.json` (watched live) sets the palette's corner
   roundness, the home card's weather units (Auto follows the locale, or force

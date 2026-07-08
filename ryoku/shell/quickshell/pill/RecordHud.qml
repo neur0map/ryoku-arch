@@ -55,13 +55,15 @@ Item {
     // --- reveal + melt: 0 in the border, 1 fully out, a small nub when hidden.
     property bool revealHeld: false
     readonly property bool revealed: bodyHov.hovered || edgeHov.hovered
+    // tucked = hidden and not currently being revealed by a hover.
+    readonly property bool tucked: hud.hidden && !hud.revealHeld
     onRevealedChanged: {
         if (hud.revealed) { revealGrace.stop(); hud.revealHeld = true; }
         else revealGrace.restart();
     }
     Timer { id: revealGrace; interval: 260; onTriggered: hud.revealHeld = false }
 
-    readonly property real nubProg: 0.09
+    readonly property real nubProg: 0.14
     readonly property real wantProg: !Recorder.active ? 0 : ((!hud.hidden || hud.revealHeld) ? 1 : hud.nubProg)
     property real prog: hud.wantProg
     Behavior on prog { NumberAnimation { duration: hud.meltDur; easing.type: Easing.InOutCubic } }
@@ -128,11 +130,18 @@ Item {
     readonly property real hudY: hud.py
     readonly property real hudW: hud.bodyW
     readonly property real hudH: hud.bodyH
-    readonly property real trigDepth: hud.lipFor(hud.dockEdge) + 18 * hud.s
-    readonly property real trigX: hud.dockEdge === "right" ? (hud.width - hud.trigDepth) : (hud.dockEdge === "left" ? 0 : hud.dockX)
-    readonly property real trigY: hud.dockEdge === "bottom" ? (hud.height - hud.trigDepth) : (hud.dockEdge === "top" ? 0 : hud.dockY)
-    readonly property real trigW: (hud.dockEdge === "left" || hud.dockEdge === "right") ? hud.trigDepth : hud.bodyW
-    readonly property real trigH: (hud.dockEdge === "top" || hud.dockEdge === "bottom") ? hud.trigDepth : hud.bodyH
+    // while tucked the reveal zone grows: deeper into the screen and wider along
+    // the edge, so flicking the cursor to that edge reliably pops the nub back
+    // out instead of needing to land on the small nub exactly.
+    readonly property real trigReach: hud.tucked ? 46 * hud.s : 18 * hud.s
+    readonly property real trigPad: hud.tucked ? 44 * hud.s : 0
+    readonly property real trigDepth: hud.lipFor(hud.dockEdge) + hud.trigReach
+    readonly property real trigX: hud.dockEdge === "right" ? (hud.width - hud.trigDepth)
+        : hud.dockEdge === "left" ? 0 : (hud.dockX - hud.trigPad)
+    readonly property real trigY: hud.dockEdge === "bottom" ? (hud.height - hud.trigDepth)
+        : hud.dockEdge === "top" ? 0 : (hud.dockY - hud.trigPad)
+    readonly property real trigW: (hud.dockEdge === "left" || hud.dockEdge === "right") ? hud.trigDepth : (hud.bodyW + 2 * hud.trigPad)
+    readonly property real trigH: (hud.dockEdge === "top" || hud.dockEdge === "bottom") ? hud.trigDepth : (hud.bodyH + 2 * hud.trigPad)
 
     readonly property real gapT: hud.py - hud.lipT
     readonly property real gapB: (hud.height - hud.lipB) - (hud.py + hud.bodyH)
@@ -228,7 +237,9 @@ Item {
         y: hud.py
         width: hud.bodyW
         height: hud.bodyH
-        opacity: hud.prog * hud.reorientFade
+        // content only fades in once the island is past the nub, so tucked shows
+        // a clean blob with just the pulsing dot, not a ghost of the controls.
+        opacity: hud.reorientFade * Math.max(0, Math.min(1, (hud.prog - 0.25) / 0.5))
         transform: Matrix4x4 { matrix: bodyBlob.deformMatrix }
         HoverHandler { id: bodyHov; cursorShape: Qt.SizeAllCursor }
         // the whole island is the drag surface, not the reflowing 6-dot grip:
@@ -345,6 +356,21 @@ Item {
                 onTapped: hud.hidden = !hud.hidden
             }
         }
+    }
+
+    // tucked cue: a record dot pulses on the nub so a hidden island still reads
+    // as "recording, tucked here" rather than gone. it fades out as it reveals.
+    Rectangle {
+        readonly property real cx: hud.faceX + hud.faceW / 2
+        readonly property real cy: hud.faceY + hud.faceH / 2
+        width: 8 * hud.s
+        height: 8 * hud.s
+        radius: width / 2
+        x: cx - width / 2
+        y: cy - height / 2
+        color: Recorder.paused ? Theme.faint : Theme.vermLit
+        opacity: Recorder.active ? Math.max(0, 1 - hud.prog / 0.5) * (Recorder.paused ? 0.9 : Recorder.pulse) : 0
+        visible: opacity > 0.01
     }
 
     // audio mute through the shared Pipewire graph.
