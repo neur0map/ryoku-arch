@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+- `boot/limine/default.conf`: `MAX_SNAPSHOT_ENTRIES` now matches snapper's
+  `NUMBER_LIMIT` (10). At 5 every limine-snapper-sync run warned about the
+  snapshots it could not list, and the boot menu showed half the rollback
+  depth the retention policy keeps.
+
 ### Added
 - `extras/ryoku-extras-install`: `plugin` bundle items now install (fetched into
   `~/.local/share/ryoku/plugins` via `ryoku-hub extras plugin`) instead of being
