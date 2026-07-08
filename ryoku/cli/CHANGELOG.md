@@ -50,6 +50,20 @@
   or no answer leaves them to `ryoku doctor`, and a failed install never aborts the
   update. The consent rides the existing run-state file (a `prompt` phase plus a
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
+- **Doctor unhijacks the desktop portal routing.** A box migrated from another
+  compositor can carry a leftover `~/.config/xdg-desktop-portal/portals.conf`
+  (or an `/etc` one), and the portals.conf(5) lookup lets that generic file
+  outrank the packaged `hyprland-portals.conf`, so xdg-desktop-portal keeps
+  loading the old desktop's backend. With `xdg-desktop-portal-gnome` installed
+  (niri's own docs require it) that backend hangs under Hyprland, and every
+  app that touches the portal bus at startup (GTK apps read the settings
+  portal first thing) waits out a ~25s D-Bus timeout before its window shows:
+  "apps are slow to open". Screenshare picks the wrong backend the same way.
+  A new `desktop portal routing` reconciler resolves the winning config
+  exactly like the portal does, moves every misrouted file aside (kept as
+  `.ryoku-bak`), and restarts the portal services. The shell installer has
+  moved the user-level file aside since early July; this heals the boxes
+  converted before that, and the `/etc` case the installer never handled.
 
 ### Fixed
 - **Materialize converges `~/.config/quickshell` against the shipped tree.**

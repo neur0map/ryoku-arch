@@ -1075,3 +1075,112 @@ func TestLimineDropFlatAdoptedLayout(t *testing.T) {
 		t.Error("indented //kernel children must count as a tree")
 	}
 }
+
+// The hijack the portal-routing reconciler heals: a niri-era generic
+// portals.conf routing to the gnome backend, which hangs app launches under
+// Hyprland. hyprland anywhere in the default list means the file is intent,
+// not residue.
+func TestPortalRoutesHyprland(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{"packaged hyprland config", "[preferred]\ndefault=hyprland;gtk\n", true},
+		{"niri leftover", "[preferred]\ndefault=gnome;gtk;\n", false},
+		{"spaces around the key", "[preferred]\ndefault = hyprland\n", true},
+		{"hyprland last still counts", "[preferred]\ndefault=gtk;hyprland\n", true},
+		{"per-interface tweak without default", "[preferred]\norg.freedesktop.impl.portal.FileChooser=gtk\n", false},
+		{"wildcard is not a route", "[preferred]\ndefault=*\n", false},
+		{"default outside preferred", "[other]\ndefault=hyprland\n", false},
+		{"substring must not match", "[preferred]\ndefault=hyprland-fork\n", false},
+		{"empty file", "", false},
+	}
+	for _, c := range cases {
+		if got := portalRoutesHyprland(c.in); got != c.want {
+			t.Errorf("%s: portalRoutesHyprland = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+// The precedence claim the reconciler rests on (portals.conf(5)): a user-level
+// generic portals.conf outranks the packaged hyprland-portals.conf, and within
+// one directory the desktop-specific name is read first.
+func TestPortalConfigCandidatesOrder(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("XDG_CONFIG_DIRS", "")
+	t.Setenv("XDG_DATA_HOME", "")
+	t.Setenv("XDG_DATA_DIRS", "")
+	got := portalConfigCandidates(home)
+	idx := func(p string) int {
+		for i, c := range got {
+			if c == p {
+				return i
+			}
+		}
+		t.Fatalf("candidate %s missing from %v", p, got)
+		return -1
+	}
+	userSpecific := filepath.Join(home, ".config/xdg-desktop-portal/hyprland-portals.conf")
+	userGeneric := filepath.Join(home, ".config/xdg-desktop-portal/portals.conf")
+	if idx(userSpecific) != 0 || idx(userGeneric) != 1 {
+		t.Errorf("user config must lead the order, got %v", got[:2])
+	}
+	if idx(userGeneric) > idx("/usr/share/xdg-desktop-portal/hyprland-portals.conf") {
+		t.Error("a user-level generic portals.conf must outrank the packaged hyprland one")
+	}
+	if idx("/etc/xdg-desktop-portal/portals.conf") > idx("/usr/share/xdg-desktop-portal/hyprland-portals.conf") {
+		t.Error("an /etc-level portals.conf must outrank the packaged hyprland one")
+	}
+}
+
+// End to end on a temp home: the winning user file routes to gnome, doctor in
+// fix mode moves it aside and the packaged-style file behind it wins again.
+func TestReconcilePortalRoutingHealsUserHijack(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("XDG_CONFIG_DIRS", filepath.Join(home, "empty-etc-xdg"))
+	t.Setenv("XDG_DATA_HOME", filepath.Join(home, ".local/share"))
+	data := filepath.Join(home, "data")
+	t.Setenv("XDG_DATA_DIRS", data)
+	t.Setenv("PATH", "") // the fix's systemctl nudge must never reach the live session
+
+	// the gate needs a Hyprland box marker
+	if err := os.MkdirAll(filepath.Join(home, ".config/hypr"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	userDir := filepath.Join(home, ".config/xdg-desktop-portal")
+	if err := os.MkdirAll(userDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	hijack := filepath.Join(userDir, "portals.conf")
+	if err := os.WriteFile(hijack, []byte("[preferred]\ndefault=gnome;gtk;\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	packaged := filepath.Join(data, "xdg-desktop-portal")
+	if err := os.MkdirAll(packaged, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(packaged, "hyprland-portals.conf"),
+		[]byte("[preferred]\ndefault=hyprland;gtk\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if r := reconcilePortalRouting(true); r.status != recWouldFix {
+		t.Fatalf("check mode on a hijacked box = %q (%s), want would-fix", r.status.label(), r.detail)
+	}
+	if r := reconcilePortalRouting(false); r.status != recFixed {
+		t.Fatalf("fix mode = %q (%s), want fixed", r.status.label(), r.detail)
+	}
+	if exists(hijack) {
+		t.Error("hijacking portals.conf still in place after the fix")
+	}
+	if !exists(hijack + ".ryoku-bak") {
+		t.Error("hijacking portals.conf must be kept as .ryoku-bak, not deleted")
+	}
+	if r := reconcilePortalRouting(true); r.status != recOK {
+		t.Errorf("healed box must be ok, got %q: %s", r.status.label(), r.detail)
+	}
+}

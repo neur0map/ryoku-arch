@@ -106,6 +106,7 @@ func reconcilers() []reconciler {
 		{"ryoku package channel", reconcileRyokuChannel},
 		{"stale dev residue", reconcileDevResidue},
 		{"desktop session components", reconcileSessionComponents},
+		{"desktop portal routing", reconcilePortalRouting},
 		{"cursor theme", reconcileCursorTheme},
 		{"Material Symbols icon font", reconcileIconFont},
 		{"wallpaper daemons", reconcileWallpaperDaemon},
@@ -1705,6 +1706,149 @@ func reconcileSessionComponents(_ bool) recResult {
 		return okRes("desktop session components present")
 	}
 	return warnRes("missing: %s", strings.Join(missing, "; "))
+}
+
+// ---- reconciler: desktop portal routing ----------------------------------------
+
+// portalConfigCandidates lists every file xdg-desktop-portal consults on a
+// Hyprland session, highest precedence first (portals.conf(5)): user config,
+// XDG_CONFIG_DIRS, /etc, user data, XDG_DATA_DIRS. in each location the
+// desktop-specific name is read before the generic one, and the first file
+// that exists wins outright, nothing merges. that order is the trap: a
+// user-level generic portals.conf beats the packaged hyprland-portals.conf.
+func portalConfigCandidates(home string) []string {
+	var dirs []string
+	if v := os.Getenv("XDG_CONFIG_HOME"); v != "" {
+		dirs = append(dirs, v)
+	} else {
+		dirs = append(dirs, filepath.Join(home, ".config"))
+	}
+	confDirs := os.Getenv("XDG_CONFIG_DIRS")
+	if confDirs == "" {
+		confDirs = "/etc/xdg"
+	}
+	dirs = append(dirs, strings.Split(confDirs, ":")...)
+	dirs = append(dirs, "/etc")
+	if v := os.Getenv("XDG_DATA_HOME"); v != "" {
+		dirs = append(dirs, v)
+	} else {
+		dirs = append(dirs, filepath.Join(home, ".local/share"))
+	}
+	dataDirs := os.Getenv("XDG_DATA_DIRS")
+	if dataDirs == "" {
+		dataDirs = "/usr/local/share:/usr/share"
+	}
+	dirs = append(dirs, strings.Split(dataDirs, ":")...)
+	dirs = append(dirs, "/usr/share")
+	var out []string
+	seen := map[string]bool{}
+	for _, d := range dirs {
+		if d == "" || seen[d] {
+			continue
+		}
+		seen[d] = true
+		out = append(out,
+			filepath.Join(d, "xdg-desktop-portal", "hyprland-portals.conf"),
+			filepath.Join(d, "xdg-desktop-portal", "portals.conf"))
+	}
+	return out
+}
+
+// portalRoutesHyprland: does this config hand the default portal role to the
+// hyprland backend? per-interface overrides next to a sane default are a
+// deliberate user tweak and stay untouched.
+func portalRoutesHyprland(content string) bool {
+	section := ""
+	for _, ln := range strings.Split(content, "\n") {
+		t := strings.TrimSpace(ln)
+		if strings.HasPrefix(t, "[") && strings.HasSuffix(t, "]") {
+			section = t
+			continue
+		}
+		if section != "[preferred]" {
+			continue
+		}
+		k, v, ok := strings.Cut(t, "=")
+		if !ok || strings.TrimSpace(k) != "default" {
+			continue
+		}
+		for _, b := range strings.Split(v, ";") {
+			if strings.TrimSpace(b) == "hyprland" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// reconcilePortalRouting keeps xdg-desktop-portal pointed at the hyprland
+// backend. a box migrated from another compositor (the shell installer's
+// niri/sway path, or any hand-built setup) can carry a leftover
+// ~/.config/xdg-desktop-portal/portals.conf or an /etc one, and either
+// outranks the packaged hyprland-portals.conf, so the portal keeps loading
+// the old desktop's backend. with xdg-desktop-portal-gnome installed (niri's
+// own docs require it) that backend hangs under Hyprland, and every app that
+// touches the portal bus at startup (GTK apps read the settings portal first
+// thing) waits out a ~25s D-Bus timeout before its window shows: "apps are
+// slow to open". screenshare picks the wrong backend the same way. the shell
+// installer moves the user file aside since 2026-07; this heals the boxes
+// converted before that, and the /etc case the installer never touched.
+func reconcilePortalRouting(checkOnly bool) recResult {
+	if !exists(filepath.Join(homeDir(), ".config", "hypr")) && !has("Hyprland") {
+		return okRes("not a Hyprland desktop")
+	}
+	// the first existing candidate is the one the portal loads, so every
+	// misrouted file ahead of a healthy one has to move aside.
+	var offenders []string
+	healthy := ""
+	for _, p := range portalConfigCandidates(homeDir()) {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		if portalRoutesHyprland(string(b)) {
+			healthy = p
+			break
+		}
+		offenders = append(offenders, p)
+	}
+	if len(offenders) == 0 {
+		if healthy == "" {
+			// no config at all: xdg-desktop-portal-hyprland is missing and the
+			// session components check already flags that.
+			return okRes("no portal routing config found")
+		}
+		return okRes("portal routing follows %s", healthy)
+	}
+	if healthy == "" {
+		return warnRes("no config routes portals to the hyprland backend; screenshare and portal dialogs cannot work").
+			withFix("sudo pacman -S xdg-desktop-portal-hyprland")
+	}
+	list := strings.Join(offenders, ", ")
+	if checkOnly {
+		return wouldRes("%s routes portals away from hyprland; apps stall ~25s at launch and screenshare breaks", list).
+			withFix("ryoku doctor moves the file(s) aside and restarts the portal")
+	}
+	for _, p := range offenders {
+		bak := p + ".ryoku-bak"
+		var err error
+		if strings.HasPrefix(p, homeDir()+string(os.PathSeparator)) {
+			err = os.Rename(p, bak)
+		} else {
+			err = sudo("mv", p, bak)
+		}
+		if err != nil {
+			return failRes("could not move %s aside: %v", p, err).withFix("mv %s %s", p, bak)
+		}
+	}
+	// a hung foreign backend keeps its stall alive until it dies. best-effort
+	// and quiet: outside a session the next login picks the routing up anyway.
+	for _, u := range []string{"xdg-desktop-portal-gnome.service", "xdg-desktop-portal-kde.service",
+		"xdg-desktop-portal-wlr.service", "xdg-desktop-portal-lxqt.service"} {
+		_ = exec.Command("systemctl", "--user", "stop", u).Run()
+	}
+	_ = exec.Command("systemctl", "--user", "try-restart", "xdg-desktop-portal.service").Run()
+	return fixedRes("moved %s aside; the portal now follows %s", list, healthy)
 }
 
 // ---- reconciler: cursor theme ------------------------------------------------
