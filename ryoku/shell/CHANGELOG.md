@@ -12,12 +12,13 @@
   active workspace in accent, and splits the clock with a hairline divider.
   Both ride the same swollen frame edge and grow the same bar-edge popouts as
   the reference skins.
-- **A third native skin, triptych.** `barStyle` also takes `triptych`, which
-  groups the modules into three rounded islands riding the band: left (seal,
-  workspaces, title), centre (clock, plus now-playing while it sounds) and
-  right (status, tray, power), in the Brain_Shell mould. The islands are
-  containers on the existing band, so popouts still melt from the edge and the
-  other skins are untouched.
+- **A third native skin, triptych.** `barStyle` also takes `triptych`, in the
+  Brain_Shell mould: the top edge stays a hairline and the frame grows three
+  lobes fused under the module clusters (left: seal, workspaces, title; centre:
+  clock, plus now-playing while it sounds; right: status, tray, power), so the
+  bar dips between the three instead of swelling into one straight band. The
+  lobes are `BlobRect`s in the frame's own field, so popouts still melt from
+  them; the other skins keep their straight band.
 
 ### Fixed
 - **A popout close is one monotonic melt again.** The visible dip-then-pop

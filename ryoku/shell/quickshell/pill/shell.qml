@@ -466,6 +466,10 @@ ShellRoot {
             readonly property bool barLeft: barPos === "left"
             readonly property bool barRight: barPos === "right"
             readonly property bool barVertical: barLeft || barRight
+            readonly property bool triptych: Config.barStyle === "triptych"
+            // triptych: the top edge stays a hairline and three lobes fuse
+            // under the module clusters, so the bar dips between them (top only).
+            readonly property bool triptychLobes: barTop && triptych && !monFullscreen
             readonly property real frameTopVisible: Math.max(0, Config.frameBorder - 50)
             // a vertical band needs room for stacked content; floor it at 30.
             readonly property real barBand: Math.max(Config.barHeight, barVertical ? 30 : 0) * s
@@ -607,12 +611,58 @@ ShellRoot {
                     anchors.margins: -50
                     group: blobGroup
                     radius: Config.frameRadius
-                    borderTop: overlay.barTop ? (Config.frameBorder + overlay.barBand) : Config.frameBorder
+                    borderTop: (overlay.barTop && !overlay.triptych) ? (Config.frameBorder + overlay.barBand) : Config.frameBorder
                     borderBottom: overlay.barBottom ? (Config.frameBorder + overlay.barBand) : Config.frameBorder
                     borderLeft: overlay.barLeft ? (Config.frameBorder + overlay.barBand) : Config.frameBorder
                     borderRight: overlay.barRight ? (Config.frameBorder + overlay.barBand) : Config.frameBorder
                     opacity: Config.frameOpacity
                     visible: !overlay.monFullscreen
+                }
+
+                // triptych lobes: fused into the hairline top edge under each
+                // module cluster (the Bar exposes their rects), so the frame
+                // dips between the three instead of one straight band.
+                BlobRect {
+                    group: blobGroup
+                    visible: overlay.triptychLobes
+                    x: topBar.x + topBar.leftX
+                    y: topBar.y
+                    implicitWidth: overlay.triptychLobes ? topBar.leftW : 0
+                    implicitHeight: overlay.triptychLobes ? overlay.barVisibleH : 0
+                    topLeftRadius: 0
+                    topRightRadius: 0
+                    bottomLeftRadius: Math.min(16 * overlay.s, overlay.barBand / 2)
+                    bottomRightRadius: Math.min(16 * overlay.s, overlay.barBand / 2)
+                    deformScale: 0.000015
+                    sinks: false
+                }
+                BlobRect {
+                    group: blobGroup
+                    visible: overlay.triptychLobes
+                    x: topBar.x + topBar.centreX
+                    y: topBar.y
+                    implicitWidth: overlay.triptychLobes ? topBar.centreW : 0
+                    implicitHeight: overlay.triptychLobes ? overlay.barVisibleH : 0
+                    topLeftRadius: 0
+                    topRightRadius: 0
+                    bottomLeftRadius: Math.min(16 * overlay.s, overlay.barBand / 2)
+                    bottomRightRadius: Math.min(16 * overlay.s, overlay.barBand / 2)
+                    deformScale: 0.000015
+                    sinks: false
+                }
+                BlobRect {
+                    group: blobGroup
+                    visible: overlay.triptychLobes
+                    x: topBar.x + topBar.rightX
+                    y: topBar.y
+                    implicitWidth: overlay.triptychLobes ? topBar.rightW : 0
+                    implicitHeight: overlay.triptychLobes ? overlay.barVisibleH : 0
+                    topLeftRadius: 0
+                    topRightRadius: 0
+                    bottomLeftRadius: Math.min(16 * overlay.s, overlay.barBand / 2)
+                    bottomRightRadius: Math.min(16 * overlay.s, overlay.barBand / 2)
+                    deformScale: 0.000015
+                    sinks: false
                 }
 
                 // options ride the thickened frame top, drawn in the

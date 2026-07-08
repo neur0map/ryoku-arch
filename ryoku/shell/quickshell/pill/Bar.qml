@@ -30,11 +30,19 @@ Item {
 
     readonly property real moduleSpan: Math.round(bar.band * 0.76)
     readonly property bool triptych: Config.barStyle === "triptych"
-    // triptych wraps each module cluster in a rounded island on the band; the
-    // island hugs its row and stays transparent for every other skin.
-    readonly property real islandH: bar.moduleSpan + 3 * bar.s
-    readonly property real islandPad: 12 * bar.s
-    readonly property real edgeMargin: (bar.triptych ? 10 : 24) * bar.s
+    // triptych wraps each cluster in a transparent hugger and shell.qml grows a
+    // matching frame lobe under it, so the bar dips between the three; every
+    // other skin keeps the hugger invisible and the plain straight band.
+    readonly property real islandPad: 10 * bar.s
+    readonly property real edgeMargin: (bar.triptych ? 12 : 24) * bar.s
+    // each cluster hugger's rect in overlay coords (the bar sits at the overlay
+    // origin), so shell.qml can fuse a blob lobe beneath it.
+    readonly property real leftX: leftIsland.x
+    readonly property real leftW: leftIsland.width
+    readonly property real centreX: centreIsland.x
+    readonly property real centreW: centreIsland.width
+    readonly property real rightX: rightIsland.x
+    readonly property real rightW: rightIsland.width
     // the bell's along-axis centre (from the status cluster), so the toast
     // popout can grow from the bell like the inbox does. -1 when the status
     // cluster is hidden (no bell), so the toast falls back to the bar end.
@@ -73,15 +81,13 @@ Item {
 
         // ---- left island: seal + workspaces + title --------------------
         Rectangle {
+            id: leftIsland
             anchors.left: parent.left
             anchors.leftMargin: bar.edgeMargin
             anchors.verticalCenter: parent.verticalCenter
-            height: bar.triptych ? bar.islandH : parent.height
+            height: parent.height
             width: leftRow.implicitWidth + (bar.triptych ? 2 * bar.islandPad : 0)
-            color: bar.triptych ? Theme.tileBg : "transparent"
-            radius: bar.triptych ? height / 2 : 0
-            border.width: bar.triptych ? 1 : 0
-            border.color: Theme.hair
+            color: "transparent"
 
             Row {
                 id: leftRow
@@ -137,14 +143,12 @@ Item {
 
         // ---- centre island: clock, and now-playing on triptych ----------
         Rectangle {
+            id: centreIsland
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            height: bar.triptych ? bar.islandH : parent.height
+            height: parent.height
             width: centerRow.implicitWidth + (bar.triptych ? 2 * bar.islandPad : 0)
-            color: bar.triptych ? Theme.tileBg : "transparent"
-            radius: bar.triptych ? height / 2 : 0
-            border.width: bar.triptych ? 1 : 0
-            border.color: Theme.hair
+            color: "transparent"
 
             Row {
                 id: centerRow
@@ -184,15 +188,13 @@ Item {
 
         // ---- right island: now-playing (other skins) + status + tray + power
         Rectangle {
+            id: rightIsland
             anchors.right: parent.right
             anchors.rightMargin: bar.edgeMargin
             anchors.verticalCenter: parent.verticalCenter
-            height: bar.triptych ? bar.islandH : parent.height
+            height: parent.height
             width: rightRow.implicitWidth + (bar.triptych ? 2 * bar.islandPad : 0)
-            color: bar.triptych ? Theme.tileBg : "transparent"
-            radius: bar.triptych ? height / 2 : 0
-            border.width: bar.triptych ? 1 : 0
-            border.color: Theme.hair
+            color: "transparent"
 
             Row {
                 id: rightRow
