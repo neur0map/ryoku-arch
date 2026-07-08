@@ -63,6 +63,18 @@ Item {
     onPinnedChanged: if (pinned) heldAlong = alongCenter
     readonly property real effectiveAlong: (triggerHovered || pinned) ? alongCenter : heldAlong
 
+    // hold the size for the whole close the same way heldAlong holds the
+    // centre: content tears down at prog 0.5 and its implicit size collapses,
+    // so a live openW/openH would chase it mid-melt through the overshooting
+    // spatial Behavior, dipping the body past flush before the terminal
+    // zero-size frame pops it back. latched, the melt is one monotonic retract.
+    property real heldW: 0
+    property real heldH: 0
+    onOpenWChanged: if (heldOpen) heldW = openW
+    onOpenHChanged: if (heldOpen) heldH = openH
+    readonly property real bodyOpenW: heldOpen ? openW : heldW
+    readonly property real bodyOpenH: heldOpen ? openH : heldH
+
     readonly property bool atLeft: edge === "left"
     readonly property bool atRight: edge === "right"
     readonly property bool atTop: edge === "top"
@@ -83,6 +95,7 @@ Item {
     // body's hover region never flickers it shut. 0 = close at once (clicks).
     property int closeDelay: 0
     property bool heldOpen: false
+    onHeldOpenChanged: if (heldOpen) { heldW = openW; heldH = openH }
     onShouldOpenChanged: {
         if (shouldOpen) { closeGrace.stop(); heldOpen = true; }
         else if (closeDelay > 0) closeGrace.restart();
@@ -108,8 +121,12 @@ Item {
              : align === "end" ? span - sz - edgeInset
              : (span - sz) / 2;
     }
-    readonly property real alongX: alignPos(width, openW)
-    readonly property real alongY: alignPos(height, openH)
+    readonly property real alongX: alignPos(width, bodyOpenW)
+    readonly property real alongY: alignPos(height, bodyOpenH)
+    // hover band placement tracks the live content size: a never-opened
+    // popout has no latched size yet, and its band must still be hoverable.
+    readonly property real trigAlongX: alignPos(width, openW)
+    readonly property real trigAlongY: alignPos(height, openH)
 
     // a popout clamped against a side wall fuses INTO it rather than floating an
     // inset off it: the body edge reaches the screen edge with a neck through the
@@ -117,12 +134,12 @@ Item {
     // frame swelling out of the corner -- no gap, the same way the growing edge
     // fuses into the bar. top/bottom bar only (along-axis is X); a centred
     // popout is never at a wall, so it stays put.
-    readonly property bool hugLeft: !vertical && width > 0 && openW > 0 && alongX <= edgeInset + 0.5
-    readonly property bool hugRight: !vertical && width > 0 && openW > 0 && alongX >= width - openW - edgeInset - 0.5
+    readonly property bool hugLeft: !vertical && width > 0 && bodyOpenW > 0 && alongX <= edgeInset + 0.5
+    readonly property bool hugRight: !vertical && width > 0 && bodyOpenW > 0 && alongX >= width - bodyOpenW - edgeInset - 0.5
 
     // body geometry in window coords; grows inward from the border.
-    readonly property real curW: vertical ? Math.max(0, openW * prog) : openW
-    readonly property real curH: vertical ? openH : Math.max(0, openH * prog)
+    readonly property real curW: vertical ? Math.max(0, bodyOpenW * prog) : bodyOpenW
+    readonly property real curH: vertical ? bodyOpenH : Math.max(0, bodyOpenH * prog)
     readonly property real bodyX: atLeft ? frameThickness
                                  : atRight ? (width - frameThickness - curW)
                                  : hugRight ? (width - curW)
@@ -144,10 +161,25 @@ Item {
     readonly property real triggerH: !hoverOpen ? 0 : (vertical ? bandSpan : frameThickness)
     readonly property real triggerX: atLeft ? 0
                                    : atRight ? (width - frameThickness)
-                                   : (alongX + (openW - bandSpan) / 2)
+                                   : (trigAlongX + (openW - bandSpan) / 2)
     readonly property real triggerY: atTop ? 0
                                    : atBottom ? (height - frameThickness)
-                                   : (alongY + (openH - bandSpan) / 2)
+                                   : (trigAlongY + (openH - bandSpan) / 2)
+
+    // input-mask rect: the resting open geometry, gone the moment the close
+    // starts. prog never appears here, so a melt tick cannot recommit the
+    // wayland input region 60 times a second (the close-time frame drops), and
+    // a melting body stops eating clicks the instant it is dismissed.
+    readonly property real maskX: atLeft ? frameThickness
+                                : atRight ? (width - frameThickness - bodyOpenW)
+                                : hugRight ? (width - bodyOpenW)
+                                : hugLeft ? 0
+                                : alongX
+    readonly property real maskY: atTop ? frameThickness
+                                : atBottom ? (height - frameThickness - bodyOpenH)
+                                : alongY
+    readonly property real maskW: heldOpen ? bodyOpenW : 0
+    readonly property real maskH: heldOpen ? bodyOpenH : 0
 
     states: State {
         name: "open"

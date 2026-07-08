@@ -67,6 +67,15 @@ void BlobRect::updatePhysics() {
 
     const float speed = std::sqrt(velX * velX + velY * velY);
 
+    // a centre jump this fast is a coordinate change (terminal melt collapse,
+    // a group rejoin against a stale prevPos), not motion: fed to the spring
+    // it squashes the shape for one frame and rings for half a second.
+    if (speed > 8000.0f) {
+        if (m_physicsActive)
+            checkAtRest(0.0f);
+        return;
+    }
+
     if (!m_physicsActive) {
         if (speed < 5.0f)
             return;
@@ -97,22 +106,26 @@ void BlobRect::updatePhysics() {
         target11 = targetStretch * sin2 + targetCompress * cos2;
     }
 
-    // Underdamped spring on each matrix component. Damping is integrated implicitly
-    // (the friction term uses the new velocity, solved in closed form) so the 1/(1 + c*dt)
-    // factor stays in (0, 1) for any dt; an explicit -c*v*dt term would flip sign and inject
-    // energy once c*dt > 1 (here dt > ~62ms), making the deformation diverge on slow frames.
+    // Underdamped spring on each matrix component. Damping is implicit (the
+    // friction factor stays in (0,1) for any dt) and the integration runs in
+    // <=8ms substeps: one hitchy ~100ms frame at a stiffness past ~800 would
+    // otherwise flip the explicit stiffness term unstable and diverge.
     const float kStiffness = static_cast<float>(m_stiffness);
     const float kDamping = static_cast<float>(m_damping);
-    const float invDamp = 1.0f / (1.0f + kDamping * dt);
+    const int kSteps = std::max(1, static_cast<int>(std::ceil(dt / 0.008f)));
+    const float h = dt / static_cast<float>(kSteps);
+    const float invDamp = 1.0f / (1.0f + kDamping * h);
 
-    m_dmVel00 = (m_dmVel00 - kStiffness * (m_dm00 - target00) * dt) * invDamp;
-    m_dm00 += m_dmVel00 * dt;
+    for (int i = 0; i < kSteps; ++i) {
+        m_dmVel00 = (m_dmVel00 - kStiffness * (m_dm00 - target00) * h) * invDamp;
+        m_dm00 += m_dmVel00 * h;
 
-    m_dmVel01 = (m_dmVel01 - kStiffness * (m_dm01 - target01) * dt) * invDamp;
-    m_dm01 += m_dmVel01 * dt;
+        m_dmVel01 = (m_dmVel01 - kStiffness * (m_dm01 - target01) * h) * invDamp;
+        m_dm01 += m_dmVel01 * h;
 
-    m_dmVel11 = (m_dmVel11 - kStiffness * (m_dm11 - target11) * dt) * invDamp;
-    m_dm11 += m_dmVel11 * dt;
+        m_dmVel11 = (m_dmVel11 - kStiffness * (m_dm11 - target11) * h) * invDamp;
+        m_dm11 += m_dmVel11 * h;
+    }
 
     // The target stretch caps at 1.35, so a component a whole unit off identity
     // (or non-finite) is a diverged integration, not motion. Snap it to rest

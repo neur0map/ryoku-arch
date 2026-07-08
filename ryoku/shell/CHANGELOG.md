@@ -3,6 +3,25 @@
 ## Unreleased
 
 ### Fixed
+- **A popout close is one monotonic melt again.** Content tears down at half
+  melt, its implicit size collapses, and the live `openW`/`openH` Behaviors
+  chased that shrink with the overshooting spatial curve while `prog` was
+  still retracting, so the body dipped past flush and the terminal zero-size
+  frame popped it back. The size is now latched at close start, the same way
+  `heldAlong` latches the centre (Caelestia freezes its launcher height on
+  close with the same trick). The input-mask regions also stopped re-reading
+  the animated body rect: they bind the resting open geometry and drop to
+  zero the moment the close starts, so a melt tick no longer recommits the
+  wayland input region every frame (the close-time frame drops) and a
+  dismissed body stops eating clicks. Hover bands keep tracking live content
+  size, so a never-opened popout stays hoverable.
+- **The blob deform spring survives hitchy frames and coordinate jumps.** The
+  integrator now runs in 8 ms substeps, stable at any configured stiffness
+  through a 100 ms frame (at stiffness 800 and up one such frame used to flip
+  it divergent, which is what the giant-blob guard was catching), and a
+  centre jump past 8000 px/s is treated as a coordinate change rather than
+  motion, so a terminal melt collapse or a group rejoin cannot yank a squash
+  into the whole field and ring for half a second.
 - **Popouts now melt fully flush instead of stalling and snapping shut.** The
   blob body kept its full neck buried in the frame band until the very last
   frame of a close, and the smooth-min fillet held the fused edge a couple of

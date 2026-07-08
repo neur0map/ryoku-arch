@@ -46,10 +46,10 @@ Item {
     readonly property real maskTrigY: first ? first.triggerY : 0
     readonly property real maskTrigW: first ? first.triggerW : 0
     readonly property real maskTrigH: first ? first.triggerH : 0
-    readonly property real maskBodyX: first ? first.bodyX : 0
-    readonly property real maskBodyY: first ? first.bodyY : 0
-    readonly property real maskBodyW: first ? first.bodyW : 0
-    readonly property real maskBodyH: first ? first.bodyH : 0
+    readonly property real maskBodyX: first ? first.maskX : 0
+    readonly property real maskBodyY: first ? first.maskY : 0
+    readonly property real maskBodyW: first ? first.maskW : 0
+    readonly property real maskBodyH: first ? first.maskH : 0
 
     readonly property string _shellDir: Quickshell.env("RYOKU_SHELL_DIR")
     readonly property string _script: (_shellDir && _shellDir.length > 0)

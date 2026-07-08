@@ -542,22 +542,22 @@ ShellRoot {
                 width: Config.barEnabled ? overlay.barMaskW : 0
                 height: Config.barEnabled ? overlay.barMaskH : 0
                 Region { x: mixerPop.triggerX; y: mixerPop.triggerY; width: mixerPop.triggerW; height: mixerPop.triggerH }
-                Region { x: mixerPop.bodyX; y: mixerPop.bodyY; width: mixerPop.bodyW; height: mixerPop.bodyH }
+                Region { x: mixerPop.maskX; y: mixerPop.maskY; width: mixerPop.maskW; height: mixerPop.maskH }
                 Region { x: powerPop.triggerX; y: powerPop.triggerY; width: powerPop.triggerW; height: powerPop.triggerH }
-                Region { x: powerPop.bodyX; y: powerPop.bodyY; width: powerPop.bodyW; height: powerPop.bodyH }
-                Region { x: networkPop.bodyX; y: networkPop.bodyY; width: networkPop.bodyW; height: networkPop.bodyH }
-                Region { x: batteryPop.bodyX; y: batteryPop.bodyY; width: batteryPop.bodyW; height: batteryPop.bodyH }
-                Region { x: bluetoothPop.bodyX; y: bluetoothPop.bodyY; width: bluetoothPop.bodyW; height: bluetoothPop.bodyH }
-                Region { x: calendarPop.bodyX; y: calendarPop.bodyY; width: calendarPop.bodyW; height: calendarPop.bodyH }
-                Region { x: clipboardPop.bodyX; y: clipboardPop.bodyY; width: clipboardPop.bodyW; height: clipboardPop.bodyH }
-                Region { x: linkPop.bodyX; y: linkPop.bodyY; width: linkPop.bodyW; height: linkPop.bodyH }
-                Region { x: inboxPop.bodyX; y: inboxPop.bodyY; width: inboxPop.bodyW; height: inboxPop.bodyH }
-                Region { x: deckPop.bodyX; y: deckPop.bodyY; width: deckPop.bodyW; height: deckPop.bodyH }
-                Region { x: voicePop.bodyX; y: voicePop.bodyY; width: voicePop.bodyW; height: voicePop.bodyH }
-                Region { x: keyringPop.bodyX; y: keyringPop.bodyY; width: keyringPop.bodyW; height: keyringPop.bodyH }
-                Region { x: workspacesPop.bodyX; y: workspacesPop.bodyY; width: workspacesPop.bodyW; height: workspacesPop.bodyH }
-                Region { x: mediaPop.bodyX; y: mediaPop.bodyY; width: mediaPop.bodyW; height: mediaPop.bodyH }
-                Region { x: toastPop.bodyX; y: toastPop.bodyY; width: toastPop.bodyW; height: toastPop.bodyH }
+                Region { x: powerPop.maskX; y: powerPop.maskY; width: powerPop.maskW; height: powerPop.maskH }
+                Region { x: networkPop.maskX; y: networkPop.maskY; width: networkPop.maskW; height: networkPop.maskH }
+                Region { x: batteryPop.maskX; y: batteryPop.maskY; width: batteryPop.maskW; height: batteryPop.maskH }
+                Region { x: bluetoothPop.maskX; y: bluetoothPop.maskY; width: bluetoothPop.maskW; height: bluetoothPop.maskH }
+                Region { x: calendarPop.maskX; y: calendarPop.maskY; width: calendarPop.maskW; height: calendarPop.maskH }
+                Region { x: clipboardPop.maskX; y: clipboardPop.maskY; width: clipboardPop.maskW; height: clipboardPop.maskH }
+                Region { x: linkPop.maskX; y: linkPop.maskY; width: linkPop.maskW; height: linkPop.maskH }
+                Region { x: inboxPop.maskX; y: inboxPop.maskY; width: inboxPop.maskW; height: inboxPop.maskH }
+                Region { x: deckPop.maskX; y: deckPop.maskY; width: deckPop.maskW; height: deckPop.maskH }
+                Region { x: voicePop.maskX; y: voicePop.maskY; width: voicePop.maskW; height: voicePop.maskH }
+                Region { x: keyringPop.maskX; y: keyringPop.maskY; width: keyringPop.maskW; height: keyringPop.maskH }
+                Region { x: workspacesPop.maskX; y: workspacesPop.maskY; width: workspacesPop.maskW; height: workspacesPop.maskH }
+                Region { x: mediaPop.maskX; y: mediaPop.maskY; width: mediaPop.maskW; height: mediaPop.maskH }
+                Region { x: toastPop.maskX; y: toastPop.maskY; width: toastPop.maskW; height: toastPop.maskH }
                 Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
                 Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
                 Region { x: recHud.hudX; y: recHud.hudY; width: (Recorder.active && recHud.prog > 0.25) ? recHud.hudW : 0; height: (Recorder.active && recHud.prog > 0.25) ? recHud.hudH : 0 }
