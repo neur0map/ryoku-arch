@@ -139,4 +139,16 @@ deploy="$RECOVERY_DIR/ryoku/shell/deploy.sh"
 say "rebuilding and redeploying the desktop (overwrites Ryoku configs)"
 "$deploy"
 
+# deploy.sh records the checkout as the update channel, which fits a dev box
+# but silently converts a packaged install into a git-tracking one: `ryoku
+# update` would fast-forward raw main forever and never run pacman again. a
+# packaged box goes back on the pacman channel; the home-deployed desktop
+# carries it until the next `ryoku update`, whose doctor then clears the
+# leftover home artifacts once the packages are current.
+if pacman -Q ryoku-desktop >/dev/null 2>&1; then
+  state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku"
+  rm -f "$state_dir/repo" "$state_dir/deployed"
+  say "packaged install detected: staying on the pacman update channel"
+fi
+
 say "recovery done: Ryoku restored to $CHANNEL ($commit). log out and back in if the shell did not reload."
