@@ -85,7 +85,7 @@ if (( EUID == 0 )); then
 else
   TARGET_USER="$USER"
   TARGET_HOME="$HOME"
-  PRIV=(sudo)
+  PRIV=(sudo -n)
   USER_RUN=()
 fi
 

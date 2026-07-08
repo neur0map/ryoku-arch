@@ -43,14 +43,14 @@ write_root() {
     cat >/dev/null
     return 0
   fi
-  if (( EUID == 0 )); then cat >"$path"; else sudo tee "$path" >/dev/null; fi
+  if (( EUID == 0 )); then cat >"$path"; else sudo -n tee "$path" >/dev/null; fi
 }
 
 PM=(pacman)
 PRIV=()
 if (( EUID != 0 )); then
-  PM=(sudo pacman)
-  PRIV=(sudo)
+  PM=(sudo -n pacman)
+  PRIV=(sudo -n)
 fi
 
 pkg_installed() { pacman -Qq "$1" >/dev/null 2>&1; }

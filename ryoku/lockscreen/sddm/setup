@@ -51,7 +51,7 @@ run() {
 if (( EUID == 0 )); then
   PRIV=()
 else
-  PRIV=(sudo)
+  PRIV=(sudo -n)
 fi
 priv() { run "${PRIV[@]}" "$@"; }
 

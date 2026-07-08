@@ -36,7 +36,7 @@ run() {
 }
 
 PM=(pacman)
-(( EUID == 0 )) || PM=(sudo pacman)
+(( EUID == 0 )) || PM=(sudo -n pacman)
 
 pkg_installed() { pacman -Qq "$1" >/dev/null 2>&1; }
 
