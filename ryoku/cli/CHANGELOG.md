@@ -13,6 +13,21 @@
   one-line answer back-channel). Standalone `ryoku doctor` stays recommend-only.
 
 ### Fixed
+- **`ryoku doctor` heals the update breakage on users' machines.** A new `limine
+  snapshot sync` reconciler aligns `TARGET_OS_NAME` in `/etc/default/limine` with
+  the actual Ryoku boot entry name, so `limine-snapper-sync` finds it,
+  `snapper-cleanup.service` stops failing on every run, and the boot menu's
+  rollback Snapshots submenu syncs again. It reads the real entry name (the
+  `/+Ryoku` UKI tree is "Ryoku", a flat fallback is "Ryoku Linux") and converges
+  to it, so a healthy box is a no-op and a healthy name is never re-pointed. A new
+  `wallpaper daemons` reconciler flags a box missing `awww`/`swww` or `mpvpaper`
+  and points at the one-shot `ryoku-pkg-aur-add`, so ryowalls' image and Live tabs
+  come back.
+- **`ryoku doctor` stops nagging every update about things it cannot fix.**
+  Orphaned packages and the hybrid-GPU backlight advisory are now `note`s: shown
+  in `ryoku doctor --verbose` and the shared report, silent on a plain run and
+  inside `ryoku update`, so a healthy box's update ends quiet. A new `--verbose`
+  (`-v`) lists the passing checks and the notes.
 - `ryoku update` no longer resets the terminal palette to the shipped default.
   wallust writes the wallpaper-derived colours to `kitty/current-theme.conf`, but
   `materialize` reclobbers every shipped config on each update, so kitty snapped

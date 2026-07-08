@@ -33,6 +33,7 @@ type recStatus int
 
 const (
 	recOK recStatus = iota
+	recNote
 	recFixed
 	recWouldFix
 	recWarn
@@ -43,6 +44,8 @@ func (s recStatus) label() string {
 	switch s {
 	case recOK:
 		return "ok"
+	case recNote:
+		return "note"
 	case recFixed:
 		return "fixed"
 	case recWouldFix:
@@ -76,6 +79,9 @@ func warnRes(f string, a ...any) recResult {
 func failRes(f string, a ...any) recResult {
 	return recResult{status: recFailed, detail: fmt.Sprintf(f, a...)}
 }
+func noteRes(f string, a ...any) recResult {
+	return recResult{status: recNote, detail: fmt.Sprintf(f, a...)}
+}
 
 func (r recResult) withFix(f string, a ...any) recResult {
 	r.remedy = fmt.Sprintf(f, a...)
@@ -93,11 +99,13 @@ func reconcilers() []reconciler {
 		{"snapper configuration", reconcileSnapper},
 		{"limine boot menu layout", reconcileLimineLayout},
 		{"limine boot entry", reconcileLimineBootEntry},
+		{"limine snapshot sync", reconcileLimineOSName},
 		{"pacman database lock", reconcilePacmanLock},
 		{"stale install crypt mapper", reconcileStaleCryptMapper},
 		{"ryoku package channel", reconcileRyokuChannel},
 		{"desktop session components", reconcileSessionComponents},
 		{"cursor theme", reconcileCursorTheme},
+		{"wallpaper daemons", reconcileWallpaperDaemon},
 		{"SDDM greeter theme", reconcileGreeterTheme},
 		{"fastfetch readout emblem", reconcileFastfetchEmblem},
 		{"Hyprland config integrity", reconcileHyprlandConfig},
@@ -138,7 +146,7 @@ func printFindings(fs []finding, verbose bool) (warns, fails int) {
 		case recFailed:
 			fails++
 		}
-		if !verbose && f.res.status == recOK {
+		if !verbose && (f.res.status == recOK || f.res.status == recNote) {
 			continue
 		}
 		printed++
@@ -150,7 +158,7 @@ func printFindings(fs []finding, verbose bool) (warns, fails int) {
 		if f.res.detail != "" {
 			fmt.Fprintln(w, detailStyle(f.res.status, wrap(f.res.detail, width, "      ")))
 		}
-		if f.res.remedy != "" && f.res.status >= recWouldFix {
+		if f.res.remedy != "" && (f.res.status >= recWouldFix || f.res.status == recNote) {
 			fmt.Fprintln(w, brand(wrap("↳ "+f.res.remedy, width, "      ")))
 		}
 	}
@@ -164,6 +172,8 @@ func statusGlyph(s recStatus) string {
 	switch s {
 	case recOK, recFixed:
 		return green("✓")
+	case recNote:
+		return dim("·")
 	case recWouldFix:
 		return amber("›")
 	case recWarn:
@@ -175,7 +185,7 @@ func statusGlyph(s recStatus) string {
 }
 
 func statusName(f finding) string {
-	if f.res.status == recOK {
+	if f.res.status == recOK || f.res.status == recNote {
 		return f.name
 	}
 	name := bold(f.name)
@@ -186,17 +196,18 @@ func statusName(f finding) string {
 }
 
 func detailStyle(s recStatus, text string) string {
-	if s == recOK || s == recFixed {
+	if s == recOK || s == recFixed || s == recNote {
 		return dim(text)
 	}
 	return text
 }
 
 func doctorUsage() {
-	fmt.Print(`Usage: ryoku doctor [--check] [--report [file]] [--explain]
+	fmt.Print(`Usage: ryoku doctor [--check] [--verbose] [--report [file]] [--explain]
 
   (no args)        check, and apply the safe automatic fixes
   --check, -n      report what is wrong without changing anything
+  --verbose, -v    also list the checks that passed and advisory notes
   --report [file]  write a shareable diagnostic report for the maintainers
                    (default: ` + reportPath("") + `)
   --explain        ask your cloud model (Groq/OpenRouter) to reason over the report
@@ -206,7 +217,7 @@ func doctorUsage() {
 // cmdDoctor: check, apply the safe fixes; on anything it can't fix, write a
 // maintainer report so the user always has something to share.
 func cmdDoctor(args []string) error {
-	checkOnly, wantReport, wantExplain := false, false, false
+	checkOnly, wantReport, wantExplain, verboseFlag := false, false, false, false
 	reportTo := ""
 	for i := 0; i < len(args); i++ {
 		switch a := args[i]; a {
@@ -220,6 +231,8 @@ func cmdDoctor(args []string) error {
 			}
 		case "--explain":
 			wantExplain = true
+		case "--verbose", "-v":
+			verboseFlag = true
 		case "-h", "--help":
 			doctorUsage()
 			return nil
@@ -228,9 +241,11 @@ func cmdDoctor(args []string) error {
 		}
 	}
 
-	verbose := checkOnly || wantReport || wantExplain
-	findings := runReconcilers(verbose) // report/check never mutate
-	warns, fails := printFindings(findings, verbose)
+	// read-only modes never mutate; showAll also lists ok + advisory notes.
+	readOnly := checkOnly || wantReport || wantExplain
+	showAll := readOnly || verboseFlag
+	findings := runReconcilers(readOnly)
+	warns, fails := printFindings(findings, showAll)
 
 	if wantExplain {
 		return explainFindings(findings)
@@ -1092,6 +1107,107 @@ func unitEnabled(unit string) bool {
 	return exec.Command("systemctl", "is-enabled", "--quiet", unit).Run() == nil
 }
 
+// ---- reconciler: limine snapshot-sync OS name --------------------------------
+
+// reconcileLimineOSName aligns TARGET_OS_NAME in /etc/default/limine with the
+// name of the actual Ryoku boot entry in /boot/limine.conf, so limine-snapper-sync
+// can find it to hang the Snapshots submenu under. the healthy menu is the
+// "/+Ryoku" UKI tree (name "Ryoku") that limine-mkinitcpio-hook generates, and the
+// shipped default already matches it -- a no-op. but a box still on the flat
+// "/Ryoku Linux" fallback entry needs that name instead, and the mismatch fails
+// limine-snapper-sync on every snapper-cleanup (its ExecStopPost), so the boot
+// menu never lists a rollback snapshot. read the real entry name and converge to
+// it, then clear the stale failed state. never invents a name: no Ryoku entry
+// found -> leave it alone.
+func reconcileLimineOSName(checkOnly bool) recResult {
+	const path = "/etc/default/limine"
+	cur := readFileSafe(path)
+	if cur == "" {
+		return okRes("no /etc/default/limine (limine snapshot sync not in use)")
+	}
+	got, ok := limineOSNameValue(cur)
+	if !ok {
+		return okRes("limine config sets no TARGET_OS_NAME")
+	}
+	want := limineEntryName(readFileSafe("/boot/limine.conf"))
+	if want == "" {
+		return okRes("no Ryoku boot entry found to match TARGET_OS_NAME against")
+	}
+	if got == want {
+		return okRes("limine snapshot entries sync under %q", want)
+	}
+	if checkOnly {
+		return wouldRes("TARGET_OS_NAME %q does not match the boot entry %q, so limine-snapper-sync fails snapper-cleanup", got, want).
+			withFix("ryoku doctor sets TARGET_OS_NAME to %q", want)
+	}
+	if err := writeRootFile(path, setLimineOSName(cur, want), "0644"); err != nil {
+		return failRes("could not update %s: %v", path, err)
+	}
+	// the unit is likely still sitting failed from earlier runs; clear it so the
+	// failed-services check reads clean this same pass. best-effort.
+	_ = exec.Command("sudo", "-n", "systemctl", "reset-failed", "snapper-cleanup.service").Run()
+	return fixedRes("set TARGET_OS_NAME to %q to match the boot entry so snapshots sync", want)
+}
+
+// limineEntryName: the name of the primary Ryoku OS entry in a /boot/limine.conf.
+// the expanded UKI tree ("/+Ryoku" -> "Ryoku") wins over the flat fallback
+// ("/Ryoku Linux" -> "Ryoku Linux") when both are present, so a healthy box that
+// still carries a stray flat placeholder is never re-pointed off its real entry.
+// top-level entries only ("/name" or "/+name", not a "//" sub-entry); "" when no
+// Ryoku entry is found.
+func limineEntryName(conf string) string {
+	var flat string
+	for _, l := range strings.Split(conf, "\n") {
+		t := strings.TrimRight(l, " \t\r")
+		if !strings.HasPrefix(t, "/") || strings.HasPrefix(t, "//") {
+			continue
+		}
+		expanded := strings.HasPrefix(t, "/+")
+		name := strings.TrimPrefix(strings.TrimPrefix(t, "/"), "+")
+		if !strings.HasPrefix(name, "Ryoku") {
+			continue
+		}
+		if expanded {
+			return name
+		}
+		if flat == "" {
+			flat = name
+		}
+	}
+	return flat
+}
+
+// limineOSNameValue pulls the TARGET_OS_NAME value out of an /etc/default/limine,
+// quotes stripped. ok=false when there is no such assignment.
+func limineOSNameValue(conf string) (string, bool) {
+	for _, l := range strings.Split(conf, "\n") {
+		t := strings.TrimSpace(l)
+		if strings.HasPrefix(t, "#") || !strings.HasPrefix(t, "TARGET_OS_NAME") {
+			continue
+		}
+		if eq := strings.IndexByte(t, '='); eq >= 0 {
+			return strings.Trim(strings.TrimSpace(t[eq+1:]), "\"'"), true
+		}
+	}
+	return "", false
+}
+
+// setLimineOSName rewrites the TARGET_OS_NAME assignment to name, every other
+// line preserved verbatim.
+func setLimineOSName(conf, name string) string {
+	lines := strings.Split(conf, "\n")
+	for i, l := range lines {
+		t := strings.TrimSpace(l)
+		if strings.HasPrefix(t, "#") || !strings.HasPrefix(t, "TARGET_OS_NAME") {
+			continue
+		}
+		if strings.IndexByte(t, '=') >= 0 {
+			lines[i] = fmt.Sprintf("TARGET_OS_NAME=%q", name)
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 // ---- reconciler: stale pacman lock -------------------------------------------
 
 func reconcilePacmanLock(checkOnly bool) recResult {
@@ -1231,6 +1347,35 @@ func reconcileRyokuChannel(_ bool) recResult {
 			withFix("sudo pacman -S ryoku-keyring")
 	}
 	return okRes("ryoku package channel configured")
+}
+
+// ---- reconciler: wallpaper daemons -------------------------------------------
+
+// reconcileWallpaperDaemon flags a Ryoku desktop missing the AUR wallpaper
+// backends the shell drives. static wallpapers ride awww (swww renamed upstream)
+// and live/video wallpapers ride mpvpaper; both are AUR-only, so a `ryoku update`
+// (pacman) never pulls them. a box that predates them, or upgraded across the
+// swww->awww rename, silently can't set a wallpaper -- the shell now falls back to
+// swww when that's the one installed, but neither present means ryowalls is dead.
+// detect-and-advise: the one-shot AUR add is the fix, like the cursor theme.
+func reconcileWallpaperDaemon(_ bool) recResult {
+	if !exists(filepath.Join(homeDir(), ".config", "hypr")) && !has("Hyprland") {
+		return okRes("not a Hyprland desktop")
+	}
+	hasImage := has("awww") || has("swww")
+	hasLive := has("mpvpaper")
+	switch {
+	case !hasImage && !hasLive:
+		return warnRes("no wallpaper daemon (awww) or mpvpaper; ryowalls cannot set image or live wallpapers").
+			withFix("ryoku-pkg-aur-add awww-git mpvpaper")
+	case !hasImage:
+		return warnRes("no wallpaper daemon (awww/swww); ryowalls cannot set a wallpaper").
+			withFix("ryoku-pkg-aur-add awww-git")
+	case !hasLive:
+		return warnRes("mpvpaper is missing; ryowalls' Live (video) wallpapers cannot play").
+			withFix("ryoku-pkg-aur-add mpvpaper")
+	}
+	return okRes("wallpaper daemons present")
 }
 
 // ---- reconciler: desktop session components ----------------------------------
@@ -1854,7 +1999,7 @@ func reconcileOrphans(_ bool) recResult {
 	if err != nil || len(orphans) == 0 {
 		return okRes("no orphaned packages")
 	}
-	return warnRes("%d orphaned package(s)", len(orphans)).
+	return noteRes("%d orphaned package(s)", len(orphans)).
 		withFix("review `pacman -Qtd`, then `sudo pacman -Rns $(pacman -Qtdq)` if unneeded")
 }
 
@@ -2162,7 +2307,7 @@ func reconcileBacklight(_ bool) recResult {
 		if has("supergfxctl") {
 			fix += "; on a supported ASUS laptop `supergfxctl -m Hybrid` switches it without a BIOS trip"
 		}
-		return warnRes("%s", detail).withFix(fix)
+		return noteRes("%s", detail).withFix(fix)
 	}
 	return okRes("backlight: %s", strings.Join(devs, ", "))
 }
