@@ -17,6 +17,17 @@
   now stops the shell daemon (and reaps orphaned `qs` components using the
   real component list; the old one named a `sidebar` that never existed and
   missed `launcher`/`widgets`) before materialize, and starts it after.
+- **Rollback snapshots finally appear in the Limine boot menu.** A new
+  `limine UKI boot tree` reconciler converges boxes stuck on the flat
+  install-time placeholder entry: limine-snapper-sync refuses to hang the
+  Snapshots submenu under an entry with no kernel sub-entries, so those boxes
+  never showed a rollback at boot no matter how many snapshots snapper kept
+  (the design always shipped `ENABLE_UKI=yes` and listed
+  limine-mkinitcpio-hook in the AUR set; omarchy works because its installer
+  hard-requires that hook). Doctor now installs the hook, whose deploy
+  rebuilds the menu as the `/+Ryoku` UKI tree, drops the flat placeholder the
+  same way the installer's finalize does, and runs one sync so the snapshots
+  show up immediately.
 - **New doctor reconcilers for the beta-16 fallout.** `Material Symbols icon
   font` installs the font on boxes that predate it being a package dependency
   (every glyph rendered as its ligature name). `stale dev residue` removes

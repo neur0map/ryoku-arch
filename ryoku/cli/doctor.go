@@ -99,6 +99,7 @@ func reconcilers() []reconciler {
 		{"snapper configuration", reconcileSnapper},
 		{"limine boot menu layout", reconcileLimineLayout},
 		{"limine boot entry", reconcileLimineBootEntry},
+		{"limine UKI boot tree", reconcileLimineUKITree},
 		{"limine snapshot sync", reconcileLimineOSName},
 		{"pacman database lock", reconcilePacmanLock},
 		{"stale install crypt mapper", reconcileStaleCryptMapper},
@@ -1122,6 +1123,130 @@ func unitEnabled(unit string) bool {
 // menu never lists a rollback snapshot. read the real entry name and converge to
 // it, then clear the stale failed state. never invents a name: no Ryoku entry
 // found -> leave it alone.
+// ---- reconciler: limine UKI boot tree ------------------------------------------
+
+// reconcileLimineUKITree converges a limine box onto the hook-owned boot menu
+// the design always intended: /etc/default/limine ships with ENABLE_UKI=yes
+// and aur.packages carries limine-mkinitcpio-hook, but boxes installed before
+// (or without) the AUR step run on the flat "/Ryoku Linux" placeholder
+// forever. limine-snapper-sync refuses to hang the Snapshots submenu under an
+// entry with no "//<kernel>" sub-entries, so those boxes never see a rollback
+// in the boot menu at all; omarchy works because its installer hard-requires
+// the hook and fails the install when no "/+" tree appears. Install the hook
+// (its deploy hook builds the UKIs and regenerates the entries), drop the
+// flat placeholder the way the installer's finalize does, and run one sync so
+// the snapshots show up now, not at the next snapper event.
+func reconcileLimineUKITree(checkOnly bool) recResult {
+	if !pkgInstalled("limine") {
+		return okRes("not a limine-managed boot on this box")
+	}
+	defaults := readFileSafe("/etc/default/limine")
+	if !strings.Contains(defaults, "ENABLE_UKI=yes") {
+		return okRes("limine box without the UKI design (no ENABLE_UKI); nothing to converge")
+	}
+	conf := readFileSafe(limineESPConf)
+	if conf == "" {
+		return okRes("no readable %s; the layout reconciler owns that", limineESPConf)
+	}
+	hookMissing := !pkgInstalled("limine-mkinitcpio-hook")
+	_, hasFlat := limineDropFlat(conf)
+	if !hookMissing && limineHasUKITree(conf) && !hasFlat {
+		return okRes("limine-mkinitcpio-hook owns the boot menu (UKI tree with kernel sub-entries)")
+	}
+	if checkOnly {
+		return wouldRes("the boot menu is still the flat install placeholder, so limine-snapper-sync cannot add the Snapshots submenu (rollbacks never appear at boot)").
+			withFix("ryoku doctor installs limine-mkinitcpio-hook and promotes the menu to the /+Ryoku UKI tree")
+	}
+	var done []string
+	if hookMissing {
+		if err := run("ryoku-pkg-aur-add", "limine-mkinitcpio-hook"); err != nil {
+			return failRes("could not install limine-mkinitcpio-hook: %v", err).
+				withFix("ryoku-pkg-aur-add limine-mkinitcpio-hook, then sudo ryoku doctor")
+		}
+		done = append(done, "installed limine-mkinitcpio-hook")
+	}
+	// the install's deploy hook normally regenerates the menu; if the tree is
+	// still absent (hook was present but never ran), ask for it explicitly.
+	if !limineHasUKITree(readFileSafe(limineESPConf)) && has("limine-update") {
+		if err := sudo("limine-update"); err != nil {
+			return failRes("limine-update could not build the UKI boot tree: %v", err).
+				withFix("sudo limine-update, then sudo ryoku doctor")
+		}
+		done = append(done, "rebuilt the boot menu with limine-update")
+	}
+	conf = readFileSafe(limineESPConf)
+	if !limineHasUKITree(conf) {
+		return failRes("no UKI kernel entries in %s even after limine-update; snapshots cannot attach", limineESPConf)
+	}
+	// mirror the installer's finalize: with a standalone tree the flat
+	// placeholder is clutter; either way a directory can't autoboot, so
+	// default_entry moves to the newest UKI inside it.
+	if promoted, changed := limineDropFlat(conf); changed {
+		if err := writeRootFile(limineESPConf, promoted, "0644"); err != nil {
+			return failRes("could not promote the boot menu in %s: %v", limineESPConf, err)
+		}
+		done = append(done, "promoted the menu default onto the UKI tree")
+	}
+	if has("limine-snapper-sync") {
+		if err := sudo("limine-snapper-sync"); err == nil {
+			done = append(done, "synced the Snapshots submenu")
+		}
+	}
+	return fixedRes("boot menu converged onto the UKI tree: %s; rollback snapshots now appear at boot", strings.Join(done, "; "))
+}
+
+// limineHasUKITree: does the config carry tool-generated kernel sub-entries.
+// older limine-entry-tool writes a standalone "/+Name" expanded tree; 1.37+
+// adopts the installer's flat entry as the tree root and nests indented
+// "//<kernel>" children under it. either shape satisfies limine-snapper-sync.
+func limineHasUKITree(conf string) bool {
+	for _, l := range strings.Split(conf, "\n") {
+		if strings.HasPrefix(l, "/+") {
+			return true
+		}
+		if t := strings.TrimLeft(l, " \t"); strings.HasPrefix(t, "//") {
+			return true
+		}
+	}
+	return false
+}
+
+// limineDropFlat promotes the menu past the install placeholder, mirroring the
+// installer's finalize. with a standalone "/+" tree the flat "/Ryoku Linux..."
+// entries (entry line plus indented options) are clutter and go; in the
+// adopted layout the placeholder IS the tree root, so entries stay untouched.
+// either way default_entry: 1 points at a directory that can't autoboot and
+// moves to 2 (the first UKI inside). pure, so it is unit-testable;
+// changed=false when there is nothing to do.
+func limineDropFlat(conf string) (string, bool) {
+	dropFlat := false
+	for _, l := range strings.Split(conf, "\n") {
+		if strings.HasPrefix(l, "/+") {
+			dropFlat = true
+			break
+		}
+	}
+	var out []string
+	skip, changed := false, false
+	for _, l := range strings.Split(conf, "\n") {
+		if dropFlat && strings.HasPrefix(l, "/Ryoku Linux") {
+			skip, changed = true, true
+			continue
+		}
+		if skip && strings.TrimSpace(l) != "" && (strings.HasPrefix(l, " ") || strings.HasPrefix(l, "\t")) {
+			continue
+		}
+		skip = false
+		if l == "default_entry: 1" {
+			out = append(out, "default_entry: 2")
+			changed = true
+			continue
+		}
+		out = append(out, l)
+	}
+	return strings.Join(out, "\n"), changed
+}
+
 func reconcileLimineOSName(checkOnly bool) recResult {
 	const path = "/etc/default/limine"
 	cur := readFileSafe(path)

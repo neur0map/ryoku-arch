@@ -1008,3 +1008,70 @@ func TestMigrateShellConfig(t *testing.T) {
 		t.Fatal("garbage must error, not silently rewrite")
 	}
 }
+
+// limineDropFlat mirrors the installer's promote surgery: flat placeholder
+// entries go (with their indented options), default_entry moves off the tree
+// directory, globals and the /+ tree survive untouched.
+func TestLimineDropFlat(t *testing.T) {
+	conf := "timeout: 3\n" +
+		"default_entry: 1\n" +
+		"/Ryoku Linux\n" +
+		"    protocol: linux\n" +
+		"    kernel_path: boot():/vmlinuz-linux\n" +
+		"/Ryoku Linux (CachyOS)\n" +
+		"    protocol: linux\n" +
+		"/+Ryoku\n" +
+		"//linux (UKI)\n" +
+		"    protocol: efi\n"
+	out, changed := limineDropFlat(conf)
+	if !changed {
+		t.Fatal("flat placeholders present; must report a change")
+	}
+	if strings.Contains(out, "/Ryoku Linux") {
+		t.Errorf("flat entries survived:\n%s", out)
+	}
+	if strings.Contains(out, "kernel_path: boot():/vmlinuz-linux\n") {
+		t.Errorf("flat entry options survived:\n%s", out)
+	}
+	if !strings.Contains(out, "default_entry: 2") {
+		t.Errorf("default_entry not promoted past the tree directory:\n%s", out)
+	}
+	if !strings.Contains(out, "/+Ryoku") || !strings.Contains(out, "//linux (UKI)") || !strings.Contains(out, "timeout: 3") {
+		t.Errorf("tree or globals damaged:\n%s", out)
+	}
+
+	if _, changed := limineDropFlat(out); changed {
+		t.Error("promoted config must be a fixed point")
+	}
+	if !limineHasUKITree(out) || limineHasUKITree("timeout: 3\n/Ryoku Linux\n") {
+		t.Error("limineHasUKITree misreads the tree marker")
+	}
+}
+
+// 1.37+ limine-entry-tool adopts the flat placeholder as the tree root: the
+// entry must survive promotion, only default_entry moves off the directory.
+func TestLimineDropFlatAdoptedLayout(t *testing.T) {
+	conf := "default_entry: 1\n" +
+		"/Ryoku Linux\n" +
+		"    kernel_path: boot():/vmlinuz-linux\n" +
+		"\n" +
+		"  //linux\n" +
+		"  protocol: efi\n" +
+		"     //Snapshots\n"
+	out, changed := limineDropFlat(conf)
+	if !changed {
+		t.Fatal("default_entry: 1 on a directory must count as a change")
+	}
+	if !strings.Contains(out, "/Ryoku Linux") || !strings.Contains(out, "kernel_path: boot():/vmlinuz-linux") {
+		t.Errorf("adopted tree root must survive:\n%s", out)
+	}
+	if !strings.Contains(out, "default_entry: 2") {
+		t.Errorf("default_entry not moved off the directory:\n%s", out)
+	}
+	if _, changed := limineDropFlat(out); changed {
+		t.Error("promoted adopted layout must be a fixed point")
+	}
+	if !limineHasUKITree(conf) {
+		t.Error("indented //kernel children must count as a tree")
+	}
+}
