@@ -97,9 +97,21 @@ done
 #    bumping pkgrel, which changes the filename. monorepo packages version
 #    per commit, so they never collide here.
 MIRROR=${RYOKU_REPO_MIRROR:-https://repo.ryoku.dev/stable/$REPO_ARCH}
+
+# fetch a published file into $2: from the mirror URL on a dev box, or from a
+# local directory when the caller pre-fetched the bucket (CI: Cloudflare's bot
+# protection 403s datacenter runners on the public domain, so the publish
+# workflow snapshots the bucket and points RYOKU_REPO_MIRROR at it).
+fetch_published() {
+  case $MIRROR in
+    http://* | https://*) curl -fsSL --retry 3 -o "$2" "$MIRROR/$1" 2>/dev/null ;;
+    *) [[ -f $MIRROR/$1 ]] && cp -f "$MIRROR/$1" "$2" ;;
+  esac
+}
+
 for pkg in "$ARCH_DIR"/*.pkg.tar.zst; do
   name=$(basename "$pkg")
-  if ! curl -fsSL --retry 3 -o "$pkg.published" "$MIRROR/$name" 2>/dev/null; then
+  if ! fetch_published "$name" "$pkg.published"; then
     rm -f "$pkg.published"   # not on the mirror yet: this build introduces it
     continue
   fi

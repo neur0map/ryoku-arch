@@ -73,6 +73,34 @@ jobs:
           # version (bin/ryoku-release-version --pkgver) from `git rev-list`.
           fetch-depth: 0
 
+      - name: Snapshot the published package set
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          # one rclone config for this job (the upload and verify steps reuse it).
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [Ryoku]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${R2_ACCESS_KEY_ID}
+          secret_access_key = ${R2_SECRET_ACCESS_KEY}
+          endpoint = ${R2_ENDPOINT}
+          # The scoped R2 token has Object Read+Write only, not bucket-level
+          # perms; without this rclone calls HeadBucket/CreateBucket and 403s.
+          # The bucket already exists, so skip the check (matches build-iso.yml).
+          no_check_bucket = true
+          EOF
+          # the published bytes come straight from the bucket, not the public
+          # domain: Cloudflare's bot protection 403s datacenter runners.
+          # build-repo.sh adopts these for any filename it rebuilds, so a name
+          # that is already live keeps exactly its live bytes.
+          rclone copy "Ryoku:$R2_BUCKET/x86_64/" "$GITHUB_WORKSPACE/.published-mirror/" --include '*.pkg.tar.zst'
+
       - name: Verify hard dependencies exist in the official repos
         run: |
           set -euo pipefail
@@ -119,6 +147,7 @@ jobs:
           runuser -u builder -- env \
             KEY_FILE="$key_file" \
             RYOKU_REPO_OUT="$GITHUB_WORKSPACE/release/repo/out" \
+            RYOKU_REPO_MIRROR="$GITHUB_WORKSPACE/.published-mirror" \
             bash -euo pipefail -c '
               export GNUPGHOME="$(mktemp -d)"
               chmod 700 "$GNUPGHOME"
@@ -134,25 +163,10 @@ jobs:
 
       - name: Upload [ryoku] repo to Cloudflare R2
         env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
           set -euo pipefail
-          mkdir -p ~/.config/rclone
-          cat > ~/.config/rclone/rclone.conf <<EOF
-          [Ryoku]
-          type = s3
-          provider = Cloudflare
-          access_key_id = ${R2_ACCESS_KEY_ID}
-          secret_access_key = ${R2_SECRET_ACCESS_KEY}
-          endpoint = ${R2_ENDPOINT}
-          # The scoped R2 token has Object Read+Write only, not bucket-level
-          # perms; without this rclone calls HeadBucket/CreateBucket and 403s.
-          # The bucket already exists, so skip the check (matches build-iso.yml).
-          no_check_bucket = true
-          EOF
+          # rclone config written by the snapshot step above.
 
           # Build output publishes into <bucket>/x86_64/ (served at
           # repo.ryoku.dev/stable/x86_64/). Order matters (issue #21): if ryoku.db
@@ -168,30 +182,35 @@ jobs:
           rclone sync "$src" "$remote" -P
           echo "::notice::Published [ryoku] repo to $remote (packages first, db last, stale pruned)"
 
-      - name: Verify the published repo from a client's seat
+      - name: Verify the published repo against the bucket
+        env:
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
           set -euo pipefail
-          # fetch the served db and check every file it lists exists on the
-          # mirror at exactly the size the db records, with its .sig beside
+          # re-read what just went live and check every file the db lists
+          # exists at exactly the size the db records, with its .sig beside
           # it. a torn upload or a same-name overwrite fails the publish here
           # instead of failing user installs with "Maximum file size
-          # exceeded" (issue #21, and the 2026-07-08 gpk outage).
-          base="https://repo.ryoku.dev/stable/x86_64"
+          # exceeded" (issue #21, and the 2026-07-08 gpk outage). the bucket
+          # is checked, not the public domain: Cloudflare's bot protection
+          # 403s datacenter runners there.
+          remote="Ryoku:$R2_BUCKET/x86_64"
           tmp=$(mktemp -d)
-          curl -fsSL --retry 3 "$base/ryoku.db" -o "$tmp/db"
+          rclone cat "$remote/ryoku.db" > "$tmp/db"
           mkdir "$tmp/x"
           bsdtar -xf "$tmp/db" -C "$tmp/x"
+          rclone lsl "$remote/" > "$tmp/ls"
           bad=0
           for d in "$tmp"/x/*/desc; do
             fn=$(awk '/%FILENAME%/{getline; print; exit}' "$d")
             cs=$(awk '/%CSIZE%/{getline; print; exit}' "$d")
-            got=$(curl -fsSI --retry 3 "$base/$fn" | tr -d '\r' | awk 'tolower($1)=="content-length:"{print $2}') || got=""
+            got=$(awk -v f="$fn" '$NF==f{print $1; exit}' "$tmp/ls")
             if [[ "$got" != "$cs" ]]; then
-              echo "::error::$fn: db records $cs bytes, mirror serves ${got:-nothing}"
+              echo "::error::$fn: db records $cs bytes, bucket holds ${got:-nothing}"
               bad=1
             fi
-            if ! curl -fsSI --retry 3 -o /dev/null "$base/$fn.sig"; then
-              echo "::error::$fn.sig missing from the mirror"
+            if ! awk -v f="$fn.sig" '$NF==f{found=1} END{exit !found}' "$tmp/ls"; then
+              echo "::error::$fn.sig missing from the bucket"
               bad=1
             fi
           done
