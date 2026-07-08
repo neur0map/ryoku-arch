@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 # next Ryoku version from the repo-root VERSION file.
 #
-#   ryoku-release-bump <patch|minor|major> <alpha|beta|stable>
+#   ryoku-release-bump <patch|minor|major> <alpha|beta|stable|keep>
 #
 # prints the bumped version, no leading "v". stable = bare semver; alpha/beta
-# append "-<stage>.0".
+# append "-<stage>.0"; keep preserves the current pre-release suffix, so an
+# unstable patch bump keeps the hand-set beta line (0.1.2-beta.16 -> 0.1.3-beta.16).
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 base=$(tr -d '[:space:]' < "$ROOT/VERSION")
 
-bump=${1:?usage: ryoku-release-bump <patch|minor|major> <alpha|beta|stable>}
-stage=${2:?usage: ryoku-release-bump <patch|minor|major> <alpha|beta|stable>}
+bump=${1:?usage: ryoku-release-bump <patch|minor|major> <alpha|beta|stable|keep>}
+stage=${2:?usage: ryoku-release-bump <patch|minor|major> <alpha|beta|stable|keep>}
 
 IFS=. read -r major minor patch <<<"${base%%-*}"
 
@@ -27,5 +28,10 @@ next="${major}.${minor}.${patch}"
 case "$stage" in
   stable) printf '%s\n' "$next" ;;
   alpha|beta) printf '%s-%s.0\n' "$next" "$stage" ;;
+  keep)
+    suffix=""
+    [[ $base == *-* ]] && suffix="-${base#*-}"
+    printf '%s%s\n' "$next" "$suffix"
+    ;;
   *) echo "ryoku-release-bump: unknown stage: $stage" >&2; exit 2 ;;
 esac

@@ -1,0 +1,64 @@
+name: Unstable Version Bump
+
+# Every push to unstable-dev nudges the base version forward one patch, keeping
+# the hand-set beta line (VERSION goes 0.1.2-beta.16 -> 0.1.3-beta.16 -> ...).
+# main is never bumped here, so it holds its version until unstable-dev merges
+# in and it adopts whatever the base has climbed to. The minor, the beta number,
+# and the leading 0 stay a hand call: edit VERSION yourself and this leaves it be.
+
+on:
+  push:
+    branches: [unstable-dev]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unstable-version-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    name: Bump patch on unstable-dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout unstable-dev
+        uses: actions/checkout@v4
+        with:
+          ref: unstable-dev
+          fetch-depth: 0
+
+      - name: Bump the patch, keep the beta line
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # a push that hand-edits VERSION is a deliberate bump (a new beta, minor,
+          # major, or base) so leave it exactly as set. pushes made with the default
+          # GITHUB_TOKEN do not retrigger workflows, so the bot's own bump can't loop.
+          before="${{ github.event.before }}"
+          [[ $before =~ ^0+$ ]] && before="HEAD~1"
+          if ! git diff --quiet "$before" HEAD -- VERSION; then
+            echo "VERSION was hand-set in this push; leaving it." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          was="$(tr -d '[:space:]' < VERSION)"
+          next="$(./bin/ryoku-release-bump patch keep)"
+          printf '%s\n' "$next" > VERSION
+
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add VERSION
+          git commit -m "release: bump unstable to $next"
+
+          # land on top of anything that arrived while we were building.
+          git pull --rebase origin unstable-dev
+          git push origin HEAD:unstable-dev
+
+          {
+            echo "### Unstable version bump"
+            echo
+            echo "- Was: \`$was\`"
+            echo "- Now: \`$next\`"
+          } >> "$GITHUB_STEP_SUMMARY"

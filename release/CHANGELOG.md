@@ -21,6 +21,15 @@
   profile allows. Users can override it in `~/.config/wireplumber/wireplumber.conf.d/`.
 
 ### Added
+- unstable-dev climbs its own version now. A new `unstable-version-bump`
+  workflow nudges `VERSION` forward one patch on every push to the branch and
+  keeps the hand-set beta line (`0.1.2-beta.16` -> `0.1.3-beta.16` -> ...), so
+  the base grows with the work instead of sitting still until a release. `main`
+  is never touched here; it holds its version until unstable-dev merges in and
+  adopts whatever the base has reached. A push that hand-edits `VERSION` (a new
+  beta, a minor, a major, a fresh base) is taken as deliberate and left alone,
+  and `ryoku-release-bump` gained a `keep` stage that bumps the number while
+  preserving that pre-release suffix.
 - `ryoku-rashin` ships the `rashin` terminal command as a `/usr/bin/rashin`
   symlink to the daemon binary (argv0 dispatch, the busybox pattern), and
   `ryoku-desktop` lays `ryoku/apps/fish/conf.d/rashin.fish` into the base
