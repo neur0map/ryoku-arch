@@ -99,6 +99,7 @@ func cmdUpdate(_ []string) error {
 	} else if handled {
 		rashinReindex()
 		offerSnapperHelpers()
+		offerWallpaperDaemons()
 		runFreshDoctor()
 		snapperPost(pre, "ryoku-update")
 		fmt.Println("==> Update complete")
@@ -137,6 +138,7 @@ func cmdUpdate(_ []string) error {
 	rashinReindex()
 
 	offerSnapperHelpers()
+	offerWallpaperDaemons()
 	runFreshDoctor()
 	snapperPost(pre, "ryoku-update")
 	fmt.Println("==> Update complete")
@@ -208,6 +210,36 @@ func offerSnapperHelpers() {
 		if err := run(tool, p); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: installing %s failed: %v\n", p, err)
 		}
+	}
+}
+
+// offerWallpaperDaemons: ask before installing the AUR wallpaper backends a
+// Ryoku desktop drives. awww paints image wallpapers; mpvpaper plays the live
+// (video) ones. both are AUR, so `ryoku update`'s `yay -Sua` never installs them
+// fresh, and a box that predates them can't set a wallpaper (or a live pick only
+// shows a still frame). opt-in + best-effort, like the snapper helpers.
+func offerWallpaperDaemons() {
+	if !exists(homeDir()+"/.config/hypr") && !has("Hyprland") {
+		return
+	}
+	var want []string
+	if !has("awww") && !has("swww") {
+		want = append(want, "awww-git")
+	}
+	if !has("mpvpaper") {
+		want = append(want, "mpvpaper")
+	}
+	if len(want) == 0 {
+		return
+	}
+	detail := "awww paints image wallpapers; mpvpaper plays the live (video) ones. Without them ryowalls can't set a wallpaper, and a live pick only shows a still frame."
+	if !askInstall("Install the wallpaper backends?", detail, want) {
+		fmt.Printf("==> Wallpaper backends skipped (%s); ryoku doctor keeps recommending them\n", strings.Join(want, ", "))
+		return
+	}
+	fmt.Printf("==> Installing wallpaper backends: %s\n", strings.Join(want, ", "))
+	if err := run("ryoku-pkg-aur-add", want...); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: installing wallpaper backends failed: %v\n", err)
 	}
 }
 

@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- `ryoku update` offers to install the wallpaper backends (`awww` + `mpvpaper`)
+  when a desktop is missing them, the same consent-gated, best-effort pattern as
+  the snapshot helpers. Both are AUR, so `yay -Sua` never installs them fresh and
+  a box that predates them can't set a wallpaper (and without mpvpaper a live pick
+  only shows a still frame). Decline leaves them to `ryoku doctor` to recommend.
 - `ryoku update` offers to install the snapshot helpers when they are missing
   (`snap-pac`, and `limine-snapper-sync` on a Limine system) rather than leaving
   them as a standing `doctor` recommendation. It asks first: a Hub-launched update
