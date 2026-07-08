@@ -256,6 +256,7 @@ func isVideo(p string) bool {
 }
 
 func liveAlive() bool { return exec.Command("pgrep", "-x", liveDaemon).Run() == nil }
+
 // stopLive terminates every mpvpaper and waits for it to exit, so a following
 // awww image or a fresh mpvpaper is never raced by a lingering one: an async
 // pkill let the old instance and a just-launched one coexist and leak.
@@ -300,7 +301,11 @@ func (d *daemon) showLiveWallpaper(pic string) error {
 	stopLive()
 	sock := liveSockPath()
 	_ = os.Remove(sock) // the killed instance's stale socket
-	opts := "no-audio loop-file=inf hwdec=auto panscan=1.0 input-ipc-server=" + sock
+	// no-config + load-scripts=no keep mpv-mpris out of the wallpaper mpv: without
+	// them the clip registers as an MPRIS player, so the shell's NowPlaying shows
+	// the silent wallpaper as media and its play/pause fights the real music --
+	// pausing music hands the slot to the wallpaper, resuming it freezes the clip.
+	opts := "no-config load-scripts=no no-audio loop-file=inf hwdec=auto panscan=1.0 input-ipc-server=" + sock
 	if err := exec.Command(liveDaemon, "-f", "-o", opts, "ALL", pic).Run(); err != nil {
 		return err
 	}

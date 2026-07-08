@@ -9,6 +9,12 @@
   wave is unchanged; only the transcription engine behind it moved.
 
 ### Fixed
+- **Live wallpapers no longer hijack the media controls.** mpvpaper is an mpv
+  instance, and with `mpv-mpris` installed it registered the wallpaper clip as an
+  MPRIS player: the launcher's NowPlaying listed the silent wallpaper as video,
+  pausing your music handed the now-playing slot to it, and the MPRIS play/pause
+  crosstalk froze the clip when music resumed. The wallpaper mpv now launches with
+  `no-config load-scripts=no`, so the plugin never attaches.
 - **Live wallpapers set without mpvpaper now, instead of erroring.** Setting a
   video called `mpvpaper` unguarded, so on a box without that optional AUR daemon
   ryowalls reported "Could not set wallpaper" even though the clip downloaded. The
