@@ -90,3 +90,10 @@
   comment-only stubs for the six optional files after `ryoku materialize`;
   they become redundant (but stay harmless) once the searchpath-probing
   loader ships in `ryoku-desktop`.
+- The package step now survives a repo publish landing mid-install. It
+  clears leftover `.part` downloads first (a resume against a mirror whose
+  same-name bytes changed trips pacman's "Maximum file size exceeded" cap,
+  and every retry inherited the stale prefix), and installs with
+  `pacman -Syu` instead of `-S`, so a resumed run transacts against the db
+  the mirror serves now rather than the one its first attempt synced. Pairs
+  with the publish-side fix that makes published filenames immutable.

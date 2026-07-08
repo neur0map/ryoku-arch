@@ -647,7 +647,19 @@ func stepPackages(e *engine) error {
 	if e.p.devtools {
 		pkgs = append(pkgs, devPkgs...)
 	}
-	return e.sudo(append([]string{"pacman", "-S", "--needed", "--noconfirm"}, pkgs...)...)
+	// leftover .part files resume against a mirror whose same-name bytes may
+	// have moved on since the aborted attempt; pacman then trips its size cap
+	// ("Maximum file size exceeded") and every retry inherits the same stale
+	// prefix. partial downloads are pure resume state, dropping them only
+	// costs the re-download.
+	if err := e.sudoSh(`rm -f /var/cache/pacman/pkg/*.part`); err != nil {
+		e.say("warning: could not clear partial downloads (continuing)")
+	}
+	// -Syu, not -S: a resumed run re-enters here with the db its first
+	// attempt synced, and a publish can land in between, replacing or
+	// pruning the files that db points at. refreshing and upgrading in the
+	// same transaction installs against what the mirror serves right now.
+	return e.sudo(append([]string{"pacman", "-Syu", "--needed", "--noconfirm"}, pkgs...)...)
 }
 
 func stepDrivers(e *engine) error {
