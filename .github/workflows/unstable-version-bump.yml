@@ -1,7 +1,8 @@
 name: Unstable Version Bump
 
-# Every push to unstable-dev nudges the base version forward one patch, keeping
-# the hand-set beta line (VERSION goes 0.1.2-beta.16 -> 0.1.3-beta.16 -> ...).
+# Every push to unstable-dev nudges the base version forward: a patch each time,
+# rolling to the next minor once the patch passes 9 (0.1.9 -> 0.2.0), keeping the
+# hand-set beta line (VERSION goes 0.1.2-beta.16 -> 0.1.3-beta.16 -> ...).
 # main is never bumped here, so it holds its version until unstable-dev merges
 # in and it adopts whatever the base has climbed to. The minor, the beta number,
 # and the leading 0 stay a hand call: edit VERSION yourself and this leaves it be.
@@ -19,7 +20,7 @@ concurrency:
 
 jobs:
   bump:
-    name: Bump patch on unstable-dev
+    name: Bump version on unstable-dev
     runs-on: ubuntu-latest
     steps:
       - name: Checkout unstable-dev
@@ -28,7 +29,7 @@ jobs:
           ref: unstable-dev
           fetch-depth: 0
 
-      - name: Bump the patch, keep the beta line
+      - name: Bump the version, keep the beta line
         shell: bash
         run: |
           set -euo pipefail
@@ -44,7 +45,7 @@ jobs:
           fi
 
           was="$(tr -d '[:space:]' < VERSION)"
-          next="$(./bin/ryoku-release-bump patch keep)"
+          next="$(./bin/ryoku-release-bump roll keep)"
           printf '%s\n' "$next" > VERSION
 
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
