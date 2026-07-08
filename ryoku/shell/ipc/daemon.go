@@ -129,12 +129,24 @@ func runDaemon() error {
 
 // setupQmlImportPath puts the home-installed Ryoku QML modules (the Ryoku.Blobs
 // plugin behind the frame) on the import path the supervised quickshell
-// processes inherit. deploy.sh and the installer install the module under
-// ~/.local/lib/qt6/qml, which is not a default Qt import path.
+// processes inherit. deploy.sh installs the modules under ~/.local/lib/qt6/qml,
+// which is not a default Qt import path.
+//
+// Only a home-deployed daemon (a dev checkout or a recovery run, itself living
+// in ~/.local/bin) prefers that dir; a packaged /usr/bin daemon sticks to the
+// packaged modules under /usr/lib/qt6/qml. Whoever owns the daemon owns the
+// QML: without this, one old deploy leaves a frozen plugin that silently
+// shadows every future pacman update of ryoku-blobs.
 func setupQmlImportPath() {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return
+	}
+	exe, _ := os.Executable()
+	if !strings.HasPrefix(exe, home+string(os.PathSeparator)) {
+		if _, err := os.Stat("/usr/lib/qt6/qml/Ryoku/Blobs/qmldir"); err == nil {
+			return
+		}
 	}
 	dir := filepath.Join(home, ".local", "lib", "qt6", "qml")
 	for _, v := range []string{"QML2_IMPORT_PATH", "QML_IMPORT_PATH"} {

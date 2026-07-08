@@ -114,6 +114,23 @@ void BlobRect::updatePhysics() {
     m_dmVel11 = (m_dmVel11 - kStiffness * (m_dm11 - target11) * dt) * invDamp;
     m_dm11 += m_dmVel11 * dt;
 
+    // The target stretch caps at 1.35, so a component a whole unit off identity
+    // (or non-finite) is a diverged integration, not motion. Snap it to rest
+    // instead of drawing the garbage forever: checkAtRest can never pass from a
+    // diverged state, and one dropped squash frame is invisible.
+    if (!std::isfinite(m_dm00) || !std::isfinite(m_dm01) || !std::isfinite(m_dm11) ||
+        std::abs(m_dm00 - 1.0f) > 1.0f || std::abs(m_dm01) > 1.0f || std::abs(m_dm11 - 1.0f) > 1.0f) {
+        m_dm00 = 1.0f;
+        m_dm01 = 0.0f;
+        m_dm11 = 1.0f;
+        m_dmVel00 = m_dmVel01 = m_dmVel11 = 0.0f;
+        m_deformMatrix = QMatrix4x4();
+        emit rawDeformMatrixChanged();
+        updateCenteredDeformMatrix();
+        m_physicsActive = false;
+        return;
+    }
+
     m_deformMatrix = QMatrix4x4(m_dm00, m_dm01, 0, 0, m_dm01, m_dm11, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
     emit rawDeformMatrixChanged();
     updateCenteredDeformMatrix();

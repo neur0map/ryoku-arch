@@ -2,6 +2,51 @@
 
 ## Unreleased
 
+### Fixed
+- **Popouts now melt fully flush instead of stalling and snapping shut.** The
+  blob body kept its full neck buried in the frame band until the very last
+  frame of a close, and the smooth-min fillet held the fused edge a couple of
+  pixels proud of the band; when the shape hit zero size it was deleted in one
+  frame, ledge, wings and outline all vanishing at once. The body now retracts
+  its inner face one smoothing-depth into the border as the close progresses,
+  so the silhouette is already flush when the shape drops out. The mirrored
+  pop-in on the first open frame is gone too.
+- **A closing popout no longer teleports along the bar.** Opening popout B
+  while A was up wrote the new icon centre while A was still pinned, so A
+  jumped under B's icon (or to bar centre on a keybind) and melted there. The
+  toggle now unpins the old popout before moving the anchor, so it melts where
+  it opened.
+- **Click-opened popouts close the moment you ask.** The body-hover latch that
+  keeps the media hover panel alive while the pointer crosses onto it also
+  applied to pinned popouts, so a close button, Escape or a keybind re-toggle
+  appeared dead until the pointer left the panel. The latch is now scoped to
+  hover-driven popouts.
+- **Dragging the recording island no longer snaps it home mid-drag.** The
+  overlay's input region only covered the island's current rectangle, and the
+  island clamps at the frame lips, so a drag toward an edge let the pointer
+  slide off the rect: the compositor dropped the grab and the return-to-frame
+  spring yanked the island back while the button was still held. The mask now
+  widens to the whole surface for the duration of the drag.
+- **Wallpaper matching keeps the shell readable on loud wallpapers.** A
+  saturated red wallpaper made wallust emit a bright crimson background, and
+  the shell painted the frame, bar, popouts, launcher and widgets with it raw:
+  red icons on red surface at 1.2:1. The Wallust singletons now tone-map the
+  background into the shell's dark band (hue kept, value and saturation
+  clamped) and walk accents toward white until they clear 3:1 against the
+  surface. Dark palettes pass through byte-identical, so nothing changes on a
+  well-behaved wallpaper. The media popout's time labels also move from the
+  decorative `faint` token to `dim` so position and duration stay legible.
+- **A home-deployed Ryoku.Blobs plugin can no longer shadow the packaged one.**
+  The daemon prepended `~/.local/lib/qt6/qml` to the QML import path
+  unconditionally, so one old deploy or recovery run pinned the compiled blob
+  plugin at that vintage forever, ignoring every later `ryoku-blobs` update.
+  Now only a home-deployed daemon (a dev checkout or recovery) prefers the
+  home modules; a packaged `/usr/bin/ryoku-shell` loads the packaged plugin.
+- **The blob deform spring can never draw diverged geometry.** If the
+  integration state ever goes non-finite or lands a whole unit off identity
+  (the target stretch caps at 1.35), the plugin snaps that shape to rest
+  instead of rendering the garbage on every following frame.
+
 ### Changed
 - **Voice dictation now runs on Voxtype, not Handy.** Super+` drives Voxtype
   (from `voxtype-bin`) with `voxtype record start`/`stop` on the tap, and its
