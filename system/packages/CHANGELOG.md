@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- `base.packages`: add `ddcutil`, and `aur.packages`: add `nvibrant-bin`. The
+  pill mixer's DISPLAY section drives external-monitor brightness through
+  `ddcutil` (DDC/CI) and NVIDIA screen vibrance through `nvibrant`, both
+  unguarded and declared nowhere, so on a packaged install those faders were
+  silently dead. `ddcutil` ships from `extra`; `nvibrant-bin` is AUR (a no-op on
+  non-NVIDIA GPUs). `tests/shell-tool-availability.sh` gained rows for both so
+  CI catches the next such gap.
 - `aur.packages`: add `mpvpaper`. ryowalls' Live tab plays video wallpapers
   through it (mpv on the background layer), but it was only an optdepend of
   `ryoku-desktop`, so a packaged install never pulled it and live wallpapers never

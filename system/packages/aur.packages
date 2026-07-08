@@ -38,6 +38,10 @@ awww-git
 # `mpvpaper` (mpv on the background layer). AUR-only, like the daemon above.
 mpvpaper
 
+# NVIDIA digital vibrance for the pill mixer's DISPLAY saturation fader, on
+# Wayland (ioctls on /dev/nvidia-modeset). AUR-only; a no-op on non-NVIDIA GPUs.
+nvibrant-bin
+
 # LocalSend: AirDrop-style LAN file sharing; the pill's file stash speaks its protocol.
 localsend-bin
 

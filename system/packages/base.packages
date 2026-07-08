@@ -135,6 +135,8 @@ hyprpicker
 imagemagick
 jq
 openrgb
+# external-monitor brightness for the pill mixer's DISPLAY faders, over DDC/CI
+ddcutil
 yazi
 
 # File stash + weather: LocalSend, AppImage/tar install, ffmpeg compress,

@@ -43,6 +43,8 @@ declare -A need=(
   [calc]=libqalculate
   [music-mpris]=mpv-mpris
   [music-recognition]=songrec
+  [display-brightness]=ddcutil
+  [vibrance]=nvibrant-bin
 )
 
 missing=()
