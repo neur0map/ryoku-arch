@@ -95,7 +95,9 @@ Item {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.fmt(root.scrubbing ? root.scrubFrac * root.len : root.pos)
-                color: Theme.faint
+                // dim, not faint: position/duration is information, and faint
+                // drops below reading contrast on the wallust-matched surfaces.
+                color: Theme.dim
                 font.family: Theme.mono
                 font.pixelSize: 10 * root.s
             }
@@ -103,7 +105,7 @@ Item {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.fmt(root.len)
-                color: Theme.faint
+                color: Theme.dim
                 font.family: Theme.mono
                 font.pixelSize: 10 * root.s
             }

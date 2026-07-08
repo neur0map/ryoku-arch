@@ -23,10 +23,23 @@ Singleton {
     // shell-wide "Match wallpaper" toggle (theme.json.FollowWallpaper) + the
     // surface ramp it drives. base = terminal background exactly; rest shift value.
     readonly property bool  matchWallpaper: shellCfg.followWallpaper
-    readonly property color base:     background
-    readonly property color elevated: tone(background, 0.05)
-    readonly property color deep:     tone(background, -0.03)
-    readonly property color line:     tone(background, 0.14)
+    readonly property color base:     shade(background)
+    readonly property color elevated: tone(base, 0.05)
+    readonly property color deep:     tone(base, -0.03)
+    readonly property color line:     tone(base, 0.14)
+
+    // Tone-map the wallpaper background into the shell's dark band, hue kept:
+    // HSV value inside [0.08, 0.26] passes through, pure black lifts to a soft
+    // near-black, brighter compresses to just past the ceiling; saturation caps
+    // at 0.55 so a saturated wallpaper reads as a deep tint, never neon.
+    function shade(c) {
+        var hue = c.hsvHue < 0 ? 0 : c.hsvHue;
+        var s = Math.min(c.hsvSaturation, 0.55);
+        var v = c.hsvValue;
+        if (v < 0.08)      v = 0.08;
+        else if (v > 0.26) v = 0.26 + (v - 0.26) * 0.06;
+        return Qt.hsva(hue, s, v, 1);
+    }
 
     readonly property var ramp: [
         vivid(adapter.color1),
