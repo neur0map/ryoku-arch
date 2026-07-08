@@ -146,6 +146,7 @@ void BlobInvertedRect::setBorderLeft(qreal v) {
     emit borderLeftChanged();
     if (m_group)
         m_group->markDirty();
+    update();
 }
 
 void BlobInvertedRect::setBorderRight(qreal v) {
@@ -155,6 +156,7 @@ void BlobInvertedRect::setBorderRight(qreal v) {
     emit borderRightChanged();
     if (m_group)
         m_group->markDirty();
+    update();
 }
 
 void BlobInvertedRect::setBorderTop(qreal v) {
@@ -164,6 +166,7 @@ void BlobInvertedRect::setBorderTop(qreal v) {
     emit borderTopChanged();
     if (m_group)
         m_group->markDirty();
+    update();
 }
 
 void BlobInvertedRect::setBorderBottom(qreal v) {
@@ -173,6 +176,7 @@ void BlobInvertedRect::setBorderBottom(qreal v) {
     emit borderBottomChanged();
     if (m_group)
         m_group->markDirty();
+    update();
 }
 
 void BlobInvertedRect::registerWithGroup() {

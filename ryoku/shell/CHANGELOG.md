@@ -17,10 +17,18 @@
   lobes fused under the module clusters (left: seal, workspaces, title; centre:
   clock, plus now-playing while it sounds; right: status, tray, power), so the
   bar dips between the three instead of swelling into one straight band. The
-  lobes are `BlobRect`s in the frame's own field, so popouts still melt from
-  them; the other skins keep their straight band.
+  lobes are `BlobRect`s in the frame's own field. A popout on triptych is
+  frame-aware: its own section swells to a full band to host it while the other
+  clusters keep their dips, and on close that band holds through the body's melt
+  then eases back down to the dip, so the popout melts flush instead of popping
+  against the hairline. The other skins keep their straight band.
 
 ### Fixed
+- **A runtime frame-border change repaints.** `BlobInvertedRect`'s border
+  setters marked the blob group dirty but never scheduled the item's own
+  repaint, so a border-thickness change at runtime, switching bar skins or
+  moving the bar between edges, left the old band on screen until the next
+  geometry change happened to nudge it. The setters now schedule the repaint.
 - **A popout close is one monotonic melt again.** The visible dip-then-pop
   was the border sink: the melt buries the body rect fully inside the frame
   band, which is exactly the state that makes the inverted border's inner

@@ -222,6 +222,33 @@ Item {
     // the fillet residual is already zero when the shape drops out.
     readonly property real burial: (1 - Math.max(0, Math.min(1, prog))) * smoothing
 
+    // triptych's top frame is a hairline that dips between the three lobes. a
+    // popout there fills the band across its OWN span while open (bodyBlob's
+    // neck does that); this backing band HOLDS that fill through the body's
+    // close melt, then eases back down to the dip once the body is gone -- so
+    // the popout melts flush and the frame closes behind it, never popping
+    // against a dip. only this popout's section fills; the other clusters keep
+    // their dips, so the frame stays aware of its own shape.
+    readonly property bool dipHost: Config.barStyle === "triptych" && atTop
+    readonly property bool bandShown: dipHost && (heldOpen || prog > 0.02)
+
+    BlobRect {
+        id: dipBand
+        group: root.group
+        visible: root.dipHost
+        x: root.bodyX
+        y: 0
+        implicitWidth: root.dipHost ? root.bodyOpenW : 0
+        implicitHeight: root.bandShown ? root.frameThickness : 0
+        topLeftRadius: 0
+        topRightRadius: 0
+        bottomLeftRadius: root.hugLeft ? 0 : Math.min(16 * root.s, root.frameThickness / 2)
+        bottomRightRadius: root.hugRight ? 0 : Math.min(16 * root.s, root.frameThickness / 2)
+        deformScale: 0.000015
+        sinks: false
+        Behavior on implicitHeight { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+    }
+
     BlobRect {
         id: bodyBlob
         readonly property real reach: root.frameThickness + root.smoothing
