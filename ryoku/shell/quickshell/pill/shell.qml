@@ -550,7 +550,8 @@ ShellRoot {
                 Region { x: toastPop.bodyX; y: toastPop.bodyY; width: toastPop.bodyW; height: toastPop.bodyH }
                 Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
                 Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
-                Region { x: recHud.hudX; y: recHud.hudY; width: Recorder.active ? recHud.hudW : 0; height: Recorder.active ? recHud.hudH : 0 }
+                Region { x: recHud.hudX; y: recHud.hudY; width: (Recorder.active && recHud.prog > 0.25) ? recHud.hudW : 0; height: (Recorder.active && recHud.prog > 0.25) ? recHud.hudH : 0 }
+                Region { x: recHud.trigX; y: recHud.trigY; width: Recorder.active ? recHud.trigW : 0; height: Recorder.active ? recHud.trigH : 0 }
             }
 
             MouseArea {
@@ -1032,6 +1033,8 @@ ShellRoot {
                     group: blobGroup
                     s: overlay.s
                     smoothing: Config.frameSmoothing
+                    barEdge: (Config.barEnabled && !overlay.monFullscreen) ? overlay.barPos : ""
+                    barBand: overlay.barBand
                 }
 
             }

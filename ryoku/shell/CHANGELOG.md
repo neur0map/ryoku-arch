@@ -33,11 +33,13 @@
 - **A recording control that lives in the frame's blob field.** While a screen
   recording runs, a small island melts out of the nearest frame edge: a 6-dot
   drag handle, the elapsed time beside a pulsing dot, pause/stop, and mic +
-  desktop-audio mutes. Grab the handle to pull it off into a floating island;
-  as it nears any edge the frame and the island reach for each other and merge
-  (both surfaces bulge, like two drops), and letting go drifts it to the
-  closest edge. On a side edge it turns vertical while you hold it. It melts
-  back into the frame when recording ends, leaving no mark.
+  desktop-audio mutes. Grab it anywhere on the body to pull it off into a
+  floating island; as it nears any edge the frame and the island reach for each
+  other and merge (both surfaces bulge, like two drops). Let go anywhere, even
+  at a corner, and it settles back onto the nearest edge. On a side edge it
+  turns vertical while you hold it. A hide button tucks it to a nub that
+  hovering pops back out, and it melts into the frame when recording ends,
+  leaving no mark.
 - **The app launcher reads its look from a config the Hub edits.** A new
   `~/.config/ryoku/launcher.json` (watched live) sets the palette's corner
   roundness, the home card's weather units (Auto follows the locale, or force

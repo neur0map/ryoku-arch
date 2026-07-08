@@ -5,12 +5,12 @@ import Ryoku.Blobs
 import "Singletons"
 
 // Draggable recording control that lives in the frame's blob field. At rest it
-// is fused to a frame edge; grabbing the 6-dot handle pulls it into a floating
-// island, and as it nears an edge the blob reach stretches to weld through the
-// border, so the two surfaces reach for each other like magnets. Let go and it
-// falls to the nearest edge. On a side edge it turns vertical. It melts out of
-// the frame when recording begins and back into it when recording ends, so it
-// never leaves a mark. Everything eases slowly; nothing snaps.
+// is fused to a frame edge; grab the 6-dot handle to pull it into a floating
+// island. As it nears an edge, the island and a matching frame bump reach for
+// each other and merge like two drops; let go and it drifts slowly to the
+// nearest edge. On a side edge it turns vertical while held. Hide tucks it to a
+// small nub that hovering pops back out. It melts into the frame when recording
+// ends, leaving no mark. Nothing snaps.
 Item {
     id: hud
 
@@ -18,119 +18,166 @@ Item {
     property real s: 1
     property real radius: 17 * s
     property real smoothing: 30
+    // the bar thickens the edge it sits on, so that edge's border is deeper.
+    property string barEdge: ""
+    property real barBand: 0
 
     readonly property int moveDur: 560
     readonly property int meltDur: 620
+    readonly property int mergeDur: 1700
 
     anchors.fill: parent
 
-    readonly property real lip: Math.max(0, Config.frameBorder - 50)
-
-    // melt: 0 fully in the border, 1 fully out. drives appear / disappear and
-    // gates group membership so a hidden HUD leaves no weld behind.
-    property real prog: 0
-    states: State { name: "out"; when: Recorder.active; PropertyChanges { hud.prog: 1 } }
-    transitions: Transition { NumberAnimation { property: "prog"; duration: hud.meltDur; easing.type: Easing.InOutCubic } }
-    readonly property bool live: hud.prog > 0.002
-    visible: hud.live
+    readonly property real baseLip: Math.max(0, Config.frameBorder - 50)
+    function lipFor(e) { return hud.baseLip + (e === hud.barEdge ? hud.barBand : 0); }
+    readonly property real lipT: hud.lipFor("top")
+    readonly property real lipB: hud.lipFor("bottom")
+    readonly property real lipL: hud.lipFor("left")
+    readonly property real lipR: hud.lipFor("right")
 
     property string dockEdge: "bottom"
     property real alongPx: 0
     property bool placed: false
+    readonly property bool dragging: dragH.active
+    property bool hidden: false
+
     onWidthChanged: hud.reposition()
     onHeightChanged: hud.reposition()
     function reposition() {
         if (hud.placed || hud.width <= 0)
             return;
         hud.alongPx = (hud.width - hud.bodyW) / 2;
+        hud.px = hud.dockX;
+        hud.py = hud.dockY;
         hud.placed = true;
     }
 
-    property bool dragging: false
-    property real freeX: 0
-    property real freeY: 0
+    // --- reveal + melt: 0 in the border, 1 fully out, a small nub when hidden.
+    property bool revealHeld: false
+    readonly property bool revealed: bodyHov.hovered || edgeHov.hovered
+    onRevealedChanged: {
+        if (hud.revealed) { revealGrace.stop(); hud.revealHeld = true; }
+        else revealGrace.restart();
+    }
+    Timer { id: revealGrace; interval: 260; onTriggered: hud.revealHeld = false }
 
-    // turn vertical whenever a side edge is the nearest one and within range, so
-    // it reorients while still held, not only after release.
+    readonly property real nubProg: 0.09
+    readonly property real wantProg: !Recorder.active ? 0 : ((!hud.hidden || hud.revealHeld) ? 1 : hud.nubProg)
+    property real prog: hud.wantProg
+    Behavior on prog { NumberAnimation { duration: hud.meltDur; easing.type: Easing.InOutCubic } }
+    readonly property bool live: hud.prog > 0.002
+    visible: hud.live
+
+    // --- orientation: vertical while a side edge is nearest and within range,
+    // so it reorients while held. content fades out, the layout flips at the
+    // bottom of the dip (the reflow is never seen), then fades back in.
     readonly property real orientThreshold: 220 * hud.s
-    readonly property int mergeDur: 850
-    readonly property bool vertical: (hud.nearEdge === "left" || hud.nearEdge === "right") && hud.nearGap < hud.orientThreshold
-    // the layout flips only at the bottom of a fade dip so the reflow is never
-    // seen; the blob morphs across the change, both ways.
+    // orientation comes from the dock when docked, or the drag anchor px against
+    // a fixed reference width while dragging, never the live bodyW. reading the
+    // morphing body here fed the layout flip back into the decision and made it
+    // oscillate at the threshold, which is the binding loop and the corner glitch.
+    readonly property real orientRefW: 210 * hud.s
+    readonly property real orientGap: hud.nearEdge === "left" ? (hud.px - hud.lipL)
+        : (hud.width - hud.lipR) - (hud.px + hud.orientRefW)
+    readonly property bool vertical: hud.dragging
+        ? ((hud.nearEdge === "left" || hud.nearEdge === "right") && hud.orientGap < hud.orientThreshold)
+        : (hud.dockEdge === "left" || hud.dockEdge === "right")
     property bool layoutVertical: false
-    onVerticalChanged: reorient.restart()
+    // the fade chases 1 once the layout matches the orientation, 0 while it still
+    // has to flip; the flip happens at the bottom of the dip. because the target
+    // snaps back to 1 the instant they match, the fade can't starve at 0 however
+    // fast the orientation flips around a corner, so the island is never left
+    // blank and stuck.
     property real reorientFade: 1
-    SequentialAnimation {
-        id: reorient
-        NumberAnimation { target: hud; property: "reorientFade"; to: 0; duration: 240; easing.type: Easing.InOutCubic }
-        ScriptAction { script: hud.layoutVertical = hud.vertical }
-        NumberAnimation { target: hud; property: "reorientFade"; to: 1; duration: 380; easing.type: Easing.InOutCubic }
+    Behavior on reorientFade { NumberAnimation { duration: 300; easing.type: Easing.InOutCubic } }
+    onVerticalChanged: hud.reorientFade = (hud.layoutVertical === hud.vertical) ? 1 : 0
+    onReorientFadeChanged: {
+        if (hud.reorientFade <= 0.02 && hud.layoutVertical !== hud.vertical) {
+            hud.layoutVertical = hud.vertical;
+            hud.reorientFade = 1;
+        }
     }
     Component.onCompleted: hud.layoutVertical = hud.vertical
 
-    // body tracks the control grid, which reflows between a row and a column;
-    // the size morphs so the blob reshapes as it turns.
     property real bodyW: grid.implicitWidth + 20 * hud.s
     property real bodyH: grid.implicitHeight + 14 * hud.s
     Behavior on bodyW { NumberAnimation { duration: hud.moveDur; easing.type: Easing.InOutCubic } }
     Behavior on bodyH { NumberAnimation { duration: hud.moveDur; easing.type: Easing.InOutCubic } }
 
-    readonly property real dockX: hud.dockEdge === "left" ? hud.lip
-        : hud.dockEdge === "right" ? (hud.width - hud.lip - hud.bodyW)
-        : Math.max(hud.lip, Math.min(hud.width - hud.lip - hud.bodyW, hud.alongPx))
-    readonly property real dockY: hud.dockEdge === "top" ? hud.lip
-        : hud.dockEdge === "bottom" ? (hud.height - hud.lip - hud.bodyH)
-        : Math.max(hud.lip, Math.min(hud.height - hud.lip - hud.bodyH, hud.alongPx))
-
-    property real px: hud.dragging ? hud.freeX : hud.dockX
-    property real py: hud.dragging ? hud.freeY : hud.dockY
+    readonly property real dockX: hud.dockEdge === "left" ? hud.lipL
+        : hud.dockEdge === "right" ? (hud.width - hud.lipR - hud.bodyW)
+        : Math.max(hud.lipL, Math.min(hud.width - hud.lipR - hud.bodyW, hud.alongPx))
+    readonly property real dockY: hud.dockEdge === "top" ? hud.lipT
+        : hud.dockEdge === "bottom" ? (hud.height - hud.lipB - hud.bodyH)
+        : Math.max(hud.lipT, Math.min(hud.height - hud.lipB - hud.bodyH, hud.alongPx))
+    property real px: 0
+    property real py: 0
     Behavior on px { enabled: !hud.dragging; NumberAnimation { duration: hud.mergeDur; easing.type: Easing.InOutCubic } }
     Behavior on py { enabled: !hud.dragging; NumberAnimation { duration: hud.mergeDur; easing.type: Easing.InOutCubic } }
+    // idle/docked, px,py track the dock and animate to it; a drag frees them.
+    // this is the fail-safe: the moment the pointer lifts, dragging goes false
+    // and the island is pulled back onto its edge, wherever it was let go.
+    Binding { target: hud; property: "px"; value: hud.dockX; when: !hud.dragging; restoreMode: Binding.RestoreNone }
+    Binding { target: hud; property: "py"; value: hud.dockY; when: !hud.dragging; restoreMode: Binding.RestoreNone }
+    onPxChanged: hud.settleEdge()
+    onPyChanged: hud.settleEdge()
 
+    // input-mask rects: the body while it's out, the edge strip so a hidden nub
+    // can be hovered back out. shell.qml unions both.
     readonly property real hudX: hud.px
     readonly property real hudY: hud.py
     readonly property real hudW: hud.bodyW
     readonly property real hudH: hud.bodyH
+    readonly property real trigDepth: hud.lipFor(hud.dockEdge) + 18 * hud.s
+    readonly property real trigX: hud.dockEdge === "right" ? (hud.width - hud.trigDepth) : (hud.dockEdge === "left" ? 0 : hud.dockX)
+    readonly property real trigY: hud.dockEdge === "bottom" ? (hud.height - hud.trigDepth) : (hud.dockEdge === "top" ? 0 : hud.dockY)
+    readonly property real trigW: (hud.dockEdge === "left" || hud.dockEdge === "right") ? hud.trigDepth : hud.bodyW
+    readonly property real trigH: (hud.dockEdge === "top" || hud.dockEdge === "bottom") ? hud.trigDepth : hud.bodyH
 
-    // nearest edge + how far the pill face sits from it; drives the magnet reach.
-    readonly property real gapT: hud.py - hud.lip
-    readonly property real gapB: (hud.height - hud.lip) - (hud.py + hud.bodyH)
-    readonly property real gapL: hud.px - hud.lip
-    readonly property real gapR: (hud.width - hud.lip) - (hud.px + hud.bodyW)
-    readonly property real nearGap: Math.max(0, Math.min(hud.gapT, hud.gapB, hud.gapL, hud.gapR))
-    readonly property string nearEdge: {
+    readonly property real gapT: hud.py - hud.lipT
+    readonly property real gapB: (hud.height - hud.lipB) - (hud.py + hud.bodyH)
+    readonly property real gapL: hud.px - hud.lipL
+    readonly property real gapR: (hud.width - hud.lipR) - (hud.px + hud.bodyW)
+    function gapOf(e) { return e === "top" ? hud.gapT : e === "bottom" ? hud.gapB : e === "left" ? hud.gapL : hud.gapR; }
+    readonly property string rawNearEdge: {
         var m = Math.min(hud.gapT, hud.gapB, hud.gapL, hud.gapR);
         return m === hud.gapT ? "top" : m === hud.gapB ? "bottom" : m === hud.gapL ? "left" : "right";
     }
+    property string nearEdge: "bottom"
+    // hysteresis: keep the current edge until another is clearly closer, so a
+    // drag along a diagonal or through the centre doesn't flip-flop.
+    function settleEdge() {
+        if (hud.rawNearEdge === hud.nearEdge)
+            return;
+        if (hud.gapOf(hud.rawNearEdge) < hud.gapOf(hud.nearEdge) - 30 * hud.s)
+            hud.nearEdge = hud.rawNearEdge;
+    }
+    readonly property real nearGap: Math.max(0, hud.gapOf(hud.nearEdge))
+    readonly property real nearLip: hud.lipFor(hud.nearEdge)
     readonly property real threshold: 90 * hud.s
     readonly property real approach: Math.max(0, Math.min(1, 1 - hud.nearGap / hud.threshold))
     readonly property real pull: hud.approach * hud.approach
     // both surfaces reach for each other: the island covers half the gap plus its
-    // weld into the border, the frame bump covers the other half, and smooth-min
-    // bridges the middle, so they meet like two drops rather than one reaching.
-    readonly property real islandReach: (hud.nearGap / 2 + hud.lip + hud.smoothing) * hud.pull
+    // weld into the border, the frame bump covers the other half.
+    readonly property real islandReach: (hud.nearGap / 2 + hud.nearLip + hud.smoothing) * hud.pull
     readonly property real bumpReach: (hud.nearGap / 2 + hud.smoothing) * hud.pull
     readonly property real extT: hud.nearEdge === "top" ? hud.islandReach : 0
     readonly property real extB: hud.nearEdge === "bottom" ? hud.islandReach : 0
     readonly property real extL: hud.nearEdge === "left" ? hud.islandReach : 0
     readonly property real extR: hud.nearEdge === "right" ? hud.islandReach : 0
 
-    // face = the blob's visible rect. melt shrinks it into the docked edge as
-    // prog drops, anchored at that edge, so it sinks into the border and leaves.
     readonly property bool vDock: hud.dockEdge === "left" || hud.dockEdge === "right"
     readonly property real faceW: hud.vDock ? hud.bodyW * hud.prog : hud.bodyW
     readonly property real faceH: hud.vDock ? hud.bodyH : hud.bodyH * hud.prog
     readonly property real faceX: hud.dockEdge === "right" ? (hud.px + hud.bodyW - hud.faceW) : hud.px
     readonly property real faceY: hud.dockEdge === "bottom" ? (hud.py + hud.bodyH - hud.faceH) : hud.py
 
-    // frame bump: a blob welded to the near edge that swells toward the island,
-    // aligned with it, so the frame reaches back as they close.
     readonly property bool bumpVert: hud.nearEdge === "top" || hud.nearEdge === "bottom"
-    readonly property real bumpLen: hud.bumpReach + hud.lip + hud.smoothing
-    readonly property real bumpX: hud.nearEdge === "right" ? (hud.width - hud.lip - hud.bumpReach)
+    readonly property real bumpLen: hud.bumpReach + hud.nearLip + hud.smoothing
+    readonly property real bumpX: hud.nearEdge === "right" ? (hud.width - hud.lipR - hud.bumpReach)
         : hud.nearEdge === "left" ? -hud.smoothing
         : hud.px
-    readonly property real bumpY: hud.nearEdge === "bottom" ? (hud.height - hud.lip - hud.bumpReach)
+    readonly property real bumpY: hud.nearEdge === "bottom" ? (hud.height - hud.lipB - hud.bumpReach)
         : hud.nearEdge === "top" ? -hud.smoothing
         : hud.py
 
@@ -166,6 +213,15 @@ Item {
         bottomRightRadius: (hud.nearEdge === "bottom" || hud.nearEdge === "right") ? 0 : hud.radius
     }
 
+    // edge strip: hovering here pops a hidden nub back out.
+    Item {
+        x: hud.trigX
+        y: hud.trigY
+        width: hud.trigW
+        height: hud.trigH
+        HoverHandler { id: edgeHov }
+    }
+
     Item {
         id: content
         x: hud.px
@@ -174,8 +230,43 @@ Item {
         height: hud.bodyH
         opacity: hud.prog * hud.reorientFade
         transform: Matrix4x4 { matrix: bodyBlob.deformMatrix }
+        HoverHandler { id: bodyHov; cursorShape: Qt.SizeAllCursor }
+        // the whole island is the drag surface, not the reflowing 6-dot grip:
+        // when it turns vertical the grip moves under the pointer, and a handler
+        // riding it would lose the grab mid-drag and hang the island floating.
+        // buttons keep their taps since a drag has to clear the threshold first.
+        DragHandler {
+            id: dragH
+            target: null
+            dragThreshold: 8
+            cursorShape: Qt.SizeAllCursor
+            property real sx: 0
+            property real sy: 0
+            property real ax: 0
+            property real ay: 0
+            onActiveChanged: {
+                if (dragH.active) {
+                    dragH.sx = hud.px;
+                    dragH.sy = hud.py;
+                    dragH.ax = dragH.centroid.scenePosition.x;
+                    dragH.ay = dragH.centroid.scenePosition.y;
+                } else {
+                    // dock to the edge nearest at the instant of release, read
+                    // fresh so a let-go at a corner or dead centre always resolves.
+                    var e = hud.rawNearEdge;
+                    hud.nearEdge = e;
+                    hud.alongPx = (e === "top" || e === "bottom") ? hud.px : hud.py;
+                    hud.dockEdge = e;
+                }
+            }
+            onCentroidChanged: {
+                if (!dragH.active)
+                    return;
+                hud.px = Math.max(hud.lipL, Math.min(hud.width - hud.lipR - hud.bodyW, dragH.sx + (dragH.centroid.scenePosition.x - dragH.ax)));
+                hud.py = Math.max(hud.lipT, Math.min(hud.height - hud.lipB - hud.bodyH, dragH.sy + (dragH.centroid.scenePosition.y - dragH.ay)));
+            }
+        }
 
-        // one control set that reflows: a row when wide, a column when tall.
         Grid {
             id: grid
             anchors.centerIn: parent
@@ -185,7 +276,6 @@ Item {
             horizontalItemAlignment: Grid.AlignHCenter
             verticalItemAlignment: Grid.AlignVCenter
 
-            // 6-dot grip: the drag handle.
             Item {
                 width: 16 * hud.s
                 height: 20 * hud.s
@@ -205,33 +295,6 @@ Item {
                     }
                 }
                 HoverHandler { id: gripHov; cursorShape: Qt.SizeAllCursor }
-                DragHandler {
-                    id: dragH
-                    target: null
-                    property real sx: 0
-                    property real sy: 0
-                    property real ax: 0
-                    property real ay: 0
-                    onActiveChanged: {
-                        if (dragH.active) {
-                            hud.dragging = true;
-                            dragH.sx = hud.px;
-                            dragH.sy = hud.py;
-                            dragH.ax = dragH.centroid.scenePosition.x;
-                            dragH.ay = dragH.centroid.scenePosition.y;
-                        } else {
-                            hud.alongPx = (hud.nearEdge === "top" || hud.nearEdge === "bottom") ? hud.px : hud.py;
-                            hud.dockEdge = hud.nearEdge;
-                            hud.dragging = false;
-                        }
-                    }
-                    onCentroidChanged: {
-                        if (!dragH.active)
-                            return;
-                        hud.freeX = Math.max(hud.lip, Math.min(hud.width - hud.lip - hud.bodyW, dragH.sx + (dragH.centroid.scenePosition.x - dragH.ax)));
-                        hud.freeY = Math.max(hud.lip, Math.min(hud.height - hud.lip - hud.bodyH, dragH.sy + (dragH.centroid.scenePosition.y - dragH.ay)));
-                    }
-                }
             }
 
             Rectangle {
@@ -274,6 +337,12 @@ Item {
                 glyph: hud.micMuted ? "mic-off" : "mic"
                 tint: hud.micMuted ? Theme.faint : Theme.cream
                 onTapped: hud.toggleMic()
+            }
+            RecordButton {
+                s: hud.s
+                glyph: "compress"
+                tint: Theme.subtle
+                onTapped: hud.hidden = !hud.hidden
             }
         }
     }
