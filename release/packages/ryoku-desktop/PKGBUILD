@@ -80,12 +80,16 @@ depends=(
   # rtkit hands PipeWire's audio thread realtime scheduling; without it the
   # thread runs SCHED_OTHER and crackles under load. .install enables the daemon.
   'rtkit'
-  # fonts the shell UI hardcodes (Inter, JetBrainsMono Nerd, Noto Sans CJK)
+  # fonts the shell UI hardcodes: Inter, JetBrainsMono Nerd, Noto Sans CJK, and
+  # Material Symbols Rounded (every pill/bar icon, via MaterialIcon.qml). all
+  # official repo, so a hard depend reaches existing boxes on `ryoku update`;
+  # without the symbols font each icon renders as its ligature name ("wifi").
   'ttf-jetbrains-mono-nerd'
   'inter-font'
   'noto-fonts'
   'noto-fonts-cjk'
   'noto-fonts-emoji'
+  'ttf-material-symbols-variable'
 )
 optdepends=(
   'wallust: wallpaper-derived color palette (AUR)'

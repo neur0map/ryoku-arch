@@ -21,6 +21,12 @@
   profile allows. Users can override it in `~/.config/wireplumber/wireplumber.conf.d/`.
 
 ### Added
+- `ryoku-desktop` hard-depends `ttf-material-symbols-variable`. The shell's whole
+  pill/bar iconography is the "Material Symbols Rounded" font (`MaterialIcon.qml`);
+  it was only in the pacstrapped base set, so a box that predates that addition
+  never received it on `ryoku update` and every icon rendered as its ligature name
+  ("wifi", "power_settings_new"). Official repo, so a hard depend pulls it onto
+  existing boxes on the next update.
 - `ryoku` and `ryoku-rashin` declare their optional tools: `lua` (the `luac`
   config-syntax pre-check the Hyprland doctor reconciler prefers) and `sqlite`
   (the `sqlite3` introspection the rashin agent uses). Both are guarded
