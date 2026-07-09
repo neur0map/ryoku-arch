@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fixed
+- The live environment gets a 1 GiB copy-on-write overlay (`cow_spacesize=1G`
+  on both boot entries) instead of archiso's 256 MiB default. A long install
+  session writes sync databases, keyring state, and logs into that overlay,
+  and running it dry mid-install surfaces as random "no space left" failures,
+  reported from a Ventoy boot.
+
 ### Added
 - Add the Ryoku live ISO profile (archiso, releng-based).
   - `profiledef.sh`: iso_name `ryoku`, label `RYOKU_<YYYYMM>`, date-stamped

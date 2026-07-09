@@ -106,3 +106,27 @@ ryoku_dns_works() {
   done
   return 1
 }
+
+# ryoku_ensure_mirrors: DNS can work while HTTP does not (captive portal, half-up
+# wifi, blocked egress). A flaky link then fails DEEP in pacstrap: a partial db
+# sync resolves core but not extra and pacman reports "target not found: go"
+# (the first dev package) on an already-wiped disk. Probe the actual bytes the
+# install needs, both Arch's geo mirror and the [ryoku] repo, before any disk
+# write. RYOKU_MIRROR_PROBE_URLS overrides the probe set (tests only).
+ryoku_ensure_mirrors() {
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    log "mirrors: would verify HTTP reach of the Arch geo mirror and repo.ryoku.dev before touching the disk"
+    return 0
+  fi
+  [[ ${RYOKU_ONLINE:-1} == 1 ]] || { log "mirrors: offline install, skipping the reachability check"; return 0; }
+
+  local url
+  for url in ${RYOKU_MIRROR_PROBE_URLS:-\
+https://geo.mirror.pkgbuild.com/core/os/x86_64/core.db \
+https://repo.ryoku.dev/stable/x86_64/ryoku.db}; do
+    if ! curl -fsSI --retry 2 --max-time 20 -o /dev/null "$url"; then
+      die "cannot reach $url over HTTP. The install downloads everything (base system, desktop, toolchains), so it needs a solid connection: reconnect Wi-Fi or plug in Ethernet, then retry. The disk has not been touched yet."
+    fi
+  done
+  log "mirrors: Arch geo mirror and repo.ryoku.dev reachable"
+}

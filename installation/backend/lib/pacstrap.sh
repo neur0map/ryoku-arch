@@ -63,7 +63,13 @@ ryoku_pacstrap() {
 
   ryoku_ensure_keyring
   log "installing ${#pkgs[@]} packages (profile=$RYOKU_PROFILE)"
-  run pacstrap -K /mnt "${pkgs[@]}"
+  # one retry: a wifi drop mid-download otherwise kills the install with raw
+  # pacman errors; the second run reuses everything already in the target cache.
+  if ! run pacstrap -K /mnt "${pkgs[@]}"; then
+    log "pacstrap failed (usually the connection dropping under load); retrying once"
+    run pacstrap -K /mnt "${pkgs[@]}" \
+      || die "pacstrap failed twice. Check the network (Wi-Fi can drop under sustained download) and re-run the installer; packages already fetched are cached on the target and will not download again."
+  fi
 
   log "writing /etc/fstab"
   run_sh "genfstab -U /mnt >> /mnt/etc/fstab"

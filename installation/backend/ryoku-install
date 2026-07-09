@@ -91,6 +91,7 @@ main() {
 
   ryoku_preflight
   ryoku_ensure_dns
+  ryoku_ensure_mirrors
 
   step partition
   ryoku_partition

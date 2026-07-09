@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Fixed
+- A dying connection fails the install before the disk is touched, not deep
+  inside pacstrap. DNS was already verified, but a link can resolve names and
+  still not move bytes (captive portal, half-up Wi-Fi); the first casualty is
+  then a partial database sync, and pacman reports "target not found: go"
+  (the first dev package) on an already-wiped disk, with stray curl failures
+  around it. Preflight now probes the Arch geo mirror and repo.ryoku.dev over
+  HTTP and stops with plain guidance while the disk is still intact, and
+  pacstrap retries once on failure (the second run reuses the target's
+  package cache) before failing with a message that names the network.
 - Bluetooth actually works on installed systems: the bootloader step's service
   enable now includes `bluetooth.service` next to sddm and NetworkManager. The
   package set gained `bluez`/`bluez-utils` (system/packages), but nothing ever
