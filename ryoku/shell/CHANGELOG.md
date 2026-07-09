@@ -24,6 +24,15 @@
   wide band deflating in place and snapping shut. The other skins keep their
   straight band.
 
+### Changed
+- **Bar-island content eases in and out instead of snapping.** The now-playing
+  module grows along the band and fades when it appears and shrinks back when it
+  leaves (music starting or stopping), instead of popping into place, and the
+  island, and its triptych lobe, resizes with it. The focused-window title
+  cross-fades old to new on a focus change and eases its width to the new
+  length. Both ride the shared motion curves; `BarReveal` and `BarTitle` carry
+  it, so every skin gets it.
+
 ### Fixed
 - **A runtime frame-border change repaints.** `BlobInvertedRect`'s border
   setters marked the blob group dirty but never scheduled the item's own

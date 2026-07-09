@@ -126,17 +126,11 @@ Item {
                     }
                 }
 
-                Text {
+                BarTitle {
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: Config.barShowTitle && text.length > 0
-                    width: Math.min(implicitWidth, (bar.triptych ? 240 : 340) * bar.s)
-                    elide: Text.ElideRight
-                    leftPadding: 6 * bar.s
-                    text: ToplevelManager.activeToplevel ? (ToplevelManager.activeToplevel.title || "") : ""
-                    color: Theme.dim
-                    font.family: Theme.font
-                    font.pixelSize: 10.5 * bar.s
-                    font.weight: Font.Medium
+                    s: bar.s
+                    maxWidth: (bar.triptych ? 240 : 340) * bar.s
+                    label: Config.barShowTitle && ToplevelManager.activeToplevel ? (ToplevelManager.activeToplevel.title || "") : ""
                 }
             }
         }
@@ -153,7 +147,7 @@ Item {
             Row {
                 id: centerRow
                 anchors.centerIn: parent
-                spacing: 8 * bar.s
+                spacing: 0
 
                 BarModule {
                     id: clockMod
@@ -168,19 +162,24 @@ Item {
                     }
                 }
 
-                BarModule {
-                    id: mediaCenter
+                BarReveal {
                     anchors.verticalCenter: parent.verticalCenter
                     s: bar.s
-                    height: bar.moduleSpan
-                    visible: bar.triptych && Config.barShowMedia && Media.present
-                    onTapped: hMediaCenter.toggle()
-                    onWheeled: (steps) => bar.nudgeVolume(steps)
-                    onHoveredChanged: bar.hoverPopoutRequested("media", mediaCenter.mapToItem(null, mediaCenter.width / 2, mediaCenter.height / 2).x, mediaCenter.hovered)
+                    gap: 8 * bar.s
+                    shown: bar.triptych && Config.barShowMedia && Media.present
 
-                    BarMedia {
-                        id: hMediaCenter
+                    BarModule {
+                        id: mediaCenter
                         s: bar.s
+                        height: bar.moduleSpan
+                        onTapped: hMediaCenter.toggle()
+                        onWheeled: (steps) => bar.nudgeVolume(steps)
+                        onHoveredChanged: bar.hoverPopoutRequested("media", mediaCenter.mapToItem(null, mediaCenter.width / 2, mediaCenter.height / 2).x, mediaCenter.hovered)
+
+                        BarMedia {
+                            id: hMediaCenter
+                            s: bar.s
+                        }
                     }
                 }
             }
@@ -203,19 +202,24 @@ Item {
                 anchors.rightMargin: bar.triptych ? bar.islandPad : 0
                 spacing: 8 * bar.s
 
-                BarModule {
-                    id: mediaMod
+                BarReveal {
                     anchors.verticalCenter: parent.verticalCenter
                     s: bar.s
-                    height: bar.moduleSpan
-                    visible: !bar.triptych && Config.barShowMedia && Media.present
-                    onTapped: hMedia.toggle()
-                    onWheeled: (steps) => bar.nudgeVolume(steps)
-                    onHoveredChanged: bar.hoverPopoutRequested("media", mediaMod.mapToItem(null, mediaMod.width / 2, mediaMod.height / 2).x, mediaMod.hovered)
+                    dropWhenClosed: true
+                    shown: !bar.triptych && Config.barShowMedia && Media.present
 
-                    BarMedia {
-                        id: hMedia
+                    BarModule {
+                        id: mediaMod
                         s: bar.s
+                        height: bar.moduleSpan
+                        onTapped: hMedia.toggle()
+                        onWheeled: (steps) => bar.nudgeVolume(steps)
+                        onHoveredChanged: bar.hoverPopoutRequested("media", mediaMod.mapToItem(null, mediaMod.width / 2, mediaMod.height / 2).x, mediaMod.hovered)
+
+                        BarMedia {
+                            id: hMedia
+                            s: bar.s
+                        }
                     }
                 }
 
