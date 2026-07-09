@@ -255,11 +255,15 @@ Item {
     }
 
     // module components, chosen by id from Config.islandModules.
-    Component { id: wsComp; BarWorkspaces { s: hud.s; activeWsId: hud.activeWsId } }
+    Component { id: wsComp; BarWorkspaces { s: hud.s; activeWsId: hud.activeWsId; vertical: hud.layoutVertical } }
     Component {
         id: clockComp
         Text {
-            text: clock.date.toLocaleTimeString(Qt.locale("en_US"), "HH:mm")
+            text: hud.layoutVertical
+                ? clock.date.toLocaleTimeString(Qt.locale("en_US"), "HH") + "\n" + clock.date.toLocaleTimeString(Qt.locale("en_US"), "mm")
+                : clock.date.toLocaleTimeString(Qt.locale("en_US"), "HH:mm")
+            horizontalAlignment: Text.AlignHCenter
+            lineHeight: 0.9
             color: Theme.bright
             font.family: Theme.font
             font.pixelSize: 13 * hud.s
@@ -271,7 +275,11 @@ Item {
     Component {
         id: dateComp
         Text {
-            text: clock.date.toLocaleDateString(Qt.locale("en_US"), "ddd d MMM")
+            text: hud.layoutVertical
+                ? clock.date.toLocaleDateString(Qt.locale("en_US"), "ddd") + "\n" + clock.date.toLocaleDateString(Qt.locale("en_US"), "d") + "\n" + clock.date.toLocaleDateString(Qt.locale("en_US"), "MMM")
+                : clock.date.toLocaleDateString(Qt.locale("en_US"), "ddd d MMM")
+            horizontalAlignment: Text.AlignHCenter
+            lineHeight: 0.95
             color: Theme.dim
             font.family: Theme.font
             font.pixelSize: 11 * hud.s
@@ -283,11 +291,18 @@ Item {
         id: mediaComp
         Item {
             visible: Media.present
-            implicitWidth: visible ? med.implicitWidth : 0
-            implicitHeight: med.implicitHeight
-            BarMedia { id: med; s: hud.s }
+            implicitWidth: hud.layoutVertical ? vIcon.implicitWidth : (Media.present ? med.implicitWidth : 0)
+            implicitHeight: hud.layoutVertical ? vIcon.implicitHeight : med.implicitHeight
+            BarMedia { id: med; s: hud.s; visible: !hud.layoutVertical }
+            MaterialIcon {
+                id: vIcon
+                anchors.centerIn: parent
+                visible: hud.layoutVertical
+                text: "music_note"
+                color: Theme.cream
+                font.pixelSize: 15 * hud.s
+            }
             TapHandler { onTapped: Media.toggle() }
-            HoverHandler { id: medHov }
             onVisibleChanged: hud.hoverPopoutRequested("media", false)
         }
     }
