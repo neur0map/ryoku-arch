@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# ryoku-project-bootstrap: one-time setup for the "Ryoku Roadmap" Projects v2 board.
+#
+# prerequisites:
+#   - the gh CLI and jq installed locally.
+#   - a classic personal access token with the "project" and "repo" scopes,
+#     exported as PROJECTS_TOKEN or GH_TOKEN (project: read and write the board;
+#     repo: link it to the repository and later set the repo variables).
+#     the same token becomes the PROJECTS_TOKEN Actions secret the workflows use.
+#   - run by the maintainer on a workstation; nothing here belongs in CI.
+#
+# usage:
+#   PROJECTS_TOKEN=ghp_xxxxxxxx bin/ryoku-project-bootstrap
+#   OWNER=neur0map REPO=ryoku-arch bin/ryoku-project-bootstrap   # override defaults
+#
+# behaviour: reuses an existing "Ryoku Roadmap" board or creates one, links it to
+# the repo, ensures the Status/Area/Type/Channel single-select fields carry the
+# exact contract options, marks the board public, then prints the gh commands that
+# publish PROJECT_NUMBER and PROJECT_URL as repo variables. safe to re-run.
+set -euo pipefail
+
+OWNER="${OWNER:-neur0map}"
+REPO="${REPO:-ryoku-arch}"
+TITLE="${PROJECT_TITLE:-Ryoku Roadmap}"
+
+# gh consults GH_TOKEN first; mirror PROJECTS_TOKEN into it so either name works.
+if [[ -z "${GH_TOKEN:-}" && -n "${PROJECTS_TOKEN:-}" ]]; then
+  export GH_TOKEN="$PROJECTS_TOKEN"
+fi
+
+die() {
+  echo "ryoku-project-bootstrap: $1" >&2
+  exit 1
+}
+
+command -v gh >/dev/null 2>&1 || die "gh CLI is required."
+command -v jq >/dev/null 2>&1 || die "jq is required."
+
+if [[ -z "${GH_TOKEN:-}" ]] && ! gh auth status >/dev/null 2>&1; then
+  die "authenticate gh or export PROJECTS_TOKEN/GH_TOKEN (classic PAT: project + repo)."
+fi
+
+# soft scope check: classic tokens report their grants in the X-OAuth-Scopes header.
+scopes="$(gh api -i user 2>/dev/null | tr -d '\r' | sed -n 's/^[Xx]-[Oo][Aa]uth-[Ss]copes: //p' || true)"
+if [[ -n "$scopes" ]]; then
+  for need in project repo; do
+    grep -qw "$need" <<<"$scopes" \
+      || echo "warning: token scope '$need' not detected; board setup may fail." >&2
+  done
+fi
+
+# reuse a board with this title before creating a duplicate.
+project_list="$(gh project list --owner "$OWNER" --format json --limit 100 2>/dev/null || echo '{}')"
+number="$(jq -r --arg t "$TITLE" 'first(.projects[]? | select(.title == $t) | .number) // empty' <<<"$project_list")"
+
+if [[ -n "$number" ]]; then
+  echo "Reusing existing project '$TITLE' (#$number)."
+  project="$(gh project view "$number" --owner "$OWNER" --format json)"
+else
+  echo "Creating project '$TITLE' for $OWNER."
+  project="$(gh project create --owner "$OWNER" --title "$TITLE" --format json)"
+  number="$(jq -r '.number' <<<"$project")"
+fi
+
+project_id="$(jq -r '.id' <<<"$project")"
+project_url="$(jq -r '.url' <<<"$project")"
+[[ -n "$project_id" && "$project_id" != "null" ]] || die "could not resolve the project node id."
+
+# link to the repo; already-linked boards make this a harmless no-op.
+if gh project link "$number" --owner "$OWNER" --repo "$REPO" >/dev/null 2>&1; then
+  echo "Linked project #$number to $OWNER/$REPO."
+else
+  echo "Project #$number link left as-is (already linked or link unavailable)."
+fi
+
+# snapshot current fields so we only create what is missing and only rewrite
+# options that drift from the contract (the default Status field starts wrong).
+# shellcheck disable=SC2016  # $id is a GraphQL variable forwarded by gh api graphql, not a shell expansion
+fields_query='query($id: ID!) {
+  node(id: $id) {
+    ... on ProjectV2 {
+      fields(first: 50) {
+        nodes {
+          __typename
+          ... on ProjectV2FieldCommon { id name }
+          ... on ProjectV2SingleSelectField { options { id name } }
+        }
+      }
+    }
+  }
+}'
+existing="$(gh api graphql -f query="$fields_query" -f id="$project_id")"
+
+# render a GraphQL singleSelectOptions list from name/color pairs; option names
+# are fixed contract strings, so a plain printf template is safe here.
+options_literal() {
+  local out="" name color
+  while (( $# )); do
+    name="$1"
+    color="$2"
+    shift 2
+    out+="$(printf '{name: "%s", color: %s, description: ""}, ' "$name" "$color")"
+  done
+  printf '%s' "${out%, }"
+}
+
+ensure_field() {
+  local name="$1"
+  shift
+  local -a spec=("$@")
+  local desired current field_id opts query
+
+  desired="$(printf '%s\n' "${spec[@]}" | awk 'NR % 2 == 1' | paste -sd, -)"
+  field_id="$(jq -r --arg n "$name" 'first(.data.node.fields.nodes[]? | select(.name == $n) | .id) // empty' <<<"$existing")"
+  opts="$(options_literal "${spec[@]}")"
+
+  if [[ -z "$field_id" ]]; then
+    echo "Creating field '$name'."
+    query="$(printf 'mutation { createProjectV2Field(input: {projectId: "%s", dataType: SINGLE_SELECT, name: "%s", singleSelectOptions: [%s]}) { projectV2Field { __typename } } }' "$project_id" "$name" "$opts")"
+    gh api graphql -f query="$query" >/dev/null
+    return
+  fi
+
+  current="$(jq -r --arg n "$name" 'first(.data.node.fields.nodes[]? | select(.name == $n)) | (.options // []) | map(.name) | join(",")' <<<"$existing")"
+  if [[ "$current" == "$desired" ]]; then
+    echo "Field '$name' already carries the expected options."
+    return
+  fi
+
+  echo "Updating options on field '$name'."
+  query="$(printf 'mutation { updateProjectV2Field(input: {fieldId: "%s", singleSelectOptions: [%s]}) { projectV2Field { __typename } } }' "$field_id" "$opts")"
+  gh api graphql -f query="$query" >/dev/null
+}
+
+ensure_field "Status" \
+  "Backlog" GRAY "Todo" BLUE "In progress" YELLOW "In review" ORANGE "Done" GREEN
+ensure_field "Area" \
+  "global" GRAY "installation" BLUE "system" PURPLE "ryoku" GREEN \
+  "docs" YELLOW "test" ORANGE "tooling" PINK "release" RED
+ensure_field "Type" \
+  "Feature" GREEN "Bug" RED "Chore" GRAY
+ensure_field "Channel" \
+  "unstable" ORANGE "stable" GREEN
+
+# expose the board publicly; the site reads a public snapshot, not the API.
+echo "Marking board public."
+visibility_query="$(printf 'mutation { updateProjectV2(input: {projectId: "%s", public: true}) { projectV2 { public } } }' "$project_id")"
+gh api graphql -f query="$visibility_query" >/dev/null
+
+cat <<SUMMARY
+
+Board ready: $TITLE
+  number : $number
+  url    : $project_url
+  public : true
+
+Publish the repo variables the workflows read:
+
+  gh variable set PROJECT_NUMBER --repo "$OWNER/$REPO" --body "$number"
+  gh variable set PROJECT_URL --repo "$OWNER/$REPO" --body "$project_url"
+
+Confirm the board token is stored as a repo secret (paste the same classic PAT):
+
+  gh secret set PROJECTS_TOKEN --repo "$OWNER/$REPO"
+SUMMARY

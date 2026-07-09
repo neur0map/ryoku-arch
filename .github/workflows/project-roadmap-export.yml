@@ -1,0 +1,192 @@
+name: Project Roadmap Export
+
+# snapshots the Ryoku Roadmap board into roadmap.json at the repo root every few
+# hours (and on demand) so the marketing site can render a public roadmap from a
+# stable file. the board read needs the classic PROJECTS_TOKEN; the commit back to
+# main uses the default GITHUB_TOKEN persisted by actions/checkout.
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+  repository_dispatch:
+    types:
+      - roadmap-refresh
+
+permissions:
+  contents: write
+
+concurrency:
+  group: project-roadmap-export
+  cancel-in-progress: false
+
+jobs:
+  export:
+    name: Export board to roadmap.json
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+      OWNER: ${{ github.repository_owner }}
+      TARGET_BRANCH: main
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Build and commit roadmap.json
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.PROJECTS_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::notice::PROJECTS_TOKEN secret is not configured; skipping roadmap export."
+            exit 0
+          fi
+          if [[ -z "${PROJECT_NUMBER:-}" ]]; then
+            echo "::notice::PROJECT_NUMBER variable is not configured; run bin/ryoku-project-bootstrap first. Skipping."
+            exit 0
+          fi
+
+          tmp="${RUNNER_TEMP:-/tmp}"
+          now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cutoff="$(( $(date -u +%s) - 30 * 86400 ))"
+
+          # shellcheck disable=SC2016
+          items_query='query($login: String!, $number: Int!, $cursor: String) {
+            user(login: $login) {
+              projectV2(number: $number) {
+                title
+                url
+                number
+                items(first: 100, after: $cursor) {
+                  pageInfo { hasNextPage endCursor }
+                  nodes {
+                    fieldValues(first: 20) {
+                      nodes {
+                        __typename
+                        ... on ProjectV2ItemFieldSingleSelectValue {
+                          name
+                          field { ... on ProjectV2FieldCommon { name } }
+                        }
+                      }
+                    }
+                    content {
+                      __typename
+                      ... on Issue {
+                        title url number state updatedAt
+                        labels(first: 20) { nodes { name } }
+                      }
+                      ... on PullRequest {
+                        title url number state updatedAt
+                        labels(first: 20) { nodes { name } }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }'
+
+          # walk every page of board items, collecting one node per line.
+          : >"$tmp/nodes.ndjson"
+          meta="null"
+          cursor=""
+          while : ; do
+            if [[ -z "$cursor" ]]; then
+              page="$(gh api graphql -f query="$items_query" -f login="$OWNER" -F number="$PROJECT_NUMBER" 2>/dev/null || true)"
+            else
+              page="$(gh api graphql -f query="$items_query" -f login="$OWNER" -F number="$PROJECT_NUMBER" -f cursor="$cursor" 2>/dev/null || true)"
+            fi
+
+            if [[ -z "$page" ]]; then
+              echo "::notice::Board query failed; skipping export."
+              exit 0
+            fi
+
+            if [[ "$meta" == "null" ]]; then
+              meta="$(jq -c '.data.user.projectV2 | if . == null then null else {title, url, number} end' <<<"$page")"
+              if [[ "$meta" == "null" || -z "$meta" ]]; then
+                echo "::notice::Could not resolve project #$PROJECT_NUMBER for $OWNER; skipping export."
+                exit 0
+              fi
+            fi
+
+            jq -c '.data.user.projectV2.items.nodes[]?' <<<"$page" >>"$tmp/nodes.ndjson"
+            has_next="$(jq -r '.data.user.projectV2.items.pageInfo.hasNextPage' <<<"$page")"
+            cursor="$(jq -r '.data.user.projectV2.items.pageInfo.endCursor // empty' <<<"$page")"
+            [[ "$has_next" == "true" && -n "$cursor" ]] || break
+          done
+
+          # transform the raw nodes into the stable roadmap.json shape.
+          cat >"$tmp/roadmap.jq" <<'JQ'
+          def col_order: ["Backlog", "Todo", "In progress", "In review", "Done"];
+
+          def ssv($name):
+            (first(.fieldValues.nodes[]?
+              | select(.__typename == "ProjectV2ItemFieldSingleSelectValue" and .field.name == $name)
+              | .name) // null);
+
+          [ .[]
+            | . as $node
+            | (.content // {}) as $c
+            | select(($c.__typename // "") == "Issue" or ($c.__typename // "") == "PullRequest")
+            | {
+                title: ($c.title // ""),
+                url: ($c.url // ""),
+                number: ($c.number // 0),
+                kind: (if $c.__typename == "PullRequest" then "pr" else "issue" end),
+                state: (($c.state // "") | ascii_downcase),
+                area: ($node | ssv("Area")),
+                type: ($node | ssv("Type")),
+                channel: ($node | ssv("Channel")),
+                labels: [ $c.labels.nodes[]?.name ],
+                updatedAt: ($c.updatedAt // ""),
+                status: ($node | ssv("Status")),
+                ts: (($c.updatedAt // "1970-01-01T00:00:00Z") | fromdateiso8601)
+              }
+          ] as $items
+          | {
+              generatedAt: $now,
+              project: $meta,
+              columns: [
+                col_order[] as $status
+                | {
+                    status: $status,
+                    items: (
+                      [ $items[] | select(.status == $status) ]
+                      | ( if $status == "Done"
+                          then map(select(.ts >= $cutoff)) | sort_by(.ts) | reverse | .[0:12]
+                          else sort_by(.ts) | reverse
+                          end )
+                      | map({ title, url, number, kind, state, area, type, channel, labels, updatedAt })
+                    )
+                  }
+              ],
+              stats: {
+                total: ($items | length),
+                byStatus: reduce ($items[] | .status) as $s ({}; if $s == null then . else .[$s] = ((.[$s] // 0) + 1) end),
+                byArea: reduce ($items[] | .area) as $a ({}; if $a == null then . else .[$a] = ((.[$a] // 0) + 1) end)
+              }
+            }
+          JQ
+
+          jq -s '.' "$tmp/nodes.ndjson" >"$tmp/items.json"
+          jq --argjson meta "$meta" --arg now "$now" --argjson cutoff "$cutoff" \
+            -f "$tmp/roadmap.jq" "$tmp/items.json" >roadmap.json
+
+          if [[ -z "$(git status --porcelain -- roadmap.json)" ]]; then
+            echo "roadmap.json unchanged; nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add roadmap.json
+          git commit -m "[tooling] roadmap: refresh board snapshot"
+          git push origin "HEAD:$TARGET_BRANCH"
+          echo "Committed refreshed roadmap.json to $TARGET_BRANCH."
