@@ -9,6 +9,8 @@ func TestRoute(t *testing.T) {
 		cmd, config, target, fn string
 	}{
 		{"launcher", "launcher", "launcher", "toggle"},
+		{"overview", "overview", "overview", "toggle"},
+		{"wallpaper-switcher", "wallpaper", "wallpaper", "toggle"},
 		{"clipboard", "pill", "pill", "clipboard"},
 		{"link", "pill", "pill", "link"},
 		{"inbox", "pill", "pill", "inbox"},

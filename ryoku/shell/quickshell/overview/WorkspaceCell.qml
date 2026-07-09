@@ -290,8 +290,8 @@ Item {
                 // the live window texture (covers the icon once it captures).
                 ScreencopyView {
                     anchors.fill: parent
-                    captureSource: tile.modelData.tl ? tile.modelData.tl.wayland : null
-                    live: true
+                    captureSource: (!!cell.ov && cell.ov.active && tile.modelData.tl) ? tile.modelData.tl.wayland : null
+                    live: !!cell.ov && cell.ov.active
                     visible: (tile.modelData.tl && tile.modelData.tl.wayland) !== null
                 }
 

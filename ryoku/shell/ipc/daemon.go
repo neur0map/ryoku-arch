@@ -27,6 +27,8 @@ var components = []component{
 	{"launcher", true},
 	{"visualizer", true},
 	{"widgets", true},
+	{"overview", true},
+	{"wallpaper", true},
 }
 
 // pillSurfaces maps a client command to the pill IpcHandler function it toggles.
@@ -174,9 +176,27 @@ func (d *daemon) bootstrap() {
 		defer d.wallMu.Unlock()
 		_ = d.wallpaperApply("init", "")
 	}()
+	go d.startComponents()
+}
+
+// startupStagger spaces the persistent components' cold starts at login so a
+// handful of Quickshell processes do not contend for the GPU and CPU in the same
+// frame (the boot-contention burst iNiR calls out).
+const startupStagger = 250 * time.Millisecond
+
+// startComponents brings the persistent components up one at a time, pill first,
+// leaving startupStagger between each. ensure is idempotent, so a keybind that
+// needs a component before its turn still starts it at once.
+func (d *daemon) startComponents() {
 	for _, c := range components {
-		if c.persistent {
-			d.ensure(c.name)
+		if !c.persistent {
+			continue
+		}
+		d.ensure(c.name)
+		select {
+		case <-d.quit:
+			return
+		case <-time.After(startupStagger):
 		}
 	}
 }
@@ -358,6 +378,10 @@ func route(cmd string) (config, target, fn string, ok bool) {
 	switch cmd {
 	case "launcher":
 		return "launcher", "launcher", "toggle", true
+	case "overview":
+		return "overview", "overview", "toggle", true
+	case "wallpaper-switcher":
+		return "wallpaper", "wallpaper", "toggle", true
 	case "visualizer":
 		return "visualizer", "visualizer", "toggle", true
 	case "visualizer-overlay":

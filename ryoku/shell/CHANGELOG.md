@@ -39,6 +39,20 @@
   straight band.
 
 ### Changed
+- **The workspace overview and wallpaper switcher open instantly.** Both were
+  cold-spawned as a fresh `qs -c` process on every keypress, so Super+Tab paid a
+  whole Quickshell start (Qt, Wayland, scene graph, first frame) and the overview
+  then polled Hyprland every 140 ms for its still-empty window model before it
+  could draw. They now run resident under the shell daemon and toggle over IPC,
+  the way the launcher and pill already do: Super+Tab and Super+C flip a hidden
+  surface visible against warm compositor models instead of launching a process.
+  The overview's live `ScreencopyView` captures are gated on open, and both use
+  the render-on-demand loop, so a hidden resident instance draws nothing and
+  costs about its memory. The daemon also staggers the persistent components'
+  startup so a handful of them no longer cold-start in the same login frame.
+- **The orphaned standalone Alt-Tab switcher config is gone.** `quickshell/switcher`
+  was a `qs -c switcher` overlay no keybind launched; the workspace overview
+  covers window switching, so the dead surface was removed.
 - **Bar-island content eases in and out instead of snapping.** The now-playing
   module grows along the band and fades when it appears and shrinks back when it
   leaves (music starting or stopping), instead of popping into place, and the

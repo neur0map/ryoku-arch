@@ -1,34 +1,44 @@
 //@ pragma UseQApplication
-//@ pragma DefaultEnv QSG_RENDER_LOOP = threaded
+//@ pragma DefaultEnv QSG_RENDER_LOOP = basic
 pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "Singletons"
 
 /**
- * Ryoku wallpaper switcher: a full-screen, Super+Tab-style overlay launched as
- * its own `qs -c wallpaper` instance (like the overview and window switcher, so
- * it never burdens the always-on pill). Images and videos share one grid,
- * grouped by colour the way skwd-wall does; arrows/Tab move the pick, a colour
- * swatch or the type row filters, Enter or a click sets it, Esc dismisses. The
- * card and accent mirror the shell chrome through the local wallust singleton.
+ * Ryoku wallpaper switcher: a full-screen overlay the shell daemon keeps
+ * resident and hidden at rest, shown on `ryoku-shell wallpaper-switcher` (an
+ * IpcHandler toggle on the keybind hot path, like the launcher and overview).
+ * Staying resident drops the per-open process cold-start; the heavy thumbnail
+ * grid still loads only while open (the body Loader below unloads on close), so a
+ * hidden switcher holds no textures and the basic render loop draws nothing.
+ *
+ * Images and videos share one grid, grouped by colour the way skwd-wall does;
+ * arrows/Tab move the pick, a colour swatch or the type row filters, Enter or a
+ * click sets it, Esc dismisses. The card and accent mirror the shell chrome
+ * through the local wallust singleton.
  */
 ShellRoot {
     id: root
 
-    // Intro/outro: `active` drives the reveal; a dismiss plays the outro then
-    // quits the instance (on-demand config, so dismiss == exit).
-    property bool active: false
-    Timer { id: introT; interval: 16; running: true; onTriggered: root.active = true }
-    Timer { id: outroT; interval: 200; onTriggered: Qt.quit() }
-    function dismiss() {
-        if (!root.active && outroT.running)
-            return;
-        root.active = false;
-        outroT.restart();
+    property bool open: false
+
+    function show() {
+        Walls.refresh();
+        root.open = true;
+    }
+    function hide() {
+        root.open = false;
+    }
+    function toggle() {
+        if (root.open)
+            root.hide();
+        else
+            root.show();
     }
 
     readonly property string focusedMon: {
@@ -36,7 +46,15 @@ ShellRoot {
         return m && m.name ? m.name : "";
     }
 
-    Component.onCompleted: Walls.refresh()
+    // Toggled by the daemon over `qs ipc call wallpaper toggle`. The monitor arg
+    // is accepted for a uniform call shape but ignored: the card rides the
+    // focused monitor, the rest just dim.
+    IpcHandler {
+        target: "wallpaper"
+        function toggle(mon: string): void { root.toggle(); }
+        function show(mon: string): void { root.show(); }
+        function hide(): void { root.hide(); }
+    }
 
     Variants {
         model: Quickshell.screens
@@ -46,36 +64,44 @@ ShellRoot {
             required property var modelData
             readonly property real s: Math.min(1.3, (modelData ? modelData.height / 1080 : 1)) * Math.max(0.8, Math.min(1.4, Config.fontScale))
             readonly property bool isFocused: !root.focusedMon || root.focusedMon === modelData.name
+            readonly property bool shown: root.open
 
             screen: modelData
+            visible: shown || closing.running
             color: "transparent"
             exclusiveZone: 0
             WlrLayershell.namespace: "ryoku-wallpaper"
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: isFocused ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            WlrLayershell.keyboardFocus: (shown && isFocused) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             anchors { top: true; bottom: true; left: true; right: true }
+
+            // Hold the layer mapped through the outro, then unmap once it settles.
+            Timer { id: closing; interval: Motion.window; repeat: false }
+            onShownChanged: if (!shown) closing.restart()
 
             // Dim scrim over the desktop; click-out dismisses.
             Rectangle {
                 anchors.fill: parent
                 color: Qt.rgba(0, 0, 0, 0.42)
-                opacity: root.active ? 1 : 0
+                opacity: win.shown ? 1 : 0
+                visible: opacity > 0.001
                 Behavior on opacity { NumberAnimation { duration: Motion.window; easing.type: Motion.easeStandard } }
-                MouseArea { anchors.fill: parent; onClicked: root.dismiss() }
+                MouseArea { anchors.fill: parent; onClicked: root.hide() }
             }
 
-            // Only the focused monitor carries the card + keyboard; the rest just dim.
+            // Only the focused monitor carries the card + keyboard. The heavy grid
+            // loads while shown and unloads after the outro, so a hidden resident
+            // switcher keeps no thumbnails in memory.
             Loader {
-                id: body
                 anchors.fill: parent
-                active: win.isFocused
+                active: win.isFocused && (win.shown || closing.running)
                 sourceComponent: Switcher {
                     s: win.s
-                    active: root.active
-                    onRequestClose: root.dismiss()
+                    active: win.shown
+                    onRequestClose: root.hide()
 
-                    opacity: root.active ? 1 : 0
-                    scale: root.active ? 1 : 0.98
+                    opacity: win.shown ? 1 : 0
+                    scale: win.shown ? 1 : 0.98
                     Behavior on opacity { NumberAnimation { duration: Motion.window; easing.type: Motion.easeStandard } }
                     Behavior on scale { NumberAnimation { duration: Motion.window; easing.type: Motion.easeExpo } }
                 }

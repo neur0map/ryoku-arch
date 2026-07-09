@@ -9,6 +9,7 @@ launcher
 link
 lock
 mixer
+overview
 peek
 ping
 power
@@ -22,4 +23,5 @@ toolkit
 utilities
 voice
 wallpaper
+wallpaper-switcher
 workspaces

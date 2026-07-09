@@ -1,87 +1,72 @@
 //@ pragma UseQApplication
-//@ pragma DefaultEnv QSG_RENDER_LOOP = threaded
+//@ pragma DefaultEnv QSG_RENDER_LOOP = basic
 pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "Singletons"
 
 /**
- * Ryoku workspace overview: a full-screen, launcher-style expo launched as its
- * own `qs -c overview` instance (like the switcher and ryoshot, so it never
- * burdens the always-on pill). The compositor blurs the desktop behind it (the
- * `overview` layer rule in hyprland/modules/decoration.lua), so only the
- * workspace cells and their LIVE window previews read on top.
+ * Ryoku workspace overview: a full-screen expo the shell daemon keeps resident
+ * and hidden at rest, shown on `ryoku-shell overview` (an IpcHandler toggle on
+ * the keybind hot path, mirroring the launcher and pill). Staying resident keeps
+ * the Hyprland monitor/workspace/toplevel models warm, so Super+Tab reveals the
+ * grid at once instead of cold-starting a process and polling for its models.
  *
- * Each monitor gets its own overlay showing that monitor's workspaces as scaled
- * mini-desktops, windows drawn at their real positions with a live ScreencopyView
- * texture. Click a cell to switch, click a window to focus, drag a window onto
- * another cell to move it there, scroll or Tab/arrows to cycle, Esc / click-out
- * to dismiss. Subtle Ryoku chrome: sharp corners, hairline borders, one
- * vermillion accent on the active cell.
+ * The compositor blurs the desktop behind the "overview" layer (the layer rule
+ * in hyprland/modules/decoration.lua), so only the workspace cells and their
+ * live window previews read on top. Each monitor shows its own workspaces as
+ * scaled mini-desktops; only the focused monitor grabs the keyboard. Click a
+ * cell to switch, click a window to focus, drag a window onto another cell to
+ * move it, scroll or Tab/arrows to cycle, Esc or click-out to dismiss. The
+ * render loop is basic (render-on-demand): a hidden overlay draws nothing, and
+ * the reveal plus live previews still animate on their own frame requests.
  */
 ShellRoot {
     id: root
 
-    // Populate the models before the first frame; a fresh instance starts empty.
-    Component.onCompleted: {
+    // open drives the reveal and window mapping; dismiss hides, never exits, so
+    // the next Super+Tab is an instant toggle rather than a fresh process.
+    property bool open: false
+
+    function focusedMonitor() {
+        var m = Hyprland.focusedMonitor;
+        return m && m.name ? m.name : (Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "");
+    }
+    function show() {
+        // One refresh on open lands a just-mapped window; the resident models are
+        // already populated, so there is nothing to poll for.
         Hyprland.refreshMonitors();
         Hyprland.refreshWorkspaces();
         Hyprland.refreshToplevels();
+        root.open = true;
     }
-    // Belt-and-suspenders: a fresh instance's Hyprland models start empty and
-    // even arrive as uninitialised stubs (workspaces with id -1, no lastIpcObject)
-    // for a frame or two. Keep polling until BOTH a real workspace (id > 0) and a
-    // mapped toplevel have landed, so the reactive cell grid isn't built off
-    // half-loaded data. The bindings fill in as the refreshes resolve.
-    Timer {
-        interval: 140
-        running: !root.ready
-        repeat: true
-        onTriggered: {
-            Hyprland.refreshMonitors();
-            Hyprland.refreshWorkspaces();
-            Hyprland.refreshToplevels();
-        }
+    function hide() {
+        root.open = false;
     }
-    // Ready only once a real workspace (id > 0) AND the focused monitor (with its
-    // activeWorkspace) have landed. A fresh instance's monitor model arrives a few
-    // frames after workspaces; gating on workspaces alone stopped the poll before
-    // monitors loaded, so the overview couldn't tell which desktop was active and
-    // always seeded desktop 1. Keep refreshing until both are present.
-    readonly property bool ready: {
-        var mons = Hyprland.monitors.values;
-        var haveMon = false;
-        for (var j = 0; j < mons.length; j++)
-            if (mons[j] && mons[j].lastIpcObject && mons[j].lastIpcObject.activeWorkspace)
-                haveMon = true;
-        if (!haveMon)
-            return false;
-        var ws = Hyprland.workspaces.values;
-        for (var i = 0; i < ws.length; i++)
-            if (ws[i] && ws[i].id > 0)
-                return true;
-        return false;
-    }
-
-    // Intro/outro: `active` drives the content reveal; a close plays the outro
-    // then quits the instance (on-demand config, so dismiss == exit).
-    property bool active: false
-    Component.onDestruction: {}
-    Timer { id: introT; interval: 16; running: true; repeat: false; onTriggered: root.active = true }
-    Timer { id: outroT; interval: 210; running: false; repeat: false; onTriggered: Qt.quit() }
-    function dismiss() {
-        if (!root.active && outroT.running)
-            return;
-        root.active = false;
-        outroT.restart();
+    function toggle() {
+        if (root.open)
+            root.hide();
+        else
+            root.show();
     }
 
     readonly property string focusedMon: {
         var m = Hyprland.focusedMonitor;
         return m && m.name ? m.name : "";
+    }
+
+    // Toggled by the daemon over `qs ipc call overview toggle`. The monitor arg
+    // is accepted for a uniform call shape but ignored: the expo spans every
+    // screen and grabs the keyboard on whichever one is focused.
+    IpcHandler {
+        target: "overview"
+        function toggle(mon: string): void { root.toggle(); }
+        function show(mon: string): void { root.show(); }
+        function hide(): void { root.hide(); }
     }
 
     Variants {
@@ -92,23 +77,37 @@ ShellRoot {
             required property var modelData
             readonly property real s: Math.min(1.25, (modelData ? modelData.height / 1080 : 1)) * Math.max(0.8, Math.min(1.4, Config.fontScale))
             readonly property bool isFocused: !root.focusedMon || root.focusedMon === modelData.name
+            readonly property bool shown: root.open
 
             screen: modelData
+            visible: shown || closing.running
             color: "transparent"
             exclusiveZone: 0
             WlrLayershell.namespace: "overview"
             WlrLayershell.layer: WlrLayer.Overlay
             // Only the focused monitor grabs the keyboard, so keys never double-fire.
-            WlrLayershell.keyboardFocus: isFocused ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            WlrLayershell.keyboardFocus: (shown && isFocused) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             anchors { top: true; bottom: true; left: true; right: true }
+
+            // Hold the layer mapped through the outro, then unmap once it settles.
+            Timer { id: closing; interval: Motion.window; repeat: false }
+            onShownChanged: {
+                if (shown) {
+                    if (isFocused)
+                        kb.forceActiveFocus();
+                } else {
+                    closing.restart();
+                }
+            }
 
             // Dim scrim over the (compositor-blurred) desktop; click-out dismisses.
             Rectangle {
                 anchors.fill: parent
                 color: Qt.rgba(0, 0, 0, 0.32)
-                opacity: root.active ? 1 : 0
+                opacity: win.shown ? 1 : 0
+                visible: opacity > 0.001
                 Behavior on opacity { NumberAnimation { duration: Motion.window; easing.type: Motion.easeStandard } }
-                MouseArea { anchors.fill: parent; onClicked: root.dismiss() }
+                MouseArea { anchors.fill: parent; onClicked: root.hide() }
             }
 
             Overview {
@@ -116,30 +115,31 @@ ShellRoot {
                 anchors.fill: parent
                 s: win.s
                 screenName: win.modelData ? win.modelData.name : ""
-                active: root.active
-                dataReady: root.ready
+                active: win.shown
+                // The resident models are warm, so data is ready without polling.
+                dataReady: true
                 focusHere: win.isFocused
-                onRequestClose: root.dismiss()
+                onRequestClose: root.hide()
 
                 // reveal: fade + a small scale settle, like the launcher window.
-                opacity: root.active ? 1 : 0
-                scale: root.active ? 1 : 0.97
+                opacity: win.shown ? 1 : 0
+                scale: win.shown ? 1 : 0.97
                 Behavior on opacity { NumberAnimation { duration: Motion.window; easing.type: Motion.easeStandard } }
                 Behavior on scale { NumberAnimation { duration: Motion.window; easing.type: Motion.easeExpo } }
             }
 
             // Keyboard: only the focused monitor's window handles keys.
             Item {
+                id: kb
                 anchors.fill: parent
-                focus: win.isFocused
-                Component.onCompleted: if (win.isFocused) forceActiveFocus()
+                focus: win.shown && win.isFocused
                 Keys.onPressed: (e) => {
                     if (!win.isFocused)
                         return;
                     var alt = (e.modifiers & Qt.AltModifier) !== 0;
                     var shift = (e.modifiers & Qt.ShiftModifier) !== 0;
                     if (e.key === Qt.Key_Escape) {
-                        root.dismiss(); e.accepted = true;
+                        root.hide(); e.accepted = true;
                     } else if (alt && (e.key === Qt.Key_Tab || e.key === Qt.Key_Right || e.key === Qt.Key_Backtab || e.key === Qt.Key_Left)) {
                         // Super+Alt+Tab: step across DESKTOPS (the top strip).
                         body.cycleDesktop((shift || e.key === Qt.Key_Backtab || e.key === Qt.Key_Left) ? -1 : 1);

@@ -11,7 +11,7 @@ binds=(
 	"SUPER,V,exec,$bin clipboard"
 	"SUPER,L,exec,$bin lock"
 	"SUPER,B,exec,$bin wallpaper"
-	"SUPER,C,exec,flock -n -o /tmp/ryoku-wallpaper.lock qs -p $here/quickshell/wallpaper"
+	"SUPER,C,exec,$bin wallpaper-switcher"
 )
 
 case "${1:-on}" in

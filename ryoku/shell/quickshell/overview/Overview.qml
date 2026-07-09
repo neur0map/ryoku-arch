@@ -238,6 +238,15 @@ Item {
     }
     onDataReadyChanged: root.trySeed()
     onActiveWsIdChanged: root.trySeed()
+    // Re-seed each time the expo opens so the selection lands on the CURRENT
+    // active workspace, not the one left over from the previous open. A fresh
+    // instance got this for free; a resident one must reset it per show.
+    onActiveChanged: {
+        if (root.active) {
+            root.seeded = false;
+            root.trySeed();
+        }
+    }
     function slotIndexOfWs(id) {
         for (var i = 0; i < root.slotModel.length; i++)
             if (root.slotModel[i].wsId === id)

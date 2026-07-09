@@ -34,12 +34,12 @@ hl.bind(mod .. " + V",         hl.dsp.exec_cmd("ryoku-shell clipboard"))
 hl.bind(mod .. " + L",         hl.dsp.exec_cmd("ryoku-shell lock"))
 hl.bind(mod .. " + Escape",    hl.dsp.exec_cmd("ryoku-shell power"))            -- power / session menu (delos: top-right strip)
 hl.bind(mod .. " + W",         hl.dsp.exec_cmd("ryoku-shell wallpaper"))         -- next wallpaper
-hl.bind(mod .. " + C",         hl.dsp.exec_cmd("flock -n -o /tmp/ryoku-wallpaper.lock qs -c wallpaper")) -- wallpaper switcher (unified images + live, colour-sorted)
+hl.bind(mod .. " + C",         hl.dsp.exec_cmd("ryoku-shell wallpaper-switcher")) -- wallpaper switcher (unified images + live, colour-sorted)
 hl.bind(mod .. " + SHIFT + W", hl.dsp.exec_cmd("ryoku-summon ryowalls flock -n -o /tmp/ryowalls.lock qs -c ryowalls")) -- ryowalls: summon to current workspace
 hl.bind(mod .. " + SHIFT + V", hl.dsp.exec_cmd("ryoku-summon ryovm flock -n -o /tmp/ryovm.lock qs -c ryovm")) -- ryovm: summon to current workspace
 hl.bind(mod .. " + D",         hl.dsp.exec_cmd("ryoku-shell toolkit"))           -- control deck (stash, tools, utilities)
-hl.bind(mod .. " + Tab",       hl.dsp.exec_cmd("flock -n -o /tmp/ryoku-overview.lock qs -c overview")) -- workspace overview (expo: live previews, drag windows between workspaces, cycle)
-hl.bind(mod .. " + ALT + Tab", hl.dsp.exec_cmd("flock -n -o /tmp/ryoku-overview.lock qs -c overview")) -- workspace overview, stepping desktops (Alt+Tab again inside cycles desktops)
+hl.bind(mod .. " + Tab",       hl.dsp.exec_cmd("ryoku-shell overview")) -- workspace overview (expo: live previews, drag windows between workspaces, cycle)
+hl.bind(mod .. " + ALT + Tab", hl.dsp.exec_cmd("ryoku-shell overview")) -- workspace overview, stepping desktops (Alt+Tab again inside cycles desktops)
 hl.bind(mod .. " + M",         hl.dsp.exec_cmd("ryoku-shell visualizer"))        -- toggle the desktop audio visualiser
 hl.bind(mod .. " + SHIFT + M", hl.dsp.exec_cmd("ryoku-shell visualizer-overlay")) -- raise the visualiser over windows (flip back to desktop)
 hl.bind(mod .. " + grave",     hl.dsp.exec_cmd("ryoku-shell voice"))             -- tap: Voxtype speech-to-text + mic wave (tap again to stop)
