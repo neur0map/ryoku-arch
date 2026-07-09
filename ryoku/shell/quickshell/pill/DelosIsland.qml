@@ -160,11 +160,17 @@ Item {
     readonly property real trigPad: hud.tucked ? 44 * hud.s : 0
     readonly property real trigDepth: hud.lipFor(hud.dockEdge) + hud.trigReach
     readonly property real trigX: hud.dockEdge === "right" ? (hud.width - hud.trigDepth)
-        : hud.dockEdge === "left" ? 0 : (hud.dockX - hud.trigPad)
+        : hud.dockEdge === "left" ? 0
+        : (hud.tucked ? 0 : (hud.dockX - hud.trigPad))
     readonly property real trigY: hud.dockEdge === "bottom" ? (hud.height - hud.trigDepth)
-        : hud.dockEdge === "top" ? 0 : (hud.dockY - hud.trigPad)
-    readonly property real trigW: (hud.dockEdge === "left" || hud.dockEdge === "right") ? hud.trigDepth : (hud.bodyW + 2 * hud.trigPad)
-    readonly property real trigH: (hud.dockEdge === "top" || hud.dockEdge === "bottom") ? hud.trigDepth : (hud.bodyH + 2 * hud.trigPad)
+        : hud.dockEdge === "top" ? 0
+        : (hud.tucked ? 0 : (hud.dockY - hud.trigPad))
+    // tucked: the whole docked edge is the peek zone, so the cursor reaching
+    // that edge anywhere pops the nub back; open: a tight strip around it.
+    readonly property real trigW: (hud.dockEdge === "left" || hud.dockEdge === "right") ? hud.trigDepth
+        : (hud.tucked ? hud.width : (hud.bodyW + 2 * hud.trigPad))
+    readonly property real trigH: (hud.dockEdge === "top" || hud.dockEdge === "bottom") ? hud.trigDepth
+        : (hud.tucked ? hud.height : (hud.bodyH + 2 * hud.trigPad))
 
     readonly property real gapT: hud.py - hud.lipT
     readonly property real gapB: (hud.height - hud.lipB) - (hud.py + hud.bodyH)
@@ -347,7 +353,7 @@ Item {
         y: hud.py
         width: hud.bodyW
         height: hud.bodyH
-        opacity: hud.reorientFade * Math.max(0, Math.min(1, (hud.prog - 0.25) / 0.5))
+        opacity: hud.reorientFade * Math.max(0, Math.min(1, (hud.prog - 0.6) / 0.35))
         transform: Matrix4x4 { matrix: bodyBlob.deformMatrix }
         HoverHandler { id: bodyHov }
 
