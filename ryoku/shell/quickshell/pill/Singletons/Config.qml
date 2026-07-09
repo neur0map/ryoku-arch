@@ -58,6 +58,7 @@ Singleton {
     property alias islandAlong:   adapter.islandAlong
     property alias islandHidden:  adapter.islandHidden
     property alias islandModules: adapter.islandModules
+    property alias islandRadius:  adapter.islandRadius
 
     // typography: UI font family (Theme.font reads this) + a scale that grows
     // or shrinks the whole shell (the bar text and the surfaces around it),
@@ -104,6 +105,7 @@ Singleton {
             property real islandAlong: -1
             property bool islandHidden: false
             property var islandModules: ["workspaces", "clock", "date", "media"]
+            property real islandRadius: 17
             property string fontFamily: "JetBrainsMono Nerd Font"
             property real fontScale: 1.3
         }

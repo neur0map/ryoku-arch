@@ -23,7 +23,7 @@ Item {
     required property var group
     property real s: 1
     property bool active: true
-    property real radius: 17 * s
+    property real radius: Config.islandRadius * s
     property real smoothing: 30
     // delos never pre-thickens an edge (the island is the bar), so every lip is
     // just the frame border.
@@ -300,8 +300,9 @@ Item {
                 color: Theme.cream
                 font.pixelSize: 15 * hud.s
             }
+            HoverHandler { id: medHov; onHoveredChanged: hud.hoverPopoutRequested("media", medHov.hovered) }
             TapHandler { onTapped: Media.toggle() }
-            onVisibleChanged: hud.hoverPopoutRequested("media", false)
+            onVisibleChanged: if (!visible) hud.hoverPopoutRequested("media", false)
         }
     }
     Component { id: titleComp; BarTitle { s: hud.s; maxWidth: 220 * hud.s; label: Config.barShowTitle && ToplevelManager.activeToplevel ? (ToplevelManager.activeToplevel.title || "") : "" } }
@@ -386,6 +387,7 @@ Item {
                 model: Config.islandModules
                 Loader {
                     required property var modelData
+                    enabled: !hud.dragging
                     sourceComponent: modelData === "workspaces" ? wsComp
                         : modelData === "clock" ? clockComp
                         : modelData === "date" ? dateComp
