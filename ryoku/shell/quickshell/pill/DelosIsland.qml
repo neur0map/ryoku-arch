@@ -253,7 +253,9 @@ Item {
     }
 
     // module components, chosen by id from Config.islandModules.
-    Component { id: wsComp; BarWorkspaces { s: hud.s; activeWsId: hud.activeWsId; vertical: hud.layoutVertical } }
+    // display-only: the island shows the workspace but does not switch on a
+    // click or scroll (that is what a stray grab was doing). Super+N switches.
+    Component { id: wsComp; BarWorkspaces { s: hud.s; activeWsId: hud.activeWsId; vertical: hud.layoutVertical; enabled: false } }
     Component {
         id: clockComp
         Grid {
