@@ -256,32 +256,62 @@ Item {
     Component { id: wsComp; BarWorkspaces { s: hud.s; activeWsId: hud.activeWsId; vertical: hud.layoutVertical } }
     Component {
         id: clockComp
-        Text {
-            text: hud.layoutVertical
-                ? clock.date.toLocaleTimeString(Qt.locale("en_US"), "HH") + "\n" + clock.date.toLocaleTimeString(Qt.locale("en_US"), "mm")
-                : clock.date.toLocaleTimeString(Qt.locale("en_US"), "HH:mm")
-            horizontalAlignment: Text.AlignHCenter
-            lineHeight: 0.9
-            color: Theme.bright
-            font.family: Theme.font
-            font.pixelSize: 13 * hud.s
-            font.weight: Font.DemiBold
-            font.features: ({ "tnum": 1 })
+        Grid {
+            columns: hud.layoutVertical ? 1 : 2
+            rowSpacing: 2 * hud.s
+            columnSpacing: 7 * hud.s
+            horizontalItemAlignment: Grid.AlignHCenter
+            verticalItemAlignment: Grid.AlignVCenter
+            // the red sun: Delos's signature, the one always-fixed accent.
+            Rectangle {
+                width: 7 * hud.s
+                height: 7 * hud.s
+                radius: width / 2
+                color: Theme.sun
+            }
+            Text {
+                text: hud.layoutVertical
+                    ? clock.date.toLocaleTimeString(Qt.locale("en_US"), "HH") + "\n" + clock.date.toLocaleTimeString(Qt.locale("en_US"), "mm")
+                    : clock.date.toLocaleTimeString(Qt.locale("en_US"), "HH:mm")
+                horizontalAlignment: Text.AlignHCenter
+                lineHeight: 0.88
+                color: Theme.bright
+                font.family: Theme.mono
+                font.pixelSize: 14 * hud.s
+                font.weight: Font.DemiBold
+                font.letterSpacing: 1
+                font.features: ({ "tnum": 1 })
+            }
             TapHandler { onTapped: hud.popoutRequested("calendar") }
         }
     }
     Component {
         id: dateComp
-        Text {
-            text: hud.layoutVertical
-                ? clock.date.toLocaleDateString(Qt.locale("en_US"), "ddd") + "\n" + clock.date.toLocaleDateString(Qt.locale("en_US"), "d") + "\n" + clock.date.toLocaleDateString(Qt.locale("en_US"), "MMM")
-                : clock.date.toLocaleDateString(Qt.locale("en_US"), "ddd d MMM")
-            horizontalAlignment: Text.AlignHCenter
-            lineHeight: 0.95
-            color: Theme.dim
-            font.family: Theme.font
-            font.pixelSize: 11 * hud.s
-            font.weight: Font.Medium
+        Grid {
+            columns: hud.layoutVertical ? 1 : 2
+            rowSpacing: 2 * hud.s
+            columnSpacing: 6 * hud.s
+            horizontalItemAlignment: Grid.AlignHCenter
+            verticalItemAlignment: Grid.AlignVCenter
+            // engraved hairline tick, editorial.
+            Rectangle {
+                visible: !hud.layoutVertical
+                width: Math.max(1, hud.s)
+                height: 11 * hud.s
+                color: Theme.hair
+            }
+            Text {
+                text: hud.layoutVertical
+                    ? (clock.date.toLocaleDateString(Qt.locale("en_US"), "ddd") + "\n" + clock.date.toLocaleDateString(Qt.locale("en_US"), "d") + "\n" + clock.date.toLocaleDateString(Qt.locale("en_US"), "MMM")).toUpperCase()
+                    : clock.date.toLocaleDateString(Qt.locale("en_US"), "ddd d MMM").toUpperCase()
+                horizontalAlignment: Text.AlignHCenter
+                lineHeight: 1.0
+                color: Theme.dim
+                font.family: Theme.mono
+                font.pixelSize: 9.5 * hud.s
+                font.weight: Font.Medium
+                font.letterSpacing: 2
+            }
             TapHandler { onTapped: hud.popoutRequested("calendar") }
         }
     }
