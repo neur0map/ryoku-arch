@@ -85,6 +85,9 @@ jobs:
                         title url number state updatedAt
                         labels(first: 20) { nodes { name } }
                       }
+                      ... on DraftIssue {
+                        title updatedAt
+                      }
                     }
                   }
                 }
@@ -134,13 +137,13 @@ jobs:
           [ .[]
             | . as $node
             | (.content // {}) as $c
-            | select(($c.__typename // "") == "Issue" or ($c.__typename // "") == "PullRequest")
+            | select(($c.__typename // "") == "Issue" or ($c.__typename // "") == "PullRequest" or ($c.__typename // "") == "DraftIssue")
             | {
                 title: ($c.title // ""),
-                url: ($c.url // ""),
+                url: ($c.url // ($meta.url // "")),
                 number: ($c.number // 0),
-                kind: (if $c.__typename == "PullRequest" then "pr" else "issue" end),
-                state: (($c.state // "") | ascii_downcase),
+                kind: (if $c.__typename == "PullRequest" then "pr" elif $c.__typename == "DraftIssue" then "draft" else "issue" end),
+                state: (($c.state // "open") | ascii_downcase),
                 area: ($node | ssv("Area")),
                 type: ($node | ssv("Type")),
                 channel: ($node | ssv("Channel")),
