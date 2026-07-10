@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- Active quick-toggle icons stay legible on a light wallpaper accent: the icon on
+  a lit tile flips to dark ink on the accent fill instead of washing out in
+  warm-white.
 - **Weather takes a set location and unit.** Beyond auto-locating by IP, the
   shell reads a `weatherLocation` (a city name, geocoded via Open-Meteo; blank
   keeps the IP auto-locate) and a `weatherUnit` ("auto" follows the locale, else

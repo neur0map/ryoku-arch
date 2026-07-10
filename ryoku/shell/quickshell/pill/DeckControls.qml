@@ -192,7 +192,7 @@ Item {
             width: 15 * root.s
             height: 15 * root.s
             name: tt.glyph
-            color: tt.on ? Theme.cream : (tHov.hovered ? Theme.cream : Theme.iconDim)
+            color: tt.on ? Theme.onAccent : (tHov.hovered ? Theme.cream : Theme.iconDim)
             stroke: 1.6
         }
         HoverHandler { id: tHov; cursorShape: Qt.PointingHandCursor }

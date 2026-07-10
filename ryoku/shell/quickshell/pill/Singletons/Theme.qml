@@ -11,6 +11,10 @@ Singleton {
     readonly property color gold:     "#d9a441"
     readonly property color cream:    "#e6dccb"
     readonly property color bright:   "#f3ede1"
+    // a foreground that stays legible on the accent fill: dark ink when the
+    // accent is light (a pale wallpaper pick), warm-white when it is dark, so a
+    // toggle icon never washes out against Theme.brand.
+    readonly property color onAccent: (0.299 * brand.r + 0.587 * brand.g + 0.114 * brand.b) > 0.6 ? "#100d08" : bright
     readonly property color dim:      "#8f8770"
     readonly property color cardTop:  Config.matchWallpaper ? Wallust.base : "#16110b"
     readonly property color cardBot:  Config.matchWallpaper ? Wallust.deep : "#0f0c07"
