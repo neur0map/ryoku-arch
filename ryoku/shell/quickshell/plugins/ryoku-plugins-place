@@ -6,6 +6,7 @@
 #
 #   ryoku-plugins-place <id> desktopWidget <x> <y> [scale] [locked]
 #   ryoku-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>
+#   ryoku-plugins-place <id> sidebarLeft [order]
 #   ryoku-plugins-place <id> host <hostName>
 #   ryoku-plugins-place <id> enabled <true|false>
 #   ryoku-plugins-place <id> settings <json>   merge a settings object
@@ -86,6 +87,12 @@ framePopout)
 		'.[$id] = ((.[$id] // {}) + { enabled: ((.[$id].enabled) // true), host: ((.[$id].host) // "framePopout"), framePopout: (((.[$id].framePopout) // {}) + { edge: $e, align: $a, hoverW: $hw, hoverH: $hh }) })' \
 		"$f" >"$tmp" && mv "$tmp" "$f"
 	;;
+sidebarLeft)
+	order="${1:-50}"
+	jq --arg id "$id" --argjson o "$order" \
+		'.[$id] = ((.[$id] // {}) + { enabled: ((.[$id].enabled) // true), host: ((.[$id].host) // "sidebarLeft"), sidebarLeft: (((.[$id].sidebarLeft) // {}) + { order: $o }) })' \
+		"$f" >"$tmp" && mv "$tmp" "$f"
+	;;
 host)
 	host="${1:?host}"
 	jq --arg id "$id" --arg h "$host" '.[$id] = ((.[$id] // {}) + { enabled: ((.[$id].enabled) // true), host: $h })' "$f" >"$tmp" && mv "$tmp" "$f"
@@ -110,7 +117,7 @@ forget)
 	jq --arg id "$id" 'del(.[$id])' "$f" >"$tmp" && mv "$tmp" "$f"
 	;;
 *)
-	echo "usage: ryoku-plugins-place <id> desktopWidget <x> <y> | framePopout <edge> <align> <hoverW> <hoverH> | host <name> | enabled <bool> | settings <json> | seed | forget" >&2
+	echo "usage: ryoku-plugins-place <id> desktopWidget <x> <y> | framePopout <edge> <align> <hoverW> <hoverH> | sidebarLeft <order> | host <name> | enabled <bool> | settings <json> | seed | forget" >&2
 	exit 2
 	;;
 esac

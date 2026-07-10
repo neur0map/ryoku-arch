@@ -110,7 +110,7 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             visible: row.status === "deferred"
-            text: "Plugins"
+            text: row.itemType === "plugin" ? "Plugins" : "Manual"
             color: Theme.faint
             font.family: Theme.mono
             font.pixelSize: 10
@@ -130,7 +130,7 @@ Item {
         ActionPill {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            visible: !row.busy && row.here && row.itemType === "package"
+            visible: !row.busy && row.here && (row.itemType === "package" || row.itemType === "nautilus-pack")
             label: "Remove"
             icon: "trash"
             danger: true

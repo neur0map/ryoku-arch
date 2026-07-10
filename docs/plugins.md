@@ -44,7 +44,7 @@ bolted-on instead of native.
 
 ---
 
-## The two hosts a user can choose
+## The three hosts a user can choose
 
 When a user enables your plugin they pick **one** of these in Ryoku Settings →
 Plugins. Your *same* `content/Widget.qml` is used for both - Ryoku just renders
@@ -80,8 +80,19 @@ reserved for the shell's own island/mixer/power, so you can't dock there).
 
 `ryoku-shell plugin <id>` toggles your frame popout open (bind it to a key).
 
+### 3. Left sidebar pane - a tab beside Stash
+
+It mounts as a tab in the **left sidebar** (the one that reveals on `SUPER+D`),
+alongside Stash. The shell owns the reveal, the tab rail, and the frame; your
+`content/Widget.qml` fills the pane at `full` density and the sidebar's width.
+
+- Declare `"hosts": ["sidebarLeft"]` and set `defaults.sidebarLeft.order` (tab
+  sort order), `defaults.icon`, and `defaults.label`.
+- A bundle that ships a `sidebarLeft` plugin **auto-enables it on install**, so
+  the tab appears at once; removing the bundle removes the tab.
+
 > Island, topbar-glyph, and window hosts are planned but not built yet. Declare
-> only `framePopout` and `desktopWidget` in your manifest today.
+> only `framePopout`, `desktopWidget`, or `sidebarLeft` in your manifest today.
 
 ---
 

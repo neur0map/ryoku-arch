@@ -40,12 +40,16 @@ func extrasCacheDir() string {
 }
 
 type registryEntry struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Tagline     string `json:"tagline,omitempty"`
-	Sources     string `json:"sources,omitempty"`
-	Path        string `json:"path"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Tagline     string   `json:"tagline,omitempty"`
+	Sources     string   `json:"sources,omitempty"`
+	Icon        string   `json:"icon,omitempty"`
+	Accent      string   `json:"accent,omitempty"`
+	Preview     string   `json:"preview,omitempty"`
+	Screenshots []string `json:"screenshots,omitempty"`
+	Path        string   `json:"path"`
 }
 
 type registry struct {
@@ -54,18 +58,24 @@ type registry struct {
 }
 
 type bundleItem struct {
-	Type     string `json:"type"`
-	Name     string `json:"name"`
-	Detect   string `json:"detect,omitempty"`
-	Summary  string `json:"summary,omitempty"`
-	Source   string `json:"source,omitempty"`
-	Upstream string `json:"upstream,omitempty"`
+	Type        string `json:"type"`
+	Name        string `json:"name"`
+	Detect      string `json:"detect,omitempty"`
+	Summary     string `json:"summary,omitempty"`
+	Source      string `json:"source,omitempty"`
+	Upstream    string `json:"upstream,omitempty"`
+	Tier        string `json:"tier,omitempty"`
+	Interactive bool   `json:"interactive,omitempty"`
 }
 
 type bundleDef struct {
 	ID          string       `json:"id"`
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
+	Icon        string       `json:"icon,omitempty"`
+	Accent      string       `json:"accent,omitempty"`
+	Preview     string       `json:"preview,omitempty"`
+	Screenshots []string     `json:"screenshots,omitempty"`
 	Items       []bundleItem `json:"items"`
 }
 
@@ -77,6 +87,10 @@ type catalogBundle struct {
 	Description string       `json:"description"`
 	Tagline     string       `json:"tagline,omitempty"`
 	Sources     string       `json:"sources,omitempty"`
+	Icon        string       `json:"icon,omitempty"`
+	Accent      string       `json:"accent,omitempty"`
+	Preview     string       `json:"preview,omitempty"`
+	Screenshots []string     `json:"screenshots,omitempty"`
 	Path        string       `json:"path"`
 	Items       []bundleItem `json:"items"`
 }
@@ -123,7 +137,7 @@ type catalogPlugin struct {
 
 func runExtras(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("extras needs catalog|cache|installer|plugin|plugincatalog")
+		return fmt.Errorf("extras needs catalog|cache|installer|plugin|pluginremove|plugincatalog|nautilus|nautilusremove")
 	}
 	switch args[0] {
 	case "catalog":
@@ -178,8 +192,23 @@ func runExtras(args []string) error {
 		os.Stdout.Write(b)
 		fmt.Println()
 		return nil
+	case "nautilus":
+		if len(args) < 2 {
+			return fmt.Errorf("extras nautilus needs a name")
+		}
+		p, err := ensureNautilusPack(args[1])
+		if err != nil {
+			return err
+		}
+		fmt.Println(p)
+		return nil
+	case "nautilusremove":
+		if len(args) < 2 {
+			return fmt.Errorf("extras nautilusremove needs a name")
+		}
+		return removeNautilusPack(args[1])
 	default:
-		return fmt.Errorf("extras needs catalog|cache|installer|plugin|plugincatalog")
+		return fmt.Errorf("extras needs catalog|cache|installer|plugin|pluginremove|plugincatalog|nautilus|nautilusremove")
 	}
 }
 
@@ -262,7 +291,7 @@ func buildCatalog() (map[string][]catalogBundle, error) {
 		if path == "" {
 			path = "bundles/" + e.ID
 		}
-		cb := catalogBundle{ID: e.ID, Name: e.Name, Description: e.Description, Tagline: e.Tagline, Sources: e.Sources, Path: path}
+		cb := catalogBundle{ID: e.ID, Name: e.Name, Description: e.Description, Tagline: e.Tagline, Sources: e.Sources, Icon: e.Icon, Accent: e.Accent, Preview: e.Preview, Screenshots: e.Screenshots, Path: path}
 		if b, err := fetchOrCache(path + "/bundle.json"); err == nil {
 			var def bundleDef
 			if json.Unmarshal(b, &def) == nil {
@@ -273,7 +302,30 @@ func buildCatalog() (map[string][]catalogBundle, error) {
 				if cb.Name == "" {
 					cb.Name = def.Name
 				}
+				if cb.Icon == "" {
+					cb.Icon = def.Icon
+				}
+				if cb.Accent == "" {
+					cb.Accent = def.Accent
+				}
+				if cb.Preview == "" {
+					cb.Preview = def.Preview
+				}
+				if len(cb.Screenshots) == 0 {
+					cb.Screenshots = def.Screenshots
+				}
 			}
+		}
+		// relative asset paths under bundles/<id>/ -> absolute URLs; http(s) pass through.
+		resolve := func(p string) string {
+			if p == "" || strings.HasPrefix(p, "http://") || strings.HasPrefix(p, "https://") {
+				return p
+			}
+			return extrasBase() + "/" + path + "/" + strings.TrimLeft(p, "/")
+		}
+		cb.Preview = resolve(cb.Preview)
+		for i, s := range cb.Screenshots {
+			cb.Screenshots[i] = resolve(s)
 		}
 		// warm the installer cache for any script item. lazy, best-effort.
 		for _, it := range cb.Items {
@@ -484,4 +536,122 @@ func ensurePlugin(id string) (string, error) {
 	// the right place the moment it lands (forgotten again on uninstall).
 	_ = exec.Command("ryoku-plugins-place", id, "seed").Run()
 	return dst, nil
+}
+
+type nautilusPack struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Path        string `json:"path,omitempty"`
+	Subdir      string `json:"subdir,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+type nautilusRegistry struct {
+	Version int            `json:"version"`
+	Packs   []nautilusPack `json:"packs"`
+}
+
+// nautilusScriptsDir: where Nautilus reads user scripts. nautilusTrackDir: our
+// per-pack record of what we installed, so removal is exact (mirrors the
+// plugin data dir).
+func nautilusScriptsDir() string { return filepath.Join(dataHome(), "nautilus", "scripts") }
+func nautilusTrackDir(id string) string {
+	return filepath.Join(dataHome(), "ryoku", "nautilus", id)
+}
+
+// ensureNautilusPack fetches a pack's scripts into the Nautilus scripts dir
+// under its subdir (0755, live-rescanned), recording the file list for a clean
+// removal. Returns the installed scripts dir.
+func ensureNautilusPack(id string) (string, error) {
+	raw, err := fetch(extrasBase() + "/nautilus/registry.json")
+	if err != nil {
+		return "", fmt.Errorf("nautilus catalogue not found: %w", err)
+	}
+	var reg nautilusRegistry
+	if err := json.Unmarshal(raw, &reg); err != nil {
+		return "", fmt.Errorf("nautilus/registry.json: %w", err)
+	}
+	var pk *nautilusPack
+	for i := range reg.Packs {
+		if reg.Packs[i].ID == id {
+			pk = &reg.Packs[i]
+			break
+		}
+	}
+	if pk == nil {
+		return "", fmt.Errorf("nautilus pack %q not in the catalogue", id)
+	}
+	path := pk.Path
+	if path == "" {
+		path = "nautilus/" + id
+	}
+	manRaw, err := fetch(extrasBase() + "/" + path + "/manifest.json")
+	if err != nil {
+		return "", fmt.Errorf("nautilus pack %q manifest: %w", id, err)
+	}
+	var man struct {
+		Subdir  string   `json:"subdir"`
+		Scripts []string `json:"scripts"`
+	}
+	if err := json.Unmarshal(manRaw, &man); err != nil {
+		return "", fmt.Errorf("nautilus pack %q manifest: %w", id, err)
+	}
+	subdir := man.Subdir
+	if subdir == "" {
+		subdir = pk.Subdir
+	}
+	if subdir == "" {
+		subdir = pk.Name
+	}
+	if subdir == "" {
+		subdir = id
+	}
+	root := filepath.Join(nautilusScriptsDir(), subdir)
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return "", err
+	}
+	for _, s := range man.Scripts {
+		b, err := fetch(extrasBase() + "/" + path + "/scripts/" + s)
+		if err != nil {
+			continue
+		}
+		p := filepath.Join(root, filepath.Clean(s))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			return "", err
+		}
+		if err := os.WriteFile(p, b, 0o755); err != nil {
+			return "", err
+		}
+	}
+	track := nautilusTrackDir(id)
+	if err := os.MkdirAll(track, 0o755); err != nil {
+		return "", err
+	}
+	rec, _ := json.Marshal(map[string]any{"id": id, "subdir": subdir, "scripts": man.Scripts})
+	_ = os.WriteFile(filepath.Join(track, "manifest.json"), rec, 0o644)
+	return root, nil
+}
+
+// removeNautilusPack deletes a pack's installed scripts (its whole subdir) and
+// the tracking record. No-op if never installed.
+func removeNautilusPack(id string) error {
+	if id == "" {
+		return fmt.Errorf("nautilus pack id required")
+	}
+	track := nautilusTrackDir(id)
+	b, err := os.ReadFile(filepath.Join(track, "manifest.json"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	var rec struct {
+		Subdir string `json:"subdir"`
+	}
+	_ = json.Unmarshal(b, &rec)
+	if rec.Subdir != "" {
+		_ = os.RemoveAll(filepath.Join(nautilusScriptsDir(), rec.Subdir))
+	}
+	return os.RemoveAll(track)
 }

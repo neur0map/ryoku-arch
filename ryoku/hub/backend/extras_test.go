@@ -18,9 +18,10 @@ func extrasServer(t *testing.T) (*httptest.Server, *bool) {
 	files := map[string]string{
 		"/bundles/registry.json": `{"version":1,"bundles":[
 			{"id":"demo","name":"Demo","description":"A demo bundle.","sources":"pacman / script","path":"bundles/demo"}]}`,
-		"/bundles/demo/bundle.json": `{"id":"demo","name":"Demo","description":"A demo bundle.","items":[
-			{"type":"package","name":"cmatrix","detect":"cmatrix","summary":"rain","source":"official"},
-			{"type":"script","name":"demo-cli","detect":"demo","summary":"a cli","source":"curl"}]}`,
+		"/bundles/demo/bundle.json": `{"id":"demo","name":"Demo","description":"A demo bundle.",
+			"preview":"assets/hero.png","screenshots":["assets/a.png","https://cdn.example/b.png"],"items":[
+			{"type":"package","name":"cmatrix","detect":"cmatrix","summary":"rain","source":"official","tier":"core"},
+			{"type":"script","name":"demo-cli","detect":"demo","summary":"a cli","source":"curl","tier":"optional","interactive":true}]}`,
 		"/installers/demo-cli.sh": "#!/bin/bash\necho demo\n",
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +60,18 @@ func TestBuildCatalog(t *testing.T) {
 	}
 	if len(b.Items) != 2 || b.Items[0].Name != "cmatrix" || b.Items[1].Type != "script" {
 		t.Fatalf("items not resolved: %+v", b.Items)
+	}
+	if b.Preview != srv.URL+"/bundles/demo/assets/hero.png" {
+		t.Fatalf("preview not resolved to a URL: %q", b.Preview)
+	}
+	if len(b.Screenshots) != 2 || b.Screenshots[0] != srv.URL+"/bundles/demo/assets/a.png" {
+		t.Fatalf("relative screenshot not resolved: %+v", b.Screenshots)
+	}
+	if b.Screenshots[1] != "https://cdn.example/b.png" {
+		t.Fatalf("absolute screenshot must pass through: %q", b.Screenshots[1])
+	}
+	if b.Items[0].Tier != "core" || b.Items[1].Tier != "optional" || !b.Items[1].Interactive {
+		t.Fatalf("tier/interactive lost: %+v", b.Items)
 	}
 
 	// script installer should have been warmed into the cache.
@@ -132,5 +145,45 @@ func TestFetchBustsCDNCache(t *testing.T) {
 	}
 	if !strings.Contains(q2, "keep=1") {
 		t.Fatalf("an existing query was dropped: %q", q2)
+	}
+}
+
+func TestEnsureNautilusPack(t *testing.T) {
+	dataHome := t.TempDir()
+	t.Setenv("XDG_DATA_HOME", dataHome)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/nautilus/registry.json":
+			w.Write([]byte(`{"version":1,"packs":[{"id":"video-reformat","name":"Video Reformat","path":"nautilus/video-reformat","subdir":"Ryoku Creator"}]}`))
+		case "/nautilus/video-reformat/manifest.json":
+			w.Write([]byte(`{"subdir":"Ryoku Creator","scripts":["Reformat 9x16"]}`))
+		case "/nautilus/video-reformat/scripts/Reformat 9x16":
+			w.Write([]byte("#!/usr/bin/env bash\necho hi\n"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	t.Setenv("RYOKU_EXTRAS_BASE", srv.URL)
+
+	if _, err := ensureNautilusPack("video-reformat"); err != nil {
+		t.Fatalf("ensure: %v", err)
+	}
+	script := filepath.Join(dataHome, "nautilus", "scripts", "Ryoku Creator", "Reformat 9x16")
+	fi, err := os.Stat(script)
+	if err != nil {
+		t.Fatalf("script not installed: %v", err)
+	}
+	if fi.Mode().Perm()&0o111 == 0 {
+		t.Errorf("script not executable: %v", fi.Mode())
+	}
+	if _, err := os.Stat(filepath.Join(dataHome, "ryoku", "nautilus", "video-reformat", "manifest.json")); err != nil {
+		t.Errorf("tracking manifest missing: %v", err)
+	}
+	if err := removeNautilusPack("video-reformat"); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	if _, err := os.Stat(script); !os.IsNotExist(err) {
+		t.Errorf("script survived removal: %v", err)
 	}
 }

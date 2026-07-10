@@ -22,7 +22,6 @@ Item {
 
     readonly property string reportDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-extras"
 
-    readonly property int cols: width >= 1180 ? 4 : (width >= 820 ? 3 : (width >= 520 ? 2 : 1))
 
     readonly property var selectedBundle: {
         for (var i = 0; i < bundles.length; i++)
@@ -49,24 +48,6 @@ Item {
         return n;
     }
 
-    // greedy masonry. drop each tile in the currently shortest column, height
-    // estimated from blurb length so columns end up roughly balanced.
-    function buildColumns(list, n) {
-        var cols = [], heights = [], i;
-        for (i = 0; i < n; i++) { cols.push([]); heights.push(0); }
-        for (i = 0; i < list.length; i++) {
-            var b = list[i];
-            var est = 150 + Math.ceil(((b.description || "").length) / 32) * 17;
-            var min = 0;
-            for (var j = 1; j < n; j++)
-                if (heights[j] < heights[min]) min = j;
-            cols[min].push(b);
-            heights[min] += est + 14;
-        }
-        return cols;
-    }
-
-    readonly property var grouped: buildColumns(page.bundles, page.cols)
 
     Process {
         id: catalogProc
@@ -76,8 +57,6 @@ Item {
                 try {
                     var o = JSON.parse(this.text);
                     var bs = o.bundles || [];
-                    for (var i = 0; i < bs.length; i++)
-                        bs[i].ordinal = i + 1;
                     page.bundles = bs;
                     page.loadFailed = bs.length === 0;
                 } catch (e) {
@@ -191,7 +170,7 @@ Item {
         visible: !page.loading && !page.loadFailed && page.selectedId === ""
         opacity: visible ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.quick } }
-        contentHeight: masonry.implicitHeight + 18
+        contentHeight: grid.implicitHeight + 18
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
@@ -208,33 +187,21 @@ Item {
             }
         }
 
-        Row {
-            id: masonry
+        Flow {
+            id: grid
             width: flick.width - 10
             topPadding: 4
             spacing: 14
 
             Repeater {
-                model: page.cols
+                model: page.bundles
 
-                delegate: Column {
-                    id: column
-                    required property int index
-                    width: (masonry.width - (page.cols - 1) * 14) / page.cols
-                    spacing: 14
-
-                    Repeater {
-                        model: page.grouped[column.index] || []
-
-                        delegate: ExtraBundleCard {
-                            required property var modelData
-                            width: column.width
-                            bundle: modelData
-                            ordinal: modelData.ordinal || 0
-                            installedCount: page.installedCountFor(modelData.id)
-                            onOpened: page.open(modelData.id)
-                        }
-                    }
+                delegate: ExtraBundleCard {
+                    required property var modelData
+                    width: Math.max(300, (grid.width - 14 * 2) / 3)
+                    bundle: modelData
+                    installedCount: page.installedCountFor(modelData.id)
+                    onOpened: page.open(modelData.id)
                 }
             }
         }

@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### Added
+- **Bundles can ship their own code.** The bundle model gains item tiers
+  (`core`, installed by "Install all"; `optional`, opt-in per item), an
+  `interactive` flag for user-driven fetches (an aborted one reports *deferred*,
+  not *failed*), a `nautilus-pack` item type that installs right-click
+  file-manager scripts and removes them cleanly, and bundle store imagery
+  (`icon`/`accent`/`preview`/`screenshots`, resolved to absolute URLs like
+  plugin assets already are).
+- **The bundle store looks like a real store.** Bundle cards and the detail
+  view now show a hero image with a warm scrim, an install-progress badge, and
+  source / tool-count chips (mirroring the plugin store); the text masonry
+  became an image grid and the detail opens on a full-width hero banner.
 - The Appearance and Animations pages can now enable and configure optional
   Hyprland compositor plugins, each folded into its natural home as a toggle that
   reveals its settings: **Realistic cursor motion** (rotate / tilt / stretch plus

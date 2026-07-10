@@ -74,59 +74,97 @@ Item {
         } catch (e) {}
     }
 
-    // --- header -------------------------------------------------------------
+    // --- hero banner --------------------------------------------------------
     Item {
-        id: head
+        id: hero
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 86
+        height: 180
+        clip: true
 
-        Row {
+        Rectangle {
+            anchors.fill: parent
+            radius: Theme.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Theme.keyTop }
+                GradientStop { position: 1.0; color: Theme.surfaceLo }
+            }
+        }
+        Image {
+            id: heroImg
+            anchors.fill: parent
+            source: detail.bundle.preview || ((detail.bundle.screenshots && detail.bundle.screenshots.length > 0) ? detail.bundle.screenshots[0] : "")
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            cache: true
+            sourceSize.width: 1200
+        }
+        Icon {
+            anchors.centerIn: parent
+            name: detail.bundle.icon || "package"
+            size: 44
+            weight: 1.5
+            tint: Theme.faint
+            visible: heroImg.status !== Image.Ready
+        }
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.35) }
+                GradientStop { position: 0.55; color: "transparent" }
+                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.78) }
+            }
+        }
+
+        // back, top-left over the banner.
+        Rectangle {
             id: backBtn
-            anchors.left: parent.left
             anchors.top: parent.top
-            spacing: 6
-
-            Icon {
-                anchors.verticalCenter: parent.verticalCenter
-                name: "chevron"
-                size: 16
-                weight: 2
-                rotation: 90
-                tint: backHover.hovered ? Theme.ember : Theme.dim
-                Behavior on tint { ColorAnimation { duration: Theme.quick } }
+            anchors.left: parent.left
+            anchors.margins: 14
+            width: backRow.implicitWidth + 20
+            height: 32
+            radius: Theme.radius
+            color: backHover.hovered ? Qt.rgba(0, 0, 0, 0.6) : Qt.rgba(0, 0, 0, 0.4)
+            border.width: 1
+            border.color: backHover.hovered ? Theme.ember : Theme.hair
+            Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+            Row {
+                id: backRow
+                anchors.centerIn: parent
+                spacing: 6
+                Icon { anchors.verticalCenter: parent.verticalCenter; name: "chevron"; size: 14; weight: 2; rotation: 90; tint: backHover.hovered ? Theme.ember : Theme.subtle }
+                Text { anchors.verticalCenter: parent.verticalCenter; text: "All bundles"; color: backHover.hovered ? Theme.bright : Theme.subtle; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Medium }
             }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "All bundles"
-                color: backHover.hovered ? Theme.ember : Theme.dim
-                font.family: Theme.font
-                font.pixelSize: 12
-                font.weight: Font.DemiBold
-                Behavior on color { ColorAnimation { duration: Theme.quick } }
-            }
-
             HoverHandler { id: backHover; cursorShape: Qt.PointingHandCursor }
             TapHandler { onTapped: detail.back() }
         }
 
-        Text {
-            id: title
+        // brand mark + name, bottom-left.
+        Row {
             anchors.left: parent.left
-            anchors.top: backBtn.bottom
-            anchors.topMargin: 12
-            text: detail.bundle.name || ""
-            color: Theme.bright
-            font.family: Theme.font
-            font.pixelSize: 22
-            font.weight: Font.DemiBold
+            anchors.bottom: parent.bottom
+            anchors.margins: 18
+            anchors.rightMargin: 18
+            spacing: 10
+            Text { anchors.verticalCenter: parent.verticalCenter; text: "\u529b"; color: Theme.brand; font.family: Theme.fontJp; font.pixelSize: 20 }
+            Text { anchors.verticalCenter: parent.verticalCenter; text: detail.bundle.name || ""; color: Theme.bright; font.family: Theme.font; font.pixelSize: 28; font.weight: Font.DemiBold }
         }
+    }
+
+    // --- actions row --------------------------------------------------------
+    Item {
+        id: head
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: hero.bottom
+        anchors.topMargin: 16
+        height: 34
 
         Text {
-            anchors.left: title.right
-            anchors.leftMargin: 12
-            anchors.verticalCenter: title.verticalCenter
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
             text: detail.bundle.sources || ""
             color: Theme.faint
             font.family: Theme.mono
@@ -138,8 +176,7 @@ Item {
 
         Row {
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 2
+            anchors.verticalCenter: parent.verticalCenter
             spacing: 10
 
             Text {
@@ -172,7 +209,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: head.bottom
-        anchors.topMargin: 2
+        anchors.topMargin: 12
         visible: (detail.bundle.tagline || "") !== ""
         text: detail.bundle.tagline || ""
         color: Theme.cream
