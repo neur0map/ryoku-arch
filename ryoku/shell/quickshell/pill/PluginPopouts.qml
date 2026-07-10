@@ -54,7 +54,7 @@ Item {
     readonly property string _shellDir: Quickshell.env("RYOKU_SHELL_DIR")
     readonly property string _script: (_shellDir && _shellDir.length > 0)
         ? _shellDir + "/quickshell/plugins/discover.sh"
-        : Quickshell.env("HOME") + "/.local/share/ryoku/quickshell/plugins/discover.sh"
+        : (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/quickshell/plugins/discover.sh"
 
     function reload() { discoverProc.running = false; discoverProc.running = true; }
 
