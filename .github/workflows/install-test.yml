@@ -1,0 +1,96 @@
+name: Install test
+
+# Proves an actual install of Ryoku succeeds, before a user hits a broken one.
+# Two tiers: a container tier that builds the packages, installs ryoku-desktop,
+# and asserts the materialized config is complete (on Arch and CachyOS bases);
+# and a VM tier that boots the built ISO and runs the real installer unattended
+# against a virtual disk, then verifies the installed tree. Heavy, so it never
+# runs on push: it runs after a Build ISO, on a weekly schedule, and on demand.
+# See installation/tests/ and docs/updates.md.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_run:
+    workflows: ["Build ISO"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  container-install:
+    name: "container install (${{ matrix.base }})"
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        base: [arch, cachyos]
+    container:
+      image: ${{ matrix.base == 'cachyos' && 'cachyos/cachyos:latest' || 'archlinux:latest' }}
+    steps:
+      # git first so actions/checkout makes a real clone with history
+      # (build-repo.sh derives the package version from `git rev-list`).
+      - name: Install git
+        run: pacman -Sy --noconfirm --needed git
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Build, install, and verify the config
+        run: installation/tests/container-install.sh ${{ matrix.base }}
+
+  vm-install:
+    name: "VM install (boot the ISO)"
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install QEMU, OVMF, and pexpect
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86 qemu-utils ovmf python3-pexpect openssl
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+      - name: Fetch the built ISO
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rid="${{ github.event.workflow_run.id }}"
+          if [ -z "$rid" ]; then
+            rid=$(gh run list -w "Build ISO" --status success --limit 1 \
+              --json databaseId -q '.[0].databaseId')
+          fi
+          [ -n "$rid" ] || { echo "::error::no successful Build ISO run to test"; exit 1; }
+          gh run download "$rid" -n ryoku-iso --dir iso
+      - name: Install into a VM and verify
+        run: |
+          set -euo pipefail
+          iso=$(ls iso/*.iso | head -1)
+          if [ ! -e /dev/kvm ]; then
+            echo "::warning::no /dev/kvm on this runner; skipping the VM install (needs a KVM runner)"
+            exit 0
+          fi
+          python3 installation/tests/install-vm.py --iso "$iso" --work "$RUNNER_TEMP/ryoku-vm"
+      - name: Upload serial log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vm-serial-log
+          path: ${{ runner.temp }}/ryoku-vm/serial.log
+          if-no-files-found: ignore

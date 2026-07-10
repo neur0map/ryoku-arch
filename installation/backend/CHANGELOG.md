@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+- Automated install tests (`installation/tests/`, run by the Install test
+  workflow): `container-install.sh` builds the packages, installs `ryoku-desktop`,
+  and asserts the materialized config is complete on Arch and CachyOS bases;
+  `install-vm.py` boots the ISO and runs the real installer unattended in QEMU,
+  then verifies the installed tree. A new `RYOKU_SKIP_AUR` skips the optional AUR
+  set for an unattended or CI install.
+
 ### Fixed
 - Hybrid NVIDIA laptops no longer produce a broken, unbootable install. The
   configure stage wrote `MODULES=(nvidia ...)` into mkinitcpio before the driver

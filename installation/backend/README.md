@@ -70,7 +70,8 @@ Encryption (set together):
 | `RYOKU_LUKS_PASSPHRASE` | The LUKS passphrase (required when encrypting).     |
 
 Other: `RYOKU_GPU_MODE` (`offload` \| `sync` \| `vfio`, hybrid only),
-`RYOKU_REBOOT` (non-empty reboots after install), `RYOKU_DRYRUN` (see above).
+`RYOKU_REBOOT` (non-empty reboots after install), `RYOKU_SKIP_AUR` (skip the
+optional AUR set, for an unattended or CI install), `RYOKU_DRYRUN` (see above).
 
 ## Progress protocol
 

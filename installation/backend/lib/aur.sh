@@ -21,6 +21,10 @@ ryoku_aur() {
     log "DRYRUN: bootstrap yay and install the AUR set from $aur_file as $u"
     return 0
   fi
+  if [[ -n ${RYOKU_SKIP_AUR:-} ]]; then
+    log "AUR: RYOKU_SKIP_AUR set, skipping the AUR set (bootstrap it later)"
+    return 0
+  fi
   if [[ ${RYOKU_ONLINE:-1} != 1 ]]; then
     log "AUR: offline install, skipping (bootstrap yay with an AUR helper once online)"
     return 0
