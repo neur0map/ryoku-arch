@@ -338,13 +338,6 @@ install_set() {
     echo "==> Installing plugin: $n"
     if run_plugin_install "$n" && { [[ -n $DRYRUN ]] || plugin_installed "$n"; }; then
       set_state "$n" installed
-      # a sidebarLeft guest is just a tab; enable it so it appears at once. other
-      # hosts stay disabled to avoid surprise placement (user enables in Settings).
-      if [[ -z $DRYRUN ]]; then
-        local host
-        host=$(jq -r '.defaults.host // "desktopWidget"' "$(plugin_dir "$n")/manifest.json" 2>/dev/null)
-        [[ $host == sidebarLeft ]] && ryoku-plugins-place "$n" enabled true >/dev/null 2>&1
-      fi
     else
       set_state "$n" failed "could not fetch the plugin from the catalogue"
     fi

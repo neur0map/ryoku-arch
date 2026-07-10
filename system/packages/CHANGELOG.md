@@ -5,8 +5,10 @@
 ### Added
 - `ryoku-extras-install`: installs and removes `nautilus-pack` guests, skips
   `optional`-tier items in a whole-bundle install (they install one at a time),
-  turns an aborted `interactive` fetch into a *deferred* state, and auto-enables
-  a bundle's `sidebarLeft` plugin on install.
+  and turns an aborted `interactive` fetch into a *deferred* state. Repo installs
+  go through `pacman -Syu` (not `-S`), so a bundle can never trigger a partial
+  upgrade (a stale library vs a freshly pulled one), and a bundle's `requires`
+  (such as `multilib`) is ensured before its packages route.
 - `base.packages`: add `ttf-firacode-nerd` and `ttf-hack-nerd`, two popular rice
   nerd fonts, so the shell's Global font picker has more that render on a fresh
   install (JetBrains Mono already ships). The picker also lists other popular

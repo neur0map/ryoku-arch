@@ -12,4 +12,7 @@ set -euo pipefail
   exit 2
 }
 
-exec sudo pacman -S --needed --noconfirm "$@"
+# -Syu, not -S: installing new packages against a stale db is a partial upgrade,
+# which breaks on soname bumps (e.g. a new x265 vs the installed ffmpeg). A full
+# sync+upgrade keeps the transaction consistent.
+exec sudo pacman -Syu --needed --noconfirm "$@"
