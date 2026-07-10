@@ -5,7 +5,7 @@
 ### Added
 - **Two corner-hover sidebars, replacing the control deck.** Full-height panels
   that melt out of the left and right frame edges and fuse into the top and bottom
-  frame, so a whole side swells open with no gap. Hover a top corner to open (a
+  frame, so a whole side swells open with no gap. Push the cursor into a top corner to open (a
   short intent, a grace on leave), or toggle via IPC. **Left is Features** (the
   Stash file board, room for more); **right is System**, the control centre folded
   in from the old deck: 力 clock and weather, the session and quick toggles, the

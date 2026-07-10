@@ -1089,14 +1089,19 @@ ShellRoot {
                     height: overlay.sidebarCornerH
                     property bool armed: false
                     onVisibleChanged: if (!visible) armed = false
-                    Timer { id: sidebarLeftIntent; interval: 150; onTriggered: sidebarLeftCorner.armed = true }
-                    HoverHandler {
-                        enabled: Config.sidebarClickless
-                        onHoveredChanged: {
-                            if (hovered) sidebarLeftIntent.restart();
-                            else { sidebarLeftIntent.stop(); sidebarLeftCorner.armed = false; }
-                        }
+                    // the pointer must reach the very corner (where it clamps when
+                    // flung there), not just enter the region, so grazing the top
+                    // frame near the corner never arms the sidebar.
+                    readonly property real reach: 6 * overlay.s
+                    readonly property bool atCorner: leftHov.hovered &&
+                        leftHov.point.position.x <= sidebarLeftCorner.reach &&
+                        leftHov.point.position.y <= sidebarLeftCorner.reach
+                    onAtCornerChanged: {
+                        if (atCorner) sidebarLeftIntent.restart();
+                        else { sidebarLeftIntent.stop(); sidebarLeftCorner.armed = false; }
                     }
+                    Timer { id: sidebarLeftIntent; interval: 150; onTriggered: sidebarLeftCorner.armed = true }
+                    HoverHandler { id: leftHov; enabled: Config.sidebarClickless }
                     TapHandler {
                         enabled: !Config.sidebarClickless
                         onTapped: root.togglePopout(overlay.modelData.name, "sidebarLeft")
@@ -1141,14 +1146,17 @@ ShellRoot {
                     height: overlay.sidebarCornerH
                     property bool armed: false
                     onVisibleChanged: if (!visible) armed = false
-                    Timer { id: sidebarRightIntent; interval: 150; onTriggered: sidebarRightCorner.armed = true }
-                    HoverHandler {
-                        enabled: Config.sidebarClickless
-                        onHoveredChanged: {
-                            if (hovered) sidebarRightIntent.restart();
-                            else { sidebarRightIntent.stop(); sidebarRightCorner.armed = false; }
-                        }
+                    // mirror of the left: only the extreme top-right corner arms it.
+                    readonly property real reach: 6 * overlay.s
+                    readonly property bool atCorner: rightHov.hovered &&
+                        rightHov.point.position.x >= (sidebarRightCorner.width - sidebarRightCorner.reach) &&
+                        rightHov.point.position.y <= sidebarRightCorner.reach
+                    onAtCornerChanged: {
+                        if (atCorner) sidebarRightIntent.restart();
+                        else { sidebarRightIntent.stop(); sidebarRightCorner.armed = false; }
                     }
+                    Timer { id: sidebarRightIntent; interval: 150; onTriggered: sidebarRightCorner.armed = true }
+                    HoverHandler { id: rightHov; enabled: Config.sidebarClickless }
                     TapHandler {
                         enabled: !Config.sidebarClickless
                         onTapped: root.togglePopout(overlay.modelData.name, "sidebarRight")

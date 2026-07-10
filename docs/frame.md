@@ -113,7 +113,7 @@ focus on demand so Escape closes it.
 ## The sidebars
 
 Two full-height side panels melt out of the left and right frame edges, each
-opened by hovering that side's top corner. Both are `Popout`s in `fullSpan`
+opened by pushing the cursor into that side's top corner. Both are `Popout`s in `fullSpan`
 mode: where a normal popout insets from the frame and rounds its inner corners,
 `fullSpan` makes a left/right body fill the frame top-to-bottom and fuse into the
 top and bottom borders too. The blob overshoots both screen edges so its
@@ -135,8 +135,10 @@ the whole side of the frame swelling open with no gap at either end.
   (else click), and `sidebarWidth` / `sidebarCornerSize` size the panels and their
   hit-regions.
 - Each trigger is a small always-masked hit region at that side's top corner
-  (`sidebarLeftCorner` / `sidebarRightCorner` in `shell.qml`). In hover mode a
-  deliberate hover (a short intent timer) arms the popout and the body's own hover
+  (`sidebarLeftCorner` / `sidebarRightCorner` in `shell.qml`). In hover mode the
+  pointer has to reach the very corner (a few px, where it clamps when flung
+  there), not just enter the region, so grazing the top frame never opens it; a
+  short intent timer then arms the popout and the body's own hover
   latch (a `closeDelay` grace) holds it open until the pointer leaves; a bare
   `HoverHandler` lets a click fall through to the bar. In click mode a `TapHandler`
   on the corner toggles it instead.
