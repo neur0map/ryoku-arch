@@ -97,6 +97,11 @@
   pacman transactions, wired to the snapper `root` config by the installer.
 
 ### Fixed
+- `hardware.packages`: the `amd-nvidia` profile now pulls `[amd]` + `[intel]`
+  microcode. It is offered for an AMD or Intel CPU with an NVIDIA GPU but only
+  shipped `amd-ucode`, so an Intel+NVIDIA laptop got the wrong microcode and no
+  `intel-ucode`; the mkinitcpio microcode hook keeps only the one matching the
+  CPU present, so shipping both is correct on either.
 - `base.packages`: ship `papirus-icon-theme`. The shipped Qt icon theme
   (`ryoku/shell/qt6ct/qt6ct.conf`) is `Papirus-Dark`, and `adwaita-icon-theme`
   alone left named freedesktop icons (e.g. `network-wired`, which the Avahi

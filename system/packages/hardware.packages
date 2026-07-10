@@ -3,7 +3,7 @@
 #   amd         -> [amd]
 #   intel       -> [intel]
 #   vm          -> [vm]
-#   amd-nvidia  -> [amd] + [nvidia]
+#   amd-nvidia  -> [amd] + [intel] + [nvidia]
 # Base mesa and the vulkan loader live in base.packages (always installed). GPU
 # drivers are NOT listed here: the installer runs system/hardware/drivers/*.sh in
 # the target, which pick the generation-correct driver per detected GPU (for
@@ -17,8 +17,10 @@ amd-ucode
 intel-ucode
 
 [nvidia]
-# NVIDIA is a GPU vendor; its driver comes from drivers/nvidia.sh. CPU microcode
-# for this profile comes from the [amd] section (amd-nvidia = [amd] + [nvidia]).
+# NVIDIA is a GPU vendor; its driver comes from drivers/nvidia.sh. This profile
+# covers an AMD or Intel CPU, so it pulls both [amd] and [intel] microcode
+# (amd-nvidia = [amd] + [intel] + [nvidia]); the mkinitcpio microcode hook keeps
+# only the ucode matching the CPU that is actually present.
 
 [vm]
 # VMs use mesa (virtio-gpu) and vulkan-icd-loader from base.packages.

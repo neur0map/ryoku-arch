@@ -88,6 +88,15 @@
   proprietary modules otherwise.
 
 ### Fixed
+- `drivers/nvidia.sh`: on the stock `linux` kernel install the PREBUILT
+  `nvidia-open` (matched to the kernel, so there is no DKMS build to fail on a
+  fresh kernel) instead of `nvidia-open-dkms`; custom kernels still use `-dkms` +
+  headers. The mkinitcpio `MODULES` drop-in is written only when `modinfo` finds
+  the module for an installed kernel, so a missing or failed build can no longer
+  force a broken initramfs (the machine boots on the integrated GPU). Pre-Turing
+  cards -- which the open module cannot drive, and whose proprietary packages are
+  gone from the repos -- are skipped with a pointer to the AUR legacy driver
+  instead of pulling a package that no longer exists.
 - `display/ryoku-monitor`: write each output's refresh as `highrr` instead of the
   live rate, and settle the refresh after applying scale. A panel whose
   DisplayPort link first comes up at a low refresh (common on a discrete GPU at

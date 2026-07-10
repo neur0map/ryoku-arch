@@ -2,11 +2,14 @@
 #
 # nvidia.sh: pick + install the right NVIDIA stack if a card is there.
 #
-# Turing+ (GTX 16xx, RTX 20xx-up, datacenter A/H/L) ship GSP firmware and
-# run the open kernel modules -> nvidia-open-dkms. older cards (Maxwell,
-# Pascal, Volta) have no GSP -> proprietary nvidia-dkms. both pull
-# nvidia-utils (userspace), libva-nvidia-driver (VA-API), linux-headers
-# (DKMS builds against them).
+# Turing+ (GTX 16xx, RTX 20xx-up, datacenter A/H/L) ship GSP firmware and use
+# the open kernel modules; older cards (Maxwell/Pascal/Volta) use the
+# proprietary ones. On the stock `linux` kernel we install the PREBUILT module
+# (nvidia-open / nvidia) so there is no DKMS build to fail on a fresh kernel; a
+# custom kernel falls back to nvidia-open-dkms / nvidia-dkms + headers. Both add
+# nvidia-utils + libva-nvidia-driver. The early-KMS mkinitcpio config is written
+# only when the module actually landed, so a driver that cannot build never
+# breaks the initramfs (the machine still boots on the iGPU).
 #
 # idempotent, gated on detection, dry-run via RYOKU_DRYRUN (or --dry-run).
 
@@ -95,31 +98,58 @@ have_module_pkg() {
   pacman -Qq 2>/dev/null | grep -qE '^(nvidia(-open)?(-dkms|-lts)?|linux-.*-nvidia(-open)?)$'
 }
 
+# nvidia_module_present: is the nvidia kernel module actually available for an
+# installed target kernel? checks each /usr/lib/modules/<ver> tree with
+# modinfo -k (not the chroot's running host kernel). dry-run assumes present.
+nvidia_module_present() {
+  [[ $RYOKU_DRYRUN == 1 ]] && return 0
+  local d kv
+  for d in /usr/lib/modules/*/; do
+    [[ -d $d ]] || continue
+    kv=${d%/}; kv=${kv##*/}
+    modinfo -k "$kv" nvidia >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+
 if have_module_pkg; then
   echo "nvidia.sh: an NVIDIA kernel module package is already installed, keeping it"
   install_pkgs nvidia-utils libva-nvidia-driver
 else
-  # DKMS builds against every installed kernel, so headers must match the
-  # kernels actually on the box (linux-zen/-lts/-cachyos included), not just
-  # stock linux. pkgbase names the owning package for each module tree.
-  headers=()
+  # enumerate the installed kernels via pkgbase (linux, linux-zen, ...).
+  kernels=()
   for pb in /usr/lib/modules/*/pkgbase; do
     [[ -r $pb ]] || continue
-    read -r kernel <"$pb"
-    headers+=("${kernel}-headers")
+    read -r kb <"$pb"
+    kernels+=("$kb")
   done
-  (( ${#headers[@]} > 0 )) || headers=(linux-headers)
-  mapfile -t headers < <(printf '%s\n' "${headers[@]}" | sort -u)
+  (( ${#kernels[@]} )) || kernels=(linux)
+  mapfile -t kernels < <(printf '%s\n' "${kernels[@]}" | sort -u)
 
-  pkgs=(nvidia-utils libva-nvidia-driver "${headers[@]}")
-  if nvidia_has_gsp; then
-    echo "nvidia.sh: GSP-capable NVIDIA GPU (Turing+), using the open kernel modules."
-    pkgs=(nvidia-open-dkms "${pkgs[@]}")
+  # the stock `linux` kernel ships a PREBUILT nvidia module (nvidia-open /
+  # nvidia) kept in step with it, so there is no DKMS build to fail on a fresh
+  # kernel. any custom kernel (zen/lts/cachyos) needs DKMS + its headers.
+  base=(nvidia-utils libva-nvidia-driver)
+  if [[ ${#kernels[@]} -eq 1 && ${kernels[0]} == linux ]]; then
+    if nvidia_has_gsp; then
+      echo "nvidia.sh: Turing+ GPU on stock linux, using the prebuilt open module (nvidia-open)."
+      pkgs=(nvidia-open "${base[@]}")
+    else
+      echo "nvidia.sh: pre-Turing GPU on stock linux, using the prebuilt proprietary module (nvidia)."
+      pkgs=(nvidia "${base[@]}")
+    fi
   else
-    echo "nvidia.sh: pre-Turing NVIDIA GPU, using the proprietary kernel modules."
-    pkgs=(nvidia-dkms "${pkgs[@]}")
+    headers=()
+    for kb in "${kernels[@]}"; do headers+=("${kb}-headers"); done
+    if nvidia_has_gsp; then
+      echo "nvidia.sh: Turing+ GPU, custom kernel(s), using nvidia-open-dkms."
+      pkgs=(nvidia-open-dkms "${base[@]}" "${headers[@]}")
+    else
+      echo "nvidia.sh: pre-Turing GPU, custom kernel(s), using nvidia-dkms."
+      pkgs=(nvidia-dkms "${base[@]}" "${headers[@]}")
+    fi
   fi
-  install_pkgs "${pkgs[@]}"
+  install_pkgs "${pkgs[@]}" || echo "nvidia.sh: WARNING: NVIDIA driver install failed (a pre-Turing card may need an AUR legacy driver such as nvidia-580xx-dkms; a Turing+ card needs a matching kernel/driver). The desktop will run on the integrated GPU; install a working driver and run 'mkinitcpio -P' to enable it."
 fi
 
 # early KMS + the boot-race fix. DRM modeset is mandatory for a working
@@ -129,16 +159,26 @@ fi
 # boot, and the card only shows up on some boots (the wonky-detection bug).
 # PreserveVideoMemoryAllocations = session survives suspend.
 # detection-gated, applied whenever an NVIDIA GPU is present.
-echo "nvidia.sh: writing modeset, nouveau blacklist + initramfs module config"
+echo "nvidia.sh: writing modeset + nouveau blacklist"
 write_root /etc/modprobe.d/nvidia.conf <<'EOF'
 options nvidia_drm modeset=1 fbdev=1
 options nvidia NVreg_PreserveVideoMemoryAllocations=1
 blacklist nouveau
 options nouveau modeset=0
 EOF
-write_root /etc/mkinitcpio.conf.d/nvidia.conf <<'EOF'
+# early KMS (nvidia in the initramfs) ONLY when the module actually landed. a
+# forced MODULES=(nvidia...) with a missing module makes mkinitcpio ERROR and
+# ship a broken initramfs -- the classic hybrid-laptop install break. without
+# the module we skip it and warn; the iGPU still drives the display.
+if nvidia_module_present; then
+  echo "nvidia.sh: nvidia module present, writing initramfs early-KMS config"
+  write_root /etc/mkinitcpio.conf.d/nvidia.conf <<'EOF'
 MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
 EOF
+else
+  echo "nvidia.sh: WARNING: nvidia kernel module not found for the installed kernel(s); skipping the mkinitcpio MODULES drop-in so the initramfs still builds. Boot runs on the integrated GPU; install a matching nvidia driver/kernel and run 'mkinitcpio -P' to enable it."
+  run "${PRIV[@]}" rm -f /etc/mkinitcpio.conf.d/nvidia.conf
+fi
 
 # suspend/resume: NVIDIA has to save + restore VRAM across sleep or the
 # session comes back corrupted. units ship in nvidia-utils; enabling them

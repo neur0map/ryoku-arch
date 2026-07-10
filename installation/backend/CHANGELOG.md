@@ -3,6 +3,18 @@
 ## Unreleased
 
 ### Fixed
+- Hybrid NVIDIA laptops no longer produce a broken, unbootable install. The
+  configure stage wrote `MODULES=(nvidia ...)` into mkinitcpio before the driver
+  existed, so a driver that failed to build left the initramfs erroring with
+  `module not found: nvidia` and shipped an incomplete image. `lib/chroot.sh` no
+  longer writes that drop-in -- `system/hardware/drivers/nvidia.sh` writes it,
+  and only when the module actually landed, so a driver that cannot build
+  degrades to the integrated GPU instead of failing the whole install.
+  `lib/pacstrap.sh` selects both `amd` and `intel` microcode for the
+  `amd-nvidia` profile (it covers either CPU), and the install masks snap-pac's
+  pacman hooks in the chroot -- they aborted with "fatal library error, lookup
+  self" on every driver transaction with snapper unconfigured -- restoring them
+  before it finishes.
 - A dying connection fails the install before the disk is touched, not deep
   inside pacstrap. DNS was already verified, but a link can resolve names and
   still not move bytes (captive portal, half-up Wi-Fi); the first casualty is

@@ -43,7 +43,7 @@ ryoku_pacstrap() {
   case "$RYOKU_PROFILE" in
     amd) sections=(amd) ;;
     intel) sections=(intel) ;;
-    amd-nvidia) sections=(amd nvidia) ;;
+    amd-nvidia) sections=(amd intel nvidia) ;;
     vm) sections=(vm) ;;
     *) die "unknown RYOKU_PROFILE: $RYOKU_PROFILE (want amd-nvidia|amd|intel|vm)" ;;
   esac

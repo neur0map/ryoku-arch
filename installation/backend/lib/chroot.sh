@@ -110,13 +110,10 @@ ryoku_cfg_initramfs() {
   run mkdir -p /mnt/etc/mkinitcpio.conf.d
   write_file /mnt/etc/mkinitcpio.conf.d/ryoku.conf <<<"$content"
 
-  # NVIDIA needs early KMS so the dGPU is up before the display manager.
-  if [[ $RYOKU_PROFILE == amd-nvidia ]]; then
-    log "mkinitcpio MODULES drop-in for NVIDIA early KMS"
-    write_file /mnt/etc/mkinitcpio.conf.d/nvidia.conf <<'EOF'
-MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
-EOF
-  fi
+  # NVIDIA early KMS (the mkinitcpio MODULES drop-in) is written later by
+  # system/hardware/drivers/nvidia.sh (ryoku_drivers), and only when the module
+  # actually built -- so a driver that fails to build can't force a broken
+  # initramfs here.
 }
 
 ryoku_cfg_crypttab() {
@@ -127,4 +124,30 @@ ryoku_cfg_crypttab() {
   write_file /mnt/etc/crypttab <<EOF
 root UUID=$luks_uuid none luks
 EOF
+}
+
+# pacman hooks that misbehave inside the install chroot get masked for the
+# duration and restored before we finish. snap-pac runs `snapper` on every
+# transaction, but the chroot has no snapper config or D-Bus, so it aborts with
+# "fatal library error, lookup self" on each driver/AUR install. a /dev/null
+# symlink is pacman's documented way to disable a hook by name.
+RYOKU_MASKED_HOOKS=(05-snap-pac-pre.hook zz-snap-pac-post.hook)
+
+ryoku_hooks_quiet() {
+  run mkdir -p /mnt/etc/pacman.d/hooks
+  local h
+  for h in "${RYOKU_MASKED_HOOKS[@]}"; do
+    [[ -n ${RYOKU_DRYRUN:-} || -e /mnt/usr/share/libalpm/hooks/$h ]] || continue
+    log "masking pacman hook for the install: $h"
+    run ln -sf /dev/null "/mnt/etc/pacman.d/hooks/$h"
+  done
+}
+
+ryoku_hooks_restore() {
+  local h
+  for h in "${RYOKU_MASKED_HOOKS[@]}"; do
+    [[ -n ${RYOKU_DRYRUN:-} || -L /mnt/etc/pacman.d/hooks/$h ]] || continue
+    log "restoring pacman hook: $h"
+    run rm -f "/mnt/etc/pacman.d/hooks/$h"
+  done
 }

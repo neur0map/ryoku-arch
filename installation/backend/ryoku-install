@@ -107,6 +107,10 @@ main() {
   ryoku_rank_mirrors
   ryoku_pacstrap
 
+  # snap-pac's pacman hooks abort in the chroot; mask them for the install and
+  # restore before we unmount (see ryoku_hooks_quiet/restore).
+  ryoku_hooks_quiet
+
   step configure
   ryoku_configure
   ryoku_deploy
@@ -124,6 +128,7 @@ main() {
   ryoku_bootloader_finalize
 
   ryoku_snapshots
+  ryoku_hooks_restore
 
   log "flushing the target to disk"
   run sync
