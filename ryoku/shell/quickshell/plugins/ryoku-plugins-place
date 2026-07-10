@@ -58,9 +58,14 @@ seed_entry() {
 	# metadata.defaultSettings still works.
 	defs="$(jq -c 'if (.metadata.settings | type) == "array" then (.metadata.settings | map({(.key): .default}) | add // {}) else (.metadata.defaultSettings // {}) end' "$man")"
 	host="$(jq -r '.defaults.host // "desktopWidget"' "$man")"
-	jq --arg id "$pid" --argjson defs "$defs" --arg host "$host" \
+	# sidebarLeft panes have no placement step: they mount as a tab the moment
+	# they are installed, so seed them enabled (install, reload, use, no setup).
+	# desktopWidget and framePopout stay disabled until the user places/enables.
+	local endef=false
+	[ "$host" = sidebarLeft ] && endef=true
+	jq --arg id "$pid" --argjson defs "$defs" --arg host "$host" --argjson endef "$endef" \
 		'.[$id] = ((.[$id] // {}) + {
-			enabled: ((.[$id].enabled) // false),
+			enabled: ((.[$id].enabled) // $endef),
 			host: ((.[$id].host) // $host),
 			settings: ($defs + ((.[$id].settings) // {}))
 		})' "$f" >"$tmp" && mv "$tmp" "$f"
