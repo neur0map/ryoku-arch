@@ -211,10 +211,18 @@ package() {
   install -d "$cfg/kitty"
   cp -a "$_repo/ryoku/apps/kitty/." "$cfg/kitty/"
 
-  # neovim (LazyVim seed): the config only, not repo docs / .desktop handler.
+  # neovim (LazyVim seed): the config only, not the repo docs.
   install -Dm644 "$_repo/ryoku/apps/nvim/init.lua"       "$cfg/nvim/init.lua"
   install -Dm644 "$_repo/ryoku/apps/nvim/.ryoku-lazyvim" "$cfg/nvim/.ryoku-lazyvim"
   cp -a "$_repo/ryoku/apps/nvim/lua" "$cfg/nvim/"
+
+  # pip: PEP 668 --user installs (materialized to ~/.config/pip/pip.conf).
+  install -Dm644 "$_repo/ryoku/apps/pip/pip.conf" "$cfg/pip/pip.conf"
+  # neovim as the default text/code editor: the handler ships system-wide and
+  # the mimeapps map is materialized, so the mapping reaches installs on update.
+  install -Dm644 "$_repo/ryoku/apps/nvim/ryoku-nvim.desktop" \
+    "$pkgdir/usr/share/applications/ryoku-nvim.desktop"
+  install -Dm644 "$_repo/ryoku/apps/mimeapps.list" "$cfg/mimeapps.list"
 
   # user session target
   install -Dm644 "$_repo/ryoku/shell/systemd/user/hyprland-session.target" \

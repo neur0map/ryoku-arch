@@ -23,7 +23,6 @@ ryoku_deploy() {
   ryoku_deploy_packages          # pacman -S the desktop set (needs net)
   ryoku_deploy_materialize "$u"  # `ryoku materialize` as the user
   ryoku_deploy_seed "$h"         # unpackaged: brand, wallpapers, ~/.npmrc
-  ryoku_deploy_editor "$h"       # nvim default-editor reg (unpackaged)
   ryoku_deploy_chown "$u"        # own root-seeded files before the user steps
   ryoku_deploy_qylock            # qylock writes user files as the now-owning user
 }
@@ -179,16 +178,6 @@ ryoku_deploy_seed() {
   # ryoku-shell picks one at random on first start.
   deploy_dir "$RYOKU_REPO/ryoku/assets/wallpapers" "$h/Pictures/Wallpapers"
   deploy_file "$RYOKU_REPO/ryoku/apps/npm/npmrc" "$h/.npmrc"
-}
-
-# editor: make nvim the default text editor. .desktop entry + mimeapps
-# defaults. not packaged (ryoku-desktop ships the nvim config but not the
-# registration).
-ryoku_deploy_editor() {
-  local h=$1
-  log "registering neovim as the default text editor"
-  deploy_file "$RYOKU_REPO/ryoku/apps/nvim/ryoku-nvim.desktop" "$h/.local/share/applications/ryoku-nvim.desktop"
-  deploy_file "$RYOKU_REPO/ryoku/apps/mimeapps.list" "$h/.config/mimeapps.list"
 }
 
 # qylock: install the lockscreen bundle + the SDDM clockwork theme. not yet

@@ -93,6 +93,12 @@
   it, so every skin gets it.
 
 ### Fixed
+- **`pip.conf`, the default-app map, and the nvim editor handler now reach every
+  install.** `pip.conf` was shipped by no package, installer, or deploy path, so
+  `pip install --user` hit the PEP 668 wall everywhere; `mimeapps.list` and the
+  nvim `.desktop` were seeded once at install and never updated after. The
+  package now ships all three, so `ryoku update` materializes them with the rest
+  of the config, and `ryoku/shell/deploy.sh` lays them on a dev box too.
 - **Tray menus open under their icon.** A right-click on a system-tray icon
   anchored the menu at the icon's local x inside the tray row, not its position
   in the window, so the menu appeared at the bar's left edge instead of under
