@@ -28,6 +28,10 @@ Item {
     property string pane: ""
     signal paneSelected(string key)
 
+    // true while a file drag is over the drop-accepting pane (the stash board),
+    // so the shell can keep the sidebar open through a drag mid-grab.
+    readonly property bool dragActive: deckStash.dragActive && root.effectivePane === "stash"
+
     anchors.fill: parent
     implicitWidth: 340 * s
 
@@ -165,6 +169,7 @@ Item {
                 s: root.s
             }
             DeckStash {
+                id: deckStash
                 anchors.top: stashLbl.bottom
                 anchors.topMargin: 12 * root.s
                 anchors.left: parent.left

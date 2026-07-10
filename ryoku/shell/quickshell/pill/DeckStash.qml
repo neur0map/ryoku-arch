@@ -18,6 +18,10 @@ Item {
     property real s: 1
     property bool active: true
 
+    // true while a file drag hovers the board. the shell reads this to hold the
+    // left sidebar open across the edge-strip -> board handoff during a drag.
+    readonly property bool dragActive: dropArea.containsDrag
+
     // reserved (none here: stash flows raise their own overlays).
     signal requestClose()
 

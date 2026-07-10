@@ -23,6 +23,12 @@
   (enable each side, pick and order each side's panes, open-on-hover vs click,
   width, corner-hotspot size). Built on a new `Popout` `fullSpan` mode; the old
   `DeckSurface` / `DeckPopout` control deck is gone.
+- **Drag a file to the left edge to stash it.** The left (Features) sidebar now
+  springs open when a file is dragged onto the left frame edge or corner -- a
+  masked `DropArea` band `sidebarCornerSize` deep, since a HoverHandler can't
+  fire while a drag holds the pointer -- so its Stash board is right there to
+  drop onto (the board copies the file in and the sidebar tucks away when the
+  drag ends; a drop on the edge itself stashes too).
 - **A global `roundness` knob and a Global settings tab.** One shell-wide inner
   corner radius (Ryoku Settings' new **Global** tab, alongside the frame melt,
   surface, shadow, and typography controls moved there) rounds every tile, card,

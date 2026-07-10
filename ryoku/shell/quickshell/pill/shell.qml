@@ -505,6 +505,17 @@ ShellRoot {
             readonly property real sidebarCornerW: Config.sidebarCornerSize * s
             readonly property real sidebarCornerH: Config.sidebarCornerSize * s
 
+            // drag-to-stash trigger: a masked band down the whole left frame
+            // edge and corner, sidebarCornerSize deep (matching the hover
+            // corner), that catches a file drag -- a HoverHandler can't fire
+            // while a drag grabs the pointer, so a drag toward the left edge or
+            // corner opens the sidebar through this DropArea instead. tunable via
+            // sidebarCornerSize; the board's own DropArea takes drops over it.
+            readonly property real leftEdgeStripW: overlay.sidebarCornerW
+            readonly property bool leftDragActive: overlay.sidebarLeftOn && !overlay.monFullscreen &&
+                (leftEdgeDrop.containsDrag || sidebarLeftContent.dragActive)
+            onLeftDragActiveChanged: if (overlay.leftDragActive) root.sidebarLeftPane = "stash"
+
             // a keyboard-needing popout (clipboard/link/keyring/deck/workspaces)
             // pinned on this monitor: grabs the keyboard for text entry.
             readonly property bool kbPopout: root.popoutMon === modelData.name
@@ -598,6 +609,7 @@ ShellRoot {
                 Region { x: delosIsland.hudX; y: delosIsland.hudY; width: (overlay.delos && delosIsland.prog > 0.25) ? delosIsland.hudW : 0; height: (overlay.delos && delosIsland.prog > 0.25) ? delosIsland.hudH : 0 }
                 Region { x: delosIsland.trigX; y: delosIsland.trigY; width: overlay.delos ? delosIsland.trigW : 0; height: overlay.delos ? delosIsland.trigH : 0 }
                 Region { x: 0; y: 0; width: (overlay.sidebarLeftOn && !overlay.monFullscreen) ? overlay.sidebarCornerW : 0; height: (overlay.sidebarLeftOn && !overlay.monFullscreen) ? overlay.sidebarCornerH : 0 }
+                Region { x: 0; y: 0; width: (overlay.sidebarLeftOn && !overlay.monFullscreen) ? overlay.leftEdgeStripW : 0; height: (overlay.sidebarLeftOn && !overlay.monFullscreen) ? overlay.height : 0 }
                 Region { x: sidebarLeftPop.maskX; y: sidebarLeftPop.maskY; width: sidebarLeftPop.maskW; height: sidebarLeftPop.maskH }
                 Region { x: (overlay.width - overlay.sidebarCornerW); y: 0; width: (overlay.sidebarRightOn && !overlay.monFullscreen) ? overlay.sidebarCornerW : 0; height: (overlay.sidebarRightOn && !overlay.monFullscreen) ? overlay.sidebarCornerH : 0 }
                 Region { x: sidebarRightPop.maskX; y: sidebarRightPop.maskY; width: sidebarRightPop.maskW; height: sidebarRightPop.maskH }
@@ -1107,6 +1119,18 @@ ShellRoot {
                         onTapped: root.togglePopout(overlay.modelData.name, "sidebarLeft")
                     }
                 }
+                // drag intake down the whole left frame edge + corner: a file
+                // dragged here opens the sidebar so the stash board is there to
+                // drop onto (a HoverHandler is dead during a grab). the board's
+                // own DropArea takes drops over it; this catches the edge itself.
+                DropArea {
+                    id: leftEdgeDrop
+                    x: 0
+                    y: 0
+                    width: (overlay.sidebarLeftOn && !overlay.monFullscreen) ? overlay.leftEdgeStripW : 0
+                    height: (overlay.sidebarLeftOn && !overlay.monFullscreen) ? overlay.height : 0
+                    onDropped: (drop) => { for (var i = 0; i < drop.urls.length; i++) Stash.addUrl(drop.urls[i]); drop.accept(); }
+                }
                 Popout {
                     id: sidebarLeftPop
                     group: blobGroup
@@ -1118,13 +1142,14 @@ ShellRoot {
                     closeDelay: 300
                     s: overlay.s
                     active: overlay.sidebarLeftOn && !overlay.monFullscreen && (root.popout === "" || root.popout === "sidebarLeft")
-                    triggerHovered: Config.sidebarClickless && sidebarLeftCorner.armed
+                    triggerHovered: (Config.sidebarClickless && sidebarLeftCorner.armed) || overlay.leftDragActive
                     pinned: root.popout === "sidebarLeft" && root.popoutMon === overlay.modelData.name
                     fullSpan: true
                     openW: overlay.sidebarW
                     openH: overlay.height
 
                     SidebarFeatures {
+                        id: sidebarLeftContent
                         s: overlay.s
                         topInset: overlay.sidebarTopGap
                         botInset: overlay.sidebarBotGap
