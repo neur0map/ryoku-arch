@@ -1,8 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import Quickshell
-import Quickshell.Io
 import ".."
 import "../Singletons"
 
@@ -37,75 +35,18 @@ Item {
     anchors.fill: parent
     implicitWidth: 340 * s
 
-    // sidebarLeft guest panes: plugins that declare host "sidebarLeft" mount
-    // here beside Stash. discovered via the shared discover.sh (scan + merge
-    // plugins.json, enabled only) and a plugins.json watch, so an install or
-    // removal retunes the rail live. path resolves like the plugin Registry:
-    // RYOKU_SHELL_DIR in dev, else the materialized ~/.config quickshell tree.
-    property var guestPanes: []
-    readonly property string _shellDir: Quickshell.env("RYOKU_SHELL_DIR")
-    readonly property string _script: (_shellDir && _shellDir.length > 0)
-        ? _shellDir + "/quickshell/plugins/discover.sh"
-        : (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/quickshell/plugins/discover.sh"
-    function reloadGuests() { discoverProc.running = false; discoverProc.running = true; }
-
-    Process {
-        id: discoverProc
-        command: ["bash", root._script]
-        running: true
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var all = [];
-                try { all = JSON.parse(text || "[]"); } catch (e) { all = []; }
-                root.guestPanes = all
-                    .filter(p => p.placement && p.placement.host === "sidebarLeft")
-                    .map(p => ({
-                        key: p.id,
-                        glyph: (p.manifest && p.manifest.defaults && p.manifest.defaults.icon) || "extension",
-                        label: (p.manifest && p.manifest.defaults && p.manifest.defaults.label) || p.id,
-                        order: (p.placement.sidebarLeft && p.placement.sidebarLeft.order) || 50,
-                        dir: p.dir,
-                        contentUrl: (p.manifest && p.manifest.entryPoints && p.manifest.entryPoints.content) || "content/Widget.qml",
-                        settings: p.placement.settings || ({})
-                    }))
-                    .sort((a, b) => a.order - b.order);
-            }
-        }
-    }
-    FileView {
-        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/plugins.json"
-        watchChanges: true
-        printErrors: false
-        onFileChanged: root.reloadGuests()
-    }
-
     // the feature catalog: every pane this side knows how to show, keyed. tabs
     // are the enabled `panes` mapped over it -- unknown keys dropped, order kept.
-    readonly property var builtins: [ { "key": "stash", "glyph": "inventory_2" } ]
-    readonly property var catalog: root.builtins.concat(
-        root.guestPanes.map(g => ({ "key": g.key, "glyph": g.glyph })))
+    readonly property var catalog: [
+        { "key": "stash", "glyph": "inventory_2" }
+    ]
     readonly property var catalogByKey: {
         var m = ({});
         for (var i = 0; i < root.catalog.length; ++i)
             m[root.catalog[i].key] = root.catalog[i];
         return m;
     }
-    // builtins follow the user's `panes` choice (order kept, unknown dropped);
-    // enabled guest panes always append, so an installed sidebarLeft plugin
-    // shows its tab with no trip to Settings (install, reload, use).
-    readonly property var tabs: {
-        var base = (root.panes && root.panes.length > 0)
-            ? root.panes.map(k => root.catalogByKey[k]).filter(Boolean)
-            : root.catalog;
-        var seen = ({});
-        for (var i = 0; i < base.length; ++i)
-            seen[base[i].key] = true;
-        var out = base.slice();
-        for (var j = 0; j < root.guestPanes.length; ++j)
-            if (!seen[root.guestPanes[j].key])
-                out.push({ "key": root.guestPanes[j].key, "glyph": root.guestPanes[j].glyph });
-        return out;
-    }
+    readonly property var tabs: root.panes.map(k => root.catalogByKey[k]).filter(Boolean)
     // with only one enabled pane there is nothing to switch, so the tab rail and
     // its divider fold away and the pane fills straight under the eyebrow.
     readonly property bool showRail: root.tabs.length > 1
@@ -237,39 +178,6 @@ Item {
                 s: root.s
                 active: root.open && root.effectivePane === "stash"
                 onRequestClose: {}
-            }
-        }
-
-        Repeater {
-            model: root.guestPanes
-            delegate: Item {
-                id: guestPane
-                required property var modelData
-                anchors.fill: parent
-                visible: root.effectivePane === modelData.key
-                property var api: QtObject {
-                    property var mainInstance: guestSvc.item
-                    property var pluginSettings: guestPane.modelData.settings
-                    property string pluginDir: guestPane.modelData.dir
-                    function saveSettings() {}
-                }
-                Loader {
-                    id: guestSvc
-                    source: "file://" + guestPane.modelData.dir + "/service/Main.qml"
-                    onLoaded: if (item) item.pluginApi = guestPane.api
-                }
-                Loader {
-                    anchors.fill: parent
-                    source: "file://" + guestPane.modelData.dir + "/" + guestPane.modelData.contentUrl
-                    onLoaded: {
-                        if (!item) return;
-                        item.pluginApi = guestPane.api;
-                        item.density = "full";
-                        item.s = root.s;
-                        item.widthBudget = width;
-                        item.active = Qt.binding(() => root.open && root.effectivePane === guestPane.modelData.key);
-                    }
-                }
             }
         }
     }

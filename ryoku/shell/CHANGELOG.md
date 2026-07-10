@@ -3,11 +3,6 @@
 ## Unreleased
 
 ### Added
-- **The left sidebar hosts guest panes.** A new `sidebarLeft` plugin host lets a
-  ryoku-extras plugin mount as a tab beside Stash (discovered live via
-  `plugins.json`, the same way frame popouts are); `ryoku-plugins-place` gains a
-  `sidebarLeft <order>` verb, and an installed `sidebarLeft` guest is seeded
-  enabled so its tab appears the moment it lands, with no trip to Settings.
 - Active quick-toggle icons stay legible on a light wallpaper accent: the icon on
   a lit tile flips to dark ink on the accent fill instead of washing out in
   warm-white.
