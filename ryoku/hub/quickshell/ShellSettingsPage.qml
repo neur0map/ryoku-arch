@@ -22,6 +22,7 @@ Item {
         "barShowTitle", "barShowMedia", "barShowStatus", "barOccupiedWorkspaces",
         "islandEdge", "islandAlong", "islandHidden", "islandModules", "islandRadius",
         "fontFamily", "fontScale",
+        "weatherLocation", "weatherUnit",
         "sidebarLeftEnabled", "sidebarRightEnabled", "sidebarLeftPanes", "sidebarRightPanes",
         "sidebarClickless", "sidebarWidth", "sidebarCornerSize"
     ]
@@ -90,6 +91,7 @@ Item {
         "barShowTitle": true, "barShowMedia": true, "barShowStatus": true, "barOccupiedWorkspaces": true,
         "islandEdge": "top", "islandAlong": -1, "islandHidden": false, "islandModules": ["workspaces", "clock", "date", "media"], "islandRadius": 17,
         "fontFamily": "JetBrainsMono Nerd Font", "fontScale": 1.3,
+        "weatherLocation": "", "weatherUnit": "auto",
         "sidebarLeftEnabled": true, "sidebarRightEnabled": true, "sidebarLeftPanes": ["stash"], "sidebarRightPanes": ["notifications", "calendar", "media", "weather", "recording"],
         "sidebarClickless": true, "sidebarWidth": 340, "sidebarCornerSize": 34,
         "enabled": true, "bars": 64, "height": 0.42, "thickness": 0.58,
@@ -132,6 +134,8 @@ Item {
         property real islandRadius: 17
         property string fontFamily: "JetBrainsMono Nerd Font"
         property real fontScale: 1.3
+        property string weatherLocation: ""
+        property string weatherUnit: "auto"
         property bool sidebarLeftEnabled: true
         property bool sidebarRightEnabled: true
         property var sidebarLeftPanes: ["stash"]
@@ -338,6 +342,8 @@ Item {
             property real islandRadius: 17
             property string fontFamily: "JetBrainsMono Nerd Font"
             property real fontScale: 1.3
+            property string weatherLocation: ""
+            property string weatherUnit: "auto"
             property bool sidebarLeftEnabled: true
             property bool sidebarRightEnabled: true
             property var sidebarLeftPanes: ["stash"]
@@ -581,6 +587,23 @@ Item {
                         width: parent.width; label: "Size"; percent: true
                         from: 0.7; to: 1.6; step: 0.05; value: draft.fontScale
                         onModified: (v) => page.edit("fontScale", v)
+                    }
+                }
+                SettingSection {
+                    width: parent.width
+                    title: "WEATHER"
+                    SettingField {
+                        width: parent.width; label: "Location"
+                        fieldWidth: 200
+                        placeholder: "Auto (from IP)"
+                        value: draft.weatherLocation
+                        onCommitted: (v) => page.edit("weatherLocation", v)
+                    }
+                    ChoiceRow {
+                        width: parent.width; label: "Units"
+                        options: [{ "key": "auto", "label": "Auto" }, { "key": "celsius", "label": "\u00b0C" }, { "key": "fahrenheit", "label": "\u00b0F" }]
+                        current: draft.weatherUnit
+                        onChosen: (k) => page.edit("weatherUnit", k)
                     }
                 }
             }

@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- **Weather takes a set location and unit.** Beyond auto-locating by IP, the
+  shell reads a `weatherLocation` (a city name, geocoded via Open-Meteo; blank
+  keeps the IP auto-locate) and a `weatherUnit` ("auto" follows the locale, else
+  celsius / fahrenheit), both set from Ryoku Settings' Global tab. A unit change
+  re-fetches, so the reading, not just the degree symbol, is right.
 - **Two corner-hover sidebars, replacing the control deck.** Full-height panels
   that melt out of the left and right frame edges and fuse into the top and bottom
   frame, so a whole side swells open with no gap. Push the cursor into a top corner to open (a

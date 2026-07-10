@@ -100,6 +100,17 @@ function parseJson(text) {
     return null;
 }
 
+// Parse Open-Meteo's geocoding response to { city, lat, lon }, or null when the
+// query matched nothing.
+function parseGeo(json) {
+    if (!json || !Array.isArray(json.results) || json.results.length === 0)
+        return null;
+    var r = json.results[0];
+    if (typeof r.latitude !== "number" || typeof r.longitude !== "number")
+        return null;
+    return { city: r.name || "", lat: r.latitude, lon: r.longitude };
+}
+
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { glyphFor, labelFor, unitFor, tempSymbol, formatTemp, parseForecast, parseLoc, parseJson };
+    module.exports = { glyphFor, labelFor, unitFor, tempSymbol, formatTemp, parseForecast, parseLoc, parseGeo, parseJson };
 }

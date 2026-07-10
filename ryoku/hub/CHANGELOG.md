@@ -8,6 +8,8 @@
   moved out of the Frame tab. Its **Font** picker now lists the fonts people rice
   with (JetBrains Mono, Fira Code, Hack, Cascadia Code, Iosevka, Meslo, and more)
   and only offers the ones actually installed, growing as you add your own.
+- The Global tab also carries **weather**: a **Location** field (a city name, or
+  blank to auto-locate by IP) and a **Units** switch (Auto / °C / °F).
 - The Shell page gains a **Sidebar** tab for the two corner-summoned sidebars:
   enable the left (Features) and right (System) sides on their own, pick and order
   the panes each one shows, toggle open-on-hover vs click, and set the panel width

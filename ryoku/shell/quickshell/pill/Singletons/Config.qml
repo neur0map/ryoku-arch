@@ -86,6 +86,12 @@ Singleton {
     property alias fontFamily: adapter.fontFamily
     property alias fontScale:  adapter.fontScale
 
+    // weather: an explicit location override (a city name; blank = auto-locate by
+    // IP) and the temperature unit ("auto" follows the locale, else "celsius" /
+    // "fahrenheit"). the Weather singleton reads both.
+    property alias weatherLocation: adapter.weatherLocation
+    property alias weatherUnit:     adapter.weatherUnit
+
     // matchWallpaper: when on, every shell surface (frame, bar, popouts, plus
     // desktop widgets, plugin tiles, the window switcher)
     // follows the live wallust palette instead of the static Tokyo Night
@@ -136,6 +142,8 @@ Singleton {
             property real sidebarWidth: 340
             property real sidebarCornerSize: 34
             property real roundness: 10
+            property string weatherLocation: ""
+            property string weatherUnit: "auto"
         }
     }
 

@@ -17,7 +17,11 @@ Singleton {
     id: root
 
     readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku"
-    readonly property string unit: Model.unitFor(Quickshell.env("LC_MEASUREMENT") || Quickshell.env("LANG") || "")
+    readonly property string unit: {
+        var u = Config.weatherUnit;
+        return (u === "celsius" || u === "fahrenheit") ? u
+            : Model.unitFor(Quickshell.env("LC_MEASUREMENT") || Quickshell.env("LANG") || "");
+    }
 
     // public contract, identical to the old wttr.in version.
     property string temp: ""
@@ -36,15 +40,25 @@ Singleton {
     property real lat: 0
     property real lon: 0
     property bool located: false
+    // the unit a fetch was requested in, so applyForecast formats with the SAME
+    // unit the data came back in even if the setting changed mid-request; a unit
+    // change while a fetch is in flight queues one more via pendingFetch.
+    property string fetchUnit: ""
+    property bool pendingFetch: false
 
     function fetchWeather() {
-        if (!root.located || wxProc.running)
+        if (!root.located)
             return;
+        if (wxProc.running) {
+            root.pendingFetch = true;
+            return;
+        }
+        root.fetchUnit = root.unit;
         wxProc.running = true;
     }
 
     function applyForecast(text) {
-        var f = Model.parseForecast(Model.parseJson(text), root.unit);
+        var f = Model.parseForecast(Model.parseJson(text), root.fetchUnit);
         if (!f.available)
             return;
         root.tempNow = f.tempNow;
@@ -59,20 +73,38 @@ Singleton {
     }
 
     function writeLoc() {
-        locCache.setText(JSON.stringify({ city: root.city, lat: root.lat, lon: root.lon }));
+        locCache.setText(JSON.stringify({ query: Config.weatherLocation, city: root.city, lat: root.lat, lon: root.lon }));
     }
 
-    Component.onCompleted: {
+    // resolve coords: an explicit Config.weatherLocation wins (geocoded), else the
+    // cached coords for the same query, else an IP lookup. the cache is keyed by
+    // the query, so a restart skips the round-trip only while the location is
+    // unchanged.
+    function resolveLocation() {
+        var target = Config.weatherLocation.trim();
         var c = Model.parseJson(locCache.text());
-        if (c && typeof c.lat === "number" && typeof c.lon === "number") {
+        if (c && c.query === target && typeof c.lat === "number" && typeof c.lon === "number") {
             root.city = c.city || "";
             root.lat = c.lat;
             root.lon = c.lon;
             root.located = true;
             root.fetchWeather();
-        } else {
-            ipProc.running = true;
+            return;
         }
+        if (target.length > 0)
+            geoProc.running = true;
+        else
+            ipProc.running = true;
+    }
+
+    Component.onCompleted: root.resolveLocation()
+    // a unit change needs a re-fetch: Open-Meteo returns the temperature already
+    // in the requested unit, so the value, not just the symbol, changes.
+    onUnitChanged: if (root.located) root.fetchWeather()
+
+    Connections {
+        target: Config
+        function onWeatherLocationChanged() { root.located = false; root.resolveLocation(); }
     }
 
     // fresh profile may not have the state dir; mkdir before writeLoc touches it.
@@ -106,6 +138,27 @@ Singleton {
         }
     }
 
+    // geocode an explicit location via Open-Meteo's keyless geocoding API.
+    Process {
+        id: geoProc
+        command: ["curl", "-s", "--max-time", "8",
+            "https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name="
+            + encodeURIComponent(Config.weatherLocation.trim())]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var g = Model.parseGeo(Model.parseJson(this.text));
+                if (g) {
+                    root.city = g.city;
+                    root.lat = g.lat;
+                    root.lon = g.lon;
+                    root.located = true;
+                    root.writeLoc();
+                    root.fetchWeather();
+                }
+            }
+        }
+    }
+
     Process {
         id: wxProc
         command: ["curl", "-s", "--max-time", "10",
@@ -114,9 +167,15 @@ Singleton {
             + "&current=temperature_2m,weather_code,is_day,relative_humidity_2m"
             + "&hourly=temperature_2m,weather_code&forecast_hours=24"
             + "&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5"
-            + "&timezone=auto&temperature_unit=" + root.unit]
+            + "&timezone=auto&temperature_unit=" + root.fetchUnit]
         stdout: StdioCollector {
-            onStreamFinished: root.applyForecast(this.text)
+            onStreamFinished: {
+                root.applyForecast(this.text);
+                if (root.pendingFetch) {
+                    root.pendingFetch = false;
+                    root.fetchWeather();
+                }
+            }
         }
     }
 
