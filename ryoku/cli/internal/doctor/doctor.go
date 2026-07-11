@@ -1,4 +1,4 @@
-package main
+package doctor
 
 import (
 	"bufio"
@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"ryoku-cli/internal/sys"
 	"strconv"
 	"strings"
 	"syscall"
@@ -142,7 +143,7 @@ func runReconcilers(checkOnly bool) []finding {
 // printFindings: one line per finding (+ its remedy). without verbose, only
 // non-ok lines surface -- a healthy box is quiet. returns warn + fail counts.
 func printFindings(fs []finding, verbose bool) (warns, fails int) {
-	width := termWidth()
+	width := sys.TermWidth()
 	printed := 0
 	for _, f := range fs {
 		switch f.res.status {
@@ -161,14 +162,14 @@ func printFindings(fs []finding, verbose bool) (warns, fails int) {
 		}
 		fmt.Fprintf(w, "  %s %s\n", statusGlyph(f.res.status), statusName(f))
 		if f.res.detail != "" {
-			fmt.Fprintln(w, detailStyle(f.res.status, wrap(f.res.detail, width, "      ")))
+			fmt.Fprintln(w, detailStyle(f.res.status, sys.Wrap(f.res.detail, width, "      ")))
 		}
 		if f.res.remedy != "" && (f.res.status >= recWouldFix || f.res.status == recNote) {
-			fmt.Fprintln(w, brand(wrap("↳ "+f.res.remedy, width, "      ")))
+			fmt.Fprintln(w, sys.Brand(sys.Wrap("↳ "+f.res.remedy, width, "      ")))
 		}
 	}
 	if printed == 0 {
-		fmt.Println("  " + green("✓") + " all checks passed")
+		fmt.Println("  " + sys.Green("✓") + " all checks passed")
 	}
 	return warns, fails
 }
@@ -176,15 +177,15 @@ func printFindings(fs []finding, verbose bool) (warns, fails int) {
 func statusGlyph(s recStatus) string {
 	switch s {
 	case recOK, recFixed:
-		return green("✓")
+		return sys.Green("✓")
 	case recNote:
-		return dim("·")
+		return sys.Dim("·")
 	case recWouldFix:
-		return amber("›")
+		return sys.Amber("›")
 	case recWarn:
-		return amber("!")
+		return sys.Amber("!")
 	case recFailed:
-		return red("✗")
+		return sys.Red("✗")
 	}
 	return " "
 }
@@ -193,16 +194,16 @@ func statusName(f finding) string {
 	if f.res.status == recOK || f.res.status == recNote {
 		return f.name
 	}
-	name := bold(f.name)
+	name := sys.Bold(f.name)
 	if f.res.status == recFixed {
-		name += dim(" (fixed)")
+		name += sys.Dim(" (fixed)")
 	}
 	return name
 }
 
 func detailStyle(s recStatus, text string) string {
 	if s == recOK || s == recFixed || s == recNote {
-		return dim(text)
+		return sys.Dim(text)
 	}
 	return text
 }
@@ -216,13 +217,14 @@ func doctorUsage() {
   --report [file]  write a shareable diagnostic report for the maintainers
                    (default: ` + reportPath("") + `)
   --explain        ask your cloud model (Groq/OpenRouter) to reason over the report
+  --json           emit findings as JSON (read-only; powers the Hub System Check)
 `)
 }
 
-// cmdDoctor: check, apply the safe fixes; on anything it can't fix, write a
+// Run: check, apply the safe fixes; on anything it can't fix, write a
 // maintainer report so the user always has something to share.
-func cmdDoctor(args []string) error {
-	checkOnly, wantReport, wantExplain, verboseFlag := false, false, false, false
+func Run(args []string) error {
+	checkOnly, wantReport, wantExplain, wantJSON, verboseFlag := false, false, false, false, false
 	reportTo := ""
 	for i := 0; i < len(args); i++ {
 		switch a := args[i]; a {
@@ -238,6 +240,8 @@ func cmdDoctor(args []string) error {
 			wantExplain = true
 		case "--verbose", "-v":
 			verboseFlag = true
+		case "--json":
+			wantJSON = true
 		case "-h", "--help":
 			doctorUsage()
 			return nil
@@ -247,9 +251,12 @@ func cmdDoctor(args []string) error {
 	}
 
 	// read-only modes never mutate; showAll also lists ok + advisory notes.
-	readOnly := checkOnly || wantReport || wantExplain
+	readOnly := checkOnly || wantReport || wantExplain || wantJSON
 	showAll := readOnly || verboseFlag
 	findings := runReconcilers(readOnly)
+	if wantJSON {
+		return emitFindingsJSON(findings)
+	}
 	warns, fails := printFindings(findings, showAll)
 
 	if wantExplain {
@@ -261,8 +268,8 @@ func cmdDoctor(args []string) error {
 		if err != nil {
 			return fmt.Errorf("writing report: %w", err)
 		}
-		fmt.Printf("\n  %s diagnostic report written to %s\n", brand("➜"), path)
-		fmt.Println("    " + dim("share it with the maintainers: "+ryokuIssuesURL))
+		fmt.Printf("\n  %s diagnostic report written to %s\n", sys.Brand("➜"), path)
+		fmt.Println("    " + sys.Dim("share it with the maintainers: "+ryokuIssuesURL))
 		return nil
 	}
 
@@ -274,15 +281,44 @@ func cmdDoctor(args []string) error {
 		if warns+fails > 1 {
 			noun = "issues"
 		}
-		fmt.Fprintf(os.Stderr, "\n  %s %s\n", brand("➜"), bold(fmt.Sprintf("found %d %s", warns+fails, noun)))
-		fmt.Fprintf(os.Stderr, "    %s  %s\n", brand("ryoku doctor --explain"), dim("AI diagnosis and a suggested fix"))
+		fmt.Fprintf(os.Stderr, "\n  %s %s\n", sys.Brand("➜"), sys.Bold(fmt.Sprintf("found %d %s", warns+fails, noun)))
+		fmt.Fprintf(os.Stderr, "    %s  %s\n", sys.Brand("ryoku doctor --explain"), sys.Dim("AI diagnosis and a suggested fix"))
 		if path != "" {
-			fmt.Fprintf(os.Stderr, "    %s\n", dim("report saved: "+path))
+			fmt.Fprintf(os.Stderr, "    %s\n", sys.Dim("report saved: "+path))
 		}
 	}
 	if fails > 0 {
 		return fmt.Errorf("%d check(s) failed", fails)
 	}
+	return nil
+}
+
+// findingJSON is the machine-readable shape of a reconciler result, emitted by
+// `ryoku doctor --json` so the Hub can render a System Check without parsing
+// the human output.
+type findingJSON struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+	Detail string `json:"detail"`
+	Remedy string `json:"remedy,omitempty"`
+}
+
+// emitFindingsJSON prints the findings as a JSON array on stdout.
+func emitFindingsJSON(findings []finding) error {
+	out := make([]findingJSON, 0, len(findings))
+	for _, f := range findings {
+		out = append(out, findingJSON{
+			Name:   f.name,
+			Status: f.res.status.label(),
+			Detail: f.res.detail,
+			Remedy: f.res.remedy,
+		})
+	}
+	b, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(b))
 	return nil
 }
 
@@ -296,12 +332,12 @@ func cmdDoctor(args []string) error {
 // already sits in its own subvolume. skipped on machines that don't snapshot
 // root.
 func reconcileSwapSubvolume(checkOnly bool) recResult {
-	if !exists("/etc/snapper/configs/root") {
+	if !sys.Exists("/etc/snapper/configs/root") {
 		return okRes("root snapshots not configured, nothing to keep out of them")
 	}
 	for _, sw := range activeSwapFiles() {
 		dir := filepath.Dir(sw.path)
-		if !isBtrfs(dir) || isBtrfsSubvolumeRoot(dir) {
+		if !sys.IsBtrfs(dir) || sys.IsBtrfsSubvolumeRoot(dir) {
 			continue
 		}
 		if !dirOnlyContains(dir, filepath.Base(sw.path)) {
@@ -449,18 +485,18 @@ func planSnapper(s snapperState) (snapperOutcome, []string) {
 // later in the create branch under sudo, like every other reconciler.
 func gatherSnapperState() snapperState {
 	s := snapperState{
-		rootIsBtrfs:         isBtrfs("/"),
-		configExists:        exists("/etc/snapper/configs/root"),
-		snapperInstalled:    has("snapper"),
-		snapPacInstalled:    pkgInstalled("snap-pac"),
-		limineInstalled:     pkgInstalled("limine"),
-		limineSyncInstalled: pkgInstalled("limine-snapper-sync"),
-		limineSyncEnabled:   unitEnabled("limine-snapper-sync.service"),
+		rootIsBtrfs:         sys.IsBtrfs("/"),
+		configExists:        sys.Exists("/etc/snapper/configs/root"),
+		snapperInstalled:    sys.Has("snapper"),
+		snapPacInstalled:    sys.PkgInstalled("snap-pac"),
+		limineInstalled:     sys.PkgInstalled("limine"),
+		limineSyncInstalled: sys.PkgInstalled("limine-snapper-sync"),
+		limineSyncEnabled:   sys.UnitEnabled("limine-snapper-sync.service"),
 	}
 	if fi, err := os.Stat("/.snapshots"); err == nil {
 		s.snapshotsExists = true
 		s.snapshotsMode = fi.Mode().Perm()
-		s.snapshotsIsSubvol = isBtrfsSubvolumeRoot("/.snapshots")
+		s.snapshotsIsSubvol = sys.IsBtrfsSubvolumeRoot("/.snapshots")
 	}
 	if b, err := os.ReadFile("/etc/conf.d/snapper"); err == nil {
 		s.confdExists = true
@@ -510,7 +546,7 @@ func createSnapperRootConfig(st snapperState) recResult {
 
 	switch {
 	case !st.snapshotsExists:
-		if err := run("sudo", "btrfs", "subvolume", "create", "/.snapshots"); err != nil {
+		if err := sys.Run("sudo", "btrfs", "subvolume", "create", "/.snapshots"); err != nil {
 			return failRes("creating /.snapshots subvolume: %v", err).
 				withFix("sudo btrfs subvolume create /.snapshots, then re-run ryoku doctor")
 		}
@@ -520,10 +556,10 @@ func createSnapperRootConfig(st snapperState) recResult {
 			withFix("inspect /.snapshots, then `sudo rmdir /.snapshots && sudo btrfs subvolume create /.snapshots` and re-run ryoku doctor")
 	}
 
-	if err := run("sudo", "chmod", "0750", "/.snapshots"); err != nil {
+	if err := sys.Run("sudo", "chmod", "0750", "/.snapshots"); err != nil {
 		return failRes("chmod /.snapshots: %v", err)
 	}
-	if err := run("sudo", "chown", "root:root", "/.snapshots"); err != nil {
+	if err := sys.Run("sudo", "chown", "root:root", "/.snapshots"); err != nil {
 		return failRes("chown /.snapshots: %v", err)
 	}
 
@@ -543,9 +579,9 @@ func createSnapperRootConfig(st snapperState) recResult {
 	// services: best-effort. a healthy install has both; an offline AUR install
 	// can be missing limine-snapper-sync, and a failure here doesn't undo the
 	// config we just wrote.
-	_ = run("sudo", "systemctl", "enable", "--now", "snapper-cleanup.timer")
-	if exists("/usr/lib/systemd/system/limine-snapper-sync.service") {
-		_ = run("sudo", "systemctl", "enable", "--now", "limine-snapper-sync.service")
+	_ = sys.Run("sudo", "systemctl", "enable", "--now", "snapper-cleanup.timer")
+	if sys.Exists("/usr/lib/systemd/system/limine-snapper-sync.service") {
+		_ = sys.Run("sudo", "systemctl", "enable", "--now", "limine-snapper-sync.service")
 	}
 
 	return fixedRes("created snapper root config: %s", strings.Join(actions, ", "))
@@ -601,834 +637,14 @@ func writeRootFile(path, contents, mode string) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return run("sudo", "install", "-D", "-m", mode, "-o", "root", "-g", "root", tmp.Name(), path)
-}
-
-// ---- reconciler: limine boot menu layout --------------------------------------
-
-// limine-entry-tool (the stack behind limine-mkinitcpio-hook and
-// limine-snapper-sync) manages exactly one config: /boot/limine.conf, the ESP
-// root. Limine itself scans /boot/limine/limine.conf BEFORE /boot/limine.conf
-// on the same partition, so a config in that older location shadows every
-// generated entry -- UKIs, the Snapshots submenu, everything -- and the
-// firmware keeps showing the frozen install-time menu. earlier installers
-// wrote exactly that shadow file, and also hand-copied the Limine binary to
-// EFI/limine/limine.efi, a path the tool never refreshes (it deploys
-// EFI/limine/limine_x64.efi), so the booted bootloader silently ages while
-// the package updates. this reconciler migrates both: merge the shadow's
-// branding into the tool-managed config and remove it, then re-deploy the
-// binary onto the tool's path and retire the stale NVRAM entry.
-//
-// limineBranding mirrors system/boot/limine/limine.conf (the globals): keep
-// the two in sync so a doctored box matches a fresh install.
-const limineBranding = `timeout: 3
-default_entry: 2
-interface_branding: Ryoku Bootloader
-interface_branding_color: F25623
-interface_help_color: F25623
-hash_mismatch_panic: no
-
-term_background: 171717
-backdrop: 171717
-term_palette: 171717;aeab94;F25623;4D4D4D;88A57D;F56E0F;8A8A8A;bcbfbc
-term_palette_bright: 333333;aeab94;F25623;4D4D4D;88A57D;F56E0F;8A8A8A;757d75
-term_foreground: CCD0CF
-term_foreground_bright: CCD0CF
-term_background_bright: 333333
-`
-
-const (
-	limineESPConf   = "/boot/limine.conf"
-	limineShadow    = "/boot/limine/limine.conf"
-	limineLegacyEFI = "/boot/EFI/limine/limine.efi"
-	limineToolEFI   = "/boot/EFI/limine/limine_x64.efi"
-)
-
-type limineLayoutOutcome int
-
-const (
-	limineLayoutSkip limineLayoutOutcome = iota
-	limineLayoutOK
-	limineLayoutUnreadable
-	limineLayoutMigrate
-)
-
-// limineLayoutState: the slice of /boot reconcileLimineLayout looks at,
-// lifted to a value so planLimineLayout stays unit-testable.
-type limineLayoutState struct {
-	limineInstalled bool
-	espConfExists   bool
-	espConf         string // "" when absent or unreadable
-	espConfReadable bool
-	shadowExists    bool
-	shadowConf      string
-	shadowReadable  bool
-	legacyEFIExists bool
-	toolEFIExists   bool
-	installerTool   bool // limine-install on PATH
-}
-
-// planLimineLayout picks the branch from observed state. pure, no IO.
-func planLimineLayout(s limineLayoutState) (limineLayoutOutcome, []string) {
-	if !s.limineInstalled {
-		return limineLayoutSkip, nil
-	}
-	if !s.espConfExists && !s.shadowExists {
-		// not a limine-booted box (or the ESP isn't at /boot); nothing to own.
-		return limineLayoutSkip, nil
-	}
-	if (s.espConfExists && !s.espConfReadable) || (s.shadowExists && !s.shadowReadable) {
-		return limineLayoutUnreadable, nil
-	}
-	var actions []string
-	if s.shadowExists {
-		actions = append(actions, fmt.Sprintf("merge %s into %s and remove it (it shadows the generated boot entries: kernels, snapshots)", limineShadow, limineESPConf))
-	} else if limineHasBootTree(s.espConf) {
-		if limineDefaultEntry(s.espConf) == "1" {
-			actions = append(actions, "point default_entry at the newest kernel (entry 1 is the Ryoku directory, which cannot autoboot)")
-		}
-		if limineDirtyRoot(s.espConf) {
-			actions = append(actions, "strip the leftover boot stanza from the Ryoku boot-menu directory (a directory that is also a boot entry cannot autoboot; the countdown loops)")
-		}
-	}
-	if s.legacyEFIExists {
-		actions = append(actions, fmt.Sprintf("retire the stale hand-copied bootloader %s for the package-refreshed %s", limineLegacyEFI, limineToolEFI))
-	}
-	if len(actions) == 0 {
-		return limineLayoutOK, nil
-	}
-	return limineLayoutMigrate, actions
-}
-
-func gatherLimineLayoutState() limineLayoutState {
-	s := limineLayoutState{
-		limineInstalled: pkgInstalled("limine"),
-		legacyEFIExists: exists(limineLegacyEFI),
-		toolEFIExists:   exists(limineToolEFI),
-		installerTool:   has("limine-install"),
-	}
-	if b, err := os.ReadFile(limineESPConf); err == nil {
-		s.espConfExists, s.espConfReadable, s.espConf = true, true, string(b)
-	} else if exists(limineESPConf) {
-		s.espConfExists = true
-	}
-	if b, err := os.ReadFile(limineShadow); err == nil {
-		s.shadowExists, s.shadowReadable, s.shadowConf = true, true, string(b)
-	} else if exists(limineShadow) {
-		s.shadowExists = true
-	}
-	return s
-}
-
-func reconcileLimineLayout(checkOnly bool) recResult {
-	st := gatherLimineLayoutState()
-	outcome, actions := planLimineLayout(st)
-	switch outcome {
-	case limineLayoutSkip:
-		return okRes("not a limine-managed boot on this box")
-	case limineLayoutUnreadable:
-		return warnRes("cannot read the limine config under /boot to verify the boot menu layout").
-			withFix("sudo ryoku doctor")
-	case limineLayoutOK:
-		return okRes("boot menu lives in /boot/limine.conf; nothing shadows it")
-	}
-	if checkOnly {
-		return wouldRes("limine boot layout needs migration: %s", strings.Join(actions, "; ")).
-			withFix("ryoku doctor (applies the migration)")
-	}
-	return migrateLimineLayout(st)
-}
-
-// migrateLimineLayout applies the plan: config first (that alone puts the
-// generated kernel + snapshot entries back on screen at next boot), then the
-// binary. every step is separately recoverable; the box stays bootable at
-// any interruption point because the merged config is written before the
-// shadow is removed, and the tool EFI is deployed before the legacy one is
-// retired.
-func migrateLimineLayout(st limineLayoutState) recResult {
-	var done []string
-
-	if st.shadowExists || (limineHasBootTree(st.espConf) && (limineDefaultEntry(st.espConf) == "1" || limineDirtyRoot(st.espConf))) {
-		merged := mergeLimineConf(st.espConf, st.shadowConf)
-		if st.espConfExists {
-			_ = run("sudo", "cp", limineESPConf, limineESPConf+".ryoku-bak")
-		}
-		if err := writeBootFile(limineESPConf, merged); err != nil {
-			return failRes("writing %s: %v", limineESPConf, err).
-				withFix("re-run with sudo available; the old configs were left untouched")
-		}
-		done = append(done, "merged boot menu into "+limineESPConf)
-		if st.shadowExists {
-			if err := run("sudo", "rm", "-f", limineShadow); err != nil {
-				return failRes("removing the shadowing %s: %v (the merged config is written, but limine still reads the shadow)", limineShadow, err).
-					withFix("sudo rm %s", limineShadow)
-			}
-			_ = exec.Command("sudo", "rmdir", "/boot/limine").Run() // only if empty
-			done = append(done, "removed the shadowing "+limineShadow)
-		}
-	}
-
-	if st.legacyEFIExists {
-		// Retire the legacy hand-copied bootloader for the package-refreshed
-		// path, but NEVER before a boot entry points at the new binary. Deleting
-		// the only NVRAM entry with nothing to replace it drops the machine off
-		// the firmware boot menu entirely: the "boot option gone after an
-		// update, not even in the BIOS" failure.
-		if st.installerTool {
-			// deploys EFI/limine/limine_x64.efi + the EFI/BOOT fallback and
-			// registers the NVRAM entry (deduped by partition uuid + path).
-			if err := run("sudo", "limine-install"); err != nil {
-				return warnRes("boot menu migrated (%s), but limine-install failed: %v", strings.Join(done, "; "), err).
-					withFix("sudo limine-install, then sudo rm %s", limineLegacyEFI)
-			}
-		} else if exists("/usr/share/limine/BOOTX64.EFI") {
-			// no tool: deploy the fresh binary at the package path, then register
-			// the entry the way the installer does. if the entry cannot be
-			// written, leave the working legacy boot path alone rather than
-			// strand the machine.
-			if err := run("sudo", "cp", "/usr/share/limine/BOOTX64.EFI", limineToolEFI); err != nil {
-				return warnRes("boot menu migrated (%s), but could not deploy %s: %v", strings.Join(done, "; "), limineToolEFI, err).
-					withFix("sudo cp /usr/share/limine/BOOTX64.EFI %s", limineToolEFI)
-			}
-			if !hasRyokuBootEntry(efibootmgrOutput()) {
-				if err := registerRyokuBootEntry(); err != nil {
-					return warnRes("boot menu migrated (%s), but could not register a boot entry for %s (%v); left the current entry in place so the machine still boots", strings.Join(done, "; "), limineToolEFI, err).
-						withFix("install limine-mkinitcpio-hook, then sudo ryoku doctor")
-				}
-			}
-		}
-		// only retire the stale entry + binary once a live NVRAM entry loads the
-		// package-refreshed bootloader.
-		if exists(limineToolEFI) && hasRyokuBootEntry(efibootmgrOutput()) {
-			for _, boot := range staleLimineBootNums(efibootmgrOutput()) {
-				_ = run("sudo", "efibootmgr", "-q", "-b", boot, "-B")
-			}
-			if err := run("sudo", "rm", "-f", limineLegacyEFI); err != nil {
-				return warnRes("boot menu migrated (%s), but could not remove the stale %s: %v", strings.Join(done, "; "), limineLegacyEFI, err).
-					withFix("sudo rm %s", limineLegacyEFI)
-			}
-			done = append(done, "bootloader binary now on the package-refreshed path")
-		}
-	}
-
-	// the shadow (or the rewrite) may have carried a Windows chainload block;
-	// re-assert it against the merged config. best-effort, needs root mounts.
-	if has("ryoku-windows-entry") {
-		_ = exec.Command("sudo", "ryoku-windows-entry", "sync").Run()
-	}
-
-	return fixedRes("%s (snapshots and new kernels appear in the boot menu from the next boot)", strings.Join(done, "; "))
-}
-
-// limineHasBootTree: has limine-mkinitcpio-hook taken over the file? two
-// shapes qualify: the older tool writes a standalone expanded directory
-// ("/+Ryoku"); 1.37+ adopts the flat "/Ryoku Linux" placeholder as the menu
-// directory and nests "//<kernel>" sub-entries under it. either means a
-// directory sits at entry 1, which cannot autoboot. the flat installer
-// placeholder and foreign leaf entries carry neither a "/+" nor a "//".
-func limineHasBootTree(conf string) bool {
-	for _, line := range strings.Split(conf, "\n") {
-		if strings.HasPrefix(line, "/+") {
-			return true
-		}
-		if strings.HasPrefix(strings.TrimSpace(line), "//") {
-			return true
-		}
-	}
-	return false
-}
-
-// limineDefaultEntry: the value of the global default_entry option, "" when
-// absent.
-func limineDefaultEntry(conf string) string {
-	for _, line := range strings.Split(conf, "\n") {
-		if v, ok := strings.CutPrefix(strings.TrimSpace(line), "default_entry:"); ok {
-			return strings.TrimSpace(v)
-		}
-	}
-	return ""
-}
-
-// liminePlaceholderBodyKeys: the local boot options ryoku's flat "/Ryoku
-// Linux" placeholder carries (installer bootloader.sh with_entry). when
-// limine-entry-tool 1.37+ adopts that placeholder as the menu directory and
-// nests the "//<kernel>" UKIs under it, this stanza is left wedged between the
-// directory title and its first sub-entry -- where Limine's grammar allows
-// only a `comment`. a directory that is also a boot entry cannot autoboot: the
-// timeout resolves nothing bootable and the countdown restarts forever.
-var liminePlaceholderBodyKeys = []string{
-	"protocol:", "kernel_path:", "module_path:", "path:", "cmdline:",
-}
-
-func liminePlaceholderBodyKey(trimmed string) bool {
-	for _, k := range liminePlaceholderBodyKeys {
-		if strings.HasPrefix(trimmed, k) {
-			return true
-		}
-	}
-	return false
-}
-
-// limineDirtyRoot reports whether the "/Ryoku Linux" menu directory still
-// carries the leftover placeholder boot stanza before its first sub-entry.
-func limineDirtyRoot(conf string) bool {
-	return stripLiminePlaceholderBody(conf) != conf
-}
-
-// stripLiminePlaceholderBody removes the flat-placeholder boot stanza (and the
-// blank lines around it) wedged under the "/Ryoku Linux" directory title,
-// keeping the title, any `comment:` lines, and every sub-entry. it is a no-op
-// unless "/Ryoku Linux" is a directory (a "//" sub-entry follows its head), so
-// the legitimate flat placeholder of an offline install is never touched.
-func stripLiminePlaceholderBody(conf string) string {
-	lines := strings.Split(conf, "\n")
-	start := -1
-	for i, ln := range lines {
-		if ln == "/Ryoku Linux" {
-			start = i
-			break
-		}
-	}
-	if start < 0 {
-		return conf
-	}
-	var drop []int
-	isDir := false
-	for i := start + 1; i < len(lines); i++ {
-		trimmed := strings.TrimSpace(lines[i])
-		if strings.HasPrefix(trimmed, "//") { // a sub-entry: it is a directory
-			isDir = true
-			break
-		}
-		if strings.HasPrefix(lines[i], "/") { // next top-level entry: no sub-entry
-			break
-		}
-		if trimmed == "" || liminePlaceholderBodyKey(trimmed) {
-			drop = append(drop, i)
-		}
-	}
-	if !isDir || len(drop) == 0 {
-		return conf
-	}
-	dropSet := make(map[int]bool, len(drop))
-	for _, i := range drop {
-		dropSet[i] = true
-	}
-	var out []string
-	for i, ln := range lines {
-		if dropSet[i] {
-			continue
-		}
-		out = append(out, ln)
-	}
-	return strings.Join(out, "\n")
-}
-
-// limineBrandedKeys: global options the canonical branding header owns. when
-// merging, lines carrying these are dropped from the existing prelude so the
-// header's values win without duplicates. everything else a user (or the
-// tool) put in the prelude -- quiet, remember_last_entry, interface_resolution,
-// macros -- survives.
-var limineBrandedKeys = []string{
-	"timeout:", "default_entry:", "interface_branding:",
-	"interface_branding_color:", "interface_branding_colour:",
-	"interface_help_color:", "interface_help_colour:",
-	"interface_help_color_bright:", "interface_help_colour_bright:",
-	"hash_mismatch_panic:", "term_background:", "backdrop:",
-	"term_palette:", "term_palette_bright:", "term_foreground:",
-	"term_foreground_bright:", "term_background_bright:",
-}
-
-// mergeLimineConf builds the migrated /boot/limine.conf: the canonical Ryoku
-// branding header, then whatever non-branding globals the base prelude
-// carried, then the base's entries verbatim. the base is the ESP-root config
-// when the tool's boot tree lives there (never throw generated entries
-// away), else the shadow (the menu the firmware was actually showing).
-// default_entry falls back to 1 when the menu is still flat: with no
-// directory at entry 1, 2 would autoboot the second flat entry (e.g.
-// Windows).
-func mergeLimineConf(espConf, shadowConf string) string {
-	base := espConf
-	if !limineHasBootTree(espConf) && shadowConf != "" {
-		base = shadowConf
-	}
-	prelude, body := splitLimineConf(base)
-	body = stripLiminePlaceholderBody(body)
-
-	var kept []string
-	for _, line := range strings.Split(prelude, "\n") {
-		t := strings.TrimSpace(line)
-		if t == "" || strings.HasPrefix(t, "#") {
-			continue // comments restate the old header; the new one replaces them
-		}
-		if limineBrandedKey(t) {
-			continue
-		}
-		kept = append(kept, line)
-	}
-
-	header := limineBranding
-	if !limineHasBootTree(base) {
-		header = strings.Replace(header, "default_entry: 2\n", "default_entry: 1\n", 1)
-	}
-
-	var b strings.Builder
-	b.WriteString("# Ryoku limine config -- branding globals + generated entries. managed by\n")
-	b.WriteString("# limine-mkinitcpio-hook / limine-snapper-sync (entries) and ryoku (globals).\n")
-	b.WriteString(header)
-	if len(kept) > 0 {
-		b.WriteString("\n")
-		b.WriteString(strings.Join(kept, "\n"))
-		b.WriteString("\n")
-	}
-	if body != "" {
-		b.WriteString("\n")
-		b.WriteString(body)
-	}
-	out := b.String()
-	if !strings.HasSuffix(out, "\n") {
-		out += "\n"
-	}
-	return out
-}
-
-func limineBrandedKey(trimmedLine string) bool {
-	l := strings.ToLower(trimmedLine)
-	for _, k := range limineBrandedKeys {
-		if strings.HasPrefix(l, k) {
-			return true
-		}
-	}
-	return false
-}
-
-// splitLimineConf: prelude (global options before the first menu entry) and
-// body (the first "/" entry line to EOF, verbatim -- entries, sub-entries,
-// their comments and fences).
-func splitLimineConf(conf string) (prelude, body string) {
-	lines := strings.Split(conf, "\n")
-	for i, line := range lines {
-		if strings.HasPrefix(line, "/") {
-			return strings.Join(lines[:i], "\n"), strings.Join(lines[i:], "\n")
-		}
-	}
-	return conf, ""
-}
-
-// staleLimineBootNums: NVRAM boot numbers whose loader is the legacy
-// hand-copied \EFI\limine\limine.efi (never \EFI\limine\limine_x64.efi).
-// parsed from `efibootmgr` output lines like
-//
-//	Boot0003* Ryoku HD(1,GPT,...)/\EFI\limine\limine.efi
-func staleLimineBootNums(efibootmgr string) []string {
-	var nums []string
-	for _, line := range strings.Split(efibootmgr, "\n") {
-		if !strings.HasPrefix(line, "Boot") || len(line) < 8 {
-			continue
-		}
-		num := line[4:8]
-		if !isHex4(num) {
-			continue
-		}
-		if strings.Contains(line, `\limine.efi`) {
-			nums = append(nums, num)
-		}
-	}
-	return nums
-}
-
-func isHex4(s string) bool {
-	if len(s) != 4 {
-		return false
-	}
-	for _, c := range s {
-		if !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) {
-			return false
-		}
-	}
-	return true
-}
-
-func efibootmgrOutput() string {
-	out, err := exec.Command("efibootmgr").Output()
-	if err != nil {
-		return ""
-	}
-	return string(out)
-}
-
-// hasRyokuBootEntry: does any active NVRAM entry boot the package-refreshed
-// limine? limine-install registers its entry labeled "Limine" with a VenHw
-// device path (no file path), while the installer writes a "Ryoku" entry
-// loading EFI/limine/limine_x64.efi. Match either, but NOT the legacy
-// \limine.efi entry (staleLimineBootNums owns that). pure, so the "do not
-// retire the old entry until a replacement exists" guard and the missing-entry
-// reconciler are testable without efibootmgr.
-func hasRyokuBootEntry(efibootmgr string) bool {
-	for _, line := range strings.Split(efibootmgr, "\n") {
-		if len(line) < 9 || !strings.HasPrefix(line, "Boot") || !isHex4(line[4:8]) || line[8] != '*' {
-			continue // only active boot entries
-		}
-		if strings.Contains(line, `\limine_x64.efi`) || limineBootLabel(line) == "Limine" {
-			return true
-		}
-	}
-	return false
-}
-
-// limineBootLabel: the label field of an efibootmgr entry line
-// ("Boot0004* Limine\tVenHw(...)" -> "Limine"). efibootmgr separates the label
-// from the device path with a tab; fall back to the first field for
-// space-separated output. "" when the line is not a boot entry.
-func limineBootLabel(line string) string {
-	if len(line) < 8 || !isHex4(line[4:8]) {
-		return ""
-	}
-	rest := strings.TrimSpace(strings.TrimPrefix(line[8:], "*"))
-	if i := strings.IndexByte(rest, '\t'); i >= 0 {
-		return strings.TrimSpace(rest[:i])
-	}
-	if fields := strings.Fields(rest); len(fields) > 0 {
-		return fields[0]
-	}
-	return ""
-}
-
-// parseEspDiskPart derives the efibootmgr --disk (whole device) and --part
-// (number) from the ESP mount source, its parent-disk name (lsblk PKNAME), and
-// the partition's sysfs number. pure: the wrangling that decides what NVRAM
-// entry gets written, tested without real block devices.
-func parseEspDiskPart(source, pkname, partition string) (disk, part string, ok bool) {
-	source = strings.TrimSpace(source)
-	pkname = strings.TrimSpace(pkname)
-	part = strings.TrimSpace(partition)
-	if !strings.HasPrefix(source, "/dev/") || pkname == "" || part == "" {
-		return "", "", false
-	}
-	return "/dev/" + pkname, part, true
-}
-
-// espDiskPart resolves the ESP block device backing /boot into an efibootmgr
-// --disk / --part pair.
-func espDiskPart() (disk, part string, ok bool) {
-	out, err := exec.Command("findmnt", "-n", "-o", "SOURCE", "--target", "/boot").Output()
-	if err != nil {
-		return "", "", false
-	}
-	src := strings.TrimSpace(string(out))
-	pk, err := exec.Command("lsblk", "-no", "PKNAME", src).Output()
-	if err != nil {
-		return "", "", false
-	}
-	partition := readFileSafe("/sys/class/block/" + filepath.Base(src) + "/partition")
-	return parseEspDiskPart(src, string(pk), partition)
-}
-
-// registerRyokuBootEntry writes the UEFI boot entry the installer writes: a
-// "Ryoku" entry loading EFI/limine/limine_x64.efi on the ESP's disk/partition.
-func registerRyokuBootEntry() error {
-	disk, part, ok := espDiskPart()
-	if !ok {
-		return fmt.Errorf("could not determine the ESP disk and partition")
-	}
-	return run("sudo", "efibootmgr", "--create", "--disk", disk, "--part", part,
-		"--label", "Ryoku", "--loader", `\EFI\limine\limine_x64.efi`, "--unicode")
-}
-
-// ---- reconciler: limine UEFI boot entry --------------------------------------
-
-// reconcileLimineBootEntry restores a vanished Ryoku UEFI boot entry. When the
-// firmware has no NVRAM entry loading the package-refreshed bootloader but the
-// binary is on the ESP, the machine has dropped off the boot menu (an earlier
-// migrate bug retired the old entry without writing a replacement) and boots
-// only via the removable EFI/BOOT fallback, if at all. Re-register the entry
-// exactly as the installer does. Idempotent: no-op once an entry loads the
-// bootloader, and it stands aside for the layout migration while a legacy entry
-// is still there to convert.
-func reconcileLimineBootEntry(checkOnly bool) recResult {
-	if !pkgInstalled("limine") || !exists(limineToolEFI) {
-		return okRes("not a limine-managed boot on this box")
-	}
-	if !has("efibootmgr") {
-		return okRes("no efibootmgr to inspect the UEFI boot menu")
-	}
-	out := efibootmgrOutput()
-	if out == "" {
-		return okRes("no UEFI boot entries to check")
-	}
-	if hasRyokuBootEntry(out) {
-		return okRes("Ryoku UEFI boot entry present")
-	}
-	if len(staleLimineBootNums(out)) > 0 {
-		return okRes("legacy limine boot entry present; the layout migration owns it")
-	}
-	fix := `sudo efibootmgr --create --disk <ESP disk> --part <ESP part> --label Ryoku --loader '\EFI\limine\limine_x64.efi' --unicode`
-	if checkOnly {
-		return wouldRes("no UEFI boot entry loads the Ryoku bootloader; the boot option is missing from firmware").
-			withFix(fix)
-	}
-	if err := registerRyokuBootEntry(); err != nil {
-		return failRes("the Ryoku UEFI boot entry is missing and could not be re-registered: %v", err).
-			withFix(fix)
-	}
-	return fixedRes("re-registered the missing Ryoku UEFI boot entry")
-}
-
-// writeBootFile: stage + `sudo cp` (not install -o/-g: the ESP is vfat, which
-// has no owners to set and rejects chown).
-func writeBootFile(path, contents string) error {
-	tmp, err := os.CreateTemp("", "ryoku-limine-*")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name())
-	if _, err := tmp.WriteString(contents); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	return run("sudo", "cp", tmp.Name(), path)
-}
-
-// unitEnabled: is the systemd unit enabled (or static/alias -- anything
-// systemctl reports as will-start)? disabled, masked, and not-found all
-// return a non-zero exit.
-func unitEnabled(unit string) bool {
-	return exec.Command("systemctl", "is-enabled", "--quiet", unit).Run() == nil
-}
-
-// ---- reconciler: limine snapshot-sync OS name --------------------------------
-
-// reconcileLimineOSName aligns TARGET_OS_NAME in /etc/default/limine with the
-// name of the actual Ryoku boot entry in /boot/limine.conf, so limine-snapper-sync
-// can find it to hang the Snapshots submenu under. the healthy menu is the
-// "/+Ryoku" UKI tree (name "Ryoku") that limine-mkinitcpio-hook generates, and the
-// shipped default already matches it -- a no-op. but a box still on the flat
-// "/Ryoku Linux" fallback entry needs that name instead, and the mismatch fails
-// limine-snapper-sync on every snapper-cleanup (its ExecStopPost), so the boot
-// menu never lists a rollback snapshot. read the real entry name and converge to
-// it, then clear the stale failed state. never invents a name: no Ryoku entry
-// found -> leave it alone.
-// ---- reconciler: limine UKI boot tree ------------------------------------------
-
-// reconcileLimineUKITree converges a limine box onto the hook-owned boot menu
-// the design always intended: /etc/default/limine ships with ENABLE_UKI=yes
-// and aur.packages carries limine-mkinitcpio-hook, but boxes installed before
-// (or without) the AUR step run on the flat "/Ryoku Linux" placeholder
-// forever. limine-snapper-sync refuses to hang the Snapshots submenu under an
-// entry with no "//<kernel>" sub-entries, so those boxes never see a rollback
-// in the boot menu at all; omarchy works because its installer hard-requires
-// the hook and fails the install when no "/+" tree appears. Install the hook
-// (its deploy hook builds the UKIs and regenerates the entries), drop the
-// flat placeholder the way the installer's finalize does, and run one sync so
-// the snapshots show up now, not at the next snapper event.
-func reconcileLimineUKITree(checkOnly bool) recResult {
-	if !pkgInstalled("limine") {
-		return okRes("not a limine-managed boot on this box")
-	}
-	defaults := readFileSafe("/etc/default/limine")
-	if !strings.Contains(defaults, "ENABLE_UKI=yes") {
-		return okRes("limine box without the UKI design (no ENABLE_UKI); nothing to converge")
-	}
-	conf := readFileSafe(limineESPConf)
-	if conf == "" {
-		return okRes("no readable %s; the layout reconciler owns that", limineESPConf)
-	}
-	hookMissing := !pkgInstalled("limine-mkinitcpio-hook")
-	_, hasFlat := limineDropFlat(conf)
-	if !hookMissing && limineHasUKITree(conf) && !hasFlat {
-		return okRes("limine-mkinitcpio-hook owns the boot menu (UKI tree with kernel sub-entries)")
-	}
-	if checkOnly {
-		return wouldRes("the boot menu is still the flat install placeholder, so limine-snapper-sync cannot add the Snapshots submenu (rollbacks never appear at boot)").
-			withFix("ryoku doctor installs limine-mkinitcpio-hook and promotes the menu to the /+Ryoku UKI tree")
-	}
-	var done []string
-	if hookMissing {
-		if err := run("ryoku-pkg-aur-add", "limine-mkinitcpio-hook"); err != nil {
-			return failRes("could not install limine-mkinitcpio-hook: %v", err).
-				withFix("ryoku-pkg-aur-add limine-mkinitcpio-hook, then sudo ryoku doctor")
-		}
-		done = append(done, "installed limine-mkinitcpio-hook")
-	}
-	// the install's deploy hook normally regenerates the menu; if the tree is
-	// still absent (hook was present but never ran), ask for it explicitly.
-	if !limineHasUKITree(readFileSafe(limineESPConf)) && has("limine-update") {
-		if err := sudo("limine-update"); err != nil {
-			return failRes("limine-update could not build the UKI boot tree: %v", err).
-				withFix("sudo limine-update, then sudo ryoku doctor")
-		}
-		done = append(done, "rebuilt the boot menu with limine-update")
-	}
-	conf = readFileSafe(limineESPConf)
-	if !limineHasUKITree(conf) {
-		return failRes("no UKI kernel entries in %s even after limine-update; snapshots cannot attach", limineESPConf)
-	}
-	// mirror the installer's finalize: with a standalone tree the flat
-	// placeholder is clutter; either way a directory can't autoboot, so
-	// default_entry moves to the newest UKI inside it.
-	if promoted, changed := limineDropFlat(conf); changed {
-		if err := writeRootFile(limineESPConf, promoted, "0644"); err != nil {
-			return failRes("could not promote the boot menu in %s: %v", limineESPConf, err)
-		}
-		done = append(done, "promoted the menu default onto the UKI tree")
-	}
-	if has("limine-snapper-sync") {
-		if err := sudo("limine-snapper-sync"); err == nil {
-			done = append(done, "synced the Snapshots submenu")
-		}
-	}
-	return fixedRes("boot menu converged onto the UKI tree: %s; rollback snapshots now appear at boot", strings.Join(done, "; "))
-}
-
-// limineHasUKITree: does the config carry tool-generated kernel sub-entries.
-// older limine-entry-tool writes a standalone "/+Name" expanded tree; 1.37+
-// adopts the installer's flat entry as the tree root and nests indented
-// "//<kernel>" children under it. either shape satisfies limine-snapper-sync.
-func limineHasUKITree(conf string) bool {
-	for _, l := range strings.Split(conf, "\n") {
-		if strings.HasPrefix(l, "/+") {
-			return true
-		}
-		if t := strings.TrimLeft(l, " \t"); strings.HasPrefix(t, "//") {
-			return true
-		}
-	}
-	return false
-}
-
-// limineDropFlat promotes the menu past the install placeholder, mirroring the
-// installer's finalize. with a standalone "/+" tree the flat "/Ryoku Linux..."
-// entries (entry line plus indented options) are clutter and go; in the
-// adopted layout the placeholder IS the tree root, so entries stay untouched.
-// either way default_entry: 1 points at a directory that can't autoboot and
-// moves to 2 (the first UKI inside). pure, so it is unit-testable;
-// changed=false when there is nothing to do.
-func limineDropFlat(conf string) (string, bool) {
-	dropFlat := false
-	for _, l := range strings.Split(conf, "\n") {
-		if strings.HasPrefix(l, "/+") {
-			dropFlat = true
-			break
-		}
-	}
-	var out []string
-	skip, changed := false, false
-	for _, l := range strings.Split(conf, "\n") {
-		if dropFlat && strings.HasPrefix(l, "/Ryoku Linux") {
-			skip, changed = true, true
-			continue
-		}
-		if skip && strings.TrimSpace(l) != "" && (strings.HasPrefix(l, " ") || strings.HasPrefix(l, "\t")) {
-			continue
-		}
-		skip = false
-		if l == "default_entry: 1" {
-			out = append(out, "default_entry: 2")
-			changed = true
-			continue
-		}
-		out = append(out, l)
-	}
-	return strings.Join(out, "\n"), changed
-}
-
-func reconcileLimineOSName(checkOnly bool) recResult {
-	const path = "/etc/default/limine"
-	cur := readFileSafe(path)
-	if cur == "" {
-		return okRes("no /etc/default/limine (limine snapshot sync not in use)")
-	}
-	got, ok := limineOSNameValue(cur)
-	if !ok {
-		return okRes("limine config sets no TARGET_OS_NAME")
-	}
-	want := limineEntryName(readFileSafe("/boot/limine.conf"))
-	if want == "" {
-		return okRes("no Ryoku boot entry found to match TARGET_OS_NAME against")
-	}
-	if got == want {
-		return okRes("limine snapshot entries sync under %q", want)
-	}
-	if checkOnly {
-		return wouldRes("TARGET_OS_NAME %q does not match the boot entry %q, so limine-snapper-sync fails snapper-cleanup", got, want).
-			withFix("ryoku doctor sets TARGET_OS_NAME to %q", want)
-	}
-	if err := writeRootFile(path, setLimineOSName(cur, want), "0644"); err != nil {
-		return failRes("could not update %s: %v", path, err)
-	}
-	// the unit is likely still sitting failed from earlier runs; clear it so the
-	// failed-services check reads clean this same pass. best-effort.
-	_ = exec.Command("sudo", "-n", "systemctl", "reset-failed", "snapper-cleanup.service").Run()
-	return fixedRes("set TARGET_OS_NAME to %q to match the boot entry so snapshots sync", want)
-}
-
-// limineEntryName: the name of the primary Ryoku OS entry in a /boot/limine.conf.
-// the expanded UKI tree ("/+Ryoku" -> "Ryoku") wins over the flat fallback
-// ("/Ryoku Linux" -> "Ryoku Linux") when both are present, so a healthy box that
-// still carries a stray flat placeholder is never re-pointed off its real entry.
-// top-level entries only ("/name" or "/+name", not a "//" sub-entry); "" when no
-// Ryoku entry is found.
-func limineEntryName(conf string) string {
-	var flat string
-	for _, l := range strings.Split(conf, "\n") {
-		t := strings.TrimRight(l, " \t\r")
-		if !strings.HasPrefix(t, "/") || strings.HasPrefix(t, "//") {
-			continue
-		}
-		expanded := strings.HasPrefix(t, "/+")
-		name := strings.TrimPrefix(strings.TrimPrefix(t, "/"), "+")
-		if !strings.HasPrefix(name, "Ryoku") {
-			continue
-		}
-		if expanded {
-			return name
-		}
-		if flat == "" {
-			flat = name
-		}
-	}
-	return flat
-}
-
-// limineOSNameValue pulls the TARGET_OS_NAME value out of an /etc/default/limine,
-// quotes stripped. ok=false when there is no such assignment.
-func limineOSNameValue(conf string) (string, bool) {
-	for _, l := range strings.Split(conf, "\n") {
-		t := strings.TrimSpace(l)
-		if strings.HasPrefix(t, "#") || !strings.HasPrefix(t, "TARGET_OS_NAME") {
-			continue
-		}
-		if eq := strings.IndexByte(t, '='); eq >= 0 {
-			return strings.Trim(strings.TrimSpace(t[eq+1:]), "\"'"), true
-		}
-	}
-	return "", false
-}
-
-// setLimineOSName rewrites the TARGET_OS_NAME assignment to name, every other
-// line preserved verbatim.
-func setLimineOSName(conf, name string) string {
-	lines := strings.Split(conf, "\n")
-	for i, l := range lines {
-		t := strings.TrimSpace(l)
-		if strings.HasPrefix(t, "#") || !strings.HasPrefix(t, "TARGET_OS_NAME") {
-			continue
-		}
-		if strings.IndexByte(t, '=') >= 0 {
-			lines[i] = fmt.Sprintf("TARGET_OS_NAME=%q", name)
-		}
-	}
-	return strings.Join(lines, "\n")
+	return sys.Run("sudo", "install", "-D", "-m", mode, "-o", "root", "-g", "root", tmp.Name(), path)
 }
 
 // ---- reconciler: stale pacman lock -------------------------------------------
 
 func reconcilePacmanLock(checkOnly bool) recResult {
 	const lock = "/var/lib/pacman/db.lck"
-	if !exists(lock) {
+	if !sys.Exists(lock) {
 		return okRes("no stale pacman lock")
 	}
 	if processRunning("pacman") {
@@ -1437,7 +653,7 @@ func reconcilePacmanLock(checkOnly bool) recResult {
 	if checkOnly {
 		return wouldRes("stale pacman lock present (no pacman running)").withFix("sudo rm %s", lock)
 	}
-	if err := run("sudo", "rm", "-f", lock); err != nil {
+	if err := sys.Run("sudo", "rm", "-f", lock); err != nil {
 		return failRes("could not remove stale lock: %v", err).withFix("sudo rm %s", lock)
 	}
 	return fixedRes("removed stale pacman lock")
@@ -1465,7 +681,7 @@ func reconcileStaleCryptMapper(checkOnly bool) recResult {
 		return wouldRes("orphaned crypt mapper %s from a failed install blocks `cryptsetup open ... %s`", node, stale).
 			withFix("sudo cryptsetup close %s", stale)
 	}
-	if err := run("sudo", "cryptsetup", "close", stale); err != nil {
+	if err := sys.Run("sudo", "cryptsetup", "close", stale); err != nil {
 		return failRes("could not close orphaned crypt mapper %s: %v", node, err).
 			withFix("sudo cryptsetup close %s", stale)
 	}
@@ -1496,7 +712,7 @@ func staleInstallMapper(cryptNodes []string, rootSource string, mountedSources m
 // cryptMapperNodes lists the device-mapper nodes of type crypt as
 // /dev/mapper/<name>. empty when dmsetup is absent, unprivileged, or finds none.
 func cryptMapperNodes() []string {
-	out, err := runOut("dmsetup", "ls", "--target", "crypt")
+	out, err := sys.RunOut("dmsetup", "ls", "--target", "crypt")
 	if err != nil {
 		return nil
 	}
@@ -1520,7 +736,7 @@ func parseCryptMapperNodes(out string) []string {
 // mountSourceOf returns the bare backing device of a mountpoint, btrfs
 // subvolume suffix stripped (/dev/mapper/root[/@] -> /dev/mapper/root).
 func mountSourceOf(path string) string {
-	out, _ := runOut("findmnt", "-n", "-o", "SOURCE", path)
+	out, _ := sys.RunOut("findmnt", "-n", "-o", "SOURCE", path)
 	return baseSource(out)
 }
 
@@ -1528,7 +744,7 @@ func mountSourceOf(path string) string {
 // suffixes stripped, so a crypt mapper backing any live mount is recognizable.
 func mountedSources() map[string]bool {
 	m := map[string]bool{}
-	out, _ := runOut("findmnt", "-rn", "-o", "SOURCE")
+	out, _ := sys.RunOut("findmnt", "-rn", "-o", "SOURCE")
 	for _, ln := range nonEmptyLines(out) {
 		if s := baseSource(ln); s != "" {
 			m[s] = true
@@ -1550,7 +766,7 @@ func baseSource(s string) string {
 // ---- reconciler: ryoku package channel + keyring -----------------------------
 
 func reconcileRyokuChannel(_ bool) recResult {
-	if !pkgInstalled("ryoku-desktop") {
+	if !sys.PkgInstalled("ryoku-desktop") {
 		return okRes("not a packaged install (desktop runs from a checkout)")
 	}
 	conf, _ := os.ReadFile("/etc/pacman.conf")
@@ -1558,7 +774,7 @@ func reconcileRyokuChannel(_ bool) recResult {
 		return warnRes("ryoku-desktop is installed but the [ryoku] repo is not in pacman.conf; updates will not arrive").
 			withFix("add the [ryoku] repo (see docs/development.md)")
 	}
-	if !pkgInstalled("ryoku-keyring") {
+	if !sys.PkgInstalled("ryoku-keyring") {
 		return warnRes("the [ryoku] repo is configured but ryoku-keyring is missing; signatures will fail").
 			withFix("sudo pacman -S ryoku-keyring")
 	}
@@ -1575,11 +791,11 @@ func reconcileRyokuChannel(_ bool) recResult {
 // live pick only shows a still frame. in fix mode the one-shot AUR add IS the
 // fix, so `ryoku doctor` installs them; `--check` reports what it would add.
 func reconcileWallpaperDaemon(checkOnly bool) recResult {
-	if !exists(filepath.Join(homeDir(), ".config", "hypr")) && !has("Hyprland") {
+	if !sys.Exists(filepath.Join(sys.Home(), ".config", "hypr")) && !sys.Has("Hyprland") {
 		return okRes("not a Hyprland desktop")
 	}
-	hasImage := has("awww") || has("swww")
-	hasLive := has("mpvpaper")
+	hasImage := sys.Has("awww") || sys.Has("swww")
+	hasLive := sys.Has("mpvpaper")
 	if hasImage && hasLive {
 		return okRes("wallpaper daemons present")
 	}
@@ -1597,7 +813,7 @@ func reconcileWallpaperDaemon(checkOnly bool) recResult {
 	if checkOnly {
 		return wouldRes("missing %s; %s", pkgs, broke).withFix("ryoku-pkg-aur-add %s", pkgs)
 	}
-	if err := run("ryoku-pkg-aur-add", want...); err != nil {
+	if err := sys.Run("ryoku-pkg-aur-add", want...); err != nil {
 		return failRes("could not install %s: %v", pkgs, err).withFix("ryoku-pkg-aur-add %s", pkgs)
 	}
 	return fixedRes("installed the wallpaper backends: %s", pkgs)
@@ -1612,7 +828,7 @@ func reconcileWallpaperDaemon(checkOnly bool) recResult {
 // their next full update; this heals git-channel boxes and anyone already
 // broken today.
 func reconcileIconFont(checkOnly bool) recResult {
-	if !exists(filepath.Join(homeDir(), ".config", "hypr")) && !has("Hyprland") {
+	if !sys.Exists(filepath.Join(sys.Home(), ".config", "hypr")) && !sys.Has("Hyprland") {
 		return okRes("not a Hyprland desktop")
 	}
 	if anyPkgInstalled("ttf-material-symbols-variable", "ttf-material-symbols-variable-git") {
@@ -1622,7 +838,7 @@ func reconcileIconFont(checkOnly bool) recResult {
 		return wouldRes("Material Symbols font missing; every shell icon renders as its ligature name").
 			withFix("ryoku doctor installs ttf-material-symbols-variable")
 	}
-	if err := sudo("pacman", "-S", "--needed", "--noconfirm", "ttf-material-symbols-variable"); err != nil {
+	if err := sys.Sudo("pacman", "-S", "--needed", "--noconfirm", "ttf-material-symbols-variable"); err != nil {
 		return failRes("could not install ttf-material-symbols-variable: %v", err).
 			withFix("sudo pacman -S ttf-material-symbols-variable")
 	}
@@ -1639,19 +855,19 @@ func reconcileIconFont(checkOnly bool) recResult {
 // them and every later package update is silently shadowed. a checkout box
 // (git channel) IS the dev loop: left alone.
 func reconcileDevResidue(checkOnly bool) recResult {
-	if resolveRepo() != "" {
+	if sys.ResolveRepo() != "" {
 		return okRes("checkout box; home-deployed artifacts are the live desktop")
 	}
-	if !pkgInstalled("ryoku-desktop") {
+	if !sys.PkgInstalled("ryoku-desktop") {
 		return okRes("not a packaged install")
 	}
 	var residue []string
-	if qml := filepath.Join(homeDir(), ".local", "lib", "qt6", "qml", "Ryoku"); exists(qml) {
+	if qml := filepath.Join(sys.Home(), ".local", "lib", "qt6", "qml", "Ryoku"); sys.Exists(qml) {
 		residue = append(residue, qml)
 	}
 	for _, b := range []string{"ryoku", "ryoku-shell", "ryoku-hub", "ryoku-rashin"} {
-		p := filepath.Join(homeDir(), ".local", "bin", b)
-		if exists(p) && exists("/usr/bin/"+b) {
+		p := filepath.Join(sys.Home(), ".local", "bin", b)
+		if sys.Exists(p) && sys.Exists("/usr/bin/"+b) {
 			residue = append(residue, p)
 		}
 	}
@@ -1692,7 +908,7 @@ var shellConfigClamps = map[string][2]float64{
 }
 
 func reconcileShellConfig(checkOnly bool) recResult {
-	path := filepath.Join(configHome(), "ryoku", "shell.json")
+	path := filepath.Join(sys.ConfigHome(), "ryoku", "shell.json")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return okRes("no shell.json yet (seeded on first shell run)")
@@ -1771,7 +987,7 @@ func migrateShellConfig(raw []byte) ([]byte, []string, error) {
 // ---- reconciler: desktop session components ----------------------------------
 
 func reconcileSessionComponents(_ bool) recResult {
-	if !exists(filepath.Join(homeDir(), ".config", "hypr")) && !has("Hyprland") {
+	if !sys.Exists(filepath.Join(sys.Home(), ".config", "hypr")) && !sys.Has("Hyprland") {
 		return okRes("not a Hyprland desktop")
 	}
 	checks := []struct {
@@ -1875,14 +1091,14 @@ func portalRoutesHyprland(content string) bool {
 // a ~25s D-Bus timeout ("apps are slow to open"). heals boxes converted
 // before the installer started moving the user file aside, and the /etc case.
 func reconcilePortalRouting(checkOnly bool) recResult {
-	if !exists(filepath.Join(homeDir(), ".config", "hypr")) && !has("Hyprland") {
+	if !sys.Exists(filepath.Join(sys.Home(), ".config", "hypr")) && !sys.Has("Hyprland") {
 		return okRes("not a Hyprland desktop")
 	}
 	// the first existing candidate is the one the portal loads, so every
 	// misrouted file ahead of a healthy one has to move aside.
 	var offenders []string
 	healthy := ""
-	for _, p := range portalConfigCandidates(homeDir()) {
+	for _, p := range portalConfigCandidates(sys.Home()) {
 		b, err := os.ReadFile(p)
 		if err != nil {
 			continue
@@ -1913,10 +1129,10 @@ func reconcilePortalRouting(checkOnly bool) recResult {
 	for _, p := range offenders {
 		bak := p + ".ryoku-bak"
 		var err error
-		if strings.HasPrefix(p, homeDir()+string(os.PathSeparator)) {
+		if strings.HasPrefix(p, sys.Home()+string(os.PathSeparator)) {
 			err = os.Rename(p, bak)
 		} else {
-			err = sudo("mv", p, bak)
+			err = sys.Sudo("mv", p, bak)
 		}
 		if err != nil {
 			return failRes("could not move %s aside: %v", p, err).withFix("mv %s %s", p, bak)
@@ -1941,7 +1157,7 @@ func reconcilePortalRouting(checkOnly bool) recResult {
 // picker with only a single fallback. the -bin package is prebuilt, so the
 // fix never has to compile.
 func reconcileCursorTheme(_ bool) recResult {
-	if !exists(filepath.Join(homeDir(), ".config", "hypr")) && !has("Hyprland") {
+	if !sys.Exists(filepath.Join(sys.Home(), ".config", "hypr")) && !sys.Has("Hyprland") {
 		return okRes("not a Hyprland desktop")
 	}
 	if anyPkgInstalled("bibata-cursor-theme-bin", "bibata-cursor-theme") {
@@ -1990,10 +1206,10 @@ func reconcileGreeterTheme(checkOnly bool) recResult {
 	if checkOnly {
 		return wouldRes("greeter theme unreadable by the sddm greeter; SDDM falls back to its default").withFix(fix)
 	}
-	if err := run("sudo", "chown", "-R", "root:root", greeterThemeDir); err != nil {
+	if err := sys.Run("sudo", "chown", "-R", "root:root", greeterThemeDir); err != nil {
 		return failRes("could not fix greeter theme ownership: %v", err).withFix(fix)
 	}
-	if err := run("sudo", "chmod", "-R", "a+rX", greeterThemeDir); err != nil {
+	if err := sys.Run("sudo", "chmod", "-R", "a+rX", greeterThemeDir); err != nil {
 		return failRes("could not fix greeter theme permissions: %v", err).withFix(fix)
 	}
 	return fixedRes("normalized greeter theme so the sddm greeter can read it")
@@ -2036,9 +1252,9 @@ func fastfetchLogoSource(cfg string) (string, bool) {
 func expandTilde(p string) string {
 	switch {
 	case p == "~":
-		return home()
+		return sys.Home()
 	case strings.HasPrefix(p, "~/"):
-		return filepath.Join(home(), p[2:])
+		return filepath.Join(sys.Home(), p[2:])
 	}
 	return p
 }
@@ -2053,7 +1269,7 @@ func expandTilde(p string) string {
 // `ryoku materialize` lays. no-op when the readout resolves, when the logo is
 // user-customized, or on a box with no Ryoku fastfetch config.
 func reconcileFastfetchEmblem(checkOnly bool) recResult {
-	src, ok := fastfetchLogoSource(readFileSafe(filepath.Join(configHome(), "fastfetch", "config.jsonc")))
+	src, ok := fastfetchLogoSource(readFileSafe(filepath.Join(sys.ConfigHome(), "fastfetch", "config.jsonc")))
 	if !ok {
 		return okRes("no Ryoku fastfetch logo configured")
 	}
@@ -2061,13 +1277,13 @@ func reconcileFastfetchEmblem(checkOnly bool) recResult {
 		return okRes("fastfetch logo is user-customized")
 	}
 	dst := expandTilde(src)
-	if exists(dst) {
+	if sys.Exists(dst) {
 		return okRes("fastfetch emblem present")
 	}
 	// the canonical copy materialize lays; absent only on a box still on the
 	// pre-fix package, where the cure is to pull it first.
-	base := filepath.Join(baseConfigDir(), "fastfetch", fastfetchEmblem)
-	if !exists(base) {
+	base := filepath.Join(sys.BaseConfigDir(), "fastfetch", fastfetchEmblem)
+	if !sys.Exists(base) {
 		return warnRes("fastfetch emblem missing (%s); the readout shows the Arch logo", dst).
 			withFix("ryoku update")
 	}
@@ -2075,7 +1291,7 @@ func reconcileFastfetchEmblem(checkOnly bool) recResult {
 		return wouldRes("fastfetch emblem missing (%s); the readout shows the Arch logo", dst).
 			withFix("ryoku materialize")
 	}
-	if err := copyFile(base, dst); err != nil {
+	if err := sys.CopyFile(base, dst); err != nil {
 		return failRes("could not restore fastfetch emblem: %v", err).withFix("ryoku materialize")
 	}
 	return fixedRes("restored the fastfetch emblem; the readout no longer falls back to the Arch logo")
@@ -2086,7 +1302,7 @@ func reconcileFastfetchEmblem(checkOnly bool) recResult {
 // followMouseMarker records that the one-time follow-mouse heal has run, so a
 // later deliberate "Normal" pick in Ryoku Settings is never quietly undone.
 func followMouseMarker() string {
-	return filepath.Join(xdg("XDG_STATE_HOME", ".local/state"), "ryoku", "migrations", "follow-mouse-default")
+	return filepath.Join(sys.Xdg("XDG_STATE_HOME", ".local/state"), "ryoku", "migrations", "follow-mouse-default")
 }
 
 // hyprGetFollowMouse pulls input.followMouse out of a `ryoku-hub hypr get` JSON.
@@ -2129,7 +1345,7 @@ func hyprSetFollowMouse(raw string, v int) (string, error) {
 // Settings afterwards sticks.
 func reconcileFollowMouseDefault(checkOnly bool) recResult {
 	marker := followMouseMarker()
-	if exists(marker) {
+	if sys.Exists(marker) {
 		return okRes("follow-mouse default already reconciled")
 	}
 	mark := func() {
@@ -2139,8 +1355,8 @@ func reconcileFollowMouseDefault(checkOnly bool) recResult {
 		_ = os.MkdirAll(filepath.Dir(marker), 0o755)
 		_ = os.WriteFile(marker, []byte("done\n"), 0o644)
 	}
-	hyprJSON := filepath.Join(configHome(), "ryoku", "hypr.json")
-	if !has("ryoku-hub") || !exists(hyprJSON) {
+	hyprJSON := filepath.Join(sys.ConfigHome(), "ryoku", "hypr.json")
+	if !sys.Has("ryoku-hub") || !sys.Exists(hyprJSON) {
 		mark() // nothing saved to migrate; the base module's follow_mouse = 2 stands.
 		return okRes("no saved hypr input; follow-mouse uses the base default")
 	}
@@ -2155,7 +1371,7 @@ func reconcileFollowMouseDefault(checkOnly bool) recResult {
 		return wouldRes("follow-mouse is pinned to the retired default 1; keyboard focus follows the cursor").
 			withFix("ryoku doctor")
 	}
-	raw, err := runOut("ryoku-hub", "hypr", "get")
+	raw, err := sys.RunOut("ryoku-hub", "hypr", "get")
 	if err != nil {
 		return warnRes("could not read hypr settings to fix follow-mouse: %v", err)
 	}
@@ -2163,7 +1379,7 @@ func reconcileFollowMouseDefault(checkOnly bool) recResult {
 	if err != nil {
 		return failRes("could not update hypr settings: %v", err)
 	}
-	if err := run("ryoku-hub", "hypr", "save", fixed); err != nil {
+	if err := sys.Run("ryoku-hub", "hypr", "save", fixed); err != nil {
 		return failRes("could not save the follow-mouse fix: %v", err).withFix("ryoku doctor")
 	}
 	mark()
@@ -2183,7 +1399,7 @@ func reconcileShellDaemon(checkOnly bool) recResult {
 	if os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") == "" {
 		return okRes("not in a live Hyprland session")
 	}
-	if !has("ryoku-shell") {
+	if !sys.Has("ryoku-shell") {
 		return warnRes("ryoku-shell is not installed; the desktop shell cannot run").
 			withFix("redeploy the shell: `ryoku update` (or ryoku/shell/deploy.sh from a checkout)")
 	}
@@ -2302,17 +1518,17 @@ func hyprDropins() []hyprDropin {
 // the desktop leaves emergency mode right away instead of needing a reboot.
 // hardware-agnostic: only ever validates and repairs config files.
 func reconcileHyprlandConfig(checkOnly bool) recResult {
-	dir := filepath.Join(configHome(), "hypr")
-	if !exists(filepath.Join(dir, "hyprland.lua")) {
+	dir := filepath.Join(sys.ConfigHome(), "hypr")
+	if !sys.Exists(filepath.Join(dir, "hyprland.lua")) {
 		return okRes("no Hyprland config present")
 	}
-	live := hyprLive()
+	live := sys.HyprLive()
 
 	if checkOnly {
 		var broken []string
 		for _, d := range hyprDropins() {
 			p := filepath.Join(dir, d.name)
-			if exists(p) && !hyprLuaParseable(p) {
+			if sys.Exists(p) && !hyprLuaParseable(p) {
 				broken = append(broken, d.name)
 			}
 		}
@@ -2330,7 +1546,7 @@ func reconcileHyprlandConfig(checkOnly bool) recResult {
 	var repaired, failed []string
 	for _, d := range hyprDropins() {
 		p := filepath.Join(dir, d.name)
-		if !exists(p) || hyprLuaParseable(p) {
+		if !sys.Exists(p) || hyprLuaParseable(p) {
 			continue
 		}
 		if repairHyprDropin(dir, d, live) {
@@ -2370,10 +1586,10 @@ func reconcileHyprlandConfig(checkOnly bool) recResult {
 // is the read-only signal. live-only: no session = nothing to re-assert, the
 // next login takes care of it.
 func reconcileDisplayModes(checkOnly bool) recResult {
-	if !hyprLive() {
+	if !sys.HyprLive() {
 		return okRes("no live Hyprland session; displays settle at the next login")
 	}
-	if !has("ryoku-monitor") {
+	if !sys.Has("ryoku-monitor") {
 		return okRes("ryoku-monitor not installed")
 	}
 	if exec.Command("ryoku-monitor", "settle", "--check").Run() == nil {
@@ -2396,7 +1612,7 @@ func reconcileDisplayModes(checkOnly bool) recResult {
 // a parseable file.
 func repairHyprDropin(dir string, d hyprDropin, live bool) bool {
 	p := filepath.Join(dir, d.name)
-	if len(d.regen) > 0 && has(d.regen[0]) && (!d.needLive || live) {
+	if len(d.regen) > 0 && sys.Has(d.regen[0]) && (!d.needLive || live) {
 		if exec.Command(d.regen[0], d.regen[1:]...).Run() == nil && hyprLuaParseable(p) {
 			return true
 		}
@@ -2413,7 +1629,7 @@ func repairHyprDropin(dir string, d hyprDropin, live bool) bool {
 // brackets, which a whole generated drop-in (no brackets inside its string
 // literals) never has. unreadable file is left alone, not clobbered.
 func hyprLuaParseable(path string) bool {
-	if has("luac") {
+	if sys.Has("luac") {
 		return exec.Command("luac", "-p", path).Run() == nil
 	}
 	b, err := os.ReadFile(path)
@@ -2464,13 +1680,13 @@ func liveConfigErrors(live bool) string {
 
 func reconcileFailedUnits(_ bool) recResult {
 	var failed []string
-	sys, _ := runOut("systemctl", "--failed", "--no-legend", "--plain")
-	for _, l := range nonEmptyLines(sys) {
+	out, _ := sys.RunOut("systemctl", "--failed", "--no-legend", "--plain")
+	for _, l := range nonEmptyLines(out) {
 		if f := strings.Fields(l); len(f) > 0 {
 			failed = append(failed, f[0])
 		}
 	}
-	usr, _ := runOut("systemctl", "--user", "--failed", "--no-legend", "--plain")
+	usr, _ := sys.RunOut("systemctl", "--user", "--failed", "--no-legend", "--plain")
 	for _, l := range nonEmptyLines(usr) {
 		if f := strings.Fields(l); len(f) > 0 {
 			failed = append(failed, f[0]+" (user)")
@@ -2486,15 +1702,15 @@ func reconcileFailedUnits(_ bool) recResult {
 // ---- reconciler: btrfs device health -----------------------------------------
 
 func reconcileBtrfsHealth(_ bool) recResult {
-	if !isBtrfs("/") {
+	if !sys.IsBtrfs("/") {
 		return okRes("root is not btrfs")
 	}
-	opts, _ := runOut("findmnt", "-n", "-o", "OPTIONS", "/")
+	opts, _ := sys.RunOut("findmnt", "-n", "-o", "OPTIONS", "/")
 	if first := strings.SplitN(strings.TrimSpace(opts), ",", 2); len(first) > 0 && first[0] == "ro" {
 		return warnRes("root filesystem is mounted read-only (btrfs may be protecting itself)").
 			withFix("check `btrfs filesystem usage /`; may need `btrfs balance` or more free space")
 	}
-	stats, err := runOut("sudo", "-n", "btrfs", "device", "stats", "/")
+	stats, err := sys.RunOut("sudo", "-n", "btrfs", "device", "stats", "/")
 	if err != nil || strings.TrimSpace(stats) == "" {
 		return okRes("btrfs ok (device error counters need root for full detail)")
 	}
@@ -2511,7 +1727,7 @@ func reconcileBtrfsHealth(_ bool) recResult {
 // ---- reconciler: pending .pacnew config --------------------------------------
 
 func reconcilePacnew(_ bool) recResult {
-	out, _ := runOut("find", "/etc", "-name", "*.pacnew")
+	out, _ := sys.RunOut("find", "/etc", "-name", "*.pacnew")
 	files := nonEmptyLines(out)
 	if len(files) == 0 {
 		return okRes("no pending config updates")
@@ -2523,125 +1739,13 @@ func reconcilePacnew(_ bool) recResult {
 // ---- reconciler: orphaned packages -------------------------------------------
 
 func reconcileOrphans(_ bool) recResult {
-	out, err := runOut("pacman", "-Qtdq")
+	out, err := sys.RunOut("pacman", "-Qtdq")
 	orphans := nonEmptyLines(out)
 	if err != nil || len(orphans) == 0 {
 		return okRes("no orphaned packages")
 	}
 	return noteRes("%d orphaned package(s)", len(orphans)).
 		withFix("review `pacman -Qtd`, then `sudo pacman -Rns $(pacman -Qtdq)` if unneeded")
-}
-
-// ---- diagnostic report -------------------------------------------------------
-
-func reportPath(override string) string {
-	if override != "" {
-		return override
-	}
-	return filepath.Join(xdg("XDG_STATE_HOME", ".local/state"), "ryoku", "doctor-report.txt")
-}
-
-func writeReport(override string, findings []finding) (string, error) {
-	path := reportPath(override)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(path, []byte(gatherReport(findings)), 0o644); err != nil {
-		return "", err
-	}
-	return path, nil
-}
-
-// gatherReport: one self-contained text report. doctor findings, then the
-// system state a maintainer needs to diagnose the unknown. safe to share --
-// system state + recent error logs, no secrets.
-func gatherReport(findings []finding) string {
-	var b strings.Builder
-	line := func(f string, a ...any) { fmt.Fprintf(&b, f+"\n", a...) }
-	section := func(title string) { line("\n## %s", title) }
-	cmd := func(name string, args ...string) {
-		line("$ %s %s", name, strings.Join(args, " "))
-		line("%s", captureOut(name, args...))
-	}
-
-	line("Ryoku diagnostic report")
-	line("generated: %s", time.Now().Format(time.RFC3339))
-	line("Safe to share with the Ryoku maintainers: system state and recent error")
-	line("logs only, no passwords or keys. Open an issue: %s", ryokuIssuesURL)
-	line(strings.Repeat("=", 70))
-
-	section("doctor findings")
-	for _, f := range findings {
-		line("  %-5s %s: %s", f.res.status.label(), f.name, f.res.detail)
-		if f.res.remedy != "" {
-			line("        fix: %s", f.res.remedy)
-		}
-	}
-
-	section("system")
-	cmd("uname", "-srvmo")
-	line("os-release:\n%s", readFileSafe("/etc/os-release"))
-
-	section("ryoku")
-	cmd("ryoku", "status")
-	line("state dir:\n%s", captureOut("ls", "-la", filepath.Join(xdg("XDG_STATE_HOME", ".local/state"), "ryoku")))
-	line("[ryoku] repo configured: %v", strings.Contains(readFileSafe("/etc/pacman.conf"), "[ryoku]"))
-
-	section("storage (btrfs)")
-	cmd("sudo", "-n", "btrfs", "filesystem", "usage", "/")
-	cmd("sudo", "-n", "btrfs", "device", "stats", "/")
-	line("/proc/swaps:\n%s", readFileSafe("/proc/swaps"))
-	line("/etc/conf.d/snapper:\n%s", readFileSafe("/etc/conf.d/snapper"))
-
-	section("packages")
-	cmd("pacman", "-Qtdq")
-	cmd("pacman", "-Dk")
-	line(".pacnew files:\n%s", captureOut("find", "/etc", "-name", "*.pacnew"))
-	line("pacman.log (tail):\n%s", tailLines(readFileSafe("/var/log/pacman.log"), 25))
-
-	section("services")
-	cmd("systemctl", "--failed", "--no-legend", "--plain")
-	cmd("systemctl", "--user", "--failed", "--no-legend", "--plain")
-	line("journal errors this boot (tail):\n%s", tailLines(captureOut("journalctl", "-b", "-p", "err", "--no-pager"), 40))
-
-	section("desktop")
-	cmd("ryoku-shell", "status")
-	cmd("pgrep", "-af", "quickshell")
-	for _, v := range []string{"WAYLAND_DISPLAY", "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE", "HYPRLAND_INSTANCE_SIGNATURE"} {
-		line("%s=%s", v, os.Getenv(v))
-	}
-
-	section("hardware")
-	bl := backlightDevices()
-	if len(bl) == 0 {
-		line("backlight: (none found)")
-	}
-	for _, d := range bl {
-		base := "/sys/class/backlight/" + d
-		line("backlight %s: type=%s max=%s cur=%s actual=%s", d,
-			readFileSafe(base+"/type"), readFileSafe(base+"/max_brightness"),
-			readFileSafe(base+"/brightness"), readFileSafe(base+"/actual_brightness"))
-	}
-	line("gpu drivers loaded: %s", strings.Join(gpuDriversLoaded(), ", "))
-	cmd("sh", "-c", "lspci -k 2>/dev/null | grep -iA3 'vga\\|3d controller' || true")
-	line("kernel cmdline: %s", readFileSafe("/proc/cmdline"))
-	line("kernel display log (tail):\n%s", captureOut("sh", "-c", "journalctl -k -b --no-pager 2>/dev/null | grep -iE 'backlight|amdgpu|nvidia|i915|drm' | tail -30 || true"))
-
-	section("gpu / compositor stability")
-	// vendor-agnostic GPU-hang signatures: amdgpu (reset/wedged/VRAM lost/ring),
-	// nvidia (NVRM Xid), i915 (GPU HANG). skip a bare "Xid" so an r8169 NIC's
-	// "XID" line doesn't get mistaken for a GPU fault. search across boots: a
-	// crash needs a reboot, so the evidence is in the previous boot, not the
-	// current one.
-	const gpuHang = `GPU reset begin|device wedged|VRAM is lost|ring .* reset failed|NVRM: Xid|GPU HANG`
-	line("GPU resets/hangs (last 14 days): %s", captureOut("sh", "-c",
-		"journalctl --no-pager --since '-14 days' -g '"+gpuHang+"' 2>/dev/null | grep -cE '"+gpuHang+"'"))
-	line("recent GPU reset/hang lines:\n%s", tailLines(captureOut("sh", "-c",
-		"journalctl --no-pager --since '-14 days' -g '"+gpuHang+"' 2>/dev/null || true"), 12))
-	line("compositor/session coredumps:\n%s", captureOut("sh", "-c",
-		"coredumpctl list --no-pager 2>/dev/null | grep -iE 'Hyprland|Xwayland|quickshell|aquamarine' | tail -10 || true"))
-
-	return b.String()
 }
 
 // ---- swap helpers ------------------------------------------------------------
@@ -2681,24 +1785,6 @@ func parseProcSwaps(s string) []swapFile {
 	return out
 }
 
-func isBtrfs(path string) bool {
-	var st syscall.Statfs_t
-	if err := syscall.Statfs(path, &st); err != nil {
-		return false
-	}
-	return int64(st.Type) == 0x9123683E // BTRFS_SUPER_MAGIC
-}
-
-// isBtrfsSubvolumeRoot: is path the root of a btrfs subvolume? those always
-// carry inode 256.
-func isBtrfsSubvolumeRoot(path string) bool {
-	var st syscall.Stat_t
-	if err := syscall.Stat(path, &st); err != nil {
-		return false
-	}
-	return st.Ino == 256
-}
-
 func dirOnlyContains(dir, name string) bool {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -2721,7 +1807,7 @@ func relocateSwapToSubvolume(sw swapFile, dir string) error {
 		{"swapon", sw.path},
 	}
 	for _, s := range steps {
-		if err := run("sudo", s...); err != nil {
+		if err := sys.Run("sudo", s...); err != nil {
 			return fmt.Errorf("%s: %w", strings.Join(s, " "), err)
 		}
 	}
@@ -2730,13 +1816,6 @@ func relocateSwapToSubvolume(sw swapFile, dir string) error {
 
 // ---- small shared helpers ----------------------------------------------------
 
-func homeDir() string {
-	if h, err := os.UserHomeDir(); err == nil {
-		return h
-	}
-	return os.Getenv("HOME")
-}
-
 func firstLine(s string) string {
 	if i := strings.IndexByte(s, '\n'); i >= 0 {
 		return strings.TrimSpace(s[:i])
@@ -2744,13 +1823,9 @@ func firstLine(s string) string {
 	return strings.TrimSpace(s)
 }
 
-func pkgInstalled(name string) bool {
-	return exec.Command("pacman", "-Q", name).Run() == nil
-}
-
 func anyPkgInstalled(names ...string) bool {
 	for _, n := range names {
-		if pkgInstalled(n) {
+		if sys.PkgInstalled(n) {
 			return true
 		}
 	}
@@ -2799,188 +1874,4 @@ func tailLines(s string, n int) string {
 		lines = lines[len(lines)-n:]
 	}
 	return strings.Join(lines, "\n")
-}
-
-// ---- reconciler: display backlight -------------------------------------------
-
-// reconcileBacklight flags the common brightness failures:
-//   - no backlight interface at all.
-//   - backlight present but no brightnessctl to drive it.
-//   - hybrid-GPU laptop with only a firmware backlight.
-//
-// for the last we trust the kernel's own verdict (dGPU reports no native
-// backlight) over a sysfs value the panel may ignore. detect-and-warn only;
-// the fixes (GPU mux switch, kernel parameters) are too machine-specific to
-// apply blindly.
-func reconcileBacklight(_ bool) recResult {
-	devs := backlightDevices()
-	if len(devs) == 0 {
-		if !isLaptop() {
-			return okRes("no internal backlight (desktop or external display)")
-		}
-		return warnRes("no backlight interface found; display brightness cannot be set").
-			withFix("try a kernel parameter such as acpi_backlight=native or acpi_backlight=vendor")
-	}
-	if !has("brightnessctl") {
-		return warnRes("backlight present but brightnessctl is missing; brightness keys and idle-dim will not work").
-			withFix("sudo pacman -S brightnessctl")
-	}
-	if gpus := gpuDriversLoaded(); len(gpus) >= 2 && onlyFirmwareBacklight(devs) {
-		detail := fmt.Sprintf("hybrid GPU (%s) with only a firmware backlight (%s); the panel may not dim",
-			strings.Join(gpus, "+"), strings.Join(devs, ","))
-		if nvidiaBacklightDead() {
-			detail = fmt.Sprintf("hybrid GPU (%s): the kernel reports the dGPU has no working backlight, and the firmware fallback (%s) does not dim the panel",
-				strings.Join(gpus, "+"), strings.Join(devs, ","))
-		}
-		fix := "route the panel to the iGPU: set the BIOS GPU/MUX mode to Hybrid and reboot, then amdgpu_bl0 appears"
-		if has("supergfxctl") {
-			fix += "; on a supported ASUS laptop `supergfxctl -m Hybrid` switches it without a BIOS trip"
-		}
-		return noteRes("%s", detail).withFix(fix)
-	}
-	return okRes("backlight: %s", strings.Join(devs, ", "))
-}
-
-// nvidiaBacklightDead: the kernel's own tell that the dGPU has no usable
-// backlight and fell back to the often-broken ACPI/EC interface.
-func nvidiaBacklightDead() bool {
-	n := strings.TrimSpace(captureOut("sh", "-c",
-		"journalctl -k -b --no-pager 2>/dev/null | grep -ic 'no NVIDIA native backlight'"))
-	return n != "" && n != "0"
-}
-
-func backlightDevices() []string {
-	entries, err := os.ReadDir("/sys/class/backlight")
-	if err != nil {
-		return nil
-	}
-	out := make([]string, 0, len(entries))
-	for _, e := range entries {
-		out = append(out, e.Name())
-	}
-	return out
-}
-
-func onlyFirmwareBacklight(devs []string) bool {
-	for _, d := range devs {
-		if strings.TrimSpace(readFileSafe("/sys/class/backlight/"+d+"/type")) != "firmware" {
-			return false
-		}
-	}
-	return len(devs) > 0
-}
-
-// gpuDriversLoaded: loaded GPU kernel drivers, so a hybrid-GPU box is
-// recognizable.
-func gpuDriversLoaded() []string {
-	var out []string
-	for _, m := range []string{"amdgpu", "nvidia", "i915", "nouveau", "xe"} {
-		if exists("/sys/module/" + m) {
-			out = append(out, m)
-		}
-	}
-	return out
-}
-
-// isLaptop: machine has a battery, i.e. an internal panel whose backlight
-// we'd expect to control.
-func isLaptop() bool {
-	entries, err := os.ReadDir("/sys/class/power_supply")
-	if err != nil {
-		return false
-	}
-	for _, e := range entries {
-		if strings.HasPrefix(e.Name(), "BAT") {
-			return true
-		}
-	}
-	return false
-}
-
-// ---- reconciler: NVIDIA boot reliability -------------------------------------
-
-// reconcileNvidiaModeset backports the installer's NVIDIA reliability config
-// to a box running the proprietary/open nvidia modules but installed (or
-// last doctored) before the fix. without it, nouveau and nvidia race for the
-// card at boot, so the GPU "shows up only on some boots" -- the intermittent
-// detection failure users hit. mirrors system/hardware/drivers/nvidia.sh:
-// blacklist nouveau, force DRM modeset, load the modules early, then rebuild
-// the initramfs so it takes effect. acts ONLY when an nvidia kernel-module
-// package is installed (or the module is loaded); a box on nouveau by choice
-// has no such package and stays untouched -- blacklisting nouveau there
-// would break its display.
-
-// nvidiaModprobeConf mirrors system/hardware/drivers/nvidia.sh verbatim, so
-// a doctored box matches a fresh install.
-const nvidiaModprobeConf = `options nvidia_drm modeset=1 fbdev=1
-options nvidia NVreg_PreserveVideoMemoryAllocations=1
-blacklist nouveau
-options nouveau modeset=0
-`
-
-const nvidiaMkinitcpioConf = "MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)\n"
-
-// nvidiaDriverActive: does this box use the proprietary/open nvidia driver?
-// a loaded module is the clearest tell, but the bug we repair is exactly
-// that nouveau won the boot race, so the module may NOT be loaded -- fall
-// back to "an nvidia kernel-module package is installed". nvidia-utils
-// (userspace) alone is excluded: with no module to load, writing
-// MODULES=(nvidia ...) would only break the initramfs.
-func nvidiaDriverActive() bool {
-	for _, m := range gpuDriversLoaded() {
-		if m == "nvidia" {
-			return true
-		}
-	}
-	return anyPkgInstalled("nvidia-open-dkms", "nvidia-dkms", "nvidia-open", "nvidia", "nvidia-lts", "nvidia-open-lts")
-}
-
-// nvidiaConfigOK: do the modprobe + mkinitcpio drop-ins already carry the
-// reliability essentials (nouveau blacklisted, DRM modeset on, nvidia
-// modules in the initramfs)? pure, so the idempotency that keeps doctor
-// quiet on a healthy box -- and stops it rebuilding the initramfs every
-// run -- is unit-testable.
-func nvidiaConfigOK(modprobe, mkinit string) bool {
-	return strings.Contains(modprobe, "blacklist nouveau") &&
-		strings.Contains(modprobe, "nvidia_drm modeset=1") &&
-		strings.Contains(mkinit, "nvidia_drm")
-}
-
-func reconcileNvidiaModeset(checkOnly bool) recResult {
-	if !nvidiaDriverActive() {
-		return okRes("no proprietary NVIDIA driver in use")
-	}
-	modprobe := readFileSafe("/etc/modprobe.d/nvidia.conf")
-	mkinit := readFileSafe("/etc/mkinitcpio.conf.d/nvidia.conf")
-	ok := nvidiaConfigOK(modprobe, mkinit)
-	if ok {
-		return okRes("NVIDIA modeset + nouveau blacklist in place")
-	}
-	if checkOnly {
-		return wouldRes("NVIDIA driver in use but nouveau is not blacklisted / DRM modeset not set; the GPU can fail to come up on some boots").
-			withFix("ryoku doctor  (writes /etc/modprobe.d/nvidia.conf and rebuilds the initramfs)")
-	}
-	if err := writeRootFile("/etc/modprobe.d/nvidia.conf", nvidiaModprobeConf, "0644"); err != nil {
-		return failRes("could not write /etc/modprobe.d/nvidia.conf: %v", err).
-			withFix("re-run with sudo access")
-	}
-	if err := writeRootFile("/etc/mkinitcpio.conf.d/nvidia.conf", nvidiaMkinitcpioConf, "0644"); err != nil {
-		return failRes("could not write /etc/mkinitcpio.conf.d/nvidia.conf: %v", err).
-			withFix("re-run with sudo access")
-	}
-	if err := rebuildInitramfs(); err != nil {
-		return warnRes("wrote the NVIDIA reliability config, but the initramfs rebuild failed: %v", err).
-			withFix("sudo limine-mkinitcpio  (or: sudo mkinitcpio -P)")
-	}
-	return fixedRes("blacklisted nouveau, enabled NVIDIA DRM modeset, and rebuilt the initramfs")
-}
-
-// rebuildInitramfs regenerates the boot image after a module/blacklist
-// change. limine-mkinitcpio when present (the UKI path Ryoku uses), else
-// plain mkinitcpio -P.
-func rebuildInitramfs() error {
-	if _, err := exec.LookPath("limine-mkinitcpio"); err == nil {
-		return run("sudo", "limine-mkinitcpio")
-	}
-	return run("sudo", "mkinitcpio", "-P")
 }

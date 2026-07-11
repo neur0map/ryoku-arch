@@ -1,19 +1,20 @@
-package main
+package updater
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"ryoku-cli/internal/sys"
 	"strings"
 )
 
-// cmdVersion prints the running Ryoku version. Plain form feeds fastfetch's OS
+// Version prints the running Ryoku version. Plain form feeds fastfetch's OS
 // line ("Ryoku v0.1.0-beta.14"); `--branch` feeds its BRANCH line as
 // "<channel> · <sha>" (e.g. "main · dcd7b80"). Deliberately fast: it runs on
 // every shell launch, so it never touches the network or `pacman -Sl`. A
 // checkout reads git, a packaged box parses the local pacman version. Any
 // unknown piece degrades gracefully rather than erroring.
-func cmdVersion(args []string) error {
+func Version(args []string) error {
 	branch := false
 	for _, a := range args {
 		if a == "--branch" {
@@ -46,11 +47,11 @@ func cmdVersion(args []string) error {
 // pacman version "<core>.r<count>.g<sha>-<rel>" the repo build embeds (the
 // r<count> token is skipped). Any field comes back "" when undeterminable.
 func versionParts() (base, sha string) {
-	if repo := resolveRepo(); repo != "" {
+	if repo := sys.ResolveRepo(); repo != "" {
 		if b, err := os.ReadFile(filepath.Join(repo, "VERSION")); err == nil {
 			base = strings.TrimSpace(string(b))
 		}
-		if out, err := runOut("git", "-C", repo, "rev-parse", "--short=7", "HEAD"); err == nil {
+		if out, err := sys.RunOut("git", "-C", repo, "rev-parse", "--short=7", "HEAD"); err == nil {
 			sha = strings.TrimSpace(out)
 		}
 		return base, sha
@@ -58,7 +59,7 @@ func versionParts() (base, sha string) {
 
 	// packaged: split off the pkgrel, then read the g<sha> token the PKGBUILD
 	// pkgver appends; the leading dot-parts before r<count>/g<sha> are the core.
-	ver := strings.SplitN(installedVersion(), "-", 2)[0]
+	ver := strings.SplitN(sys.InstalledVersion(), "-", 2)[0]
 	var core []string
 	seen := false
 	for _, tok := range strings.Split(ver, ".") {

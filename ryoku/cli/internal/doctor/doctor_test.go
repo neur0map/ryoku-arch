@@ -1,4 +1,4 @@
-package main
+package doctor
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"ryoku-cli/internal/sys"
 	"strings"
 	"testing"
 )
@@ -655,7 +656,7 @@ func TestFastfetchLogoSource(t *testing.T) {
 // absolute -> verbatim.
 func TestExpandTilde(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	h := home()
+	h := sys.Home()
 	if got := expandTilde("~"); got != h {
 		t.Errorf("expandTilde(\"~\") = %q, want %q", got, h)
 	}
@@ -721,10 +722,10 @@ func TestReconcileFastfetchEmblem(t *testing.T) {
 		}
 		// the reconciler must create nothing: neither the custom logo it does
 		// not own, nor the emblem beside the config.
-		if p := expandTilde("~/.config/fastfetch/my-logo.png"); exists(p) {
+		if p := expandTilde("~/.config/fastfetch/my-logo.png"); sys.Exists(p) {
 			t.Errorf("must not create the user's logo at %s", p)
 		}
-		if p := expandTilde(emblemSrc); exists(p) {
+		if p := expandTilde(emblemSrc); sys.Exists(p) {
 			t.Errorf("must not drop an emblem into the config dir at %s", p)
 		}
 	})
@@ -749,7 +750,7 @@ func TestReconcileFastfetchEmblem(t *testing.T) {
 		if r.remedy != "ryoku materialize" {
 			t.Errorf("remedy = %q, want \"ryoku materialize\"", r.remedy)
 		}
-		if dst := expandTilde(emblemSrc); exists(dst) {
+		if dst := expandTilde(emblemSrc); sys.Exists(dst) {
 			t.Errorf("check-only must not create the emblem at %s", dst)
 		}
 	})
@@ -809,7 +810,7 @@ func TestReconcileFastfetchEmblem(t *testing.T) {
 		if r.remedy != "ryoku update" {
 			t.Errorf("remedy = %q, want \"ryoku update\"", r.remedy)
 		}
-		if dst := expandTilde(emblemSrc); exists(dst) {
+		if dst := expandTilde(emblemSrc); sys.Exists(dst) {
 			t.Errorf("nothing to copy: must not create %s", dst)
 		}
 	})
@@ -1174,10 +1175,10 @@ func TestReconcilePortalRoutingHealsUserHijack(t *testing.T) {
 	if r := reconcilePortalRouting(false); r.status != recFixed {
 		t.Fatalf("fix mode = %q (%s), want fixed", r.status.label(), r.detail)
 	}
-	if exists(hijack) {
+	if sys.Exists(hijack) {
 		t.Error("hijacking portals.conf still in place after the fix")
 	}
-	if !exists(hijack + ".ryoku-bak") {
+	if !sys.Exists(hijack + ".ryoku-bak") {
 		t.Error("hijacking portals.conf must be kept as .ryoku-bak, not deleted")
 	}
 	if r := reconcilePortalRouting(true); r.status != recOK {

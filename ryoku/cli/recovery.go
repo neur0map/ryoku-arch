@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"ryoku-cli/internal/sys"
 )
 
 // where the recovery script lives on the channel, for boxes that have no local
@@ -14,13 +15,13 @@ const recoveryURL = "https://raw.githubusercontent.com/neur0map/ryoku-arch/main/
 // checkout, otherwise fetch the canonical one. The script does the real work and
 // does not lean on this binary, so it still recovers when the build is broken.
 func cmdRecovery(args []string) error {
-	if repo := resolveRepo(); repo != "" {
-		if script := filepath.Join(repo, "bin", "ryoku-recovery"); exists(script) {
-			return run("bash", append([]string{script}, args...)...)
+	if repo := sys.ResolveRepo(); repo != "" {
+		if script := filepath.Join(repo, "bin", "ryoku-recovery"); sys.Exists(script) {
+			return sys.Run("bash", append([]string{script}, args...)...)
 		}
 	}
 
-	if !has("curl") {
+	if !sys.Has("curl") {
 		return fmt.Errorf("no local recovery script and curl is missing; run it by hand:\n  curl -fsSL %s | bash", recoveryURL)
 	}
 	tmp, err := os.CreateTemp("", "ryoku-recovery-*.sh")
@@ -29,8 +30,8 @@ func cmdRecovery(args []string) error {
 	}
 	tmp.Close()
 	defer os.Remove(tmp.Name())
-	if err := run("curl", "-fsSL", recoveryURL, "-o", tmp.Name()); err != nil {
+	if err := sys.Run("curl", "-fsSL", recoveryURL, "-o", tmp.Name()); err != nil {
 		return fmt.Errorf("fetch recovery script from %s: %w", recoveryURL, err)
 	}
-	return run("bash", append([]string{tmp.Name()}, args...)...)
+	return sys.Run("bash", append([]string{tmp.Name()}, args...)...)
 }

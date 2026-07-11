@@ -3,6 +3,18 @@
 ## Unreleased
 
 ### Added
+- **`ryoku update` shows real, determinate progress.** The run-state the update
+  island and the Hub's Updates page watch now carries the update's ordered
+  stages (snapshot, packages, AUR, apply, reload, doctor, finalize), each with
+  its own state, the current step's human label, and a live log tail, written
+  atomically (temp + rename) so a watcher never reads a half-written file. The
+  Hub renders a determinate multi-segment bar and streams the log instead of the
+  old fixed progress "wave". On failure the run-state names the step that broke
+  and carries the pre-update snapshot id, so the Hub can offer a one-click
+  rollback.
+- **`ryoku doctor --json`** emits the reconciler findings as a JSON array
+  (name, status, detail, remedy): the read-only data seam a GUI System Check can
+  render without parsing the human output.
 - **`ryoku update` hands itself to the freshly installed binary.** The whole
   update used to run inside the old release's binary, so every fix to
   materialize or the restart flow shipped one release late (the beta-16
@@ -64,6 +76,16 @@
   `.ryoku-bak`), and restarts the portal services. The shell installer has
   moved the user-level file aside since early July; this heals the boxes
   converted before that, and the `/etc` case the installer never handled.
+
+### Changed
+- **The CLI is split into focused packages.** The one-package `ryoku` program is
+  now a thin dispatcher over `internal/updater` (update, status, rollback,
+  channel, run-state, materialize, version), `internal/doctor` (the convergent
+  reconcilers, report, and `--explain`), and `internal/sys` (the shared exec,
+  package, filesystem, path, and terminal primitives, defined once). `doctor.go`
+  no longer holds every reconciler: the limine, hardware, and diagnostic-report
+  concerns move to their own files. Behaviour and the command surface (`ryoku
+  update`/`doctor`/`status`/...) are unchanged.
 
 ### Fixed
 - **Doctor heals the boot-menu countdown loop.** On boxes where

@@ -1,4 +1,4 @@
-package main
+package doctor
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"ryoku-cli/internal/sys"
 	"strings"
 	"time"
 )
@@ -42,7 +43,7 @@ func aiKey() string {
 	if k := strings.TrimSpace(os.Getenv("RYOKU_AI_KEY")); k != "" {
 		return k
 	}
-	b, err := os.ReadFile(filepath.Join(xdg("XDG_CONFIG_HOME", ".config"), "ryoku", "ai-key"))
+	b, err := os.ReadFile(filepath.Join(sys.Xdg("XDG_CONFIG_HOME", ".config"), "ryoku", "ai-key"))
 	if err != nil {
 		return ""
 	}
@@ -59,19 +60,19 @@ func envOr(key, def string) string {
 func explainSetupHelp() {
 	p := func(f string, a ...any) { fmt.Printf(f+"\n", a...) }
 	fmt.Println()
-	p("  %s reasons over the report with a cloud model.", brand("ryoku doctor --explain"))
-	p("  %s", dim("It needs a free API key (your own, opt-in: nothing is sent without it)."))
+	p("  %s reasons over the report with a cloud model.", sys.Brand("ryoku doctor --explain"))
+	p("  %s", sys.Dim("It needs a free API key (your own, opt-in: nothing is sent without it)."))
 	fmt.Println()
-	p("  %s %s", bold("Groq"), dim("(recommended, fast and free)"))
-	p("    1. get a key:  %s", brand("https://console.groq.com/keys"))
-	p("    2. export RYOKU_AI_KEY=...   %s", dim("or write it to ~/.config/ryoku/ai-key"))
+	p("  %s %s", sys.Bold("Groq"), sys.Dim("(recommended, fast and free)"))
+	p("    1. get a key:  %s", sys.Brand("https://console.groq.com/keys"))
+	p("    2. export RYOKU_AI_KEY=...   %s", sys.Dim("or write it to ~/.config/ryoku/ai-key"))
 	fmt.Println()
-	p("  %s %s", bold("OpenRouter"), dim("(free models)"))
-	p("    export RYOKU_AI_KEY=...      %s", dim("from https://openrouter.ai/keys"))
+	p("  %s %s", sys.Bold("OpenRouter"), sys.Dim("(free models)"))
+	p("    export RYOKU_AI_KEY=...      %s", sys.Dim("from https://openrouter.ai/keys"))
 	p("    export RYOKU_AI_URL=https://openrouter.ai/api/v1")
 	p("    export RYOKU_AI_MODEL=meta-llama/llama-3.3-70b-instruct:free")
 	fmt.Println()
-	p("  %s", dim("Default model: "+defaultAIModel+" (override with RYOKU_AI_MODEL)."))
+	p("  %s", sys.Dim("Default model: "+defaultAIModel+" (override with RYOKU_AI_MODEL)."))
 }
 
 func explainFindings(findings []finding) error {
@@ -87,13 +88,13 @@ func explainFindings(findings []finding) error {
 	model := envOr("RYOKU_AI_MODEL", defaultAIModel)
 	report := gatherReport(findings)
 
-	fmt.Fprintf(os.Stderr, "\n  %s asking %s to diagnose %s\n", brand("➜"), bold(model), dim("(advisory, read-only; nothing runs)"))
+	fmt.Fprintf(os.Stderr, "\n  %s asking %s to diagnose %s\n", sys.Brand("➜"), sys.Bold(model), sys.Dim("(advisory, read-only; nothing runs)"))
 	answer, err := aiDiagnose(endpoint, key, model, report)
 	if err != nil {
 		path, _ := writeReport("", findings)
 		return fmt.Errorf("AI request failed: %v\n    The report is at %s; paste it into any assistant.", err, path)
 	}
-	fmt.Printf("\n%s\n\n%s\n", brand("➜ AI diagnosis"), answer)
+	fmt.Printf("\n%s\n\n%s\n", sys.Brand("➜ AI diagnosis"), answer)
 	return nil
 }
 

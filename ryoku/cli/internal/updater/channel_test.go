@@ -1,4 +1,4 @@
-package main
+package updater
 
 import (
 	"os"
@@ -203,12 +203,8 @@ func TestChannelUpdateFastForwards(t *testing.T) {
 	t.Setenv("XDG_RUNTIME_DIR", root) // contain publishRun's state file
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 
-	handled, err := channelUpdate()
-	if err != nil {
+	if err := channelUpdate(); err != nil {
 		t.Fatalf("channelUpdate: %v", err)
-	}
-	if !handled {
-		t.Fatal("channelUpdate should handle a clean checkout on the channel")
 	}
 	if got := mustGit(t, work, "rev-parse", "HEAD"); got != mustGit(t, work, "rev-parse", "refs/remotes/origin/main") {
 		t.Error("checkout did not fast-forward to origin/main")
@@ -246,9 +242,8 @@ func TestChannelUpdateDeploysWithoutFastForwardOffChannel(t *testing.T) {
 
 	// The git path still handles the update (redeploys), but must not move the
 	// maintainer's branch: branch management stays with git.
-	handled, err := channelUpdate()
-	if err != nil || !handled {
-		t.Fatalf("channelUpdate off-channel: handled=%v err=%v, want true/nil", handled, err)
+	if err := channelUpdate(); err != nil {
+		t.Fatalf("channelUpdate off-channel: err=%v, want nil", err)
 	}
 	if got := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD")); got != feature {
 		t.Errorf("off-channel update fast-forwarded the branch (HEAD %s, want %s)", got, feature)
@@ -283,9 +278,8 @@ func TestChannelUpdateDeploysWithoutFastForwardWhenDirty(t *testing.T) {
 
 	// A dirty tree must not be fast-forwarded (it would clobber work in progress),
 	// but the redeploy still runs.
-	handled, err := channelUpdate()
-	if err != nil || !handled {
-		t.Fatalf("channelUpdate dirty: handled=%v err=%v, want true/nil", handled, err)
+	if err := channelUpdate(); err != nil {
+		t.Fatalf("channelUpdate dirty: err=%v, want nil", err)
 	}
 	if got := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD")); got != on {
 		t.Errorf("dirty update fast-forwarded the tree (HEAD %s, want %s)", got, on)
@@ -322,12 +316,8 @@ func TestChannelUpdateReconcilesDivergence(t *testing.T) {
 	t.Setenv("XDG_RUNTIME_DIR", root)
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 
-	handled, err := channelUpdate()
-	if err != nil {
+	if err := channelUpdate(); err != nil {
 		t.Fatalf("channelUpdate on a diverged checkout: %v", err)
-	}
-	if !handled {
-		t.Fatal("channelUpdate should handle a diverged checkout on the channel")
 	}
 	head := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD"))
 	want := strings.TrimSpace(mustGit(t, work, "rev-parse", "refs/remotes/origin/main"))

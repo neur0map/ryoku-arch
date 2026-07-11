@@ -1,8 +1,9 @@
-package main
+package updater
 
 import (
 	"os"
 	"path/filepath"
+	"ryoku-cli/internal/sys"
 	"strings"
 	"testing"
 )
@@ -26,7 +27,7 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	writeFile(t, filepath.Join(base, "kitty/current-theme.conf"), "background #16110b\n")
 
 	// fresh install: every file lands, seeds included so first boot works.
-	if err := materialize(); err != nil {
+	if err := Materialize(); err != nil {
 		t.Fatalf("fresh materialize: %v", err)
 	}
 	wantFile(t, filepath.Join(dest, "hypr/monitors.lua"), "-- seed")
@@ -49,7 +50,7 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 
 	// update: managed file is refreshed; the generated seeds, the user file,
 	// and the customized fastfetch readout stay exactly as the machine had them.
-	if err := materialize(); err != nil {
+	if err := Materialize(); err != nil {
 		t.Fatalf("update materialize: %v", err)
 	}
 	wantFile(t, filepath.Join(dest, "hypr/hyprland.lua"), "monitors_user")
@@ -71,7 +72,7 @@ func TestMaterializePrunesManagedNotSeeds(t *testing.T) {
 
 	writeFile(t, filepath.Join(base, "hypr/old.lua"), "x\n")
 	writeFile(t, filepath.Join(base, "hypr/monitors.lua"), "-- seed\n")
-	if err := materialize(); err != nil {
+	if err := Materialize(); err != nil {
 		t.Fatalf("first materialize: %v", err)
 	}
 	writeFile(t, filepath.Join(dest, "hypr/monitors.lua"), "DISPLAY\n") // runtime-regenerated
@@ -79,10 +80,10 @@ func TestMaterializePrunesManagedNotSeeds(t *testing.T) {
 	// next release drops both the managed file and the monitors seed.
 	os.Remove(filepath.Join(base, "hypr/old.lua"))
 	os.Remove(filepath.Join(base, "hypr/monitors.lua"))
-	if err := materialize(); err != nil {
+	if err := Materialize(); err != nil {
 		t.Fatalf("second materialize: %v", err)
 	}
-	if exists(filepath.Join(dest, "hypr/old.lua")) {
+	if sys.Exists(filepath.Join(dest, "hypr/old.lua")) {
 		t.Error("a managed file dropped from the release should be pruned")
 	}
 	wantFile(t, filepath.Join(dest, "hypr/monitors.lua"), "DISPLAY") // seed survives
@@ -104,14 +105,14 @@ func TestMaterializeSweepsStaleQuickshell(t *testing.T) {
 	writeFile(t, filepath.Join(dest, "quickshell/plugins/shell.qml"), "OLD\n")
 	writeFile(t, filepath.Join(dest, "hypr/user.lua"), "USER\n")
 
-	if err := materialize(); err != nil {
+	if err := Materialize(); err != nil {
 		t.Fatalf("materialize: %v", err)
 	}
 	wantFile(t, filepath.Join(dest, "quickshell/pill/shell.qml"), "NEW")
-	if exists(filepath.Join(dest, "quickshell/pill/Pill.qml")) {
+	if sys.Exists(filepath.Join(dest, "quickshell/pill/Pill.qml")) {
 		t.Error("stale quickshell file should be swept without a manifest entry")
 	}
-	if exists(filepath.Join(dest, "quickshell/plugins")) {
+	if sys.Exists(filepath.Join(dest, "quickshell/plugins")) {
 		t.Error("emptied stale quickshell dir should be pruned")
 	}
 	wantFile(t, filepath.Join(dest, "hypr/user.lua"), "USER")

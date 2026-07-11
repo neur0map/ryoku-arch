@@ -1,4 +1,4 @@
-package main
+package updater
 
 import (
 	"bufio"
@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"ryoku-cli/internal/sys"
 	"strconv"
 	"strings"
 	"time"
@@ -27,42 +28,11 @@ func ryokuChannel() string {
 	return "main"
 }
 
-// repoPathFile records where the live-mirror checkout sits. The deployed
-// `ryoku` binary lives on PATH with no path back to the repo, so the dev
-// deploy (ryoku/shell/deploy.sh) writes the checkout root here.
-func repoPathFile() string {
-	return filepath.Join(xdg("XDG_STATE_HOME", ".local/state"), "ryoku", "repo")
-}
-
-// resolveRepo returns the Ryoku checkout to track, or "" when there is none
-// (packaged install). RYOKU_REPO wins (so `ryoku deploy` and tests can point
-// it explicitly); else the path the last deploy recorded. Anything that
-// isn't a git work tree is ignored.
-func resolveRepo() string {
-	for _, p := range []string{strings.TrimSpace(os.Getenv("RYOKU_REPO")), recordedRepo()} {
-		if p == "" {
-			continue
-		}
-		if _, err := runOut("git", "-C", p, "rev-parse", "--git-dir"); err == nil {
-			return p
-		}
-	}
-	return ""
-}
-
-func recordedRepo() string {
-	b, err := os.ReadFile(repoPathFile())
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(b))
-}
-
 // deployedFile records the commit the last deploy laid down. The channel is
 // measured from that, not from whatever branch happens to be checked out, so
 // a commit pushed upstream shows as an update until the machine redeploys onto it.
 func deployedFile() string {
-	return filepath.Join(xdg("XDG_STATE_HOME", ".local/state"), "ryoku", "deployed")
+	return filepath.Join(sys.Xdg("XDG_STATE_HOME", ".local/state"), "ryoku", "deployed")
 }
 
 // deployedBase returns the recorded deployed commit if it still resolves in
@@ -71,7 +41,7 @@ func deployedFile() string {
 func deployedBase(repo string) string {
 	if b, err := os.ReadFile(deployedFile()); err == nil {
 		if c := strings.TrimSpace(string(b)); c != "" {
-			if _, err := runOut("git", "-C", repo, "rev-parse", "--verify", "--quiet", c+"^{commit}"); err == nil {
+			if _, err := sys.RunOut("git", "-C", repo, "rev-parse", "--verify", "--quiet", c+"^{commit}"); err == nil {
 				return c
 			}
 		}
@@ -86,7 +56,7 @@ func deployedBase(repo string) string {
 // an offline or auth-walled remote never hangs a status query; on a fetch
 // failure the cached remote-tracking ref stands.
 func channelStatus() (statusReport, bool) {
-	repo := resolveRepo()
+	repo := sys.ResolveRepo()
 	if repo == "" {
 		return statusReport{}, false
 	}
@@ -95,7 +65,7 @@ func channelStatus() (statusReport, bool) {
 
 	gitFetch(repo, ch)
 
-	if _, err := runOut("git", "-C", repo, "rev-parse", "--verify", "--quiet", remote); err != nil {
+	if _, err := sys.RunOut("git", "-C", repo, "rev-parse", "--verify", "--quiet", remote); err != nil {
 		return statusReport{}, false
 	}
 	base := deployedBase(repo)
@@ -123,43 +93,40 @@ func channelStatus() (statusReport, bool) {
 
 // channelUpdate brings the checkout's channel up to origin/<channel> and
 // redeploys: the git equivalent of a package upgrade. Clean checkout on the
-// channel branch -> fast-forward first; feature branch (a maintainer
-// mid-dev) or dirty tree -> leave branch management to git, just redeploy.
-// Either way the checkout is handled (returns true), so the pacman path,
-// which a dev checkout can't satisfy, never runs there. Returns false only
-// on a packaged install with no checkout.
-func channelUpdate() (bool, error) {
-	repo := resolveRepo()
+// channel branch -> fast-forward first; feature branch (a maintainer mid-dev)
+// or dirty tree -> leave branch management to git, just redeploy. The caller
+// only reaches here on a checkout (a packaged install has no repo to track).
+func channelUpdate() error {
+	repo := sys.ResolveRepo()
 	if repo == "" {
-		return false, nil
+		return fmt.Errorf("no Ryoku checkout to update")
 	}
 	ch := ryokuChannel()
 
-	fmt.Printf("==> Updating Ryoku (channel: %s)\n", ch)
+	progress.at("channel")
+	progress.logf("Updating Ryoku (channel: %s)", ch)
 	gitFetch(repo, ch)
-	publishRun("running", 0.4)
 
-	head, _ := runOut("git", "-C", repo, "symbolic-ref", "--short", "--quiet", "HEAD")
-	dirty, _ := runOut("git", "-C", repo, "status", "--porcelain")
+	head, _ := sys.RunOut("git", "-C", repo, "symbolic-ref", "--short", "--quiet", "HEAD")
+	dirty, _ := sys.RunOut("git", "-C", repo, "status", "--porcelain")
 	if strings.TrimSpace(head) == ch && strings.TrimSpace(dirty) == "" {
-		if err := run("git", "-C", repo, "merge", "--ff-only", "refs/remotes/origin/"+ch); err != nil {
+		if err := sys.Run("git", "-C", repo, "merge", "--ff-only", "refs/remotes/origin/"+ch); err != nil {
 			// Diverged: HEAD holds commits origin/<ch> lacks, so ff is impossible
 			// and the update would dead-end forever. <ch> mirrors upstream (a dirty
 			// tree already skipped above), so reset onto it.
-			fmt.Printf("==> Channel history diverged; reconciling %s onto origin/%s\n", ch, ch)
-			if err := run("git", "-C", repo, "reset", "--hard", "refs/remotes/origin/"+ch); err != nil {
-				return true, fmt.Errorf("reconcile to origin/%s failed: %w", ch, err)
+			progress.logf("Channel history diverged; reconciling %s onto origin/%s", ch, ch)
+			if err := sys.Run("git", "-C", repo, "reset", "--hard", "refs/remotes/origin/"+ch); err != nil {
+				return fmt.Errorf("reconcile to origin/%s failed: %w", ch, err)
 			}
 		}
 	}
-	publishRun("running", 0.6)
 
-	fmt.Println("==> Deploying desktop from the checkout")
-	if err := run(filepath.Join(repo, "ryoku", "shell", "deploy.sh")); err != nil {
-		return true, fmt.Errorf("deploy from %s failed: %w", repo, err)
+	progress.at("deploy")
+	progress.logf("Deploying the desktop from the checkout")
+	if err := sys.Run(filepath.Join(repo, "ryoku", "shell", "deploy.sh")); err != nil {
+		return fmt.Errorf("deploy from %s failed: %w", repo, err)
 	}
-	publishRun("running", 0.95)
-	return true, nil
+	return nil
 }
 
 // gitFetch updates the remote-tracking ref for one branch, best-effort.
@@ -174,7 +141,7 @@ func gitFetch(repo, branch string) {
 }
 
 func gitCount(repo, rng string) int {
-	out, err := runOut("git", "-C", repo, "rev-list", "--count", rng)
+	out, err := sys.RunOut("git", "-C", repo, "rev-list", "--count", rng)
 	if err != nil {
 		return 0
 	}
@@ -186,7 +153,7 @@ func gitCount(repo, rng string) int {
 // shows as the version. 7-char floor matches GitHub's short hashes (git
 // extends if a collision ever appears, as GitHub does).
 func gitShort(repo, ref string) string {
-	out, err := runOut("git", "-C", repo, "rev-parse", "--short=7", ref)
+	out, err := sys.RunOut("git", "-C", repo, "rev-parse", "--short=7", ref)
 	if err != nil {
 		return ""
 	}
@@ -197,7 +164,7 @@ func gitShort(repo, ref string) string {
 // short hash in New (a commit has no from/to pair, so Old stays empty).
 func gitLog(repo, rng string) []updateItem {
 	ups := []updateItem{}
-	out, err := runOut("git", "-C", repo, "log", "--abbrev=7", "--format=%h%x1f%s", rng)
+	out, err := sys.RunOut("git", "-C", repo, "log", "--abbrev=7", "--format=%h%x1f%s", rng)
 	if err != nil {
 		return ups
 	}

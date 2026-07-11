@@ -1,10 +1,10 @@
-package main
+package updater
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
+	"ryoku-cli/internal/sys"
 	"sort"
 	"strings"
 )
@@ -40,9 +40,9 @@ var generatedSeed = map[string]bool{
 //
 // The set of Ryoku-owned paths is the manifest. Recorded in the state file so
 // the next run can prune files dropped from a release without guessing.
-func materialize() error {
-	base := baseConfigDir()
-	dest := configHome()
+func Materialize() error {
+	base := sys.BaseConfigDir()
+	dest := sys.ConfigHome()
 	state := materializeStatePath()
 
 	info, err := os.Stat(base)
@@ -67,14 +67,14 @@ func materialize() error {
 	for _, rel := range current {
 		dst := filepath.Join(dest, rel)
 		if generatedSeed[rel] {
-			if !exists(dst) {
-				if err := copyFile(filepath.Join(base, rel), dst); err != nil {
+			if !sys.Exists(dst) {
+				if err := sys.CopyFile(filepath.Join(base, rel), dst); err != nil {
 					return fmt.Errorf("seed %s: %w", rel, err)
 				}
 			}
 			continue
 		}
-		if err := copyFile(filepath.Join(base, rel), dst); err != nil {
+		if err := sys.CopyFile(filepath.Join(base, rel), dst); err != nil {
 			return fmt.Errorf("copy %s: %w", rel, err)
 		}
 		managed = append(managed, rel)
@@ -138,36 +138,6 @@ func walkRel(root string) ([]string, error) {
 	})
 	sort.Strings(rels)
 	return rels, err
-}
-
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	si, err := in.Stat()
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-		return err
-	}
-	tmp := dst + ".ryoku-tmp"
-	out, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, si.Mode().Perm())
-	if err != nil {
-		return err
-	}
-	if _, err := io.Copy(out, in); err != nil {
-		out.Close()
-		os.Remove(tmp)
-		return err
-	}
-	if err := out.Close(); err != nil {
-		os.Remove(tmp)
-		return err
-	}
-	return os.Rename(tmp, dst)
 }
 
 func pruneEmptyParents(root, rel string) {

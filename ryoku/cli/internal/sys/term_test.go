@@ -1,4 +1,4 @@
-package main
+package sys
 
 import (
 	"strings"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestWrapWidthAndIndent(t *testing.T) {
-	got := wrap("the quick brown fox jumps over the lazy dog", 24, "  ")
+	got := Wrap("the quick brown fox jumps over the lazy dog", 24, "  ")
 	for _, l := range strings.Split(got, "\n") {
 		if !strings.HasPrefix(l, "  ") {
 			t.Errorf("line not indented: %q", l)
@@ -21,7 +21,7 @@ func TestWrapWidthAndIndent(t *testing.T) {
 }
 
 func TestWrapKeepsParagraphBreaks(t *testing.T) {
-	if got := wrap("alpha\nbeta", 40, ""); got != "alpha\nbeta" {
+	if got := Wrap("alpha\nbeta", 40, ""); got != "alpha\nbeta" {
 		t.Errorf("newlines should survive as breaks: %q", got)
 	}
 }

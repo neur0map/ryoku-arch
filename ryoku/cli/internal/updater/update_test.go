@@ -1,4 +1,4 @@
-package main
+package updater
 
 import (
 	"os"
@@ -10,31 +10,33 @@ import (
 // wantedSnapperHelpers gates the offer. no btrfs+snapper -> nothing,
 // limine-snapper-sync only on Limine.
 func TestWantedSnapperHelpers(t *testing.T) {
-	ready := snapperState{rootIsBtrfs: true, snapperInstalled: true}
+	ready := snapHelpers{rootBtrfs: true, snapper: true}
 
-	if got := wantedSnapperHelpers(ready, true); len(got) != 2 || got[0] != "snap-pac" || got[1] != "limine-snapper-sync" {
+	both := ready
+	both.limine = true
+	if got := wantedSnapperHelpers(both); len(got) != 2 || got[0] != "snap-pac" || got[1] != "limine-snapper-sync" {
 		t.Fatalf("both missing + limine: got %v, want [snap-pac limine-snapper-sync]", got)
 	}
-	if got := wantedSnapperHelpers(ready, false); len(got) != 1 || got[0] != "snap-pac" {
+	if got := wantedSnapperHelpers(ready); len(got) != 1 || got[0] != "snap-pac" {
 		t.Fatalf("no limine: got %v, want [snap-pac]", got)
 	}
 
-	hasSnapPac := ready
-	hasSnapPac.snapPacInstalled = true
-	if got := wantedSnapperHelpers(hasSnapPac, true); len(got) != 1 || got[0] != "limine-snapper-sync" {
+	hasSnapPac := both
+	hasSnapPac.snapPac = true
+	if got := wantedSnapperHelpers(hasSnapPac); len(got) != 1 || got[0] != "limine-snapper-sync" {
 		t.Fatalf("snap-pac present: got %v, want [limine-snapper-sync]", got)
 	}
 
 	allPresent := hasSnapPac
-	allPresent.limineSyncInstalled = true
-	if got := wantedSnapperHelpers(allPresent, true); got != nil {
+	allPresent.limineSync = true
+	if got := wantedSnapperHelpers(allPresent); got != nil {
 		t.Fatalf("all present: got %v, want nil", got)
 	}
 
-	if got := wantedSnapperHelpers(snapperState{snapperInstalled: true}, true); got != nil {
+	if got := wantedSnapperHelpers(snapHelpers{snapper: true}); got != nil {
 		t.Fatalf("non-btrfs root must offer nothing, got %v", got)
 	}
-	if got := wantedSnapperHelpers(snapperState{rootIsBtrfs: true}, true); got != nil {
+	if got := wantedSnapperHelpers(snapHelpers{rootBtrfs: true}); got != nil {
 		t.Fatalf("snapper absent must offer nothing (a separate doctor warn), got %v", got)
 	}
 }
