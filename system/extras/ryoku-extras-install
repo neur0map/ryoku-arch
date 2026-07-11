@@ -69,6 +69,13 @@ pkg_installed() { pacman -Qq "$1" >/dev/null 2>&1; }
 pkg_official() { pacman -Si "$1" >/dev/null 2>&1; }
 cmd_present() { command -v "$1" >/dev/null 2>&1; }
 
+# The installed package(s) satisfying an item name, one per line, empty when
+# nothing does. `pacman -Q` resolves provides (a `whisper.cpp` item finds an
+# installed `whisper.cpp-cuda`), but `pacman -R` only takes real installed
+# names, so removals must target the owner, never the item name, or the whole
+# transaction aborts on "target not found".
+pkg_owners() { pacman -Qq "$1" 2>/dev/null; }
+
 # Where an installed plugin's source lives (read by the runtime + Settings).
 # The catalogue ships the source; install copies it here.
 plugin_dir() { printf '%s/ryoku/plugins/%s\n' "${XDG_DATA_HOME:-$HOME/.local/share}" "$1"; }
@@ -363,14 +370,21 @@ remove_set() {
   local id=$1 only=${2:-} file type name detect summary tier interactive
   file=$(bundle_file "$id")
 
-  local -a pkgs=()
+  local -a pkgs=() pkg_items=()
+  local owner pass n
   while IFS=$'\t' read -r type name detect tier interactive summary; do
     [[ -n $name ]] || continue
     case "$type" in
       package)
-        if pkg_installed "$name"; then
-          pkgs+=("$name")
+        # target the owning package(s): the item name may only be a provision.
+        local -a owners=()
+        mapfile -t owners < <(pkg_owners "$name")
+        if ((${#owners[@]})); then
+          pkg_items+=("$name")
           set_state "$name" removing
+          for owner in "${owners[@]}"; do
+            [[ " ${pkgs[*]-} " == *" $owner "* ]] || pkgs+=("$owner")
+          done
         else
           set_state "$name" absent
         fi
@@ -410,9 +424,20 @@ remove_set() {
 
   if ((${#pkgs[@]})); then
     echo "==> Removing: ${pkgs[*]}"
-    run_pkg ryoku-pkg-remove "${pkgs[@]}" || true
-    local n
-    for n in "${pkgs[@]}"; do
+    if ! run_pkg ryoku-pkg-remove "${pkgs[@]}"; then
+      # pacman aborts the whole batch when one target can't go (something else
+      # still requires it). Retry the stragglers one by one, twice, so a lone
+      # blocker costs itself, not the whole bundle; the second pass picks up a
+      # target that was only blocked by one removed in the first.
+      for pass in 1 2; do
+        for n in "${pkgs[@]}"; do
+          if pkg_installed "$n"; then
+            run_pkg ryoku-pkg-remove "$n" || true
+          fi
+        done
+      done
+    fi
+    for n in "${pkg_items[@]}"; do
       if [[ -n $DRYRUN ]] || ! pkg_installed "$n"; then
         set_state "$n" removed
       else

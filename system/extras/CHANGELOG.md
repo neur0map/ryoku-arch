@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Fixed
+- **Removing a bundle no longer dies on a provided package name, taking the
+  whole batch with it.** A `package` item can be satisfied by a provider (the
+  Influencer bundle's `whisper.cpp` item is provided by an installed
+  `whisper.cpp-cuda`): `pacman -Q` resolves that, so the item read as
+  installed, but `pacman -Rs` only accepts real installed names, aborted the
+  entire transaction on "target not found", and every package in the bundle
+  stayed put. `remove` now resolves each item to the package(s) that actually
+  own it and hands pacman those; if the batch still fails (one target another
+  package requires), the stragglers are retried one by one so a lone blocker
+  costs itself, not the whole bundle.
+
 ### Added
 - The extras subsystem that backs the Hub's Extras section: helpers shipped to
   `/usr/bin` by `ryoku-desktop` that install, remove, and report the optional
