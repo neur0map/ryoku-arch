@@ -147,6 +147,12 @@ Each surface is its own directory under `quickshell/`, each component its own
 - **Ryoku Settings (the Hub)** the settings app (`ryoku/hub/quickshell/`, run as
   `qs -c hub`). Its `PageHeader`, `NavRail`, and the primitives above set the
   pattern every page follows.
+- **welcome** the first-run guided tour, shown once on the first login: a floating
+  window (`qs -c welcome`) over generated Greek-noir threshold art that walks a new
+  user through the core keybinds, names each surface and how to summon it, and
+  offers a few live quick settings (wallpaper, bar position and skin, frame and window roundness). The Hyprland
+  autostart launches it once, gated on a `~/.local/state/ryoku/welcome-seen` flag;
+  it lives in `quickshell/welcome`.
 
 ## Motion
 
@@ -189,8 +195,8 @@ to decorate.
 
 ## Art
 
-Figurative art (the launcher clock background, the Hub profile card, the
-fastfetch emblem) follows the website's pipeline: generated at dev time with
+Figurative art (the launcher clock background, the Hub profile card, the welcome
+backdrop, the fastfetch emblem) follows the website's pipeline: generated at dev time with
 `fal-ai/nano-banana-pro`, background flood-filled to the canvas colour so it
 blends seamlessly, and committed as a static asset (the running target has no
 generation dependency). The full recipe (prompt suffix, post-processing) is in

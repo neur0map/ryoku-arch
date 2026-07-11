@@ -42,6 +42,21 @@
   Drops the `mpv-mpris` package, which existed only to expose the YT Music stream.
 
 ### Added
+- **A first-run welcome walkthrough greets new users once.** On the first login,
+  a floating `welcome` surface (`quickshell/welcome`, run as `qs -c welcome`) opens
+  over fal.ai-generated Greek-noir threshold art: a five-step guided tour that
+  introduces the essential keybinds, names each desktop surface and how to summon
+  it, and offers a few genuinely-wired quick settings: shuffle the wallpaper via
+  `ryoku-shell`; set the bar position, the bar skin, and the shell-frame corner,
+  merged into `shell.json` with a key-preserving write so the running shell retunes
+  with no reload; and the window-corner rounding, round-tripped through the Hub's
+  own `ryoku-hub hypr` appearance path. The Hyprland
+  autostart launches it once, guarded by an flock and a
+  `~/.local/state/ryoku/welcome-seen` flag written after the window closes, so the
+  tour shows exactly once; a `float-ryoku-welcome` window rule floats and centres
+  it. The backdrop is generated at dev time and committed
+  (`welcome/art/welcome-bg.png`), so the running target keeps no generation
+  dependency.
 - **Live wallpapers take motion settings and play smoother.** When it launches
   mpvpaper, the wallpaper daemon reads a max-fps cap and a fill/fit choice from
   `ryowalls.json`, and a new `wallpaper live-reload` mode relaunches the current

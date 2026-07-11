@@ -122,3 +122,11 @@ hl.window_rule({
     size   = { 1280, 800 },
     center = true,
 })
+
+hl.window_rule({
+    name   = "float-ryoku-welcome",
+    match  = { title = "^(Welcome to Ryoku)$" },
+    float  = true,
+    size   = { 1180, 760 },
+    center = true,
+})
