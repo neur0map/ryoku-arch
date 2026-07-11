@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Fixed
+- **`ryoku deploy` preserves every user file now, matching a packaged update.**
+  The dev deploy rebuilt `~/.config/hypr` from the repo and carried across only
+  seven named files, so any other user-owned file (an extra `.lua`, a custom
+  `modules/*.lua`) was silently dropped, while a packaged `ryoku materialize`
+  keeps every file the release does not ship. `deploy.sh` now mirrors it: it
+  carries across anything the freshly-staged repo tree does not contain
+  (`user.lua`, `monitors_user.lua`, `settings.lua`, `theme.lua`, and anything
+  else the user added) and keeps the live copy of the per-machine seeds
+  (`monitors.lua`, `gpu.lua`, `keyboard.lua`) over the shipped default, so a dev
+  box and an installed box preserve the same set.
+
 ### Changed
 - **The desktop calendar grew up: edit, time ranges, and navigation that comes
   home.** Clicking an event now reopens it in the add field for editing (Enter

@@ -200,12 +200,16 @@ if (( hypr_live )); then
 fi
 
 # Hyprland config replaces the base, but the user's own files and the per-machine
-# generated drop-ins must survive a redeploy, exactly as `ryoku materialize`
-# preserves them on a packaged install: ryoku-monitor writes monitors.lua,
-# ryoku-gpu writes gpu.lua, the hub writes settings.lua, theme apply writes
-# theme.lua, the user owns keyboard.lua (the keyboard layout), and may keep
-# user.lua / monitors_user.lua.
-preserve=(user.lua monitors_user.lua settings.lua theme.lua monitors.lua gpu.lua keyboard.lua)
+# generated drop-ins must survive a redeploy, exactly the way a packaged
+# `ryoku materialize` preserves every unshipped file (docs/updates.md). Two
+# classes survive: (1) anything the repo tree does NOT ship (user.lua,
+# monitors_user.lua, settings.lua, theme.lua, and anything else the user dropped
+# in) is user-owned and carried across untouched; (2) the seed drop-ins the repo
+# ships a default for but the machine owns after first boot (ryoku-monitor writes
+# monitors.lua, ryoku-gpu writes gpu.lua, the user owns keyboard.lua) keep their
+# live copy over the shipped default. Shipped files (modules/*, scripts/*, ...)
+# stay Ryoku-owned: the repo copy wins, matching materialize clobbering them.
+seeds=(monitors.lua gpu.lua keyboard.lua)
 # Build the new config in a staging dir on the same filesystem, then rename it
 # into place. A slow rm+cp of ~/.config/hypr leaves a long window where
 # hyprland.lua is missing; anything that reloads then (a manual reload or a fresh
@@ -215,10 +219,17 @@ rm -rf "$cfg"/hypr.staging.*
 staging="$cfg/hypr.staging.$$"
 mkdir -p "$staging"
 cp -a "$here/../hyprland/." "$staging/"
-# Carry the user's own files and the per-machine generated drop-ins across, the
-# way a packaged `ryoku materialize` preserves them on an update.
+# Carry the user's own files and the per-machine seeds across, mirroring
+# materialize: any file the freshly-staged repo tree does not contain is
+# user-owned and kept; the seeds keep their live copy over the shipped default.
 if [[ -d $cfg/hypr ]]; then
-  for f in "${preserve[@]}"; do
+  while IFS= read -r -d '' f; do
+    rel=${f#"$cfg/hypr/"}
+    [[ -e "$staging/$rel" ]] && continue   # shipped -> Ryoku-owned, repo copy wins
+    mkdir -p "$staging/$(dirname "$rel")"
+    cp -a "$f" "$staging/$rel"
+  done < <(find "$cfg/hypr" -type f -print0)
+  for f in "${seeds[@]}"; do
     [[ -e "$cfg/hypr/$f" ]] && cp -a "$cfg/hypr/$f" "$staging/$f"
   done
 fi
