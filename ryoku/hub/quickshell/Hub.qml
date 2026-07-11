@@ -150,36 +150,40 @@ Rectangle {
         saveSection.running = true;
     }
 
-    // The section's config files, split by ownership for the header buttons.
-    // edit = durable, user-owned files opened writable (hypr user.lua /
-    // monitors_user.lua, or a Hub-owned JSON updates never overwrite); view =
-    // Ryoku-owned base modules and generated files opened read-only, since an
-    // update regenerates or clobbers them. GPU is view-only: gpu.lua is written
-    // by ryoku-gpu, never hand-edited. editLabel overrides the default button
-    // text for the Hub-owned JSON sections ("Edit config", not "overrides").
+    // The section's config files for the header buttons, split by ownership.
+    // edit = the durable file you can hand-edit and keep across updates
+    // (hypr/user.lua for the Hyprland sections, monitors_user.lua for Displays,
+    // or a Hub-owned JSON); view = Ryoku's shipped defaults, read-only, since an
+    // update replaces them. settings.lua is deliberately NOT shown: it is
+    // generated from your Hub choices (hypr.json) and rewritten on every Save,
+    // so it is never a file to open or edit. GPU is view-only (ryoku-gpu writes
+    // it). editTip/viewTip explain each button in a hover tooltip.
     function configFor(s) {
         var base = Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config");
         var hypr = base + "/hypr";
         var ryoku = base + "/ryoku";
         var user = hypr + "/user.lua";
-        var settings = hypr + "/settings.lua";
         var mod = hypr + "/modules/";
+        // shared tooltips for the Hyprland sections, whose edit target is user.lua.
+        var userTip = "Your own Hyprland Lua, loaded last so it wins over everything here. For tweaks the settings above don't cover; updates never touch it. What you set above is saved separately and also survives updates, so you rarely need this.";
+        var defTip = "Read-only. Ryoku's shipped defaults for this section. An update replaces this file, so make your changes above, in the GUI.";
+        function luaSec(view) { return { "edit": [user], "view": view, "editLabel": "Edit user.lua", "editTip": userTip, "viewTip": defTip }; }
         switch (s) {
-        case "input":       return { "edit": [user], "view": [mod + "input.lua"] };
-        case "keybinds":    return { "edit": [user], "view": [mod + "binds.lua"] };
-        case "appearance":  return { "edit": [user], "view": [mod + "decoration.lua", settings] };
-        case "animations":  return { "edit": [user], "view": [mod + "animations.lua", settings] };
-        case "windowrules": return { "edit": [user], "view": [mod + "window_rules.lua", settings] };
-        case "appoverrides": return { "edit": [user], "view": [mod + "window_rules.lua", settings] };
-        case "layerrules":  return { "edit": [user], "view": [settings] };
-        case "autostart":   return { "edit": [user], "view": [mod + "autostart.lua"] };
-        case "environment": return { "edit": [user], "view": [mod + "env.lua"] };
-        case "displays":    return { "edit": [hypr + "/monitors_user.lua"], "view": [hypr + "/monitors.lua"] };
-        case "gpu":         return { "edit": [], "view": [hypr + "/gpu.lua"] };
-        case "shell":       return { "edit": [ryoku + "/shell.json", ryoku + "/visualizer.json"], "editLabel": "Edit config" };
-        case "widgets":     return { "edit": [ryoku + "/widgets.json"], "editLabel": "Edit config" };
-        case "launcher":    return { "edit": [ryoku + "/launcher.json"], "editLabel": "Edit config" };
-        case "performance": return { "edit": [ryoku + "/performance.json"], "editLabel": "Edit config" };
+        case "input":       return luaSec([mod + "input.lua"]);
+        case "keybinds":    return luaSec([mod + "binds.lua"]);
+        case "appearance":  return luaSec([mod + "decoration.lua"]);
+        case "animations":  return luaSec([mod + "animations.lua"]);
+        case "windowrules": return luaSec([mod + "window_rules.lua"]);
+        case "appoverrides": return luaSec([mod + "window_rules.lua"]);
+        case "layerrules":  return luaSec([]);
+        case "autostart":   return luaSec([mod + "autostart.lua"]);
+        case "environment": return luaSec([mod + "env.lua"]);
+        case "displays":    return { "edit": [hypr + "/monitors_user.lua"], "view": [hypr + "/monitors.lua"], "editLabel": "Edit overrides", "editTip": "Hand-written display tweaks (forced modes, a pinned layout), loaded after the auto-detected layout so they win. Survives updates; see monitors_user.lua.example.", "viewTip": "Read-only. The display layout Ryoku detected and wrote; regenerated when your monitors change." };
+        case "gpu":         return { "edit": [], "view": [hypr + "/gpu.lua"], "viewTip": "Read-only. GPU config written by ryoku-gpu; regenerated on GPU or driver changes." };
+        case "shell":       return { "edit": [ryoku + "/shell.json", ryoku + "/visualizer.json"], "editLabel": "Edit config", "editTip": "Opens this section's config files, where the Hub saves your changes. Yours; survives updates." };
+        case "widgets":     return { "edit": [ryoku + "/widgets.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
+        case "launcher":    return { "edit": [ryoku + "/launcher.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
+        case "performance": return { "edit": [ryoku + "/performance.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
         default:            return {};
         }
     }
@@ -214,7 +218,9 @@ Rectangle {
                 subtitle: hub.searching ? "Results across every section" : hub.pageMeta[hub.section].subtitle
                 editPaths: hub.searching ? [] : (hub.configFor(hub.section).edit || [])
                 viewPaths: hub.searching ? [] : (hub.configFor(hub.section).view || [])
-                editLabel: hub.searching ? "Edit overrides" : (hub.configFor(hub.section).editLabel || "Edit overrides")
+                editLabel: hub.searching ? "Edit user.lua" : (hub.configFor(hub.section).editLabel || "Edit user.lua")
+                editTip: hub.searching ? "" : (hub.configFor(hub.section).editTip || "")
+                viewTip: hub.searching ? "" : (hub.configFor(hub.section).viewTip || "")
             }
 
             Loader {

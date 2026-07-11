@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- `hyprland` + `cli` + `shell`: **`user.lua` ships seeded with a header, not
+  empty.** The hand-written override file Hyprland loads last is now seeded on
+  install (like `keyboard.lua`) with a comment block spelling out the load
+  order: Ryoku's base modules (replaced by updates), then `settings.lua`
+  (generated from your Hub choices in `hypr.json`, rebuilt on Save), then
+  `user.lua` (yours, never touched). `ryoku materialize` and `deploy.sh` seed
+  it only when absent and never clobber it, so a hand-edit sticks across
+  updates (`hyprland/user.lua`, `materialize.go`, `deploy.sh`).
 - `rashin/backend`: **user.md works on a dev checkout now.** Without a packaged
   `/usr/share/ryoku/config`, Rashin gave up and treated all of `~/.config` as
   potentially user-owned. It now derives the baseline from the checkout

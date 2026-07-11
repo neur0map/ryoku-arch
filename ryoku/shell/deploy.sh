@@ -202,14 +202,14 @@ fi
 # Hyprland config replaces the base, but the user's own files and the per-machine
 # generated drop-ins must survive a redeploy, exactly the way a packaged
 # `ryoku materialize` preserves every unshipped file (docs/updates.md). Two
-# classes survive: (1) anything the repo tree does NOT ship (user.lua,
-# monitors_user.lua, settings.lua, theme.lua, and anything else the user dropped
+# classes survive: (1) anything the repo tree does NOT ship (monitors_user.lua,
+# settings.lua, theme.lua, and anything else the user dropped
 # in) is user-owned and carried across untouched; (2) the seed drop-ins the repo
 # ships a default for but the machine owns after first boot (ryoku-monitor writes
-# monitors.lua, ryoku-gpu writes gpu.lua, the user owns keyboard.lua) keep their
+# monitors.lua, ryoku-gpu writes gpu.lua, the user owns keyboard.lua and user.lua) keep their
 # live copy over the shipped default. Shipped files (modules/*, scripts/*, ...)
 # stay Ryoku-owned: the repo copy wins, matching materialize clobbering them.
-seeds=(monitors.lua gpu.lua keyboard.lua)
+seeds=(monitors.lua gpu.lua keyboard.lua user.lua)
 # Build the new config in a staging dir on the same filesystem, then rename it
 # into place. A slow rm+cp of ~/.config/hypr leaves a long window where
 # hyprland.lua is missing; anything that reloads then (a manual reload or a fresh

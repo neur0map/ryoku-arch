@@ -13,16 +13,18 @@
   `description` line under their header (`HubButton.qml`, `SettingSection.qml`,
   `PageHeader.qml`, `AppOverridesPage.qml`, `WindowRulesPage.qml`,
   `LayerRulesPage.qml`, `AutostartPage.qml`, `EnvironmentPage.qml`).
-- **Config buttons now say which edits survive an update.** The single CONFIG
-  button, which opened Ryoku-owned modules and user overrides as equally
-  writable panes with nothing explaining which survived, is replaced by two:
-  **Edit overrides** opens only the durable user-owned file writable
-  (`hypr/user.lua`, or `monitors_user.lua` for Displays; the Hub-owned JSON for
-  Shell / Widgets / Launcher / Performance), and **View defaults** opens the
-  base modules and generated files (`settings.lua`, `monitors.lua`) read-only,
-  since an update regenerates or overwrites them. GPU is view-only: `gpu.lua` is
-  written by `ryoku-gpu`, never by hand. Editing a file an update would clobber
-  is no longer a silent trap (`Hub.qml`, `PageHeader.qml`).
+- **Config buttons name the file and stop mislabeling your settings as
+  defaults.** The two header buttons now match Ryoku's real config layering.
+  **Edit user.lua** opens `hypr/user.lua`, the hand-written layer loaded last
+  that wins over everything, now seeded with a header explaining that your GUI
+  changes live elsewhere (`hypr.json`, generated into `settings.lua`) and
+  survive updates, so it opens self-explanatory instead of blank. **View
+  defaults** opens only Ryoku's shipped base modules, read-only; your generated
+  `settings.lua` is no longer shown there as if it were a default. Displays
+  edits `monitors_user.lua`, the Hub-owned JSON sections keep **Edit config**,
+  GPU stays view-only, and every button's tooltip says what it opens and
+  whether it survives an update (`Hub.qml`, `PageHeader.qml`,
+  `hyprland/user.lua`).
 - **Keybinds steer you to the Hub editor and flag conflicts.** The Custom editor
   checks every combo against the shipped legend and your other custom binds,
   amber-flagging one that shadows a Ryoku shortcut or duplicates another, and

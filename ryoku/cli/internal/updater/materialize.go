@@ -13,14 +13,16 @@ import (
 // clobbered or pruned by an update. The machine owns them after first boot.
 // Two kinds qualify: per-machine files the runtime regenerates (monitors.lua,
 // gpu.lua; kitty/current-theme.conf, which wallust rewrites from the wallpaper)
-// and user-owned config the package only seeds a default for
-// (keyboard.lua; fastfetch/config.jsonc, which has no include mechanism, so
-// direct edits are the only way to customize the readout).
+// and user-owned config the package only seeds a starting point for
+// (keyboard.lua; hypr/user.lua, seeded with a header so a hand-edit sticks;
+// fastfetch/config.jsonc, which has no include mechanism, so direct edits
+// are the only way to customize the readout).
 // Slash-separated paths, relative to the config base.
 var generatedSeed = map[string]bool{
 	"hypr/monitors.lua":        true,
 	"hypr/gpu.lua":             true,
 	"hypr/keyboard.lua":        true,
+	"hypr/user.lua":            true,
 	"fastfetch/config.jsonc":   true,
 	"kitty/current-theme.conf": true,
 }
@@ -29,7 +31,7 @@ var generatedSeed = map[string]bool{
 // declaratively: every file the package ships under baseConfigDir() is
 // copied over (clobbering the previous Ryoku copy), files we shipped before
 // but no longer ship are removed, anything the package never shipped (user
-// files: hypr/user.lua, kitty/user.conf, ...) is left alone. Per-machine
+// files: hypr/monitors_user.lua, kitty/user.conf, ...) is left alone. Per-machine
 // generated seeds (generatedSeed, e.g. hypr/monitors.lua) are the exception:
 // seeded only when absent, never clobbered, so an update keeps the user's
 // runtime-written display and GPU config.

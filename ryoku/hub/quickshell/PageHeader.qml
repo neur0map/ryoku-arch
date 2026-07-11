@@ -11,14 +11,16 @@ Item {
     property string title: ""
     property string subtitle: ""
     property string eyebrow: "RYOKU"
-    // The section's config files, split by ownership so the buttons say which
-    // edits actually survive an update. editPaths are the durable, user-owned
-    // files (user.lua, monitors_user.lua, or a Hub-owned JSON) opened writable;
-    // viewPaths are Ryoku-owned or generated files opened read-only, since an
-    // update overwrites them. Hub.qml resolves both per section.
+    // The section's config files for the header buttons, split by ownership.
+    // editPaths are the durable files you can hand-edit and keep across an
+    // update (user.lua, monitors_user.lua, or a Hub-owned JSON), opened
+    // writable; viewPaths are Ryoku's shipped defaults, opened read-only since
+    // an update replaces them. editTip/viewTip are the hover explanations.
     property var editPaths: []
     property var viewPaths: []
-    property string editLabel: "Edit overrides"
+    property string editLabel: "Edit user.lua"
+    property string editTip: ""
+    property string viewTip: ""
 
     // Height follows the content (eyebrow + title + subtitle), so a one or
     // two line subtitle both sit right. A fixed height with a centred column
@@ -68,7 +70,7 @@ Item {
                 visible: header.editPaths.length > 0
                 icon: "terminal"
                 label: header.editLabel
-                tooltip: "Opens the file your changes are saved to, in a terminal editor (nvim). It is yours and survives updates. Optional: most settings on this page are point-and-click."
+                tooltip: header.editTip
                 onClicked: header.openEdit()
             }
 
@@ -77,7 +79,7 @@ Item {
                 visible: header.viewPaths.length > 0
                 icon: "lock"
                 label: "View defaults"
-                tooltip: "Opens Ryoku's shipped defaults and generated files for this section, read-only. Updates overwrite these, so change settings on this page instead of editing them."
+                tooltip: header.viewTip
                 onClicked: header.openView()
             }
         }

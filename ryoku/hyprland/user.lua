@@ -1,0 +1,20 @@
+-- user.lua - your own Hyprland config, written in Ryoku's `hl` Lua API.
+--
+-- Hyprland loads this file LAST, so anything you put here wins over both
+-- Ryoku's shipped defaults and the settings you change in Ryoku Settings
+-- (Super + ,). Ryoku updates never touch this file.
+--
+-- You usually do not need it. Everything you set in Ryoku Settings is saved
+-- to ~/.config/ryoku/hypr.json, generated into ~/.config/hypr/settings.lua,
+-- and already survives updates. Reach for this file only for raw Hyprland
+-- config the GUI does not expose yet.
+--
+-- Load order, last wins:
+--   1. Ryoku base modules   (the defaults + bug fixes)    replaced by updates
+--   2. settings.lua         (built from your Hub choices)  kept, rebuilt on Save
+--   3. user.lua             (this file)                    never touched
+--
+-- Examples, uncomment to use:
+-- hl.bind("SUPER + SHIFT + T", hl.dsp.exec_cmd("kitty"))
+-- hl.window_rule({ name = "float-mpv", match = { class = "mpv" }, float = true })
+-- hl.config({ general = { border_size = 3 } })

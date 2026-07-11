@@ -23,6 +23,7 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	writeFile(t, filepath.Join(base, "hypr/monitors.lua"), "-- seed\n")
 	writeFile(t, filepath.Join(base, "hypr/gpu.lua"), "-- seed\n")
 	writeFile(t, filepath.Join(base, "hypr/keyboard.lua"), "kb_layout = \"us\"\n")
+	writeFile(t, filepath.Join(base, "hypr/user.lua"), "-- seed header\n")
 	writeFile(t, filepath.Join(base, "fastfetch/config.jsonc"), "\"source\": \"ryoku\"\n")
 	writeFile(t, filepath.Join(base, "kitty/current-theme.conf"), "background #16110b\n")
 
@@ -33,6 +34,7 @@ func TestMaterializePreservesGeneratedAndUserFiles(t *testing.T) {
 	wantFile(t, filepath.Join(dest, "hypr/monitors.lua"), "-- seed")
 	wantFile(t, filepath.Join(dest, "hypr/gpu.lua"), "-- seed")
 	wantFile(t, filepath.Join(dest, "hypr/keyboard.lua"), "kb_layout = \"us\"")
+	wantFile(t, filepath.Join(dest, "hypr/user.lua"), "seed header")
 	wantFile(t, filepath.Join(dest, "fastfetch/config.jsonc"), "ryoku")
 	wantFile(t, filepath.Join(dest, "kitty/current-theme.conf"), "16110b")
 

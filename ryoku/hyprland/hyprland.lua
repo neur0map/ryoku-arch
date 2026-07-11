@@ -49,5 +49,6 @@ optional("modules.private")
 -- GhostType hotkey (the app owns it)
 optional("ghosttype")
 
--- last word: ~/.config/hypr/user.lua. never shipped, never touched by updates.
+-- last word: ~/.config/hypr/user.lua. seeded once with a header explaining the
+-- load order, then yours; never touched by updates.
 optional("user")
