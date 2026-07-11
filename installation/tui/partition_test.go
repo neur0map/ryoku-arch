@@ -75,8 +75,8 @@ func TestSwapCeil(t *testing.T) {
 	if got := (model{diskG: 1000, espG: 1}).swapCeil(); got != 64 {
 		t.Fatalf("swapCeil big disk = %d, want 64", got)
 	}
-	if got := (model{diskG: 40, espG: 1}).swapCeil(); got != 31 {
-		t.Fatalf("swapCeil small disk = %d, want 31 (39 - 8)", got)
+	if got := (model{diskG: 40, espG: 1}).swapCeil(); got != 39-minRootGiB {
+		t.Fatalf("swapCeil small disk = %d, want %d (avail 39 - %d root floor)", got, 39-minRootGiB, minRootGiB)
 	}
 	if got := (model{diskG: 8, espG: 1}).swapCeil(); got != 0 {
 		t.Fatalf("swapCeil tiny disk = %d, want 0 (never negative)", got)
@@ -86,81 +86,94 @@ func TestSwapCeil(t *testing.T) {
 // growing ESP eats from the same pool, so an out-of-range swap gets clamped back.
 func TestESPBumpClampsSwap(t *testing.T) {
 	m := model{diskG: 40, espG: 1, swapG: 30}
-	m.setRow("esp", 4) // availRoot 36 -> swapCeil 28
-	if m.swapG != 28 {
-		t.Fatalf("swap after esp bump = %d, want 28", m.swapG)
+	m.setRow("esp", 4) // availRoot 40-4=36 -> swapCeil 36-20=16
+	if m.swapG != 16 {
+		t.Fatalf("swap after esp bump = %d, want 16", m.swapG)
 	}
 }
 
-// alongsideModel: build a dual-boot layout. 256 GiB disk, given free region,
-// optionally already holding an ESP to reuse.
-func alongsideModel(freeG, swapG int, withESP bool) model {
-	m := model{picks: map[string]string{"disk": "alongside"}, diskG: 256, freeG: freeG, espG: 1, swapG: swapG}
-	if withESP {
-		m.kept = []part{{dev: "EFI System", size: 1, fs: "fat32", mount: "/boot", flags: "esp", status: "keep"}}
-	} else {
-		m.kept = []part{{dev: "Linux", size: 50, fs: "ext4", mount: "-", flags: "-", status: "keep"}}
+// alongsideModel: a dual-boot layout on a 256 GiB disk with the given free
+// region. The kept partitions model a real Windows install (its ESP + an NTFS
+// data partition). Alongside now creates its OWN ESP inside the free region, so
+// readiness/sizing never depend on the kept Windows ESP.
+func alongsideModel(freeG, swapG int) model {
+	return model{
+		picks: map[string]string{"disk": "alongside"}, diskG: 256, freeG: freeG, espG: 1, swapG: swapG,
+		kept: []part{
+			{dev: "EFI (Windows)", size: 1, fs: "fat32", mount: "-", flags: "esp", status: "keep"},
+			{dev: "Windows (NTFS)", size: 120, fs: "ntfs", mount: "Windows", flags: "-", status: "keep"},
+		},
 	}
-	return m
 }
 
-// alongside drops root into the detected free region and reuses the ESP, so
-// root = free space minus the swapfile, never the whole disk.
+// alongside drops root into the detected free region and carves its own ESP from
+// that region (never the Windows ESP), so usable root = free - our ESP - swap.
 func TestAlongsideRootUsesFreeSpace(t *testing.T) {
-	m := alongsideModel(100, 16, true)
-	if got := m.availRoot(); got != 100 {
-		t.Fatalf("availRoot = %d, want 100 (the free region)", got)
+	m := alongsideModel(100, 16)
+	if got := m.availRoot(); got != 99 {
+		t.Fatalf("availRoot = %d, want 99 (100 free - 1 ESP)", got)
 	}
 	root, ok := segByMount(m.layoutSegs(), "/")
-	if !ok || root.size != 84 {
-		t.Fatalf("root usable = %d (ok=%v), want 84 (100 - 16 swap)", root.size, ok)
+	if !ok || root.size != 83 {
+		t.Fatalf("root usable = %d (ok=%v), want 83 (99 - 16 swap)", root.size, ok)
 	}
+	// A fresh ESP for OUR install must exist in the free region.
+	var newESP bool
 	for _, s := range m.layoutSegs() {
-		if s.status == "new" && s.flags == "esp" {
-			t.Fatal("alongside added a new ESP instead of reusing the existing one")
+		if s.status == "new" && strings.Contains(s.flags, "esp") {
+			newESP = true
+			if s.size != m.espG {
+				t.Fatalf("new ESP size = %d, want %d", s.size, m.espG)
+			}
 		}
 	}
+	if !newESP {
+		t.Fatal("alongside must create its own ESP in the free region, never reuse Windows'")
+	}
+	// The kept Windows ESP must be mounted nowhere (never /boot), so pacstrap /
+	// mkinitcpio can never fill and clobber it.
+	if _, boot := segByMount(m.kept, "/boot"); boot {
+		t.Fatal("a kept partition is mounted at /boot; the Windows ESP must never be reused")
+	}
 }
 
-// alongside is only allowed with a reused ESP + enough contiguous free space
-// (backend floor), so the TUI never hands the backend a layout it'd reject.
+// alongside is allowed once the free region holds our ESP plus the root floor
+// (minRootGiB + espG), so the TUI never hands the backend a layout it'd reject.
 func TestAlongsidePartReady(t *testing.T) {
-	if !alongsideModel(20, 0, true).partReady() {
-		t.Fatal("alongside with an ESP and 20GiB free should be ready")
+	need := minRootGiB + 1 // espG is 1 in alongsideModel
+	if !alongsideModel(need, 0).partReady() {
+		t.Fatalf("alongside with exactly %dG free should be ready", need)
 	}
-	if alongsideModel(20, 0, false).partReady() {
-		t.Fatal("alongside without an existing ESP must not be ready")
+	if alongsideModel(need-1, 0).partReady() {
+		t.Fatalf("alongside with %dG free (< %d) must not be ready", need-1, need)
 	}
-	if alongsideModel(10, 0, true).partReady() {
-		t.Fatalf("alongside with only 10GiB free (< %d) must not be ready", alongsideMinRootGiB)
+	if !alongsideModel(200, 0).partReady() {
+		t.Fatal("alongside with a roomy free region should be ready")
 	}
 }
 
-// alongside keeps the system base swap-free (matching backend), so its swapCeil
-// leaves alongsideMinRootGiB instead of the 8 GiB a whole-disk leaves.
+// swapCeil leaves minRootGiB of root after the ESP for BOTH strategies; alongside
+// works off the free region (freeG - espG), whole off the disk.
 func TestAlongsideSwapCeil(t *testing.T) {
-	if got := alongsideModel(40, 0, true).swapCeil(); got != 40-alongsideMinRootGiB {
-		t.Fatalf("alongside swapCeil = %d, want %d", got, 40-alongsideMinRootGiB)
+	if got := alongsideModel(40, 0).swapCeil(); got != 40-1-minRootGiB {
+		t.Fatalf("alongside swapCeil = %d, want %d (40 free - 1 ESP - %d root)", got, 40-1-minRootGiB, minRootGiB)
 	}
 }
 
-// regression for the alongside dual-boot install that died mid-run: partReady's
-// free-space gate only checked freeG >= alongsideMinRootGiB, but the backend
-// (ryoku_min_root_gib) needs the free region to hold the 15G root floor AND the
-// swapfile. The 16G default swap wasn't clamped on load, so a 15..31G free
-// region passed Tab, then the backend aborted mid-install. After
-// clampSwapToLayout the layout must never promise more than fits:
-// alongsideMinRootGiB + swap <= freeG.
+// regression for the alongside install that died mid-run: the free-space gate
+// must account for OUR ESP and the root floor plus the swapfile, and swap must be
+// clamped on load so a fat default never over-promises. Invariant after clamp:
+// minRootGiB + swap <= availRoot (= freeG - espG).
 func TestAlongsideSwapClampMatchesBackend(t *testing.T) {
-	// tight region: the 16G default swap can't coexist with the 15G root floor
-	// in 20G free, so clamp pins swap to exactly 20-15=5 and Tab stays open.
-	tight := alongsideModel(20, 16, true)
+	// tight region: 25G free leaves availRoot 24; the 16G default can't coexist
+	// with the 20G root floor, so clamp pins swap to 24-20=4 and Tab stays open.
+	tight := alongsideModel(25, 16)
 	tight.clampSwapToLayout()
-	if tight.swapG != 5 {
-		t.Fatalf("tight swapG = %d, want 5 (20 - %d)", tight.swapG, alongsideMinRootGiB)
+	if tight.swapG != 4 {
+		t.Fatalf("tight swapG = %d, want 4 (availRoot 24 - %d root)", tight.swapG, minRootGiB)
 	}
-	if alongsideMinRootGiB+tight.swapG > tight.freeG {
-		t.Fatalf("tight over-promises backend: %d + %d > %d free", alongsideMinRootGiB, tight.swapG, tight.freeG)
+	if minRootGiB+tight.swapG > tight.availRoot() {
+		t.Fatalf("tight over-promises backend: %d + %d > %d availRoot", minRootGiB, tight.swapG, tight.availRoot())
 	}
 	if !tight.partReady() {
 		t.Fatal("tight but installable region must stay Tab-ready after clamp")
@@ -168,19 +181,19 @@ func TestAlongsideSwapClampMatchesBackend(t *testing.T) {
 
 	// roomy region: 200G free comfortably holds root + the 16G default, so clamp
 	// must leave the default swap untouched (no over-shrink).
-	roomy := alongsideModel(200, 16, true)
+	roomy := alongsideModel(200, 16)
 	roomy.clampSwapToLayout()
 	if roomy.swapG != 16 {
 		t.Fatalf("roomy swapG = %d, want 16 (default preserved)", roomy.swapG)
 	}
 
 	// the invariant holds across the whole installable range: once freeG clears
-	// the root floor, root + swap always fits the free region after clamp.
-	for _, freeG := range []int{15, 16, 20, 40, 200} {
-		m := alongsideModel(freeG, 16, true)
+	// the ESP + root floor, root + swap always fits the free region after clamp.
+	for _, freeG := range []int{minRootGiB + 1, minRootGiB + 2, 25, 40, 200} {
+		m := alongsideModel(freeG, 16)
 		m.clampSwapToLayout()
-		if alongsideMinRootGiB+m.swapG > m.freeG {
-			t.Fatalf("freeG=%d: %d + %d swap > %d free after clamp", freeG, alongsideMinRootGiB, m.swapG, m.freeG)
+		if minRootGiB+m.swapG > m.availRoot() {
+			t.Fatalf("freeG=%d: %d + %d swap > %d availRoot after clamp", freeG, minRootGiB, m.swapG, m.availRoot())
 		}
 	}
 }
@@ -216,7 +229,7 @@ func envValue(env []string, name string) (string, bool) {
 // wiping the disk when the pick was set but somehow not emitted. assert the
 // pick survives end to end.
 func TestAlongsidePickReachesEnv(t *testing.T) {
-	m := alongsideModel(100, 16, true)
+	m := alongsideModel(100, 16)
 	env := m.installEnv()
 	if !envHas(env, "RYOKU_DISK_STRATEGY=alongside") {
 		t.Fatalf("alongside pick lost: env = %v", env)
@@ -274,12 +287,16 @@ func TestPartReadyRequiresCommittedStrategy(t *testing.T) {
 	}
 }
 
-// A blocked partition step must say WHY, so Tab never dies silently. The common
-// trap: accepting the default "alongside" on a disk with no ESP to reuse.
+// A blocked partition step must say WHY, so Tab never dies silently. Alongside is
+// blocked when the free region can't hold our ESP plus the root floor.
 func TestPartBlockReasonExplainsBlockedTab(t *testing.T) {
-	m := model{picks: map[string]string{"disk": "alongside"}, diskG: 256, freeG: 200}
+	m := model{picks: map[string]string{"disk": "alongside"}, diskG: 256, freeG: 5, espG: 1}
 	if r := m.partBlockReason(); r == "" {
-		t.Fatal("partBlockReason empty for alongside with no reusable ESP; Tab would die silently")
+		t.Fatal("partBlockReason empty for alongside with too little free space; Tab would die silently")
+	}
+	m.freeG = 200
+	if r := m.partBlockReason(); r != "" {
+		t.Fatalf("partBlockReason %q for alongside with 200G free; want none", r)
 	}
 	m = model{picks: map[string]string{"disk": "whole"}, diskG: 256}
 	if r := m.partBlockReason(); r != "" {
@@ -373,10 +390,11 @@ func TestEraseInputAccepts(t *testing.T) {
 func reviewWipeModel() model {
 	flow := steps()
 	m := model{
-		flow:     flow,
-		picks:    map[string]string{"disk": "whole"},
-		existing: []part{{dev: "/dev/vda1"}, {dev: "/dev/vda2"}},
-		yes:      true,
+		flow:      flow,
+		picks:     map[string]string{"disk": "whole"},
+		existing:  []part{{dev: "/dev/vda1"}, {dev: "/dev/vda2"}},
+		yes:       true,
+		netOnline: true, // an online machine: the wipe gate is about ERASE, not connectivity
 	}
 	for i, st := range flow {
 		if st.key == "review" {
@@ -451,5 +469,110 @@ func TestReviewWipeGateEnterWithoutEraseDoesNotLaunch(t *testing.T) {
 	n := nm.(model)
 	if n.wipeStage != 1 {
 		t.Fatalf("wipeStage = %d, want 1 (still typing)", n.wipeStage)
+	}
+}
+
+// alongside must show the ESP-size row now that it creates its own boot
+// partition (it used to hide the row and reuse Windows' ESP).
+func TestAlongsideLayoutHasESPRow(t *testing.T) {
+	m := alongsideModel(100, 16)
+	var espRow bool
+	for _, r := range m.layoutRows() {
+		if r.kind == "size" && r.key == "esp" {
+			espRow = true
+		}
+	}
+	if !espRow {
+		t.Fatal("alongside layout is missing the ESP size row; it must create its own ESP")
+	}
+}
+
+// swapCeil uses the same minRootGiB floor for whole and alongside (the old 8/15
+// split is gone): identical usable space must yield an identical ceiling.
+func TestSwapCeilFloorBothStrategies(t *testing.T) {
+	whole := model{picks: map[string]string{"disk": "whole"}, diskG: 40, espG: 1}
+	along := alongsideModel(40, 0)
+	if whole.availRoot() != along.availRoot() {
+		t.Fatalf("availRoot differs: whole %d vs alongside %d", whole.availRoot(), along.availRoot())
+	}
+	if whole.swapCeil() != along.swapCeil() {
+		t.Fatalf("swapCeil differs across strategies: whole %d vs alongside %d", whole.swapCeil(), along.swapCeil())
+	}
+	if got := whole.swapCeil(); got != 39-minRootGiB {
+		t.Fatalf("swapCeil = %d, want %d (39 avail - %d floor)", got, 39-minRootGiB, minRootGiB)
+	}
+}
+
+// installs are online-only: RYOKU_ONLINE=1 must always reach the backend.
+func TestEnvAlwaysOnline(t *testing.T) {
+	m := model{picks: map[string]string{"disk": "whole"}}
+	if !envHas(m.installEnv(), "RYOKU_ONLINE=1") {
+		t.Fatalf("RYOKU_ONLINE=1 missing from env: %v", m.installEnv())
+	}
+}
+
+// RYOKU_WIPE_CONFIRMED is emitted only at wipeStage 2 (typed-ERASE confirmed),
+// never at stage 0 or 1, so a half-finished confirm can't authorize a wipe.
+func TestEnvWipeConfirmedOnlyAtStage2(t *testing.T) {
+	for _, c := range []struct {
+		stage int
+		want  bool
+	}{{0, false}, {1, false}, {2, true}} {
+		m := model{picks: map[string]string{"disk": "whole"}, existing: []part{{dev: "/dev/vda1"}}, wipeStage: c.stage}
+		if got := envHas(m.installEnv(), "RYOKU_WIPE_CONFIRMED=1"); got != c.want {
+			t.Fatalf("wipeStage %d: RYOKU_WIPE_CONFIRMED present=%v, want %v", c.stage, got, c.want)
+		}
+	}
+}
+
+// suggestProfile is the pure core of detectHardware's decision: a VM wins first,
+// then NVIDIA over the CPU vendor, then AMD, then Intel, else the vm fallback.
+func TestSuggestProfile(t *testing.T) {
+	for _, c := range []struct {
+		name                     string
+		isVM, nvidia, amd, intel bool
+		want                     string
+	}{
+		{"vm beats everything", true, true, true, true, "vm"},
+		{"nvidia dGPU on amd cpu", false, true, true, false, "amd-nvidia"},
+		{"nvidia dGPU on intel cpu", false, true, false, true, "amd-nvidia"},
+		{"amd only", false, false, true, false, "amd"},
+		{"intel only", false, false, false, true, "intel"},
+		{"nothing classifiable", false, false, false, false, "vm"},
+	} {
+		if got := suggestProfile(c.isVM, c.nvidia, c.amd, c.intel); got != c.want {
+			t.Fatalf("%s: suggestProfile = %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+// excludeDisk is the pure live-medium/pseudo-device filter behind sysDisks. The
+// disk backing the live ISO (live) is hidden so the installer never erases the
+// stick it booted from; pseudo devices and eMMC boot/rpmb areas are hidden too.
+func TestExcludeDisk(t *testing.T) {
+	const live = "/dev/sda"
+	for _, c := range []struct {
+		name, dev, size string
+		want            bool
+	}{
+		{"real nvme", "/dev/nvme0n1", "512G", false},
+		{"live boot medium", live, "32G", true},
+		{"zram", "/dev/zram0", "8G", true},
+		{"optical", "/dev/sr0", "1024M", true},
+		{"loop", "/dev/loop0", "2G", true},
+		{"nbd", "/dev/nbd0", "10G", true},
+		{"zero size", "/dev/sdb", "0B", true},
+		{"empty size", "/dev/sdb", "", true},
+		{"emmc boot0", "/dev/mmcblk0boot0", "4M", true},
+		{"emmc rpmb", "/dev/mmcblk0rpmb", "4M", true},
+		{"emmc user area", "/dev/mmcblk0", "64G", false},
+	} {
+		if got := excludeDisk(c.dev, c.size, live); got != c.want {
+			t.Fatalf("%s: excludeDisk(%q,%q) = %v, want %v", c.name, c.dev, c.size, got, c.want)
+		}
+	}
+	// off-ISO (live == "") nothing is filtered as a live medium.
+	if excludeDisk("/dev/sda", "32G", "") {
+		t.Fatal("off-ISO (live=\"\"), a normal disk must not be excluded")
 	}
 }

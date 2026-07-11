@@ -469,9 +469,9 @@ const (
 	kNet  // connectivity / Wi-Fi
 )
 
-const minDiskGiB = 32          // installer floor: 16G swap + 1G ESP + system closure
-const alongsideMinRootGiB = 15 // alongside: min free space for root (matches backend ryoku_min_root_gib base)
-const minTermW = 80            // below this the layout can't lay out cleanly
+const minDiskGiB = 32 // installer floor: minRootGiB closure + 1G ESP + swap/snapshot headroom
+const minRootGiB = 20 // min root partition (GiB): base+desktop closure plus AUR/snapshot headroom (matches backend ryoku_min_root_gib)
+const minTermW = 80   // below this the layout can't lay out cleanly
 const minTermH = 20
 
 type step struct {
@@ -549,7 +549,7 @@ func timezones() []item {
 }
 func profiles() []item {
 	all := []item{
-		{"amd-nvidia", "amd-nvidia", "AMD or Intel CPU with an NVIDIA GPU"},
+		{"amd-nvidia", "NVIDIA dGPU (any CPU)", "AMD or Intel CPU with an NVIDIA GPU"},
 		{"amd", "amd", "AMD CPU and GPU"},
 		{"intel", "intel", "Intel CPU and GPU"},
 		{"vm", "vm", "virtual machine"},
@@ -690,10 +690,13 @@ type model struct {
 	frame int
 	help  bool
 
-	hwOK       bool   // hardware detected & classified
-	hwHybrid   bool   // hybrid iGPU+dGPU present → ask GPU mode
-	doneSel    int    // reboot / poweroff / shell
-	exitAction string // done screen choice: "reboot" | "poweroff" | "" (exit to shell)
+	hwOK         bool   // hardware detected & classified
+	hwHybrid     bool   // hybrid iGPU+dGPU present → ask GPU mode
+	hwBIOS       bool   // legacy BIOS boot → hard-block past the hardware step (backend is UEFI-only)
+	hwSecureBoot bool   // Secure Boot on → block Review (Limine is unsigned)
+	diskHint     string // set when no installable disk was found (VMD / generic message)
+	doneSel      int    // reboot / poweroff / shell
+	exitAction   string // done screen choice: "reboot" | "poweroff" | "" (exit to shell)
 
 	diskDev                                      string // chosen target disk
 	diskTotal                                    int    // its size in GiB
@@ -768,10 +771,13 @@ func newModel() model {
 	}
 	hw := ensureHW()
 	m.hwOK, m.hwHybrid = hw.ok, hw.hybrid
+	m.hwBIOS, m.hwSecureBoot = hw.bios, hw.secureBoot
 	m.hwCPU, m.hwGPU, m.hwMem = hw.cpu, hw.gpu, hw.mem
 	m.hwFW, m.hwDisk, m.hwProfile = hw.fw, hw.disk, hw.profile
 	if d := sysDisks(); len(d) > 0 {
 		m.diskDev, m.diskTotal = d[0].key, sysDiskSize(d[0].key)
+	} else {
+		m.diskHint = diskHint()
 	}
 	m.netOnline = netOnline()
 	m.loadStep()
@@ -813,6 +819,9 @@ func (m *model) loadStep() {
 		m.input, m.yes = "", false
 		m.inputErr, m.encStage, m.pass1, m.encErr = "", 0, "", ""
 		m.wipeStage, m.eraseInput = 0, ""
+		if s.key == "review" {
+			m.netOnline = netOnline() // Review gates on live connectivity (online-only install)
+		}
 	}
 }
 
@@ -1129,7 +1138,7 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 					m.eraseInput = m.eraseInput[:n-1]
 				}
 			case "enter":
-				if strings.EqualFold(m.eraseInput, "ERASE") {
+				if strings.EqualFold(m.eraseInput, "ERASE") && m.reviewBlockReason() == "" {
 					m.wipeStage = 2
 					m.state, m.installAt, m.installLog = "install", 0, nil
 					m.progress, m.progVel = 0, 0
@@ -1166,6 +1175,12 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 				if strat != "whole" && strat != "alongside" {
 					return m, nil
 				}
+				// Real-hardware gates: Secure Boot (Limine unsigned) and an offline
+				// live system (no offline package source) are hard blocks. reviewBody
+				// shows the reason; refuse to launch rather than fail mid-install.
+				if s.key == "review" && m.reviewBlockReason() != "" {
+					return m, nil
+				}
 				// Whole-disk on a populated disk requires the typed "ERASE"
 				// acknowledgement before any backend command runs. Enter from
 				// the Yes button enters that sub-stage instead of launching.
@@ -1187,7 +1202,7 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 	case kPartition:
 		m.partKey(k)
 	case kInfo:
-		if k == "enter" {
+		if k == "enter" && !m.hwBIOS { // BIOS is a hard block: no UEFI, no install
 			m.advance()
 		}
 	}
@@ -1282,15 +1297,6 @@ func (m model) keptG() int {
 	}
 	return n
 }
-func (m model) hasKeptESP() bool {
-	for _, k := range m.kept {
-		if strings.Contains(k.flags, "esp") {
-			return true
-		}
-	}
-	return false
-}
-func (m model) needNewESP() bool { return !m.hasKeptESP() }
 
 // diskPopulated reports whether the target disk currently holds any partition.
 // The wipe-confirm gate uses this to decide whether the user must type "ERASE"
@@ -1298,20 +1304,19 @@ func (m model) needNewESP() bool { return !m.hasKeptESP() }
 // m.existing when the partition step loads, so this is a cheap field check.
 func (m model) diskPopulated() bool { return len(m.existing) > 0 }
 
-// availRoot is the size of the root partition: the disk minus kept partitions and
-// the ESP. The swapfile is carved out of this, so usable root is availRoot - swap.
+// availRoot is the size (GiB) of the root partition: the space we lay out minus
+// the ESP we always create. For alongside that space is the detected free region
+// (our ESP + root both live there, never the Windows ESP); for whole it is the
+// disk minus any kept partitions. The swapfile is carved from root, so usable
+// root is availRoot - swap.
 func (m model) availRoot() int {
-	if m.picks["disk"] == "alongside" { // root fills the detected free region; ESP reused
-		a := m.freeG
-		if a < 0 {
-			a = 0
-		}
-		return a
+	var a int
+	if m.picks["disk"] == "alongside" {
+		a = m.freeG
+	} else {
+		a = m.diskG - m.keptG()
 	}
-	a := m.diskG - m.keptG()
-	if m.needNewESP() {
-		a -= m.espG
-	}
+	a -= m.espG // both strategies carve their own ESP inside their space
 	if a < 0 {
 		a = 0
 	}
@@ -1319,13 +1324,10 @@ func (m model) availRoot() int {
 }
 
 // swapCeil caps the swapfile size: at most 64 GiB, and always leaving at least
-// 8 GiB of usable root so the swapfile can never claim the whole disk.
+// minRootGiB of usable root (both strategies) so swap can never starve the
+// system partition. Mirrors the backend's root floor.
 func (m model) swapCeil() int {
-	floor := 8
-	if m.picks["disk"] == "alongside" {
-		floor = alongsideMinRootGiB // keep >=15GiB of root for the system (matches backend)
-	}
-	mx := m.availRoot() - floor
+	mx := m.availRoot() - minRootGiB
 	if mx > 64 {
 		mx = 64
 	}
@@ -1347,9 +1349,7 @@ func (m model) layoutRows() []lrow {
 	for i, k := range m.kept {
 		rows = append(rows, lrow{"keep", fmt.Sprintf("keep%d", i), k.dev, "", "keep"})
 	}
-	if m.needNewESP() {
-		rows = append(rows, lrow{"size", "esp", "ESP size", "/boot · fat32", "required"})
-	}
+	rows = append(rows, lrow{"size", "esp", "ESP size", "/boot · fat32", "required"})
 	rows = append(rows,
 		lrow{"size", "swap", "Swap (swapfile)", "@swap · 0 = none · carved from root", "optional"},
 		lrow{"toggle", "snap", "Snapshots & rollbacks", "@snapshots → /.snapshots", "recommended"},
@@ -1460,11 +1460,8 @@ func (m model) partBlockReason() string {
 	case "whole":
 		return ""
 	case "alongside":
-		if !m.hasKeptESP() {
-			return "No existing EFI partition to install alongside. Press esc and choose 'Erase whole disk'."
-		}
-		if m.freeG < alongsideMinRootGiB {
-			return fmt.Sprintf("Only %dG free; alongside needs %dG. Shrink Windows first, or press esc and choose 'Erase whole disk'.", m.freeG, alongsideMinRootGiB)
+		if need := minRootGiB + m.espG; m.freeG < need {
+			return fmt.Sprintf("Only %dG free; alongside needs %dG (a %dG root plus a %dG boot partition). Shrink Windows first, or press esc and choose 'Erase whole disk'.", m.freeG, need, minRootGiB, m.espG)
 		}
 		return ""
 	default:
@@ -1474,6 +1471,19 @@ func (m model) partBlockReason() string {
 
 // partReady reports whether the chosen layout can be installed.
 func (m model) partReady() bool { return m.partBlockReason() == "" }
+
+// reviewBlockReason reports why the install cannot start from Review, or "" when
+// it can. Secure Boot (Limine is unsigned) and an offline live system (installs
+// are online-only) are both hard blocks: fail here honestly, not mid-install.
+func (m model) reviewBlockReason() string {
+	if m.hwSecureBoot {
+		return "Secure Boot is enabled -- disable Secure Boot in firmware setup (Limine is unsigned), then reboot the installer."
+	}
+	if !m.netOnline {
+		return "No internet connection. Go back to the Network step to connect -- installs are online-only (no offline package source)."
+	}
+	return ""
+}
 
 func (m model) layoutSummary() string {
 	n := 2 // @, @nix always
@@ -1495,9 +1505,7 @@ func (m model) layoutSummary() string {
 // layoutSegs builds the disk-bar segments: kept + (new ESP) + root + free.
 func (m model) layoutSegs() []part {
 	segs := append([]part(nil), m.kept...)
-	if m.needNewESP() {
-		segs = append(segs, part{"ESP", m.espG, "vfat", "/boot", "esp", "new"})
-	}
+	segs = append(segs, part{"ESP", m.espG, "vfat", "/boot", "esp", "new"})
 	rootUsable := m.availRoot() - m.swapG
 	if rootUsable < 0 {
 		rootUsable = 0
@@ -1753,6 +1761,9 @@ func (m model) viewWizard() string {
 		for _, d := range s.desc {
 			c.WriteString(fg(cSub, truncW(d, inner)) + "\n")
 		}
+		if s.key == "diskpick" && m.diskHint != "" {
+			c.WriteString("\n" + sty().Foreground(cYell).Width(inner).Render("⚠ "+m.diskHint) + "\n")
+		}
 		c.WriteString("\n")
 		switch s.kind {
 		case kSelect:
@@ -2003,37 +2014,76 @@ func (m model) diskBar(parts []part, w, selIdx int) string {
 	return out
 }
 
-// infoBody is the hardware-detection card built from detectHardware().
+// infoBody is the hardware-detection card built from detectHardware(). It also
+// surfaces the firmware hard-stops (BIOS boot, Secure Boot) enforced elsewhere.
 func (m model) infoBody(inner int) string {
+	var lines []string
 	if !m.hwOK {
-		return strings.Join([]string{
+		lines = []string{
 			bold(cYell, "⚠  Could not fully classify this hardware"), "",
 			fg(cText, "That is fine. Ryoku runs on any x86_64 UEFI machine and"),
 			fg(cText, "loads open kernel drivers (amdgpu, i915, nouveau) for"),
 			fg(cText, "unknown GPUs. You can tune drivers after install."),
 			"",
-			fg(cSub, "Firmware ") + fg(cGreen, m.hwFW),
+			fg(cSub, "Firmware ") + m.fwCell(),
 			fg(cSub, "GPU      ") + fg(cText, def(m.hwGPU, "unclassified")),
 			"",
 			fg(cSub, "Suggested profile  ") + bold(cBrand, "vm") + fg(cDim, "  (safe generic, pick yours next)"),
-			"", fg(cDim, "enter to continue, esc to go back"),
-		}, "\n")
+		}
+	} else {
+		hybrid := ""
+		if m.hwHybrid {
+			hybrid = fg(cYell, "  hybrid")
+		}
+		lines = []string{
+			bold(cBrand, "Detected hardware"), "",
+			fg(cSub, "CPU      ") + fg(cText, def(m.hwCPU, "unknown")),
+			fg(cSub, "GPU      ") + fg(cText, def(m.hwGPU, "unknown")) + hybrid,
+			fg(cSub, "Memory   ") + fg(cText, def(m.hwMem, "unknown")),
+			fg(cSub, "Firmware ") + m.fwCell(),
+			fg(cSub, "Disk     ") + fg(cText, def(m.hwDisk, m.diskDev)),
+			"",
+			fg(cSub, "Suggested profile  ") + bold(cBrand, def(m.hwProfile, "vm")),
+		}
 	}
-	hybrid := ""
-	if m.hwHybrid {
-		hybrid = fg(cYell, "  hybrid")
+	if g := m.hwGateLines(); len(g) > 0 {
+		lines = append(lines, "")
+		lines = append(lines, g...)
+		lines = append(lines, "", fg(cDim, "resolve the above in firmware, then reboot · esc to go back"))
+	} else {
+		lines = append(lines, "", fg(cDim, "enter to continue, esc to go back"))
 	}
-	return strings.Join([]string{
-		bold(cBrand, "Detected hardware"), "",
-		fg(cSub, "CPU      ") + fg(cText, def(m.hwCPU, "unknown")),
-		fg(cSub, "GPU      ") + fg(cText, def(m.hwGPU, "unknown")) + hybrid,
-		fg(cSub, "Memory   ") + fg(cText, def(m.hwMem, "unknown")),
-		fg(cSub, "Firmware ") + fg(cGreen, m.hwFW),
-		fg(cSub, "Disk     ") + fg(cText, def(m.hwDisk, m.diskDev)),
-		"",
-		fg(cSub, "Suggested profile  ") + bold(cBrand, def(m.hwProfile, "vm")),
-		"", fg(cDim, "enter to continue, esc to go back"),
-	}, "\n")
+	return strings.Join(lines, "\n")
+}
+
+// fwCell colors the firmware summary red when the machine booted in BIOS mode (a
+// hard block), green for UEFI.
+func (m model) fwCell() string {
+	if m.hwBIOS {
+		return fg(cRed, m.hwFW)
+	}
+	return fg(cGreen, m.hwFW)
+}
+
+// hwGateLines are the hard-stop firmware warnings shown on the hardware card and
+// enforced elsewhere: BIOS boot (backend is UEFI-only, blocks the hardware step)
+// and Secure Boot (Limine is unsigned, blocks Review). Empty when firmware is OK.
+func (m model) hwGateLines() []string {
+	var out []string
+	if m.hwBIOS {
+		out = append(out,
+			bold(cRed, "⚠ Booted in BIOS / legacy mode -- Ryoku installs UEFI-only."),
+			fg(cText, "  Reboot, enter firmware setup, disable CSM / Legacy boot and"),
+			fg(cText, "  enable UEFI boot mode, then start the installer again."),
+		)
+	}
+	if m.hwSecureBoot {
+		out = append(out,
+			bold(cRed, "⚠ Secure Boot is enabled -- Limine is unsigned."),
+			fg(cText, "  Disable Secure Boot in firmware setup, then reboot the installer."),
+		)
+	}
+	return out
 }
 
 func (m model) helpBody() string {
@@ -2163,9 +2213,6 @@ func (m model) reviewBody(w int) string {
 		swap = "none"
 	}
 	esp := fmt.Sprintf("%dG", m.espG)
-	if m.hasKeptESP() {
-		esp = "reuse"
-	}
 	// strategy: render in red+bold for "whole" so the wipe is undeniable on
 	// Review before the user moves to Yes. Alongside renders green to mark it
 	// as the non-destructive path. Anything else (should never reach Review
@@ -2220,6 +2267,9 @@ func (m model) reviewBody(w int) string {
 				fg(cDim, "switch to Yes and press enter; you will be asked to type ERASE"),
 			)
 		}
+	}
+	if r := m.reviewBlockReason(); r != "" {
+		lines = append(lines, "", bold(cRed, "⚠ "+r))
 	}
 	return strings.Join(lines, "\n")
 }
@@ -2358,7 +2408,11 @@ func (m model) footer() string {
 			parts = []string{keyHint("space", "toggle"), keyHint("↑↓", "move"), keyHint("a", "reset"), keyHint("tab", "done"), keyHint("esc", "back")}
 		}
 	case s.kind == kInfo:
-		parts = []string{keyHint("enter", "continue"), keyHint("esc", "back"), keyHint("?", "help"), keyHint("q", "quit")}
+		if m.hwBIOS { // BIOS is a hard block; there is no "continue" to offer
+			parts = []string{keyHint("esc", "back"), keyHint("q", "quit")}
+		} else {
+			parts = []string{keyHint("enter", "continue"), keyHint("esc", "back"), keyHint("?", "help"), keyHint("q", "quit")}
+		}
 	case s.kind == kPass:
 		parts = []string{keyHint("type", "password"), keyHint("enter", "continue"), keyHint("esc", "back")}
 	case s.kind == kNet:

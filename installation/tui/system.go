@@ -180,18 +180,67 @@ func splitPairs(line string) []string {
 	return toks
 }
 
-// sysDisks lists installable whole disks. WIRE target.
+// firstField returns the first whitespace- or newline-delimited token of s, so
+// a multi-line lsblk/findmnt reply collapses to the one value we asked for.
+func firstField(s string) string {
+	if f := strings.Fields(s); len(f) > 0 {
+		return f[0]
+	}
+	return ""
+}
+
+// liveDisk resolves the whole disk backing the live ISO boot medium so sysDisks
+// can hide it (never offer to erase the stick we booted from). It reads the
+// archiso boot mount's source partition via findmnt, then walks to that
+// partition's parent disk via lsblk PKNAME. Off-ISO there is no /run/archiso, so
+// it returns "" and nothing is filtered.
+func liveDisk() string {
+	if _, err := os.Stat("/run/archiso"); err != nil {
+		return ""
+	}
+	src, ok := run("findmnt", "-nro", "SOURCE", "/run/archiso/bootmnt")
+	if !ok {
+		return ""
+	}
+	if src = firstField(src); src == "" {
+		return ""
+	}
+	if pk, ok := run("lsblk", "-no", "PKNAME", src); ok {
+		if pk = firstField(pk); pk != "" {
+			return "/dev/" + pk // PKNAME is a bare kernel name (e.g. "sda")
+		}
+	}
+	return src // no parent: the boot medium is already a whole disk
+}
+
+// excludeDisk reports whether a whole-disk device must be hidden from the
+// installer picker. It drops zero-size and pseudo/removable devices, the eMMC
+// boot0/boot1/rpmb hardware areas that lsblk surfaces as separate disks, and the
+// live ISO medium (live, "" off-ISO). Pure so the filter can be unit-tested.
+func excludeDisk(name, size, live string) bool {
+	if name == "" || size == "" || size == "0B" {
+		return true
+	}
+	for _, frag := range []string{"zram", "/dev/sr", "/dev/nbd", "loop"} {
+		if strings.Contains(name, frag) {
+			return true
+		}
+	}
+	if strings.Contains(name, "mmcblk") &&
+		(strings.HasSuffix(name, "boot0") || strings.HasSuffix(name, "boot1") || strings.HasSuffix(name, "rpmb")) {
+		return true
+	}
+	return live != "" && name == live
+}
+
+// sysDisks lists installable whole disks, excluding pseudo devices, eMMC boot
+// areas, and the live ISO boot medium. WIRE target.
 func sysDisks() []item {
 	rows := lsblkPairs("NAME,SIZE,MODEL,TRAN,ROTA,TYPE")
+	live := liveDisk()
 	var items []item
 	for _, r := range rows {
-		if r["TYPE"] != "disk" {
-			continue
-		}
-		name := r["NAME"]
-		if strings.Contains(name, "zram") || strings.Contains(name, "/dev/sr") ||
-			strings.Contains(name, "/dev/nbd") || strings.Contains(name, "loop") ||
-			r["SIZE"] == "" || r["SIZE"] == "0B" {
+		if r["TYPE"] != "disk" || excludeDisk(r["NAME"], r["SIZE"], live) {
 			continue
 		}
 		kind := "SSD"
@@ -201,9 +250,35 @@ func sysDisks() []item {
 		tran := strings.ToUpper(r["TRAN"])
 		model := strings.TrimSpace(r["MODEL"])
 		hint := strings.TrimSpace(fmt.Sprintf("%s · %s · %s %s", r["SIZE"], model, tran, kind))
-		items = append(items, item{name, name, hint})
+		items = append(items, item{r["NAME"], r["NAME"], hint})
 	}
 	return items
+}
+
+// diskHint explains an empty disk list on the target-disk step. Intel VMD (RST)
+// hides NVMe behind a controller the live kernel can't see without the vmd
+// module, so the fix is a firmware setting; anything else gets a generic hint.
+func diskHint() string {
+	if hasVMD() {
+		return "No disks found. This machine has Intel VMD (RST) enabled -- enable AHCI / disable VMD (Intel RST) in BIOS setup, then reboot the installer."
+	}
+	return "No disks found. Check that a drive is connected and detected in firmware, then reboot the installer."
+}
+
+// hasVMD reports whether an Intel Volume Management Device controller is present
+// (vendor 8086, controller name contains "Volume Management Device").
+func hasVMD() bool {
+	out, ok := run("sh", "-c", "lspci -nn")
+	if !ok {
+		return false
+	}
+	for _, l := range strings.Split(out, "\n") {
+		if strings.Contains(l, "Volume Management Device") &&
+			(strings.Contains(l, "8086") || strings.Contains(strings.ToLower(l), "intel")) {
+			return true
+		}
+	}
+	return false
 }
 
 // sysDiskSize returns a device size in GiB via blockdev. WIRE target.
@@ -260,7 +335,7 @@ func sysDiskLayout(disk string) diskLayout {
 			p := part{size: gib, fs: fs, mount: "-", flags: "-", status: "keep"}
 			switch {
 			case strings.EqualFold(r["PARTTYPE"], espTypeGUID):
-				p.dev, p.fs, p.mount, p.flags = "EFI System", "fat32", "/boot", "esp"
+				p.dev, p.fs, p.mount, p.flags = "EFI (Windows)", "fat32", "-", "esp"
 			case fs == "ntfs":
 				p.dev, p.mount = winLabel(r["PARTLABEL"]), "Windows"
 				dl.windows = true
@@ -291,14 +366,17 @@ func partLabel(lbl, fs string) string {
 	return "partition"
 }
 
-// largestFreeGiB returns the largest contiguous free region on the disk in GiB,
-// parsed from parted's machine-readable free-space listing.
+// largestFreeGiB returns the largest contiguous free region on the disk in GiB.
+// It parses parted's machine-readable listing in MiB (parted rounds GiB output to
+// one decimal), floors to whole MiB, drops a 1 MiB alignment margin, then floors
+// to GiB -- the same byte-precise semantics the backend uses, so the TUI never
+// promises a region the installer would reject.
 func largestFreeGiB(disk string) int {
-	out, ok := run("parted", "-ms", disk, "unit", "GiB", "print", "free")
+	out, ok := run("parted", "-ms", disk, "unit", "MiB", "print", "free")
 	if !ok {
 		return 0
 	}
-	best := 0.0
+	bestMiB := 0.0
 	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)
 		if !strings.HasSuffix(line, "free;") {
@@ -308,11 +386,14 @@ func largestFreeGiB(disk string) int {
 		if len(f) < 4 {
 			continue
 		}
-		if v, err := strconv.ParseFloat(strings.TrimSuffix(f[3], "GiB"), 64); err == nil && v > best {
-			best = v
+		if v, err := strconv.ParseFloat(strings.TrimSuffix(f[3], "MiB"), 64); err == nil && v > bestMiB {
+			bestMiB = v
 		}
 	}
-	return int(best)
+	if mib := int64(bestMiB) - 1; mib > 0 {
+		return int(mib / 1024)
+	}
+	return 0
 }
 
 // sysSSIDs lists the cached nearby Wi-Fi networks via nmcli. It uses --rescan no
@@ -353,7 +434,7 @@ func bars(sig string) string {
 // hwInfo is the detected-hardware summary shown on the hardware card.
 type hwInfo struct {
 	cpu, gpu, mem, fw, disk, profile string
-	hybrid, ok                       bool
+	hybrid, ok, bios, secureBoot     bool
 }
 
 var (
@@ -418,43 +499,67 @@ func detectHardware() hwInfo {
 	if _, err := os.Stat("/sys/firmware/efi"); err == nil {
 		h.fw = "UEFI"
 	} else {
-		h.fw = "BIOS"
+		h.fw, h.bios = "BIOS", true // backend is UEFI-only; the TUI hard-blocks BIOS boot
 	}
 	if isVM {
 		h.fw += " · virtual machine"
 	} else {
 		h.fw += " · bare metal"
 	}
+	h.secureBoot = secureBootEnabled() // Limine is unsigned; blocks Review when on
 
 	if rows := lsblkPairs("NAME,SIZE,MODEL,ROTA,TYPE"); len(rows) > 0 {
+		live := liveDisk()
 		for _, r := range rows {
-			if r["TYPE"] == "disk" && !strings.Contains(r["NAME"], "zram") && !strings.Contains(r["NAME"], "/dev/nbd") && !strings.Contains(r["NAME"], "loop") && r["SIZE"] != "" && r["SIZE"] != "0B" {
-				kind := "SSD"
-				if r["ROTA"] == "1" {
-					kind = "HDD"
-				}
-				h.disk = strings.TrimSpace(fmt.Sprintf("%s · %s · %s (%s)", r["NAME"], r["SIZE"], r["MODEL"], kind))
-				break
+			if r["TYPE"] != "disk" || excludeDisk(r["NAME"], r["SIZE"], live) {
+				continue
 			}
+			kind := "SSD"
+			if r["ROTA"] == "1" {
+				kind = "HDD"
+			}
+			h.disk = strings.TrimSpace(fmt.Sprintf("%s · %s · %s (%s)", r["NAME"], r["SIZE"], r["MODEL"], kind))
+			break
 		}
 	}
 
-	switch {
-	case isVM:
-		h.profile = "vm"
-	case hasNvidia:
-		h.profile = "amd-nvidia"
-	case hasAMD:
-		h.profile = "amd"
-	case hasIntel:
-		h.profile = "intel"
-	default:
-		h.profile = "vm"
-		if len(gpuLines) == 0 {
-			h.ok = false
-		}
+	h.profile = suggestProfile(isVM, hasNvidia, hasAMD, hasIntel)
+	// Unclassifiable: not a VM, no vendor GPU matched, and no GPU line at all. The
+	// picker still lets the user choose; ok=false shows the fallback card copy.
+	if !isVM && !hasNvidia && !hasAMD && !hasIntel && len(gpuLines) == 0 {
+		h.ok = false
 	}
 	return h
+}
+
+// suggestProfile maps detected traits to a hardware profile. A VM always maps to
+// vm; otherwise NVIDIA wins over the CPU vendor (the dGPU needs the proprietary
+// stack), then AMD, then Intel; with nothing classifiable we fall back to vm.
+func suggestProfile(isVM, hasNvidia, hasAMD, hasIntel bool) string {
+	switch {
+	case isVM:
+		return "vm"
+	case hasNvidia:
+		return "amd-nvidia"
+	case hasAMD:
+		return "amd"
+	case hasIntel:
+		return "intel"
+	default:
+		return "vm"
+	}
+}
+
+// secureBootEnabled reports whether UEFI Secure Boot is active. The SecureBoot
+// efivar is <attrs:4 bytes><value:1 byte>; the value byte is 1 when enabled. A
+// missing variable (BIOS boot, or efivars not mounted) reads as off -- nothing to
+// block. Limine is unsigned, so active Secure Boot must stop Review.
+func secureBootEnabled() bool {
+	data, err := os.ReadFile("/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c")
+	if err != nil || len(data) == 0 {
+		return false
+	}
+	return data[len(data)-1] == 1
 }
 
 func summarizeGPU(lines []string) string {
@@ -545,6 +650,9 @@ func (m model) installEnv() []string {
 		"RYOKU_SUBVOL_SNAPSHOTS=" + b(m.snapshots),
 		"RYOKU_SUBVOL_HOME=" + b(m.sepHome),
 		"RYOKU_SUBVOL_BACKUPS=" + b(m.backups),
+		// Installs are online-only: there is no offline package source. The TUI
+		// also blocks Review when netOnline() is false, so 1 is always correct.
+		"RYOKU_ONLINE=1",
 	}
 	if m.picks["gpu"] != "" {
 		env = append(env, "RYOKU_GPU_MODE="+m.picks["gpu"])
