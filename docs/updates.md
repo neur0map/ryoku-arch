@@ -20,7 +20,10 @@ page exists to prevent.
 Snapper pre-snapshot, then the channel (git fast-forward, or `pacman -Syu` from
 `[ryoku]`), then stage2 through the just-installed binary: quiesce the shell,
 `ryoku materialize`, reload Hyprland, restart the shell, `ryoku doctor`, snapper
-post-snapshot.
+post-snapshot. Each stage publishes to `$XDG_RUNTIME_DIR/ryoku-update.json` (the
+ordered steps, the current label, a live log tail, and, on failure, the error
+and the pre-update snapshot), so the update island and the Hub's Updates page
+render a determinate run and a one-click rollback.
 
 ## materialize: the config a user receives
 

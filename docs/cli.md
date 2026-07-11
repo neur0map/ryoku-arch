@@ -136,11 +136,12 @@ Runs the convergent reconcilers: idempotent checks (and, where it is safe, fixes
 for stateful drift the package and config layers cannot express. Each reconciler
 reports `ok` when the machine matches the desired state, otherwise it converges,
 proposes the exact fix, or flags it for a human. A healthy machine is quiet;
-`--check` (or `-n`) shows the full list without changing anything. `ryoku update`
-runs `ryoku doctor` itself, so healing is seamless and a finding never aborts the
-update.
+`--check` (or `-n`) shows the full list without changing anything, and `--json`
+emits the findings as a machine-readable array (name, status, detail, remedy)
+for a GUI. `ryoku update` runs `ryoku doctor` itself, so healing is seamless and
+a finding never aborts the update.
 
-Current reconcilers (in `ryoku/cli/doctor.go`): swap kept out of snapshots,
+Current reconcilers (in `ryoku/cli/internal/doctor/`): swap kept out of snapshots,
 snapper config consistency, stale pacman lock, the ryoku package channel + keyring,
 desktop session components, Hyprland config integrity (revalidates and repairs the
 generated monitors.lua/gpu.lua drop-ins so a corrupt one cannot strand the desktop

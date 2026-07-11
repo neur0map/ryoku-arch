@@ -53,7 +53,11 @@ truth for the live desktop.
 - `cli/` the user-facing control CLI, one Go program (`ryoku`): `update`,
   `rollback`, `snapshots`, `status`, `materialize` (lay the base configs into
   `~/.config`), and `reload`. It orchestrates pacman, yay, and snapper; it does
-  not reimplement them. Per-command reference, user- vs developer-facing, in
+  not reimplement them. `main.go` is a thin dispatcher over the concerns under
+  `internal/`: `updater` (update, status, rollback, channel, run-state,
+  materialize, version), `doctor` (the convergent reconcilers, report, and
+  `--explain`), and `sys` (the shared exec/package/path/terminal primitives,
+  defined once). Per-command reference, user- vs developer-facing, in
   `docs/cli.md`.
 - `hub/` Ryoku Settings, the central control-center GUI (`Super + ,`): `backend/`
   (`ryoku-hub`, the Go data plane that reads the keybind legend from the live
