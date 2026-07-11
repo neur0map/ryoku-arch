@@ -15,6 +15,34 @@ Rectangle {
     property color accent: Theme.ink
     readonly property alias editing: field.activeFocus
 
+    // edit mode: while editId >= 0 the field holds an existing event (loaded via
+    // beginEdit) and Enter replaces it in place on editDate instead of adding a
+    // new note. Esc, or losing focus mid-edit, drops back to add mode.
+    property int editId: -1
+    property string editDate: ""
+    readonly property bool editingEntry: root.editId >= 0
+
+    function beginEdit(ev) {
+        root.editId = ev.id;
+        root.editDate = ev.date;
+        field.text = root.lineFor(ev);
+        field.forceActiveFocus();
+        field.cursorPosition = field.text.length;
+    }
+    function cancelEdit() {
+        root.editId = -1;
+        root.editDate = "";
+        field.text = "";
+    }
+    // recompose an event into an editable line: "HH:MM text", "HH:MM-HH:MM
+    // text", or just the text for an all-day note.
+    function lineFor(ev) {
+        var pre = "";
+        if (ev.time && ev.time.length > 0)
+            pre = (ev.endTime && ev.endTime.length > 0 ? ev.time + "-" + ev.endTime : ev.time) + " ";
+        return pre + (ev.text || "");
+    }
+
     height: Math.round(28 * root.s)
     radius: Math.round(8 * root.s)
     color: field.activeFocus
@@ -40,12 +68,18 @@ Rectangle {
         selectByMouse: true
         selectionColor: root.accent
         onAccepted: {
-            if (Events.addEntry(root.dateKey, text))
+            if (root.editingEntry) {
+                if (Events.update(root.editId, root.editDate, text))
+                    root.cancelEdit();
+            } else if (Events.addEntry(root.dateKey, text)) {
                 text = "";
+            }
         }
+        // drop an in-progress edit when focus leaves without committing.
+        onActiveFocusChanged: if (!field.activeFocus && root.editingEntry) root.cancelEdit()
         Keys.onPressed: (e) => {
             if (e.key === Qt.Key_Escape) {
-                field.text = "";
+                root.cancelEdit();
                 field.focus = false;
                 e.accepted = true;
             }

@@ -16,45 +16,132 @@ Item {
         : (Config.calAccent === "mono" ? Theme.ink : Wallust.accent)
     property bool editing: false
 
-    readonly property date today: Now.date
-    readonly property string todayKey: EventsModel.dateKey(today.getFullYear(), today.getMonth(), today.getDate())
-    // derive the day list from the day KEY, not the per-second `today`, so a
-    // Now tick doesn't rebuild the Repeater (which would drop add-field focus).
-    readonly property var days: face.daysFromKey(todayKey, 7)
-    property string selectedKey: todayKey
+    readonly property string todayKey: Now.dayKey
+    // offset in 7-day pages from today (0 = the page starting today). the page
+    // derives from today + offset, so nav self-heals over a day rollover; keyed
+    // off the day KEY, not the per-second `today`, so a Now tick doesn't rebuild
+    // the Repeater (which would drop add-field focus).
+    property int pageOffset: 0
+    readonly property var days: face.pageDays()
+    property string selectedKey: face.todayKey
 
     readonly property real bodyW: Math.round(228 * s)
+    readonly property real rowW: Math.round(42 * s) + Math.round(14 * s) + bodyW
 
     implicitWidth: col.implicitWidth
     implicitHeight: col.implicitHeight
 
-    function daysFromKey(key, count) {
-        var p = key.split("-");
-        return Cal.daysFrom(new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])), count);
+    function pageDays() {
+        var p = face.todayKey.split("-");
+        var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]) + face.pageOffset * 7);
+        return Cal.daysFrom(d, 7);
+    }
+    function shiftPage(delta) {
+        face.pageOffset += delta;
+        face.reselectIntoView();
+    }
+    function resetToday() {
+        face.pageOffset = 0;
+        face.selectedKey = face.todayKey;
+    }
+    // keep the selection on the visible page: if the selected day isn't in it,
+    // drop it onto the first day of the page.
+    function reselectIntoView() {
+        for (var i = 0; i < face.days.length; i++)
+            if (EventsModel.dateKey(face.days[i].year, face.days[i].month, face.days[i].day) === face.selectedKey)
+                return;
+        face.selectedKey = EventsModel.dateKey(face.days[0].year, face.days[0].month, face.days[0].day);
     }
 
     Column {
         id: col
         spacing: Math.round(10 * face.s)
 
-        Row {
-            spacing: Math.round(8 * face.s)
-            Text {
+        Item {
+            width: face.rowW
+            height: Math.round(24 * face.s)
+
+            Row {
+                anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                text: "\u529b"
-                color: Theme.brand
-                font.family: Theme.fontJp
-                font.weight: Font.Medium
-                font.pixelSize: Math.round(15 * face.s)
+                spacing: Math.round(8 * face.s)
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "\u529b"
+                    color: Theme.brand
+                    font.family: Theme.fontJp
+                    font.weight: Font.Medium
+                    font.pixelSize: Math.round(15 * face.s)
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "AGENDA"
+                    color: Theme.inkDim
+                    font.family: Theme.font
+                    font.pixelSize: Math.round(11 * face.s)
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: Math.round(2 * face.s)
+                }
             }
-            Text {
+
+            Row {
+                anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                text: "AGENDA"
-                color: Theme.inkDim
-                font.family: Theme.font
-                font.pixelSize: Math.round(11 * face.s)
-                font.weight: Font.DemiBold
-                font.letterSpacing: Math.round(2 * face.s)
+                spacing: Math.round(4 * face.s)
+                Rectangle {
+                    id: todayChip
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: face.pageOffset !== 0
+                    width: todayLabel.implicitWidth + Math.round(14 * face.s)
+                    height: Math.round(18 * face.s)
+                    radius: Math.round(6 * face.s)
+                    color: todayArea.containsMouse
+                        ? Qt.rgba(face.accent.r, face.accent.g, face.accent.b, 0.28)
+                        : Qt.rgba(face.accent.r, face.accent.g, face.accent.b, 0.16)
+                    Text {
+                        id: todayLabel
+                        anchors.centerIn: parent
+                        text: "TODAY"
+                        color: face.accent
+                        font.family: Theme.mono
+                        font.pixelSize: Math.round(9 * face.s)
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: Math.round(1 * face.s)
+                    }
+                    MouseArea {
+                        id: todayArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: face.resetToday()
+                    }
+                }
+                Repeater {
+                    model: [-1, 1]
+                    Rectangle {
+                        id: nav
+                        required property int modelData
+                        width: Math.round(26 * face.s)
+                        height: Math.round(26 * face.s)
+                        radius: Math.round(8 * face.s)
+                        color: navArea.containsMouse ? Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b, 0.08) : "transparent"
+                        Text {
+                            anchors.centerIn: parent
+                            text: nav.modelData < 0 ? "\u2039" : "\u203a"
+                            color: navArea.containsMouse ? Theme.ink : Theme.inkDim
+                            font.family: Theme.font
+                            font.pixelSize: Math.round(16 * face.s)
+                            font.weight: Font.Medium
+                        }
+                        MouseArea {
+                            id: navArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: face.shiftPage(nav.modelData)
+                        }
+                    }
+                }
             }
         }
 
@@ -133,7 +220,17 @@ Item {
                             s: face.s
                             accent: face.accent
                             event: modelData
+                            editing: addField.editId === modelData.id
+                            onEditRequested: (ev) => { face.selectedKey = dayRow.key; addField.beginEdit(ev); }
                         }
+                    }
+
+                    Text {
+                        visible: dayRow.selected && dayRow.evs.length === 0
+                        text: qsTr("Nothing on this day \u2014 add below")
+                        color: Theme.faint
+                        font.family: Theme.font
+                        font.pixelSize: Math.round(10 * face.s)
                     }
 
                     CalAddField {

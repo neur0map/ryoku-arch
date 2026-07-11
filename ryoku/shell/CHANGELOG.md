@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Changed
+- **The desktop calendar grew up: edit, time ranges, and navigation that comes
+  home.** Clicking an event now reopens it in the add field for editing (Enter
+  replaces it, Esc cancels), a leading `9:30-10:30` range is parsed into start
+  and end times and shown on the row (the pill's calendar displays it too), and
+  every face navigates: month and heat page by month, week by week, agenda by
+  seven-day page, each with an accent TODAY chip that appears once you leave
+  today and snaps the view (and selection) back. The viewed month derives from
+  today plus an offset, so the old one-way navigation that froze the widget in a
+  past month is gone and the view self-heals at rollover. Week pre-selects today
+  and no longer deselects on a re-click; empty days say "Nothing on this day"
+  over the add field; the delete tick arms on the first tap and removes on a
+  second within two seconds, on a 24px hit area (chevrons grew to 26px). Under
+  the hood: heat cells count events without sorting, the today marks derive from
+  a once-a-day key instead of the 1s tick, the calendar slot releases its
+  keyboard grab on teardown, and the right-click menu gained an Accent row.
+
 ### Removed
 - **RyoTunes / YouTube Music is gone from the launcher.** The `@` YouTube Music
   search provider, the mpv radio engine (`Singletons/Radio.qml`), saved playlists

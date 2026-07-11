@@ -56,6 +56,12 @@ eq(parseEntry("standup"), { time: "", text: "standup" }, "parseEntry with no tim
 eq(parseEntry("25:00 nope"), { time: "", text: "25:00 nope" }, "parseEntry rejects an out-of-range hour");
 eq(parseEntry("  spaced  "), { time: "", text: "spaced" }, "parseEntry trims surrounding space");
 eq(parseEntry("12:5 odd"), { time: "", text: "12:5 odd" }, "parseEntry needs two minute digits");
+eq(parseEntry("09:30-10:30 standup"), { time: "09:30", endTime: "10:30", text: "standup" }, "parseEntry reads a HH:MM-HH:MM range");
+eq(parseEntry("9:00-10:30 gym"), { time: "09:00", endTime: "10:30", text: "gym" }, "parseEntry normalizes range endpoints to HH:MM");
+eq(parseEntry("09:30\u201310:30 standup"), { time: "09:30", endTime: "10:30", text: "standup" }, "parseEntry accepts an en-dash range");
+eq(parseEntry("09:30 - 10:30 standup"), { time: "09:30", endTime: "10:30", text: "standup" }, "parseEntry tolerates spaces around the range dash");
+eq(parseEntry("09:30-25:00 nope"), { time: "", text: "09:30-25:00 nope" }, "parseEntry rejects an out-of-range end time");
+eq(parseEntry("09:30-10:30"), { time: "", text: "09:30-10:30" }, "parseEntry needs text after a range");
 
 eq(parse('[{"id":1}]'), [{ id: 1 }], "parse reads a valid array");
 eq(parse(""), [], "parse of empty string is []");

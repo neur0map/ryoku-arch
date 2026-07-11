@@ -21,7 +21,7 @@ Item {
     visible: menu.open
 
     property bool open: false
-    property string scope: "desktop"   // desktop | clock | weather
+    property string scope: "desktop"   // desktop | clock | weather | cal
     property real px: 0
     property real py: 0
 
@@ -55,6 +55,10 @@ Item {
             return;
         const key = menu.scope + "Design";
         Config.set(key, d[(d.indexOf(Config[key]) + 1) % d.length]);
+    }
+    function cycleCalAccent() {
+        const a = ["wallust", "brand", "mono"];
+        Config.set("calAccent", a[(a.indexOf(Config.calAccent) + 1) % a.length]);
     }
     function openSettings() {
         Quickshell.execDetached(["sh", "-c", "ryoku-hub config set section widgets; flock -n -o /tmp/ryoku-hub.lock qs -c hub"]);
@@ -152,6 +156,7 @@ Item {
             MenuRow { visible: menu.isWeather; k: "Motion"; v: Config.weatherAnimate ? "On" : "Off"; on: Config.weatherAnimate; closeOnTrigger: false; onTriggered: Config.toggle("weatherAnimate") }
             MenuRow { visible: menu.isWeather; k: "Units"; v: Config.weatherUnit === "C" ? "\u00b0C" : "\u00b0F"; closeOnTrigger: false; onTriggered: Config.set("weatherUnit", Config.weatherUnit === "C" ? "F" : "C") }
             MenuRow { visible: menu.isCal; k: "Week start"; v: Config.calWeekStart === "sun" ? "Sun" : "Mon"; closeOnTrigger: false; onTriggered: Config.set("calWeekStart", Config.calWeekStart === "sun" ? "mon" : "sun") }
+            MenuRow { visible: menu.isCal; k: "Accent"; v: menu.cap(Config.calAccent); closeOnTrigger: false; onTriggered: menu.cycleCalAccent() }
             MenuRow { visible: menu.isWidget; k: "Lock"; v: menu.locked ? "On" : "Off"; on: menu.locked; closeOnTrigger: false; onTriggered: Config.toggle(menu.scope + "Locked") }
 
             Rule { visible: menu.isWidget }

@@ -74,11 +74,21 @@ function remove(events, id) {
     return events.filter(function (e) { return e.id !== id; });
 }
 
-// split a typed line into { time, text }. leading "H:MM" / "HH:MM" in valid
-// ranges -> start time (normalised to "HH:MM"), rest is text. anything else =
+// split a typed line into { time, text } or { time, endTime, text }. a leading
+// "H:MM-H:MM" range (hyphen or en-dash) in valid ranges -> start + end time; a
+// leading "H:MM" -> start time only; both normalised to "HH:MM". anything else =
 // all-day with the whole trimmed line as text.
 function parseEntry(raw) {
     var s = (raw || "").trim();
+    var r = s.match(/^(\d{1,2}):(\d{2})\s*[-\u2013]\s*(\d{1,2}):(\d{2})\s+(.+)$/);
+    if (r) {
+        var sh = Number(r[1]);
+        var sm = Number(r[2]);
+        var eh = Number(r[3]);
+        var em = Number(r[4]);
+        if (sh >= 0 && sh <= 23 && sm >= 0 && sm <= 59 && eh >= 0 && eh <= 23 && em >= 0 && em <= 59)
+            return { time: pad2(sh) + ":" + pad2(sm), endTime: pad2(eh) + ":" + pad2(em), text: r[5].trim() };
+    }
     var m = s.match(/^(\d{1,2}):(\d{2})\s+(.+)$/);
     if (m) {
         var h = Number(m[1]);

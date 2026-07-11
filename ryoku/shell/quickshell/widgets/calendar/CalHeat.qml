@@ -20,10 +20,19 @@ Item {
     readonly property bool ramped: Config.calAccent === "wallust"
     readonly property alias editing: addField.editing
 
-    readonly property date today: Now.date
-    property int viewYear: today.getFullYear()
-    property int viewMonth: today.getMonth()
-    property string selectedKey: EventsModel.dateKey(today.getFullYear(), today.getMonth(), today.getDate())
+    // today derived from the day KEY (changes once a day), not the per-second
+    // Now.date, so a tick doesn't churn the grid's per-cell bindings.
+    readonly property var todayYMD: Now.dayKey.split("-")
+    readonly property int todayYear: Number(face.todayYMD[0])
+    readonly property int todayMonth: Number(face.todayYMD[1]) - 1
+    readonly property int todayDay: Number(face.todayYMD[2])
+    // offset in months from the current one (0 = this month). the viewed month
+    // and year derive from today + offset, so navigation never breaks its
+    // today-binding (the old imperative assign did) and self-heals at rollover.
+    property int monthOffset: 0
+    readonly property int viewMonth: ((face.todayMonth + face.monthOffset) % 12 + 12) % 12
+    readonly property int viewYear: face.todayYear + Math.floor((face.todayMonth + face.monthOffset) / 12)
+    property string selectedKey: EventsModel.dateKey(face.todayYear, face.todayMonth, face.todayDay)
 
     readonly property int offset: Cal.firstWeekdayOffset(viewYear, viewMonth, weekStart)
     readonly property int monthLen: Cal.daysInMonth(viewYear, viewMonth)
@@ -40,15 +49,22 @@ Item {
     implicitHeight: col.implicitHeight
 
     function isToday(day) {
-        return day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+        return day === face.todayDay && face.viewMonth === face.todayMonth && face.viewYear === face.todayYear;
     }
     function shiftMonth(delta) {
-        var m = viewMonth + delta;
-        var y = viewYear;
-        while (m < 0) { m += 12; y -= 1; }
-        while (m > 11) { m -= 12; y += 1; }
-        viewMonth = m;
-        viewYear = y;
+        face.monthOffset += delta;
+        face.reselectIntoView();
+    }
+    function resetToday() {
+        face.monthOffset = 0;
+        face.selectedKey = EventsModel.dateKey(face.todayYear, face.todayMonth, face.todayDay);
+    }
+    // keep the selection on the visible grid: if the selected day isn't in the
+    // viewed month, drop it onto day 1 of that month.
+    function reselectIntoView() {
+        var p = face.selectedKey.split("-");
+        if (Number(p[0]) !== face.viewYear || (Number(p[1]) - 1) !== face.viewMonth)
+            face.selectedKey = EventsModel.dateKey(face.viewYear, face.viewMonth, 1);
     }
     function prettyKey(key) {
         var p = key.split("-");
@@ -106,15 +122,43 @@ Item {
             Row {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: Math.round(2 * face.s)
+                spacing: Math.round(4 * face.s)
+                Rectangle {
+                    id: todayChip
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: face.monthOffset !== 0
+                    width: todayLabel.implicitWidth + Math.round(14 * face.s)
+                    height: Math.round(18 * face.s)
+                    radius: Math.round(6 * face.s)
+                    color: todayArea.containsMouse
+                        ? Qt.rgba(face.accent.r, face.accent.g, face.accent.b, 0.28)
+                        : Qt.rgba(face.accent.r, face.accent.g, face.accent.b, 0.16)
+                    Text {
+                        id: todayLabel
+                        anchors.centerIn: parent
+                        text: "TODAY"
+                        color: face.accent
+                        font.family: Theme.mono
+                        font.pixelSize: Math.round(9 * face.s)
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: Math.round(1 * face.s)
+                    }
+                    MouseArea {
+                        id: todayArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: face.resetToday()
+                    }
+                }
                 Repeater {
                     model: [-1, 1]
                     Rectangle {
                         id: nav
                         required property int modelData
-                        width: Math.round(22 * face.s)
-                        height: Math.round(22 * face.s)
-                        radius: Math.round(7 * face.s)
+                        width: Math.round(26 * face.s)
+                        height: Math.round(26 * face.s)
+                        radius: Math.round(8 * face.s)
                         color: navArea.containsMouse ? Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b, 0.08) : "transparent"
                         Text {
                             anchors.centerIn: parent
@@ -174,7 +218,7 @@ Item {
                     readonly property bool current: inMonth && face.isToday(dayNum)
                     readonly property string key: inMonth ? EventsModel.dateKey(face.viewYear, face.viewMonth, dayNum) : ""
                     readonly property bool selected: inMonth && key === face.selectedKey
-                    readonly property int count: inMonth ? Events.forDate(key).length : 0
+                    readonly property int count: inMonth ? Events.countFor(key) : 0
                     readonly property int level: face.levelOf(count)
 
                     width: face.colW
@@ -276,8 +320,18 @@ Item {
                     s: face.s
                     accent: face.accent
                     event: modelData
+                    editing: addField.editId === modelData.id
+                    onEditRequested: (ev) => addField.beginEdit(ev)
                 }
             }
+        }
+
+        Text {
+            visible: face.selEvents.length === 0
+            text: qsTr("Nothing on this day \u2014 add below")
+            color: Theme.faint
+            font.family: Theme.font
+            font.pixelSize: Math.round(10 * face.s)
         }
 
         CalAddField {

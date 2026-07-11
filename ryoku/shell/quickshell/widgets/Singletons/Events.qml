@@ -37,6 +37,15 @@ Singleton {
     function forDate(dateStr) { return Model.forDate(root.events, dateStr); }
     function hasEvents(dateStr) { return Model.hasEvents(root.events, dateStr); }
 
+    // count of events covering dateStr, no sort or list copy: heat wants a
+    // number per cell, not the sorted list forDate builds.
+    function countFor(dateStr) {
+        var n = 0;
+        for (var i = 0; i < root.events.length; i++)
+            if (Model.covers(root.events[i], dateStr)) n += 1;
+        return n;
+    }
+
     function add(date, endDate, time, endTime, text) {
         root.events = Model.add(root.events, root.nextId, {
             date: date, endDate: endDate, time: time, endTime: endTime, text: text
@@ -45,13 +54,26 @@ Singleton {
         root.persist();
     }
 
-    // Add from one typed line, splitting an optional leading HH:MM start time.
-    // Returns false (and adds nothing) when the line has no text.
+    // Add from one typed line, splitting an optional leading HH:MM start time
+    // or HH:MM-HH:MM range off the front. Returns false (and adds nothing)
+    // when the line has no text.
     function addEntry(date, raw) {
         var p = Model.parseEntry(raw);
         if (p.text.length === 0)
             return false;
-        root.add(date, "", p.time, "", p.text);
+        root.add(date, "", p.time, p.endTime || "", p.text);
+        return true;
+    }
+
+    // Replace an event with a freshly parsed line, keeping it on its own date
+    // (remove + add, one persist), whatever day is selected. Returns false and
+    // changes nothing when the new line is empty.
+    function update(id, date, raw) {
+        var p = Model.parseEntry(raw);
+        if (p.text.length === 0)
+            return false;
+        root.events = Model.remove(root.events, id);
+        root.add(date, "", p.time, p.endTime || "", p.text);
         return true;
     }
 

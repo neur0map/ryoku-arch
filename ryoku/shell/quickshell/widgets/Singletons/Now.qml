@@ -10,6 +10,12 @@ Singleton {
 
     property var date: new Date()
 
+    // YYYY-MM-DD of today. changes once per day, so faces that only mark the
+    // current day (month/heat/minimal) derive their "today" off this and don't
+    // re-evaluate their whole grid on every 1s tick. `date` stays for anything
+    // that shows the time.
+    readonly property string dayKey: Qt.formatDate(root.date, "yyyy-MM-dd")
+
     Timer {
         interval: 1000
         running: true

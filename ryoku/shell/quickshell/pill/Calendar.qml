@@ -397,15 +397,17 @@ PillSurface {
                 Row {
                     id: evRow
                     required property var modelData
+                    readonly property bool hasRange: !!(evRow.modelData.endTime && evRow.modelData.endTime.length > 0)
                     width: editorCol.width
                     height: 20 * root.s
                     spacing: 8 * root.s
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 36 * root.s
+                        width: evRow.hasRange ? 72 * root.s : 36 * root.s
                         text: evRow.modelData.time && evRow.modelData.time.length > 0
-                            ? evRow.modelData.time : "all"
+                            ? (evRow.hasRange ? evRow.modelData.time + "-" + evRow.modelData.endTime : evRow.modelData.time)
+                            : "all"
                         color: Theme.faint
                         font.family: Theme.font
                         font.pixelSize: 10 * root.s
@@ -414,7 +416,7 @@ PillSurface {
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 36 * root.s - delBtn.width - 16 * root.s
+                        width: parent.width - (evRow.hasRange ? 72 : 36) * root.s - delBtn.width - 16 * root.s
                         text: evRow.modelData.text
                         elide: Text.ElideRight
                         color: Theme.cream

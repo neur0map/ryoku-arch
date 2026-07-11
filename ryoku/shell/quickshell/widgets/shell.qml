@@ -185,8 +185,12 @@ ShellRoot {
                 onMenuRequested: (x, y, w) => menu.openFor(w, x, y)
                 // the calendar's add field types on this wallpaper layer, so the
                 // layer grabs the keyboard while the field holds focus, the same
-                // exclusive grab the plugin tiles use.
+                // exclusive grab the plugin tiles use. the destruction guard
+                // releases the grab if the slot is torn down mid-focus, so a
+                // face swap or teardown can't leak an exclusive keyboard grab
+                // (matches the plugin slot below).
                 onEditingChanged: win.kbWanted += editing ? 1 : -1
+                Component.onDestruction: if (editing) win.kbWanted -= 1
                 Calendar {}
             }
 

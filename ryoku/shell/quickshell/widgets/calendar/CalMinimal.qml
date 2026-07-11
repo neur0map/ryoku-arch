@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "../Singletons"
 import "lib/cal.js" as Cal
-import "lib/events.js" as EventsModel
 
 // minimal face: no grid. a big today number, the weekday and month around it,
 // then today's notes as a quiet "up next" list under a short accent rule. earns
@@ -15,9 +14,13 @@ Item {
     readonly property color accent: Config.calAccent === "brand" ? Theme.brand
         : (Config.calAccent === "mono" ? Theme.ink : Wallust.accent)
 
-    readonly property date today: Now.date
-    readonly property string todayKey: EventsModel.dateKey(today.getFullYear(), today.getMonth(), today.getDate())
-    readonly property var todays: Events.forDate(todayKey)
+    // today off the day KEY (changes once a day), not the per-second Now.date,
+    // so the big number and list don't re-evaluate on every 1s tick. minimal
+    // shows nothing sub-day, so it never needs Now.date itself.
+    readonly property string todayKey: Now.dayKey
+    readonly property var todayYMD: face.todayKey.split("-")
+    readonly property date today: new Date(Number(face.todayYMD[0]), Number(face.todayYMD[1]) - 1, Number(face.todayYMD[2]))
+    readonly property var todays: Events.forDate(face.todayKey)
 
     implicitWidth: col.implicitWidth
     implicitHeight: col.implicitHeight

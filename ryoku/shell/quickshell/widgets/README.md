@@ -99,6 +99,16 @@ up, `WidgetSlot` re-exposes it, and `shell.qml` raises the layer's keyboard grab
 off it (the same grab the plugin tiles and the launcher use). A display-only face
 (like `CalMinimal`) just leaves `editing` unset.
 
+On a face with an add field (month, week, agenda, heat) the whole grid is live.
+Click a day to pick it; click a note to load it back into the add field for
+editing (Enter replaces it in place on its own day, Esc drops back to adding).
+The delete × arms on the first tap and only removes on the second, so a stray
+click can't lose a note, and an empty day says so instead of leaving a bare gap.
+Navigation is an offset from today, never an absolute month, so it can't drift:
+prev/next step the view, a `TODAY` chip shows up once you've moved and jumps
+back to the current month/week/page, and the view re-homes on its own at the
+midnight rollover. `CalMinimal` stays display-only.
+
 ## The menu and the hub, and how they actually connect
 
 This is the part people get wrong, so plainly: the menu and the
@@ -163,7 +173,7 @@ The calendar's notes are the same store the pill's calendar uses:
 There's no IPC; both surfaces are separate `qs` processes that meet at that one
 file, the same way the menu and the hub meet at `widgets.json`.
 
-`Singletons/Events.qml` is the thin wrapper: `add`/`remove` mutate the in-memory
+`Singletons/Events.qml` is the thin wrapper: `add`/`update`/`remove` mutate the in-memory
 array and write the file (`atomicWrites`), and the `FileView` is `watchChanges`,
 so a note added on the desktop reloads into the pill and back. Writing our own
 file fires the watch too, but the reload runs on the resulting `onLoaded` (after
