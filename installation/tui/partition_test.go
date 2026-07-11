@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -98,7 +99,8 @@ func TestESPBumpClampsSwap(t *testing.T) {
 // readiness/sizing never depend on the kept Windows ESP.
 func alongsideModel(freeG, swapG int) model {
 	return model{
-		picks: map[string]string{"disk": "alongside"}, diskG: 256, freeG: freeG, espG: 1, swapG: swapG,
+		// a real dual-boot disk is GPT; the GPT-only guard is exercised separately.
+		picks: map[string]string{"disk": "alongside"}, gpt: true, diskG: 256, freeG: freeG, espG: 1, swapG: swapG,
 		kept: []part{
 			{dev: "EFI (Windows)", size: 1, fs: "fat32", mount: "-", flags: "esp", status: "keep"},
 			{dev: "Windows (NTFS)", size: 120, fs: "ntfs", mount: "Windows", flags: "-", status: "keep"},
@@ -290,7 +292,7 @@ func TestPartReadyRequiresCommittedStrategy(t *testing.T) {
 // A blocked partition step must say WHY, so Tab never dies silently. Alongside is
 // blocked when the free region can't hold our ESP plus the root floor.
 func TestPartBlockReasonExplainsBlockedTab(t *testing.T) {
-	m := model{picks: map[string]string{"disk": "alongside"}, diskG: 256, freeG: 5, espG: 1}
+	m := model{picks: map[string]string{"disk": "alongside"}, gpt: true, diskG: 256, freeG: 5, espG: 1}
 	if r := m.partBlockReason(); r == "" {
 		t.Fatal("partBlockReason empty for alongside with too little free space; Tab would die silently")
 	}
@@ -574,5 +576,284 @@ func TestExcludeDisk(t *testing.T) {
 	// off-ISO (live == "") nothing is filtered as a live medium.
 	if excludeDisk("/dev/sda", "32G", "") {
 		t.Fatal("off-ISO (live=\"\"), a normal disk must not be excluded")
+	}
+}
+
+// bubbletea v2 delivers the space bar as "space", not " "; editInput must append
+// a literal space (Wi-Fi/LUKS/user passphrases contain them). It was a no-op, so
+// spaces silently vanished -- a post-install lockout for a password with a space.
+func TestEditInputSpace(t *testing.T) {
+	m := &model{}
+	var s string
+	m.editInput("h", &s)
+	m.editInput("space", &s)
+	m.editInput("i", &s)
+	if s != "h i" {
+		t.Fatalf("editInput dropped the space: got %q, want %q", s, "h i")
+	}
+	m.editInput("space", &s)     // "h i "
+	m.editInput("backspace", &s) // removes the trailing space
+	if s != "h i" {
+		t.Fatalf("backspace after space: got %q, want %q", s, "h i")
+	}
+	before := s
+	m.editInput("enter", &s) // enter commits a line; never a literal char
+	if s != before {
+		t.Fatalf("enter mutated the buffer: got %q, want %q", s, before)
+	}
+}
+
+// alongside is GPT-only in the backend (it appends a partition and reads GPT
+// partlabels): an MBR disk with plenty of free space must be blocked at the TUI,
+// not die at backend stage 1. GPT + enough free clears the block.
+func TestAlongsideRequiresGPT(t *testing.T) {
+	mbr := model{picks: map[string]string{"disk": "alongside"}, gpt: false, diskG: 256, freeG: 200, espG: 1}
+	if r := mbr.partBlockReason(); !strings.Contains(r, "GPT") {
+		t.Fatalf("MBR alongside not blocked for GPT; got %q", r)
+	}
+	if mbr.partReady() {
+		t.Fatal("partReady true on an MBR alongside layout")
+	}
+	gpt := mbr
+	gpt.gpt = true
+	if r := gpt.partBlockReason(); r != "" {
+		t.Fatalf("GPT alongside with 200G free still blocked: %q", r)
+	}
+}
+
+// alongside that must free leftover ryoku/ryokuboot partitions emits
+// RYOKU_RECLAIM_LEFTOVERS=1 only after the typed-ERASE ack (wipeStage 2), and
+// never the whole-disk RYOKU_WIPE_CONFIRMED token (that would drive the wrong
+// backend path -- a zap-all instead of freeing just the leftovers).
+func TestReclaimEnvOnlyAtStage2Alongside(t *testing.T) {
+	base := func(stage int) model {
+		return model{
+			picks:    map[string]string{"disk": "alongside"},
+			reclaim:  []part{{dev: "previous Ryoku", size: 30, reclaim: true}},
+			reclaimG: 30, wipeStage: stage,
+		}
+	}
+	for _, c := range []struct {
+		stage int
+		want  bool
+	}{{0, false}, {1, false}, {2, true}} {
+		env := base(c.stage).installEnv()
+		if got := envHas(env, "RYOKU_RECLAIM_LEFTOVERS=1"); got != c.want {
+			t.Fatalf("wipeStage %d: RYOKU_RECLAIM_LEFTOVERS present=%v, want %v", c.stage, got, c.want)
+		}
+		if envHas(env, "RYOKU_WIPE_CONFIRMED=1") {
+			t.Fatalf("wipeStage %d: alongside must never emit RYOKU_WIPE_CONFIRMED", c.stage)
+		}
+	}
+	// alongside with NO leftovers never emits the reclaim token, even at stage 2.
+	m := model{picks: map[string]string{"disk": "alongside"}, wipeStage: 2}
+	if envHas(m.installEnv(), "RYOKU_RECLAIM_LEFTOVERS=1") {
+		t.Fatal("emitted RYOKU_RECLAIM_LEFTOVERS with no leftover partitions")
+	}
+	// whole at stage 2 still emits its own token and not the reclaim one.
+	w := model{picks: map[string]string{"disk": "whole"}, existing: []part{{dev: "/dev/vda1"}}, wipeStage: 2}
+	we := w.installEnv()
+	if !envHas(we, "RYOKU_WIPE_CONFIRMED=1") || envHas(we, "RYOKU_RECLAIM_LEFTOVERS=1") {
+		t.Fatalf("whole@stage2 tokens wrong: %v", we)
+	}
+}
+
+// leftover Ryoku partitions will be freed, so their GiB counts toward the free
+// figure the alongside gate uses (the backend reclaims BEFORE measuring). A tiny
+// raw free region plus a big reclaimable partition must clear a layout the raw
+// region alone could not.
+func TestReclaimCountsTowardFree(t *testing.T) {
+	m := model{picks: map[string]string{"disk": "alongside"}, gpt: true, diskG: 256, espG: 1, freeG: 4,
+		reclaim: []part{{dev: "previous Ryoku", size: 40, reclaim: true}}, reclaimG: 40}
+	if got := m.freeAlongside(); got != 44 {
+		t.Fatalf("freeAlongside = %d, want 44 (4 free + 40 reclaimable)", got)
+	}
+	if !m.partReady() {
+		t.Fatalf("alongside blocked despite 44G effective free: %q", m.partBlockReason())
+	}
+	if got := m.availRoot(); got != 43 { // reclaimed space folds into root, minus our ESP
+		t.Fatalf("availRoot = %d, want 43 (44 - 1G ESP)", got)
+	}
+	// the same 4G raw region with NOTHING to reclaim stays blocked.
+	m.reclaim, m.reclaimG = nil, 0
+	if m.partReady() {
+		t.Fatal("alongside ready with only 4G free and nothing to reclaim")
+	}
+}
+
+// needsEraseAck gates the typed-ERASE confirmation: a populated whole-disk wipe,
+// or an alongside install that must free leftover Ryoku partitions. Nothing else.
+func TestNeedsEraseAck(t *testing.T) {
+	reclaim := []part{{dev: "previous Ryoku", reclaim: true}}
+	for _, c := range []struct {
+		name string
+		m    model
+		want bool
+	}{
+		{"whole populated", model{picks: map[string]string{"disk": "whole"}, existing: []part{{dev: "x"}}}, true},
+		{"whole blank", model{picks: map[string]string{"disk": "whole"}}, false},
+		{"alongside with reclaim", model{picks: map[string]string{"disk": "alongside"}, reclaim: reclaim}, true},
+		{"alongside no reclaim", model{picks: map[string]string{"disk": "alongside"}}, false},
+	} {
+		if got := c.m.needsEraseAck(); got != c.want {
+			t.Fatalf("%s: needsEraseAck = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+// reviewReclaimModel: model parked on Review with alongside + leftover Ryoku
+// partitions, the state where the reclaim ERASE-ack gate fires.
+func reviewReclaimModel() model {
+	flow := steps()
+	m := model{
+		flow:      flow,
+		picks:     map[string]string{"disk": "alongside"},
+		gpt:       true,
+		reclaim:   []part{{dev: "previous Ryoku", size: 30, reclaim: true}},
+		reclaimG:  30,
+		yes:       true,
+		netOnline: true,
+	}
+	for i, st := range flow {
+		if st.key == "review" {
+			m.idx = i
+			break
+		}
+	}
+	return m
+}
+
+// alongside with leftover Ryoku partitions must NOT install on the first Enter:
+// it enters the typed-ERASE sub-stage exactly like the whole-disk wipe does, so
+// the backend never frees a partition without an explicit ack.
+func TestReviewReclaimGateEntersConfirmStage(t *testing.T) {
+	m := reviewReclaimModel()
+	nm, cmd := m.onKey("enter")
+	if cmd != nil {
+		t.Fatal("Enter started an alongside install before the reclaim ERASE ack")
+	}
+	if n := nm.(model); n.wipeStage != 1 {
+		t.Fatalf("wipeStage = %d, want 1 (reclaim ack prompt active)", n.wipeStage)
+	}
+}
+
+// Enter on the default No used to quit and silently discard the whole session;
+// now it is a no-op. Only an explicit Yes proceeds; esc/q still leave.
+func TestReviewEnterOnNoIsNoop(t *testing.T) {
+	m := reviewWipeModel()
+	m.yes = false
+	nm, cmd := m.onKey("enter")
+	if cmd != nil {
+		t.Fatal("Enter on No returned a command (quit); it must be a no-op")
+	}
+	n := nm.(model)
+	if n.state == "install" || n.wipeStage != 0 {
+		t.Fatalf("Enter on No advanced the flow: state=%q wipeStage=%d", n.state, n.wipeStage)
+	}
+	if n.idx != m.idx {
+		t.Fatalf("Enter on No changed step idx %d -> %d", m.idx, n.idx)
+	}
+}
+
+// on Enter the chosen SSID must resolve from the picker's OWN items, never a
+// fresh ssids() rescan indexed by the stale cursor (a rescan can reorder/shorten
+// the list, so the old code connected to the wrong network).
+func TestSSIDResolvesFromPickerItems(t *testing.T) {
+	flow := steps()
+	m := model{flow: flow, picks: map[string]string{}}
+	for i, st := range flow {
+		if st.key == "network" {
+			m.idx = i
+			break
+		}
+	}
+	m.netOnline, m.netStage = false, 0
+	m.pick = newPicker([]item{{key: "Alpha", label: "Alpha"}, {key: "Beta Net", label: "Beta Net"}}, true)
+	m.pick.cursor = 1
+	nm, _ := m.onKey("enter")
+	n := nm.(model)
+	if n.netSSID != "Beta Net" {
+		t.Fatalf("netSSID = %q, want %q (from picker items[cursor])", n.netSSID, "Beta Net")
+	}
+	if n.netStage != 1 {
+		t.Fatalf("netStage = %d, want 1 (passphrase entry)", n.netStage)
+	}
+}
+
+// splitNMTerse splits an nmcli -t line only on UNescaped ':' and unescapes the
+// values, so an SSID containing ':' or '\' survives. A naive strings.Split(":")
+// mangled such SSIDs (wrong field count, truncated name).
+func TestSplitNMTerse(t *testing.T) {
+	for _, c := range []struct {
+		name, line string
+		want       []string
+	}{
+		{"plain", "HomeNet:72:WPA2", []string{"HomeNet", "72", "WPA2"}},
+		{"escaped colon in ssid", `Cafe\: WiFi:60:WPA2`, []string{"Cafe: WiFi", "60", "WPA2"}},
+		{"escaped backslash", `Net\\Work:55:WPA2`, []string{`Net\Work`, "55", "WPA2"}},
+		{"open network, empty security", "Guest:40:", []string{"Guest", "40", ""}},
+		{"trailing escaped colon in ssid", `Weird\::10:WPA2`, []string{"Weird:", "10", "WPA2"}},
+	} {
+		got := splitNMTerse(c.line)
+		if len(got) != len(c.want) {
+			t.Fatalf("%s: %q -> %d fields %v, want %d %v", c.name, c.line, len(got), got, len(c.want), c.want)
+		}
+		for i := range got {
+			if got[i] != c.want[i] {
+				t.Fatalf("%s: field %d = %q, want %q (from %q)", c.name, i, got[i], c.want[i], c.line)
+			}
+		}
+	}
+}
+
+// parseLargestFreeGiB mirrors the backend's ryoku_largest_free_mib byte-floor:
+// the largest "free;" region -> whole MiB (floor) -> minus a 1 MiB alignment
+// margin -> floor to GiB. Parsing parted's MiB output rounded to NEAREST and
+// overpromised up to 1 MiB at thresholds; the byte parse never over-promises.
+func TestParseLargestFreeGiB(t *testing.T) {
+	const GiB = 1 << 30
+	free := func(sizeB int64) string {
+		return "BYT;\n/dev/nvme0n1:512110190592B:nvme:512:512:gpt:disk:;\n" +
+			"1:1048576B:273678336B:272629760B:fat32::boot, esp;\n" +
+			fmt.Sprintf("2:273678336B:%dB:%dB:free;\n", 273678336+sizeB, sizeB)
+	}
+	for _, c := range []struct {
+		name string
+		out  string
+		want int
+	}{
+		{"exact 100 GiB floors to 99 (1 MiB margin)", free(100 * GiB), 99},
+		{"exact 21 GiB floors to 20 (1 MiB margin)", free(21 * GiB), 20},
+		{"21 GiB + 2 MiB clears 21", free(21*GiB + 2*(1<<20)), 21},
+		{"sub-MiB region rounds to 0", free(500000), 0},
+		{"no free region", "BYT;\n/dev/sda:1B:scsi:512:512:gpt:d:;\n1:0B:1B:1B:ntfs::;\n", 0},
+	} {
+		if got := parseLargestFreeGiB(c.out); got != c.want {
+			t.Fatalf("%s: parseLargestFreeGiB = %d, want %d", c.name, got, c.want)
+		}
+	}
+	// picks the LARGEST of several free regions, not the first or last.
+	multi := "BYT;\n/dev/sda:1B:scsi:512:512:gpt:d:;\n" +
+		fmt.Sprintf("1:0B:%dB:%dB:free;\n", int64(5*GiB), int64(5*GiB)) +
+		fmt.Sprintf("3:0B:%dB:%dB:free;\n", int64(100*GiB), int64(100*GiB))
+	if got := parseLargestFreeGiB(multi); got != 99 {
+		t.Fatalf("multi-region largest = %d, want 99", got)
+	}
+}
+
+// a BitLocker partition on an alongside target gets a non-blocking review warning
+// pointing at the hardware doc; a whole-disk wipe (erased anyway) and a
+// non-BitLocker disk get none.
+func TestReviewBitLockerWarning(t *testing.T) {
+	al := model{picks: map[string]string{"disk": "alongside"}, gpt: true, bitlocker: true, netOnline: true}
+	body := al.reviewBody(72)
+	if !strings.Contains(body, "BitLocker") || !strings.Contains(body, "installation-hardware.md") {
+		t.Fatalf("alongside+BitLocker review missing the recovery-key warning:\n%s", body)
+	}
+	if b := (model{picks: map[string]string{"disk": "alongside"}, gpt: true, netOnline: true}).reviewBody(72); strings.Contains(b, "BitLocker") {
+		t.Fatal("BitLocker warning shown with no BitLocker partition")
+	}
+	if b := (model{picks: map[string]string{"disk": "whole"}, bitlocker: true, netOnline: true}).reviewBody(72); strings.Contains(b, "BitLocker") {
+		t.Fatal("BitLocker warning shown for a whole-disk wipe (disk is erased anyway)")
 	}
 }

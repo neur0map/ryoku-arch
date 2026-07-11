@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -260,7 +262,7 @@ func sysDisks() []item {
 // module, so the fix is a firmware setting; anything else gets a generic hint.
 func diskHint() string {
 	if hasVMD() {
-		return "No disks found. This machine has Intel VMD (RST) enabled -- enable AHCI / disable VMD (Intel RST) in BIOS setup, then reboot the installer."
+		return "No disks found. This machine has Intel VMD (RST) enabled -- enable AHCI / disable VMD (Intel RST) in BIOS setup, then reboot the installer. dual-boot note: Windows installed under RST will not boot after switching; see docs/installation-hardware.md."
 	}
 	return "No disks found. Check that a drive is connected and detected in firmware, then reboot the installer."
 }
@@ -301,10 +303,11 @@ const espTypeGUID = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
 // a dual-boot install) and the largest contiguous free region in GiB. It is read
 // from lsblk + parted so the installer shows the actual disk, never a guess.
 type diskLayout struct {
-	parts   []part
-	freeG   int
-	windows bool // an NTFS partition is present (a Windows install)
-	gpt     bool // GPT label (alongside requires it)
+	parts     []part
+	freeG     int
+	windows   bool // an NTFS partition is present (a Windows install)
+	gpt       bool // GPT label (alongside requires it)
+	bitlocker bool // a BitLocker-encrypted partition is present (recovery-key warning)
 }
 
 // sysDiskLayout reads the existing partitions and largest free region of a disk.
@@ -332,8 +335,17 @@ func sysDiskLayout(disk string) diskLayout {
 			sizeB, _ := strconv.ParseInt(r["SIZE"], 10, 64)
 			gib := int((sizeB + (1 << 29)) / (1 << 30)) // round to nearest GiB
 			fs := strings.ToLower(r["FSTYPE"])
+			if fs == "bitlocker" {
+				dl.bitlocker = true // locked NTFS: booting Windows via Ryoku will demand the recovery key
+			}
 			p := part{size: gib, fs: fs, mount: "-", flags: "-", status: "keep"}
+			lbl := strings.TrimSpace(r["PARTLABEL"])
 			switch {
+			case lbl == "ryoku" || lbl == "ryokuboot":
+				// Leftover of a prior failed Ryoku run: the backend reclaims (frees)
+				// these before measuring space, so mark them reclaimable. A ryokuboot
+				// leftover is an ESP, so this must win over the ESP case below.
+				p.reclaim, p.dev, p.flags = true, "previous Ryoku", "-"
 			case strings.EqualFold(r["PARTTYPE"], espTypeGUID):
 				p.dev, p.fs, p.mount, p.flags = "EFI (Windows)", "fat32", "-", "esp"
 			case fs == "ntfs":
@@ -367,16 +379,22 @@ func partLabel(lbl, fs string) string {
 }
 
 // largestFreeGiB returns the largest contiguous free region on the disk in GiB.
-// It parses parted's machine-readable listing in MiB (parted rounds GiB output to
-// one decimal), floors to whole MiB, drops a 1 MiB alignment margin, then floors
-// to GiB -- the same byte-precise semantics the backend uses, so the TUI never
-// promises a region the installer would reject.
+// It parses parted's byte-precise `unit B` listing (parted rounds MiB/GiB output,
+// overpromising up to 1 MiB at thresholds); parseLargestFreeGiB does the flooring.
 func largestFreeGiB(disk string) int {
-	out, ok := run("parted", "-ms", disk, "unit", "MiB", "print", "free")
+	out, ok := run("parted", "-ms", disk, "unit", "B", "print", "free")
 	if !ok {
 		return 0
 	}
-	bestMiB := 0.0
+	return parseLargestFreeGiB(out)
+}
+
+// parseLargestFreeGiB mirrors the backend's ryoku_largest_free_mib exactly: over
+// parted's `unit B print free` output it takes the largest "free;" region in whole
+// bytes, floors to MiB, drops a 1 MiB alignment margin, then floors to GiB. Pure so
+// the byte-flooring can be tested over fixture strings without a real disk.
+func parseLargestFreeGiB(out string) int {
+	var bestB int64
 	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)
 		if !strings.HasSuffix(line, "free;") {
@@ -386,14 +404,15 @@ func largestFreeGiB(disk string) int {
 		if len(f) < 4 {
 			continue
 		}
-		if v, err := strconv.ParseFloat(strings.TrimSuffix(f[3], "MiB"), 64); err == nil && v > bestMiB {
-			bestMiB = v
+		if v, err := strconv.ParseInt(strings.TrimSuffix(f[3], "B"), 10, 64); err == nil && v > bestB {
+			bestB = v
 		}
 	}
-	if mib := int64(bestMiB) - 1; mib > 0 {
-		return int(mib / 1024)
+	mib := bestB / (1 << 20) // floor to whole MiB (no float truncation)
+	if mib > 0 {
+		mib-- // 1 MiB alignment margin so the partition can start aligned inside the region
 	}
-	return 0
+	return int(mib / 1024) // floor to GiB
 }
 
 // sysSSIDs lists the cached nearby Wi-Fi networks via nmcli. It uses --rescan no
@@ -407,7 +426,7 @@ func sysSSIDs() []item {
 	seen := map[string]bool{}
 	var items []item
 	for _, line := range strings.Split(out, "\n") {
-		f := strings.Split(line, ":")
+		f := splitNMTerse(line) // nmcli terse escapes ':' and '\' inside SSIDs
 		if len(f) < 3 || f[0] == "" || seen[f[0]] {
 			continue
 		}
@@ -419,6 +438,28 @@ func sysSSIDs() []item {
 		items = append(items, item{f[0], f[0], bars(f[1]) + " · " + sec})
 	}
 	return items
+}
+
+// splitNMTerse splits one nmcli -t line on unescaped ':' field separators and
+// unescapes the values in a single pass. nmcli's terse output backslash-escapes a
+// literal ':' as "\:" and a literal '\' as "\\" inside a value, so a naive split
+// on ':' mangles any SSID that contains either. Pure so it can be tested.
+func splitNMTerse(line string) []string {
+	var fields []string
+	var b strings.Builder
+	for i := 0; i < len(line); i++ {
+		switch c := line[i]; {
+		case c == '\\' && i+1 < len(line): // keep the escaped byte literally (\: -> :, \\ -> \)
+			b.WriteByte(line[i+1])
+			i++
+		case c == ':':
+			fields = append(fields, b.String())
+			b.Reset()
+		default:
+			b.WriteByte(c)
+		}
+	}
+	return append(fields, b.String())
 }
 
 // bars renders a 0-100 signal value as a four-cell bar graph.
@@ -660,11 +701,20 @@ func (m model) installEnv() []string {
 	if m.picks["encryption"] == "LUKS" {
 		env = append(env, "RYOKU_ENCRYPT=1", "RYOKU_LUKS_PASSPHRASE="+m.luksPass)
 	}
-	// Emit RYOKU_WIPE_CONFIRMED only after the typed "ERASE" acknowledgement
-	// (wipeStage == 2). The backend's ryoku_partition_whole requires this token
-	// when the disk already holds partitions; absence aborts the wipe.
+	// The typed "ERASE" acknowledgement (wipeStage == 2) authorizes a destructive
+	// step, but which one depends on strategy: a whole-disk wipe needs
+	// RYOKU_WIPE_CONFIRMED; an alongside install that must free leftover ryoku/
+	// ryokuboot partitions needs RYOKU_RECLAIM_LEFTOVERS (the backend otherwise
+	// dies listing them). Never emit both -- each backend path demands only its own.
 	if m.wipeStage == 2 {
-		env = append(env, "RYOKU_WIPE_CONFIRMED=1")
+		switch m.picks["disk"] {
+		case "whole":
+			env = append(env, "RYOKU_WIPE_CONFIRMED=1")
+		case "alongside":
+			if len(m.reclaim) > 0 {
+				env = append(env, "RYOKU_RECLAIM_LEFTOVERS=1")
+			}
+		}
 	}
 	return env
 }
@@ -681,9 +731,41 @@ type installLineMsg string
 type installStepMsg int
 type installDoneMsg struct{ err error }
 
-type installStream struct{ ch chan tea.Msg }
+type installStream struct {
+	ch       chan tea.Msg
+	cmd      *exec.Cmd     // the running backend, so a ctrl+c abort can signal it
+	procDone chan struct{} // closed once cmd.Wait returns, so kill can block on reap
+}
 
 func (s *installStream) wait() tea.Cmd { return func() tea.Msg { return <-s.ch } }
+
+// kill SIGKILLs the backend group and blocks (bounded) until it is reaped, so no
+// sgdisk/pacstrap child keeps writing the disk after the TUI exits. Used by the
+// install-state ctrl+c abort.
+func (s *installStream) kill() {
+	if s == nil {
+		return
+	}
+	killBackend(s.cmd)
+	if s.procDone != nil {
+		select {
+		case <-s.procDone:
+		case <-time.After(3 * time.Second): // wedged reap must not hang the quit
+		}
+	}
+}
+
+// killBackend SIGKILLs the backend's whole process group (we set Setpgid), so a
+// stuck sgdisk/pacstrap child dies with it; falls back to the bare process. A
+// no-op before Start (Process nil).
+func killBackend(cmd *exec.Cmd) {
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil {
+		_ = cmd.Process.Kill()
+	}
+}
 
 // stepIndex maps a backend @@RYOKU_STEP id to an install row.
 func stepIndex(id string) (int, bool) {
@@ -699,24 +781,32 @@ func stepIndex(id string) (int, bool) {
 // startInstall launches the backend with the built environment and streams its
 // output as messages. The backend path comes from RYOKU_BACKEND or PATH.
 func (m *model) startInstall() tea.Cmd {
-	st := &installStream{ch: make(chan tea.Msg, 128)}
+	st := &installStream{ch: make(chan tea.Msg, 128), procDone: make(chan struct{})}
 	m.istream = st
 	env := append(os.Environ(), m.installEnv()...)
 	bin := os.Getenv("RYOKU_BACKEND")
 	if bin == "" {
 		bin = "ryoku-install"
 	}
+	cmd := exec.Command(bin)
+	cmd.Env = env
+	// Own process group so an abort (scanner overflow or ctrl+c) can signal the
+	// whole tree -- backend plus its sgdisk/pacstrap child -- and reap it. The
+	// model holds the cmd (via st) to do that.
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	pr, pw := io.Pipe()
+	cmd.Stdout, cmd.Stderr = pw, pw
+	st.cmd = cmd
+	// Start synchronously: st.cmd.Process is then set before any ctrl+c abort can
+	// read it (no data race with kill), and a spawn failure surfaces at once.
+	if err := cmd.Start(); err != nil {
+		close(st.procDone)
+		st.ch <- installDoneMsg{err} // buffered channel: never blocks
+		return st.wait()
+	}
 	go func() {
-		cmd := exec.Command(bin)
-		cmd.Env = env
-		pr, pw := io.Pipe()
-		cmd.Stdout, cmd.Stderr = pw, pw
-		if err := cmd.Start(); err != nil {
-			st.ch <- installDoneMsg{err}
-			return
-		}
 		done := make(chan error, 1)
-		go func() { done <- cmd.Wait(); pw.Close() }()
+		go func() { done <- cmd.Wait(); pw.Close(); close(st.procDone) }()
 		sc := bufio.NewScanner(pr)
 		sc.Buffer(make([]byte, 1<<20), 1<<20)
 		for sc.Scan() {
@@ -731,6 +821,17 @@ func (m *model) startInstall() tea.Cmd {
 				continue
 			}
 			st.ch <- installLineMsg(line)
+		}
+		// A backend line longer than the 1 MiB scanner cap stops Scan with
+		// ErrTooLong. Left alone, this goroutine would exit while the backend
+		// blocks writing into the now-unread pipe, and the UI would spin on <-done
+		// forever. Kill the group, drain the pipe so cmd.Wait can return, and
+		// deliver a wrapping error so the failure screen shows instead.
+		if err := sc.Err(); err != nil {
+			killBackend(cmd)
+			io.Copy(io.Discard, pr)
+			st.ch <- installDoneMsg{fmt.Errorf("install output overflowed the reader buffer: %w", err)}
+			return
 		}
 		st.ch <- installDoneMsg{<-done}
 	}()

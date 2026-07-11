@@ -474,6 +474,11 @@ const minRootGiB = 20 // min root partition (GiB): base+desktop closure plus AUR
 const minTermW = 80   // below this the layout can't lay out cleanly
 const minTermH = 20
 
+// abortWindow is how long a first install-state ctrl+c stays "armed": a second
+// ctrl+c within it aborts the install; after it, the warning clears and the count
+// restarts. Long enough to be a deliberate double-press, short enough to expire.
+const abortWindow = 3 * time.Second
+
 type step struct {
 	key, title  string
 	desc        []string
@@ -629,12 +634,13 @@ func gpuDetails(key string) []string {
 // A bar segment (for the disk graph) reuses this; the editor itself is a small set
 // of adjustable rows, not raw partitions.
 type part struct {
-	dev    string
-	size   int
-	fs     string
-	mount  string
-	flags  string
-	status string // keep | new | free
+	dev     string
+	size    int
+	fs      string
+	mount   string
+	flags   string
+	status  string // keep | new | free
+	reclaim bool   // leftover ryoku/ryokuboot partition the backend will free (alongside)
 }
 
 func partColor(p part) color.Color {
@@ -705,6 +711,7 @@ type model struct {
 	pwStage                                      int    // 0 enter · 1 confirm
 	pw1                                          string // first password entry (mock; never persisted)
 	pwErr                                        string
+	netErr                                       string // Wi-Fi connect failure (offline flow)
 	failStep                                     string
 	logPath                                      string
 	qrStr                                        string
@@ -735,9 +742,16 @@ type model struct {
 	// partition step runs regardless of strategy. Review's wipe gate uses
 	// len(existing) > 0 to decide whether to require the typed "ERASE"
 	// acknowledgement before launching a whole-disk install.
-	existing                    []part
-	kept                        []part // existing partitions kept on an alongside install
-	freeG                       int    // largest contiguous free region (GiB) for alongside
+	existing []part
+	kept     []part // existing partitions kept on an alongside install
+	// reclaim holds leftover ryoku/ryokuboot partitions from a prior failed run.
+	// Under alongside the backend frees them (RYOKU_RECLAIM_LEFTOVERS) after the
+	// typed-ERASE ack, so reclaimG counts toward the usable free figure.
+	reclaim                     []part
+	reclaimG                    int
+	gpt                         bool // target disk has a GPT label (alongside requires it)
+	bitlocker                   bool // target disk carries a BitLocker partition (review warning)
+	freeG                       int  // largest contiguous free region (GiB) for alongside (excludes reclaimG)
 	espG, swapG                 int
 	snapshots, sepHome, backups bool
 	lsel                        int
@@ -748,6 +762,11 @@ type model struct {
 	// emits RYOKU_WIPE_CONFIRMED=1 only when wipeStage == 2.
 	wipeStage  int
 	eraseInput string
+	// abortArmed/abortAt gate the install-state ctrl+c: a single press only arms a
+	// warning; a second press within abortWindow kills the backend and quits, so a
+	// stray ctrl+c can't SIGPIPE-kill the backend mid-write and half-write the disk.
+	abortArmed bool
+	abortAt    time.Time
 }
 
 var spinFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
@@ -800,10 +819,22 @@ func (m *model) loadStep() {
 		m.lsel, m.sAnim = 0, 0
 		dl := sysDiskLayout(m.diskDev) // real partitions, used by alongside layout AND the wipe gate
 		m.existing = dl.parts
+		m.gpt, m.bitlocker = dl.gpt, dl.bitlocker
 		if m.picks["disk"] == "alongside" {
-			m.kept, m.freeG = dl.parts, dl.freeG
+			// Split real partitions: genuine keeps stay put and occupy space;
+			// leftover ryoku/ryokuboot partitions get reclaimed (freed), so their
+			// GiB counts toward usable space instead of against it.
+			m.kept, m.reclaim, m.reclaimG, m.freeG = nil, nil, 0, dl.freeG
+			for _, p := range dl.parts {
+				if p.reclaim {
+					m.reclaim = append(m.reclaim, p)
+					m.reclaimG += p.size
+				} else {
+					m.kept = append(m.kept, p)
+				}
+			}
 		} else {
-			m.kept, m.freeG = nil, 0
+			m.kept, m.reclaim, m.reclaimG, m.freeG = nil, nil, 0, 0
 		}
 		m.clampSwapToLayout() // keep default swap within the layout (backend-consistent)
 	case kPass:
@@ -931,6 +962,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 	if k == "ctrl+c" {
+		if m.state == "install" {
+			// A single ctrl+c would SIGPIPE-kill the backend mid-write with no trap
+			// (bash EXIT traps do not run on untrapped fatal signals), leaving a
+			// half-written disk. Require a confirming second press within the window;
+			// the footer shows the warning. On confirm, kill the backend group and
+			// wait for it to reap before quitting so nothing scribbles after we exit.
+			if m.abortArmed && time.Since(m.abortAt) <= abortWindow {
+				m.istream.kill()
+				return m, tea.Quit
+			}
+			m.abortArmed, m.abortAt = true, time.Now()
+			return m, nil
+		}
 		return m, tea.Quit
 	}
 	if m.help { // help overlay open
@@ -1058,15 +1102,22 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 				m.picks["network"] = "online"
 				m.advance()
 			}
-		} else if m.netStage == 1 { // WIRE: iwctl/nmcli connect with this passphrase
+		} else if m.netStage == 1 { // Wi-Fi passphrase entry (offline flow)
 			switch k {
 			case "esc":
-				m.netStage, m.input = 0, ""
+				m.netStage, m.input, m.netErr = 0, "", ""
 			case "enter":
-				wifiConnect(m.netSSID, m.input)
-				m.netOnline, m.picks["network"], m.input = true, "wifi", ""
-				m.advance()
+				// wifiConnect's result was ignored and netOnline forced true, so a
+				// wrong passphrase silently marched on to install with no network.
+				// Require a real connection AND a live probe; otherwise stay here.
+				if wifiConnect(m.netSSID, m.input) && netOnline() {
+					m.netOnline, m.picks["network"], m.input, m.netErr = true, "wifi", "", ""
+					m.advance()
+				} else {
+					m.input, m.netErr = "", "could not connect (wrong passphrase?)"
+				}
 			default:
+				m.netErr = ""
 				m.editInput(k, &m.input)
 			}
 		} else if k == "r" && !m.pick.searching {
@@ -1076,10 +1127,13 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 				m.pick.height = 5
 			}
 		} else if done, sel := m.pick.update(k); done {
-			if l := ssids(); sel < len(l) {
-				m.netSSID = l[sel].key
+			// Resolve from the picker's OWN items: re-running ssids() here indexed a
+			// freshly rescanned (possibly reordered/shorter) list with the stale
+			// picker index, connecting to the wrong network.
+			if sel < len(m.pick.items) {
+				m.netSSID = m.pick.items[sel].key
 			}
-			m.netStage, m.input = 1, ""
+			m.netStage, m.input, m.netErr = 1, "", ""
 		}
 	case kInput:
 		if k == "enter" {
@@ -1181,10 +1235,11 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 				if s.key == "review" && m.reviewBlockReason() != "" {
 					return m, nil
 				}
-				// Whole-disk on a populated disk requires the typed "ERASE"
-				// acknowledgement before any backend command runs. Enter from
-				// the Yes button enters that sub-stage instead of launching.
-				if strat == "whole" && m.diskPopulated() {
+				// A destructive step needs the typed "ERASE" acknowledgement before
+				// any backend command runs: a whole-disk wipe on a populated disk, or
+				// an alongside install that must free leftover ryoku/ryokuboot
+				// partitions. Enter from Yes enters that sub-stage instead of launching.
+				if m.needsEraseAck() {
 					m.wipeStage, m.eraseInput = 1, ""
 					return m, nil
 				}
@@ -1192,7 +1247,10 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 				m.progress, m.progVel = 0, 0
 				return m, tea.Batch(m.tickCmd(), m.startInstall())
 			} else {
-				return m, tea.Quit
+				// Enter on the default No is a no-op: it used to quit and silently
+				// discard the whole session. Only an explicit Yes proceeds; esc/q
+				// still leave.
+				return m, nil
 			}
 		default:
 			if s.key == "review" && len(k) == 1 && k[0] >= '1' && k[0] <= '9' {
@@ -1215,7 +1273,13 @@ func (m *model) editInput(k string, dst *string) {
 		if len(*dst) > 0 {
 			*dst = (*dst)[:len(*dst)-1]
 		}
-	case "enter", "space":
+	case "enter":
+	case "space":
+		// bubbletea v2 delivers the space bar as "space", not " ". Without this
+		// Wi-Fi passphrases and user/LUKS passwords silently drop their spaces
+		// (a post-install lockout). hostname/username still reject spaces via
+		// validInput's visible check, so appending here is safe for them too.
+		*dst += " "
 	default:
 		if r := []rune(k); len(r) == 1 && r[0] >= 0x20 {
 			*dst += k
@@ -1304,6 +1368,26 @@ func (m model) keptG() int {
 // m.existing when the partition step loads, so this is a cheap field check.
 func (m model) diskPopulated() bool { return len(m.existing) > 0 }
 
+// freeAlongside is the usable free space (GiB) for an alongside install: the
+// detected free region plus any leftover ryoku/ryokuboot partitions the backend
+// will reclaim (free) before it measures space. Matches the backend, which
+// reclaims before measuring.
+func (m model) freeAlongside() int { return m.freeG + m.reclaimG }
+
+// needsEraseAck reports whether Review must demand the typed "ERASE"
+// acknowledgement before launching: a whole-disk wipe on a populated disk, or an
+// alongside install that must free leftover Ryoku partitions. Both are
+// destructive, so both gate on the same confirmation.
+func (m model) needsEraseAck() bool {
+	switch m.picks["disk"] {
+	case "whole":
+		return m.diskPopulated()
+	case "alongside":
+		return len(m.reclaim) > 0
+	}
+	return false
+}
+
 // availRoot is the size (GiB) of the root partition: the space we lay out minus
 // the ESP we always create. For alongside that space is the detected free region
 // (our ESP + root both live there, never the Windows ESP); for whole it is the
@@ -1312,7 +1396,7 @@ func (m model) diskPopulated() bool { return len(m.existing) > 0 }
 func (m model) availRoot() int {
 	var a int
 	if m.picks["disk"] == "alongside" {
-		a = m.freeG
+		a = m.freeAlongside() // free region + leftover Ryoku partitions we'll reclaim
 	} else {
 		a = m.diskG - m.keptG()
 	}
@@ -1348,6 +1432,11 @@ func (m model) layoutRows() []lrow {
 	var rows []lrow
 	for i, k := range m.kept {
 		rows = append(rows, lrow{"keep", fmt.Sprintf("keep%d", i), k.dev, "", "keep"})
+	}
+	// Leftover Ryoku partitions are shown as reclaimed (freed), not kept, so the
+	// user sees they will be removed and their space folded into the new root.
+	for i, r := range m.reclaim {
+		rows = append(rows, lrow{"reclaim", fmt.Sprintf("reclaim%d", i), r.dev, "previous Ryoku, will be freed", "reclaim"})
 	}
 	rows = append(rows, lrow{"size", "esp", "ESP size", "/boot · fat32", "required"})
 	rows = append(rows,
@@ -1405,6 +1494,11 @@ func (m model) keepIndex(key string) int {
 	fmt.Sscanf(key, "keep%d", &i)
 	return i
 }
+func (m model) reclaimIndex(key string) int {
+	var i int
+	fmt.Sscanf(key, "reclaim%d", &i)
+	return i
+}
 
 func (m *model) partKey(k string) {
 	rows := m.layoutRows()
@@ -1460,8 +1554,14 @@ func (m model) partBlockReason() string {
 	case "whole":
 		return ""
 	case "alongside":
-		if need := minRootGiB + m.espG; m.freeG < need {
-			return fmt.Sprintf("Only %dG free; alongside needs %dG (a %dG root plus a %dG boot partition). Shrink Windows first, or press esc and choose 'Erase whole disk'.", m.freeG, need, minRootGiB, m.espG)
+		if !m.gpt {
+			// The backend's alongside path is GPT-only (it appends a partition and
+			// reads GPT partlabels); an MBR disk with free space would pass the TUI
+			// and die at backend stage 1. Fail here with the same guidance.
+			return "alongside needs a GPT disk; press esc and choose 'Erase whole disk'."
+		}
+		if free, need := m.freeAlongside(), minRootGiB+m.espG; free < need {
+			return fmt.Sprintf("Only %dG free; alongside needs %dG (a %dG root plus a %dG boot partition). Shrink Windows first, or press esc and choose 'Erase whole disk'.", free, need, minRootGiB, m.espG)
 		}
 		return ""
 	default:
@@ -1505,14 +1605,14 @@ func (m model) layoutSummary() string {
 // layoutSegs builds the disk-bar segments: kept + (new ESP) + root + free.
 func (m model) layoutSegs() []part {
 	segs := append([]part(nil), m.kept...)
-	segs = append(segs, part{"ESP", m.espG, "vfat", "/boot", "esp", "new"})
+	segs = append(segs, part{dev: "ESP", size: m.espG, fs: "vfat", mount: "/boot", flags: "esp", status: "new"})
 	rootUsable := m.availRoot() - m.swapG
 	if rootUsable < 0 {
 		rootUsable = 0
 	}
-	segs = append(segs, part{"root", rootUsable, "btrfs", "/", "-", "new"})
+	segs = append(segs, part{dev: "root", size: rootUsable, fs: "btrfs", mount: "/", flags: "-", status: "new"})
 	if m.swapG > 0 {
-		segs = append(segs, part{"swap", m.swapG, "swap", "[SWAP]", "swap", "new"})
+		segs = append(segs, part{dev: "swap", size: m.swapG, fs: "swap", mount: "[SWAP]", flags: "swap", status: "new"})
 	}
 	return segs
 }
@@ -1613,7 +1713,11 @@ func (m model) frameWithFooter(body, footer string) string {
 	if foot == "" {
 		switch m.state {
 		case "install":
-			foot = lipgloss.PlaceHorizontal(m.w, lipgloss.Center, fg(cDim, "installing…"))
+			msg := fg(cDim, "installing…  ·  ctrl+c to abort")
+			if m.abortArmed && time.Since(m.abortAt) <= abortWindow {
+				msg = bold(cRed, "press ctrl+c again to abort -- leaves a half-written disk")
+			}
+			foot = lipgloss.PlaceHorizontal(m.w, lipgloss.Center, msg)
 		case "done":
 			foot = lipgloss.PlaceHorizontal(m.w, lipgloss.Center, keyHint("↑↓", "choose")+fg(cDim, "    ")+keyHint("enter", "confirm")+fg(cDim, "    ")+keyHint("q", "quit"))
 		case "failed":
@@ -1830,6 +1934,11 @@ func (m model) partBody(inner int) string {
 			sw := sty().Foreground(partColor(p)).Render(gFull + gFull)
 			info := fmt.Sprintf("%4dG %-5s", p.size, p.fs)
 			b.WriteString(prefix + sw + " " + labelStyled(sel, r.label, 16) + " " + fg(cText, info) + " " + fg(cYell, "keep") + fg(cDim, " · kept") + "\n")
+		case "reclaim":
+			p := m.reclaim[m.reclaimIndex(r.key)]
+			sw := sty().Foreground(cDim).Render(gFull + gFull)
+			info := fmt.Sprintf("%4dG %-5s", p.size, p.fs)
+			b.WriteString(prefix + sw + " " + labelStyled(sel, r.label, 16) + " " + fg(cText, info) + " " + fg(cRed, "reclaim") + fg(cDim, " · freed") + "\n")
 		case "size":
 			v, _, mx, _, _ := m.rowSpec(r.key)
 			frac := 0.0
@@ -1879,9 +1988,12 @@ func (m model) netBody(inner int) string {
 		}, "\n")
 	}
 	if m.netStage == 1 {
-		return fg(cRed, gBad+" Not connected") + "\n\n" +
-			fg(cText, "Wi-Fi password:") + "\n" + inputBox(m.input, "", true) + "\n\n" +
-			fg(cDim, "enter to connect · esc back")
+		b := fg(cRed, gBad+" Not connected") + "\n\n" +
+			fg(cText, "Wi-Fi password:") + "\n" + inputBox(m.input, "", true) + "\n"
+		if m.netErr != "" {
+			b += fg(cRed, "⚠ "+m.netErr) + "\n"
+		}
+		return b + "\n" + fg(cDim, "enter to connect · esc back")
 	}
 	return fg(cRed, gBad+" Not connected") + fg(cSub, "   pick a Wi-Fi network, or plug in ethernet and press r") + "\n\n" + m.pick.view(inner, m.phase) + "\n" + fg(cDim, "r to rescan")
 }
@@ -2243,11 +2355,15 @@ func (m model) reviewBody(w int) string {
 	if len(m.kept) > 0 {
 		lines = append(lines, fg(cSub, "kept       ")+fg(cYell, fmt.Sprintf("%d existing partition(s)", len(m.kept))))
 	}
-	// Wipe-confirm sub-stage: when whole is picked on a populated disk and the
-	// user has pressed Enter from the Yes button, a typed "ERASE" prompt blocks
-	// the install handoff. The block is intentionally loud (red banner + listing
-	// of partitions being wiped) so the user cannot mistake it for a casual step.
-	if strat == "whole" && m.diskPopulated() {
+	if len(m.reclaim) > 0 {
+		lines = append(lines, fg(cSub, "reclaim    ")+fg(cRed, fmt.Sprintf("%d previous Ryoku partition(s) (%dG freed)", len(m.reclaim), m.reclaimG)))
+	}
+	// Typed-ERASE sub-stage: a destructive step (whole-disk wipe, or freeing the
+	// leftover Ryoku partitions on alongside) blocks the install handoff behind a
+	// loud red confirmation. Both reuse wipeStage; only the wording differs so the
+	// user knows exactly what is being destroyed.
+	switch {
+	case strat == "whole" && m.diskPopulated():
 		names := make([]string, 0, len(m.existing))
 		for _, p := range m.existing {
 			names = append(names, p.dev)
@@ -2256,22 +2372,39 @@ func (m model) reviewBody(w int) string {
 			"",
 			bold(cRed, fmt.Sprintf("⚠ ERASING %d existing partition(s): %s", len(m.existing), truncW(strings.Join(names, ", "), w-30))),
 		)
-		if m.wipeStage == 1 {
-			lines = append(lines,
-				"",
-				fg(cYell, "type ERASE then press enter to confirm  ·  esc cancels"),
-				inputBox(m.eraseInput, "ERASE", false),
-			)
-		} else {
-			lines = append(lines,
-				fg(cDim, "switch to Yes and press enter; you will be asked to type ERASE"),
-			)
-		}
+		lines = append(lines, m.eraseAckLines()...)
+	case strat == "alongside" && len(m.reclaim) > 0:
+		lines = append(lines,
+			"",
+			bold(cRed, fmt.Sprintf("⚠ reclaiming %d previous Ryoku partition(s) (%dG); your other OS is untouched", len(m.reclaim), m.reclaimG)),
+		)
+		lines = append(lines, m.eraseAckLines()...)
+	}
+	// BitLocker (alongside): a non-blocking heads-up. A locked Windows volume will
+	// demand its recovery key when booted through the Ryoku menu until BitLocker is
+	// suspended or re-sealed.
+	if strat == "alongside" && m.bitlocker {
+		lines = append(lines,
+			"",
+			fg(cYell, "⚠ BitLocker: booting Windows via the Ryoku menu demands the recovery key"),
+			fg(cDim, "  until you suspend it in Windows (or boot Windows via the firmware menu);"),
+			fg(cDim, "  see docs/installation-hardware.md"),
+		)
 	}
 	if r := m.reviewBlockReason(); r != "" {
 		lines = append(lines, "", bold(cRed, "⚠ "+r))
 	}
 	return strings.Join(lines, "\n")
+}
+
+// eraseAckLines renders the typed-ERASE prompt shared by the whole-disk wipe and
+// the alongside reclaim confirmations: a live input box at wipeStage 1, otherwise
+// a hint to switch to Yes.
+func (m model) eraseAckLines() []string {
+	if m.wipeStage == 1 {
+		return []string{"", fg(cYell, "type ERASE then press enter to confirm  ·  esc cancels"), inputBox(m.eraseInput, "ERASE", false)}
+	}
+	return []string{fg(cDim, "switch to Yes and press enter; you will be asked to type ERASE")}
 }
 
 // stepLog is sample command output per step, used by the snapshot layout preview.
@@ -2400,7 +2533,7 @@ func (m model) footer() string {
 	switch {
 	case s.kind == kPartition:
 		switch {
-		case m.layoutRows()[m.lsel].kind == "keep":
+		case m.layoutRows()[m.lsel].kind == "keep", m.layoutRows()[m.lsel].kind == "reclaim":
 			parts = []string{keyHint("↑↓", "move"), keyHint("tab", "done"), keyHint("esc", "back")}
 		case m.layoutRows()[m.lsel].kind == "size":
 			parts = []string{keyHint("←/→", "adjust"), keyHint("shift", "±big"), keyHint("↑↓", "move"), keyHint("tab", "done"), keyHint("esc", "back")}
