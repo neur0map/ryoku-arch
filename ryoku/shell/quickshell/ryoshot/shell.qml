@@ -32,6 +32,7 @@ ShellRoot {
     property bool dialogMode: false
     property string savedAuto: ""
     property string beautifySrc: ""
+    property string beautifyBgImage: ""
 
     function textSize() { return activeWidth * 5 + 8; }
 
@@ -436,6 +437,23 @@ ShellRoot {
     }
 
     Process {
+        id: bgDialog
+        stdout: StdioCollector { id: bgOut }
+        function open() {
+            command = ["sh", "-c",
+                "zenity --file-selection --file-filter='Images | *.png *.jpg *.jpeg *.webp *.bmp' 2>/dev/null"
+                + " || kdialog --getopenfilename ~ 'image/png image/jpeg image/webp' 2>/dev/null",
+                "_"];
+            running = true;
+        }
+        onExited: (code) => {
+            var chosen = bgOut.text.trim();
+            if (code === 0 && chosen.length > 0) root.beautifyBgImage = chosen;
+            root.dialogMode = false;
+        }
+    }
+
+    Process {
         id: copyFileProc
         function run(src, dst) { command = ["cp", "--", src, dst]; running = true; }
         onExited: () => Qt.quit()
@@ -649,8 +667,10 @@ ShellRoot {
                     anchors.fill: parent
                     visible: root.phase === "beautify" && root.anchorOverlay() === win
                     srcPath: root.beautifySrc
+                    bgImagePath: root.beautifyBgImage
                     onCopyRequested: (p) => copyProc.run(p)
                     onSaveRequested: (p) => { root.savedAuto = p; root.dialogMode = true; saveDialog.open(); }
+                    onPickImageRequested: { root.dialogMode = true; bgDialog.open(); }
                     onCloseRequested: root.phase = "editing"
                 }
             }

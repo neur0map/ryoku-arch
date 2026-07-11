@@ -3,15 +3,18 @@
 ## Unreleased
 
 ### Added
-- **Ryoshot gains a Beautify editor (the 力 button).** After a capture, the
-  toolbar's 力 button opens a full editor: the shot on a live canvas beside a
-  grouped settings panel driven by sliders. Background (brand gradients +
-  opacity), Frame (padding, roundness, image scale, border), Shadow (blur,
-  distance, opacity), Adjust (brightness, contrast, saturation), and Size
-  (aspect presets); then Copy or Save through the same path as a plain shot.
-  Built into Ryoshot rather than shelling out to swappy or a separate GTK app,
-  so it matches the desktop, needs no new dependency, and does palette-cohesive
-  backgrounds (`Beautify.qml`, `Slider.qml`, `Toolbar.qml`, `shell.qml`).
+- **Ryoshot gains a Beautify editor (the 力 button), sharing-first.** After a
+  capture, the toolbar's 力 button opens a full editor with a frosted, textured
+  chrome (the launcher's grainy look): a live canvas beside a grouped panel that
+  uses the right control for each job. Background is a thumbnail grid of gradient
+  presets plus Solid / custom Gradient (two colours + angle) / Image / None
+  (transparent); Frame has padding, roundness and a coloured border; Shadow has
+  strength, blur, distance and a direction dial; plus Adjust (brightness /
+  contrast / saturation) and a Ratio row with social formats (X, Instagram,
+  Story, LinkedIn, YouTube, Pinterest) and an optional 力 watermark. Copy or Save
+  through the same path as a plain shot, so it matches the desktop and needs no
+  new dependency (`Beautify.qml`, `Slider.qml`, `Dial.qml`, `Toolbar.qml`,
+  `shell.qml`).
 
 ### Fixed
 - **`ryoku deploy` preserves every user file now, matching a packaged update.**
