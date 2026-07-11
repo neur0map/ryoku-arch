@@ -28,6 +28,21 @@ for tool in go cmake ninja; do
   fi
 done
 
+# The Ryoku.Blobs plugin build (cmake) hard-needs a Qt6 toolchain; go/cmake/ninja
+# alone will not satisfy its find_package(Qt6). Skip when no Qt6 cmake config is
+# discoverable (no qmake6 on PATH and no Qt6Config under a standard cmake prefix)
+# so a plain runner with only go/cmake/ninja stays green instead of hard-failing
+# deep inside cmake.
+qt6_found=0
+command -v qmake6 >/dev/null 2>&1 && qt6_found=1
+for _qtdir in /usr/lib/cmake/Qt6 /usr/lib64/cmake/Qt6 /usr/lib/*/cmake/Qt6 /usr/local/lib/cmake/Qt6; do
+  [[ -d $_qtdir ]] && qt6_found=1
+done
+if (( qt6_found == 0 )); then
+  printf 'iso-stage-check: SKIP (no Qt6 toolchain; qmake6 and Qt6 cmake config both absent)\n'
+  exit 0
+fi
+
 [[ -x $BUILD ]] || { printf 'iso-stage-check: FAIL (build.sh not executable at %s)\n' "$BUILD" >&2; exit 1; }
 
 tmp=$(mktemp -d)

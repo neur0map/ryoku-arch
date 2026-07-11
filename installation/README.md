@@ -12,6 +12,7 @@ installation/
   CHANGELOG.md           the installation overhaul, one Unreleased block
 
   tui/                   the installer front-end (Go, Bubble Tea v2)
+    README.md            the front-end reference: step flow, gates, layout math
     main.go              pure UI: screens, layout, wizard state, the layout math
     system.go            the only file that touches the machine (lists, hardware
                          detection, RYOKU_* handoff to the backend)
@@ -54,6 +55,9 @@ installation/
     airootfs/            files overlaid onto the live root:
       etc/systemd/system/getty@tty1.service.d/autologin.conf   root autologin
       etc/systemd/system/pacman-init.service                   keyring at boot
+      etc/systemd/system/{multi-user,sysinit}.target.wants/*   enable NM, pacman-init, timesyncd
+      etc/systemd/system/etc-pacman.d-gnupg.mount              tmpfs keyring dir (pacman-init)
+      etc/systemd/system/systemd-firstboot.service             masked (-> /dev/null): no firstboot
       root/.bash_profile, root/.zlogin                          tty1 -> session
       usr/local/bin/ryoku-installer-session                     cage+foot+ryoku-tui
       usr/local/bin/ryoku-install                               PATH wrapper -> backend
@@ -62,6 +66,7 @@ installation/
       etc/motd                                                  version/commit banner
       etc/{hostname,locale.conf,localtime,vconsole.conf,shadow} suppress firstboot
       etc/mkinitcpio*                                           archiso initramfs
+    efiboot/loader/loader.conf                                  systemd-boot: default + timeout
     efiboot/loader/entries/                                     UEFI (systemd-boot):
       01-ryoku-linux.conf        normal boot (KMS on), the default
       02-ryoku-nomodeset.conf    safe graphics (nomodeset)
@@ -76,9 +81,14 @@ installation/
     build-ryoku-repo.sh  build a local [ryoku] repo for the VM test to serve
 ```
 
-Two more test files live at the repo root because they guard the backend from
-outside `installation/`: `tests/install-disk-teardown.sh`,
-`tests/install-dns.sh`, `tests/install-mirrors.sh`, `tests/install-chroot-safety.sh`.
+Ten backend fixtures live at the repo root (`tests/install-*.sh`) because they
+guard the backend from outside `installation/`: the two partitioners
+(`install-partition-whole.sh`, `install-partition-alongside.sh`), the free-space
+sizer (`install-largest-free.sh`), the Secure Boot preflight gate
+(`install-preflight.sh`), the clock-skew heal (`install-clock-skew.sh`), the
+dry-run step/sentinel matrix (`install-dryrun-matrix.sh`), the disk teardown
+(`install-disk-teardown.sh`), the DNS and mirror gates (`install-dns.sh`,
+`install-mirrors.sh`), and the chroot-safety scan (`install-chroot-safety.sh`).
 
 ## The flow
 

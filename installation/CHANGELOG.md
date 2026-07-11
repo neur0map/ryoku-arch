@@ -52,3 +52,31 @@ ISO detail live in `backend/CHANGELOG.md` and `iso/CHANGELOG.md`.
   install leaves `/mnt` mounted with a named stage for inspection.
 - TUI: the swapfile is carved from root (raising swap shrinks usable root), and
   the done screen actually runs `systemctl reboot` / `poweroff` on Enter.
+
+### Hardened (adversarial re-audit)
+
+A second, adversarial pass closed the findings a fresh review surfaced on the
+pass-1 installer. Per-area detail is in `backend/CHANGELOG.md` and
+`iso/CHANGELOG.md`.
+
+- Reproducible builds now survive a non-root local build: `mkarchiso` runs under
+  `sudo --preserve-env=SOURCE_DATE_EPOCH` so sudoers `env_reset` cannot strip the
+  anchor, and `profiledef.sh` renders the ISO label and version with `date -u`,
+  so one commit builds one name in any timezone.
+- `build.sh` fails loudly if a `[core]`/`[extra]` mirror-sync window baked a
+  `broadcom-wl` module against a kernel the image does not ship (it asserts one
+  kernel module dir carrying `wl.ko`), which had silently killed live Wi-Fi on
+  Broadcom laptops.
+- The Windows dual-boot playbook gained recovery paths: booting Windows straight
+  from the firmware menu when the Limine chainload boot-loops, the ESP fallback
+  plus a one-line `efibootmgr` re-registration after a Windows feature update
+  reshuffles NVRAM, the BitLocker recovery-key prompt that chainloading triggers,
+  and the caveat that Microsoft does not support two ESPs on one disk.
+- CI covers the previously unwired suites: the Limine menu and Windows-entry
+  fixtures, the disk-teardown and DNS gates, and the installer TUI Go tests join
+  the per-area workflow, and the ISO staging reproducibility check runs inside
+  the ISO build (skipping cleanly when a runner lacks the Qt6 toolchain).
+- Documentation was corrected against the tree: the honest `tests/install-*.sh`
+  enumeration and the full airootfs entry list in `installation/README.md`, the
+  installer test list in `docs/development.md`, and the twelve `release/packages`
+  dirs plus the `ryoku-desktop` dependency set in `docs/structure.md`.
