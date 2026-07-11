@@ -42,6 +42,10 @@ pipewire
 pipewire-alsa
 pipewire-pulse
 wireplumber
+# rtkit: RealtimeKit grants PipeWire/WirePlumber realtime scheduling priority.
+# base set so the installer's rtkit-daemon.service enable succeeds even offline
+# (it otherwise arrives only with the ryoku-desktop umbrella).
+rtkit
 
 # Graphics base (vendor drivers added per profile)
 mesa
