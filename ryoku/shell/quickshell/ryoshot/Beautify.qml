@@ -195,19 +195,20 @@ Item {
                         Repeater {
                             model: beautify.presets
                             Rectangle {
+                                id: cell
                                 required property int index
                                 required property var modelData
                                 width: (parent.width - 5 * 8) / 6
                                 height: 34
                                 radius: 8
-                                readonly property bool sel: beautify.bgKind === "preset" && beautify.bgPreset === index
-                                border.color: sel ? "#ffffff" : beautify.hair
-                                border.width: sel ? 2 : 1
+                                readonly property bool sel: beautify.bgKind === "preset" && beautify.bgPreset === cell.index
+                                border.color: cell.sel ? "#ffffff" : beautify.hair
+                                border.width: cell.sel ? 2 : 1
                                 gradient: Gradient {
-                                    GradientStop { position: 0.0; color: modelData.a }
-                                    GradientStop { position: 1.0; color: modelData.b }
+                                    GradientStop { position: 0.0; color: cell.modelData.a }
+                                    GradientStop { position: 1.0; color: cell.modelData.b }
                                 }
-                                MouseArea { anchors.fill: parent; onClicked: { beautify.bgKind = "preset"; beautify.bgPreset = index; } }
+                                MouseArea { anchors.fill: parent; onClicked: { beautify.bgKind = "preset"; beautify.bgPreset = cell.index; } }
                             }
                         }
                     }
@@ -496,27 +497,29 @@ Item {
     }
 
     component BgType: Rectangle {
+        id: bgt
         property string label: ""
         property bool on: false
         signal tapped()
         width: (parent.width - 3 * 8) / 4
         height: 30
         radius: 8
-        color: on ? beautify.vermilion : (btMa.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : beautify.fieldBg)
-        Text { anchors.centerIn: parent; text: parent.label; color: parent.on ? "#ffffff" : beautify.idle; font.family: "Space Grotesk"; font.pixelSize: 12; font.weight: parent.on ? Font.DemiBold : Font.Medium }
-        MouseArea { id: btMa; anchors.fill: parent; hoverEnabled: true; onClicked: parent.tapped() }
+        color: bgt.on ? beautify.vermilion : (btMa.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : beautify.fieldBg)
+        Text { anchors.centerIn: parent; text: bgt.label; color: bgt.on ? "#ffffff" : beautify.idle; font.family: "Space Grotesk"; font.pixelSize: 12; font.weight: bgt.on ? Font.DemiBold : Font.Medium }
+        MouseArea { id: btMa; anchors.fill: parent; hoverEnabled: true; onClicked: bgt.tapped() }
     }
 
     component Pill: Rectangle {
+        id: pill
         property string label: ""
         property bool on: false
         signal tapped()
         implicitWidth: pl.implicitWidth + 22
         height: 28
         radius: 8
-        color: on ? beautify.vermilion : (plMa.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : beautify.fieldBg)
-        Text { id: pl; anchors.centerIn: parent; text: parent.label; color: parent.on ? "#ffffff" : beautify.idle; font.family: "Space Grotesk"; font.pixelSize: 12; font.weight: parent.on ? Font.DemiBold : Font.Medium }
-        MouseArea { id: plMa; anchors.fill: parent; hoverEnabled: true; onClicked: parent.tapped() }
+        color: pill.on ? beautify.vermilion : (plMa.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : beautify.fieldBg)
+        Text { id: pl; anchors.centerIn: parent; text: pill.label; color: pill.on ? "#ffffff" : beautify.idle; font.family: "Space Grotesk"; font.pixelSize: 12; font.weight: pill.on ? Font.DemiBold : Font.Medium }
+        MouseArea { id: plMa; anchors.fill: parent; hoverEnabled: true; onClicked: pill.tapped() }
     }
 
     component ColorRow: Flow {
@@ -527,17 +530,18 @@ Item {
         Repeater {
             model: beautify.palette
             Rectangle {
+                id: sw
                 required property var modelData
                 width: 22
                 height: 22
                 radius: 6
-                color: modelData
-                readonly property bool sel: Qt.colorEqual(cr.current, modelData)
-                border.color: sel ? "#ffffff" : beautify.hair
-                border.width: sel ? 2 : 1
+                color: sw.modelData
+                readonly property bool sel: Qt.colorEqual(cr.current, sw.modelData)
+                border.color: sw.sel ? "#ffffff" : beautify.hair
+                border.width: sw.sel ? 2 : 1
                 scale: crMa.containsMouse ? 1.12 : 1
                 Behavior on scale { NumberAnimation { duration: 80 } }
-                MouseArea { id: crMa; anchors.fill: parent; hoverEnabled: true; onClicked: cr.picked(modelData) }
+                MouseArea { id: crMa; anchors.fill: parent; hoverEnabled: true; onClicked: cr.picked(sw.modelData) }
             }
         }
     }
