@@ -3,8 +3,14 @@
 # AUR install via the system helper. yay = bootstrapped at install time,
 # paru = accepted fallback. extras actuator routes anything not in the
 # official repos through here.
+#
+# Each package is installed on its own, not as one `yay -S a b c` batch: one
+# AUR build failing (a flaky dependency, a missing multilib provider) aborts a
+# batch and strands every other package, so a whole bundle's AUR half comes up
+# empty because of one bad apple. Per-package, a failure is isolated and the
+# actuator's own pkg_installed check reports each one accurately.
 
-set -euo pipefail
+set -uo pipefail
 
 (($#)) || {
   echo "ryoku-pkg-aur-add: no packages given" >&2
@@ -24,4 +30,12 @@ done
   exit 1
 }
 
-exec "$helper" -S --needed --noconfirm "$@"
+rc=0
+for pkg in "$@"; do
+  echo "==> $helper -S $pkg"
+  "$helper" -S --needed --noconfirm "$pkg" || {
+    echo "ryoku-pkg-aur-add: $pkg did not install, continuing with the rest" >&2
+    rc=1
+  }
+done
+exit $rc
