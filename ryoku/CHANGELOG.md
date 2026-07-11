@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- `hyprland` + `hub`: **recordings are constant-framerate and crisp by default,
+  and now configurable.** `ryoku-cmd-screenrecord` recorded variable-framerate
+  with no quality flag, so clips felt like 30fps and imported as ~30 in editors.
+  It now defaults to constant 60fps (`-fm cfr`) at `very_high`, and reads
+  fps/quality/codec/encoder from `recording.json`, which the Hub's new Recording
+  page writes. wf-recorder (the multi-GPU fallback) gained matching quality
+  (VAAPI qp / x264 crf). Env vars still override everything.
 - `hyprland` + `cli` + `shell`: **`user.lua` ships seeded with a header, not
   empty.** The hand-written override file Hyprland loads last is now seeded on
   install (like `keyboard.lua`) with a comment block spelling out the load

@@ -27,6 +27,7 @@ Rectangle {
         { "key": "dictation",   "name": "Dictation",       "icon": "mic",      "group": "System" },
         { "key": "connections", "name": "Connections",     "icon": "wifi",     "group": "System" },
         { "key": "gpu",         "name": "GPU",             "icon": "chip",     "group": "System" },
+        { "key": "recording",   "name": "Recording",       "icon": "play",     "group": "System" },
         { "key": "updates",     "name": "Updates",         "icon": "download", "pinned": "bottom" },
         { "key": "credits",     "name": "Credits",         "icon": "heart",    "pinned": "bottom" },
         { "key": "appearance",  "name": "Appearance",      "icon": "palette",  "group": "Desktop" },
@@ -65,6 +66,7 @@ Rectangle {
         "launcher":    { "title": "App Launcher", "subtitle": "Tune the command palette you open with Super+Space: its roundness, the weather units, and the home card's backdrop and greeting." },
         "connections": { "title": "Connections", "subtitle": "Wi-Fi networks, Bluetooth devices, and your hotspot, all in one place." },
         "gpu":         { "title": "GPU", "subtitle": "Choose which GPU Ryoku renders on. GPU passthrough is an optional advanced path that frees the discrete GPU for a VM; run virtual machines from the ryovm app." },
+        "recording":   { "title": "Recording", "subtitle": "Screen recording quality: framerate, definition, codec, and the hardware encoder Ryoku uses for your machine. Start and stop from the bar's screen-capture Tools." },
         "updates":     { "title": "Updates", "subtitle": "Updates pending for your Ryoku system." },
         "credits":     { "title": "Credits", "subtitle": "The projects, communities, and people Ryoku is built on, and the alpha and beta testers who keep it honest." },
         "store":       { "title": "Store", "subtitle": "Browse and install shell plugins and extras bundles for the Ryoku desktop." },
@@ -184,6 +186,7 @@ Rectangle {
         case "widgets":     return { "edit": [ryoku + "/widgets.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
         case "launcher":    return { "edit": [ryoku + "/launcher.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
         case "performance": return { "edit": [ryoku + "/performance.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
+        case "recording":   return { "edit": [ryoku + "/recording.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
         default:            return {};
         }
     }
@@ -290,6 +293,7 @@ Rectangle {
         case "store": return storeComp;
         case "addons": return addonsComp;
         case "performance": return performanceComp;
+        case "recording": return recordingComp;
         case "rashin": return rashinComp;
         default: return shellComp;
         }
@@ -319,6 +323,7 @@ Rectangle {
     Component { id: connectionsComp; ConnectionsPage {} }
     Component { id: gpuComp; GpuPage {} }
     Component { id: performanceComp; PerformancePage {} }
+    Component { id: recordingComp; RecordingPage {} }
     Component { id: rashinComp; RashinPage {} }
 
     Item {

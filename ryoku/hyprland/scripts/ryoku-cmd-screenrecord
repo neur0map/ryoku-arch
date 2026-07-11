@@ -26,6 +26,29 @@ notify() {
   fi
 }
 
+# Hub-owned recording settings (~/.config/ryoku/recording.json), written by the
+# Recording page. env vars still override, then this file, then the built-in
+# default. only video encode knobs live here (fps, quality, codec, framerate
+# mode, encoder, cursor); capture mode and audio are per-recording flags.
+recording_config_file() {
+  printf '%s/ryoku/recording.json' "${XDG_CONFIG_HOME:-$HOME/.config}"
+}
+
+cfg_get() {
+  local key="$1" def="$2" val="" f
+  f="$(recording_config_file)"
+  if [[ -r $f ]] && command -v jq >/dev/null 2>&1; then
+    val="$(jq -r "$key // empty" "$f" 2>/dev/null || true)"
+  fi
+  printf '%s' "${val:-$def}"
+}
+
+cfg_bool() { # -> yes|no
+  local v
+  v="$(cfg_get "$1" "$2")"
+  if [[ $v == true || $v == yes || $v == 1 ]]; then printf 'yes'; else printf 'no'; fi
+}
+
 require_command() {
   local command_name="$1"
   local label="$2"
@@ -329,18 +352,65 @@ status_recording() {
   fi
 }
 
+# vendor id of the GPU driving the focused output, for the encoder label.
+focused_gpu_vendor() {
+  local out conn cardnum
+  out="$(focused_output)"
+  [[ -n $out ]] || return 0
+  for conn in /sys/class/drm/card*-"$out"; do
+    [[ -e $conn ]] || continue
+    cardnum="$(basename "$conn")"
+    cardnum="${cardnum%%-*}"
+    cat "/sys/class/drm/$cardnum/device/vendor" 2>/dev/null && return 0
+  done
+}
+
+encoder_label() {
+  local backend="$1" encoder="$2" vendor
+  if [[ $encoder == cpu ]]; then printf 'CPU (libx264)'; return 0; fi
+  vendor="$(focused_gpu_vendor)"
+  case "$vendor" in
+  0x10de) printf 'NVIDIA NVENC' ;;
+  0x1002) printf 'AMD VAAPI' ;;
+  0x8086) printf 'Intel QSV' ;;
+  *) if [[ $backend == wf ]]; then printf 'VAAPI'; else printf 'GPU (hardware)'; fi ;;
+  esac
+}
+
+# machine-readable summary for the Hub's Recording page: which backend + encoder
+# will run, and the resolved settings.
+info_recording() {
+  local backend fps quality codec fmode encoder enc
+  backend="$(select_backend)"
+  fps="${RYOKU_SCREENRECORD_FPS:-$(cfg_get '.fps' 60)}"
+  quality="${RYOKU_SCREENRECORD_QUALITY:-$(cfg_get '.quality' very_high)}"
+  codec="${RYOKU_SCREENRECORD_CODEC:-$(cfg_get '.codec' h264)}"
+  fmode="${RYOKU_SCREENRECORD_FRAMERATE_MODE:-$(cfg_get '.framerateMode' cfr)}"
+  encoder="${RYOKU_SCREENRECORD_ENCODER:-$(cfg_get '.encoder' gpu)}"
+  enc="$(encoder_label "$backend" "$encoder")"
+  printf '{"backend":"%s","encoder":"%s","fps":"%s","quality":"%s","codec":"%s","framerateMode":"%s"}\n' \
+    "$backend" "$enc" "$fps" "$quality" "$codec" "$fmode"
+}
+
 start_gsr() {
   local mode="$1"
   local desktop_audio="$2"
   local microphone_audio="$3"
   local recorder_cmd="${RYOKU_SCREENRECORD_RECORDER:-gpu-screen-recorder}"
-  local fps="${RYOKU_SCREENRECORD_FPS:-60}"
+  local fps fmode quality codec encoder cursor
   local capture="screen"
   local region_geom=""
   local audio_source=""
   local output_dir
   local output_path
   local args
+
+  fps="${RYOKU_SCREENRECORD_FPS:-$(cfg_get '.fps' 60)}"
+  fmode="${RYOKU_SCREENRECORD_FRAMERATE_MODE:-$(cfg_get '.framerateMode' cfr)}"
+  quality="${RYOKU_SCREENRECORD_QUALITY:-$(cfg_get '.quality' very_high)}"
+  codec="${RYOKU_SCREENRECORD_CODEC:-$(cfg_get '.codec' h264)}"
+  encoder="${RYOKU_SCREENRECORD_ENCODER:-$(cfg_get '.encoder' gpu)}"
+  cursor="$(cfg_bool '.cursor' true)"
 
   require_command "$recorder_cmd" gpu-screen-recorder
 
@@ -362,7 +432,10 @@ start_gsr() {
   mkdir -p "$output_dir"
   output_path="$(next_recording_path "$output_dir")"
 
-  args=("$recorder_cmd" -w "$capture" -f "$fps" -c mp4 -cursor yes)
+  # -fm cfr: a steady framerate every player and editor reads correctly (vfr
+  # often imports as ~30fps and looks choppy). -q/-k/-encoder come from the
+  # Hub's Recording page (recording.json); env vars override.
+  args=("$recorder_cmd" -w "$capture" -f "$fps" -fm "$fmode" -q "$quality" -k "$codec" -encoder "$encoder" -c mp4 -cursor "$cursor")
   [[ $capture == "region" ]] && args+=(-region "$region_geom")
   [[ -n $audio_source ]] && args+=(-a "$audio_source")
   args+=(-o "$output_path")
@@ -375,10 +448,13 @@ start_wf() {
   local desktop_audio="$2"
   local microphone_audio="$3"
   local wf_cmd="${RYOKU_SCREENRECORD_WF:-wf-recorder}"
-  local fps="${RYOKU_SCREENRECORD_FPS:-60}"
+  local fps quality qp crf
   local geom monitor audio_dev node output_dir output_path pid status
   local target_args=()
   local audio_args=()
+
+  fps="${RYOKU_SCREENRECORD_FPS:-$(cfg_get '.fps' 60)}"
+  quality="${RYOKU_SCREENRECORD_QUALITY:-$(cfg_get '.quality' very_high)}"
 
   require_command "$wf_cmd" wf-recorder
 
@@ -408,6 +484,14 @@ start_wf() {
   mkdir -p "$output_dir"
   output_path="$(next_recording_path "$output_dir")"
 
+  # quality preset -> VAAPI qp / x264 crf (lower = crisper).
+  case "$quality" in
+  ultra) qp=16; crf=17 ;;
+  very_high) qp=20; crf=20 ;;
+  high) qp=24; crf=23 ;;
+  *) qp=28; crf=28 ;;
+  esac
+
   # explicit codec: skip hw/sw negotiation entirely.
   if [[ -n ${RYOKU_SCREENRECORD_WF_CODEC:-} ]]; then
     exec "$wf_cmd" -r "$fps" "${target_args[@]}" "${audio_args[@]}" \
@@ -420,7 +504,7 @@ start_wf() {
   node="$(wf_vaapi_node || true)"
   if [[ -n ${node:-} ]]; then
     "$wf_cmd" -r "$fps" "${target_args[@]}" "${audio_args[@]}" \
-      -c h264_vaapi -d "$node" -F "scale_vaapi=format=nv12" -f "$output_path" &
+      -c h264_vaapi -d "$node" -p qp="$qp" -F "scale_vaapi=format=nv12" -f "$output_path" &
     pid=$!
     sleep 1.5
     if kill -0 "$pid" 2>/dev/null; then
@@ -435,7 +519,7 @@ start_wf() {
   fi
 
   exec "$wf_cmd" -r "$fps" "${target_args[@]}" "${audio_args[@]}" \
-    -c libx264 -p preset=veryfast -f "$output_path"
+    -c libx264 -p preset=veryfast -p crf="$crf" -f "$output_path"
 }
 
 start_recording() {
@@ -502,6 +586,9 @@ while (($# > 0)); do
   --status|status)
     action="status"
     ;;
+  --info|info)
+    action="info"
+    ;;
   --help|-h|help)
     usage
     exit 0
@@ -535,5 +622,8 @@ pause)
   ;;
 status)
   status_recording
+  ;;
+info)
+  info_recording
   ;;
 esac

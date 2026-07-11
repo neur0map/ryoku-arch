@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- **Recording page (System).** Screen recording finally has controls: framerate
+  (30/60/120), constant vs variable framerate, quality (up to ultra), codec
+  (H.264 / HEVC / AV1), GPU-or-CPU encoder, and cursor visibility, saved to
+  `recording.json`. An "under the hood" card asks the recorder which backend and
+  hardware encoder actually run on your machine (`RecordingPage.qml`, `Hub.qml`).
 - **The Advanced pages explain themselves now.** Every config button carries a
   hover tooltip spelling out what it opens and whether edits survive an update.
   App Overrides gained a plain-language intro, a *pick from an open window* class
