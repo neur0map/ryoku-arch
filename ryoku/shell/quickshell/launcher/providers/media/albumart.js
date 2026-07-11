@@ -4,11 +4,10 @@
 // to 600x600 for a cover-sized image. Pure so parse/URL logic is node-tested
 // without invoking curl. Consumed by NowPlaying.qml.
 
-// Strip common YouTube/video noise from a title so the iTunes match lands on the
-// actual song: bracketed tags ((Official Video), [HD], (Lyrics), (Audio)...), a
-// trailing " - ..." or "feat./ft." credit, and collapsed whitespace. Applied to
-// the fallback lookup for non-YT-Music players (browsers), where titles carry
-// this cruft; YT Music's own stream supplies a clean square cover directly.
+// Strip common video-title noise so the iTunes match lands on the actual song:
+// bracketed tags ((Official Video), [HD], (Lyrics), (Audio)...), a trailing
+// " - ..." or "feat./ft." credit, and collapsed whitespace. Applied to the
+// fallback lookup for players whose titles carry this cruft (browsers).
 function cleanTitle(s) {
     return String(s == null ? "" : s)
         .replace(/\([^)]*\)/g, " ")

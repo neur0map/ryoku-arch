@@ -4,8 +4,8 @@ import Quickshell.Services.Mpris
 import "../../../Singletons"
 import "../.."
 
-// MPRIS provider: surfaces the active media player (Spotify, the YT Music PWA,
-// a browser tab, mpv) as launcher rows. The now-playing row plus transport verbs
+// MPRIS provider: surfaces the active media player (Spotify, a browser tab, mpv)
+// as launcher rows. The now-playing row plus transport verbs
 // appear when the query mentions media (play/pause/next/music...) or matches the
 // current track, so a plain search stays clean. Control is direct D-Bus via the
 // Quickshell Mpris service; no backend.
@@ -45,12 +45,6 @@ Provider {
             { name: "Next", icon: "", execute: function () { if (p.canGoNext) p.next(); } },
             { name: "Previous", icon: "", execute: function () { if (p.canGoPrevious) p.previous(); } }
         ];
-        // Bridge system audio -> free music: seed an endless YouTube Music radio
-        // from whatever is playing (a browser video, Spotify, any app). Skipped
-        // when our own YT stream is the player, where it would just restart radio.
-        if (String(p.identity || "").toLowerCase() !== "mpv" && p.trackTitle && p.trackTitle.length) {
-            acts.push({ name: "YT Radio", icon: "", execute: function () { Radio.playFromText((p.trackTitle || "") + " " + artist); } });
-        }
         return {
             id: "mpris:now",
             title: p.trackTitle && p.trackTitle.length ? p.trackTitle : "Now playing",

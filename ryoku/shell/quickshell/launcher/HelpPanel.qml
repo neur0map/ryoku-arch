@@ -16,7 +16,6 @@ Item {
         { k: "/file",  d: "find files (also /folder /image /video)" },
         { k: ">",      d: "packages: >install, >remove, >search" },
         { k: "=",      d: "calculator" },
-        { k: "@",      d: "YouTube Music search" },
         { k: "?",      d: "web search (supports !bangs)" },
         { k: "\\",     d: "ask the Rashin agent (one terse answer)" }
     ]

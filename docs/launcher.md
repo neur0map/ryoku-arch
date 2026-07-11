@@ -47,8 +47,7 @@ the dispatcher discovers it by registration, never by an edit to the routing.
 | files | (default, 3+ chars) | fd file search, open or reveal |
 | snippets | (default) | text expander (`{date}`/`{clipboard}`/`{selection}`/`{cursor}`) + quicklinks (`{query}`) |
 | packages | `install`/`remove`/`search` | GPK across every package manager |
-| mpris | (default, media words) | now-playing + transport for any player, plus **YT Radio** (seed a YouTube Music radio from whatever is playing) |
-| ytmusic | `@`, pasted YT link | YouTube Music search (InnerTube), pasted track/playlist/mix links, endless radio playback (mpv), saved playlists |
+| mpris | (default, media words) | now-playing + transport for any player |
 | script | per-script keyword | run rofi-script / dmenu scripts |
 | rashin ask | `\` | one terse question to the Rashin agent (hermes): a pulsing strip names what it is doing (tool, thinking, writing), then the answer renders as selectable text over action chips. The daemon detects entities in the answer and each becomes a chip: real files open in nvim, folders in the file manager, URLs in the browser, shell commands and hex colors (with a live swatch) copy to the clipboard, plus COPY for the whole answer and CONTINUE IN DASHBOARD. Chips walk with the arrow keys and fire with ENTER; typing re-asks. Needs Rashin enabled; see `rashin.md` |
 
@@ -56,37 +55,21 @@ Ranking and protocol logic live as testable JavaScript in `lib/` and each
 provider's folder (`fuzzy.js`, `dispatch.js`, `rofiscript.js`, `wave.js`,
 per-provider parsers), each with a `.test.mjs` run by `node`.
 
-## Music
+## Media
 
-YouTube Music is Ryoku's built-in free-music source, and the launcher is its
-front door: search a track and it plays inline, then keeps going as an endless
-radio. The engine and the full behaviour (queue, radio auto-extend, the
-system-audio bridge) are documented in `docs/ryotunes.md`; this is the launcher
-surface for it.
+The launcher surfaces whatever is already playing so you can control it without
+leaving the palette.
 
-- **YouTube Music** (`@`): searches YouTube Music's keyless InnerTube API with
-  curl and shows proper songs (clean title/artist/album and square album art in
-  the row, no second cover lookup). A prefix cache makes refining a query feel
-  instant; if InnerTube is unreachable it falls back to a yt-dlp flat search so
-  results never disappear. Picking a track hands off to the RyoTunes engine
-  (`Singletons/Radio.qml`): mpv streams it (audio only) and an endless YouTube
-  Music radio auto-extends behind it. Needs yt-dlp and mpv (with mpv-mpris); the
-  provider hides itself when they are absent. A signed-in default browser lifts
-  yt-dlp's rate limit through `--cookies-from-browser`.
 - **Any player** (mpris): the now-playing row controls whatever is playing
-  (Spotify, a browser tab, an app) with play/pause/next/prev. When it is not our
-  own stream it also offers **YT Radio**, which seeds an endless YouTube Music
-  radio from that track's title and artist, so any system audio turns into free
-  music. Our stream yields to other players by fading out and pausing, so two
-  streams never stack.
+  (Spotify, a browser tab, an app) with play/pause/next/prev. It appears when the
+  query mentions a media word or matches the current track.
 - The now-playing card on the rest screen shows album art, title/artist, elapsed
-  and total time, an up-next peek while our radio plays, and the signature wavy
-  seekbar (a sine that animates only while playing); the fill advances off a
-  500ms MPRIS position poll. A live cava wave sweeps behind it while a track
-  plays, gated so the analyser runs only while the launcher is open and something
-  is playing. When our radio owns playback the card uses its exact square cover;
-  for another player with no cover (some browsers) it fetches one from the
-  keyless iTunes Search API by artist and title (noise-stripped for a better hit).
+  and total time, and the signature wavy seekbar (a sine that animates only while
+  playing); the fill advances off a 500ms MPRIS position poll. A live cava wave
+  sweeps behind it while a track plays, gated so the analyser runs only while the
+  launcher is open and something is playing. For a player with no cover (some
+  browsers) it fetches one from the keyless iTunes Search API by artist and title
+  (noise-stripped for a better hit).
 
 ## Extending it
 

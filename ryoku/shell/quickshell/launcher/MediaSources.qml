@@ -7,7 +7,7 @@ import "Singletons"
 // The other-players strip: extends under the now-playing card so every media
 // source is visible and switchable at a glance without a second panel. The active
 // player owns the full card above; every OTHER controllable player with a track
-// (a paused browser tab, Spotify, our own paused radio) shows here as one slim
+// (a paused browser tab, Spotify, a video) shows here as one slim
 // row: tiny cover, title dot artist, a play button. Tapping a row switches source,
 // pausing the rest so two streams never overlap. Slim by design so two players
 // read as one compact stack, not a second card.
@@ -20,12 +20,12 @@ Column {
     spacing: 4 * s
 
     // Controllable players with a track, minus the one in the card, capped so the
-    // strip never balloons. Radio.realPlayers drops the playerctld proxy and
+    // strip never balloons. Players.realPlayers drops the playerctld proxy and
     // dedupes by dbusName, so a source never shows twice; the Mpris.players read
     // keeps it live as playback state changes.
     readonly property var sources: {
         void Mpris.players.values;
-        var list = Radio.realPlayers();
+        var list = Players.realPlayers();
         var out = [];
         for (var i = 0; i < list.length && out.length < 3; i++) {
             var p = list[i];
@@ -38,9 +38,9 @@ Column {
     }
 
     // Switch the airwaves to `target`: resume it, pause every other real player,
-    // so exactly one source plays. Works for any player, our mpv included.
+    // so exactly one source plays. Works for any player.
     function switchTo(target) {
-        var list = Radio.realPlayers();
+        var list = Players.realPlayers();
         for (var i = 0; i < list.length; i++) {
             var p = list[i];
             if (p === target) {
@@ -70,15 +70,9 @@ Column {
             border.width: hover.containsMouse ? 1 : 0
             border.color: Theme.frameBorder
 
-            readonly property bool ours: Radio.isOurPlayer(modelData)
-            // our own stream carries no MPRIS art and a raw "watch?v=" title; use
-            // the radio engine's square cover and clean title/artist for it, the
-            // player's own metadata for everyone else.
-            readonly property string cover: ours && Radio.cover.length > 0 ? Radio.cover
-                : (modelData.trackArtUrl && modelData.trackArtUrl.length > 0 ? modelData.trackArtUrl : "")
-            readonly property string trackName: ours && Radio.title.length > 0 ? Radio.title : (modelData.trackTitle || "")
-            readonly property string who: ours && Radio.artist.length > 0 ? Radio.artist
-                : Theme.joinArtists(modelData.trackArtists, modelData.trackArtist)
+            readonly property string cover: modelData.trackArtUrl && modelData.trackArtUrl.length > 0 ? modelData.trackArtUrl : ""
+            readonly property string trackName: modelData.trackTitle || ""
+            readonly property string who: Theme.joinArtists(modelData.trackArtists, modelData.trackArtist)
 
             ClippingRectangle {
                 id: thumb

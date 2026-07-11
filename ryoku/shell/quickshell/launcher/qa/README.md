@@ -26,7 +26,7 @@ contrast, and the empty/loading states render intentionally.
 Every scenario starts from launcher hidden + 0.5s settle; `show` resets the
 query, selection, grid/help modes (Launcher.onShownChanged). Async providers
 are waited on with `settle` (polls `state.busy || state.searching`, max 8s).
-Network-dependent scenarios (web answers, YT Music, weather) are marked
+Network-dependent scenarios (web answers, weather) are marked
 `"network": true` in the suite; they legitimately fail offline.
 
 ## Files

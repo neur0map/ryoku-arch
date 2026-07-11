@@ -155,10 +155,8 @@ desktop-file-utils
 
 # Launcher (command palette, Super+Space): qalc backs the calculator (units,
 # currency, %, functions; a Python arithmetic fallback covers a qalc-less box),
-# mpv-mpris exposes the YouTube Music mpv stream over MPRIS so the now-playing
-# card and transport controls work, and songrec powers Recognize Music.
+# and songrec powers Recognize Music.
 libqalculate
-mpv-mpris
 songrec
 
 # Screen toolkit (pill Super+D): OCR text recognition (tesseract) and QR scanning

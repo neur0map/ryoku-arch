@@ -23,9 +23,6 @@ Item {
     // when true and not a default provider, the dispatcher still includes this
     // provider in the fan-out for a numeric-looking query (e.g. the calculator).
     property bool numericFallback: false
-    // like numericFallback, but for a pasted YouTube link (ytmusic), so a link
-    // surfaces its "play" row unprefixed while text search still needs the prefix.
-    property bool urlFallback: false
 
     // Override in a concrete provider. Default is no results.
     function query(text) {

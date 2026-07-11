@@ -35,13 +35,6 @@ function looksNumeric(text) {
     return MATH_HEAD.test(s);
 }
 
-// Whether the text is a YouTube / YouTube Music link, so an unprefixed paste
-// surfaces the "play this" row even though ytmusic is not a default provider.
-var YT_URL = /^https?:\/\/(www\.|m\.|music\.)?(youtube\.com|youtu\.be)\//i;
-function looksYtUrl(text) {
-    return YT_URL.test(String(text == null ? "" : text).replace(/^\s+/, ""));
-}
-
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { routePrefix, looksNumeric, looksYtUrl };
+    module.exports = { routePrefix, looksNumeric };
 }

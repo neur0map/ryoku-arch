@@ -14,12 +14,10 @@ import "lib/spectrum.js" as SpectrumWave
 // by Launcher.qml. The FrameAnimation that drives the wave repaints only while
 // playing and visible, so an idle launcher costs nothing. Transport buttons dim
 // from the player's can* flags so the card degrades gracefully (streams/ads).
-// Cover art: when our own YouTube Music radio (Singletons/Radio.qml) owns the
-// player, the card shows that engine's exact square art, clean title/artist, and
-// an up-next peek, with no lookup. For any other player with no trackArtUrl (some
-// browsers) it fetches a cover from the keyless iTunes Search API by "artist
-// title" (noise-stripped), once per track; the music-note fallback stands in
-// while the lookup is in flight or if it turns up nothing.
+// Cover art: the player's own trackArtUrl when it has one; for a player with none
+// (some browsers) it fetches a cover from the keyless iTunes Search API by "artist
+// title" (noise-stripped), once per track; the music-note fallback stands in while
+// the lookup is in flight or if it turns up nothing.
 Item {
     id: root
 
@@ -28,29 +26,13 @@ Item {
 
     readonly property bool hasPlayer: player !== null && player !== undefined
     readonly property bool playing: hasPlayer && player.isPlaying
-    // Our own YT Music radio stream owns this player: trust the Radio engine's
-    // exact square cover and clean title/artist over mpv's stream guesses.
-    readonly property bool ours: Radio.isOurs(player)
-    // Our stream is loading and not yet audible: show a buffering hint and hold
-    // the seekbar so it never advances in silence. Gated on `playing` (MPRIS
-    // intends to play) so a user-pause, which also makes mpv core-idle, never
-    // misreads as buffering.
-    readonly property bool buffering: root.ours && Radio.buffering && root.playing
-    // Our engine's clean title wins. Otherwise the player's own title, but a raw
-    // "watch?v=..."/bare-id stream title (an mpv still resolving, or an orphan) is
-    // suppressed to a neutral label rather than shown as a URL.
+    // The player's own title, but a raw URL-ish stream title (a browser tab, or an
+    // mpv still resolving) is suppressed to a neutral label, not shown as a URL.
     readonly property string rawTitle: hasPlayer && player.trackTitle ? player.trackTitle : ""
-    // URL-ish anywhere in the title (mpv's pre-resolve title is the FULL
-    // https://... url, not a bare watch?v= fragment); the bare-videoId
-    // heuristic only applies to our own stream, where an 11-char token really
-    // is a videoId, never to a Spotify/browser track that happens to fit it.
     readonly property bool rawIsUrl: rawTitle.indexOf("watch?v=") !== -1
         || /^(https?:\/\/|www\.)/i.test(rawTitle)
-        || (Radio.isOurPlayer(player) && /^[A-Za-z0-9_-]{11}$/.test(rawTitle))
-    readonly property string title: ours && Radio.title.length ? Radio.title
-        : (rawTitle.length > 0 && !rawIsUrl ? rawTitle : "Nothing playing")
-    readonly property string artist: ours && Radio.artist.length ? Radio.artist
-        : (hasPlayer ? Theme.joinArtists(player.trackArtists, player.trackArtist) : "")
+    readonly property string title: rawTitle.length > 0 && !rawIsUrl ? rawTitle : "Nothing playing"
+    readonly property string artist: hasPlayer ? Theme.joinArtists(player.trackArtists, player.trackArtist) : ""
     readonly property string artUrl: hasPlayer && player.trackArtUrl ? player.trackArtUrl : ""
     // Empty when the player already has art, when there is no player, or when
     // the title is a placeholder; keyed on artist+title so a track change is
@@ -58,11 +40,9 @@ Item {
     readonly property string fetchKey: hasPlayer && title.length > 0 && title !== "Nothing playing" ? (artist + "|" + title) : ""
     property string fetchedArt: ""
     property string lastFetchKey: ""
-    // Our exact square cover wins when our stream owns playback; otherwise the
-    // player's own art, then the fetched iTunes cover. Both Image sources and the
-    // fallback glyph read this so the veil, bleed, and cover switch in lockstep.
-    readonly property string effectiveArt: root.ours && Radio.cover.length > 0 ? Radio.cover
-        : (artUrl.length > 0 ? artUrl : fetchedArt)
+    // The player's own art, else the fetched iTunes cover. Both Image sources and
+    // the fallback glyph read this so the veil, bleed, and cover switch in lockstep.
+    readonly property string effectiveArt: artUrl.length > 0 ? artUrl : fetchedArt
     readonly property real positionSec: hasPlayer ? player.position : 0
     readonly property real lengthSec: hasPlayer && player.length > 0 ? player.length : 0
     readonly property real frac: lengthSec > 0 ? Math.max(0, Math.min(1, positionSec / lengthSec)) : 0
@@ -99,9 +79,9 @@ Item {
         }
         if (fetchKey !== lastFetchKey) {
             fetchedArt = "";
-            // our stream carries its own square cover, and other players that
-            // expose art need no lookup; only fetch when neither is true.
-            if (artUrl.length === 0 && !(root.ours && Radio.cover.length > 0))
+            // players that expose their own art need no lookup; only fetch
+            // when the player has none.
+            if (artUrl.length === 0)
                 artDebounce.restart();
             else
                 artDebounce.stop();
@@ -283,7 +263,7 @@ Item {
 
             Text {
                 width: parent.width
-                text: root.buffering ? "力 BUFFERING\u2026" : (root.ours ? "力 RYOTUNES RADIO" : "力 NOW PLAYING")
+                text: "力 NOW PLAYING"
                 color: Theme.vermLit
                 font.family: Theme.font
                 font.pixelSize: Metrics.fontEyebrow * root.s
@@ -307,18 +287,6 @@ Item {
                 elide: Text.ElideRight
                 visible: root.artist.length > 0
             }
-            // up-next peek: only when our radio owns playback and has a follower,
-            // so the card reads as a live station, not a single track.
-            Text {
-                width: parent.width
-                text: "UP NEXT  \u00b7  " + Radio.upNext
-                color: Theme.faint
-                font.family: Theme.font
-                font.pixelSize: Metrics.fontEyebrow * root.s
-                font.letterSpacing: 0.5
-                elide: Text.ElideRight
-                visible: root.ours && Radio.upNext.length > 0
-            }
         }
 
         // MPRIS never pushes position, so poll it while playing to advance the
@@ -326,7 +294,7 @@ Item {
         // Quickshell pattern (see pill Media.qml).
         Timer {
             interval: 500
-            running: root.visible && root.playing && !root.buffering
+            running: root.visible && root.playing
             repeat: true
             onTriggered: if (root.player) root.player.positionChanged();
         }
@@ -341,9 +309,6 @@ Item {
             anchors.bottomMargin: 12 * root.s
             spacing: 2 * root.s
 
-            // shuffle only for our own radio queue; lit when on. Other players
-            // expose no reorder, so it stays hidden for them.
-            TransportBtn { s: root.s; glyph: "shuffle"; visible: root.ours; active: root.ours; lit: Radio.shuffled; onTap: Radio.toggleShuffle() }
             TransportBtn { s: root.s; glyph: "prev"; active: root.canPrev; onTap: root.player.previous() }
             TransportBtn { s: root.s; glyph: root.playing ? "pause" : "play"; active: root.canPlay; onTap: root.player.togglePlaying() }
             TransportBtn { s: root.s; glyph: "next"; active: root.canNext; onTap: root.player.next() }

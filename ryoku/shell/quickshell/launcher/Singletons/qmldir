@@ -8,5 +8,4 @@ singleton Frecency Frecency.qml
 singleton Dispatcher Dispatcher.qml
 singleton Weather Weather.qml
 singleton Spectrum Spectrum.qml
-singleton Radio Radio.qml
-singleton Playlists Playlists.qml
+singleton Players Players.qml

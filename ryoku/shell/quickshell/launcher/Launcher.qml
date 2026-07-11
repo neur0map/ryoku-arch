@@ -27,14 +27,14 @@ Item {
     // no toggle path can leave both drawing over each other.
     readonly property bool gridMode: resting && allApps && !help
 
-    // Sticky active player for the card. Proxy-free (Radio.realPlayers drops
+    // Sticky active player for the card. Proxy-free (Players.realPlayers drops
     // playerctld and dedupes). A currently-playing source always wins; otherwise
     // the last-shown player is held, so PAUSING the card never makes it jump to a
     // different source (the old "pause and YT takes over" bug). onActivePlayerChanged
     // records the shown player so a later pause has something to hold.
     property string primaryDbus: ""
     readonly property var activePlayer: {
-        var list = Radio.realPlayers();
+        var list = Players.realPlayers();
         void Mpris.players.values;
         if (!list || list.length === 0)
             return null;
@@ -64,7 +64,6 @@ Item {
         if (p === "/") return "ACTIONS";
         if (p === ">") return "PACKAGE";
         if (p === "=") return "CALC";
-        if (p === "@") return "YT MUSIC";
         if (p === "?") return "WEB";
         if (askMode) return "RASHIN";
         return "";
@@ -123,9 +122,6 @@ Item {
             resultCount: results.length,
             totalCount: totalCount,
             busyIds: Object.keys(Dispatcher.busyProviders),
-            radioActive: Radio.active,
-            radioQueue: Radio.queue.length,
-            radioIndex: Radio.index,
             selectedIndex: list.selectedIndex,
             panelOpen: panel.open,
             selectedActions: acts,
@@ -155,7 +151,6 @@ Item {
     readonly property real restH: rest.implicitHeight
         + (hasMedia ? nowPlaying.implicitHeight + Metrics.padRow * s : 0)
         + (hasMedia && mediaSources.sources.length > 0 ? mediaSources.implicitHeight + 6 * s : 0)
-        + (savedPlaylists.visible ? savedPlaylists.implicitHeight + 8 * s : 0)
     // Extra body slice for the instant-answer panel; padRow separates it from
     // the Search fallback row that stays underneath so Enter still targets it.
     readonly property real answerH: answerMode ? answerPanel.implicitHeight + Metrics.padRow * s : 0
@@ -190,13 +185,6 @@ Item {
 
     Providers { id: providers }
 
-    // Persist a resolved playlist/mix link to the cache. Driven here (not inside
-    // the Radio singleton) because a singleton importing its own qmldir to reach
-    // a sibling singleton is unreliable; the view layer imports Singletons cleanly.
-    Connections {
-        target: Radio
-        function onPlaylistResolved(playlistId, tracks) { Playlists.save(playlistId, tracks); }
-    }
 
     Binding {
         target: providers.actions
@@ -404,19 +392,6 @@ Item {
         activePlayer: root.activePlayer
     }
 
-    // Saved-playlist chips, replayable with one tap. Shown at rest whenever any
-    // playlist is cached, even with nothing currently playing.
-    SavedPlaylists {
-        id: savedPlaylists
-        visible: root.resting && !root.allApps && !root.help && Playlists.items.length > 0
-        anchors.top: mediaSources.bottom
-        anchors.topMargin: visible ? 8 * root.s : 0
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.leftMargin: Metrics.padOuter * root.s
-        anchors.rightMargin: Metrics.padOuter * root.s
-        s: root.s
-    }
 
     ResultGrid {
         id: appGrid

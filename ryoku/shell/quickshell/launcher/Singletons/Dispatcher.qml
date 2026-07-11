@@ -67,8 +67,6 @@ Singleton {
                     rows = rows.concat(prov.query(r.query));
                 else if (prov && prov.numericFallback && Dispatch.looksNumeric(r.query))
                     rows = rows.concat(prov.query(r.query));
-                else if (prov && prov.urlFallback && Dispatch.looksYtUrl(r.query))
-                    rows = rows.concat(prov.query(r.query));
             }
             // QV4's Array.sort is not stable, so a bare score sort scrambles
             // equal-score rows and destroys each provider's internal ranking

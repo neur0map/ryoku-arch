@@ -729,11 +729,6 @@
         "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S | jq -r .modeLabel >>/tmp/launcher-qa-fixtures/chips.out",
         "hide",
         "show",
-        "type @x",
-        "sleep 0.4",
-        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S | jq -r .modeLabel >>/tmp/launcher-qa-fixtures/chips.out",
-        "hide",
-        "show",
         "type /folder x",
         "sleep 0.4"
       ],
@@ -741,40 +736,8 @@
         ".modeLabel == \"FOLDER\""
       ],
       "shell_asserts": [
-        "printf 'ACTIONS\\nCALC\\nYT MUSIC\\n' | diff - /tmp/launcher-qa-fixtures/chips.out"
+        "printf 'ACTIONS\\nCALC\\n' | diff - /tmp/launcher-qa-fixtures/chips.out"
       ]
-    },
-    {
-      "id": "yt-search",
-      "name": "@ searches YT Music and lists playable tracks",
-      "covers": "ytmusic provider InnerTube search",
-      "steps": [
-        "show",
-        "type @never gonna give you up",
-        "settle 25",
-        "sleep 1"
-      ],
-      "asserts": [
-        ".modeLabel == \"YT MUSIC\"",
-        ".resultCount >= 1"
-      ],
-      "screenshot": true,
-      "network": true
-    },
-    {
-      "id": "yt-link-row",
-      "name": "Pasted YouTube link surfaces a one-tap Play row unprefixed",
-      "covers": "ytmusic urlFallback link parse",
-      "steps": [
-        "show",
-        "type https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "settle 15"
-      ],
-      "asserts": [
-        "[.results[] | select((.title + .subtitle + .verb) | test(\"play\"; \"i\"))] | length >= 1"
-      ],
-      "screenshot": true,
-      "network": true
     },
     {
       "id": "ask-mode-ui",

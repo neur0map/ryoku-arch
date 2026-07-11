@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Removed
+- **RyoTunes / YouTube Music is gone from the launcher.** The `@` YouTube Music
+  search provider, the mpv radio engine (`Singletons/Radio.qml`), saved playlists
+  (`Singletons/Playlists.qml` + the `SavedPlaylists` strip), the pasted
+  YouTube-link "play" row, and the MPRIS "YT Radio" seed verb are all removed. The
+  now-playing card and the other-sources strip stay, now driven by a slim
+  `Players` singleton (the proxy-drop/dedupe helper extracted from the old
+  engine), so controlling Spotify, a browser tab or any MPRIS player still works.
+  Drops the `mpv-mpris` package, which existed only to expose the YT Music stream.
+
 ### Added
 - **Live wallpapers take motion settings and play smoother.** When it launches
   mpvpaper, the wallpaper daemon reads a max-fps cap and a fill/fit choice from

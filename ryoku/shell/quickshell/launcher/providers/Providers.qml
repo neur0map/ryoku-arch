@@ -4,7 +4,6 @@ import "apps"
 import "calc"
 import "find"
 import "media/mpris"
-import "media/ytmusic"
 import "packages"
 import "script"
 import "snippets"
@@ -21,7 +20,6 @@ Item {
     Calc {}
     Find {}
     Mpris {}
-    YtMusic {}
     Packages {}
     Script {}
     Snippets {}

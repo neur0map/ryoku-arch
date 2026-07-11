@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { routePrefix, looksNumeric, looksYtUrl } = require("./dispatch.js");
+const { routePrefix, looksNumeric } = require("./dispatch.js");
 
 let failed = 0;
 function eq(actual, expected, msg) {
@@ -10,7 +10,7 @@ function eq(actual, expected, msg) {
     else { failed++; console.log("FAIL " + msg + "\n  expected " + e + "\n  got      " + a); }
 }
 
-const prefixes = { "=": "calc", "/": "actions", "/file": "find", "/folder": "find", "/image": "find", "/video": "find", ">": "packages", "?": "web", "@": "ytmusic" };
+const prefixes = { "=": "calc", "/": "actions", "/file": "find", "/folder": "find", "/image": "find", "/video": "find", ">": "packages", "?": "web" };
 
 eq(routePrefix("=2+2", prefixes), { provider: "calc", query: "2+2", prefix: "=" }, "math prefix routes and strips");
 eq(routePrefix("/wifi", prefixes), { provider: "actions", query: "wifi", prefix: "/" }, "bare slash routes to actions");
@@ -22,7 +22,6 @@ eq(routePrefix("", prefixes), { provider: null, query: "", prefix: "" }, "empty 
 eq(routePrefix("= 2 + 2", prefixes), { provider: "calc", query: "2 + 2", prefix: "=" }, "prefix strips a following space");
 eq(routePrefix("?", prefixes), { provider: "web", query: "", prefix: "?" }, "bare prefix routes with empty query");
 eq(routePrefix("settings", prefixes), { provider: null, query: "settings", prefix: "" }, "a plain word is default fan-out, not a prefix");
-eq(routePrefix("@lofi", prefixes), { provider: "ytmusic", query: "lofi", prefix: "@" }, "single-char @ prefix routes");
 
 eq(looksNumeric("2+2"), true, "leading digit looks numeric");
 eq(looksNumeric("3 * 4"), true, "leading digit with spaces looks numeric");
@@ -67,10 +66,5 @@ eq(looksNumeric("logout"), false, "logout is not log (word boundary guard)");
 eq(looksNumeric("--flag"), false, "double dash is not numeric");
 eq(looksNumeric("-flag"), false, "dash then letter is not numeric");
 
-eq(looksYtUrl("https://www.youtube.com/watch?v=abc&list=RDabc"), true, "youtube watch link is a yt url");
-eq(looksYtUrl("https://music.youtube.com/playlist?list=PLx"), true, "music.youtube playlist link is a yt url");
-eq(looksYtUrl("https://youtu.be/abc"), true, "youtu.be short link is a yt url");
-eq(looksYtUrl("daft punk"), false, "plain text is not a yt url");
-eq(looksYtUrl("https://example.com/watch?v=x"), false, "non-youtube url is not a yt url");
 if (failed > 0) { console.log("\n" + failed + " test(s) FAILED"); process.exit(1); }
 console.log("\nAll tests PASSED");
