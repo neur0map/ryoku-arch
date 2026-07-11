@@ -9,6 +9,9 @@
   timer, and `limine-snapper-sync`, wired after the AUR step (dry-run safe, gated
   on the `@snapshots` subvolume).
 - `common`: `append_file`, a dry-run-safe stdin-to-file appender.
+- `drivers`: consume `RYOKU_GPU_MODE` -- after the vendor scripts, run `ryoku-gpu
+  mode` (offload->hybrid, sync->performance, vfio->passthrough) as the user
+  against `~/.config/hypr/gpu.lua`, best-effort and dry-run narrated.
 
 ### Changed
 - `deploy`: install the desktop from the signed `[ryoku]` pacman repo plus
@@ -44,3 +47,21 @@
   active swapfile, so the old layout made every snapper snapshot fail (`Creating
   snapshot failed`, then snap-pac's `Invalid snapshot '--type'`) on a default
   install with swap. `@swap` is created and mounted only when `RYOKU_SWAP_GIB > 0`.
+- `disk`: a TUI retry no longer wedges. `ryoku_partition` releases a `/mnt` left
+  mounted by a failed attempt (`ryoku_release_previous_attempt`: swapoff the
+  installer swapfile, `umount -R /mnt`) before touching the disk;
+  `ryoku_release_disk` reads `/proc/mounts` (all of a device's mountpoints, not
+  the one lsblk shows) and `/proc/swaps` (swapFILEs on the disk), so nothing pins
+  the disk on the wipe.
+- `disk`: reclaiming leftover `ryoku`/`ryokuboot` partitions is gated behind
+  `RYOKU_RECLAIM_LEFTOVERS=1`; without the ack, `alongside` dies listing them
+  rather than deleting what might be a healthy completed install.
+- `disk`: whole-disk ESP sizing uses MiB math, so `RYOKU_ESP_GIB=1` is a true
+  1 GiB ESP (`1MiB..1025MiB`), not ~2 GiB.
+- `common`: `dev_uuid` returns non-zero on empty `blkid` output; `bootloader`
+  (`ryoku_cmdline`) and `chroot` (crypttab) now die on an empty UUID instead of
+  writing an unbootable `root=UUID=`/crypttab (command substitution had swallowed
+  the errexit).
+- `filesystem`/`bootloader`: the >= 64 MiB ESP capacity check moved to the end of
+  `ryoku_mount` (right after the ESP mounts), so a too-small ESP is caught before
+  pacstrap/mkinitcpio fill `/boot` instead of deep in the bootloader step.

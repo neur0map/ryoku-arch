@@ -106,11 +106,17 @@ part_num() {
 }
 
 # dev_uuid: UUID of a block device. under dry-run the device doesn't exist, so
-# return a readable placeholder instead.
+# return a readable placeholder instead. in real mode, command substitution
+# ($(dev_uuid ...)) disables errexit, so a blkid that prints nothing (missing
+# device, unformatted partition) would otherwise yield an empty UUID and an
+# unbootable root=UUID=. fail non-zero on empty so consumers can catch it.
 dev_uuid() {
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
     printf '<UUID:%s>' "$1"
     return 0
   fi
-  blkid -s UUID -o value "$1"
+  local uuid
+  uuid=$(blkid -s UUID -o value "$1" 2>/dev/null) || true
+  [[ -n $uuid ]] || return 1
+  printf '%s' "$uuid"
 }

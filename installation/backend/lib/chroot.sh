@@ -119,7 +119,7 @@ ryoku_cfg_initramfs() {
 ryoku_cfg_crypttab() {
   [[ ${RYOKU_ENCRYPT:-} == 1 ]] || return 0
   local luks_uuid
-  luks_uuid=$(dev_uuid "$LUKS_PART")
+  luks_uuid=$(dev_uuid "$LUKS_PART") || die "crypttab: could not read the LUKS UUID of $LUKS_PART (blkid returned nothing); refusing to write a crypttab the system cannot unlock at boot."
   log "crypttab: root -> UUID=$luks_uuid"
   write_file /mnt/etc/crypttab <<EOF
 root UUID=$luks_uuid none luks

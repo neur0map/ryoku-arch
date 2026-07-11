@@ -84,6 +84,10 @@ case $RYOKU_DISK_STRATEGY in
   '') die "RYOKU_DISK_STRATEGY is required (use 'whole' or 'alongside'); refusing to wipe disk on empty strategy." ;;
   *)  die "RYOKU_DISK_STRATEGY='$RYOKU_DISK_STRATEGY' not supported (use 'whole' or 'alongside')." ;;
 esac
+# encryption pairing: catch a missing passphrase HERE, before any disk work, so
+# an encrypt request can't wipe + partition + luksFormat only to die at `open`.
+# luks.sh keeps the same check as defense in depth for a direct backend call.
+[[ ${RYOKU_ENCRYPT:-} != 1 || -n $RYOKU_LUKS_PASSPHRASE ]] || die "RYOKU_ENCRYPT=1 but RYOKU_LUKS_PASSPHRASE is unset"
 
 main() {
   [[ -n $RYOKU_DRYRUN ]] && log "DRY RUN: no disk is touched; commands are printed only"

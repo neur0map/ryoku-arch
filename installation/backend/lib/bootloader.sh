@@ -139,11 +139,11 @@ ryoku_cmdline() {
   local cmdline
   if [[ ${RYOKU_ENCRYPT:-} == 1 ]]; then
     local luks_uuid
-    luks_uuid=$(dev_uuid "$LUKS_PART")
+    luks_uuid=$(dev_uuid "$LUKS_PART") || die "could not read the LUKS UUID of $LUKS_PART (blkid returned nothing); refusing to write a cryptdevice= cmdline that would not boot."
     cmdline="root=/dev/mapper/root rootflags=subvol=@ rw cryptdevice=UUID=${luks_uuid}:root"
   else
     local root_uuid
-    root_uuid=$(dev_uuid "$ROOT_DEV")
+    root_uuid=$(dev_uuid "$ROOT_DEV") || die "could not read the root UUID of $ROOT_DEV (blkid returned nothing); refusing to write a root=UUID= cmdline that would not boot."
     cmdline="root=UUID=${root_uuid} rootflags=subvol=@ rw"
   fi
   [[ $RYOKU_PROFILE == amd-nvidia ]] && cmdline+=" nvidia_drm.modeset=1"
@@ -298,21 +298,6 @@ ryoku_windows_entry() {
 # recognizes our entry instead of adding a second one.
 ryoku_boot_install_efi() {
   log "installing Limine EFI binary + boot entry"
-
-  # last-line ESP guard: the Limine binaries, the kernel, and both initramfs
-  # images have to fit on /mnt/boot. with the new partitioning this NEVER fires
-  # -- whole-disk and alongside each give us our OWN >= 1 GiB ESP -- but it
-  # catches a hand-built/reused ESP that is too small BEFORE we half-write it
-  # and fail cryptically deep in efibootmgr. dry-run narrates (no fs to probe).
-  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
-    log "dry-run: would require >= 64 MiB free on the ESP (/mnt/boot)"
-  else
-    local esp_avail_kib
-    esp_avail_kib=$(df -k --output=avail /mnt/boot 2>/dev/null | tail -1 | tr -d ' ')
-    [[ $esp_avail_kib =~ ^[0-9]+$ ]] || esp_avail_kib=0
-    (( esp_avail_kib >= 65536 )) || die "ESP /mnt/boot has ${esp_avail_kib} KiB free; need >= 64 MiB for the bootloader + kernel + initramfs. Use a larger ESP (RYOKU_ESP_GIB)."
-  fi
-
   run mkdir -p /mnt/boot/EFI/BOOT /mnt/boot/EFI/limine
   run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/boot/EFI/limine/limine_x64.efi
   # EFI/BOOT/BOOTX64.EFI is the UEFI removable-media fallback loader. writing it

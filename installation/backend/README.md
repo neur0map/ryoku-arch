@@ -72,11 +72,17 @@ Encryption (set together):
 | `RYOKU_ENCRYPT`         | `1` to encrypt root with LUKS2.                     |
 | `RYOKU_LUKS_PASSPHRASE` | The LUKS passphrase (required when encrypting).     |
 
-Other: `RYOKU_GPU_MODE` (`offload` \| `sync` \| `vfio`, hybrid only),
-`RYOKU_REBOOT` (non-empty reboots after install), `RYOKU_SKIP_AUR` (skip the
-optional AUR set, for an unattended or CI install), `RYOKU_ALLOW_SECUREBOOT`
-(`1` to install despite firmware Secure Boot being on), `RYOKU_WIPE_CONFIRMED`
-(`1` to let `whole` wipe a non-empty disk), `RYOKU_DRYRUN` (see above).
+Other (all optional, env-only):
+
+| Variable                  | Meaning                                                              |
+|---------------------------|----------------------------------------------------------------------|
+| `RYOKU_GPU_MODE`          | Hybrid-GPU render mode, **consumed** after driver install: `offload` (iGPU-first default), `sync` (pin the dGPU as primary), `vfio` (pin the iGPU alone, freeing the dGPU for a VM). Applied with `ryoku-gpu mode` to the user's `~/.config/hypr/gpu.lua`. Empty leaves Hyprland's own selection. |
+| `RYOKU_RECLAIM_LEFTOVERS` | `1` lets `alongside` DELETE *unmounted* partitions labeled exactly `ryoku`/`ryokuboot` (leftovers of a prior failed run). Without it, finding such partitions aborts the install (they may be a working Ryoku install). The TUI sets it after the typed `ERASE` ack. |
+| `RYOKU_WIPE_CONFIRMED`    | `1` lets `whole` wipe a non-empty disk (the TUI's typed `ERASE` ack). |
+| `RYOKU_REBOOT`            | Non-empty reboots after a successful install.                        |
+| `RYOKU_SKIP_AUR`          | Skip the optional AUR set (unattended / CI install).                 |
+| `RYOKU_ALLOW_SECUREBOOT`  | `1` to install despite firmware Secure Boot being on (Limine is unsigned). |
+| `RYOKU_DRYRUN`            | Print destructive commands instead of running them (see Dry run).    |
 
 ## Disk strategies
 
@@ -91,9 +97,11 @@ optional AUR set, for an unattended or CI install), `RYOKU_ALLOW_SECUREBOOT`
   region it creates a *dedicated* Ryoku ESP (`RYOKU_ESP_GIB` GiB, FAT32, GPT
   type EF00, partlabel `ryokuboot`, label `BOOT`) followed by the Btrfs root
   (partlabel `ryoku`). Multiple ESPs per disk are valid UEFI: the NVRAM entry
-  points at ours, and Windows keeps its own ESP + fallback loader. A retry first
-  reclaims any *unmounted* leftover partitions labeled exactly `ryoku` or
-  `ryokuboot` from a previous failed run, so re-runs never stack partitions.
+  points at ours, and Windows keeps its own ESP + fallback loader. Partitions
+  labeled exactly `ryoku`/`ryokuboot` (leftovers of a prior failed run) abort
+  the install unless `RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed `ERASE` ack) is
+  set, which deletes the *unmounted* ones so re-runs never stack partitions; a
+  mounted one is always left alone.
 
   Minimum free region for `alongside` is `20 + RYOKU_SWAP_GIB + RYOKU_ESP_GIB`
   GiB -- a 20 GiB root floor covers the base + dev + desktop closure with headroom
@@ -159,5 +167,7 @@ At `$RYOKU_REPO` the backend reads:
   chroot); the home is then chowned. Online-gated and best-effort; `RYOKU_DRYRUN`
   is passed through and missing sources are skipped.
 
-The backend enables `sddm` and `NetworkManager`; first-login autostart (from the
-Hyprland config) runs `ryoku-gpu` and `ryoku-monitor`, so those are not run here.
+The backend enables `sddm`, `NetworkManager`, `bluetooth`, and `rtkit-daemon`.
+When `RYOKU_GPU_MODE` is set it applies the pick once here via `ryoku-gpu mode`
+(writing the user's `hypr/gpu.lua`); first-login autostart otherwise runs
+`ryoku-gpu persist` and `ryoku-monitor`, so those are not run here.

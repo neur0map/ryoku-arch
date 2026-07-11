@@ -53,6 +53,23 @@ ryoku_mount() {
   [[ ${RYOKU_SUBVOL_BACKUPS:-0} == 1 ]] && run mount -o "$o,subvol=@backups" "$ROOT_DEV" /mnt/.backups
 
   run mount "$ESP_DEV" /mnt/boot
+
+  # ESP capacity guard, HERE (right after the ESP mounts) and NOT deep in the
+  # bootloader step: the Limine binaries, the kernel, and both initramfs images
+  # have to fit on /mnt/boot, but pacstrap + mkinitcpio fill /boot long before
+  # the bootloader runs, so a too-small ESP used to fail cryptically mid-install.
+  # with the new partitioning this NEVER fires (whole-disk and alongside each
+  # give us our OWN >= 1 GiB ESP); it only catches a hand-built/reused ESP that
+  # is too small, BEFORE anything is written to it. dry-run narrates (no fs yet).
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    log "dry-run: would require >= 64 MiB free on the ESP (/mnt/boot)"
+  else
+    local esp_avail_kib
+    esp_avail_kib=$(df -k --output=avail /mnt/boot 2>/dev/null | tail -1 | tr -d ' ')
+    [[ $esp_avail_kib =~ ^[0-9]+$ ]] || esp_avail_kib=0
+    (( esp_avail_kib >= 65536 )) || die "ESP /mnt/boot has ${esp_avail_kib} KiB free; need >= 64 MiB for the bootloader + kernel + initramfs. Use a larger ESP (RYOKU_ESP_GIB)."
+  fi
+
   ryoku_swapfile
 }
 

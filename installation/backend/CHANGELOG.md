@@ -13,6 +13,16 @@
   packaged install is validated end to end without the public repo (CI cannot
   reach it: Cloudflare blocks datacenter IPs). `RYOKU_REPO_SERVER` /
   `RYOKU_REPO_SIGLEVEL` override the `[ryoku]` source (tests only).
+- `RYOKU_GPU_MODE` is now consumed end to end. The TUI collects it on hybrid
+  (iGPU + dGPU) machines but nothing acted on it; `lib/drivers.sh` now runs
+  `ryoku-gpu mode` after the driver install (mapping `offload`->hybrid,
+  `sync`->performance, `vfio`->passthrough) as the user against their
+  `~/.config/hypr/gpu.lua`, via `runuser` like `deploy.sh`. Best-effort (a
+  failure only skips the pin), dry-run narrated, skipped when `ryoku-gpu` is not
+  installed. gpu.lua (not user.lua) because first-login `ryoku-gpu persist` only
+  rewrites it when a discrete pin is "beneficial" (desktop/eGPU), so the pick
+  survives on the hybrid laptop this targets, and gpu.lua is the file the Hub,
+  `ryoku doctor`, and `ryoku materialize` all manage.
 
 ### Fixed
 - Dual-boot installs no longer fail mid-pacstrap or clobber Windows' boot. The
@@ -39,6 +49,37 @@
   parted's MiB output through an awk `%d` cast that dropped the fraction; it now
   parses `parted unit B` in whole bytes, floors to MiB, and subtracts a 1 MiB
   alignment margin.
+- A TUI retry after a failed install no longer wedges on a busy disk. The failure
+  EXIT trap deliberately leaves `/mnt` mounted (for inspection), so the re-run
+  began with `/mnt` and the installer's swapfile still held, and reclaim skipped
+  the still-mounted leftovers. `ryoku_partition` now runs
+  `ryoku_release_previous_attempt` first (swapoff `/mnt/swap/swapfile`, then
+  `umount -R /mnt`). `ryoku_release_disk` also enumerates mountpoints from
+  `/proc/mounts` instead of lsblk MOUNTPOINT (which prints only one per device,
+  leaving a btrfs root's other subvol mounts pinning the disk) and swaps off any
+  swapFILE backed by a disk mountpoint via `/proc/swaps`.
+- Reclaim of leftover `ryoku`/`ryokuboot` partitions is now GATED behind
+  `RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed-ERASE ack). Without it, `alongside`
+  finding such partitions dies listing them and the two ways forward instead of
+  deleting what might be a healthy completed Ryoku install.
+- `RYOKU_ENCRYPT=1` without `RYOKU_LUKS_PASSPHRASE` now fails in `ryoku-install`'s
+  required-answers block, before any disk work, rather than after wipe + partition
+  + luksFormat at `cryptsetup open` (`luks.sh` keeps the check as defense in depth).
+- A `blkid` that returns nothing can no longer produce a silent unbootable
+  `root=UUID=` or an unusable crypttab. `dev_uuid` fails non-zero on empty output,
+  and every consumer (`ryoku_cmdline` root/LUKS UUID, `chroot.sh` crypttab) dies
+  with a clear message instead of the errexit-swallowing command substitution.
+- Whole-disk ESP sizing is exact: `RYOKU_ESP_GIB=1` now makes a true 1 GiB ESP
+  (MiB math, `1MiB..1025MiB`), not the ~2 GiB the old `1 + RYOKU_ESP_GIB` GiB end
+  produced.
+- The >= 64 MiB ESP capacity check moved from the bootloader step to the end of
+  `ryoku_mount` (right after the ESP mounts), so a too-small hand-built/reused ESP
+  is caught before pacstrap/mkinitcpio fill `/boot`, not cryptically deep in the
+  install after `/boot` is already half-written.
+- `rtkit` is in `system/packages/base.packages`, so enabling `rtkit-daemon.service`
+  succeeds even on an offline / `RYOKU_ONLINE=0` install (it otherwise arrived only
+  with the `ryoku-desktop` umbrella, and the enable died when the desktop set was
+  skipped).
 - Preflight gates the real-hardware footguns before the disk is touched: it dies
   when firmware Secure Boot is on (Limine is unsigned) with "disable Secure Boot"
   guidance unless `RYOKU_ALLOW_SECUREBOOT=1`, rejects a `RYOKU_DISK` that is a
