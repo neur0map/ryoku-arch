@@ -1,8 +1,4 @@
 //@ pragma DefaultEnv QSG_RENDER_LOOP = threaded
-//@ pragma DefaultEnv QSG_RHI_BACKEND = vulkan
-// ^ GPU render: Qt's default GL/EGL path falls back to llvmpipe (software) on
-//   hybrid / NVIDIA-primary setups and pegs several cores animating the full
-//   spectrum; the Vulkan RHI keeps it on the GPU (drops it to ~1% CPU).
 
 import QtQuick
 import Quickshell

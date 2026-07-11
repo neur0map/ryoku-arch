@@ -74,11 +74,11 @@ Item {
 
     Timer {
         id: ticker
-        // panel can be 165Hz, cava only feeds 60. a FrameAnimation would still
-        // re-render the whole scene every vsync for nothing. Timer decouples
-        // update rate from refresh: ~60 sounding, ~30 idle wave, stops when
-        // there's nothing to animate.
-        interval: root.sounding ? 16 : 33
+        // panel can be 165Hz, cava feeds 60. this is a background effect, and on
+        // hybrid GPUs it is software-rendered (transparency rules out the GPU
+        // here), so cap it low: ~30fps sounding, ~20fps idle wave, stopping when
+        // there's nothing to animate. a Timer decouples the rate from vsync.
+        interval: root.sounding ? 33 : 50
         running: root.visible && Config.enabled && root.animating
         repeat: true
         property real last: 0
@@ -169,9 +169,10 @@ Item {
         source: field
         anchors.fill: field
         z: 0
-        // MultiEffect runs its GPU pass every visible frame even at low
-        // opacity. skip it when the field is flat (silent, idle off).
-        visible: root.maxLevel > 0.01
+        // MultiEffect runs its blur pass every visible frame even at low
+        // opacity, and it is ruinous without GPU acceleration. skip it whenever
+        // bloom is off, or the field is flat (silent, idle off).
+        visible: Config.bloom > 0 && root.maxLevel > 0.01
         blurEnabled: true
         blur: 1.0
         blurMax: 24
