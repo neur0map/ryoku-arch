@@ -371,7 +371,7 @@ remove_set() {
   file=$(bundle_file "$id")
 
   local -a pkgs=() pkg_items=()
-  local owner pass n
+  local owner n
   while IFS=$'\t' read -r type name detect tier interactive summary; do
     [[ -n $name ]] || continue
     case "$type" in
@@ -429,7 +429,7 @@ remove_set() {
       # still requires it). Retry the stragglers one by one, twice, so a lone
       # blocker costs itself, not the whole bundle; the second pass picks up a
       # target that was only blocked by one removed in the first.
-      for pass in 1 2; do
+      for _ in 1 2; do
         for n in "${pkgs[@]}"; do
           if pkg_installed "$n"; then
             run_pkg ryoku-pkg-remove "$n" || true
