@@ -1,5 +1,5 @@
 
-Ryoku Linux installer (live)
+Ryoku Linux installer (live)  --  @RYOKU_VERSION@ (@RYOKU_COMMIT@)
 
 The graphical installer starts automatically on the first console. This serial
 or secondary console is a plain root shell. To run the installer here, set the

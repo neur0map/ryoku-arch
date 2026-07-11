@@ -17,3 +17,10 @@ demand); see `docs/updates.md` for the delivery contract they guard.
   `--boot-only` just reaches the live shell; `--dry` runs the installer in
   `RYOKU_DRYRUN` mode. Uses KVM when `/dev/kvm` is present, else TCG. Needs
   `qemu`, `edk2-ovmf`, and `python-pexpect`.
+
+- `iso-stage-check.sh` stages the ISO profile twice (`iso/build.sh --stage-only`
+  into two throwaway dirs) and diffs the trees, proving the prebuilt binaries and
+  the baked payload are byte-reproducible for a fixed commit (see
+  `iso/README.md`, "Reproducibility"). It strips the `.payload` provenance stamp
+  before diffing, and skips cleanly (exit 0) when `go`/`cmake`/`ninja` are absent
+  so CI without the build toolchain stays green.

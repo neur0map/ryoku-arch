@@ -14,6 +14,7 @@
 #   RYOKU_ISO_OUT     ISO output dir   (./out)
 #   RYOKU_ISO_WORK    mkarchiso work   (./work)
 #   RYOKU_ISO_STAGE   staging tree     (./staging)
+#   RYOKU_ISO_REPRO   1 = pin packages to the commit-dated Arch archive (off)
 set -euo pipefail
 
 PROFILE_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)   # installation/iso
@@ -26,6 +27,24 @@ OUT_DIR=${RYOKU_ISO_OUT:-$PROFILE_DIR/out}
 WORK_DIR=${RYOKU_ISO_WORK:-$PROFILE_DIR/work}
 STAGE_DIR=${RYOKU_ISO_STAGE:-$PROFILE_DIR/staging}
 PROFILE_STAGE=$STAGE_DIR/profile
+
+# reproducibility anchor. pin every timestamp-bearing step (mkarchiso, tar,
+# gzip, squashfs, and profiledef.sh's iso_label / iso_version) to the commit's
+# committer date instead of wall-clock build time, so the same commit builds to
+# the same bytes. an already-exported value (e.g. CI) survives only when there
+# is no git history to read; otherwise the commit wins.
+if _commit_epoch=$(git -C "$REPO_ROOT" log -1 --pretty=%ct 2>/dev/null) && [[ -n $_commit_epoch ]]; then
+  SOURCE_DATE_EPOCH=$_commit_epoch
+fi
+SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-$(date +%s)}
+export SOURCE_DATE_EPOCH
+
+# payload provenance, stamped into /usr/share/ryoku/.payload below and sed'd
+# into the live motd. lets the target's deploy step warn when a long-lived
+# ISO's baked payload has drifted from the live [ryoku] repo's package version.
+PAYLOAD_COMMIT=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)
+PAYLOAD_DATE=$(git -C "$REPO_ROOT" log -1 --pretty=%cI 2>/dev/null || date -Iseconds)
+PAYLOAD_VERSION=$(tr -d '[:space:]' <"$REPO_ROOT/VERSION" 2>/dev/null || echo unknown)
 
 STAGE_ONLY=0
 [[ ${1:-} == --stage-only ]] && STAGE_ONLY=1
@@ -55,12 +74,25 @@ for item in profiledef.sh packages.x86_64 pacman.conf airootfs efiboot syslinux;
 done
 AIROOTFS=$PROFILE_STAGE/airootfs
 
+# reproducible package set (opt-in). the default build pulls whatever the live
+# mirrors currently serve, so two builds weeks apart differ by upstream package
+# churn. RYOKU_ISO_REPRO=1 repoints the STAGED pacman.conf's [core]/[extra] at
+# the Arch Linux Archive snapshot dated from the commit, freezing the exact
+# package versions baked into the image. reproducible here means frozen, not
+# latest: turn it on only to reproduce a specific historical ISO.
+if [[ ${RYOKU_ISO_REPRO:-0} == 1 ]]; then
+  ala_date=$(date -u --date="@$SOURCE_DATE_EPOCH" +%Y/%m/%d)
+  log "RYOKU_ISO_REPRO=1: pinning [core]/[extra] to archive.archlinux.org/$ala_date"
+  sed -i "s|^Include = /etc/pacman.d/mirrorlist|Server = https://archive.archlinux.org/repos/$ala_date/\$repo/os/\$arch|" \
+    "$PROFILE_STAGE/pacman.conf"
+fi
+
 # 2. build the installer TUI from source. live env has no Go toolchain;
 #    the ISO carries the prebuilt binary.
 command -v go >/dev/null 2>&1 || die "go is required to build the TUI (pacman -S go)"
 log "Building ryoku-tui from $TUI_DIR"
 install -d "$AIROOTFS/usr/local/bin"
-( cd "$TUI_DIR" && CGO_ENABLED=0 go build -trimpath -o "$AIROOTFS/usr/local/bin/ryoku-tui" . )
+( cd "$TUI_DIR" && CGO_ENABLED=0 go build -trimpath -ldflags '-s -w -buildid=' -o "$AIROOTFS/usr/local/bin/ryoku-tui" . )
 
 # 3. bake the backend + its lib under /usr/local/lib/ryoku/backend.
 #    /usr/local/bin/ryoku-install (overlay) execs the real script; the script
@@ -74,17 +106,33 @@ cp -a "$BACKEND_DIR/lib" "$AIROOTFS/usr/local/lib/ryoku/backend/lib"
 log "Baking repo payload -> /usr/share/ryoku"
 stage_repo "$REPO_ROOT" "$AIROOTFS/usr/share/ryoku"
 
+# provenance stamp. records the exact commit + version baked into this payload
+# so the target's deploy step can flag drift from the live [ryoku] repo. keep
+# the format greppable (key=value); iso-stage-check.sh strips it before diffing.
+cat >"$AIROOTFS/usr/share/ryoku/.payload" <<EOF
+commit=$PAYLOAD_COMMIT
+date=$PAYLOAD_DATE
+version=$PAYLOAD_VERSION
+EOF
+
+# fill the motd placeholders on the STAGED copy only (the committed motd keeps
+# the @...@ tokens), so the live shell greets with the baked version + commit.
+sed -i \
+  -e "s|@RYOKU_VERSION@|$PAYLOAD_VERSION|g" \
+  -e "s|@RYOKU_COMMIT@|${PAYLOAD_COMMIT:0:12}|g" \
+  "$AIROOTFS/etc/motd"
+
 # 4b. ryoku-shell daemon (Go). same as the TUI: neither the ISO nor the
 #     target has a Go toolchain, so it ships prebuilt inside the payload for
 #     the deploy step.
 log "Building ryoku-shell from $REPO_ROOT/ryoku/shell/ipc"
 install -d "$AIROOTFS/usr/share/ryoku/ryoku/shell/ipc"
-( cd "$REPO_ROOT/ryoku/shell/ipc" && CGO_ENABLED=0 go build -trimpath -o "$AIROOTFS/usr/share/ryoku/ryoku/shell/ipc/ryoku-shell" . )
+( cd "$REPO_ROOT/ryoku/shell/ipc" && CGO_ENABLED=0 go build -trimpath -ldflags '-s -w -buildid=' -o "$AIROOTFS/usr/share/ryoku/ryoku/shell/ipc/ryoku-shell" . )
 
 # 4d. ryoku-hub backend (Go), same prebuilt model as ryoku-shell.
 log "Building ryoku-hub from $REPO_ROOT/ryoku/hub/backend"
 install -d "$AIROOTFS/usr/share/ryoku/ryoku/hub/backend"
-( cd "$REPO_ROOT/ryoku/hub/backend" && CGO_ENABLED=0 go build -trimpath -o "$AIROOTFS/usr/share/ryoku/ryoku/hub/backend/ryoku-hub" . )
+( cd "$REPO_ROOT/ryoku/hub/backend" && CGO_ENABLED=0 go build -trimpath -ldflags '-s -w -buildid=' -o "$AIROOTFS/usr/share/ryoku/ryoku/hub/backend/ryoku-hub" . )
 
 # 4c. prebuild the Ryoku.Blobs QML plugin (the frame's blob renderer) into
 #     the payload, same model as ryoku-shell. target has no build toolchain;
@@ -136,3 +184,9 @@ else
   sudo mkarchiso -v -w "$WORK_DIR" -o "$OUT_DIR" "$PROFILE_STAGE"
 fi
 log "ISO written to $OUT_DIR"
+
+# checksums next to the ISO for verification. deterministic for a fixed commit,
+# since the ISO is (see README.md, "Reproducibility"). a missing *.iso here is a
+# real mkarchiso failure, so let the glob stay literal and fail loudly.
+log "Writing SHA256SUMS"
+( cd "$OUT_DIR" && sha256sum -- *.iso >SHA256SUMS )

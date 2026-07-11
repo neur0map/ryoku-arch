@@ -10,6 +10,23 @@
   reported from a Ventoy boot.
 
 ### Added
+- Reproducible ISO builds: `build.sh` derives `SOURCE_DATE_EPOCH` from the
+  commit's committer date and exports it to `mkarchiso` and `profiledef.sh`; the
+  three prebuilt Go binaries build with `-trimpath -ldflags '-s -w -buildid='`
+  and `CGO_ENABLED=0` under a pinned `toolchain`; and the build emits
+  `SHA256SUMS` next to the ISO. `RYOKU_ISO_REPRO=1` additionally pins
+  `[core]`/`[extra]` to the commit-dated Arch Linux Archive to freeze the baked
+  package set. See README, "Reproducibility".
+- Payload provenance stamp: `build.sh` writes `/usr/share/ryoku/.payload`
+  (commit, commit date, `VERSION`) and fills the same values into `/etc/motd`, so
+  the target's deploy step can warn on ISO-vs-`[ryoku]`-repo version skew.
+- Two boot fallbacks on both firmware paths (UEFI + BIOS): "safe graphics"
+  (`nomodeset`) for machines that boot to a black or garbled screen, and "copy
+  to RAM" (`copytoram`) for flaky or removable USB media. The normal installer
+  entry stays the default.
+- Live ISO packages: `pciutils` (`lspci` GPU/Wi-Fi/VMD probing), `broadcom-wl`
+  (Broadcom BCM43xx Wi-Fi has no in-kernel driver), and `mdadm` + `lvm2` (so
+  free-space probing reads disks with existing RAID/LVM correctly).
 - Add the Ryoku live ISO profile (archiso, releng-based).
   - `profiledef.sh`: iso_name `ryoku`, label `RYOKU_<YYYYMM>`, date-stamped
     version, `install_dir=arch`, BIOS (syslinux) and UEFI (systemd-boot) boot

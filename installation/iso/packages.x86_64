@@ -60,3 +60,13 @@ openssl
 sudo
 less
 vim
+
+# Hardware probing and storage discovery for the backend and TUI.
+# lspci (pciutils): the TUI and driver scripts probe GPUs / Wi-Fi / Intel VMD.
+pciutils
+# broadcom-wl: proprietary Broadcom BCM43xx Wi-Fi has no in-kernel driver.
+broadcom-wl
+# mdadm: inspect existing MD RAID so free-space probing reads the disk right.
+mdadm
+# lvm2: inspect existing LVM so free-space probing reads the disk right.
+lvm2
