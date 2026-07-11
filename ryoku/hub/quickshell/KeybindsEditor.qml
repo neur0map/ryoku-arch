@@ -11,6 +11,61 @@ Item {
 
     HyprStore { id: store }
 
+    property var categories: []
+
+    // conflict detection catches what a hand-edited user.lua never would: a
+    // custom combo that shadows a shipped bind, or duplicates another custom one.
+    // keys are normalised for case, spacing, and modifier order before compare.
+    function normKeys(s) {
+        if (!s)
+            return "";
+        var parts = ("" + s).split("+");
+        var out = [];
+        for (var i = 0; i < parts.length; i++) {
+            var t = parts[i].trim().toLowerCase();
+            if (t.length)
+                out.push(t);
+        }
+        out.sort();
+        return out.join("+");
+    }
+    readonly property var shippedKeys: {
+        var set = {};
+        for (var c = 0; c < page.categories.length; c++) {
+            var binds = page.categories[c].binds || [];
+            for (var b = 0; b < binds.length; b++) {
+                var k = page.normKeys((binds[b].keys || []).join(" + "));
+                if (k.length)
+                    set[k] = true;
+            }
+        }
+        return set;
+    }
+    function customCount(norm) {
+        var n = 0;
+        for (var i = 0; i < store.keybinds.length; i++)
+            if (page.normKeys(store.keybinds[i].keys) === norm)
+                n++;
+        return n;
+    }
+    // "" none, "shipped" shadows a Ryoku bind, "duplicate" repeats another custom.
+    function rowConflict(i) {
+        var k = page.normKeys(store.keybinds[i].keys);
+        if (!k)
+            return "";
+        if (page.shippedKeys[k])
+            return "shipped";
+        return page.customCount(k) > 1 ? "duplicate" : "";
+    }
+    readonly property int conflictCount: {
+        void store.rev;
+        var n = 0;
+        for (var i = 0; i < store.keybinds.length; i++)
+            if (page.rowConflict(i) !== "")
+                n++;
+        return n;
+    }
+
     readonly property var actionOpts: [
         { "key": "exec", "label": "Run command" },
         { "key": "close", "label": "Close window" },
@@ -41,7 +96,7 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         wrapMode: Text.WordWrap
-        text: "Custom shortcuts layered over the ones Ryoku ships. Write the combo the way Hyprland does, e.g. SUPER + J or SUPER + SHIFT + Return."
+        text: "Custom shortcuts layered over the ones Ryoku ships and kept in the Hub, so they show in the Shortcuts legend and get conflict-checked. Add binds here, not by hand in ~/.config/hypr/user.lua: binds written there never appear in the legend and aren't checked for conflicts. Write the combo the way Hyprland does, e.g. SUPER + J or SUPER + SHIFT + Return."
         color: Theme.dim
         font.family: Theme.font
         font.pixelSize: 12
@@ -103,12 +158,13 @@ Item {
                     required property int index
                     required property var modelData
                     readonly property bool needsValue: rowItem.modelData.action === "exec" || rowItem.modelData.action === undefined
+                    readonly property string conflict: page.rowConflict(rowItem.index)
                     width: rows.width
                     height: 56
                     radius: Theme.radius
                     color: Theme.surfaceLo
                     border.width: 1
-                    border.color: Theme.line
+                    border.color: rowItem.conflict !== "" ? Theme.gold : Theme.line
 
                     Row {
                         anchors.fill: parent
@@ -124,7 +180,7 @@ Item {
                             radius: Theme.radius
                             color: Theme.surface
                             border.width: 1
-                            border.color: keysIn.activeFocus ? Theme.ember : Theme.line
+                            border.color: keysIn.activeFocus ? Theme.ember : (rowItem.conflict !== "" ? Theme.gold : Theme.line)
                             Behavior on border.color { ColorAnimation { duration: Theme.quick } }
 
                             TextInput {
@@ -243,14 +299,14 @@ Item {
             anchors.leftMargin: 20
             anchors.verticalCenter: parent.verticalCenter
             width: 9; height: 9; radius: 4.5
-            color: store.dirty ? Theme.ember : Theme.ok
+            color: page.conflictCount > 0 ? Theme.gold : (store.dirty ? Theme.ember : Theme.ok)
         }
         Text {
             anchors.left: dot.right
             anchors.leftMargin: 11
             anchors.verticalCenter: parent.verticalCenter
-            text: store.dirty ? "Unsaved shortcuts" : "Saved"
-            color: store.dirty ? Theme.bright : Theme.dim
+            text: page.conflictCount > 0 ? (page.conflictCount + " conflict with a shipped or duplicate combo") : (store.dirty ? "Unsaved shortcuts" : "Saved")
+            color: page.conflictCount > 0 ? Theme.gold : (store.dirty ? Theme.bright : Theme.dim)
             font.family: Theme.font
             font.pixelSize: 13
             font.weight: Font.DemiBold

@@ -123,6 +123,24 @@ type LayerRule struct {
 	Value     string `json:"value"`
 }
 
+// AppOverride: per-app appearance overrides. Match by class (and optional
+// title); each set field becomes an hl.window_rule prop that beats the global
+// decoration for matching windows, so one app can look different without
+// touching the global look. Numeric fields use -1 for "inherit"; the toggles
+// use "inherit" plus "off" (or "on" for opaque).
+type AppOverride struct {
+	Class      string  `json:"class"`
+	Title      string  `json:"title"`
+	Opacity    float64 `json:"opacity"`    // -1 inherit, else 0..1
+	Rounding   int     `json:"rounding"`   // -1 inherit, else >= 0
+	BorderSize int     `json:"borderSize"` // -1 inherit, else >= 0
+	Blur       string  `json:"blur"`       // inherit | off
+	Shadow     string  `json:"shadow"`     // inherit | off
+	Dim        string  `json:"dim"`        // inherit | off
+	Anim       string  `json:"anim"`       // inherit | off
+	Opaque     string  `json:"opaque"`     // inherit | on
+}
+
 type Autostart struct {
 	Command string `json:"command"`
 }
@@ -228,16 +246,17 @@ type Plugins struct {
 }
 
 type Overrides struct {
-	Appearance  Appearance   `json:"appearance"`
-	Input       Input        `json:"input"`
-	Cursor      Cursor       `json:"cursor"`
-	Env         []EnvVar     `json:"env"`
-	WindowRules []WindowRule `json:"windowRules"`
-	Autostart   []Autostart  `json:"autostart"`
-	Keybinds    []Keybind    `json:"keybinds"`
-	Anim        Anim         `json:"anim"`
-	LayerRules  []LayerRule  `json:"layerRules"`
-	Plugins     Plugins      `json:"plugins"`
+	Appearance   Appearance    `json:"appearance"`
+	Input        Input         `json:"input"`
+	Cursor       Cursor        `json:"cursor"`
+	Env          []EnvVar      `json:"env"`
+	WindowRules  []WindowRule  `json:"windowRules"`
+	Autostart    []Autostart   `json:"autostart"`
+	Keybinds     []Keybind     `json:"keybinds"`
+	Anim         Anim          `json:"anim"`
+	LayerRules   []LayerRule   `json:"layerRules"`
+	AppOverrides []AppOverride `json:"appOverrides"`
+	Plugins      Plugins       `json:"plugins"`
 
 	// inputSaved: the store carries an explicit input section, i.e. the user has
 	// saved input settings through the hub at least once. genConfig then pins the
@@ -278,13 +297,14 @@ func defaultOverrides() Overrides {
 			WorkspaceSwipe: false, SwipeFingers: 3,
 			SwipeInvert: true, SwipeCreateNew: true, SwipeDistance: 300,
 		},
-		Cursor:      Cursor{Theme: "Bibata-Modern-Ice", Size: 24, InactiveTimeout: 0, HideOnKeyPress: false},
-		Env:         []EnvVar{},
-		WindowRules: []WindowRule{},
-		Autostart:   []Autostart{},
-		Keybinds:    []Keybind{},
-		Anim:        Anim{Items: []AnimItem{}, Curves: []AnimCurve{}},
-		LayerRules:  []LayerRule{},
+		Cursor:       Cursor{Theme: "Bibata-Modern-Ice", Size: 24, InactiveTimeout: 0, HideOnKeyPress: false},
+		Env:          []EnvVar{},
+		WindowRules:  []WindowRule{},
+		Autostart:    []Autostart{},
+		Keybinds:     []Keybind{},
+		Anim:         Anim{Items: []AnimItem{}, Curves: []AnimCurve{}},
+		LayerRules:   []LayerRule{},
+		AppOverrides: []AppOverride{},
 		Plugins: Plugins{
 			DynamicCursors: DynamicCursors{Enabled: false, Mode: "tilt", Shake: true, Magnify: 4.0},
 			Hyprbars:       Hyprbars{Enabled: false, Height: 26, TextSize: 11, Blur: true, Buttons: true},
@@ -338,6 +358,9 @@ func loadOverrides() Overrides {
 	}
 	if o.WindowRules == nil {
 		o.WindowRules = []WindowRule{}
+	}
+	if o.AppOverrides == nil {
+		o.AppOverrides = []AppOverride{}
 	}
 	if o.Autostart == nil {
 		o.Autostart = []Autostart{}
@@ -608,6 +631,11 @@ func genLua(o Overrides, follow bool) string {
 	}
 	for i, r := range o.LayerRules {
 		if rl := genLayerRule(i, r); rl != "" {
+			b.WriteString(rl)
+		}
+	}
+	for i, a := range o.AppOverrides {
+		if rl := genAppOverride(i, a); rl != "" {
 			b.WriteString(rl)
 		}
 	}
@@ -1094,6 +1122,55 @@ func genLayerRule(i int, r LayerRule) string {
 	name := fmt.Sprintf("ryoku-layer-%d", i+1)
 	return fmt.Sprintf("hl.layer_rule({ name = %s, match = { namespace = %s }, %s })\n",
 		luaStr(name), luaStr(r.Namespace), prop)
+}
+
+// genAppOverride renders one app's appearance overrides as a single
+// hl.window_rule: only the set fields become props, so an unset field inherits
+// the global decoration. numeric -1 and toggle "inherit" mean "leave alone". a
+// wrong field name would break settings.lua, so every prop here is a proven
+// hl.window_rule field (see genWindowRule and hypr_test.go's field table).
+func genAppOverride(i int, a AppOverride) string {
+	var match []string
+	if a.Class != "" {
+		match = append(match, fmt.Sprintf("class = %s", luaStr(a.Class)))
+	}
+	if a.Title != "" {
+		match = append(match, fmt.Sprintf("title = %s", luaStr(a.Title)))
+	}
+	if len(match) == 0 {
+		return ""
+	}
+	var props []string
+	if a.Opacity >= 0 && a.Opacity <= 1 {
+		props = append(props, fmt.Sprintf("opacity = %s", luaNum(a.Opacity)))
+	}
+	if a.Rounding >= 0 {
+		props = append(props, fmt.Sprintf("rounding = %d", a.Rounding))
+	}
+	if a.BorderSize >= 0 {
+		props = append(props, fmt.Sprintf("border_size = %d", a.BorderSize))
+	}
+	if a.Blur == "off" {
+		props = append(props, "no_blur = true")
+	}
+	if a.Shadow == "off" {
+		props = append(props, "no_shadow = true")
+	}
+	if a.Dim == "off" {
+		props = append(props, "no_dim = true")
+	}
+	if a.Anim == "off" {
+		props = append(props, "no_anim = true")
+	}
+	if a.Opaque == "on" {
+		props = append(props, "opaque = true")
+	}
+	if len(props) == 0 {
+		return ""
+	}
+	name := fmt.Sprintf("ryoku-app-%d", i+1)
+	return fmt.Sprintf("hl.window_rule({ name = %s, match = { %s }, %s })\n",
+		luaStr(name), strings.Join(match, ", "), strings.Join(props, ", "))
 }
 
 func genKeybind(k Keybind) string {

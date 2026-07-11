@@ -48,6 +48,6 @@ Item {
 
     Component {
         id: customComp
-        KeybindsEditor {}
+        KeybindsEditor { categories: page.categories }
     }
 }

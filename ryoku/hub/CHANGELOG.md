@@ -3,6 +3,35 @@
 ## Unreleased
 
 ### Added
+- **Config buttons now say which edits survive an update.** The single CONFIG
+  button, which opened Ryoku-owned modules and user overrides as equally
+  writable panes with nothing explaining which survived, is replaced by two:
+  **Edit overrides** opens only the durable user-owned file writable
+  (`hypr/user.lua`, or `monitors_user.lua` for Displays; the Hub-owned JSON for
+  Shell / Widgets / Launcher / Performance), and **View defaults** opens the
+  base modules and generated files (`settings.lua`, `monitors.lua`) read-only,
+  since an update regenerates or overwrites them. GPU is view-only: `gpu.lua` is
+  written by `ryoku-gpu`, never by hand. Editing a file an update would clobber
+  is no longer a silent trap (`Hub.qml`, `PageHeader.qml`).
+- **Keybinds steer you to the Hub editor and flag conflicts.** The Custom editor
+  checks every combo against the shipped legend and your other custom binds,
+  amber-flagging one that shadows a Ryoku shortcut or duplicates another, and
+  both the editor and the legend note that binds added by hand in
+  `~/.config/hypr/user.lua` never appear here and are never conflict-checked, so
+  the Hub is the place to add them (`KeybindsEditor.qml`, `KeybindLegend.qml`,
+  `KeybindsPage.qml`).
+- **Per-app appearance overrides (Advanced > App Overrides).** Give one app its
+  own look on top of the global Appearance: match it by class (run `hyprctl
+  clients` to find it) and an optional title, then set opacity, corners, border
+  size, blur, shadow, dim, animations, or force it fully opaque. Anything left
+  on Inherit follows the global setting, so it is additive, never a fork of the
+  whole look. Each app becomes one Hyprland window rule on Save that beats the
+  global decoration for its windows, so Chromium can be opaque, a terminal
+  square, or a video player shadowless without the raw rule-per-property the
+  Window Rules page beside it needs. New `AppOverridesPage.qml` on the shared
+  `HyprStore` (a new `appOverrides` list), backed by an `AppOverride` type and
+  `genAppOverride` in the Go backend (`hypr.go`), which only emits proven
+  `hl.window_rule` fields so a bad name can never break `settings.lua`.
 - **The Updates page shows a real, staged update.** Instead of a single progress
   "wave", the running view renders the update's ordered stages as a determinate
   multi-segment bar with the current step's label and a live log tail, streamed

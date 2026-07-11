@@ -738,3 +738,66 @@ func TestLuaHex8(t *testing.T) {
 		}
 	}
 }
+
+// per-app appearance overrides emit one hl.window_rule of proven fields.
+func TestGenAppOverride(t *testing.T) {
+	a := AppOverride{
+		Class: "kitty", Opacity: 0.9, Rounding: 8, BorderSize: 3,
+		Blur: "off", Shadow: "off", Dim: "off", Anim: "off", Opaque: "on",
+	}
+	got := genAppOverride(0, a)
+	for _, want := range []string{
+		`class = "kitty"`, "opacity = 0.9", "rounding = 8", "border_size = 3",
+		"no_blur = true", "no_shadow = true", "no_dim = true", "no_anim = true",
+		"opaque = true", `name = "ryoku-app-1"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("app override missing %q:\n%s", want, got)
+		}
+	}
+}
+
+// inherit fields (numeric -1, toggles "inherit") drop out entirely.
+func TestGenAppOverrideInherit(t *testing.T) {
+	a := AppOverride{
+		Class: "kitty", Opacity: -1, Rounding: -1, BorderSize: -1,
+		Blur: "inherit", Shadow: "inherit", Dim: "inherit", Anim: "inherit", Opaque: "inherit",
+	}
+	if got := genAppOverride(0, a); got != "" {
+		t.Errorf("all-inherit override should emit nothing, got %q", got)
+	}
+	a.Opacity = 0.8
+	got := genAppOverride(0, a)
+	if !strings.Contains(got, "opacity = 0.8") {
+		t.Errorf("set opacity missing:\n%s", got)
+	}
+	for _, no := range []string{"rounding", "border_size", "no_blur", "no_shadow", "no_dim", "no_anim", "opaque"} {
+		if strings.Contains(got, no) {
+			t.Errorf("inherit field %q leaked into output:\n%s", no, got)
+		}
+	}
+}
+
+// no class and no title -> no rule (a match-everything rule would reskin the
+// whole desktop).
+func TestGenAppOverrideNoMatch(t *testing.T) {
+	if got := genAppOverride(0, AppOverride{Opacity: 0.5}); got != "" {
+		t.Errorf("override with no match should emit nothing, got %q", got)
+	}
+}
+
+// an app override rides through genLua as a window rule, so it overrides the
+// global decoration on save.
+func TestGenLuaAppOverride(t *testing.T) {
+	o := defaultOverrides()
+	o.AppOverrides = []AppOverride{{
+		Class: "mpv", Opacity: 1, Rounding: 0, BorderSize: -1,
+		Blur: "off", Shadow: "inherit", Dim: "inherit", Anim: "inherit", Opaque: "on",
+	}}
+	out := genLua(o, true)
+	for _, want := range []string{`class = "mpv"`, "no_blur = true", "opaque = true"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("app override not emitted through genLua (%q):\n%s", want, out)
+		}
+	}
+}

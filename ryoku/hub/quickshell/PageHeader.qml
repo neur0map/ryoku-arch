@@ -11,20 +11,31 @@ Item {
     property string title: ""
     property string subtitle: ""
     property string eyebrow: "RYOKU"
-    // Absolute paths the CONFIG button opens (empty hides the button). Hub.qml
-    // resolves these per section; the base module is the real config to read, and
-    // user.lua (or monitors_user.lua) the file edits actually persist in.
-    property var configPaths: []
+    // The section's config files, split by ownership so the buttons say which
+    // edits actually survive an update. editPaths are the durable, user-owned
+    // files (user.lua, monitors_user.lua, or a Hub-owned JSON) opened writable;
+    // viewPaths are Ryoku-owned or generated files opened read-only, since an
+    // update overwrites them. Hub.qml resolves both per section.
+    property var editPaths: []
+    property var viewPaths: []
+    property string editLabel: "Edit overrides"
 
     // Height follows the content (eyebrow + title + subtitle), so a one or
     // two line subtitle both sit right. A fixed height with a centred column
     // let taller pages overflow upward and shove the eyebrow into the top edge.
     implicitHeight: col.height
 
-    function openConfig() {
-        if (!header.configPaths || header.configPaths.length === 0)
+    function openEdit() {
+        if (!header.editPaths || header.editPaths.length === 0)
             return;
-        Quickshell.execDetached(["kitty", "-e", "nvim", "-O"].concat(header.configPaths));
+        Quickshell.execDetached(["kitty", "-e", "nvim", "-O"].concat(header.editPaths));
+    }
+    function openView() {
+        if (!header.viewPaths || header.viewPaths.length === 0)
+            return;
+        // -R opens read-only: these are Ryoku defaults or generated files an
+        // update overwrites, so edits here would be lost. Look, do not touch.
+        Quickshell.execDetached(["kitty", "-e", "nvim", "-R", "-O"].concat(header.viewPaths));
     }
 
     Column {
@@ -54,10 +65,18 @@ Item {
 
             HubButton {
                 anchors.verticalCenter: parent.verticalCenter
-                visible: header.configPaths.length > 0
+                visible: header.editPaths.length > 0
                 icon: "terminal"
-                label: "config"
-                onClicked: header.openConfig()
+                label: header.editLabel
+                onClicked: header.openEdit()
+            }
+
+            HubButton {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: header.viewPaths.length > 0
+                icon: "lock"
+                label: "View defaults"
+                onClicked: header.openView()
             }
         }
 

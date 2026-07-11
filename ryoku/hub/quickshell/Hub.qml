@@ -38,6 +38,7 @@ Rectangle {
         { "key": "store",       "name": "Store",           "icon": "sparkles", "group": "Add-ons" },
         { "key": "addons",      "name": "Installed",       "icon": "widgets",  "group": "Add-ons" },
         { "key": "windowrules", "name": "Window Rules",    "icon": "window",   "group": "Advanced" },
+        { "key": "appoverrides", "name": "App Overrides",  "icon": "window",   "group": "Advanced" },
         { "key": "layerrules",  "name": "Layer Rules",     "icon": "window",   "group": "Advanced" },
         { "key": "autostart",   "name": "Autostart",       "icon": "rocket",   "group": "Advanced" },
         { "key": "environment", "name": "Environment",     "icon": "variable", "group": "Advanced" },
@@ -55,6 +56,7 @@ Rectangle {
         "keybinds":    { "title": "Keybinds", "subtitle": "Every shortcut in the Ryoku desktop, read live from your Hyprland config, plus your own custom binds." },
         "dictation":   { "title": "Dictation", "subtitle": "Voice typing with Voxtype: pick a speech-to-text engine and model, add a cloud API key if you use one, and dictate into any app with the voice keybind." },
         "windowrules": { "title": "Window Rules", "subtitle": "Float, size, pin, or place windows by class or title." },
+        "appoverrides": { "title": "App Overrides", "subtitle": "Give a specific app its own look: opacity, corners, border, blur, shadow, and animations, overriding the global Appearance." },
         "layerrules":  { "title": "Layer Rules", "subtitle": "Tweak layer-shell surfaces (bars, launchers) by namespace: blur, dim, no animation." },
         "autostart":   { "title": "Autostart", "subtitle": "Commands that run when the session starts." },
         "environment": { "title": "Environment", "subtitle": "Environment variables for the Hyprland session." },
@@ -148,30 +150,37 @@ Rectangle {
         saveSection.running = true;
     }
 
-    // absolute config-file paths for the section's CONFIG button (empty -> no
-    // button). Hyprland sections open the base module + user.lua (where edits
-    // persist, since the Hub regenerates settings.lua); shell/widgets open
-    // their JSON; displays opens generated monitors.lua beside monitors_user.lua.
-    function configPathsFor(s) {
+    // The section's config files, split by ownership for the header buttons.
+    // edit = durable, user-owned files opened writable (hypr user.lua /
+    // monitors_user.lua, or a Hub-owned JSON updates never overwrite); view =
+    // Ryoku-owned base modules and generated files opened read-only, since an
+    // update regenerates or clobbers them. GPU is view-only: gpu.lua is written
+    // by ryoku-gpu, never hand-edited. editLabel overrides the default button
+    // text for the Hub-owned JSON sections ("Edit config", not "overrides").
+    function configFor(s) {
         var base = Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config");
         var hypr = base + "/hypr";
         var ryoku = base + "/ryoku";
+        var user = hypr + "/user.lua";
+        var settings = hypr + "/settings.lua";
+        var mod = hypr + "/modules/";
         switch (s) {
-        case "input":       return [hypr + "/modules/input.lua", hypr + "/user.lua"];
-        case "keybinds":    return [hypr + "/modules/binds.lua", hypr + "/user.lua"];
-        case "appearance":  return [hypr + "/modules/decoration.lua", hypr + "/user.lua"];
-        case "animations":  return [hypr + "/modules/animations.lua", hypr + "/user.lua"];
-        case "windowrules": return [hypr + "/modules/window_rules.lua", hypr + "/user.lua"];
-        case "layerrules":  return [hypr + "/user.lua"];
-        case "autostart":   return [hypr + "/modules/autostart.lua", hypr + "/user.lua"];
-        case "environment": return [hypr + "/modules/env.lua", hypr + "/user.lua"];
-        case "displays":    return [hypr + "/monitors.lua", hypr + "/monitors_user.lua"];
-        case "gpu":         return [hypr + "/gpu.lua", hypr + "/user.lua"];
-        case "shell":       return [ryoku + "/shell.json", ryoku + "/visualizer.json"];
-        case "widgets":     return [ryoku + "/widgets.json"];
-        case "launcher":    return [ryoku + "/launcher.json"];
-        case "performance": return [ryoku + "/performance.json"];
-        default:            return [];
+        case "input":       return { "edit": [user], "view": [mod + "input.lua"] };
+        case "keybinds":    return { "edit": [user], "view": [mod + "binds.lua"] };
+        case "appearance":  return { "edit": [user], "view": [mod + "decoration.lua", settings] };
+        case "animations":  return { "edit": [user], "view": [mod + "animations.lua", settings] };
+        case "windowrules": return { "edit": [user], "view": [mod + "window_rules.lua", settings] };
+        case "appoverrides": return { "edit": [user], "view": [mod + "window_rules.lua", settings] };
+        case "layerrules":  return { "edit": [user], "view": [settings] };
+        case "autostart":   return { "edit": [user], "view": [mod + "autostart.lua"] };
+        case "environment": return { "edit": [user], "view": [mod + "env.lua"] };
+        case "displays":    return { "edit": [hypr + "/monitors_user.lua"], "view": [hypr + "/monitors.lua"] };
+        case "gpu":         return { "edit": [], "view": [hypr + "/gpu.lua"] };
+        case "shell":       return { "edit": [ryoku + "/shell.json", ryoku + "/visualizer.json"], "editLabel": "Edit config" };
+        case "widgets":     return { "edit": [ryoku + "/widgets.json"], "editLabel": "Edit config" };
+        case "launcher":    return { "edit": [ryoku + "/launcher.json"], "editLabel": "Edit config" };
+        case "performance": return { "edit": [ryoku + "/performance.json"], "editLabel": "Edit config" };
+        default:            return {};
         }
     }
 
@@ -203,7 +212,9 @@ Rectangle {
                 eyebrow: hub.searching ? "Search" : hub.groupFor(hub.section)
                 title: hub.searching ? "Search" : hub.pageMeta[hub.section].title
                 subtitle: hub.searching ? "Results across every section" : hub.pageMeta[hub.section].subtitle
-                configPaths: hub.searching ? [] : hub.configPathsFor(hub.section)
+                editPaths: hub.searching ? [] : (hub.configFor(hub.section).edit || [])
+                viewPaths: hub.searching ? [] : (hub.configFor(hub.section).view || [])
+                editLabel: hub.searching ? "Edit overrides" : (hub.configFor(hub.section).editLabel || "Edit overrides")
             }
 
             Loader {
@@ -260,6 +271,7 @@ Rectangle {
         case "keybinds": return keybindsComp;
         case "dictation": return dictationComp;
         case "windowrules": return windowRulesComp;
+        case "appoverrides": return appOverridesComp;
         case "layerrules": return layerRulesComp;
         case "autostart": return autostartComp;
         case "environment": return environmentComp;
@@ -287,6 +299,7 @@ Rectangle {
     Component { id: keybindsComp; KeybindsPage { categories: hub.keybindsModel } }
     Component { id: dictationComp; DictationPage {} }
     Component { id: windowRulesComp; WindowRulesPage {} }
+    Component { id: appOverridesComp; AppOverridesPage {} }
     Component { id: layerRulesComp; LayerRulesPage {} }
     Component { id: autostartComp; AutostartPage {} }
     Component { id: environmentComp; EnvironmentPage {} }

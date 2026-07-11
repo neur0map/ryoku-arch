@@ -45,5 +45,15 @@ Flickable {
                 binds: modelData.binds
             }
         }
+
+        Text {
+            width: col.width
+            wrapMode: Text.WordWrap
+            text: "Read live from Ryoku's binds plus your Hub custom shortcuts. Binds added by hand in ~/.config/hypr/user.lua don't appear here and aren't conflict-checked, so add custom shortcuts in the Custom tab."
+            color: Theme.faint
+            font.family: Theme.font
+            font.pixelSize: 12
+            lineHeight: 1.3
+        }
     }
 }

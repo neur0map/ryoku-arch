@@ -89,6 +89,7 @@ Item {
     property var env: []
     property var windowRules: []
     property var layerRules: []
+    property var appOverrides: []
     property var autostart: []
     property var keybinds: []
 
@@ -150,6 +151,7 @@ Item {
         return {
             "appearance": a, "input": i, "cursor": c,
             "env": store.env, "windowRules": store.windowRules, "layerRules": store.layerRules,
+            "appOverrides": store.appOverrides,
             "autostart": store.autostart, "keybinds": store.keybinds,
             "anim": { "items": store.animItems, "curves": store.animCurves },
             "plugins": store.plugins
@@ -170,6 +172,7 @@ Item {
             if (c[store.cursorKeys[n]] !== undefined)
                 store[store.cursorProp(store.cursorKeys[n])] = c[store.cursorKeys[n]];
         store.env = o.env || []; store.windowRules = o.windowRules || []; store.layerRules = o.layerRules || [];
+        store.appOverrides = o.appOverrides || [];
         store.autostart = o.autostart || []; store.keybinds = o.keybinds || [];
         var an = o.anim || {};
         store.animItems = an.items || []; store.animCurves = an.curves || [];
