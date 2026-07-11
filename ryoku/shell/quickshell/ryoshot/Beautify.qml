@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Effects
+import Quickshell
+import Quickshell.Io
 
 // Beautify: a sharing-first image editor for a capture. Frosted, textured chrome
 // (the launcher's grainy look: a warm translucent surface over a square-grid
@@ -80,6 +82,16 @@ Item {
     ]
     readonly property var ratioMap: ({ "auto": 0, "1:1": 1, "4:3": 1.3333, "3:2": 1.5, "16:9": 1.7778, "9:16": 0.5625, "x": 1.7778, "instagram": 1, "story": 0.5625, "linkedin": 1.91, "youtube": 1.7778, "pinterest": 0.6667 })
 
+    readonly property bool hasDefault: cfg.hasDefault
+    readonly property var looks: [
+        { "name": "Ember",  "cfg": { "bgKind": "preset", "bgPreset": 6, "padding": 90, "roundness": 24, "borderW": 0, "shadowStrength": 45, "shadowBlur": 55, "shadowDist": 20, "shadowAngle": 90 } },
+        { "name": "Ocean",  "cfg": { "bgKind": "preset", "bgPreset": 0, "padding": 96, "roundness": 26, "borderW": 0, "shadowStrength": 42, "shadowBlur": 60, "shadowDist": 22, "shadowAngle": 100 } },
+        { "name": "Sunset", "cfg": { "bgKind": "preset", "bgPreset": 1, "padding": 88, "roundness": 22, "borderW": 0, "shadowStrength": 50, "shadowBlur": 50, "shadowDist": 24, "shadowAngle": 110 } },
+        { "name": "Mono",   "cfg": { "bgKind": "solid", "bgSolid": "#14120f", "padding": 72, "roundness": 16, "borderW": 0, "shadowStrength": 32, "shadowBlur": 42, "shadowDist": 16, "shadowAngle": 90 } },
+        { "name": "Paper",  "cfg": { "bgKind": "solid", "bgSolid": "#f5efe4", "padding": 64, "roundness": 12, "borderW": 1, "borderColor": "#dcd3c2", "shadowStrength": 18, "shadowBlur": 30, "shadowDist": 10, "shadowAngle": 90 } },
+        { "name": "Bare",   "cfg": { "bgKind": "none", "padding": 0, "roundness": 0, "borderW": 0, "shadowStrength": 0 } }
+    ]
+
     // ---- resolved background ----
     readonly property bool bgIsGradient: bgKind === "preset" || bgKind === "gradient"
     readonly property color bgA: bgKind === "preset" ? presets[bgPreset].a : bgGradA
@@ -103,6 +115,71 @@ Item {
             if (cb) cb(ok);
         }, Qt.size(Math.round(beautify.fullW), Math.round(beautify.fullH)));
         if (!scheduled && cb) cb(false);
+    }
+
+    // ---- named looks + persisted default ----
+    // applyLook only writes the keys a look defines, so partial looks (e.g. Bare)
+    // leave everything else alone.
+    function applyLook(c) {
+        for (var k in c)
+            beautify[k] = c[k];
+    }
+    function saveDefault() {
+        cfg.hasDefault = true;
+        cfg.bgKind = beautify.bgKind; cfg.bgPreset = beautify.bgPreset;
+        cfg.bgSolid = beautify.bgSolid.toString(); cfg.bgGradA = beautify.bgGradA.toString(); cfg.bgGradB = beautify.bgGradB.toString(); cfg.bgGradAngle = beautify.bgGradAngle;
+        cfg.padding = beautify.padding; cfg.roundness = beautify.roundness; cfg.borderW = beautify.borderW; cfg.borderColor = beautify.borderColor.toString();
+        cfg.shadowStrength = beautify.shadowStrength; cfg.shadowBlur = beautify.shadowBlur; cfg.shadowDist = beautify.shadowDist; cfg.shadowAngle = beautify.shadowAngle;
+        cfg.adjBright = beautify.adjBright; cfg.adjContrast = beautify.adjContrast; cfg.adjSat = beautify.adjSat;
+        cfg.ratioKey = beautify.ratioKey; cfg.watermark = beautify.watermark;
+        cfgFile.writeAdapter();
+    }
+    function loadDefault() {
+        beautify.bgKind = cfg.bgKind; beautify.bgPreset = cfg.bgPreset;
+        beautify.bgSolid = cfg.bgSolid; beautify.bgGradA = cfg.bgGradA; beautify.bgGradB = cfg.bgGradB; beautify.bgGradAngle = cfg.bgGradAngle;
+        beautify.padding = cfg.padding; beautify.roundness = cfg.roundness; beautify.borderW = cfg.borderW; beautify.borderColor = cfg.borderColor;
+        beautify.shadowStrength = cfg.shadowStrength; beautify.shadowBlur = cfg.shadowBlur; beautify.shadowDist = cfg.shadowDist; beautify.shadowAngle = cfg.shadowAngle;
+        beautify.adjBright = cfg.adjBright; beautify.adjContrast = cfg.adjContrast; beautify.adjSat = cfg.adjSat;
+        beautify.ratioKey = cfg.ratioKey; beautify.watermark = cfg.watermark;
+    }
+    function resetDefault() {
+        if (cfg.hasDefault)
+            loadDefault();
+        else
+            applyLook(beautify.looks[0].cfg);
+    }
+    // each new beautify session starts from the saved default, so shots come out
+    // consistent without re-tuning.
+    onVisibleChanged: if (visible && cfg.hasDefault) beautify.loadDefault();
+
+    FileView {
+        id: cfgFile
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/ryoshot-beautify.json"
+        blockLoading: true
+        printErrors: false
+        JsonAdapter {
+            id: cfg
+            property bool hasDefault: false
+            property string bgKind: "preset"
+            property int bgPreset: 6
+            property string bgSolid: "#2b3350"
+            property string bgGradA: "#4facfe"
+            property string bgGradB: "#00c6a7"
+            property real bgGradAngle: 135
+            property real padding: 90
+            property real roundness: 24
+            property real borderW: 0
+            property string borderColor: "#ffffff"
+            property real shadowStrength: 45
+            property real shadowBlur: 55
+            property real shadowDist: 20
+            property real shadowAngle: 90
+            property real adjBright: 0
+            property real adjContrast: 0
+            property real adjSat: 0
+            property string ratioKey: "auto"
+            property bool watermark: false
+        }
     }
 
     // ============================ frosted backdrop ============================
@@ -183,6 +260,35 @@ Item {
                 id: pcol
                 width: flick.width
                 spacing: 24
+
+                // ---------- PRESETS ----------
+                Group {
+                    title: "PRESETS"
+                    Flow {
+                        width: parent.width
+                        spacing: 7
+                        Repeater {
+                            model: beautify.looks
+                            Pill {
+                                required property var modelData
+                                label: modelData.name
+                                onTapped: beautify.applyLook(modelData.cfg)
+                            }
+                        }
+                    }
+                    Row {
+                        width: parent.width
+                        spacing: 8
+                        TopBtn {
+                            label: beautify.hasDefault ? "\u2605 Update default" : "\u2605 Set as default"
+                            onTapped: beautify.saveDefault()
+                        }
+                        TopBtn {
+                            label: "Reset"
+                            onTapped: beautify.resetDefault()
+                        }
+                    }
+                }
 
                 // ---------- BACKGROUND ----------
                 Group {
@@ -377,7 +483,7 @@ Item {
 
                 // directional blurred shadow, cast from the rounded card shape
                 Rectangle {
-                    anchors.fill: parent
+                    width: parent.width; height: parent.height
                     x: Math.cos(beautify.shadowAngle * Math.PI / 180) * beautify.shadowDist
                     y: Math.sin(beautify.shadowAngle * Math.PI / 180) * beautify.shadowDist
                     radius: beautify.roundness

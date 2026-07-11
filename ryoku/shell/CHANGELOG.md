@@ -15,6 +15,11 @@
   through the same path as a plain shot, so it matches the desktop and needs no
   new dependency (`Beautify.qml`, `Slider.qml`, `Dial.qml`, `Toolbar.qml`,
   `shell.qml`).
+- **Beautify presets with a savable default.** A PRESETS row offers one-tap
+  looks (Ember, Ocean, Sunset, Mono, Paper, Bare). *★ Set as default* writes the
+  current look to `~/.config/ryoku/ryoshot-beautify.json`, so every later capture
+  opens already styled without re-tuning, and *Reset* returns to it. The shadow
+  now casts in the direction the dial points (`Beautify.qml`).
 
 ### Fixed
 - **`ryoku deploy` preserves every user file now, matching a packaged update.**
