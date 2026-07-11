@@ -176,8 +176,10 @@ Windows'. Multiple ESPs per disk are valid UEFI: our NVRAM entry points at ours,
 Windows keeps its own ESP + fallback, and a chainload entry keeps Windows in the
 Limine menu. Before any `wipefs`/`mkfs`, `disk.sh` proves each new partition is a
 real new block device, was absent before `sgdisk`, and has the target disk as
-its parent; anything else aborts. A retry first reclaims any *unmounted* leftover
-`ryoku`/`ryokuboot` partitions from a prior failed run, so re-runs never stack.
+its parent; anything else aborts. Partitions labeled exactly `ryoku`/`ryokuboot`
+(leftovers of a prior failed run) abort the install unless
+`RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed `ERASE` ack) deletes only the
+unmounted ones, so re-runs never stack; a mounted match is always left alone.
 Minimum free region is `20 + RYOKU_SWAP_GIB + RYOKU_ESP_GIB` GiB.
 
 ## What runs where

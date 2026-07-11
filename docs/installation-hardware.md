@@ -97,12 +97,13 @@ reusing it would overwrite Windows' own boot loader.
 **What the installer does.** The `alongside` strategy never touches the Windows
 ESP. It creates a dedicated Ryoku ESP (partlabel `ryokuboot`) plus the Btrfs root
 (partlabel `ryoku`) in the largest contiguous free region, and proves both are
-brand new partitions before formatting. Unmounted `ryoku`/`ryokuboot` leftovers
-from a prior failed run abort the install unless you acknowledge the reclaim
-(`RYOKU_RECLAIM_LEFTOVERS=1`, the TUI's typed `ERASE`), which deletes them so
-re-runs never stack; a still-mounted match is always left alone. It adds a Windows
-chainload entry so Windows stays in the Limine menu, and the first reboot targets
-the installed disk. It needs `20 + swap + ESP` GiB of contiguous free space.
+brand new partitions before formatting. Partitions labeled exactly
+`ryoku`/`ryokuboot` (leftovers of a prior failed run) abort the install unless
+`RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed `ERASE` ack) deletes only the
+unmounted ones, so re-runs never stack; a mounted match is always left alone. It
+adds a Windows chainload entry so Windows stays in the Limine menu, and the
+first reboot targets the installed disk. It needs `20 + swap + ESP` GiB of
+contiguous free space.
 
 **What the user must do.**
 

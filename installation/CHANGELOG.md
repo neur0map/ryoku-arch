@@ -42,9 +42,11 @@ ISO detail live in `backend/CHANGELOG.md` and `iso/CHANGELOG.md`.
 - Disk strategy is fail-closed: a missing or empty selection never defaults to a
   wipe, and a whole-disk install onto a populated disk requires the typed `ERASE`
   acknowledgement (`RYOKU_WIPE_CONFIRMED=1`); a blank disk installs without it.
-- `alongside` is idempotent across retries: it reclaims unmounted leftover
-  `ryoku`/`ryokuboot` partitions from a prior failed run before measuring free
-  space, and free-space measurement no longer truncates.
+- `alongside` is idempotent across retries and no longer auto-deletes: partitions
+  labeled exactly `ryoku`/`ryokuboot` (leftovers of a prior failed run) abort the
+  install unless `RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed `ERASE` ack) deletes
+  only the unmounted ones before measuring free space; a mounted match is left
+  alone, and free-space measurement no longer truncates.
 - A dead-CMOS clock is auto-corrected from the mirror's HTTP `Date` header so TLS
   and pacman signatures stop failing; the keyring wait no longer races pacstrap;
   Broadcom Wi-Fi machines get `broadcom-wl`.
