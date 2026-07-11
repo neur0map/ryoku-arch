@@ -28,8 +28,8 @@ Singleton {
 
     Process {
         id: cavaProc
-        // default sink's monitor via pulse (cava's pipewire backend quits within seconds here); fall back to cava's own "auto" pick when no default sink is resolved yet, so a pipewire startup race never bakes an empty "source = .monitor" that reads nothing. exec so quickshell's SIGTERM reaches cava, leaving no orphaned analyser when the surface unloads.
-        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 || exit 0; sink=$(pactl get-default-sink 2>/dev/null); [ -n \"$sink\" ] && mon=\"$sink.monitor\" || mon=auto; cfg=\"${XDG_RUNTIME_DIR:-/tmp}/ryoku-cava-visualizer.conf\"; printf '%s\\n' '[general]' 'framerate = 60' 'bars = " + root.bars + "' '' '[input]' 'method = pulse' \"source = $mon\" '' '[output]' 'method = raw' 'raw_target = /dev/stdout' 'data_format = ascii' 'ascii_max_range = 100' 'channels = mono' 'mono_option = average' '' '[smoothing]' 'noise_reduction = 45' > \"$cfg\"; exec cava -p \"$cfg\""]
+        // playback spectrum via cava's native pipewire backend, source=auto (the default sink's monitor). the pulse backend can't connect here ("Connection terminated") even with pipewire-pulse up, and this path needs no pactl. exec so quickshell's SIGTERM reaches cava, leaving no orphaned analyser when the surface unloads.
+        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 || exit 0; cfg=\"${XDG_RUNTIME_DIR:-/tmp}/ryoku-cava-visualizer.conf\"; printf '%s\\n' '[general]' 'framerate = 60' 'bars = " + root.bars + "' '' '[input]' 'method = pipewire' 'source = auto' '' '[output]' 'method = raw' 'raw_target = /dev/stdout' 'data_format = ascii' 'ascii_max_range = 100' 'channels = mono' 'mono_option = average' '' '[smoothing]' 'noise_reduction = 45' > \"$cfg\"; exec cava -p \"$cfg\""]
         running: root.active
         stdout: SplitParser {
             splitMarker: "\n"
