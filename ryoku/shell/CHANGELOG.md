@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- **Live wallpapers take motion settings and play smoother.** When it launches
+  mpvpaper, the wallpaper daemon reads a max-fps cap and a fill/fit choice from
+  `ryowalls.json`, and a new `wallpaper live-reload` mode relaunches the current
+  clip with fresh options when ryowalls changes them (no state write, no
+  retheme). mpvpaper now also runs with `video-sync=display-resample`, so frames
+  are paced to the panel refresh instead of juddering; a sub-60 fps target caps
+  decode and paint for battery while 60 (the default) plays the clip at its own
+  native rate (`ipc/wallpaper.go`).
 - Active quick-toggle icons stay legible on a light wallpaper accent: the icon on
   a lit tile flips to dark ink on the accent fill instead of washing out in
   warm-white.

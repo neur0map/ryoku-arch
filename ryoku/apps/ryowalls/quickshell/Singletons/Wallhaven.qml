@@ -66,12 +66,139 @@ Singleton {
     }
 
     function cmd(args) {
-        var pre = keyPrefix.slice();
-        if (cfg.upscale && root.upscaler) {
-            if (pre.length === 0) pre = ["env"];
-            pre = pre.concat(["RYOWALLS_UPSCALE=1"]);
+        return keyPrefix.concat(["ryowalls"]).concat(args);
+    }
+
+    // download command for the current source; shared by apply() and enhance().
+    function _downloadCmd(it) {
+        if (source === "moewalls") return cmd(["moewalls-download", it.id, it.dl]);
+        if (source === "motionbgs") return cmd(["motionbgs-download", it.id, it.dl]);
+        if (source === "ryoku") return cmd(["extras-download", it.id, it.dl]);
+        if (source === "lib") return cmd(["library-download", it.id, it.dl]);
+        return cmd(["download", it.id, it.path]);
+    }
+
+    // ---- enhance: on-demand AI upscale of the picked wallpaper (image or video)
+    // on the GPU. The engine writes progress to a state file we watch; the video
+    // path guards its desktop swap so a slow finish never yanks an old wallpaper
+    // back. No tool installed -> the action offers Install instead.
+    property bool enhancing: false
+    property string enhancePhase: ""     // probe|extract|enhance|assemble|done|error|unsupported
+    property real enhanceFrac: 0
+    property bool _enhanceAfterDl: false
+
+    readonly property bool selectedVideo: !!(selected && selected.video && ("" + selected.video).length > 0)
+    function localPathOf(it) {
+        if (!it) return "";
+        if (source === "live" || source === "local")
+            return ("" + (it.video || it.path || "")).replace(/^file:\/\//, "");
+        return "";
+    }
+    function enhance() {
+        var it = selected;
+        if (!it || busy || enhancing) return;
+        if (!upscaler) { installUpscaler(); return; }
+        var local = localPathOf(it);
+        if (local.length > 0) { _startEnhance(local); return; }
+        // remote: fetch the full file first, then enhance the saved copy.
+        busy = true;
+        status = "Downloading";
+        _dlPath = "";
+        _setAfter = false;
+        _enhanceAfterDl = true;
+        dlProc.command = _downloadCmd(it);
+        dlProc.running = true;
+    }
+    function _startEnhance(path) {
+        enhancing = true;
+        enhancePhase = "probe";
+        enhanceFrac = 0;
+        enhProc.command = ["ryowalls", "enhance", path];
+        enhProc.running = true;
+    }
+    Process {
+        id: enhProc
+        onExited: code => {
+            root.enhancing = false;
+            // the exit code is authoritative for the final state; the watched file
+            // drives only the live progress while it runs.
+            root.enhancePhase = code === 3 ? "unsupported" : (code !== 0 ? "error" : "done");
+            root._enhClear.restart();
         }
-        return pre.concat(["ryowalls"]).concat(args);
+    }
+    Timer { id: _enhClear; interval: 3500; onTriggered: { root.enhancePhase = ""; root.enhanceFrac = 0; } }
+    FileView {
+        id: enhView
+        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku-ryowalls-enhance.json"
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            if (!root.enhancing) return;   // ignore a stale file left by a past run
+            try {
+                var s = JSON.parse(enhView.text());
+                root.enhancePhase = s.phase || "";
+                root.enhanceFrac = (s.total > 0) ? Math.max(0, Math.min(1, s.done / s.total)) : 0;
+            } catch (e) {}
+        }
+    }
+
+    // ---- adjust: grade the picked image (brightness/contrast/saturation/warmth,
+    // vignette) live, then bake it on Set. Session-only, reset when the pick
+    // changes. The graded preview drives both the rice mock and its palette, so
+    // what you see is what Set writes. Videos can't be graded (canAdjust=false).
+    property var adjust: ({ brightness: 0, contrast: 0, saturation: 0, warmth: 0, vignette: false })
+    property string adjustPreview: ""     // graded temp image url for the live preview
+    property int adjustRev: 0
+    readonly property bool adjustActive: adjust.brightness !== 0 || adjust.contrast !== 0
+        || adjust.saturation !== 0 || adjust.warmth !== 0 || adjust.vignette
+    readonly property bool canAdjust: !!selected && !selectedVideo
+
+    readonly property string _adjDir: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/ryoku"
+    function _adjSlot(rev) { return _adjDir + "/ryowalls-adjust-" + (rev % 2) + ".png"; }
+    function _adjFlags() {
+        var f = ["--brightness", "" + adjust.brightness, "--contrast", "" + adjust.contrast,
+                 "--saturation", "" + adjust.saturation, "--warmth", "" + adjust.warmth];
+        if (adjust.vignette) f.push("--vignette");
+        return f;
+    }
+    function setAdjust(key, val) {
+        var a = { brightness: adjust.brightness, contrast: adjust.contrast,
+                  saturation: adjust.saturation, warmth: adjust.warmth, vignette: adjust.vignette };
+        a[key] = val;
+        adjust = a;
+        _adjDebounce.restart();
+    }
+    function applyLook(look) {
+        adjust = { brightness: look.brightness || 0, contrast: look.contrast || 0,
+                   saturation: look.saturation || 0, warmth: look.warmth || 0, vignette: !!look.vignette };
+        _adjDebounce.restart();
+    }
+    function resetAdjust() {
+        adjust = { brightness: 0, contrast: 0, saturation: 0, warmth: 0, vignette: false };
+        adjustPreview = "";
+        _preview();
+    }
+    Timer {
+        id: _adjDebounce
+        interval: 200
+        onTriggered: {
+            if (!root.adjustActive || !root.canAdjust) { root.adjustPreview = ""; root._preview(); return; }
+            var src = root.selected.large || root.selected.path || root.selected.thumb || "";
+            if (("" + src).length === 0) return;
+            adjProc.running = false;
+            adjProc.command = ["ryowalls", "adjust", src, root._adjSlot(root.adjustRev + 1), "--size", "1100"].concat(root._adjFlags());
+            adjProc.running = true;
+        }
+    }
+    Process {
+        id: adjProc
+        onExited: code => {
+            if (code !== 0) return;
+            root.adjustRev++;
+            root.adjustPreview = "file://" + root._adjSlot(root.adjustRev);
+            root._previewFrom(root._adjSlot(root.adjustRev));
+        }
     }
 
     // ---- user-added libraries (any GitHub repo of wallpapers) ---------------
@@ -295,21 +422,24 @@ Singleton {
         if (!item)
             return;
         selected = item;
+        adjust = { brightness: 0, contrast: 0, saturation: 0, warmth: 0, vignette: false };
+        adjustPreview = "";
         _preview();
     }
     function _preview() {
         if (!selected)
             return;
+        var src = (adjustActive && adjustPreview.length > 0) ? _adjSlot(adjustRev) : (selected.thumb || "");
+        _previewFrom(src);
+    }
+    // extract the wallust scheme from a specific image (the thumb, or the graded
+    // preview when an adjustment is live) without touching the running desktop.
+    function _previewFrom(src) {
         palette = [];
-        // local live videos ship no poster; the daemon derives the real palette
-        // from a frame on set, so skip the preview fetch here.
-        if (!selected.thumb || selected.thumb.length === 0) {
-            paletteLoading = false;
-            return;
-        }
+        if (!src || ("" + src).length === 0) { paletteLoading = false; return; }
         paletteLoading = true;
         palProc.running = false;
-        palProc.command = cmd(["palette", selected.thumb].concat(root.tuneFlags));
+        palProc.command = cmd(["palette", src].concat(root.tuneFlags));
         palProc.running = true;
     }
 
@@ -324,35 +454,58 @@ Singleton {
         if (source === "live") { setPath(it.video); return; }
         if (source === "local") { setPath(it.video && ("" + it.video).length > 0 ? it.video : it.path); return; }
         busy = true;
-        status = (cfg.upscale && root.upscaler) ? "Downloading + enhancing" : "Downloading";
+        status = "Downloading";
         _dlPath = "";
         _setAfter = true;
-        if (source === "moewalls")
-            dlProc.command = cmd(["moewalls-download", it.id, it.dl]);
-        else if (source === "motionbgs")
-            dlProc.command = cmd(["motionbgs-download", it.id, it.dl]);
-        else if (source === "ryoku")
-            dlProc.command = cmd(["extras-download", it.id, it.dl]);
-        else if (source === "lib")
-            dlProc.command = cmd(["library-download", it.id, it.dl]);
-        else
-            dlProc.command = cmd(["download", it.id, it.path]);
+        dlProc.command = _downloadCmd(it);
         dlProc.running = true;
     }
     function setPath(path) {
         if (busy) return;
         busy = true;
+        _commitSet(path);
+    }
+    function isVideoPath(p) { return /\.(mp4|webm|mkv|mov)$/i.test("" + p); }
+    function _editedPath(path) {
+        var slash = ("" + path).lastIndexOf("/");
+        var dot = ("" + path).lastIndexOf(".");
+        return dot > slash ? path.slice(0, dot) + ".edit" + path.slice(dot) : path + ".edit";
+    }
+    // set a wallpaper, first baking the image grade into a sibling .edit file when
+    // an adjustment is live, so the desktop matches the preview. videos are never
+    // graded, so they set straight through.
+    function _commitSet(path) {
+        if (adjustActive && !isVideoPath(path)) {
+            status = "Applying edits";
+            bakeProc._orig = path;
+            bakeProc._out = _editedPath(path);
+            bakeProc.command = ["ryowalls", "adjust", path, bakeProc._out].concat(_adjFlags());
+            bakeProc.running = true;
+            return;
+        }
         _writeTuneFor(path);
         status = "Setting wallpaper";
         setProc.command = ["ryoku-shell", "wallpaper", "set", path];
         setProc.running = true;
+    }
+    Process {
+        id: bakeProc
+        property string _out: ""
+        property string _orig: ""
+        onExited: code => {
+            var p = (code === 0) ? bakeProc._out : bakeProc._orig;
+            root._writeTuneFor(p);
+            root.status = "Setting wallpaper";
+            setProc.command = ["ryoku-shell", "wallpaper", "set", p];
+            setProc.running = true;
+        }
     }
     function download(item) {
         var it = item || selected;
         if (!it || busy)
             return;
         busy = true;
-        status = (cfg.upscale && root.upscaler) ? "Downloading + enhancing" : "Downloading";
+        status = "Downloading";
         _dlPath = "";
         _setAfter = false;
         dlProc.command = cmd(["download", it.id, it.path]);
@@ -388,6 +541,22 @@ Singleton {
     }
     Process { id: repaintProc }
 
+    // live motion: persist the fps cap / fit, then relaunch mpvpaper with fresh
+    // opts if a live wallpaper is showing. debounced so dragging fps doesn't
+    // thrash the daemon.
+    function setLiveFps(v) { cfg.liveFps = Math.round(v); cfgFile.writeAdapter(); liveReload.restart(); }
+    function setLiveFit(v) { cfg.liveFit = v; cfgFile.writeAdapter(); liveReload.restart(); }
+    Timer {
+        id: liveReload
+        interval: 300
+        onTriggered: {
+            reloadProc.running = false;
+            reloadProc.command = ["ryoku-shell", "wallpaper", "live-reload"];
+            reloadProc.running = true;
+        }
+    }
+    Process { id: reloadProc }
+
     // status lines clear themselves so the bar never carries a stale message.
     onStatusChanged: if (status.length > 0) statusClear.restart()
     Timer { id: statusClear; interval: 4000; onTriggered: root.status = "" }
@@ -420,15 +589,17 @@ Singleton {
         id: dlProc
         stdout: StdioCollector { onStreamFinished: root._dlPath = (text.trim().split("\n").pop() || "") }
         onExited: code => {
-            if (code === 0 && root._dlPath.length > 0 && root._setAfter) {
-                root._writeTuneFor(root._dlPath);
-                root.status = "Setting wallpaper";
-                setProc.command = ["ryoku-shell", "wallpaper", "set", root._dlPath];
-                setProc.running = true;
+            if (code === 0 && root._dlPath.length > 0 && root._enhanceAfterDl) {
+                root._enhanceAfterDl = false;
+                root.busy = false;
+                root._startEnhance(root._dlPath);
+            } else if (code === 0 && root._dlPath.length > 0 && root._setAfter) {
+                root._commitSet(root._dlPath);
             } else {
                 root.busy = false;
                 root.status = code === 0 ? "Saved to Pictures" : "Download failed";
                 root._setAfter = true;
+                root._enhanceAfterDl = false;
             }
         }
     }
@@ -472,8 +643,10 @@ Singleton {
             // whether mpvpaper pauses while a window covers it.
             property real frame: 1
             property bool pauseWhenCovered: false
-            // enhance saved wallpapers with a Vulkan upscaler (sharper, but slower + bigger).
-            property bool upscale: false
+            // live wallpaper motion: max fps (15-60; 60 plays at the clip's own
+            // rate) and screen mapping (fill = cover, fit = letterbox).
+            property int liveFps: 60
+            property string liveFit: "fill"
             // user-added wallpaper libraries: [{name, repo, branch, path}]
             property var libraries: []
         }

@@ -143,6 +143,15 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 		livePauseReconcile()
 		return nil
 	}
+	// live-reload = relaunch the current live wallpaper with fresh motion opts
+	// (ryowalls changed the fps cap or fit). mpvpaper only, so it needs no
+	// wallpaper daemon; no state write and no retheme, just a restart.
+	if mode == "live-reload" {
+		if cur := readState(); isVideo(cur) && isFile(cur) {
+			return d.showLiveWallpaper(cur)
+		}
+		return nil
+	}
 	// only init cares if a wallpaper is already up. a video is the exception:
 	// its mpvpaper died with the previous session, so relaunch it (mpvpaper, no
 	// awww). a live wallpaper never starts awww, which is why the set/next paths
@@ -305,7 +314,7 @@ func (d *daemon) showLiveWallpaper(pic string) error {
 	// them the clip registers as an MPRIS player, so the shell's NowPlaying shows
 	// the silent wallpaper as media and its play/pause fights the real music --
 	// pausing music hands the slot to the wallpaper, resuming it freezes the clip.
-	opts := "no-config load-scripts=no no-audio loop-file=inf hwdec=auto panscan=1.0 input-ipc-server=" + sock
+	opts := livePlaybackOpts(sock)
 	if err := exec.Command(liveDaemon, "-f", "-o", opts, "ALL", pic).Run(); err != nil {
 		return err
 	}
@@ -389,6 +398,50 @@ func livePauseWhenCovered() bool {
 		PauseWhenCovered bool `json:"pauseWhenCovered"`
 	}
 	return json.Unmarshal(b, &s) == nil && s.PauseWhenCovered
+}
+
+// liveMotion: the ryowalls live-wallpaper motion knobs (max fps, fit), read from
+// ryowalls.json. defaults: 60 fps (play the clip at its own rate) and fill.
+func liveMotion() (fps int, fit string) {
+	fps, fit = 60, "fill"
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		base = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	b, err := os.ReadFile(filepath.Join(base, "ryoku", "ryowalls.json"))
+	if err != nil {
+		return
+	}
+	var s struct {
+		LiveFps int    `json:"liveFps"`
+		LiveFit string `json:"liveFit"`
+	}
+	if json.Unmarshal(b, &s) == nil {
+		if s.LiveFps >= 15 && s.LiveFps <= 60 {
+			fps = s.LiveFps
+		}
+		if s.LiveFit == "fit" {
+			fit = "fit"
+		}
+	}
+	return
+}
+
+// livePlaybackOpts: the mpv option string for a live wallpaper. panscan fills (or
+// fits) the screen; display-resample paces frames to the panel refresh so motion
+// is smooth instead of juddery; a sub-60 fps target caps decode/paint for battery
+// while 60 (default) lets the clip play at its own native rate.
+func livePlaybackOpts(sock string) string {
+	fps, fit := liveMotion()
+	panscan := "1.0"
+	if fit == "fit" {
+		panscan = "0.0"
+	}
+	opts := "no-config load-scripts=no no-audio loop-file=inf hwdec=auto video-sync=display-resample panscan=" + panscan
+	if fps >= 15 && fps < 60 {
+		opts += " vf=fps=" + strconv.Itoa(fps)
+	}
+	return opts + " input-ipc-server=" + sock
 }
 
 // pickTransition: random preset, never the previous one (consecutive switches

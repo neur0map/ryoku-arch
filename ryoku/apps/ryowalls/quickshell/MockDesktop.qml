@@ -52,6 +52,17 @@ Item {
         opacity: status === Image.Ready ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.medium } }
     }
+    // graded overlay: when an Adjust edit is live, the engine renders the graded
+    // image to a rotating temp slot and we show it on top, so the rice preview is
+    // exactly what Set will bake. cache off + the rotating name force a reload.
+    Image {
+        anchors.fill: parent
+        asynchronous: true
+        cache: false
+        fillMode: Image.PreserveAspectCrop
+        visible: Wallhaven.adjustActive && Wallhaven.adjustPreview.length > 0
+        source: visible ? Wallhaven.adjustPreview : ""
+    }
 
     // a live wallpaper loops as the backdrop instead of a still frame.
     MediaPlayer {

@@ -3,6 +3,19 @@
 ## Unreleased
 
 ### Added
+- `ryowalls/`: a wallpaper **studio**, not just a browser. A new **Adjust** mode
+  (a third tab beside Browse and Tune) shapes the picked wallpaper live in the
+  rice preview. For an image: a colour **grade** (brightness, contrast,
+  saturation, warmth, vignette) and one-tap **Look** presets (Vivid, Faded,
+  Cinematic, Noir, Warm, Cool), baked into a sibling file on Set so the desktop
+  matches the preview exactly and the extracted palette follows the edit. For a
+  live clip: **Motion** controls, a **Max FPS** cap (15-60; 60 plays at the
+  clip's own rate) and **Fill / Fit**. Both offer an on-demand **Enhance** (AI
+  upscale on the GPU) with a real progress bar and honest phases, replacing the
+  buried "Enhance on save" toggle. New `AdjustPanel.qml`, an `adjust` verb and a
+  reworked on-demand `enhance` verb in the `ryowalls` engine, and `liveFps` /
+  `liveFit` settings (`App.qml`, `MockDesktop.qml`, `SettingsPanel.qml`,
+  `Singletons/Wallhaven.qml`).
 - `ryowalls/`: a **Local** source browses the wallpapers already on the machine,
   images from `~/Pictures/Wallpapers` and live clips from `~/Pictures/livewalls`,
   in one grid with the same All/Images/Live filter the library source uses.
@@ -108,6 +121,14 @@
   `PATH` and works from day one.
 
 ### Fixed
+- `ryowalls/`: **a live wallpaper set from the app no longer reverts on its own.**
+  Enhancing a downloaded video ran a detached background job that, minutes later,
+  re-issued `wallpaper set` for whatever file it had upscaled, so a clip enhanced
+  earlier reclaimed the desktop over a wallpaper you had since chosen. Enhance is
+  now an explicit, foreground action that only swaps its result onto the desktop
+  when that file is still the live wallpaper (it reads `~/.local/state/ryoku-wallpaper`
+  first), so a late finish can never yank an old wallpaper back. Downloads no
+  longer auto-enhance, so a plain Set is never followed by a surprise swap.
 - `ryowalls/`: "Enhance on save" leaned on the AUR `video2x` for video, which
   builds against system `ncnn` yet is never rebuilt when it changes, so it broke
   the moment Arch's `ncnn` dropped an API it used. Video now upscales frame by

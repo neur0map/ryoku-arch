@@ -148,7 +148,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             segW: 78
-            model: [{ key: "browse", label: "Browse" }, { key: "tune", label: "Tune" }]
+            model: [{ key: "browse", label: "Browse" }, { key: "adjust", label: "Adjust" }, { key: "tune", label: "Tune" }]
             current: app.mode
             onSelected: (k) => app.mode = k
         }
@@ -351,6 +351,16 @@ Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width * 0.46
             opacity: app.mode === "tune" ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+        }
+
+        AdjustPanel {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: parent.width * 0.46
+            opacity: app.mode === "adjust" ? 1 : 0
             visible: opacity > 0
             Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
         }

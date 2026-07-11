@@ -131,46 +131,6 @@ Item {
                 }
             }
 
-            // shown when the GPU can upscale; Install pulls the one tool that does it.
-            Column {
-                width: parent.width
-                spacing: 5
-                visible: Wallhaven.upscaleSupported
-                Item {
-                    width: parent.width
-                    height: 30
-                    Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "Enhance on save (AI upscale)"; color: Theme.cream; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
-                    Row {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 10
-                        HubButton {
-                            visible: !Wallhaven.upscaler
-                            anchors.verticalCenter: parent.verticalCenter
-                            icon: "download"
-                            label: "Install"
-                            onClicked: Wallhaven.installUpscaler()
-                        }
-                        Toggle {
-                            visible: Wallhaven.upscaler
-                            anchors.verticalCenter: parent.verticalCenter
-                            on: Wallhaven.settings.upscale
-                            onToggled: (v) => { Wallhaven.settings.upscale = v; Wallhaven.saveSettings(); }
-                        }
-                    }
-                }
-                Text {
-                    width: parent.width
-                    wrapMode: Text.WordWrap
-                    text: Wallhaven.upscaler
-                        ? "Sharpens low-res wallpapers on your GPU when you save them, images and video alike. Looks noticeably better, but saving takes longer and the file gets bigger (a lot for video)."
-                        : "Needs a Vulkan upscaler (waifu2x). Install opens gpk: pick the package and confirm."
-                    color: Theme.dim
-                    font.family: Theme.font
-                    font.pixelSize: 11
-                }
-            }
-
             Rectangle { width: parent.width; height: 1; color: Theme.line }
 
             Item {

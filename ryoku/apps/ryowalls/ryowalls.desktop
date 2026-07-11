@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
 Name=ryowalls
-GenericName=Wallpaper Browser
-Comment=Browse wallhaven.cc, preview the rice, set your wallpaper
+GenericName=Wallpaper Manager
+Comment=Browse, edit, enhance and set image and live wallpapers with a live rice preview
 Exec=flock -n -o /tmp/ryowalls.lock qs -c ryowalls
 Terminal=false
 Icon=ryowalls

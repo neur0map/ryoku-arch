@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Engine for ryowalls: search and download from wallhaven.cc, plus a
-# palette verb that prints an image's wallust scheme to stdout without touching
-# the live theme (for the preview). The palette verb takes the same tune flags
-# the desktop applies, so the preview is honest. WALLHAVEN_API_KEY raises limits.
+# Engine for ryowalls: search and download wallpapers (wallhaven + curated /
+# scraped live sources), a palette verb that prints an image's wallust scheme for
+# the honest live preview, an adjust verb that grades an image (brightness /
+# contrast / saturation / warmth / vignette) for the editor, and an enhance verb
+# that AI-upscales an image or video on the GPU with progress. WALLHAVEN_API_KEY
+# raises limits; the palette + adjust verbs take the same flags the desktop applies.
 set -euo pipefail
 
 api="https://wallhaven.cc/api/v1"
@@ -10,59 +12,126 @@ dest="$HOME/Pictures/Wallpapers"
 key="${WALLHAVEN_API_KEY:-}"
 ua="Mozilla/5.0"
 
-# enhance a saved wallpaper in place. Images are quick one-shots; videos print
-# right away and the frame-by-frame upscale swaps the crisp version in later.
-upscale_file() {
+# where the live wallpaper is recorded; the enhance worker checks it before
+# swapping a crisp version onto the desktop, so a job that finishes after the
+# user has moved on never yanks an old wallpaper back (the swap-back bug).
+state_file="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-wallpaper"
+enh_state="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-ryowalls-enhance.json"
+still_current() { [ "$(cat "$state_file" 2>/dev/null)" = "$1" ]; }
+
+# progress the ryowalls UI polls while enhancing: {file, phase, done, total}.
+# phase is probe | extract | enhance | assemble | done | error | unsupported.
+enh_write() {
+	mkdir -p "$(dirname "$enh_state")" 2>/dev/null || true
+	jq -cn --arg file "$1" --arg phase "$2" --argjson dn "${3:-0}" --argjson total "${4:-0}" \
+		'{file:$file,phase:$phase,done:$dn,total:$total}' >"$enh_state" 2>/dev/null || true
+}
+
+# downloads land as-is now; enhancing is an explicit, on-demand action.
+finish() { printf '%s\n' "$1"; }
+
+# enhance an image in place on the GPU: waifu2x doubles the resolution and
+# denoises. 4k sources are already sharp, so skip them (minutes of GPU, no gain).
+enhance_image() {
 	local f="$1" ext tmp h
 	ext="$(printf '%s' "${f##*.}" | tr '[:upper:]' '[:lower:]')"
-	case "$ext" in
-	jpg | jpeg | png | webp)
-		h="$(identify -format '%h' "$f" 2>/dev/null || echo 0)"
-		# 4k sources are already sharp; doubling them is minutes of GPU for nothing
-		if [ "${h:-0}" -lt 2160 ] && command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
-			tmp="$f.up.${ext/jpeg/jpg}"
-			if waifu2x-ncnn-vulkan -i "$f" -o "$tmp" -s 2 -n 2 -m /usr/share/waifu2x-ncnn-vulkan/models-cunet >/dev/null 2>&1 && [ -s "$tmp" ]; then
-				mv -f "$tmp" "$f"
-			else
-				rm -f "$tmp"
-			fi
-		fi
-		printf '%s\n' "$f"
-		;;
-	mp4 | webm | mkv | mov)
-		printf '%s\n' "$f"
-		# 4k sources are already sharp; upscaling them is a lot of GPU for nothing
-		h="$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$f" 2>/dev/null | head -1)"
-		if [ "${h:-0}" -lt 2160 ] && command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
-			setsid ryowalls upscale-video "$f" >/dev/null 2>&1 </dev/null &
-		fi
-		;;
-	*) printf '%s\n' "$f" ;;
-	esac
+	[ "$ext" = jpeg ] && ext=jpg
+	h="$(identify -format '%h' "$f" 2>/dev/null || echo 0)"
+	if [ "${h:-0}" -ge 2160 ]; then enh_write "$f" "done"; return 0; fi
+	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || { enh_write "$f" unsupported; return 3; }
+	enh_write "$f" enhance
+	tmp="$f.up.$ext"
+	if waifu2x-ncnn-vulkan -i "$f" -o "$tmp" -s 2 -n 2 -m /usr/share/waifu2x-ncnn-vulkan/models-cunet >/dev/null 2>&1 && [ -s "$tmp" ]; then
+		mv -f "$tmp" "$f"
+		enh_write "$f" "done"
+	else
+		rm -f "$tmp"
+		enh_write "$f" error
+		return 1
+	fi
 }
 
-# finish: print the saved path, upscaling first when the toggle asked for it.
-finish() {
-	if [ "${RYOWALLS_UPSCALE:-}" = 1 ]; then upscale_file "$1"; else printf '%s\n' "$1"; fi
-}
-
-# upscale a video frame by frame: ffmpeg extracts, waifu2x batch-upscales, ffmpeg
-# reassembles at the source rate (audio copied when present). waifu2x ships in the
-# official repo, rebuilt against ncnn, so this keeps working where the AUR video2x
-# broke on an ncnn API change. background worker: the clip plays now, crisp swaps in.
-upscale_video() {
-	local f="$1" d fps
-	command -v ffmpeg >/dev/null 2>&1 || return
-	d="$(mktemp -d)" || return
+# enhance a video frame by frame: ffmpeg extracts, waifu2x doubles every frame,
+# ffmpeg reassembles at the source rate (audio copied when present). Runs in the
+# foreground so the UI can track the phase and frame count; only swaps the crisp
+# clip onto the desktop if it is still the live wallpaper when it lands.
+enhance_video() {
+	local f="$1" d fps h total wpid
+	command -v ffmpeg >/dev/null 2>&1 || { enh_write "$f" error; return 1; }
+	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || { enh_write "$f" unsupported; return 3; }
+	enh_write "$f" probe
+	h="$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$f" 2>/dev/null | head -1)"
+	if [ "${h:-0}" -ge 2160 ]; then enh_write "$f" "done"; return 0; fi
 	fps="$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$f" 2>/dev/null | head -1)"
 	[ -n "$fps" ] && [ "$fps" != "0/0" ] || fps=30
+	d="$(mktemp -d)" || { enh_write "$f" error; return 1; }
 	mkdir -p "$d/in" "$d/out"
-	if ffmpeg -y -i "$f" -qscale:v 1 -qmin 1 -qmax 1 -vsync 0 "$d/in/%08d.png" >/dev/null 2>&1 &&
-		waifu2x-ncnn-vulkan -i "$d/in" -o "$d/out" -s 2 -n 2 -m /usr/share/waifu2x-ncnn-vulkan/models-cunet >/dev/null 2>&1 &&
-		ffmpeg -y -framerate "$fps" -i "$d/out/%08d.png" -i "$f" -map 0:v:0 -map 1:a:0? -c:a copy -c:v libx264 -pix_fmt yuv420p -movflags +faststart "$d/final.mp4" >/dev/null 2>&1; then
-		mv -f "$d/final.mp4" "$f" && ryoku-shell wallpaper set "$f"
+	enh_write "$f" extract
+	if ! ffmpeg -y -i "$f" -qscale:v 1 -qmin 1 -qmax 1 -vsync 0 "$d/in/%08d.png" >/dev/null 2>&1; then
+		rm -rf "$d"; enh_write "$f" error; return 1
+	fi
+	total="$(find "$d/in" -name '*.png' | wc -l)"
+	[ "${total:-0}" -gt 0 ] || { rm -rf "$d"; enh_write "$f" error; return 1; }
+	enh_write "$f" enhance 0 "$total"
+	# waifu2x processes the whole directory in one call, so a watcher counts the
+	# output frames for a real progress bar until the process exits.
+	waifu2x-ncnn-vulkan -i "$d/in" -o "$d/out" -s 2 -n 2 -m /usr/share/waifu2x-ncnn-vulkan/models-cunet >/dev/null 2>&1 &
+	wpid=$!
+	while kill -0 "$wpid" 2>/dev/null; do
+		enh_write "$f" enhance "$(find "$d/out" -name '*.png' 2>/dev/null | wc -l)" "$total"
+		sleep 1
+	done
+	wait "$wpid" || { rm -rf "$d"; enh_write "$f" error; return 1; }
+	enh_write "$f" assemble "$total" "$total"
+	if ffmpeg -y -framerate "$fps" -i "$d/out/%08d.png" -i "$f" -map 0:v:0 -map 1:a:0? -c:a copy -c:v libx264 -pix_fmt yuv420p -movflags +faststart "$d/final.mp4" >/dev/null 2>&1; then
+		mv -f "$d/final.mp4" "$f"
+		enh_write "$f" "done" "$total" "$total"
+		still_current "$f" && ryoku-shell wallpaper set "$f" >/dev/null 2>&1 || true
+	else
+		rm -rf "$d"; enh_write "$f" error; return 1
 	fi
 	rm -rf "$d"
+}
+
+# grade an image with imagemagick: brightness / contrast / saturation / warmth,
+# optional vignette. The same pipeline drives the small live preview and the
+# full-res bake, so the rice preview is exactly what Set writes. warmth shifts
+# the red / blue channels (warm = redder, cool = bluer); --size caps the long
+# edge for a fast preview render. src may be a local path or an http(s) url.
+adjust_image() {
+	local src="$1" out="$2"; shift 2
+	local br=0 ct=0 sat=0 warm=0 vig=0 size=0 rmul bmul
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		--brightness) br="$2"; shift 2 ;;
+		--contrast) ct="$2"; shift 2 ;;
+		--saturation) sat="$2"; shift 2 ;;
+		--warmth) warm="$2"; shift 2 ;;
+		--vignette) vig=1; shift ;;
+		--size) size="$2"; shift 2 ;;
+		*) shift ;;
+		esac
+	done
+	local in="$src" tmp=""
+	if printf '%s' "$src" | grep -qE '^https?://'; then
+		tmp="$(mktemp)"; curl -fsSL -A "$ua" "$src" -o "$tmp" || { rm -f "$tmp"; return 1; }
+		in="$tmp"
+	fi
+	local args=()
+	[ "${size:-0}" -gt 0 ] && args+=(-resize "${size}x${size}>")
+	if [ "$warm" -ne 0 ]; then
+		rmul="$(awk -v w="$warm" 'BEGIN{printf "%.4f", 1 + w*0.0018}')"
+		bmul="$(awk -v w="$warm" 'BEGIN{printf "%.4f", 1 - w*0.0018}')"
+		args+=(-channel R -evaluate multiply "$rmul" +channel -channel B -evaluate multiply "$bmul" +channel)
+	fi
+	args+=(-modulate "$((100 + br)),$((100 + sat)),100")
+	[ "$ct" -ne 0 ] && args+=(-brightness-contrast "0x${ct}")
+	[ "$vig" = 1 ] && args+=(-background black -vignette 0x18)
+	mkdir -p "$(dirname "$out")" 2>/dev/null || true
+	magick "$in" "${args[@]}" "$out"
+	local rc=$?
+	[ -n "$tmp" ] && rm -f "$tmp"
+	return $rc
 }
 
 auth=()
@@ -373,9 +442,24 @@ live-import)
 	cp -f -- "$src" "$out"
 	printf '%s\n' "$out"
 	;;
-upscale-video)
-	# background worker for the video enhance path (launched by upscale_file).
-	upscale_video "${1:?video path required}"
+enhance)
+	# On-demand enhance of a wallpaper already on disk (image or video). Blocks
+	# while it works, writing progress the UI polls; the video path guards its
+	# desktop swap on the file still being live, so a late finish can't yank an
+	# old wallpaper back.
+	f="${1:?path required}"
+	ext="$(printf '%s' "${f##*.}" | tr '[:upper:]' '[:lower:]')"
+	case "$ext" in
+	mp4 | webm | mkv | mov) enhance_video "$f" ;;
+	*) enhance_image "$f" ;;
+	esac
+	;;
+adjust)
+	# Grade an image (brightness/contrast/saturation/warmth[/vignette]) into a new
+	# file. src may be a url; --size caps the long edge for a fast preview render.
+	# Prints the output path so the UI can point the preview or the set at it.
+	src="${1:?source required}"; out="${2:?output required}"; shift 2
+	adjust_image "$src" "$out" "$@" && printf '%s\n' "$out"
 	;;
 local-list)
 	# Wallpapers already on this machine: images in ~/Pictures/Wallpapers and live
@@ -423,7 +507,7 @@ caps)
 	jq -cn --argjson vk "$vk" --argjson up "$up" '{vulkan:$vk,upscaler:$up}'
 	;;
 *)
-	echo "usage: ryowalls search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url> [flags] | moewalls-search [--query <q>] [--page <n>] --json | moewalls-download <id> <url> | extras-search [--query <q>] --json | extras-download <id> <url> | live-list | live-import <src> | local-list [--type <t>] [--query <q>] | local-remove <path>..." >&2
+	echo "usage: ryowalls search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url> [flags] | adjust <src> <out> [--brightness N] [--contrast N] [--saturation N] [--warmth N] [--vignette] [--size W] | enhance <path> | moewalls-search [--query <q>] [--page <n>] --json | moewalls-download <id> <url> | extras-search [--query <q>] --json | extras-download <id> <url> | live-list | live-import <src> | local-list [--type <t>] [--query <q>] | local-remove <path>..." >&2
 	exit 2
 	;;
 esac
