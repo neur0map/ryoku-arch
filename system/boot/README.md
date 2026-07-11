@@ -28,7 +28,8 @@ puts its name and colors on it.
 - `plymouth/ryoku/` The splash theme: the manifest, the animation script, and
   the image assets (logo, progress bar, password prompt). Vendored as-is.
 - `mkinitcpio/ryoku.conf` The list of initramfs hooks, including `plymouth`
-  for the splash and `kms` for an early, flicker-free GPU handoff.
+  for the splash, `kms` for an early, flicker-free GPU handoff, and `resume`
+  (right after `encrypt`) so a hibernated system is restored from its swapfile.
 
 ## UKI, in one line
 
@@ -45,3 +46,37 @@ to `/boot/limine.conf`, `limine/default.conf` to `/etc/default/limine`,
 paths `limine-install` refreshes on every `limine` package upgrade, so the
 booted bootloader never goes stale. The `encrypt` hook and the `cryptdevice=`
 command line are kept only when the user chose disk encryption.
+
+### Hibernation (swapfile)
+
+When a swapfile is created (`RYOKU_SWAP_GIB > 0`), the backend appends
+`resume=<dev> resume_offset=<n>` to the kernel command line so the `resume`
+hook can find and restore the hibernation image. `<dev>` mirrors `root=`
+(`/dev/mapper/root` under LUKS, else the root filesystem `UUID=`), and `<n>`
+is the swapfile's physical offset within the Btrfs, read with
+`btrfs inspect-internal map-swapfile -r`. That subcommand needs
+btrfs-progs >= 5.16 (the release that also added the `mkswapfile` the
+installer builds with); on an older toolchain the offset lookup is skipped and
+`resume=` is omitted -- the system still boots, only hibernate-resume is off.
+
+### Intel VMD carry-over
+
+If the live installer kernel had to load the `vmd` module to see the NVMe
+(Intel RST "VMD" mode, common on Intel laptops), the installed initramfs needs
+it too, or the target cannot find its own root disk at boot. The backend
+detects this on the live system (`/sys/module/vmd`) and, before building the
+initramfs, writes `/etc/mkinitcpio.conf.d/ryoku-vmd.conf` with `MODULES+=(vmd)`
+(appended, so it stacks with the NVIDIA early-KMS drop-in).
+
+### Firmware NVRAM is best-effort
+
+Registering the "Ryoku" boot entry with `efibootmgr` is best-effort: some
+firmware (HP / Insyde-class) exposes NVRAM as readonly or reports it full, and
+a failure there must not abort a finished install. The install continues with a
+loud warning -- the UEFI removable-path fallback `EFI/BOOT/BOOTX64.EFI` on our
+ESP keeps the machine bootable. Writing that fallback is always safe now:
+both partitioning strategies install onto Ryoku's *own* ESP (the alongside path
+creates a dedicated ESP, never touching the Windows one), so it can never
+clobber a foreign fallback loader. Before writing anything the backend also
+asserts the ESP has >= 64 MiB free -- a last-line guard that should never fire
+with the dedicated >= 1 GiB ESP, but fails clearly instead of half-writing.

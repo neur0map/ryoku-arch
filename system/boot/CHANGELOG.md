@@ -20,8 +20,35 @@
   `linux` pkgbase), not the never-produced `ryoku.efi`.
 - `limine/default.conf`: comment named the shadow path; now points at
   `/boot/limine.conf`.
+- efibootmgr NVRAM registration is now best-effort. On firmware that exposes
+  NVRAM as readonly or reports it full (HP / Insyde-class), `--create` /
+  `--bootnext` used to abort the whole install under `set -e`. They now log a
+  loud warning and continue: the UEFI removable-path fallback
+  `EFI/BOOT/BOOTX64.EFI` on Ryoku's own ESP keeps the machine bootable. That
+  fallback copy is always safe now that both partitioning strategies install
+  onto Ryoku's own ESP (never the Windows ESP), so it can't clobber a foreign
+  fallback loader.
+- Intel VMD carry-over: when the live installer kernel needed the `vmd` module
+  to see the NVMe (Intel RST "VMD" mode), the installer now writes
+  `/etc/mkinitcpio.conf.d/ryoku-vmd.conf` with `MODULES+=(vmd)` before building
+  the initramfs (both the limine-mkinitcpio UKI path and plain `mkinitcpio -P`),
+  so the installed system can still find its own root disk at boot instead of
+  dropping to an emergency shell.
 
 ### Added
+- `mkinitcpio/ryoku.conf`: `resume` hook, right after `encrypt`, for
+  hibernation. When a swapfile exists (`RYOKU_SWAP_GIB > 0`), the installer
+  appends `resume=<dev> resume_offset=<n>` to the kernel command line (`<dev>`
+  mirrors `root=`: `/dev/mapper/root` under LUKS, else the root fs `UUID=`;
+  `<n>` from `btrfs inspect-internal map-swapfile -r`). Older btrfs-progs
+  (< 5.16) without `map-swapfile` are skipped cleanly (no resume=, still boots).
+  `resume` stays a separate word so the installer's `encrypt`-stripping sed is
+  unaffected, and it is a no-op with no `resume=` cmdline, so it is safe on
+  every install.
+- ESP free-space guard: before writing the Limine binary the installer asserts
+  `/mnt/boot` has >= 64 MiB free and dies with a clear message otherwise -- a
+  last-line guard that should never fire with the dedicated >= 1 GiB ESP, but
+  fails clearly instead of half-writing and erroring deep in efibootmgr.
 - `limine/limine.conf`: Ryoku-branded Limine config (branding string, orange
   accent, Greek Noir palette, timeout, default UKI entry placeholder).
 - `limine/default.conf`: UKI build settings (TARGET_OS_NAME, ESP_PATH,
