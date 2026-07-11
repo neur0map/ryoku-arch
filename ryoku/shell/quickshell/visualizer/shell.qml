@@ -1,4 +1,8 @@
 //@ pragma DefaultEnv QSG_RENDER_LOOP = threaded
+//@ pragma DefaultEnv QSG_RHI_BACKEND = vulkan
+// ^ GPU render: Qt's default GL/EGL path falls back to llvmpipe (software) on
+//   hybrid / NVIDIA-primary setups and pegs several cores animating the full
+//   spectrum; the Vulkan RHI keeps it on the GPU (drops it to ~1% CPU).
 
 import QtQuick
 import Quickshell
@@ -25,13 +29,14 @@ ShellRoot {
         function overlay(mon: string): void { root.raised = !root.raised; if (root.raised) Config.setEnabled(true); }
     }
 
-    // run cava only while the visualiser is enabled AND audio is actually
-    // playing, so a quiet desktop spins no analyser. the idle wave (synthetic)
-    // still breathes when enabled, so this changes no visible behaviour.
+    // cava runs whenever the visualiser is enabled. Gating on "audio playing"
+    // needs a probe (pactl / pw-dump) that is either broken or costs a periodic
+    // graph dump here, while cava itself is ~1% idle and the render already
+    // freezes on silence, so an always-on analyser is cheaper than polling.
     Binding {
         target: Spectrum
         property: "active"
-        value: root.enabled && AudioActivity.playing
+        value: root.enabled
     }
 
     // configured band count; changing it restarts cava with the new bars.
