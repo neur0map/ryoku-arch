@@ -1,0 +1,89 @@
+name: Install backend tests
+
+# Guards the Wave 3 install-backend fixes before a user hits a broken install:
+# the dual-boot 'alongside' partitioner (the P0 fix -- a dedicated Ryoku ESP +
+# root in free space, the existing OS never touched), the whole-disk wipe guard,
+# the free-space sizer, the Secure Boot preflight gate, the clock-skew heal, and
+# the full dry-run step/sentinel contract across the strategy x encrypt x swap
+# matrix. The unit tests run mocked (no root); the alongside test is a REAL
+# loop-device integration test, so it runs in a root job with the disk tools
+# installed (it skips cleanly if a runner has no loop support).
+# See tests/install-partition-alongside.sh and the other tests/install-*.sh.
+
+on:
+  pull_request:
+    paths:
+      - 'installation/backend/**'
+      - 'tests/install-partition-alongside.sh'
+      - 'tests/install-partition-whole.sh'
+      - 'tests/install-largest-free.sh'
+      - 'tests/install-preflight.sh'
+      - 'tests/install-clock-skew.sh'
+      - 'tests/install-dryrun-matrix.sh'
+      - '.github/workflows/install-backend-tests.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'installation/backend/**'
+      - 'tests/install-partition-alongside.sh'
+      - 'tests/install-partition-whole.sh'
+      - 'tests/install-largest-free.sh'
+      - 'tests/install-preflight.sh'
+      - 'tests/install-clock-skew.sh'
+      - 'tests/install-dryrun-matrix.sh'
+      - '.github/workflows/install-backend-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Backend unit + dry-run tests (no root)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Whole-disk wipe guard and partitioning plan
+        shell: bash
+        run: bash tests/install-partition-whole.sh
+
+      - name: Largest free-space sizing
+        shell: bash
+        run: bash tests/install-largest-free.sh
+
+      - name: Secure Boot preflight gate
+        shell: bash
+        run: bash tests/install-preflight.sh
+
+      - name: Clock-skew heal before the mirror re-probe
+        shell: bash
+        run: bash tests/install-clock-skew.sh
+
+      - name: Dry-run step/sentinel matrix
+        shell: bash
+        run: bash tests/install-dryrun-matrix.sh
+
+  loop-device:
+    name: Dual-boot alongside partitioner (real loop device)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install disk tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          # gdisk -> sgdisk, parted -> parted + partprobe, dosfstools -> mkfs.vfat;
+          # losetup/blkid/truncate/udevadm ship with the base image.
+          sudo apt-get install -y --no-install-recommends gdisk parted dosfstools
+
+      - name: Partition alongside a fake Windows layout on a loop device
+        shell: bash
+        # needs root for losetup/sgdisk; the runner grants passwordless sudo. the
+        # test itself prints a skip and exits 0 if a runner lacks loop support.
+        run: sudo bash tests/install-partition-alongside.sh
