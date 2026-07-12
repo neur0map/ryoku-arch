@@ -94,13 +94,34 @@ Item {
         out.push(Qt.point(x1 + (rnd() - 0.5) * amp * 0.6, y1 + (rnd() - 0.5) * amp * 0.6));
         return out;
     }
+    // Catmull-Rom spline through the jittered control points, so the hand-drawn
+    // stroke flows like a pen instead of reading as straight jagged segments.
+    function rSmooth(pts) {
+        if (!pts || pts.length < 3)
+            return pts || [];
+        var out = [], segs = 8;
+        for (var i = 0; i < pts.length - 1; i++) {
+            var p0 = pts[i > 0 ? i - 1 : 0];
+            var p1 = pts[i];
+            var p2 = pts[i + 1];
+            var p3 = pts[i < pts.length - 2 ? i + 2 : i + 1];
+            for (var j = 0; j < segs; j++) {
+                var t = j / segs, t2 = t * t, t3 = t2 * t;
+                out.push(Qt.point(
+                    0.5 * (2 * p1.x + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+                    0.5 * (2 * p1.y + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3)));
+            }
+        }
+        out.push(pts[pts.length - 1]);
+        return out;
+    }
     function roughMain(a) {
         var rnd = rMaker(rSeed(a));
         var amp = Math.min(Math.max((a.width || 4) * 0.9, 2.5), 7);
         var p0 = lp(a, 0), p1 = lp(a, 1);
         var out = [];
         if (a.type === "line" || a.type === "arrow")
-            return rSeg(p0.x, p0.y, p1.x, p1.y, amp, rnd, out);
+            return rSmooth(rSeg(p0.x, p0.y, p1.x, p1.y, amp, rnd, out));
         if (a.type === "rect") {
             var xa = Math.min(p0.x, p1.x), xb = Math.max(p0.x, p1.x);
             var ya = Math.min(p0.y, p1.y), yb = Math.max(p0.y, p1.y);
@@ -108,7 +129,7 @@ Item {
             rSeg(xb, ya, xb, yb, amp, rnd, out);
             rSeg(xb, yb, xa, yb, amp, rnd, out);
             rSeg(xa, yb, xa, ya, amp, rnd, out);
-            return out;
+            return rSmooth(out);
         }
         if (a.type === "ellipse") {
             var cx = (p0.x + p1.x) / 2, cy = (p0.y + p1.y) / 2;
@@ -119,7 +140,7 @@ Item {
                 var jr = 1 + (rnd() - 0.5) * 0.06;
                 out.push(Qt.point(cx + Math.cos(ang) * rx * jr, cy + Math.sin(ang) * ry * jr));
             }
-            return out;
+            return rSmooth(out);
         }
         return out;
     }
@@ -130,7 +151,7 @@ Item {
         var out = [];
         rSeg(h.a.x, h.a.y, h.tip.x, h.tip.y, 2.5, rnd, out);
         rSeg(h.tip.x, h.tip.y, h.b.x, h.b.y, 2.5, rnd, out);
-        return out;
+        return rSmooth(out);
     }
 
     Repeater {

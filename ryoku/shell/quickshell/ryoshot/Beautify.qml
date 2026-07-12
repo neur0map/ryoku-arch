@@ -143,11 +143,9 @@ Item {
         beautify.adjBright = cfg.adjBright; beautify.adjContrast = cfg.adjContrast; beautify.adjSat = cfg.adjSat;
         beautify.ratioKey = cfg.ratioKey; beautify.watermark = cfg.watermark;
     }
+    // reset strips all styling back to the raw capture.
     function resetDefault() {
-        if (cfg.hasDefault)
-            loadDefault();
-        else
-            applyLook(beautify.looks[0].cfg);
+        applyLook({ "bgKind": "none", "padding": 0, "roundness": 0, "borderW": 0, "shadowStrength": 0 });
     }
     // each new beautify session starts from the saved default, so shots come out
     // consistent without re-tuning.
@@ -545,25 +543,15 @@ Item {
                 spacing: wmark.fs * 0.55
                 readonly property real fs: Math.max(15, beautify.fullW * 0.016)
 
-                Rectangle {
+                Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    width: wmark.fs * 1.72
-                    height: wmark.fs * 1.72
-                    radius: width * 0.3
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: "#f4602c" }
-                        GradientStop { position: 1.0; color: "#c31f16" }
-                    }
-                    border.width: Math.max(1, wmark.fs * 0.09)
-                    border.color: Qt.rgba(1, 1, 1, 0.3)
-                    Text {
-                        anchors.centerIn: parent
-                        text: "\u529b"
-                        color: "#ffffff"
-                        font.family: "Noto Sans CJK JP"
-                        font.pixelSize: wmark.fs * 1.02
-                        font.weight: Font.Bold
-                    }
+                    text: "\u529b"
+                    color: beautify.vermilion
+                    font.family: "Noto Sans CJK JP"
+                    font.pixelSize: wmark.fs * 1.4
+                    font.weight: Font.Bold
+                    style: Text.Raised
+                    styleColor: Qt.rgba(0, 0, 0, 0.5)
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter

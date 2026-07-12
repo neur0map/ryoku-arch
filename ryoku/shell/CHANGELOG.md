@@ -11,15 +11,15 @@
   (transparent); Frame has padding, roundness and a coloured border; Shadow has
   strength, blur, distance and a direction dial; plus Adjust (brightness /
   contrast / saturation) and a Ratio row with social formats (X, Instagram,
-  Story, LinkedIn, YouTube, Pinterest) and an optional watermark (a 力 badge and
-  your `user@RyokuArch` handle). Copy or Save
+  Story, LinkedIn, YouTube, Pinterest) and an optional 力 + `user@RyokuArch`
+  watermark. Copy or Save
   through the same path as a plain shot, so it matches the desktop and needs no
   new dependency (`Beautify.qml`, `Slider.qml`, `Dial.qml`, `Toolbar.qml`,
   `shell.qml`).
 - **Beautify presets with a savable default.** A PRESETS row offers one-tap
   looks (Ember, Ocean, Sunset, Mono, Paper, Bare). *★ Set as default* writes the
   current look to `~/.config/ryoku/ryoshot-beautify.json`, so every later capture
-  opens already styled without re-tuning, and *Reset* returns to it. The shadow
+  opens already styled without re-tuning, and *Reset* strips to a plain image. The shadow
   now casts in the direction the dial points (`Beautify.qml`).
 - **Ryoshot annotation gains counters, pixelate redaction and a hand-drawn
   style.** The toolbar adds a numbered **counter** stamp (click to drop 1, 2, 3…
