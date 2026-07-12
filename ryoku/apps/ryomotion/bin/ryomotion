@@ -1,0 +1,295 @@
+#!/usr/bin/env bash
+#
+# ryomotion: the Ryoku Motion backend. Records the screen with a cursor track,
+# and renders a project into a polished demo -- the recording placed on a padded
+# gradient background with rounded corners and a soft shadow (the Beautify look),
+# plus cursor-follow zoom. The zoom math (depth scales, easing, transition
+# windows) is ported from openscreen (MIT); see docs/ for attribution.
+#
+#   ryomotion record [--region|--monitor]   start recording (screen + cursor track)
+#   ryomotion stop                           stop the active recording
+#   ryomotion status                         print recording state as JSON
+#   ryomotion render <project.json> [out]    render a project to mp4/gif
+#
+# A project.json is a small document the editor writes; `render` is pure and
+# testable: give it a clip and it produces a framed, zoomed video.
+set -euo pipefail
+
+# ---- openscreen-ported constants -------------------------------------------
+# ZOOM_DEPTH_SCALES[1..6] and the transition windows come straight from
+# openscreen's video-editor (types.ts / zoomRegionUtils.ts).
+zoom_scale_for_depth() {
+  case "$1" in
+  1) printf '1.25' ;; 2) printf '1.5' ;; 3) printf '1.8' ;;
+  4) printf '2.2' ;; 5) printf '3.5' ;; 6) printf '5.0' ;;
+  *) printf '1.8' ;;
+  esac
+}
+ZOOM_IN_SEC=1.5226      # openscreen ZOOM_IN_TRANSITION_WINDOW_MS (1015.05*1.5)
+ZOOM_OUT_SEC=1.01505    # openscreen TRANSITION_WINDOW_MS
+SHADOW_BLUR=24          # openscreen shadow blur px
+SHADOW_DY=10            # openscreen shadow y offset px
+
+state_dir() { printf '%s/ryoku/ryomotion' "${XDG_STATE_HOME:-$HOME/.local/state}"; }
+projects_dir() { printf '%s/Videos/Ryoku Motion' "$HOME"; }
+rec_pidfile() { printf '%s/record.pids' "$(state_dir)"; }
+
+die() { echo "ryomotion: $*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null 2>&1 || die "missing command: $1"; }
+
+# ---- cursor telemetry logger -----------------------------------------------
+# Samples hyprctl cursorpos at ~60Hz and writes "elapsedMs cx cy" with cx,cy
+# normalized to the captured region, so render can pan a zoom to the cursor.
+# Runs until killed (record stop sends SIGTERM).
+cmd_cursorlog() {
+  local out="$1" rx="$2" ry="$3" rw="$4" rh="$5"
+  command -v hyprctl >/dev/null 2>&1 || exit 0
+  local start now ms pos x y
+  start=$(date +%s%3N)
+  : >"$out"
+  while :; do
+    pos=$(hyprctl cursorpos 2>/dev/null || true)   # "x, y"
+    x=${pos%%,*}; y=${pos#*,}; x=${x// /}; y=${y// /}
+    [[ $x =~ ^-?[0-9]+$ && $y =~ ^-?[0-9]+$ ]] || { sleep 0.016; continue; }
+    now=$(date +%s%3N); ms=$((now - start))
+    awk -v ms="$ms" -v x="$x" -v y="$y" -v rx="$rx" -v ry="$ry" -v rw="$rw" -v rh="$rh" \
+      'BEGIN { cx=(x-rx)/rw; cy=(y-ry)/rh;
+               if(cx<0)cx=0; if(cx>1)cx=1; if(cy<0)cy=0; if(cy>1)cy=1;
+               printf "%d %.4f %.4f\n", ms, cx, cy }' >>"$out"
+    sleep 0.016
+  done
+}
+
+# ---- record ----------------------------------------------------------------
+# Best-effort screen capture with gpu-screen-recorder + a parallel cursor track.
+# Needs a live Hyprland session; the editor drives start/stop.
+cmd_record() {
+  local mode="monitor" geom="" mon rx ry rw rh
+  case "${1:-}" in --region) mode="region" ;; --monitor|--fullscreen|"") mode="monitor" ;; esac
+  need gpu-screen-recorder; need hyprctl; need jq
+  mkdir -p "$(state_dir)" "$(projects_dir)"
+
+  mon=$(hyprctl monitors -j 2>/dev/null | jq -r '[.[] | select(.focused)][0] // .[0]')
+  [[ -n $mon && $mon != null ]] || die "no monitor found"
+  local mname
+  mname=$(printf '%s' "$mon" | jq -r '.name')
+  rx=$(printf '%s' "$mon" | jq -r '.x'); ry=$(printf '%s' "$mon" | jq -r '.y')
+  rw=$(printf '%s' "$mon" | jq -r '(.width / (.scale // 1)) | floor')
+  rh=$(printf '%s' "$mon" | jq -r '(.height / (.scale // 1)) | floor')
+
+  local gsr_target="$mname"
+  if [[ $mode == region ]]; then
+    need slurp
+    geom=$(slurp -f '%x %y %w %h' 2>/dev/null || true)
+    [[ -n $geom ]] || die "region selection cancelled"
+    read -r rx ry rw rh <<<"$geom"
+    gsr_target="region"
+  fi
+
+  local ts base clip cur proj
+  ts=$(date +%Y-%m-%d_%H.%M.%S)
+  base="$(projects_dir)/motion_${ts}"
+  clip="${base}.mp4"; cur="${base}.cursor"; proj="${base}.json"
+
+  cmd_cursorlog "$cur" "$rx" "$ry" "$rw" "$rh" &
+  local logpid=$!
+
+  local -a gargs=(-o "$clip" -f 60 -q very_high -cursor yes)
+  if [[ $gsr_target == region ]]; then gargs+=(-w region -region "${rw}x${rh}+${rx}+${ry}"); else gargs+=(-w "$mname"); fi
+  gpu-screen-recorder "${gargs[@]}" >/dev/null 2>&1 &
+  local gsrpid=$!
+
+  printf '%s\n%s\n' "$gsrpid" "$logpid" >"$(rec_pidfile)"
+  # seed a project the editor can open the moment recording stops.
+  jq -n --arg clip "$clip" --arg cur "$cur" \
+    '{clip:$clip, cursor:$cur, trimStart:0, trimEnd:0, speed:1,
+      bg:{kind:"gradient", a:"#4facfe", b:"#00c6a7", solid:"#2b3350", angle:135, image:""},
+      padding:0.06, roundness:18, shadow:0.35,
+      zoom:{enabled:true, depth:3, regions:[]}, fps:60, format:"mp4"}' >"$proj"
+  echo "$proj"
+}
+
+cmd_stop() {
+  local pf; pf="$(rec_pidfile)"
+  [[ -r $pf ]] || die "no active recording"
+  local gsrpid logpid; { read -r gsrpid; read -r logpid; } <"$pf"
+  # gsr flushes the muxer on SIGINT; the logger just dies.
+  [[ -n ${gsrpid:-} ]] && kill -INT "$gsrpid" 2>/dev/null || true
+  [[ -n ${logpid:-} ]] && kill -TERM "$logpid" 2>/dev/null || true
+  rm -f "$pf"
+}
+
+cmd_status() {
+  local pf; pf="$(rec_pidfile)"
+  if [[ -r $pf ]]; then
+    local gsrpid; read -r gsrpid <"$pf"
+    if [[ -n ${gsrpid:-} ]] && kill -0 "$gsrpid" 2>/dev/null; then echo '{"recording":true}'; return; fi
+  fi
+  echo '{"recording":false}'
+}
+
+# ---- render ----------------------------------------------------------------
+# Build the ffmpeg crop expression that zooms into each region's focus with the
+# openscreen easing (smootherstep approximation of cubicBezier(0.16,1,0.3,1)),
+# ramping in over ZOOM_IN_SEC and out over ZOOM_OUT_SEC. Emits Z, FX, FY exprs.
+# smootherstep(p) = p^3 (p(6p-15)+10). ffmpeg has clip()/min()/between().
+zoom_exprs() {
+  local depth="$1"; shift            # remaining args: "s e cx cy" per region
+  local scale; scale=$(zoom_scale_for_depth "$depth")
+  local Z="1" FX="0.5" FY="0.5" r s e cx cy
+  for r in "$@"; do
+    read -r s e cx cy <<<"$r"
+    # p in [0,1]: ramps up over ZOOM_IN_SEC from s, down over ZOOM_OUT_SEC to e.
+    local pin pout p es ze
+    pin="clip((t-$s)/$ZOOM_IN_SEC,0,1)"
+    pout="clip(($e-t)/$ZOOM_OUT_SEC,0,1)"
+    p="min($pin,$pout)"
+    es="($p*$p*$p*($p*($p*6-15)+10))"          # smootherstep(p)
+    ze="(1+($scale-1)*$es)"
+    Z="if(between(t,$s,$e),$ze,$Z)"
+    FX="if(between(t,$s,$e),$cx,$FX)"
+    FY="if(between(t,$s,$e),$cy,$FY)"
+  done
+  printf '%s\t%s\t%s\n' "$Z" "$FX" "$FY"
+}
+
+# When zoom is on but no regions are set, derive them from the cursor track:
+# walk ~2.5s windows and emit a region wherever the cursor moved (activity),
+# focused where the cursor ended up. Contiguous active windows overlap via the
+# lead-in, so the zoom stays up through sustained activity. Caps at 6.
+auto_regions() {
+  local cur="$1"
+  [[ -r $cur ]] || return 0
+  awk '
+    BEGIN { WIN = 2.5; MOVE = 0.05; LEAD = 0.35 }
+    { t = $1 / 1000; x = $2; y = $3; n++; T[n] = t; X[n] = x; Y[n] = y }
+    END {
+      if (n < 2) exit
+      wstart = T[1]; moved = 0; lx = X[1]; ly = Y[1]; regions = 0
+      for (i = 1; i <= n; i++) {
+        dx = X[i] - lx; dy = Y[i] - ly; moved += sqrt(dx * dx + dy * dy); lx = X[i]; ly = Y[i]
+        if (T[i] - wstart >= WIN || i == n) {
+          if (moved > MOVE && regions < 6) {
+            s = wstart - LEAD; if (s < 0) s = 0
+            printf "%.2f %.2f %.3f %.3f\n", s, T[i], X[i], Y[i]
+            regions++
+          }
+          wstart = T[i]; moved = 0
+        }
+      }
+    }
+  ' "$cur"
+}
+
+cmd_render() {
+  local proj="${1:?project.json required}" out="${2:-}"
+  need ffmpeg; need ffprobe; need jq; need magick
+  [[ -r $proj ]] || die "no such project: $proj"
+
+  local clip cur fmt fps trimS trimE speed pad round shadow zen depth
+  clip=$(jq -r '.clip' "$proj"); cur=$(jq -r '.cursor // ""' "$proj")
+  fmt=$(jq -r '.format // "mp4"' "$proj"); fps=$(jq -r '.fps // 30' "$proj")
+  trimS=$(jq -r '.trimStart // 0' "$proj"); trimE=$(jq -r '.trimEnd // 0' "$proj")
+  speed=$(jq -r '.speed // 1' "$proj")
+  pad=$(jq -r '.padding // 0.06' "$proj"); round=$(jq -r '.roundness // 18' "$proj")
+  shadow=$(jq -r '.shadow // 0.35' "$proj")
+  zen=$(jq -r '.zoom.enabled // false' "$proj"); depth=$(jq -r '.zoom.depth // 3' "$proj")
+  [[ -r $clip ]] || die "clip not found: $clip"
+  [[ -n $out ]] || out="${proj%.json}_export.${fmt}"
+
+  local W H
+  W=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$clip" | head -1)
+  H=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$clip" | head -1)
+  [[ -n $W && -n $H ]] || die "cannot probe clip dimensions"
+
+  # canvas = clip + symmetric padding (fraction of the long edge).
+  local padpx cw ch
+  padpx=$(awk -v p="$pad" -v w="$W" -v h="$H" 'BEGIN{m=(w>h?w:h); printf "%d", (m*p)+0.5}')
+  cw=$((W + 2 * padpx)); ch=$((H + 2 * padpx))
+
+  # background + baked shadow, and a rounded-rect alpha mask, via ImageMagick.
+  local bg mask; tmp=$(mktemp -d); bg="$tmp/bg.png"; mask="$tmp/mask.png"
+  trap 'rm -rf "${tmp:-}"' EXIT
+  local kind a b solid angle image
+  kind=$(jq -r '.bg.kind // "gradient"' "$proj")
+  a=$(jq -r '.bg.a // "#4facfe"' "$proj"); b=$(jq -r '.bg.b // "#00c6a7"' "$proj")
+  solid=$(jq -r '.bg.solid // "#2b3350"' "$proj"); angle=$(jq -r '.bg.angle // 135' "$proj")
+  image=$(jq -r '.bg.image // ""' "$proj")
+
+  case "$kind" in
+  solid) magick -size "${cw}x${ch}" "xc:${solid}" "$bg.base.png" ;;
+  image)
+    [[ -r $image ]] || image=""
+    if [[ -n $image ]]; then magick "$image" -resize "${cw}x${ch}^" -gravity center -extent "${cw}x${ch}" "$bg.base.png"
+    else magick -size "${cw}x${ch}" "xc:${solid}" "$bg.base.png"; fi ;;
+  *) magick -size "${cw}x${ch}" -define gradient:angle="$angle" "gradient:${a}-${b}" "$bg.base.png" 2>/dev/null \
+       || magick -size "${cw}x${ch}" "gradient:${a}-${b}" "$bg.base.png" ;;
+  esac
+
+  # shadow: a blurred rounded black rect at the video rect, offset (0, SHADOW_DY).
+  local sx0 sy0 sx1 sy1 salpha
+  sx0=$padpx; sy0=$((padpx + SHADOW_DY)); sx1=$((padpx + W - 1)); sy1=$((padpx + H - 1 + SHADOW_DY))
+  salpha=$(awk -v s="$shadow" 'BEGIN{printf "%.3f", s}')
+  magick "$bg.base.png" \
+    \( -size "${cw}x${ch}" xc:none -fill "rgba(0,0,0,${salpha})" \
+       -draw "roundrectangle ${sx0},${sy0} ${sx1},${sy1} ${round},${round}" -blur "0x${SHADOW_BLUR}" \) \
+    -compose over -composite "$bg"
+  magick -size "${W}x${H}" xc:black -fill white \
+    -draw "roundrectangle 0,0 $((W - 1)),$((H - 1)) ${round},${round}" "$mask"
+
+  # zoom crop expression from the project's regions (seconds, normalized focus).
+  local vf_zoom=""
+  if [[ $zen == true ]]; then
+    mapfile -t regions < <(jq -r '.zoom.regions[]? | "\(.start) \(.end) \(.cx // 0.5) \(.cy // 0.5)"' "$proj")
+    if ((${#regions[@]} == 0)) && [[ -n $cur && -r $cur ]]; then
+      mapfile -t regions < <(auto_regions "$cur")
+    fi
+    if ((${#regions[@]} > 0)); then
+      local Z FX FY
+      IFS=$'\t' read -r Z FX FY < <(zoom_exprs "$depth" "${regions[@]}")
+      # crop to iw/Z x ih/Z panned so focus (FX,FY) stays centred, then scale back.
+      vf_zoom="crop=w='iw/(${Z})':h='ih/(${Z})':x='(iw-iw/(${Z}))*(${FX})':y='(ih-ih/(${Z}))*(${FY})',scale=${W}:${H}:flags=bicubic,"
+    fi
+  fi
+
+  # trim + speed on the source, then zoom, then round (alpha), then frame.
+  local trim_args=() setpts="setpts=PTS-STARTPTS"
+  [[ $(awk -v s="$trimS" 'BEGIN{print (s>0)}') == 1 ]] && trim_args+=(-ss "$trimS")
+  [[ $(awk -v e="$trimE" 'BEGIN{print (e>0)}') == 1 ]] && trim_args+=(-to "$trimE")
+  if [[ $(awk -v s="$speed" 'BEGIN{print (s!=1)}') == 1 ]]; then
+    setpts="setpts=(PTS-STARTPTS)/${speed}"
+  fi
+
+  local filter="[0:v]${setpts},${vf_zoom}scale=${W}:${H}:flags=bicubic,format=rgba[v];[v][2:v]alphamerge[vr];[1:v][vr]overlay=${padpx}:${padpx}:format=auto,format=yuv420p[out]"
+
+  if [[ $fmt == gif ]]; then
+    # frame once to a temp clip, then standard two-pass palette (low memory;
+    # a single split+palettegen graph buffers the whole stream and OOMs).
+    local gfps comp; gfps=$(awk -v f="$fps" 'BEGIN{print (f>25?20:f)}'); comp="$tmp/composite.mp4"
+    ffmpeg -y "${trim_args[@]}" -i "$clip" -i "$bg" -i "$mask" \
+      -filter_complex "$filter" -map "[out]" -an -c:v libx264 -pix_fmt yuv420p -crf 18 -preset fast "$comp" >/dev/null 2>&1 || die "gif compositing failed"
+    ffmpeg -y -i "$comp" -vf "fps=${gfps},palettegen=stats_mode=diff" "$tmp/pal.png" >/dev/null 2>&1 || die "gif palette failed"
+    ffmpeg -y -i "$comp" -i "$tmp/pal.png" -lavfi "fps=${gfps}[x];[x][1:v]paletteuse=dither=sierra2_4a" "$out" >/dev/null 2>&1 || die "gif render failed"
+  else
+    ffmpeg -y "${trim_args[@]}" -i "$clip" -i "$bg" -i "$mask" \
+      -filter_complex "$filter" -map "[out]" -map 0:a? \
+      -c:v libx264 -pix_fmt yuv420p -crf 18 -preset medium -movflags +faststart \
+      -c:a aac -b:a 160k "$out" >/dev/null 2>&1 || die "mp4 render failed"
+  fi
+  echo "$out"
+}
+
+main() {
+  local cmd="${1:-}"; shift || true
+  case "$cmd" in
+  record) cmd_record "$@" ;;
+  stop) cmd_stop "$@" ;;
+  status) cmd_status "$@" ;;
+  render) cmd_render "$@" ;;
+  _cursorlog) cmd_cursorlog "$@" ;;
+  ""|-h|--help)
+    grep -E '^#( |$)' "$0" | sed -E 's/^# ?//'; ;;
+  *) die "unknown command: $cmd (try --help)" ;;
+  esac
+}
+main "$@"

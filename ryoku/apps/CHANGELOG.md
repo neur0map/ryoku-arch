@@ -3,6 +3,19 @@
 ## Unreleased
 
 ### Added
+- `ryomotion/`: **Ryoku Motion**, a new first-party app: a simple, friendly
+  screen-demo recorder and editor (a native, on-brand answer to Screen Studio /
+  borumi / openscreen). It records the screen with a cursor track, frames the clip
+  on a padded gradient background with rounded corners and a soft shadow (the
+  Beautify look, for video), applies **cursor-follow auto-zoom** (depth scales,
+  easing and transition windows ported from openscreen, MIT), and exports MP4 or
+  GIF. The editor is one canvas + one control panel + one timeline: Background
+  presets, Frame (padding / roundness / shadow), Motion (zoom depth + speed),
+  Export. Backend `bin/ryomotion` does capture (gpu-screen-recorder + a cursor
+  logger) and an ffmpeg compositing/zoom render; the UI is `quickshell/`
+  (`App.qml`, `Singletons/Project.qml`, `Theme`, and reusable controls). No new
+  dependency: ffmpeg, imagemagick, gpu-screen-recorder, qt6-multimedia and zenity
+  already ship.
 - `ryowalls/`: a wallpaper **studio**, not just a browser. A new **Adjust** mode
   (a third tab beside Browse and Tune) shapes the picked wallpaper live in the
   rice preview. For an image: a colour **grade** (brightness, contrast,
