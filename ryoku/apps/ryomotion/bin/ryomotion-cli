@@ -34,6 +34,11 @@ SHADOW_DY=10            # openscreen shadow y offset px
 state_dir() { printf '%s/ryoku/ryomotion' "${XDG_STATE_HOME:-$HOME/.local/state}"; }
 projects_dir() { printf '%s/Videos/Ryoku Motion' "$HOME"; }
 rec_pidfile() { printf '%s/record.pids' "$(state_dir)"; }
+# default PipeWire sink node.name, for capturing system audio via its monitor.
+default_sink_node() {
+  command -v wpctl >/dev/null 2>&1 || return 0
+  wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | sed -n 's/.*node.name = "\([^"]*\)".*/\1/p'
+}
 
 die() { echo "ryomotion: $*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "missing command: $1"; }
@@ -98,12 +103,22 @@ cmd_record() {
   cmd_cursorlog "$cur" "$rx" "$ry" "$rw" "$rh" >/dev/null 2>&1 &
   local logpid=$!
 
+  # system audio: pw-record the default sink's monitor. wf-recorder's own audio
+  # path is unusable on PipeWire boxes where libpulse can't connect; pw-record is
+  # native and reliable. best-effort: no sink or no pw-record means a silent clip.
+  local wav="${base}.audio.wav" sink audiopid=""
+  sink=$(default_sink_node)
+  if [[ -n $sink ]] && command -v pw-record >/dev/null 2>&1; then
+    pw-record --target="$sink" -P '{ stream.capture.sink=true }' "$wav" >/dev/null 2>&1 &
+    audiopid=$!
+  fi
+
   # plain background (& keeps $! = the recorder's real pid so stop can signal it;
   # a non-interactive shell won't SIGHUP it on exit, so it outlives this launcher).
   wf-recorder "${wargs[@]}" -f "$clip" >/dev/null 2>&1 &
   local recpid=$!
 
-  printf '%s\n%s\n' "$recpid" "$logpid" >"$(rec_pidfile)"
+  printf '%s\n%s\n%s\n%s\n' "$recpid" "$audiopid" "$logpid" "$clip" >"$(rec_pidfile)"
   # seed a project the editor can open the moment recording stops.
   jq -n --arg clip "$clip" --arg cur "$cur" \
     '{clip:$clip, cursor:$cur, aspect:"auto",
@@ -118,16 +133,32 @@ cmd_record() {
 cmd_stop() {
   local pf; pf="$(rec_pidfile)"
   [[ -r $pf ]] || die "no active recording"
-  local recpid logpid; { read -r recpid; read -r logpid; } <"$pf"
+  local recpid audiopid logpid clip
+  { read -r recpid; read -r audiopid; read -r logpid; read -r clip; } <"$pf"
   [[ -n ${logpid:-} ]] && kill -TERM "$logpid" 2>/dev/null || true
-  # wf-recorder muxes the file on SIGINT; block until it actually exits so the
-  # clip is complete before the editor opens it (bounded ~12s).
+  [[ -n ${audiopid:-} ]] && kill -INT "$audiopid" 2>/dev/null || true
+  # wf-recorder and pw-record flush on SIGINT; block until both exit so the clip
+  # and its audio are complete before the editor opens it (bounded ~12s).
   if [[ -n ${recpid:-} ]]; then
     kill -INT "$recpid" 2>/dev/null || true
     local i=0
     while kill -0 "$recpid" 2>/dev/null && (( i < 120 )); do sleep 0.1; i=$((i + 1)); done
   fi
+  if [[ -n ${audiopid:-} ]]; then
+    local j=0
+    while kill -0 "$audiopid" 2>/dev/null && (( j < 60 )); do sleep 0.1; j=$((j + 1)); done
+  fi
   rm -f "$pf"
+
+  # mux the captured system audio into the video, then drop the sidecar wav.
+  if [[ -n ${clip:-} && -f $clip ]]; then
+    local wav="${clip%.mp4}.audio.wav" out="${clip%.mp4}.muxed.mp4"
+    if [[ -s $wav ]] && ffmpeg -y -i "$clip" -i "$wav" -map 0:v:0 -map 1:a:0 \
+         -c:v copy -c:a aac -b:a 192k -shortest "$out" >/dev/null 2>&1; then
+      mv -f "$out" "$clip"
+    fi
+    rm -f "$wav"
+  fi
 }
 
 cmd_status() {

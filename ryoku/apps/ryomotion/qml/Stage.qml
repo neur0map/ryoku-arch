@@ -26,13 +26,20 @@ Item {
     MediaPlayer {
         id: mp
         property bool primed: false
+        property bool priming: false
         source: Project.clipUrl
         videoOutput: vout
+        // the clip's own audio (screen recordings have none); muted through the
+        // one-frame load prime so opening a clip never blips.
+        audioOutput: AudioOutput { volume: 1.0; muted: mp.priming }
         onSourceChanged: primed = false
         onDurationChanged: if (duration > 0) Project.durationMs = duration
         // decode one frame on load so the paused preview shows frame 0, not black
-        onMediaStatusChanged: if (mediaStatus === MediaPlayer.LoadedMedia && !primed) { primed = true; play(); primeT.start(); }
-        onPlaybackStateChanged: Project.playing = (playbackState === MediaPlayer.PlayingState)
+        onMediaStatusChanged: if (mediaStatus === MediaPlayer.LoadedMedia && !primed) { primed = true; priming = true; play(); primeT.start(); }
+        onPlaybackStateChanged: {
+            Project.playing = (playbackState === MediaPlayer.PlayingState);
+            if (playbackState !== MediaPlayer.PlayingState) musicMp.pause();
+        }
         onPositionChanged: {
             var cut = Project.cutAt(position);
             if (cut) { mp.setPosition(cut.endMs); return; }   // skip removed spans
@@ -42,13 +49,19 @@ Item {
                 mp.playbackRate = sp;
         }
     }
-    Timer { id: primeT; interval: 60; onTriggered: { mp.pause(); mp.setPosition(0); } }
-    // UI talks to Project; Stage owns the player.
+    // background music, played live under the video (baked for real at export).
+    MediaPlayer {
+        id: musicMp
+        source: Project.musicPath ? "file://" + Project.musicPath : ""
+        audioOutput: AudioOutput { volume: Project.musicVolume }
+    }
+    Timer { id: primeT; interval: 60; onTriggered: { mp.pause(); mp.setPosition(0); mp.priming = false; } }
+    // UI talks to Project; Stage owns the players and keeps the music in sync.
     Connections {
         target: Project
-        function onPlayRequested() { mp.play() }
-        function onPauseRequested() { mp.pause() }
-        function onSeekRequested(ms) { mp.setPosition(ms) }
+        function onPlayRequested() { mp.play(); if (Project.musicPath !== "") musicMp.play(); }
+        function onPauseRequested() { mp.pause(); musicMp.pause(); }
+        function onSeekRequested(ms) { mp.setPosition(ms); musicMp.setPosition(ms); }
     }
 
     Item {

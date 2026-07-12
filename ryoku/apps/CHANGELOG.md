@@ -21,8 +21,10 @@
   export with quality tiers (Source / 1080p / 720p). The `ryomotion` binary is the
   editor; `bin/ryomotion-cli` is the backend: capture via **wf-recorder**
   (wlr-screencopy, so recording works on multi-GPU / NVIDIA-hybrid boxes where
-  GPU-EGL recorders fall back to software and refuse) at 60fps with a 60Hz cursor
-  logger, plus the shared ffmpeg graph builder the export bakes. New hard deps
+  GPU-EGL recorders fall back to software and refuse) at 60fps, system audio captured natively with pw-record (wf-recorder's own
+  audio path is dead where libpulse can't connect), and a 60Hz cursor logger;
+  the shared ffmpeg graph builder bakes the export. The preview plays the clip
+  audio and the music track live through QtMultimedia. New hard deps
   `qt6-multimedia` (preview) and `qt6-declarative`; built by `ryoku-desktop`'s
   PKGBUILD (which now compiles CMake apps, not just Quickshell ones). ffmpeg,
   imagemagick and jq already ship.
