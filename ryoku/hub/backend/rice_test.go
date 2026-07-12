@@ -271,3 +271,105 @@ func TestRiceTouchesAndExport(t *testing.T) {
 		}
 	}
 }
+
+// captureRice with "all" pulls every non-empty behavior layer (keybinds
+// included) while skipping empty sections, and riceTouches then lists them so
+// the setup is fully installable and removable.
+func TestCaptureAllLayersAndTouches(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	if err := os.MkdirAll(filepath.Join(dir, "ryoku"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(hyprStorePath(), []byte(`{"appearance":{"rounding":0},"keybinds":[{"keys":"SUPER + T","action":"exec","value":"kitty"}],"windowRules":[{"class":"Spotify","action":"float"}],"input":[]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(themeStatePath(), []byte(`{"followWallpaper":true}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := captureRice("Full", []string{"all"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := r.Layers["keybinds"]; !ok {
+		t.Fatalf("keybinds not captured by full capture: %v", r.Layers)
+	}
+	if _, ok := r.Layers["windowRules"]; !ok {
+		t.Fatalf("windowRules not captured by full capture: %v", r.Layers)
+	}
+	if _, ok := r.Layers["input"]; ok {
+		t.Fatal("empty input layer should be skipped, not captured")
+	}
+
+	touches := riceTouches(r, filepath.Join(ricesDir(), r.Slug))
+	hasKeybinds := false
+	for _, tc := range touches {
+		if tc.Label == "Keybinds" {
+			hasKeybinds = true
+		}
+	}
+	if !hasKeybinds {
+		t.Fatal("touches list should include the captured Keybinds config")
+	}
+}
+
+// a rice carrying a square shell shape and a keybinds layer installs both (the
+// frame, island and chrome go square alongside the windows, and the keybind
+// lands), and restore removes them, so every config round-trips end to end.
+func TestSquareShellAndKeybindRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(dir, "cache"))
+	t.Setenv("HOME", dir)
+	if err := os.MkdirAll(filepath.Join(dir, "ryoku"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	origRun, origReload := riceRun, riceReload
+	riceRun = func(name string, args ...string) error { return nil }
+	riceReload = func() {}
+	t.Cleanup(func() { riceRun, riceReload = origRun, origReload })
+
+	w := func(p, body string) {
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	w(hyprStorePath(), `{"appearance":{"rounding":12},"keybinds":[]}`)
+	w(shellStorePath(), `{"barStyle":"noctalia","frameRadius":9,"islandRadius":17,"roundness":10,"osdRadius":12}`)
+	w(launcherStorePath(), `{}`)
+	w(themeStatePath(), `{"followWallpaper":true}`)
+
+	if err := os.MkdirAll(filepath.Join(ricesDir(), "sq"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	w(ricePath("sq"), `{"schema":1,"slug":"sq","name":"Square","color":{"mode":"wallpaper"},"look":{"hypr":{"appearance":{"rounding":0}},"shell":{"frameRadius":0,"islandRadius":0,"roundness":0,"osdRadius":0},"launcher":{}},"layers":{"keybinds":[{"keys":"SUPER + T","action":"exec","value":"kitty"}]}}`)
+
+	if err := applyRice("sq", []string{"keybinds"}); err != nil {
+		t.Fatal(err)
+	}
+	shell := readJSONMap(shellStorePath())
+	for _, k := range []string{"frameRadius", "islandRadius", "roundness", "osdRadius"} {
+		if v, ok := shell[k].(float64); !ok || v != 0 {
+			t.Fatalf("square rice did not set shell %s to 0: %v", k, shell[k])
+		}
+	}
+	ap := readJSONMap(hyprStorePath())["appearance"].(map[string]any)
+	if ap["rounding"].(float64) != 0 {
+		t.Fatalf("square rice did not set window rounding to 0: %v", ap["rounding"])
+	}
+	if kb, _ := readJSONMap(hyprStorePath())["keybinds"].([]any); len(kb) != 1 {
+		t.Fatalf("keybinds layer not installed: %v", readJSONMap(hyprStorePath())["keybinds"])
+	}
+
+	if err := restoreRice(".baseline"); err != nil {
+		t.Fatal(err)
+	}
+	shell2 := readJSONMap(shellStorePath())
+	if shell2["frameRadius"].(float64) != 9 || shell2["islandRadius"].(float64) != 17 {
+		t.Fatalf("restore did not revert the frame/island shape: %v", shell2)
+	}
+	if kb2, _ := readJSONMap(hyprStorePath())["keybinds"].([]any); len(kb2) != 0 {
+		t.Fatalf("restore did not remove the installed keybind: %v", readJSONMap(hyprStorePath())["keybinds"])
+	}
+}

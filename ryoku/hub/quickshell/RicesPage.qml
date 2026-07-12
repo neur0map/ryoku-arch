@@ -76,7 +76,7 @@ Item {
     function capture(name) {
         if (!name)
             return;
-        captureProc.command = ["ryoku-hub", "rice", "capture", name];
+        captureProc.command = ["ryoku-hub", "rice", "capture", name, "all"];
         captureProc.running = true;
     }
     function del(slug) {

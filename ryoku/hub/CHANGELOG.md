@@ -35,6 +35,16 @@
   readable `configs/` breakout, and a README, then offers to open it in your
   files (`ryoku-hub rice files`, `ryoku-hub rice export`; `RiceDetail.qml`,
   `RicesPage.qml`, `ConfigViewer.qml`, `ImagePicker.qml`, `backend/rice.go`).
+- **A rice now carries every config, and its shape reaches the whole desktop.**
+  **Save current setup** captures the full setup, not just the look: your
+  keybinds, input, window and layer rules, per-app overrides, autostart and
+  environment travel too (empty sections are skipped), each listed in the rice's
+  file view, installed on apply and removed on **Restore original**. A rice's
+  rounding now applies to the shell as well as the windows: the frame edge, the
+  bar and island, the OSD and the inner chrome all follow it, so a square rice is
+  square everywhere and a round one round everywhere. The shipped **Lofi** is
+  fully square and **Pastel** fully round (`backend/rice.go`, `RicesPage.qml`,
+  `ryoku-extras` rices).
 - **The Visualizer tab gains four new looks and deeper control.** Style now
   offers **Line** (a stiff angular readout), **Segments** (a lit LED stack per
   band), **Radial** (a ring of bars around a pulsing centre) and **Circle** (a
@@ -191,6 +201,12 @@
   `backend/schemes.go`, `backend/hypr.go`).
 
 ### Fixed
+- **Hub drawers and dropdowns animate open/close instead of snapping.** The
+  Dropdown popup had no enter/exit transition (it blinked in and out), and the
+  Wi-Fi password row, its "Connection failed" line, and the GPU readiness-checks
+  disclosure toggled `visible` with no motion. All now fade and slide with the
+  Hub's timing tokens (`Theme.quick`/`Theme.medium` + `Theme.ease`), matching
+  the nav-rail drawers (`Dropdown.qml`, `WifiTab.qml`, `GpuPage.qml`).
 - **Live preview and touchpad toggles work again.** Every appearance/input
   preview (and any saved tap-to-click divergence) generated
   `["tap-to-click"]`, a key the Hyprland Lua config rejects; because the

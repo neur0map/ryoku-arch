@@ -255,16 +255,21 @@ func captureRice(name string, layers []string) (Rice, error) {
 			"launcher": extractStore(launcherStorePath(), riceLauncherLook),
 		},
 	}
+	if len(layers) == 1 && layers[0] == "all" {
+		layers = riceHyprLayers
+	}
 	if len(layers) > 0 {
 		r.Layers = map[string]json.RawMessage{}
 		for _, l := range layers {
 			if !allowed(l, riceHyprLayers) {
 				continue
 			}
-			if v, ok := hy[l]; ok {
-				if b, err := json.Marshal(v); err == nil {
-					r.Layers[l] = b
-				}
+			v, ok := hy[l]
+			if !ok || isEmptyLayer(v) {
+				continue
+			}
+			if b, err := json.Marshal(v); err == nil {
+				r.Layers[l] = b
 			}
 		}
 		if len(r.Layers) == 0 {
@@ -303,6 +308,20 @@ func captureRice(name string, layers []string) (Rice, error) {
 		}
 	}
 	return r, saveRice(r)
+}
+
+// isEmptyLayer treats a nil, empty array, or empty object as no config, so a
+// full capture never bloats a rice with sections the user never set.
+func isEmptyLayer(v any) bool {
+	switch t := v.(type) {
+	case nil:
+		return true
+	case []any:
+		return len(t) == 0
+	case map[string]any:
+		return len(t) == 0
+	}
+	return false
 }
 
 // riceRun / riceReload wrap the external effects (wallpaper daemon, cursor,
@@ -601,6 +620,22 @@ func riceTouches(r Rice, dir string) []riceTouch {
 	}
 	if r.Assets.Cursor != "" {
 		touches = append(touches, riceTouch{r.Assets.Cursor, "asset", "mouse", "Cursor theme", true})
+	}
+	layerRows := []struct {
+		key, icon, label string
+	}{
+		{"keybinds", "keyboard", "Keybinds"},
+		{"input", "mouse", "Input (pointer, keyboard)"},
+		{"windowRules", "window", "Window rules"},
+		{"layerRules", "widgets", "Layer rules"},
+		{"appOverrides", "window", "Per-app overrides"},
+		{"autostart", "rocket", "Autostart"},
+		{"env", "variable", "Environment"},
+	}
+	for _, lr := range layerRows {
+		if _, ok := r.Layers[lr.key]; ok {
+			touches = append(touches, riceTouch{homeRel(filepath.Join(cfg, "hypr.json")), "config", lr.icon, lr.label, true})
+		}
 	}
 	return touches
 }
