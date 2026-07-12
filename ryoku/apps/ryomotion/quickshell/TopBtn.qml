@@ -5,13 +5,14 @@ Rectangle {
     id: b
     property string label: ""
     property bool accent: false
+    property color accentColor: Theme.ember
     property bool on: true          // enabled
     signal tapped()
     implicitWidth: tl.implicitWidth + 30
     implicitHeight: 34
     radius: Theme.radiusSm
     opacity: b.on ? 1 : 0.4
-    color: b.accent ? (ma.containsMouse ? Qt.lighter(Theme.ember, 1.12) : Theme.ember)
+    color: b.accent ? (ma.containsMouse ? Qt.lighter(b.accentColor, 1.12) : b.accentColor)
                     : (ma.containsMouse ? Theme.fieldHi : "transparent")
     border.width: b.accent ? 0 : 1
     border.color: Theme.hair

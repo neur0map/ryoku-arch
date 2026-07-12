@@ -3,19 +3,29 @@
 ## Unreleased
 
 ### Added
-- `ryomotion/`: **Ryoku Motion**, a new first-party app: a simple, friendly
-  screen-demo recorder and editor (a native, on-brand answer to Screen Studio /
-  borumi / openscreen). It records the screen with a cursor track, frames the clip
-  on a padded gradient background with rounded corners and a soft shadow (the
-  Beautify look, for video), applies **cursor-follow auto-zoom** (depth scales,
-  easing and transition windows ported from openscreen, MIT), and exports MP4 or
-  GIF. The editor is one canvas + one control panel + one timeline: Background
-  presets, Frame (padding / roundness / shadow), Motion (zoom depth + speed),
-  Export. Backend `bin/ryomotion` does capture (gpu-screen-recorder + a cursor
-  logger) and an ffmpeg compositing/zoom render; the UI is `quickshell/`
-  (`App.qml`, `Singletons/Project.qml`, `Theme`, and reusable controls). No new
-  dependency: ffmpeg, imagemagick, gpu-screen-recorder, qt6-multimedia and zenity
-  already ship.
+- `ryomotion/`: **Ryoku Motion**, a new first-party app: a native, on-brand
+  screen-demo recorder + editor (an answer to Screen Studio / borumi / openscreen),
+  built by translating openscreen's region-based editor (MIT) into Quickshell/QML
+  + ffmpeg. It records the screen with a cursor track, then shapes the clip **live**
+  on a true WYSIWYG stage: a left tool rail (Canvas, Frame, Zoom, Cut, Speed, Text,
+  Overlay, Music, Cursor, Export) drives a contextual panel, and a region timeline
+  holds the edits. Region model (ported from openscreen): **zoom** regions (manual
+  depth + focus, or cursor-follow **auto-zoom** -- depth scales, easing and
+  transition windows ported from openscreen), **cut** spans (removed from the
+  result), **speed** spans (per-section rate), **text** overlays, and **video
+  overlays** (clip-in-clip / PiP). Background is the Beautify look ported to video
+  (gradient / solid / image, padding, roundness, shadow, border) with a canvas
+  **aspect** (auto / 16:9 / 9:16 / 4:3 / 1:1); plus a **music** track and
+  **cursor** controls. Export is MP4 or GIF with quality tiers (Source / 1080p /
+  720p) and a stats readout, and an in-app clip picker (over a native Browse escape
+  hatch) keeps opening cohesive. Backend `bin/ryomotion` does capture
+  (gpu-screen-recorder + a 60Hz cursor logger) and a single ffmpeg graph that
+  composites the framed background, crop-zoom, drawtext and video overlays, then
+  cut + per-segment re-speed (video + audio) and music mix, at the chosen quality.
+  UI in `quickshell/` (`App.qml`, `Stage.qml`, `Rail.qml`, `Timeline.qml`,
+  `Inspector.qml`, `OpenSheet.qml`, `Singletons/Project.qml`, `Theme`, reusable
+  controls). No new dependency: ffmpeg, imagemagick, gpu-screen-recorder,
+  qt6-multimedia, jq and zenity already ship.
 - `ryowalls/`: a wallpaper **studio**, not just a browser. A new **Adjust** mode
   (a third tab beside Browse and Tune) shapes the picked wallpaper live in the
   rice preview. For an image: a colour **grade** (brightness, contrast,
