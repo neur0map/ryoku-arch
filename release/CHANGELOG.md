@@ -18,8 +18,11 @@
   official-repo dependency check.
 
 ### Changed
-- `ryoku-desktop`'s `waifu2x-ncnn-vulkan` optdepend now also covers ryoshot's
-  Beautify HD ×2 export (previously ryowalls Enhance only).
+- **`waifu2x-ncnn-vulkan` is now a hard dependency of `ryoku-desktop`** (moved out
+  of optdepends), so ryoshot's Beautify HD ×2 export and ryowalls Enhance reach
+  every user: `pacman -Syu` pulls it onto existing boxes on `ryoku update`, and it
+  is in `system/packages/base.packages` for fresh ISO installs. An optdepend never
+  installs on `-Syu`, so existing boxes would never have received it.
 
 ### Fixed
 - **A published package filename never changes bytes again.** makepkg is not

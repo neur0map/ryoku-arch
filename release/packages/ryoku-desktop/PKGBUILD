@@ -80,6 +80,11 @@ depends=(
   # live (video) wallpapers: the daemon grabs one frame with ffmpeg to derive the
   # wallust palette. official repo, so a hard depend reaches existing boxes.
   'ffmpeg'
+  # ryoshot Beautify's HD export and ryowalls Enhance AI-upscale on the GPU with
+  # this. official repo (extra), so a hard depend ships it in the ISO install and
+  # reaches existing boxes on `ryoku update` -- an optdepend never installs on -Syu,
+  # and the HD toggle / Enhance are meant to work for every user out of the box.
+  'waifu2x-ncnn-vulkan'
   # Hub's ISO picker (GPU passthrough VM) shells out to a file chooser
   'zenity'
   # Game Mode wifi power-save toggle (ryoku-wifi-powersave runs iw)
@@ -107,7 +112,6 @@ optdepends=(
   'wallust: wallpaper-derived color palette (AUR)'
   'awww: animated wallpaper transitions (AUR)'
   'mpvpaper: video (live) wallpaper playback, ryowalls Live tab (AUR)'
-  'waifu2x-ncnn-vulkan: AI upscale for ryowalls Enhance and ryoshot Beautify HD export'
   'tesseract: OCR text grab (pill Super+D)'
   'tesseract-data-eng: English OCR language data'
   'zbar: QR code scanning (pill Super+D)'
