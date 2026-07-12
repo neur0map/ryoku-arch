@@ -59,6 +59,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
 			os.Exit(1)
 		}
+	case "rice":
+		if err := runRice(args[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(2)
@@ -107,4 +112,5 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  ryoku-hub voxtype get|ensure")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub voxtype set <json>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub voxtype download|rmmodel <key>")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub rice list|capture|apply|restore|save|fork|delete")
 }

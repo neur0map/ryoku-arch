@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- **Rices: the reworked, full-desktop theming system (backend).** `ryoku-hub`
+  gains a `rice` command set that captures the whole desktop look (the four
+  `~/.config/ryoku` stores, wallpaper, launcher hero, cursor) as a named,
+  versioned rice, applies one with a layered merge that leaves a recipient's
+  personal keys untouched, flips the colour master and writes a fixed palette
+  when the rice pins one, and reverts to a pristine snapshot in one step
+  (`rice list | capture | apply | restore | save | fork | delete`). The
+  Appearance Rices tab that drives it lands next (`backend/rice.go`).
 - **The Visualizer tab gains four new looks and deeper control.** Style now
   offers **Line** (a stiff angular readout), **Segments** (a lit LED stack per
   band), **Radial** (a ring of bars around a pulsing centre) and **Circle** (a
