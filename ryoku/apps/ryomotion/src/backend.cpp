@@ -55,12 +55,6 @@ void Backend::probe(const QString &path)
     Q_EMIT probed(durMs, hasCursor);
 }
 
-QString Backend::graph(const QString &projJson)
-{
-    QString proj = writeTemp(projJson, QStringLiteral("ryomotion-preview.json"));
-    return runSync(QStringLiteral("ryomotion-cli"), {"graph", proj}, 8000);
-}
-
 void Backend::exportVideo(const QString &projJson, const QString &outPath)
 {
     if (m_rendering)
@@ -102,7 +96,7 @@ void Backend::stopRecord()
 {
     if (!m_recording)
         return;
-    runSync(QStringLiteral("ryomotion-cli"), {"stop"}, 8000);
+    runSync(QStringLiteral("ryomotion-cli"), {"stop"}, 20000);
     m_recording = false;
     Q_EMIT recordingChanged();
     // give gsr a beat to flush the muxer, then hand the clip back.

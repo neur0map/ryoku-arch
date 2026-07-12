@@ -1,9 +1,9 @@
 #pragma once
 
-// Backend: the bridge from QML to the `ryomotion` shell tool + ffprobe. Plain
-// QtQuick has no process type, so record/export/graph/probe run here via
-// QProcess. `requestGraph` returns the mpv lavfi-complex the live preview feeds
-// its MpvItem; `exportVideo` runs the ffmpeg render (same graph engine).
+// Backend: the bridge from QML to the `ryomotion-cli` shell tool + ffprobe.
+// Plain QtQuick has no process type, so record/export/probe run here via
+// QProcess. `exportVideo` runs the ffmpeg render; the QtMultimedia preview and
+// that render share the same project numbers, so what you see is what you get.
 #include <QObject>
 #include <QtQml/qqmlregistration.h>
 #include <QProcess>
@@ -25,7 +25,6 @@ public:
     bool rendering() const { return m_rendering; }
 
     Q_INVOKABLE void probe(const QString &path);                 // -> probed()
-    Q_INVOKABLE QString graph(const QString &projJson);          // sync: mpv lavfi-complex
     Q_INVOKABLE void exportVideo(const QString &projJson, const QString &outPath);
     Q_INVOKABLE void record(bool region);
     Q_INVOKABLE void stopRecord();

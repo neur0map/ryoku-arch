@@ -62,29 +62,32 @@ cmd_cursorlog() {
 }
 
 # ---- record ----------------------------------------------------------------
-# Best-effort screen capture with gpu-screen-recorder + a parallel cursor track.
-# Needs a live Hyprland session; the editor drives start/stop.
+# Screen capture with wf-recorder (wlr-screencopy: works on any wlroots
+# compositor, including NVIDIA-hybrid where GPU/EGL recorders fail) plus a
+# parallel cursor track. Needs a live Hyprland session; the editor drives it.
 cmd_record() {
-  local mode="monitor" geom="" mon rx ry rw rh
+  local mode="monitor" geom="" mon mname rx ry rw rh
   case "${1:-}" in --region) mode="region" ;; --monitor|--fullscreen|"") mode="monitor" ;; esac
-  need gpu-screen-recorder; need hyprctl; need jq
+  need wf-recorder; need hyprctl; need jq
   mkdir -p "$(state_dir)" "$(projects_dir)"
 
   mon=$(hyprctl monitors -j 2>/dev/null | jq -r '[.[] | select(.focused)][0] // .[0]')
   [[ -n $mon && $mon != null ]] || die "no monitor found"
-  local mname
   mname=$(printf '%s' "$mon" | jq -r '.name')
   rx=$(printf '%s' "$mon" | jq -r '.x'); ry=$(printf '%s' "$mon" | jq -r '.y')
   rw=$(printf '%s' "$mon" | jq -r '(.width / (.scale // 1)) | floor')
   rh=$(printf '%s' "$mon" | jq -r '(.height / (.scale // 1)) | floor')
 
-  local gsr_target="$mname"
+  # constant 60fps, x264/yuv420p for universal compatibility.
+  local -a wargs=(-c libx264 -x yuv420p -r 60 -y)
   if [[ $mode == region ]]; then
     need slurp
-    geom=$(slurp -f '%x %y %w %h' 2>/dev/null || true)
+    geom=$(slurp -f '%x,%y %wx%h' 2>/dev/null || true)
     [[ -n $geom ]] || die "region selection cancelled"
-    read -r rx ry rw rh <<<"$geom"
-    gsr_target="region"
+    wargs+=(-g "$geom")
+    read -r rx ry rw rh < <(printf '%s' "$geom" | tr ',x' '  ')
+  else
+    wargs+=(-o "$mname")
   fi
 
   local ts base clip cur proj
@@ -92,21 +95,21 @@ cmd_record() {
   base="$(projects_dir)/motion_${ts}"
   clip="${base}.mp4"; cur="${base}.cursor"; proj="${base}.json"
 
-  cmd_cursorlog "$cur" "$rx" "$ry" "$rw" "$rh" &
+  cmd_cursorlog "$cur" "$rx" "$ry" "$rw" "$rh" >/dev/null 2>&1 &
   local logpid=$!
 
-  local -a gargs=(-o "$clip" -f 60 -q very_high -cursor yes)
-  if [[ $gsr_target == region ]]; then gargs+=(-w region -region "${rw}x${rh}+${rx}+${ry}"); else gargs+=(-w "$mname"); fi
-  gpu-screen-recorder "${gargs[@]}" >/dev/null 2>&1 &
-  local gsrpid=$!
+  # plain background (& keeps $! = the recorder's real pid so stop can signal it;
+  # a non-interactive shell won't SIGHUP it on exit, so it outlives this launcher).
+  wf-recorder "${wargs[@]}" -f "$clip" >/dev/null 2>&1 &
+  local recpid=$!
 
-  printf '%s\n%s\n' "$gsrpid" "$logpid" >"$(rec_pidfile)"
+  printf '%s\n%s\n' "$recpid" "$logpid" >"$(rec_pidfile)"
   # seed a project the editor can open the moment recording stops.
   jq -n --arg clip "$clip" --arg cur "$cur" \
     '{clip:$clip, cursor:$cur, aspect:"auto",
       bg:{kind:"gradient", a:"#4facfe", b:"#00c6a7", solid:"#2b3350", angle:135, image:""},
       padding:0.06, roundness:18, shadow:0.35, border:{w:0, color:"#ffffff"},
-      cursor_opts:{show:true, scale:1, smooth:0.35}, music:{path:"", volume:0.6},
+      music:{path:"", volume:0.6},
       zoom:{auto:true, depth:3, regions:[]}, trims:[], speeds:[], texts:[],
       fps:60, quality:"good", format:"mp4"}' >"$proj"
   echo "$proj"
@@ -115,10 +118,15 @@ cmd_record() {
 cmd_stop() {
   local pf; pf="$(rec_pidfile)"
   [[ -r $pf ]] || die "no active recording"
-  local gsrpid logpid; { read -r gsrpid; read -r logpid; } <"$pf"
-  # gsr flushes the muxer on SIGINT; the logger just dies.
-  [[ -n ${gsrpid:-} ]] && kill -INT "$gsrpid" 2>/dev/null || true
+  local recpid logpid; { read -r recpid; read -r logpid; } <"$pf"
   [[ -n ${logpid:-} ]] && kill -TERM "$logpid" 2>/dev/null || true
+  # wf-recorder muxes the file on SIGINT; block until it actually exits so the
+  # clip is complete before the editor opens it (bounded ~12s).
+  if [[ -n ${recpid:-} ]]; then
+    kill -INT "$recpid" 2>/dev/null || true
+    local i=0
+    while kill -0 "$recpid" 2>/dev/null && (( i < 120 )); do sleep 0.1; i=$((i + 1)); done
+  fi
   rm -f "$pf"
 }
 
@@ -296,7 +304,7 @@ build_graph() {
   while IFS=$'\t' read -r op ostart oend ox oy osc; do
     [[ -n $op && -r $op ]] || continue
     local ow opp; ow=$(awk -v c="$cw" -v s="$osc" 'BEGIN{printf "%d", c*s}'); opp=$(_mesc "$op")
-    g="${g};movie='${opp}':loop=0,scale=w=${ow}:h=-2[ov$oi];[${last}][ov$oi]overlay=x='(main_w*${ox}-overlay_w/2)':y='(main_h*${oy}-overlay_h/2)':shortest=1:enable='between(t,${ostart},${oend})'[of$oi]"
+    g="${g};movie='${opp}':loop=0,setpts=N/(30*TB),scale=w=${ow}:h=-2[ov$oi];[${last}][ov$oi]overlay=x='(main_w*${ox}-overlay_w/2)':y='(main_h*${oy}-overlay_h/2)':shortest=1:enable='between(t,${ostart},${oend})'[of$oi]"
     last="of$oi"; oi=$((oi + 1))
   done < <(jq -r '.overlays[]? | "\(.path)\t\(.start)\t\(.end)\t\(.x)\t\(.y)\t\(.scale)"' "$proj")
 
@@ -434,7 +442,7 @@ cmd_render() {
 
   if [[ $fmt == gif ]]; then
     local gfps comp; gfps=$(awk -v f="$fps" 'BEGIN{print (f>30?20:f)}'); comp="$tmp/composite.mp4"
-    ffmpeg -y "${inputs[@]}" -filter_complex "$full" -map "$mapv" -an -t "$outdur" -c:v libx264 -pix_fmt yuv420p -crf 18 -preset fast "$comp" 2>"$tmp/err" || { tail -6 "$tmp/err" >&2; die "gif compositing failed"; }
+    ffmpeg -y -i "$clip" -filter_complex "$fg" -map "$mapv" -an -t "$outdur" -c:v libx264 -pix_fmt yuv420p -crf 18 -preset fast "$comp" 2>"$tmp/err" || { tail -6 "$tmp/err" >&2; die "gif compositing failed"; }
     ffmpeg -y -i "$comp" -vf "fps=${gfps},palettegen=stats_mode=diff" "$tmp/pal.png" 2>/dev/null || die "gif palette failed"
     ffmpeg -y -i "$comp" -i "$tmp/pal.png" -lavfi "fps=${gfps}[x];[x][1:v]paletteuse=dither=sierra2_4a" "$out" 2>/dev/null || die "gif render failed"
   else

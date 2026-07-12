@@ -15,8 +15,8 @@ pkgdesc="Ryoku desktop: Hyprland + Quickshell configuration, helpers, and runtim
 arch=('x86_64')
 url="https://ryoku.dev"
 license=('GPL-3.0-or-later')
-# go builds the app helpers (ryovm-fetch); cmake+Qt6+mpv build ryomotion (native).
-makedepends=('go' 'cmake' 'ninja' 'qt6-base' 'qt6-declarative' 'mpv')
+# go builds the app helpers (ryovm-fetch); cmake+Qt6+qt6-multimedia build ryomotion.
+makedepends=('go' 'cmake' 'ninja' 'qt6-base' 'qt6-declarative' 'qt6-multimedia')
 depends=(
   # Ryoku. the monorepo components are pinned to this build's own version:
   # every publish rebuilds them all with one shared RYOKU_PKGVER, and the shell
@@ -80,10 +80,10 @@ depends=(
   # live (video) wallpapers: the daemon grabs one frame with ffmpeg to derive the
   # wallust palette. official repo, so a hard depend reaches existing boxes.
   'ffmpeg'
-  # Ryoku Motion (native editor) previews + exports through libmpv + ffmpeg; the
-  # QtQuick UI needs qt6-declarative. Hard depends so the editor works out of the
-  # box on every install and reaches existing boxes on `ryoku update`.
-  'mpv'
+  # Ryoku Motion (native editor) previews with QtMultimedia and exports through
+  # ffmpeg; the QtQuick UI needs qt6-declarative. Hard depends so the editor works
+  # out of the box on every install and reaches existing boxes on `ryoku update`.
+  'qt6-multimedia'
   'qt6-declarative'
   # ryoshot Beautify's HD export and ryowalls Enhance AI-upscale on the GPU with
   # this. official repo (extra), so a hard depend ships it in the ISO install and
@@ -120,8 +120,8 @@ optdepends=(
   'tesseract: OCR text grab (pill Super+D)'
   'tesseract-data-eng: English OCR language data'
   'zbar: QR code scanning (pill Super+D)'
-  'gpu-screen-recorder: screen recording (Ryoku Motion + pill Super+U)'
-  'wf-recorder: screen-recording fallback for multi-GPU machines'
+  'gpu-screen-recorder: pill Super+U screen recording (hardware-encoded)'
+  'wf-recorder: Ryoku Motion recording + pill Super+U multi-GPU capture'
   'hyprsunset: night-light color temperature (pill Super+U)'
   'openrgb: keyboard and LED accent sync via ryoku-leds'
   'wtype: voice-dictation typing on Wayland (Voxtype)'

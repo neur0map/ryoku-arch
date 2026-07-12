@@ -1,24 +1,25 @@
-#include <clocale>
-
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QQuickWindow>
-#include <QSGRendererInterface>
+#include <QQmlContext>
 
-// Ryoku Motion: native screen-demo editor. One engine (libmpv) previews the
-// exact ffmpeg graph the exporter renders. QQuickFramebufferObject needs the
-// OpenGL RHI backend, forced here before the app spins up.
+// Ryoku Motion: native screen-demo editor. The preview is QtMultimedia; effects
+// are QML transforms/overlays; export is ffmpeg (via ryomotion-cli). One entry.
 int main(int argc, char *argv[])
 {
-    QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
     QGuiApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("Ryoku Motion"));
     app.setDesktopFileName(QStringLiteral("ryomotion"));
 
-    // libmpv requires the C locale for LC_NUMERIC.
-    std::setlocale(LC_NUMERIC, "C");
-
     QQmlApplicationEngine engine;
+    // `ryomotion <clip>` opens that file on start.
+    QString startupClip;
+    if (argc > 1) {
+        QFileInfo fi(QString::fromLocal8Bit(argv[1]));
+        if (fi.exists() && fi.isFile())
+            startupClip = fi.absoluteFilePath();
+    }
+    engine.rootContext()->setContextProperty(QStringLiteral("startupClip"), startupClip);
     engine.loadFromModule("RyoMotion", "Main");
     if (engine.rootObjects().isEmpty())
         return -1;

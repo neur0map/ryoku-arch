@@ -3,13 +3,12 @@ import QtQuick
 import RyoMotion
 
 // The timeline. The Clip lane shows the recording as one bar; drag the in/out
-// handles (Cut tool) to mark a section and the Inspector removes it — removed
+// handles (Cut tool) to mark a section and the Inspector removes it -- removed
 // spans show as gaps, no abstract blocks. Zoom/Speed/Text/Overlay lanes carry
 // draggable range markers. Transport + scrubbable ruler + playhead on top.
 Rectangle {
     id: tl
     color: Theme.bgBot
-    property var player: null
 
     readonly property real dur: Math.max(1, Project.durationMs)
     readonly property real labelW: 66
@@ -19,7 +18,7 @@ Rectangle {
         var s = Math.max(0, ms) / 1000, m = Math.floor(s / 60), r = (s - m * 60);
         return m + ":" + (r < 10 ? "0" : "") + r.toFixed(1);
     }
-    function togglePlay() { if (player && Project.hasClip) player.setPaused(!player.paused); }
+    function togglePlay() { Project.togglePlay(); }
 
     readonly property var regionTracks: [
         { "kind": "zoom", "label": "Zoom", "color": Theme.ember, "add": "addZoom" },
@@ -70,9 +69,7 @@ Rectangle {
                     onPressed: (m) => seek(m.x)
                     onPositionChanged: (m) => { if (pressed) seek(m.x); }
                     function seek(x) {
-                        var ms = Math.max(0, Math.min(tl.dur, x / width * tl.dur));
-                        Project.positionMs = ms;
-                        if (tl.player) tl.player.setPosition(ms / 1000);
+                        Project.seek(Math.max(0, Math.min(tl.dur, x / width * tl.dur)));
                     }
                 }
             }
@@ -108,7 +105,7 @@ Rectangle {
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Project.removeRegion("cut", parent.modelData.id) }
                     }
                 }
-                // cut selection (in/out) — only in Cut tool
+                // cut selection (in/out) -- only in Cut tool
                 Item {
                     anchors.fill: parent
                     visible: Project.tool === "cut"

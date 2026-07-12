@@ -5,15 +5,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Quick)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(MPV REQUIRED IMPORTED_TARGET mpv)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Quick Multimedia)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
 qt_add_executable(ryomotion
     src/main.cpp
-    src/mpvitem.cpp
     src/backend.cpp
 )
 
@@ -38,15 +35,13 @@ qt_add_qml_module(ryomotion
         qml/TopBtn.qml
         qml/Group.qml
     SOURCES
-        src/mpvitem.h
         src/backend.h
 )
 
 target_include_directories(ryomotion PRIVATE src)
 
 target_link_libraries(ryomotion PRIVATE
-    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick
-    PkgConfig::MPV
+    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Multimedia
 )
 
 install(TARGETS ryomotion RUNTIME DESTINATION bin)

@@ -96,7 +96,7 @@ Flickable {
         spacing: 20
 
         Text {
-            text: ({ canvas: "Canvas", frame: "Frame", zoom: "Zoom", cut: "Cut", speed: "Speed", text: "Text", overlay: "Overlay", music: "Music", cursor: "Cursor", export: "Export" })[Project.tool]
+            text: ({ canvas: "Canvas", frame: "Frame", zoom: "Zoom", cut: "Cut", speed: "Speed", text: "Text", overlay: "Overlay", music: "Music", export: "Export" })[Project.tool]
             color: Theme.bright; font.family: Theme.display; font.pixelSize: 21; font.weight: Font.DemiBold
         }
 
@@ -145,6 +145,7 @@ Flickable {
                 Toggle { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; on: Project.autoZoom; onToggled: (v) => { Project.autoZoom = v; Project.dirty(); } }
             }
             Caption { text: "Auto-generates smooth zoom-ins wherever the cursor settles, at export." }
+            Caption { visible: !Project.hasCursor; text: "This clip has no cursor track -- record with Ryoku Motion to use auto-zoom."; color: Theme.gold }
         }
         Group {
             visible: Project.tool === "zoom"
@@ -204,7 +205,7 @@ Flickable {
         Group {
             visible: Project.tool === "overlay"
             title: "OVERLAY"
-            Caption { text: "Drop another clip on top — a webcam, a reaction, a logo loop. Drag the blue box on the preview to place it." }
+            Caption { text: "Drop another clip on top -- a webcam, a reaction, a logo loop. Drag the blue box on the preview to place it." }
             TopBtn { label: "Add video overlay…"; on: Project.hasClip; onTapped: ovDialog.open() }
             Caption { visible: Project.selKind === "overlay" && Project.selected() !== null; text: Project.selected() ? Project.selected().name : "" }
             Slider {
@@ -224,20 +225,6 @@ Flickable {
             Caption { visible: Project.musicPath !== ""; text: ("" + Project.musicPath).split("/").pop() }
             Slider { visible: Project.musicPath !== ""; width: parent.width; label: "Volume"; from: 0; to: 100; value: Project.musicVolume * 100; suffix: "%"; onMoved: (v) => Project.musicVolume = v / 100 }
             TopBtn { visible: Project.musicPath !== ""; label: "Remove music"; onTapped: Project.musicPath = "" }
-        }
-
-        // CURSOR
-        Group {
-            visible: Project.tool === "cursor"
-            title: "CURSOR"
-            Caption { visible: !Project.hasCursor; text: "This clip has no cursor track. Record with Ryoku Motion to capture one for smoothing + auto-zoom." }
-            Item {
-                width: parent.width; height: 24
-                Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "Show cursor"; color: Theme.cream; font.family: Theme.font; font.pixelSize: 13 }
-                Toggle { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; on: Project.showCursor; onToggled: (v) => Project.showCursor = v }
-            }
-            Slider { width: parent.width; label: "Size"; from: 0.5; to: 3; value: Project.cursorScale; decimals: 1; suffix: "×"; onMoved: (v) => Project.cursorScale = v }
-            Slider { width: parent.width; label: "Smoothing"; from: 0; to: 100; value: Project.cursorSmooth * 100; suffix: "%"; onMoved: (v) => Project.cursorSmooth = v / 100 }
         }
 
         // EXPORT

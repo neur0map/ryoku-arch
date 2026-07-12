@@ -17,7 +17,6 @@ Rectangle {
         { "key": "text", "icon": "text", "label": "Text" },
         { "key": "overlay", "icon": "image", "label": "Overlay" },
         { "key": "music", "icon": "music", "label": "Music" },
-        { "key": "cursor", "icon": "cursor", "label": "Cursor" },
         { "key": "export", "icon": "export", "label": "Export" }
     ]
 

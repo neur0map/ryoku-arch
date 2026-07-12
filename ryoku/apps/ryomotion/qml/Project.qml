@@ -17,6 +17,15 @@ QtObject {
     property bool playing: false
     property bool hasCursor: false
 
+    // ---- transport (UI drives these; Stage owns the actual player) ----
+    signal playRequested()
+    signal pauseRequested()
+    signal seekRequested(real ms)
+    function play() { if (hasClip) playRequested() }
+    function pause() { pauseRequested() }
+    function togglePlay() { if (!hasClip) return; playing ? pauseRequested() : playRequested() }
+    function seek(ms) { positionMs = Math.max(0, Math.min(durationMs, ms)); seekRequested(positionMs) }
+
     // ---- canvas ----
     property string aspect: "auto"
     readonly property var aspectRatios: ({ "16:9": 16 / 9, "9:16": 9 / 16, "4:3": 4 / 3, "1:1": 1, "auto": 0 })
@@ -54,10 +63,7 @@ QtObject {
     readonly property var depthScales: [1.25, 1.5, 1.8, 2.2, 3.5, 5.0]
     function depthScale(d) { return depthScales[Math.max(0, Math.min(5, (d || zoomDepth) - 1))]; }
 
-    // ---- cursor / music / export ----
-    property bool showCursor: true
-    property real cursorScale: 1.0
-    property real cursorSmooth: 0.35
+    // ---- music / export ----
     property string musicPath: ""
     property real musicVolume: 0.6
     property string format: "mp4"
@@ -165,6 +171,28 @@ QtObject {
         return null;
     }
 
+    // ---- live zoom transform at a playhead (mirrors the ffmpeg crop-zoom) ----
+    readonly property real zoomInMs: 1522.6
+    readonly property real zoomOutMs: 1015.05
+    function _ease(t) { t = Math.max(0, Math.min(1, t)); return t * t * t * (t * (t * 6 - 15) + 10); }  // smootherstep, matches export
+    // returns { scale, cx, cy } for the active zoom region (regions don't overlap).
+    function zoomAt(ms) {
+        for (var i = 0; i < zooms.length; i++) {
+            var r = zooms[i];
+            if (ms < r.startMs || ms > r.endMs) continue;
+            var inW = Math.min(zoomInMs, (r.endMs - r.startMs) / 2);
+            var outW = Math.min(zoomOutMs, (r.endMs - r.startMs) / 2);
+            var prog = 1;
+            if (ms < r.startMs + inW) prog = _ease((ms - r.startMs) / inW);
+            else if (ms > r.endMs - outW) prog = _ease((r.endMs - ms) / outW);
+            return { scale: 1 + (depthScale(r.depth) - 1) * prog, cx: r.cx, cy: r.cy };
+        }
+        return { scale: 1, cx: 0.5, cy: 0.5 };
+    }
+    function textsAt(ms) {
+        return texts.filter(function (r) { return ms >= r.startMs && ms <= r.endMs; });
+    }
+
     function projectsDir() { return ""; }   // filled by Backend.videosDir() in Main
 
     function openClip(url) {
@@ -185,7 +213,6 @@ QtObject {
             bg: { kind: bgKind, a: "" + bgA, b: "" + bgB, angle: bgAngle, solid: "" + bgSolid, image: bgImage },
             padding: padding, roundness: roundness, shadow: shadow,
             border: { w: borderW, color: "" + borderColor },
-            cursor_opts: { show: showCursor, scale: cursorScale, smooth: cursorSmooth },
             music: { path: musicPath, volume: musicVolume },
             zoom: { auto: autoZoom, depth: zoomDepth, regions: zooms.map(function (r) {
                 return { start: r.startMs / 1000, end: r.endMs / 1000, scale: depthScale(r.depth), cx: r.cx, cy: r.cy };
