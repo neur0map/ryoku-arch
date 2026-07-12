@@ -505,13 +505,14 @@ ShellRoot {
             readonly property real sidebarCornerW: Config.sidebarCornerSize * s
             readonly property real sidebarCornerH: Config.sidebarCornerSize * s
 
-            // drag-to-stash trigger: a masked band down the whole left frame
-            // edge and corner, sidebarCornerSize deep (matching the hover
-            // corner), that catches a file drag -- a HoverHandler can't fire
-            // while a drag grabs the pointer, so a drag toward the left edge or
-            // corner opens the sidebar through this DropArea instead. tunable via
-            // sidebarCornerSize; the board's own DropArea takes drops over it.
-            readonly property real leftEdgeStripW: overlay.sidebarCornerW
+            // drag-to-stash trigger: a thin masked band down the left frame edge
+            // that opens the sidebar when a file is flung at the edge (a
+            // HoverHandler is dead while a drag grabs the pointer, so this DropArea
+            // catches it); the board's own DropArea takes the actual drop. Kept a
+            // thin sliver inside Hyprland's gaps_out ring (18px) so it never reaches
+            // window content: a corner-width band swallowed every click down the
+            // whole left edge.
+            readonly property real leftEdgeStripW: 12
             readonly property bool leftDragActive: overlay.sidebarLeftOn && !overlay.monFullscreen &&
                 (leftEdgeDrop.containsDrag || sidebarLeftContent.dragActive)
             onLeftDragActiveChanged: if (overlay.leftDragActive) root.sidebarLeftPane = "stash"

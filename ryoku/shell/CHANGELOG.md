@@ -37,6 +37,14 @@
   plain grab when the tool is absent (`Beautify.qml`).
 
 ### Fixed
+- **The left screen edge is clickable again (no dead strip while browsing).** The
+  left sidebar's drag-to-stash trigger masked a band the full hover-corner width
+  (`sidebarCornerSize`, ~54px scaled) down the entire left edge, but windows only
+  inset `gaps_out` (18px), so roughly 36px of every window's left edge silently
+  swallowed clicks for its whole height (a browser's back button, scrollbar, and
+  first tab sit under it). The band is now a thin sliver kept inside the frame gap:
+  it still opens the stash when a file is flung at the left edge, but never covers
+  window content (`pill/shell.qml`).
 - **`ryoku deploy` preserves every user file now, matching a packaged update.**
   The dev deploy rebuilt `~/.config/hypr` from the repo and carried across only
   seven named files, so any other user-owned file (an extra `.lua`, a custom
