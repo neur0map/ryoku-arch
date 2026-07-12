@@ -19,8 +19,9 @@
 - **Beautify presets with a savable default.** A PRESETS row offers one-tap
   looks (Ember, Ocean, Sunset, Mono, Paper, Bare). *★ Set as default* writes the
   current look to `~/.config/ryoku/ryoshot-beautify.json`, so every later capture
-  opens already styled without re-tuning, and *Reset* strips to a plain image. The shadow
-  now casts in the direction the dial points (`Beautify.qml`).
+  opens already styled without re-tuning; with a default set, the annotate toolbar's
+  Copy and Save bake it in and export directly, no editor needed. *Reset* strips to a
+  plain image, and the shadow casts the way the dial points (`Beautify.qml`, `shell.qml`).
 - **Ryoshot annotation gains a magnifier, counters, pixelate redaction and a
   hand-drawn style.** The toolbar adds a **magnifier** loupe (drag a circle that
   zooms the shot beneath it, ringed), a numbered **counter** stamp (click to drop

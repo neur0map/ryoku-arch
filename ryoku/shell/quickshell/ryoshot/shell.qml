@@ -34,6 +34,9 @@ ShellRoot {
     property string savedAuto: ""
     property string beautifySrc: ""
     property string beautifyBgImage: ""
+    property bool composeActive: false
+    property string composeMode: ""
+    readonly property bool beautifyHasDefault: bcfg.hasDefault
 
     function textSize() { return activeWidth * 5 + 8; }
 
@@ -428,6 +431,33 @@ ShellRoot {
         });
     }
 
+    // toolbar Copy/Save with a saved beautify default: bake the default and export
+    // straight away, skipping the editor.
+    function styledExport(mode) {
+        if (root.textEditing) root.commitText();
+        root.clearSelection();
+        root.beautifySrc = "";
+        root.grabTo("/tmp/ryoshot-beautify-src.png", function (ok) {
+            if (!ok) return;
+            root.composeMode = mode;
+            root.composeActive = true;
+            root.beautifySrc = "/tmp/ryoshot-beautify-src.png";
+            root.phase = "beautify";
+        });
+    }
+    function exportCopyOrStyled() { if (root.beautifyHasDefault) styledExport("copy"); else root.doCopy(); }
+    function exportSaveOrStyled() { if (root.beautifyHasDefault) styledExport("save"); else root.doSave(); }
+
+    FileView {
+        id: beautifyCfg
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/ryoshot-beautify.json"
+        blockLoading: true
+        printErrors: false
+        watchChanges: true
+        onFileChanged: reload()
+        JsonAdapter { id: bcfg; property bool hasDefault: false }
+    }
+
     Process {
         id: ensureDir
         command: ["mkdir", "-p", root.shotsDir]
@@ -651,8 +681,8 @@ ShellRoot {
                     onWidthPicked: (w) => root.activeWidth = w
                     onUndoRequested: root.undo()
                     onRedoRequested: root.redo()
-                    onCopyRequested: root.doCopy()
-                    onSaveRequested: root.doSave()
+                    onCopyRequested: root.exportCopyOrStyled()
+                    onSaveRequested: root.exportSaveOrStyled()
                     onUploadRequested: root.doUpload()
                     onSettingsRequested: root.settingsOpen = toolbar.settingsOpen
                     onRoughToggled: root.activeRough = !root.activeRough
@@ -690,10 +720,12 @@ ShellRoot {
                     visible: root.phase === "beautify" && root.anchorOverlay() === win
                     srcPath: root.beautifySrc
                     bgImagePath: root.beautifyBgImage
+                    composeOnly: root.composeActive
+                    composeMode: root.composeMode
                     onCopyRequested: (p) => copyProc.run(p)
                     onSaveRequested: (p) => { root.savedAuto = p; root.dialogMode = true; saveDialog.open(); }
                     onPickImageRequested: { root.dialogMode = true; bgDialog.open(); }
-                    onCloseRequested: root.phase = "editing"
+                    onCloseRequested: { root.composeActive = false; root.phase = "editing"; }
                 }
             }
 

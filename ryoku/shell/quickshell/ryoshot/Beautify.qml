@@ -54,6 +54,8 @@ Item {
     property string ratioKey: "auto"
     property bool watermark: false
     readonly property string userName: Quickshell.env("USER") || "user"
+    property bool composeOnly: false
+    property string composeMode: ""
 
     readonly property var presets: [
         { "a": "#4facfe", "b": "#00c6a7", "ang": 135 },
@@ -149,7 +151,27 @@ Item {
     }
     // each new beautify session starts from the saved default, so shots come out
     // consistent without re-tuning.
-    onVisibleChanged: if (visible && cfg.hasDefault) beautify.loadDefault();
+    onVisibleChanged: {
+        if (visible && cfg.hasDefault) beautify.loadDefault();
+        if (visible && beautify.composeOnly) composeTimer.restart();
+    }
+    // headless "bake the default and export" path: used when Copy/Save is pressed
+    // in the toolbar with a saved default, so the shot exports styled without the
+    // editor ever opening.
+    property int composeTries: 0
+    function composeExport() {
+        if (img.status !== Image.Ready) {
+            if (beautify.composeTries++ < 12) composeTimer.restart();
+            return;
+        }
+        beautify.composeTries = 0;
+        beautify.exportStage(beautify.exportTmp, function (ok) {
+            if (!ok) { beautify.closeRequested(); return; }
+            if (beautify.composeMode === "save") beautify.saveRequested(beautify.exportTmp);
+            else beautify.copyRequested(beautify.exportTmp);
+        });
+    }
+    Timer { id: composeTimer; interval: 220; onTriggered: beautify.composeExport() }
 
     FileView {
         id: cfgFile
@@ -207,6 +229,7 @@ Item {
     // ============================ top bar ============================
     Rectangle {
         id: topbar
+        visible: !beautify.composeOnly
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
@@ -237,6 +260,7 @@ Item {
     // ============================ right panel ============================
     Rectangle {
         id: panel
+        visible: !beautify.composeOnly
         anchors.right: parent.right
         anchors.top: topbar.bottom
         anchors.bottom: parent.bottom
