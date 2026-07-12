@@ -25,6 +25,7 @@ QtObject {
     function pause() { pauseRequested() }
     function togglePlay() { if (!hasClip) return; playing ? pauseRequested() : playRequested() }
     function seek(ms) { positionMs = Math.max(0, Math.min(durationMs, ms)); seekRequested(positionMs) }
+    signal chooseMusicRequested()   // UI asks Main to open the shared audio picker
 
     // ---- canvas ----
     property string aspect: "auto"

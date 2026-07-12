@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Dialogs
 import RyoMotion
 
 // Ryoku Motion editor: record or open a clip, shape it live on the stage
@@ -98,7 +99,7 @@ Window {
     Timeline {
         id: timeline
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-        height: 250
+        height: 288
     }
     OpenSheet {
         id: openSheet
@@ -112,5 +113,16 @@ Window {
         function onRecorded(clip) { win.doOpen("file://" + clip); }
         function onRenderingChanged() { Project.rendering = Backend.rendering; }
         function onExportDone(ok, path) { if (ok) Project.lastExport = path; }
+    }
+
+    // one audio picker, opened from the Music tool and the timeline Music lane.
+    FileDialog {
+        id: musicDialog
+        nameFilters: ["Audio (*.mp3 *.flac *.wav *.ogg *.m4a *.opus)"]
+        onAccepted: { Project.musicPath = selectedFile.toString().replace(/^file:\/\//, ""); Project.dirty(); }
+    }
+    Connections {
+        target: Project
+        function onChooseMusicRequested() { musicDialog.open(); }
     }
 }

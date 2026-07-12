@@ -230,6 +230,55 @@ Rectangle {
                 }
             }
         }
+
+        // music lane: a single background track (not time-ranged regions).
+        Item {
+            width: parent.width; height: 28
+            Rectangle {
+                id: mchip
+                width: tl.labelW - 26; height: parent.height; radius: Theme.radiusSm; color: Theme.field
+                Text { anchors.centerIn: parent; text: "Music"; color: Theme.dim; font.family: Theme.font; font.pixelSize: 9; font.weight: Font.Medium }
+            }
+            Rectangle {
+                anchors.left: mchip.right; anchors.leftMargin: 2; anchors.verticalCenter: parent.verticalCenter
+                width: 18; height: 18; radius: 9
+                color: mma.containsMouse ? Theme.fieldHi : "transparent"
+                opacity: Project.hasClip ? 1 : 0.35
+                Icon { anchors.centerIn: parent; name: "plus"; size: 12; tint: "#a78bfa" }
+                MouseArea { id: mma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { if (Project.hasClip) Project.chooseMusicRequested(); } }
+            }
+            Rectangle {
+                anchors.left: parent.left; anchors.leftMargin: tl.labelW; anchors.right: parent.right
+                height: parent.height; radius: 4; color: Theme.hairSoft
+
+                Text {
+                    visible: Project.musicPath === ""
+                    anchors.left: parent.left; anchors.leftMargin: 10; anchors.verticalCenter: parent.verticalCenter
+                    text: Project.hasClip ? "Add a music track" : ""
+                    color: Theme.faint; font.family: Theme.font; font.pixelSize: 10
+                }
+                Rectangle {
+                    visible: Project.musicPath !== ""
+                    anchors.fill: parent; radius: 4
+                    color: Qt.rgba(0.655, 0.545, 0.98, 0.5)
+                    Icon { id: mnote; anchors.left: parent.left; anchors.leftMargin: 8; anchors.verticalCenter: parent.verticalCenter; name: "music"; size: 12; tint: "#1b1610" }
+                    Text {
+                        anchors.left: mnote.right; anchors.leftMargin: 6; anchors.right: mrm.left; anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideRight
+                        text: ("" + Project.musicPath).split("/").pop()
+                        color: "#1b1610"; font.family: Theme.font; font.pixelSize: 10; font.weight: Font.DemiBold
+                    }
+                    MouseArea { anchors.fill: parent; anchors.rightMargin: 22; cursorShape: Qt.PointingHandCursor; onClicked: Project.chooseMusicRequested() }
+                    Rectangle {
+                        id: mrm
+                        anchors.right: parent.right; anchors.rightMargin: 3; anchors.verticalCenter: parent.verticalCenter
+                        width: 16; height: 16; radius: 8; color: Qt.rgba(0, 0, 0, 0.25)
+                        Icon { anchors.centerIn: parent; name: "trash"; size: 10; tint: "#1b1610" }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Project.musicPath = "" }
+                    }
+                }
+            }
+        }
     }
 
     // playhead

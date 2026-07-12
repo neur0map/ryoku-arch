@@ -70,11 +70,6 @@ Flickable {
         onAccepted: { Project.bgImage = selectedFile.toString().replace(/^file:\/\//, ""); Project.bgKind = "image"; Project.dirty(); }
     }
     FileDialog {
-        id: musicDialog
-        nameFilters: ["Audio (*.mp3 *.flac *.wav *.ogg *.m4a *.opus)"]
-        onAccepted: { Project.musicPath = selectedFile.toString().replace(/^file:\/\//, ""); Project.dirty(); }
-    }
-    FileDialog {
         id: ovDialog
         nameFilters: ["Video (*.mp4 *.mkv *.mov *.webm)"]
         onAccepted: Project.addOverlay(selectedFile.toString().replace(/^file:\/\//, ""))
@@ -221,7 +216,7 @@ Flickable {
             visible: Project.tool === "music"
             title: "MUSIC"
             Caption { text: "Lay a music track under the video; set the level to taste." }
-            TopBtn { label: Project.musicPath ? "Change track…" : "Choose track…"; onTapped: musicDialog.open() }
+            TopBtn { label: Project.musicPath ? "Change track…" : "Choose track…"; onTapped: Project.chooseMusicRequested() }
             Caption { visible: Project.musicPath !== ""; text: ("" + Project.musicPath).split("/").pop() }
             Slider { visible: Project.musicPath !== ""; width: parent.width; label: "Volume"; from: 0; to: 100; value: Project.musicVolume * 100; suffix: "%"; onMoved: (v) => Project.musicVolume = v / 100 }
             TopBtn { visible: Project.musicPath !== ""; label: "Remove music"; onTapped: Project.musicPath = "" }
