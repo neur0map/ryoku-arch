@@ -15,6 +15,8 @@ Item {
     readonly property string home: Quickshell.env("HOME") || ""
     property url startFolder: "file://" + picker.home + "/Pictures"
     property url currentFolder: picker.startFolder
+    property string title: "Choose a backdrop"
+    property bool foldersOnly: false
 
     signal picked(string path)
     signal canceled()
@@ -38,7 +40,7 @@ Item {
         showDirsFirst: true
         showDotAndDotDot: false
         showHidden: false
-        nameFilters: ["*.png", "*.jpg", "*.jpeg", "*.bmp"]
+        nameFilters: picker.foldersOnly ? ["ryoku-no-match"] : ["*.png", "*.jpg", "*.jpeg", "*.bmp"]
         sortField: FolderListModel.Name
     }
 
@@ -66,7 +68,7 @@ Item {
             anchors.top: parent.top
             anchors.leftMargin: 22
             anchors.topMargin: 18
-            text: "Choose a backdrop"
+            text: picker.title
             color: Theme.bright
             font.family: Theme.font
             font.pixelSize: 17
@@ -276,6 +278,34 @@ Item {
                 color: Theme.lineSoft
             }
 
+            Rectangle {
+                visible: picker.foldersOnly
+                anchors.left: parent.left
+                anchors.leftMargin: 18
+                anchors.verticalCenter: parent.verticalCenter
+                width: useRow.implicitWidth + 34
+                height: 34
+                radius: Theme.radius
+                color: useHov.hovered ? Theme.keyTop : Theme.surfaceLo
+                border.width: 1
+                border.color: Theme.ember
+                Row {
+                    id: useRow
+                    anchors.centerIn: parent
+                    spacing: 8
+                    Icon { anchors.verticalCenter: parent.verticalCenter; name: "download"; size: 15; tint: Theme.ember }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Export to this folder"
+                        color: useHov.hovered ? Theme.bright : Theme.ember
+                        font.family: Theme.font
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                    }
+                }
+                HoverHandler { id: useHov; cursorShape: Qt.PointingHandCursor }
+                TapHandler { onTapped: picker.picked("" + picker.currentFolder) }
+            }
             Rectangle {
                 anchors.right: parent.right
                 anchors.rightMargin: 18

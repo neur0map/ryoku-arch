@@ -20,6 +20,9 @@ Item {
     property bool catalogError: false
     property string selectedSlug: ""
     property bool capturing: false
+    property var touches: []
+    property string configText: ""
+    property string exportedTo: ""
 
     readonly property var selected: {
         for (var i = 0; i < page.rices.length; i++)
@@ -34,6 +37,12 @@ Item {
         return false;
     }
 
+    onSelectedSlugChanged: {
+        page.exportedTo = "";
+        if (page.selectedSlug !== "" && !page.browseMode)
+            page.loadFiles();
+    }
+
     implicitWidth: 600
     implicitHeight: (page.selectedSlug !== "" && detailLoader.item)
         ? detailLoader.item.implicitHeight
@@ -43,6 +52,8 @@ Item {
     function reload() {
         page.loading = true;
         listProc.running = true;
+        if (page.selectedSlug !== "")
+            page.loadFiles();
     }
     function loadCatalog() {
         page.catalogLoading = true;
@@ -86,6 +97,26 @@ Item {
         setwallProc.command = ["ryoku-hub", "rice", "setwall", page.selectedSlug, path];
         setwallProc.running = true;
     }
+    function loadFiles() {
+        if (page.selectedSlug === "")
+            return;
+        page.touches = [];
+        page.configText = "";
+        filesProc.command = ["ryoku-hub", "rice", "files", page.selectedSlug];
+        filesProc.running = true;
+    }
+    function exportTo(dest) {
+        if (!dest || page.selectedSlug === "")
+            return;
+        exportProc.command = ["ryoku-hub", "rice", "export", page.selectedSlug, dest];
+        exportProc.running = true;
+    }
+    function reveal(path) {
+        if (!path)
+            return;
+        revealProc.command = ["xdg-open", path];
+        revealProc.running = true;
+    }
 
     Process {
         id: listProc
@@ -124,6 +155,34 @@ Item {
     Process { id: forkProc; onExited: (code, status) => { page.selectedSlug = ""; page.reload(); } }
     Process { id: installProc; onExited: (code, status) => { page.reload(); page.loadCatalog(); } }
     Process { id: setwallProc; onExited: (code, status) => page.reload() }
+    Process {
+        id: filesProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var d = JSON.parse(this.text) || {};
+                    page.touches = d.touches || [];
+                    page.configText = d.config || "";
+                } catch (e) {
+                    page.touches = [];
+                    page.configText = "";
+                }
+            }
+        }
+    }
+    Process {
+        id: exportProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    page.exportedTo = (JSON.parse(this.text) || {}).path || "";
+                } catch (e) {
+                    page.exportedTo = "";
+                }
+            }
+        }
+    }
+    Process { id: revealProc }
 
     Column {
         id: browse
@@ -363,11 +422,16 @@ Item {
         sourceComponent: RiceDetail {
             width: detailLoader.width
             rice: page.selected
+            touches: page.touches
+            exportedTo: page.exportedTo
             onBack: page.selectedSlug = ""
             onApplied: layers => page.applyRice(page.selectedSlug, layers)
             onForked: page.fork(page.selectedSlug)
             onRemoved: page.del(page.selectedSlug)
             onWallpaperRequested: wallPicker.open()
+            onViewConfigRequested: configViewer.open(page.configText)
+            onExportRequested: exportPicker.open()
+            onRevealRequested: path => page.reveal(path)
         }
     }
 
@@ -379,4 +443,18 @@ Item {
         }
         onCanceled: wallPicker.active = false
     }
+
+    ImagePicker {
+        id: exportPicker
+        foldersOnly: true
+        title: "Export to a folder"
+        startFolder: "file://" + home
+        onPicked: p => {
+            page.exportTo(("" + p).replace("file://", ""));
+            exportPicker.active = false;
+        }
+        onCanceled: exportPicker.active = false
+    }
+
+    ConfigViewer { id: configViewer }
 }

@@ -553,6 +553,160 @@ func setRiceWallpaper(slug, src string) error {
 	return saveRice(r)
 }
 
+// --- files / export --------------------------------------------------------
+
+// riceTouch is one path applying a rice writes, or one asset it bundles.
+type riceTouch struct {
+	Path     string `json:"path"`
+	Kind     string `json:"kind"` // config | output | asset
+	Icon     string `json:"icon"`
+	Label    string `json:"label"`
+	Provided bool   `json:"provided"`
+}
+
+// homeRel shortens a path under $HOME to a ~ path for display.
+func homeRel(p string) string {
+	if h := os.Getenv("HOME"); h != "" && strings.HasPrefix(p, h) {
+		return "~" + p[len(h):]
+	}
+	return p
+}
+
+// riceTouches reports every path applying the rice writes (its config stores
+// and the outputs regenerated from them) plus the assets it carries, each
+// flagged by whether the rice actually provides it.
+func riceTouches(r Rice, dir string) []riceTouch {
+	cfg := ryokuConfigDir()
+	touches := []riceTouch{
+		{homeRel(filepath.Join(cfg, "hypr.json")), "config", "window", "Windows: decoration and motion", len(r.Look["hypr"]) > 0},
+		{homeRel(filepath.Join(cfg, "shell.json")), "config", "widgets", "Shell: bar skin and modules", len(r.Look["shell"]) > 0},
+		{homeRel(filepath.Join(cfg, "theme.json")), "config", "palette", "Colours: palette master", r.Color.Mode != "" || len(r.Look["theme"]) > 0},
+		{homeRel(filepath.Join(cfg, "launcher.json")), "config", "rocket", "Launcher: hero image", len(r.Look["launcher"]) > 0 || r.Assets.Hero != ""},
+		{homeRel(filepath.Join(hyprConfigDir(), "settings.lua")), "output", "refresh", "Hyprland settings (regenerated)", true},
+	}
+	if r.Color.Mode == "fixed" {
+		touches = append(touches,
+			riceTouch{homeRel(filepath.Join(wallustCacheDir(), "colors.json")), "output", "refresh", "Colour palette (wallust cache)", true},
+			riceTouch{homeRel(kittyThemePath()), "output", "terminal", "kitty colours", true},
+		)
+	}
+	if r.Assets.Wallpaper != "" {
+		touches = append(touches, riceTouch{homeRel(filepath.Join(dir, r.Assets.Wallpaper)), "asset", "wallpaper", "Desktop wallpaper", true})
+	}
+	if r.Assets.Hero != "" {
+		touches = append(touches, riceTouch{homeRel(filepath.Join(dir, r.Assets.Hero)), "asset", "image", "Launcher hero", true})
+	}
+	if r.Color.Palette != "" {
+		touches = append(touches, riceTouch{homeRel(filepath.Join(dir, r.Color.Palette)), "asset", "palette", "Fixed 16-colour palette", isFile(filepath.Join(dir, r.Color.Palette))})
+	}
+	if r.Assets.Cursor != "" {
+		touches = append(touches, riceTouch{r.Assets.Cursor, "asset", "mouse", "Cursor theme", true})
+	}
+	return touches
+}
+
+// riceFiles prints what a rice touches plus its manifest, for the Hub's
+// "what it touches" list and config viewer.
+func riceFiles(slug string) error {
+	r, dir, err := loadRice(slug)
+	if err != nil {
+		return err
+	}
+	return printJSON(struct {
+		Touches []riceTouch `json:"touches"`
+		Config  string      `json:"config"`
+	}{
+		Touches: riceTouches(r, dir),
+		Config:  string(mustJSON(r)),
+	})
+}
+
+// exportRice extracts a rice into dest/<slug>/: its manifest and assets, a
+// readable configs/ breakout of the per-store look, and a short README, so the
+// whole setup travels as a plain, inspectable folder.
+func exportRice(slug, dest string) (string, error) {
+	if !validRiceSlug(slug) {
+		return "", fmt.Errorf("bad rice slug %q", slug)
+	}
+	r, dir, err := loadRice(slug)
+	if err != nil {
+		return "", err
+	}
+	if fi, err := os.Stat(dest); err != nil || !fi.IsDir() {
+		return "", fmt.Errorf("not a folder: %s", dest)
+	}
+	out := filepath.Join(dest, slug)
+	if err := os.MkdirAll(out, 0o755); err != nil {
+		return "", err
+	}
+	ents, err := os.ReadDir(dir)
+	if err != nil {
+		return "", err
+	}
+	for _, e := range ents {
+		if e.IsDir() {
+			continue
+		}
+		if err := copyFile(filepath.Join(dir, e.Name()), filepath.Join(out, e.Name())); err != nil {
+			return "", err
+		}
+	}
+	cfgDir := filepath.Join(out, "configs")
+	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
+		return "", err
+	}
+	for store, vals := range r.Look {
+		if len(vals) == 0 {
+			continue
+		}
+		if err := atomicWrite(filepath.Join(cfgDir, store+".json"), mustJSON(vals), 0o644); err != nil {
+			return "", err
+		}
+	}
+	if err := atomicWrite(filepath.Join(out, "README.txt"), []byte(exportReadme(r)), 0o644); err != nil {
+		return "", err
+	}
+	return out, nil
+}
+
+func exportReadme(r Rice) string {
+	name := r.Name
+	if name == "" {
+		name = r.Slug
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "Ryoku rice: %s\n", name)
+	if r.Author != "" {
+		fmt.Fprintf(&b, "By %s\n", r.Author)
+	}
+	if r.Blurb != "" {
+		fmt.Fprintf(&b, "\n%s\n", r.Blurb)
+	}
+	b.WriteString("\nContents\n")
+	b.WriteString("  rice.json    the manifest: the look values and asset names\n")
+	b.WriteString("  configs/     the same look broken out per config file, to read\n")
+	if r.Color.Palette != "" {
+		b.WriteString("  palette.json the fixed 16-colour palette\n")
+	}
+	if r.Assets.Wallpaper != "" {
+		fmt.Fprintf(&b, "  %s   the desktop wallpaper\n", r.Assets.Wallpaper)
+	}
+	if r.Assets.Hero != "" {
+		fmt.Fprintf(&b, "  %s   the launcher hero image\n", r.Assets.Hero)
+	}
+	fmt.Fprintf(&b, "\nDrop this folder into ~/.config/ryoku/rices/ and apply it from\nRyoku Settings > Appearance > Rices, or `ryoku-hub rice apply %s`.\n", r.Slug)
+	return b.String()
+}
+
+// runExportRice prints the destination folder for the Hub.
+func runExportRice(slug, dest string) error {
+	out, err := exportRice(slug, dest)
+	if err != nil {
+		return err
+	}
+	return printJSON(map[string]string{"path": out})
+}
+
 // --- edit / delete / fork --------------------------------------------------
 
 func validRiceSlug(slug string) bool {
@@ -612,7 +766,7 @@ func forkRice(slug string) (Rice, error) {
 
 func runRice(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("rice needs list|capture|apply|restore|save|fork|delete|catalog|install|publish")
+		return fmt.Errorf("rice needs list|capture|apply|restore|save|fork|delete|catalog|install|publish|setwall|files|export")
 	}
 	switch args[0] {
 	case "list":
@@ -685,6 +839,16 @@ func runRice(args []string) error {
 			return fmt.Errorf("rice setwall needs a slug and an image path")
 		}
 		return setRiceWallpaper(args[1], args[2])
+	case "files":
+		if len(args) < 2 {
+			return fmt.Errorf("rice files needs a slug")
+		}
+		return riceFiles(args[1])
+	case "export":
+		if len(args) < 3 {
+			return fmt.Errorf("rice export needs a slug and a destination folder")
+		}
+		return runExportRice(args[1], args[2])
 	default:
 		return fmt.Errorf("unknown rice subcommand: %s", args[0])
 	}

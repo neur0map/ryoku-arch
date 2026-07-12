@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -206,5 +207,67 @@ func TestApplyMergesAndRestoreReverts(t *testing.T) {
 	}
 	if !loadThemeState().FollowWallpaper {
 		t.Fatal("restore did not revert followWallpaper")
+	}
+}
+
+// riceTouches flags which config stores a rice provides and includes the fixed
+// palette outputs and bundled assets; exportRice lays the manifest, a per-store
+// configs breakout, and a README into a plain folder.
+func TestRiceTouchesAndExport(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	r := Rice{
+		Schema: riceSchema, Slug: "demo", Name: "Demo", Author: "Ryoku Team",
+		CreatedWith: "0.6.8",
+		Color:       RiceColor{Mode: "fixed", Palette: "palette.json"},
+		Assets:      RiceAssets{Wallpaper: "wall.png"},
+		Look:        map[string]map[string]any{"hypr": {"rounding": 3.0}, "shell": {"barStyle": "stele"}},
+	}
+	rdir := filepath.Join(ricesDir(), "demo")
+	if err := os.MkdirAll(rdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := saveRice(r); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rdir, "palette.json"), []byte(`{"color0":"#000"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rdir, "wall.png"), []byte("img"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	touches := riceTouches(r, rdir)
+	find := func(sub string) *riceTouch {
+		for i := range touches {
+			if strings.Contains(touches[i].Path, sub) || strings.Contains(touches[i].Label, sub) {
+				return &touches[i]
+			}
+		}
+		return nil
+	}
+	if h := find("hypr.json"); h == nil || !h.Provided {
+		t.Fatalf("hypr.json not reported as provided: %+v", h)
+	}
+	if l := find("launcher.json"); l == nil || l.Provided {
+		t.Fatalf("launcher.json should be present but not provided: %+v", l)
+	}
+	if find("wallust") == nil {
+		t.Fatal("fixed rice should touch the wallust cache")
+	}
+	if find("Desktop wallpaper") == nil {
+		t.Fatal("bundled wallpaper not reported")
+	}
+
+	dest := t.TempDir()
+	out, err := exportRice("demo", dest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []string{"rice.json", "palette.json", "wall.png", "README.txt", filepath.Join("configs", "hypr.json"), filepath.Join("configs", "shell.json")} {
+		if !isFile(filepath.Join(out, f)) {
+			t.Fatalf("export missing %s", f)
+		}
 	}
 }

@@ -27,6 +27,14 @@
   store registry carries `accent`/`surface`/`rounding` hints so browse tiles
   preview before install (`RiceTile.qml`, `RiceDetail.qml`, `RicesPage.qml`,
   `backend/rice.go`, `backend/ricestore.go`).
+- **See what a rice touches and export it.** The rice detail lists every file
+  applying it writes (the four config stores, the regenerated Hyprland settings
+  and colour caches) plus the assets it carries, each flagged as provided or
+  left unchanged, and **View config** shows the manifest itself. **Export**
+  extracts the whole setup into a folder you pick: the manifest, its assets, a
+  readable `configs/` breakout, and a README, then offers to open it in your
+  files (`ryoku-hub rice files`, `ryoku-hub rice export`; `RiceDetail.qml`,
+  `RicesPage.qml`, `ConfigViewer.qml`, `ImagePicker.qml`, `backend/rice.go`).
 - **The Visualizer tab gains four new looks and deeper control.** Style now
   offers **Line** (a stiff angular readout), **Segments** (a lit LED stack per
   band), **Radial** (a ring of bars around a pulsing centre) and **Circle** (a
