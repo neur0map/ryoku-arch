@@ -164,7 +164,7 @@ Item {
             readonly property bool present: a !== undefined && a !== null && a.points !== undefined
             readonly property bool isText: present && a.type === "text" && a.points.length >= 1
             readonly property bool isCounter: present && a.type === "counter" && a.points.length >= 1
-            readonly property bool valid: present && a.points.length >= 2 && a.type !== "blur" && a.type !== "pixelate"
+            readonly property bool valid: present && a.points.length >= 2 && a.type !== "blur" && a.type !== "pixelate" && a.type !== "magnify"
             readonly property string kind: valid ? a.type : (isText ? "text" : "")
             anchors.fill: parent
             visible: valid || isText || isCounter

@@ -81,8 +81,8 @@ Item {
             var src = overlay.model ? overlay.model.items : [];
             var out = [];
             for (var i = 0; i < src.length; i++)
-                if (src[i] && (src[i].type === "blur" || src[i].type === "pixelate")) out.push(src[i]);
-            if (overlay.draft && (overlay.draft.type === "blur" || overlay.draft.type === "pixelate")) out.push(overlay.draft);
+                if (src[i] && (src[i].type === "blur" || src[i].type === "pixelate" || src[i].type === "magnify")) out.push(src[i]);
+            if (overlay.draft && (overlay.draft.type === "blur" || overlay.draft.type === "pixelate" || overlay.draft.type === "magnify")) out.push(overlay.draft);
             return out;
         }
 
@@ -99,6 +99,9 @@ Item {
                 readonly property real rh: valid ? Math.abs(a.points[1].y - a.points[0].y) : 0
                 readonly property bool isPix: valid && a.type === "pixelate"
                 readonly property real block: valid ? ((a.width || 4) * 2 + 8) : 12
+                readonly property bool isMag: valid && a.type === "magnify"
+                readonly property real magD: Math.min(rw, rh)
+                readonly property real magZoom: 2.0
                 x: rx
                 y: ry
                 width: rw
@@ -120,7 +123,7 @@ Item {
                     anchors.fill: parent
                     source: blurSrc
                     radius: 64
-                    visible: !parent.isPix
+                    visible: parent.valid && parent.a.type === "blur"
                 }
 
                 ShaderEffectSource {
@@ -133,6 +136,47 @@ Item {
                     textureSize: Qt.size(Math.max(1, Math.round(parent.rw / parent.block)),
                                          Math.max(1, Math.round(parent.rh / parent.block)))
                     smooth: false
+                }
+
+                ShaderEffectSource {
+                    id: magSrc
+                    width: parent.magD
+                    height: parent.magD
+                    anchors.centerIn: parent
+                    sourceItem: frozen
+                    live: false
+                    recursive: false
+                    sourceRect: Qt.rect(parent.rx + parent.rw / 2 - parent.magD / (2 * parent.magZoom),
+                                         parent.ry + parent.rh / 2 - parent.magD / (2 * parent.magZoom),
+                                         parent.magD / parent.magZoom, parent.magD / parent.magZoom)
+                    visible: false
+                }
+                Rectangle {
+                    id: magMask
+                    width: parent.magD
+                    height: parent.magD
+                    anchors.centerIn: parent
+                    radius: parent.magD / 2
+                    visible: false
+                    layer.enabled: true
+                }
+                OpacityMask {
+                    width: parent.magD
+                    height: parent.magD
+                    anchors.centerIn: parent
+                    source: magSrc
+                    maskSource: magMask
+                    visible: parent.isMag
+                }
+                Rectangle {
+                    width: parent.magD
+                    height: parent.magD
+                    anchors.centerIn: parent
+                    radius: parent.magD / 2
+                    color: "transparent"
+                    border.color: "#ffffff"
+                    border.width: Math.max(2, parent.magD * 0.03)
+                    visible: parent.isMag
                 }
             }
         }

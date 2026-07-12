@@ -45,6 +45,7 @@ Item {
         { id: "text",    icon: "text",    implemented: true },
         { id: "blur",    icon: "blur",    implemented: true },
         { id: "pixelate", icon: "pixelate", implemented: true },
+        { id: "magnify", icon: "magnify", implemented: true },
         { id: "counter", icon: "counter", implemented: true }
     ]
 

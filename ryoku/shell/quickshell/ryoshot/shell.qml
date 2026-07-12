@@ -140,7 +140,7 @@ ShellRoot {
 
     function hitOne(a, gx, gy) {
         var tol = Math.max(a.width || 4, 8);
-        if (a.type === "rect" || a.type === "marker" || a.type === "blur" || a.type === "pixelate" || a.type === "text")
+        if (a.type === "rect" || a.type === "marker" || a.type === "blur" || a.type === "pixelate" || a.type === "magnify" || a.type === "text")
             return inBox(gx, gy, bboxOf(a), a.type === "text" ? 0 : tol);
         if (a.type === "line" || a.type === "arrow")
             return distToSeg(gx, gy, a.points[0], a.points[1]) <= tol;
