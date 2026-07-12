@@ -16,6 +16,18 @@
   `.so`. The publish workflow installs the plugin build deps (hyprland,
   hyprcursor, pango, cairo, pkgconf) and skips the new self-repo packages in its
   official-repo dependency check.
+- **`wallust` now ships from the `[ryoku]` repo** as a hard `ryoku-desktop`
+  dependency, not the AUR. wallust is the wallpaper -> color palette generator the
+  shell runs on every wallpaper change (`wallust run <image>` retints kitty,
+  Hyprland, and the shell), so "match wallpaper" colors are load-bearing, not a
+  best-effort extra. The AUR package pins a checksum against Codeberg's
+  auto-generated source archive, which Codeberg regenerates non-reproducibly, so
+  the pin drifts and `makepkg` fails the validity check for everyone: the break
+  users hit, where colors stopped following the wallpaper because wallust would
+  not install. The new PKGBUILD builds from a pinned upstream git commit, which
+  sidesteps the archive, and `pacman -Syu` pulls it onto existing boxes on `ryoku
+  update`. The publish workflow installs `rust` (cargo builds wallust) and skips
+  wallust in its official-repo dependency check.
 
 ### Changed
 - **`waifu2x-ncnn-vulkan` is now a hard dependency of `ryoku-desktop`** (moved out
@@ -25,6 +37,13 @@
   installs on `-Syu`, so existing boxes would never have received it.
 
 ### Fixed
+- **The portal file chooser renders dark in a dark session.** `gnome-themes-extra`
+  is now a hard dependency of `ryoku-desktop`, so the `Adwaita-dark` GTK theme the
+  Hyprland autostart selects (`gsettings gtk-theme`) actually exists on disk.
+  Nothing pulled it in before, so the name resolved to nothing and every GTK3 app
+  -- the `xdg-desktop-portal-gtk` file/upload dialog most visibly -- fell back to
+  light. `pacman -Syu` pulls it onto existing boxes on `ryoku update`; it is also
+  in `system/packages/base.packages` for fresh ISO installs.
 - **A published package filename never changes bytes again.** makepkg is not
   reproducible (BUILDDATE alone reshuffles the compressed bytes), and every
   publish rebuilt the fixed-version packages (`gpk`, `ryoku-keyring`) and

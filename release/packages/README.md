@@ -23,6 +23,11 @@ repo. Packages publish only from `main` release tags, never from `unstable-dev`.
   `hyprpm.toml` and checks out the commit paired with the running Hyprland), so
   they track the shipped compositor with no manual pin bumps. Off until enabled
   in Ryoku Settings.
+- `wallust` -- the wallpaper -> color palette generator the shell drives
+  (`wallust run <image>` on every wallpaper change retints kitty, Hyprland, and
+  the shell). Built from a pinned upstream git commit, not the AUR (whose
+  Codeberg-archive checksum drifts and breaks the build). A hard `ryoku-desktop`
+  dependency, so the "match wallpaper" colors always work.
 - `ryoku-desktop` -- the umbrella. Depends on the packages above plus the user-facing
   desktop runtime, lays the base configuration under `/usr/share/ryoku/config`,
   and installs the helper scripts (`ryoku-cmd-*`, the hardware `ryoku-*`,
@@ -31,17 +36,22 @@ repo. Packages publish only from `main` release tags, never from `unstable-dev`.
 
 ## Build-from-checkout model
 
-These PKGBUILDs build from the checked-out monorepo, not from release tarballs.
+Most of these PKGBUILDs build from the checked-out monorepo, not from release tarballs.
 `source=()` is empty; each PKGBUILD derives the repo root as `$startdir/../../..`,
 because the CI runs `makepkg` in place inside each package directory within a
 full checkout. The Go binaries and the QML plugin are built into `$srcdir`, so
 the source tree is never modified, and `makepkg --clean` removes `$srcdir` and
 `$pkgdir` afterward.
 
-makedepends across the set: `go` (ryoku-shell, ryoku-hub, ryoku) and
-`cmake ninja qt6-shadertools qt6-declarative` (ryoku-blobs), on top of the
-assumed `base-devel`. `ryoku-hub` is the only Go package with an external module
-(`github.com/BurntSushi/toml`, pinned in `go.sum`), so its build needs network.
+The `gpk`, `wallust`, and `ryoku-keyring` PKGBUILDs are the exceptions: they
+fetch a pinned upstream artifact (a release binary, a git commit, and the
+release key material, respectively) rather than building from the checkout.
+
+makedepends across the set: `go` (ryoku-shell, ryoku-hub, ryoku),
+`cmake ninja qt6-shadertools qt6-declarative` (ryoku-blobs), and `rust` + `git`
+(wallust, built from a pinned git commit with cargo), on top of the assumed
+`base-devel`. `ryoku-hub` (`github.com/BurntSushi/toml`) and `wallust` (cargo
+fetches its crates) both need network at build time.
 
 ## Configs and materialize
 

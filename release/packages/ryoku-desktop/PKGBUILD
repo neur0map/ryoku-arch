@@ -47,6 +47,11 @@ depends=(
   'hyprpolkitagent'
   'xdg-desktop-portal-hyprland'
   'xdg-desktop-portal-gtk'
+  # the standalone Adwaita-dark GTK theme the Hyprland autostart selects
+  # (gsettings gtk-theme). a hard depend so `ryoku update` pulls it onto existing
+  # boxes: nothing else brings it in, and without it the name has nothing on disk,
+  # so the portal file chooser (GTK3) falls back to light in the dark session.
+  'gnome-themes-extra'
   # Qt icon theme the shipped qt6ct.conf (config/qt6ct/qt6ct.conf) selects, so
   # named freedesktop icons (e.g. the Avahi entries' network-wired) resolve in
   # the launcher's all-apps grid instead of a broken-image placeholder.
@@ -77,6 +82,12 @@ depends=(
   'cava'
   'jq'
   'imagemagick'
+  # wallpaper -> color palette generator. the shell runs `wallust run <image>`
+  # on every wallpaper change to retint kitty / Hyprland / the shell (the
+  # "match wallpaper" colors). ships from the [ryoku] repo -- not the AUR, whose
+  # pinned Codeberg-archive checksum drifts and breaks the build -- so it resolves
+  # as a hard depend and reaches every box on `ryoku update`.
+  'wallust'
   # live (video) wallpapers: the daemon grabs one frame with ffmpeg to derive the
   # wallust palette. official repo, so a hard depend reaches existing boxes.
   'ffmpeg'
@@ -114,7 +125,6 @@ depends=(
   'ttf-material-symbols-variable'
 )
 optdepends=(
-  'wallust: wallpaper-derived color palette (AUR)'
   'awww: animated wallpaper transitions (AUR)'
   'mpvpaper: video (live) wallpaper playback, ryowalls Live tab (AUR)'
   'tesseract: OCR text grab (pill Super+D)'

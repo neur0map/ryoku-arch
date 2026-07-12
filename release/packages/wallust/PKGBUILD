@@ -1,0 +1,58 @@
+# Maintainer: Ryoku <releases@ryoku.dev>
+#
+# wallust = the wallpaper -> color palette generator the shell's wallpaper engine
+# drives. ryoku/shell/ipc/wallpaper.go runs `wallust run <image>` on every
+# wallpaper change, which rewrites the kitty / Hyprland / shell color templates
+# under ~/.config/wallust (see wallust.toml). without it `wallust run` no-ops and
+# the palette never follows the image -- the "colors don't switch with the
+# wallpaper" break. it is therefore a hard ryoku-desktop dependency, not a
+# best-effort extra.
+#
+# shipped from [ryoku] instead of the AUR on purpose. the AUR package fetches
+# Codeberg's auto-generated source archive and pins a sha256 against it, but
+# Codeberg regenerates those archives non-reproducibly, so the pinned checksum
+# drifts and `makepkg` fails the validity check for everyone. building from a
+# pinned git commit sidesteps the archive entirely, so the build is stable.
+#
+# fixed-version package: it tracks upstream wallust releases, not the monorepo
+# RYOKU_PKGVER. to follow a new wallust release, bump pkgver + _commit and reset
+# pkgrel; bump pkgrel alone when only this recipe changes. build-repo.sh adopts
+# the already-published bytes for an unchanged filename, so a rebuild at the same
+# pkgver never breaks clients holding the previous db.
+pkgname=wallust
+pkgver=3.5.2
+pkgrel=1
+# the commit the upstream 3.5.2 tag points at, pinned so the build is immune to
+# Codeberg regenerating the tag's archive bytes.
+_commit=b689616d630bb2e541695f101d313699464aac09
+pkgdesc="Generate a color palette from an image (wallpaper theming for the Ryoku shell)"
+arch=('x86_64')
+url="https://codeberg.org/explosion-mental/wallust"
+license=('MIT')
+depends=('glibc' 'gcc-libs')
+makedepends=('cargo' 'git')
+options=('!lto')
+source=("$pkgname::git+https://codeberg.org/explosion-mental/wallust.git#commit=$_commit")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "$pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --features themes,doc --frozen --release
+}
+
+package() {
+  cd "$pkgname"
+  install -Dm755 -t "$pkgdir/usr/bin" target/release/wallust
+  install -Dm644 -t "$pkgdir/usr/share/man/man1" \
+    man/wallust.1 man/wallust-theme.1 man/wallust-cs.1 man/wallust-run.1
+  install -Dm644 -t "$pkgdir/usr/share/man/man5" man/wallust.5
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/wallust/LICENSE"
+}

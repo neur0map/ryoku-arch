@@ -64,9 +64,10 @@ jobs:
           # ecosystem headers) plus hyprcursor/pango/cairo/pkgconf build the
           # compositor plugin packages (hypr-dynamic-cursors, ryoku-hypr-plugins,
           # hyprglass, imgborders); makepkg runs --nodeps, so their makedepends
-          # must be present here. gnupg signs, rclone uploads, git backs checkout.
+          # must be present here. rust (cargo) builds wallust from source. gnupg
+          # signs, rclone uploads, git backs checkout.
           pacman -Syu --noconfirm --needed \
-            base-devel git go cmake ninja qt6-shadertools qt6-declarative gnupg rclone \
+            base-devel git go rust cmake ninja qt6-shadertools qt6-declarative gnupg rclone \
             hyprland hyprcursor pango cairo pkgconf
 
       - name: Checkout
@@ -120,8 +121,8 @@ jobs:
               d="${d%%[<>=]*}"
               [[ -z $d ]] && continue
               # skip packages built here in [ryoku] (self-referential deps): the
-              # ryoku* set, gpk, and the compositor-plugin packages.
-              case "$d" in ryoku*|gpk|hypr-dynamic-cursors|hyprglass|imgborders) continue ;; esac
+              # ryoku* set, gpk, wallust, and the compositor-plugin packages.
+              case "$d" in ryoku*|gpk|hypr-dynamic-cursors|hyprglass|imgborders|wallust) continue ;; esac
               if ! pacman -Si "$d" >/dev/null 2>&1; then
                 echo "::error::$p: dependency '$d' not found in the official repos"
                 missing=1

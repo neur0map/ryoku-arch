@@ -13,9 +13,10 @@
 # and a removed package dir simply falls out of the db.
 #
 # build deps live on the build host only (Go toolchain + Ryoku.Blobs QML plugin
-# + the Hyprland compositor plugins): base-devel, go, cmake, ninja,
-# qt6-shadertools, qt6-declarative, and hyprland + hyprcursor + pango + cairo +
-# pkgconf (the plugin packages build against Hyprland's headers).
+# + the Hyprland compositor plugins + wallust): base-devel, go, rust (cargo, for
+# wallust), cmake, ninja, qt6-shadertools, qt6-declarative, and hyprland +
+# hyprcursor + pango + cairo + pkgconf (the plugin packages build against
+# Hyprland's headers).
 # makepkg runs --nodeps on purpose: runtime depends (and AUR depends) aren't
 # needed to compile the artifacts and aren't resolvable here anyway.
 #
@@ -76,8 +77,9 @@ export PKGEXT='.pkg.tar.zst'
 # short sha (bin/ryoku-release-version --pkgver). every published build is
 # then strictly newer + commit-identifiable in pacman terms, so `ryoku update`
 # (pacman -Syu) actually sees an upgrade after each push and the Hub can show
-# the commit. monorepo PKGBUILDs read RYOKU_PKGVER; ryoku-keyring and gpk keep
-# their own versions (key-rotation date, upstream GlazePKG release). overridable.
+# the commit. monorepo PKGBUILDs read RYOKU_PKGVER; ryoku-keyring, gpk, and
+# wallust keep their own versions (key-rotation date, upstream GlazePKG and
+# wallust releases). overridable.
 : "${RYOKU_PKGVER:=$("$RELEASE_DIR/../bin/ryoku-release-version" --pkgver)}"
 export RYOKU_PKGVER
 log "Monorepo package version -> $RYOKU_PKGVER"
@@ -89,7 +91,7 @@ for pkgbuild in "${pkgbuilds[@]}"; do
 done
 
 # 3. a published filename never changes bytes. makepkg is not reproducible,
-#    so a fixed-version package (gpk, ryoku-keyring) rebuilt here would
+#    so a fixed-version package (gpk, ryoku-keyring, wallust) rebuilt here would
 #    overwrite its live file with new bytes and break every client holding
 #    the previous db ("Maximum file size exceeded", issue #21). a name the
 #    mirror already serves keeps its served bytes, re-signed; shipping a
