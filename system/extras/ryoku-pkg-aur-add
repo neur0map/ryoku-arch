@@ -17,6 +17,13 @@ set -uo pipefail
   exit 2
 }
 
+# makepkg (under yay/paru) refuses to build as root; fail early with one clear
+# message instead of a cryptic per-package refusal from every build.
+(( EUID != 0 )) || {
+  echo "ryoku-pkg-aur-add: refusing to run as root (makepkg cannot build as root); run as your regular user" >&2
+  exit 1
+}
+
 helper=""
 for h in yay paru; do
   if command -v "$h" >/dev/null 2>&1; then

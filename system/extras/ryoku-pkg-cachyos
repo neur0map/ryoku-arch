@@ -21,10 +21,24 @@ if ! /lib/ld-linux-x86-64.so.2 --help 2>/dev/null | grep -q 'x86-64-v3 (supporte
 fi
 
 # stock pacman resolves Architecture = auto to x86_64 and rejects the v3
-# packages, so it must also accept x86_64_v3. appended, existing values kept.
-if ! grep -qE '^Architecture =.*x86_64_v3' "$conf"; then
+# packages, so it must also accept x86_64_v3. the stock pacman.conf ships the
+# line commented (#Architecture = auto), so cover every shape: uncommented
+# (append), commented (replace), absent (insert under [options]). verified
+# after, so a silent sed no-op cannot leave a repo pacman then rejects
+# every install from.
+if ! grep -qE '^Architecture[[:space:]]*=.*x86_64_v3' "$conf"; then
   echo "==> Allowing x86_64_v3 packages in $conf"
-  sudo sed -i 's|^Architecture =.*|& x86_64_v3|' "$conf"
+  if grep -qE '^Architecture[[:space:]]*=' "$conf"; then
+    sudo sed -i 's|^Architecture[[:space:]]*=.*|& x86_64_v3|' "$conf"
+  elif grep -qE '^#[[:space:]]*Architecture[[:space:]]*=' "$conf"; then
+    sudo sed -i 's|^#[[:space:]]*Architecture[[:space:]]*=.*|Architecture = auto x86_64_v3|' "$conf"
+  else
+    sudo sed -i 's|^\[options\]$|[options]\nArchitecture = auto x86_64_v3|' "$conf"
+  fi
+  grep -qE '^Architecture[[:space:]]*=.*x86_64_v3' "$conf" || {
+    echo "ryoku-pkg-cachyos: could not enable x86_64_v3 in $conf (set 'Architecture = auto x86_64_v3' by hand)" >&2
+    exit 1
+  }
 fi
 
 if grep -qE '^\[cachyos' "$conf"; then

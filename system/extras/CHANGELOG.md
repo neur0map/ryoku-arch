@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Fixed
+- **`ryoku-pkg-cachyos` actually enables `x86_64_v3` on a stock pacman.conf.**
+  The Architecture edit only matched an uncommented `Architecture =` line, but
+  stock Arch ships it commented (`#Architecture = auto`), so the sed silently
+  changed nothing: the [cachyos-v3] repo was added and every install from it
+  then failed with "architecture x86_64_v3 not found". All three shapes are
+  handled now (uncommented: append; commented: replace; absent: insert under
+  `[options]`), and the result is verified so a no-op can never strand the repo.
+- `ryoku-pkg-aur-add` refuses to run as root with one clear message. makepkg
+  cannot build as root, so a root invocation used to die per package with
+  yay's cryptic refusal instead of saying what to do (run it as your user).
 - **Removing a bundle no longer dies on a provided package name, taking the
   whole batch with it.** A `package` item can be satisfied by a provider (the
   Influencer bundle's `whisper.cpp` item is provided by an installed
