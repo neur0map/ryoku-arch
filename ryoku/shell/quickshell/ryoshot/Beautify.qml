@@ -306,6 +306,15 @@ Item {
             contentHeight: pcol.height
             clip: true
             boundsBehavior: Flickable.StopAtBounds
+            // wheel-only scroll: dragging must operate the sliders, not flick the
+            // panel, so flicking is off and the wheel drives contentY directly.
+            interactive: false
+            WheelHandler {
+                onWheel: (event) => {
+                    var max = Math.max(0, flick.contentHeight - flick.height);
+                    flick.contentY = Math.max(0, Math.min(max, flick.contentY - event.angleDelta.y));
+                }
+            }
 
             Column {
                 id: pcol
