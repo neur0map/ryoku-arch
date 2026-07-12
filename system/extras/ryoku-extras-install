@@ -235,6 +235,18 @@ ensure_requires() {
           ryoku-pkg-cachyos || die "could not enable the CachyOS repository"
         fi
         ;;
+      gpu-lib32)
+        if [[ -n $DRYRUN ]]; then
+          echo "DRYRUN: ensure the 32-bit (lib32) GPU driver stack for the detected hardware"
+        else
+          echo "==> Ensuring the 32-bit GPU driver stack for the detected hardware"
+          if command -v ryoku-gpu-lib32 >/dev/null 2>&1; then
+            ryoku-gpu-lib32 || true
+          else
+            echo "   ryoku-gpu-lib32 not found; run 'ryoku update' to get 32-bit GPU driver support"
+          fi
+        fi
+        ;;
       *) die "this bundle needs a newer Ryoku (unknown requirement '$req'); run 'ryoku update' first" ;;
     esac
   done < <(jq -r '.requires[]? // empty' "$file")

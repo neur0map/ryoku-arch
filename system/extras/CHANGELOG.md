@@ -15,6 +15,12 @@
   costs itself, not the whole bundle.
 
 ### Added
+- `ryoku-extras-install`: satisfy `"requires": ["gpu-lib32"]` by running
+  `ryoku-gpu-lib32`, which installs the 32-bit GPU userspace matching the
+  machine's hardware. The Gaming bundle declares it after `multilib` (enable the
+  repo first, then pull the lib32 drivers), so a fresh Steam/Proton install
+  renders on the real GPU instead of software. Best-effort like `multilib`: a
+  driver hiccup never aborts the rest of the bundle.
 - The extras subsystem that backs the Hub's Extras section: helpers shipped to
   `/usr/bin` by `ryoku-desktop` that install, remove, and report the optional
   bundles defined in the `ryoku-extras` catalogue.

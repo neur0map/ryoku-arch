@@ -14,6 +14,19 @@
   with no behaviour change (empty/absent fields still render as `""`).
 
 ### Added
+- `gpu/ryoku-gpu-lib32`: installs the 32-bit (lib32) GPU userspace for the
+  detected hardware, so 32-bit and Proton/DXVK games render on the real GPU
+  instead of falling back to software. The base install and the 64-bit driver
+  scripts are multilib-free; this runs after `[multilib]` is enabled (the Gaming
+  bundle orders its `requires` as multilib, then gpu-lib32) and, reusing
+  `ryoku-gpu-detect`, maps each GPU's loaded DRM driver to its Vulkan ICD
+  (`amdgpu`/`radeon` -> `lib32-vulkan-radeon`, `i915`/`xe` ->
+  `lib32-vulkan-intel`, `nvidia` -> `lib32-nvidia-utils`, `nouveau` ->
+  `lib32-vulkan-nouveau`) on a `lib32-mesa` + `lib32-vulkan-icd-loader`
+  baseline. A hybrid box gets both ICDs, Mesa once. Idempotent (pacman
+  `--needed`), `RYOKU_DRYRUN=1` prints the plan. Shipped to `/usr/bin` by the
+  `ryoku-desktop` hardware glob (and to `~/.local/bin` by the dev deploy);
+  covered by `tests/gpu-lib32.sh`.
 - `network/ryoku-wifi-powersave` + `network/49-ryoku-wifi-powersave.rules`: a
   privileged helper that disables, and later restores, 802.11 power-save on every
   WiFi device for Game Mode, via `iw` with no reconnect and no throughput cap,

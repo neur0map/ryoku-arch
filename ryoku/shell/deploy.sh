@@ -114,6 +114,7 @@ install -m755 "$here/../../system/hardware/audio/ryoku-mic" "$bindir/ryoku-mic"
 install -m755 "$here/../../system/hardware/display/ryoku-monitor" "$bindir/ryoku-monitor"
 install -m755 "$here/../../system/hardware/gpu/ryoku-gpu" "$bindir/ryoku-gpu"
 install -m755 "$here/../../system/hardware/gpu/ryoku-gpu-detect" "$bindir/ryoku-gpu-detect"
+install -m755 "$here/../../system/hardware/gpu/ryoku-gpu-lib32" "$bindir/ryoku-gpu-lib32"
 for s in "$here/../../system/extras"/ryoku-*; do
   install -m755 "$s" "$bindir/${s##*/}"
 done

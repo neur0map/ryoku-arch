@@ -19,7 +19,7 @@ cat >"$tmp/cache/bundles/registry.json" <<'EOF'
 { "bundles": [ { "id": "demo" } ] }
 EOF
 cat >"$tmp/cache/bundles/demo/bundle.json" <<'EOF'
-{ "id": "demo", "items": [
+{ "id": "demo", "requires": ["gpu-lib32"], "items": [
   { "type": "package", "name": "corepkg", "tier": "core" },
   { "type": "package", "name": "optpkg", "tier": "optional" },
   { "type": "nautilus-pack", "name": "video-reformat" },
@@ -70,6 +70,7 @@ grep -q 'corepkg' <<<"$out" || fail "core package not planned"
 grep -q 'optpkg' <<<"$out" && fail "optional package planned in whole-bundle install"
 grep -qi 'nautilus pack video-reformat' <<<"$out" || fail "nautilus pack not planned"
 grep -qi 'plugin creator-deck' <<<"$out" || fail "plugin not planned"
+grep -q 'DRYRUN: ensure the 32-bit' <<<"$out" || fail "gpu-lib32 requirement not ensured before install"
 
 # --- optional installs when named as a single item ----------------------------
 out="$(RYOKU_EXTRAS_DRYRUN=1 bash "$act" install item demo optpkg 2>&1)"

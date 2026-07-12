@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+#
+# ryoku-gpu-lib32: install the 32-bit (lib32) GPU userspace that matches the
+# detected hardware, so 32-bit and Proton/DXVK games render on the real GPU.
+#
+# The base install is 64-bit only: the driver scripts in
+# system/hardware/drivers/{amd,intel,nvidia,vulkan}.sh never touch multilib.
+# A 32-bit game, or a Wine/Proton title with a 32-bit component (most of them),
+# needs the matching lib32 Mesa/Vulkan/NVIDIA userspace or it falls back to
+# software rendering or fails to start. Those packages live only in [multilib],
+# so this runs after that repo is enabled (the Gaming bundle orders its
+# `requires` as multilib, then gpu-lib32).
+#
+# Vendor-aware: it reads the loaded DRM driver of every GPU (reusing
+# ryoku-gpu-detect) and installs only that vendor's 32-bit Vulkan ICD on top of
+# a lib32-mesa + lib32-vulkan-icd-loader baseline. A hybrid box (Intel iGPU +
+# NVIDIA dGPU) gets both. Idempotent (pacman --needed), safe to re-run.
+#
+# RYOKU_DRYRUN=1 (or --dry-run) prints the plan and installs nothing.
+
+set -euo pipefail
+
+RYOKU_DRYRUN="${RYOKU_DRYRUN:-0}"
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) RYOKU_DRYRUN=1 ;;
+    -h | --help)
+      echo "Usage: ryoku-gpu-lib32 [--dry-run]"
+      echo "Install the 32-bit (lib32) GPU drivers for the detected hardware (needs multilib)."
+      exit 0
+      ;;
+    *)
+      echo "ryoku-gpu-lib32: unknown argument: $arg" >&2
+      exit 1
+      ;;
+  esac
+done
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# gpu_field + the DRM_ROOT test seam come from the shared detector, the same
+# one ryoku-gpu sources; no probing runs at source time (functions only).
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=ryoku-gpu-detect
+source "$SCRIPT_DIR/ryoku-gpu-detect"
+
+run() {
+  if [[ $RYOKU_DRYRUN == 1 ]]; then
+    printf 'DRYRUN: %s\n' "$*"
+    return 0
+  fi
+  "$@"
+}
+
+PACCONF="${RYOKU_PACMAN_CONF:-/etc/pacman.conf}"
+
+multilib_enabled() { grep -qE '^\[multilib\]' "$PACCONF" 2>/dev/null; }
+
+# 32-bit packages live only in [multilib]. The Gaming bundle enables it first
+# (requires: multilib), but a direct run should be self-sufficient, so fall
+# back to the shipped enabler (idempotent) and fail clearly if it is still off.
+ensure_multilib() {
+  multilib_enabled && return 0
+  if [[ $RYOKU_DRYRUN == 1 ]]; then
+    echo "DRYRUN: enable the [multilib] repo (ryoku-pkg-multilib)"
+    return 0
+  fi
+  if command -v ryoku-pkg-multilib >/dev/null 2>&1; then
+    echo "ryoku-gpu-lib32: enabling the [multilib] repo"
+    ryoku-pkg-multilib || true
+  fi
+  multilib_enabled || {
+    echo "ryoku-gpu-lib32: [multilib] is not enabled; the 32-bit drivers live there. Enable it and re-run." >&2
+    exit 1
+  }
+}
+
+# The loaded DRM driver of every real GPU, one per line. Reuses gpu_field and
+# the DRM_ROOT seam from ryoku-gpu-detect, so it runs against a fake /sys tree
+# in the tests exactly like the rest of the GPU tooling.
+gpu_drivers() {
+  local path base driver
+  for path in "$DRM_ROOT"/card[0-9]*; do
+    [[ -d $path && -e $path/device ]] || continue
+    base="$(basename "$path")"
+    [[ $base == *-* ]] && continue     # skip cardN-CONNECTOR subdevices
+    driver="$(gpu_field "$path" DRIVER)"
+    [[ -n $driver ]] && printf '%s\n' "$driver"
+  done
+}
+
+main() {
+  ensure_multilib
+
+  # Baseline 32-bit userspace: Mesa (GL for AMD/Intel/virtio/llvmpipe) and the
+  # Vulkan loader every 32-bit Vulkan app links to.
+  local -a pkgs=(lib32-mesa lib32-vulkan-icd-loader)
+  local driver seen_vendor=0
+  while read -r driver; do
+    [[ -n $driver ]] || continue
+    case "$driver" in
+      amdgpu | radeon) pkgs+=(lib32-vulkan-radeon);  seen_vendor=1 ;;
+      i915 | xe)       pkgs+=(lib32-vulkan-intel);   seen_vendor=1 ;;
+      nvidia)          pkgs+=(lib32-nvidia-utils);   seen_vendor=1 ;;
+      nouveau)         pkgs+=(lib32-vulkan-nouveau); seen_vendor=1 ;;
+    esac
+  done < <(gpu_drivers)
+
+  (( seen_vendor )) \
+    || echo "ryoku-gpu-lib32: no AMD/Intel/NVIDIA GPU detected; installing the 32-bit baseline only."
+
+  # De-duplicate (a hybrid box lists Mesa once, both vendor ICDs).
+  local -a want=()
+  local p
+  for p in "${pkgs[@]}"; do
+    [[ " ${want[*]-} " == *" $p "* ]] || want+=("$p")
+  done
+
+  echo "ryoku-gpu-lib32: 32-bit GPU packages: ${want[*]}"
+  # -Syu --needed: installing new lib32 libs against a stale db is a partial
+  # upgrade that breaks on soname bumps; --needed skips what is already there.
+  local -a priv=()
+  (( EUID == 0 )) || priv=(sudo)
+  run "${priv[@]-}" pacman -Syu --needed --noconfirm "${want[@]}"
+}
+
+main

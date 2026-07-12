@@ -13,6 +13,11 @@ in the machine.
     `disable` clears the pin.
   - `ryoku-gpu-detect` The detection helper the command sources. It reads the
     GPUs from the kernel and ranks them. Kept separate so it is easy to test.
+  - `ryoku-gpu-lib32` Installs the 32-bit (lib32) GPU drivers matching the
+    detected hardware, so 32-bit and Proton/DXVK games render on the GPU rather
+    than in software. Needs `[multilib]`; the Gaming bundle enables it, then runs
+    this. Reuses `ryoku-gpu-detect` to pick the right per-vendor Vulkan ICD on a
+    `lib32-mesa` + `lib32-vulkan-icd-loader` baseline.
   - `90-ryoku-gpu.rules` A udev rule that gives every GPU a stable, predictable
     name under `/dev/dri` so the pin keeps working across reboots.
 - `display/`
