@@ -691,7 +691,13 @@ func stepRepo(e *engine) error {
 		return err
 	}
 	if !ryokuStanzaRe.Match(conf) {
-		if err := e.sudoSh(`printf '%s' '` + pacmanStanza + `' >> /etc/pacman.conf`); err != nil {
+		// whole-file swap, not `>>`: a crash mid-append could leave a truncated
+		// stanza that pacman rejects while a resume's regex check still sees
+		// `[ryoku]` and skips the repair. mv on the same fs commits atomically.
+		if err := e.sudoSh(`printf '%s' '` + pacmanStanza + `' > /etc/pacman.conf.ryoku-stanza && ` +
+			`cat /etc/pacman.conf /etc/pacman.conf.ryoku-stanza > /etc/pacman.conf.ryoku-new && ` +
+			`mv -f /etc/pacman.conf.ryoku-new /etc/pacman.conf && ` +
+			`rm -f /etc/pacman.conf.ryoku-stanza`); err != nil {
 			return err
 		}
 		e.say("added the [ryoku] repository to /etc/pacman.conf")

@@ -85,6 +85,14 @@
 
 ### Fixed
 
+- `install.sh` refuses a non-systemd system before downloading anything. The
+  binary already refuses (the session and services are systemd units), but the
+  bootstrap let Artix users fetch the installer first and fail mid-run; the
+  gate now sits with the other preflight checks.
+- The `[ryoku]` pacman.conf stanza lands via a whole-file rename, not `>>`.
+  A crash mid-append could leave a truncated stanza that pacman rejects while
+  a resumed install's "already present" check still matched `[ryoku]` and
+  skipped the repair, wedging pacman until a hand edit.
 - The post-driver initramfs rebuild probes for the box's actual generator
   (limine-mkinitcpio, mkinitcpio, dracut) and warns instead of aborting the
   install when none is found or the rebuild fails.

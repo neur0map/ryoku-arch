@@ -28,6 +28,9 @@ main() {
 
   command -v pacman > /dev/null 2>&1 || die "this installer needs an Arch-based system (pacman not found)"
   [[ $(uname -m) == x86_64 ]] || die "the [ryoku] repository ships x86_64 packages only"
+  # the binary refuses non-systemd boots much later (session + services are
+  # systemd units); saying it here spares Artix users the download.
+  [[ -d /run/systemd/system ]] || die "this installer needs systemd (Artix and other non-systemd inits are not supported)"
   command -v curl > /dev/null 2>&1 || die "curl is required"
 
   # warn-only on unusual derivatives: pacman presence is what actually matters.
