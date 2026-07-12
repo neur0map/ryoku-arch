@@ -10,9 +10,11 @@ Rectangle {
     property var rice: ({})
     signal opened()
 
-    readonly property string preview: tile.rice.preview || ""
+    readonly property string preview: tile.rice.preview || tile.rice.posterUrl || ""
     readonly property bool active: !!tile.rice.active
     readonly property string compat: tile.rice.compat || "unknown"
+    property bool store: false
+    readonly property bool installed: !!tile.rice.installed
 
     implicitWidth: 320
     implicitHeight: 250
@@ -89,6 +91,33 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "ACTIVE"
                     color: "#0d1208"
+                    font.family: Theme.mono
+                    font.pixelSize: 9
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 1.2
+                }
+            }
+        }
+        Rectangle {
+            visible: tile.store && tile.installed
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: 10
+            width: instRow.implicitWidth + 16
+            height: 22
+            radius: Theme.radius
+            color: Qt.rgba(0, 0, 0, 0.55)
+            border.width: 1
+            border.color: Theme.hair
+            Row {
+                id: instRow
+                anchors.centerIn: parent
+                spacing: 5
+                Icon { anchors.verticalCenter: parent.verticalCenter; name: "check"; size: 10; weight: 2; tint: Theme.ok }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "INSTALLED"
+                    color: Theme.subtle
                     font.family: Theme.mono
                     font.pixelSize: 9
                     font.weight: Font.DemiBold

@@ -12,9 +12,13 @@
   and writes a fixed palette when the rice pins one, and every apply first
   snapshots the live setup so **Restore original** is a byte-for-byte revert.
   Save the current desktop as a rice, duplicate or delete your own, and see
-  which is active. The community store and shipped showcase rices land next
-  (`RicesPage.qml`, `RiceTile.qml`, `RiceDetail.qml`, `AppearancePage.qml`,
-  `backend/rice.go`).
+  which is active. A **Browse** tab installs rices from the community store
+  (`ryoku-extras`), and `ryoku-hub rice publish` extracts a local rice into the
+  store ready to commit. Two showcase rices, **Lofi** (pixel-art warmth) and
+  **Pastel** (soft, round, glassy), ship there as fixed-palette looks; their
+  bespoke wallpapers arrive with the art (`RicesPage.qml`, `RiceTile.qml`,
+  `RiceDetail.qml`, `AppearancePage.qml`, `backend/rice.go`,
+  `backend/ricestore.go`).
 - **The Visualizer tab gains four new looks and deeper control.** Style now
   offers **Line** (a stiff angular readout), **Segments** (a lit LED stack per
   band), **Radial** (a ring of bars around a pulsing centre) and **Circle** (a
