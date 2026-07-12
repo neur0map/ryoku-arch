@@ -5,3 +5,7 @@ The graphical installer starts automatically on the first console. This serial
 or secondary console is a plain root shell. To run the installer here, set the
 RYOKU_* answers and run `ryoku-install` (see /usr/share/ryoku for the payload).
 
+Wiping a whole disk that already holds partitions also needs
+RYOKU_WIPE_CONFIRMED=1 (the graphical installer's typed ERASE step); a blank
+disk installs without it.
+

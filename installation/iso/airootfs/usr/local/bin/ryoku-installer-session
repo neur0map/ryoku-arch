@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Ryoku live installer session. /root/.zlogin on tty1 starts this.
 #
-# runs the installer TUI inside cage (minimal wayland kiosk) + foot (truecolor
-# terminal) so it renders with 24-bit color and Nerd Font glyphs. cage + foot +
-# the Nerd Font are baked into the ISO. the kernel VT (16 colors, no Nerd Font)
-# is the last-resort fallback when wayland can't start at all -- needs a box
-# with no usable DRM/KMS, very rare.
+# The installer runs graphically (cage wayland kiosk + foot truecolor terminal,
+# for 24-bit color and Nerd Font glyphs) when a DRM/KMS device is present, and on
+# the plain kernel VT (16 colors, no glyphs) otherwise. Both paths run the same
+# ryoku-tui. The installer ALWAYS starts one way or the other; a bare recovery
+# shell is the last resort and is announced with instructions, never silent (the
+# recurring "dropped to a root shell with no installer" report, e.g. under Ventoy
+# on GPUs where cage could not take the console).
 
 export RYOKU_REPO=/usr/share/ryoku
 export RYOKU_BACKEND=ryoku-install
@@ -13,26 +15,60 @@ export COLORTERM=truecolor   # 24-bit color for the TUI (foot supports it)
 export WLR_RENDERER=pixman             # software render, fine on VMs / GPUs with no GL
 export WLR_RENDERER_ALLOW_SOFTWARE=1   # live session has no GPU driver yet
 
-# cage + wlroots log a harmless "renderer did not support importing dma-bufs"
-# under software rendering. send session diagnostics to a log so the console
-# stays clean; real failures still land there.
-run_full() {
-	cage -- foot -o term=xterm-256color -f 'JetBrainsMono Nerd Font:size=14' -e ryoku-tui >/var/log/ryoku-session.log 2>&1
+log=/var/log/ryoku-session.log
+
+# the console TUI: the installer on the raw VT. every non-graphical path routes
+# through here so the user always reaches a working installer.
+run_console() {
+	echo "ryoku: starting the installer on the console (16-color fallback)." >&2
+	ryoku-tui
 }
 
-# try the graphical TUI, relaunch on crash so the console never drops to a bare
-# prompt mid-install. clean quit ends the loop. after a few failed starts assume
-# wayland is gone and fall back to the console TUI.
+# printed only when BOTH the graphical and console TUIs have exited, so a user
+# who lands at the prompt knows how to finish by hand instead of facing an empty
+# shell. The MOTD carries the same guidance.
+recovery_notice() {
+	cat >&2 <<'EOF'
+
+ryoku: the installer has exited; you are at a plain root shell.
+To install by hand: set the RYOKU_* answers and run `ryoku-install`
+(see /etc/motd and /usr/share/ryoku). Graphical diagnostics: /var/log/ryoku-session.log
+
+EOF
+}
+
+# the graphical TUI. cage's wayland compositor needs a DRM/KMS card node even
+# under software rendering, so a box with no usable /dev/dri skips straight to
+# the console instead of burning three cage retries. cage + wlroots log a
+# harmless "renderer did not support importing dma-bufs" under software render;
+# session diagnostics go to the log so the console stays clean, real failures too.
+run_graphical() {
+	command -v cage >/dev/null 2>&1 && command -v foot >/dev/null 2>&1 || return 1
+	compgen -G '/dev/dri/card*' >/dev/null 2>&1 || return 1
+	cage -- foot -o term=xterm-256color -f 'JetBrainsMono Nerd Font:size=14' -e ryoku-tui >"$log" 2>&1
+}
+
+# a missing installer binary is a corrupt image: say so loudly, don't hang.
+if ! command -v ryoku-tui >/dev/null 2>&1; then
+	echo "ryoku: FATAL: ryoku-tui is missing from this image (corrupt ISO)." >&2
+	recovery_notice
+	exit 0
+fi
+
+# try the graphical TUI a few times (transient wayland/seat races on real boots),
+# then fall back to the console TUI. a clean quit from either ends the session.
 tries=0
 while true; do
-	if run_full; then
+	if run_graphical; then
 		break
 	fi
 	tries=$((tries + 1))
 	if ((tries >= 3)); then
-		echo "ryoku: Wayland could not start; running the installer on the console." >&2
-		ryoku-tui
+		echo "ryoku: the graphical session could not start (no usable GPU/DRM, or wayland failed); see $log." >&2
+		run_console
 		break
 	fi
 	sleep 1
 done
+
+recovery_notice

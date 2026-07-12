@@ -149,7 +149,7 @@ func lsblkPairs(fields string) []map[string]string {
 				continue
 			}
 			k := tok[:eq]
-			v := strings.Trim(tok[eq+1:], "\"")
+			v := unescapeLsblk(strings.Trim(tok[eq+1:], "\""))
 			m[k] = v
 		}
 		rows = append(rows, m)
@@ -182,6 +182,27 @@ func splitPairs(line string) []string {
 	return toks
 }
 
+// unescapeLsblk decodes the \xNN hex escapes lsblk -P emits for spaces and other
+// special bytes in values (e.g. PARTLABEL="Windows\x20Data"), so a partition
+// label displays and matches on its real text instead of the literal escape.
+func unescapeLsblk(s string) string {
+	if !strings.Contains(s, `\x`) {
+		return s
+	}
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\\' && i+3 < len(s) && s[i+1] == 'x' {
+			if n, err := strconv.ParseUint(s[i+2:i+4], 16, 8); err == nil {
+				b.WriteByte(byte(n))
+				i += 3
+				continue
+			}
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
+}
+
 // firstField returns the first whitespace- or newline-delimited token of s, so
 // a multi-line lsblk/findmnt reply collapses to the one value we asked for.
 func firstField(s string) string {
@@ -193,9 +214,10 @@ func firstField(s string) string {
 
 // liveDisk resolves the whole disk backing the live ISO boot medium so sysDisks
 // can hide it (never offer to erase the stick we booted from). It reads the
-// archiso boot mount's source partition via findmnt, then walks to that
-// partition's parent disk via lsblk PKNAME. Off-ISO there is no /run/archiso, so
-// it returns "" and nothing is filtered.
+// archiso boot mount's source via findmnt, then resolves the physical disk: a
+// partition's parent (lsblk PKNAME), or for a layered medium (Ventoy maps the
+// ISO through a device-mapper node) the disk at the bottom of the inverse device
+// tree. Off-ISO there is no /run/archiso, so it returns "" and nothing filters.
 func liveDisk() string {
 	if _, err := os.Stat("/run/archiso"); err != nil {
 		return ""
@@ -212,7 +234,30 @@ func liveDisk() string {
 			return "/dev/" + pk // PKNAME is a bare kernel name (e.g. "sda")
 		}
 	}
-	return src // no parent: the boot medium is already a whole disk
+	// src has no partition parent: a layered boot medium. Ventoy maps the ISO
+	// through a device-mapper node (some tools use a loop), so the physical stick
+	// sits a step lower. Walk the inverse device tree to the disk it is built on,
+	// so the medium we booted from is still hidden from the picker.
+	if tree, ok := run("lsblk", "-snpo", "NAME,TYPE", src); ok {
+		if d := bottomDisk(tree); d != "" {
+			return d
+		}
+	}
+	return src // no resolvable parent: treat the source as the whole disk
+}
+
+// bottomDisk returns the deepest TYPE=disk device in `lsblk -s` (inverse
+// dependency) output: the physical whole-disk a layered boot medium (a Ventoy
+// device-mapper node, or a loop) is ultimately built on. "" when none is listed.
+func bottomDisk(lsblkTree string) string {
+	var disk string
+	for _, line := range strings.Split(lsblkTree, "\n") {
+		f := strings.Fields(line)
+		if len(f) >= 2 && f[1] == "disk" {
+			disk = f[0]
+		}
+	}
+	return disk
 }
 
 // excludeDisk reports whether a whole-disk device must be hidden from the
@@ -326,7 +371,7 @@ func sysDiskLayout(disk string) diskLayout {
 			r := map[string]string{}
 			for _, tok := range splitPairs(line) {
 				if eq := strings.IndexByte(tok, '='); eq >= 0 {
-					r[tok[:eq]] = strings.Trim(tok[eq+1:], "\"")
+					r[tok[:eq]] = unescapeLsblk(strings.Trim(tok[eq+1:], "\""))
 				}
 			}
 			if r["TYPE"] != "part" {
@@ -843,7 +888,12 @@ func netOnline() bool {
 	if out, ok := run("ip", "-4", "route"); ok && strings.Contains(out, "default") {
 		return true
 	}
-	return exec.Command("ping", "-c", "1", "-W", "1", "8.8.8.8").Run() == nil
+	// no default route: probe a real endpoint over HTTPS. ICMP (ping) is dropped
+	// by many corporate/hotel/ISP firewalls even where package mirrors are fully
+	// reachable, so a ping check false-negatives and blocks the install; an HTTPS
+	// fetch of a canonical Arch endpoint does not.
+	return exec.Command("curl", "-fsS", "--max-time", "4", "-o", "/dev/null",
+		"https://geo.mirror.pkgbuild.com/").Run() == nil
 }
 
 // netInterface returns the active default-route interface name, for the

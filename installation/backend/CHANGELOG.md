@@ -25,6 +25,22 @@
   `ryoku doctor`, and `ryoku materialize` all manage.
 
 ### Fixed
+- The pacman keyring is built and verified BEFORE the disk is touched, not at
+  pacstrap after the wipe. `ryoku-install` runs `ryoku_ensure_keyring` in the
+  preflight phase now, and the helper dies with clear guidance if the keyring is
+  still empty after init+populate, instead of a cryptic "invalid or corrupted
+  package (PGP signature)" abort on an already-wiped disk.
+- GPU driver install is time-bounded and non-fatal: each per-vendor driver script
+  runs under `timeout 900` in the chroot, and a hang or build failure logs a
+  warning and continues (the iGPU still drives the display) instead of stalling
+  or aborting the whole install after the base system is in place.
+- The AUR build's passwordless-sudo drop-in is removed from the target via a
+  `RETURN` trap, so an early return from `ryoku_aur` can never leave the installed
+  system shipping NOPASSWD sudo.
+- `alongside` waits (bounded) for the by-partlabel nodes of the two freshly
+  created partitions before mapping them, so a slow or busy bus (USB, Ventoy) can
+  no longer spuriously abort a valid dual-boot layout; the mapping still fails
+  loudly if they never appear.
 - Dual-boot installs no longer fail mid-pacstrap or clobber Windows' boot. The
   `alongside` strategy reused the Windows/OEM ESP and mounted it at `/mnt/boot`,
   but that ESP is where pacstrap writes the kernel, mkinitcpio writes the

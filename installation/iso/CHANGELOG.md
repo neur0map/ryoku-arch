@@ -3,6 +3,24 @@
 ## Unreleased
 
 ### Fixed
+- **Full Ventoy support.** All boot entries (UEFI + BIOS) now carry
+  `cow_label=vtoycow` beside `cow_spacesize=1G`: a Ventoy persistence partition
+  labelled `vtoycow` becomes the disk-backed live overlay, else the 1 GiB tmpfs
+  stands. Ventoy already booted the image (it injects `img_dev`/`img_loop`, which
+  archiso's loop-mount hook honours); the README's "do not boot from Ventoy"
+  warning was wrong and is replaced with the supported setup.
+- The live installer session (`ryoku-installer-session`) no longer drops a Ventoy
+  or GPU-less user to a bare shell with no installer. It checks for a DRM/KMS card
+  node before launching cage (skipping three dead retries when wayland can never
+  start), verifies `ryoku-tui` exists, prints the graphical-failure reason and log
+  path to the console, always falls back to the console TUI, and ends with a
+  recovery notice on how to install by hand if both TUIs exit.
+- The live MOTD now tells a manual installer that a whole-disk wipe of a disk
+  that already holds partitions needs `RYOKU_WIPE_CONFIRMED=1` (the graphical
+  installer's typed ERASE step). A user who fell back to the console shell (e.g.
+  a Ventoy boot where the graphical installer never took the console) and set
+  `RYOKU_DISK_STRATEGY=whole` hit the backend's wipe guard with no hint that the
+  confirmation lives in an env var.
 - The live environment gets a 1 GiB copy-on-write overlay (`cow_spacesize=1G`
   on both boot entries) instead of archiso's 256 MiB default. A long install
   session writes sync databases, keyring state, and logs into that overlay,

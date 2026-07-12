@@ -97,6 +97,11 @@ main() {
   ryoku_ensure_dns
   ryoku_ensure_mirrors
 
+  # build/verify the pacman keyring BEFORE the disk is touched: a broken keyring
+  # otherwise surfaces only at pacstrap, after the wipe. offline (uses the live
+  # archlinux-keyring), so it belongs in this preflight phase.
+  ryoku_ensure_keyring
+
   step partition
   ryoku_partition
   ryoku_luks

@@ -39,6 +39,22 @@ ISO detail live in `backend/CHANGELOG.md` and `iso/CHANGELOG.md`.
   live kernel needed VMD to see the NVMe.
 
 ### Fixed
+- The TUI's connectivity gate no longer false-negatives on ICMP-filtered
+  networks. `netOnline` still treats a default route as online, but its fallback
+  fetches an Arch mirror over HTTPS instead of pinging `8.8.8.8` (ICMP is dropped
+  by many corporate/hotel/ISP firewalls even where mirrors are reachable), so the
+  install is no longer blocked at Review on those networks.
+- Partition labels with spaces or other special bytes render and match correctly:
+  `lsblk -P` output is decoded through `unescapeLsblk` (the `\xNN` escapes), so a
+  dual-boot "Windows Data" partition no longer shows as `Windows\x20Data` and the
+  `ryoku`/`ryokuboot` reclaim match is not thrown off by embedded escapes.
+- Live-medium exclusion now resolves a layered boot medium to its physical disk.
+  `liveDisk` only walked a partition to its parent (`lsblk PKNAME`), so a Ventoy
+  boot (the ISO is mapped through a device-mapper node, not a plain partition)
+  left the USB unresolved and therefore visible in the disk picker: the installer
+  could offer to erase the very stick it booted from. It now walks the inverse
+  `lsblk -s` tree to the bottom disk (new `bottomDisk`, covered by
+  `TestBottomDisk`); the direct-flash `PKNAME` path is unchanged.
 - Disk strategy is fail-closed: a missing or empty selection never defaults to a
   wipe, and a whole-disk install onto a populated disk requires the typed `ERASE`
   acknowledgement (`RYOKU_WIPE_CONFIRMED=1`); a blank disk installs without it.

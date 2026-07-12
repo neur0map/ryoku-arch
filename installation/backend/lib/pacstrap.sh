@@ -30,6 +30,12 @@ ryoku_ensure_keyring() {
   log "initializing the pacman keyring"
   run pacman-key --init
   run pacman-key --populate archlinux
+  # verify the rebuild produced keys; otherwise pacstrap dies later with a
+  # cryptic "invalid or corrupted package (PGP signature)" AFTER the disk wipe.
+  # fail here instead. (dry-run never really inits, so skip the check.)
+  [[ -n ${RYOKU_DRYRUN:-} ]] && return 0
+  [[ -n "$(pacman-key --list-keys 2>/dev/null)" ]] || \
+    die "the pacman keyring is still empty after init + populate; package signatures cannot be verified. The live image's archlinux-keyring is broken; re-download or rewrite the ISO."
 }
 
 ryoku_pacstrap() {

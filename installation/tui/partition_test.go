@@ -579,6 +579,25 @@ func TestExcludeDisk(t *testing.T) {
 	}
 }
 
+// bottomDisk resolves a layered boot medium to the physical disk it is built on
+// (the inverse `lsblk -s` tree). Direct-flash is a partition on a disk; Ventoy
+// interposes a device-mapper node; both must land on the whole disk so sysDisks
+// hides the stick we booted from. A loop with no disk under it yields "".
+func TestBottomDisk(t *testing.T) {
+	for _, c := range []struct {
+		name, tree, want string
+	}{
+		{"direct-flash partition", "/dev/sda1 part\n/dev/sda disk\n", "/dev/sda"},
+		{"ventoy device-mapper", "/dev/mapper/ventoy1 dm\n/dev/sda1 part\n/dev/sda disk\n", "/dev/sda"},
+		{"loop with no backing disk", "/dev/loop0 loop\n", ""},
+		{"empty", "", ""},
+	} {
+		if got := bottomDisk(c.tree); got != c.want {
+			t.Fatalf("%s: bottomDisk = %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
 // bubbletea v2 delivers the space bar as "space", not " "; editInput must append
 // a literal space (Wi-Fi/LUKS/user passphrases contain them). It was a no-op, so
 // spaces silently vanished -- a post-install lockout for a password with a space.
@@ -855,5 +874,23 @@ func TestReviewBitLockerWarning(t *testing.T) {
 	}
 	if b := (model{picks: map[string]string{"disk": "whole"}, bitlocker: true, netOnline: true}).reviewBody(72); strings.Contains(b, "BitLocker") {
 		t.Fatal("BitLocker warning shown for a whole-disk wipe (disk is erased anyway)")
+	}
+}
+
+// unescapeLsblk decodes lsblk -P \xNN hex escapes so partition labels with
+// spaces and other special bytes (dual-boot data partitions, reclaim matching)
+// carry their real text rather than the literal escape.
+func TestUnescapeLsblk(t *testing.T) {
+	for _, c := range []struct{ in, want string }{
+		{"Windows\\x20Data", "Windows Data"},
+		{"plain", "plain"},
+		{"", ""},
+		{"tab\\x09end", "tab\tend"},
+		{"trailing\\x", "trailing\\x"}, // malformed tail left as-is
+		{"ryoku", "ryoku"},
+	} {
+		if got := unescapeLsblk(c.in); got != c.want {
+			t.Fatalf("unescapeLsblk(%q) = %q, want %q", c.in, got, c.want)
+		}
 	}
 }

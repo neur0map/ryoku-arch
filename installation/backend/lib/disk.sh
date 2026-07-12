@@ -344,6 +344,16 @@ ryoku_partition_alongside() {
   run partprobe "$disk"
   run_sh 'udevadm settle || true'
 
+  # the by-partlabel nodes can lag partprobe on a busy or slow bus (USB, Ventoy);
+  # wait for our two freshly-labeled partitions to appear before mapping them, so
+  # a slow udev never spuriously aborts a valid alongside layout. a wait only: if
+  # they never show, the mapping below still fails loudly rather than guessing.
+  for _ in 1 2 3 4 5; do
+    [[ -e /dev/disk/by-partlabel/ryoku && -e /dev/disk/by-partlabel/ryokuboot ]] && break
+    udevadm settle 2>/dev/null || true
+    sleep 1
+  done
+
   # the new partitions = current set minus the pre-existing set; must be exactly
   # two (the ESP + the root).
   local -a new_parts=()

@@ -107,11 +107,15 @@ Write the ISO to a USB stick with `dd` (or **Rufus in DD mode** on Windows):
 dd if=ryoku-<date>-x86_64.iso of=/dev/sdX bs=4M status=progress oflag=sync
 ```
 
-**Do not boot this ISO from Ventoy.** Ventoy loop-mounts the ISO and injects its
-own boot shim, which breaks archiso's squashfs discovery (the UUID search that
-finds the airootfs and the `cow_spacesize` overlay it sets up). The "no space
-left" and boot-time squashfs failures users report on this image trace back to
-Ventoy. Write the image raw with `dd` / Rufus-DD to a dedicated stick instead.
+**Ventoy is supported.** Ventoy loop-mounts the ISO and injects the `img_dev` /
+`img_loop` boot parameters, which archiso's loop-mount hook honours, so the image
+boots and runs its live session the same as a raw `dd` write. The boot entries
+carry `cow_label=vtoycow` alongside the `cow_spacesize=1G` fallback: create a
+Ventoy persistence partition labelled `vtoycow` for a disk-backed live overlay,
+or rely on the 1 GiB tmpfs overlay otherwise (this is what fixes the "no space
+left" reports). Ventoy's default (normal) mode is the supported path for this
+systemd-boot ISO; a raw `dd` / Rufus-DD write to a dedicated stick is the
+fallback if a machine's firmware balks at Ventoy's shim.
 
 Both firmware paths (UEFI systemd-boot, BIOS syslinux) expose the same three
 entries; the default is always the first:

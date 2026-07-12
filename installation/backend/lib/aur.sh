@@ -40,6 +40,9 @@ ryoku_aur() {
   # one-shot NOPASSWD sudo so makepkg/yay can call pacman without a prompt.
   printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$u" >/mnt/etc/sudoers.d/99-ryoku-aur-build
   chmod 0440 /mnt/etc/sudoers.d/99-ryoku-aur-build
+  # security: always remove the passwordless-sudo drop-in from the TARGET, even
+  # on an early return, so the installed system never ships with NOPASSWD sudo.
+  trap 'rm -f /mnt/etc/sudoers.d/99-ryoku-aur-build 2>/dev/null' RETURN
 
   # chroot needs DNS to reach the AUR and GitHub. only set it when the
   # target has none yet, and undo exactly that after.
