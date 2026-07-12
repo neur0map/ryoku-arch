@@ -28,7 +28,8 @@ Item {
     ]
     readonly property var vizKeys: [
         "enabled", "bars", "height", "thickness", "bloom", "reflection", "idleWave",
-        "style", "shape", "position", "mirror"
+        "style", "shape", "position", "mirror", "segments",
+        "fps", "adaptive", "smoothing", "gain", "peaks"
     ]
     readonly property var keys: page.shellKeys.concat(page.vizKeys)
 
@@ -96,7 +97,8 @@ Item {
         "sidebarClickless": true, "sidebarWidth": 340, "sidebarCornerSize": 34,
         "enabled": true, "bars": 64, "height": 0.42, "thickness": 0.58,
         "bloom": 0.6, "reflection": 0.1, "idleWave": true,
-        "style": "bars", "shape": "rounded", "position": "bottom", "mirror": false
+        "style": "bars", "shape": "rounded", "position": "bottom", "mirror": false,
+        "segments": 10, "fps": 30, "adaptive": true, "smoothing": 0.5, "gain": 1.0, "peaks": false
     })
 
     property string group: "frame"
@@ -154,6 +156,12 @@ Item {
         property string shape: "rounded"
         property string position: "bottom"
         property bool mirror: false
+        property int segments: 10
+        property int fps: 30
+        property bool adaptive: true
+        property real smoothing: 0.5
+        property real gain: 1.0
+        property bool peaks: false
     }
 
     function sameVal(a, b) { return String(a) === String(b); }
@@ -378,6 +386,12 @@ Item {
             property string shape: "rounded"
             property string position: "bottom"
             property bool mirror: false
+            property int segments: 10
+            property int fps: 30
+            property bool adaptive: true
+            property real smoothing: 0.5
+            property real gain: 1.0
+            property bool peaks: false
         }
     }
 
@@ -837,6 +851,8 @@ Item {
                     bloom: draft.bloom
                     reflection: draft.reflection
                     enabled: draft.enabled
+                    peaks: draft.peaks
+                    segments: draft.segments
                 }
 
                 Rectangle {
@@ -860,6 +876,17 @@ Item {
                 }
             }
 
+            SettingSection {
+                width: vizCol.width
+                title: "STYLE"
+                ChoiceRow {
+                    width: parent.width; label: "Style"
+                    options: [{ "key": "bars", "label": "Bars" }, { "key": "dots", "label": "Dots" }, { "key": "line", "label": "Line" }, { "key": "wave", "label": "Wave" }, { "key": "segments", "label": "Segments" }, { "key": "radial", "label": "Radial" }, { "key": "circle", "label": "Circle" }]
+                    current: draft.style
+                    onChosen: (k) => page.edit("style", k)
+                }
+            }
+
             Row {
                 id: vizRow
                 width: vizCol.width
@@ -872,13 +899,7 @@ Item {
 
                     SettingSection {
                         width: parent.width
-                        title: "STYLE"
-                        ChoiceRow {
-                            width: parent.width; label: "Style"
-                            options: [{ "key": "bars", "label": "Bars" }, { "key": "wave", "label": "Wave" }, { "key": "dots", "label": "Dots" }]
-                            current: draft.style
-                            onChosen: (k) => page.edit("style", k)
-                        }
+                        title: "LAYOUT"
                         ChoiceRow {
                             width: parent.width; label: "Position"
                             options: [{ "key": "bottom", "label": "Bottom" }, { "key": "top", "label": "Top" }, { "key": "center", "label": "Centre" }]
@@ -910,6 +931,16 @@ Item {
                             width: parent.width; label: "Bars"
                             from: 16; to: 128; step: 4; value: draft.bars
                             onModified: (v) => page.edit("bars", v)
+                        }
+                        NumberField {
+                            width: parent.width; label: "Segments"
+                            from: 4; to: 16; value: draft.segments
+                            onModified: (v) => page.edit("segments", v)
+                        }
+                        ToggleRow {
+                            width: parent.width; label: "Peak caps"
+                            checked: draft.peaks
+                            onToggled: (v) => page.edit("peaks", v)
                         }
                     }
                 }
@@ -945,6 +976,37 @@ Item {
                             width: parent.width; label: "Reflection"; percent: true
                             from: 0; to: 0.3; step: 0.01; value: draft.reflection
                             onModified: (v) => page.edit("reflection", v)
+                        }
+                    }
+
+                    SettingSection {
+                        width: parent.width
+                        title: "FEEL"
+                        SliderRow {
+                            width: parent.width; label: "Smoothing"; percent: true
+                            from: 0; to: 1; step: 0.01; value: draft.smoothing
+                            onModified: (v) => page.edit("smoothing", v)
+                        }
+                        SliderRow {
+                            width: parent.width; label: "Sensitivity"; percent: true
+                            from: 0.5; to: 2; step: 0.01; value: draft.gain
+                            onModified: (v) => page.edit("gain", v)
+                        }
+                    }
+
+                    SettingSection {
+                        width: parent.width
+                        title: "MOTION"
+                        ChoiceRow {
+                            width: parent.width; label: "Frame rate"
+                            options: [{ "key": "30", "label": "30" }, { "key": "45", "label": "45" }, { "key": "60", "label": "60" }]
+                            current: String(draft.fps)
+                            onChosen: (k) => page.edit("fps", parseInt(k))
+                        }
+                        ToggleRow {
+                            width: parent.width; label: "Adaptive quality"
+                            checked: draft.adaptive
+                            onToggled: (v) => page.edit("adaptive", v)
                         }
                     }
 

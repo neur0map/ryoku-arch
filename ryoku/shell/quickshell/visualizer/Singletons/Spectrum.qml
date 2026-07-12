@@ -13,6 +13,7 @@ Singleton {
 
     property bool active: false
     property int bars: 64
+    property int fps: 30
 
     // 0..1 per band (length == bars) + mean energy across all bands.
     property var levels: root.flat(0.02)
@@ -29,7 +30,7 @@ Singleton {
     Process {
         id: cavaProc
         // playback spectrum via cava's native pipewire backend, source=auto (the default sink's monitor). the pulse backend can't connect here ("Connection terminated") even with pipewire-pulse up, and this path needs no pactl. exec so quickshell's SIGTERM reaches cava, leaving no orphaned analyser when the surface unloads.
-        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 || exit 0; cfg=\"${XDG_RUNTIME_DIR:-/tmp}/ryoku-cava-visualizer.conf\"; printf '%s\\n' '[general]' 'framerate = 60' 'bars = " + root.bars + "' '' '[input]' 'method = pipewire' 'source = auto' '' '[output]' 'method = raw' 'raw_target = /dev/stdout' 'data_format = ascii' 'ascii_max_range = 100' 'channels = mono' 'mono_option = average' '' '[smoothing]' 'noise_reduction = 45' > \"$cfg\"; exec cava -p \"$cfg\""]
+        command: ["sh", "-c", "command -v cava >/dev/null 2>&1 || exit 0; cfg=\"${XDG_RUNTIME_DIR:-/tmp}/ryoku-cava-visualizer.conf\"; printf '%s\\n' '[general]' 'framerate = " + root.fps + "' 'bars = " + root.bars + "' '' '[input]' 'method = pipewire' 'source = auto' '' '[output]' 'method = raw' 'raw_target = /dev/stdout' 'data_format = ascii' 'ascii_max_range = 100' 'channels = mono' 'mono_option = average' '' '[smoothing]' 'noise_reduction = 45' > \"$cfg\"; exec cava -p \"$cfg\""]
         running: root.active
         stdout: SplitParser {
             splitMarker: "\n"
@@ -44,7 +45,8 @@ Singleton {
         onTriggered: if (root.active && !cavaProc.running) cavaProc.running = true
     }
 
-    // restart cava when the band count changes so its config picks up new bars.
+    // restart cava when the band count or framerate changes so its config
+    // picks up the new value.
     Timer {
         id: barsRestart
         interval: 300
@@ -75,6 +77,11 @@ Singleton {
             cavaProc.running = false;
             barsRestart.restart();
         }
+    }
+
+    onFpsChanged: if (root.active) {
+        cavaProc.running = false;
+        barsRestart.restart();
     }
 
     function norm(v) {

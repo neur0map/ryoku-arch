@@ -3,6 +3,23 @@
 ## Unreleased
 
 ### Added
+- **The desktop visualiser gains four new looks: a stiff line, LED segments, a
+  radial ring and a morphing circle, plus peak caps and a frame budget you
+  control.** Beside bars, dots and the filled wave the spectrum now draws as a
+  **line** (a stiff angular readout with its own glow that snaps where the wave
+  flows), **segments** (a lit LED stack per band), a **radial** ring of bars
+  around a pulsing centre, and a **circle** (a closed blob whose radius breathes
+  with the music). New per-look controls: render **fps** (30 by default, up to
+  60, with cava sampled at the same rate so nothing is computed twice),
+  **smoothing** and **sensitivity**, falling **peak caps**, and the **segments**
+  count, all live from `visualizer.json` (`Visualizer.qml`,
+  `Singletons/Config.qml`, `Singletons/Spectrum.qml`, `shell.qml`).
+- **An adaptive governor keeps the visualiser cheap under load.** When the render
+  timer slips behind for a sustained stretch (a busy machine or a heavy pick),
+  the engine steps down in tiers: it lowers the frame rate, drops the bloom
+  buffer and reflection, sheds the peak cache, and folds segments back to bars,
+  then climbs back when headroom returns. It throttles the cost, never the
+  spectrum, so the desktop keeps drawing (`Visualizer.qml`).
 - **Ryoshot gains a Beautify editor (the 力 button), sharing-first.** After a
   capture, the toolbar's 力 button opens a full editor with a frosted, textured
   chrome (the launcher's grainy look): a live canvas beside a grouped panel that
@@ -37,6 +54,16 @@
   plain grab when the tool is absent (`Beautify.qml`).
 
 ### Fixed
+- **Styles with a fixed baseline no longer freeze on screen when the music
+  stops.** With the idle wave off, the circle and the radial centre ring kept a
+  constant radius that never shrank to nothing, so the render ticker halted and
+  left a static ring behind (bars, which collapse, cleared fine). The whole
+  field now fades out with the "playing" signal, its floor meeting the ticker's
+  stop threshold, so every style vanishes on silence (`Visualizer.qml`).
+- **The visualiser's analyser no longer runs faster than it draws.** cava was
+  pinned at 60fps while the render capped near 30, sampling twice for every frame
+  shown; it now follows the configured frame rate (default 30), roughly halving
+  its steady-state cost (`Singletons/Spectrum.qml`).
 - **The left screen edge is clickable again (no dead strip while browsing).** The
   left sidebar's drag-to-stash trigger masked a band the full hover-corner width
   (`sidebarCornerSize`, ~54px scaled) down the entire left edge, but windows only

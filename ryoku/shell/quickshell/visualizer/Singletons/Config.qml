@@ -22,10 +22,19 @@ Singleton {
     property alias bloom:      adapter.bloom       // glow behind bars while playing
     property alias reflection: adapter.reflection  // mirrored band height, fraction of screen (0 = off)
     property alias idleWave:   adapter.idleWave    // breathing line while silent
-    property alias style:      adapter.style       // bars | wave | dots
+    property alias style:      adapter.style       // bars | dots | line | wave | segments | radial | circle
     property alias shape:      adapter.shape       // rounded | flat (bar/dot cap)
     property alias position:   adapter.position    // bottom | top | center
     property alias mirror:     adapter.mirror      // symmetric low->high->low band order
+    property alias segments:   adapter.segments    // lit blocks per band in the segments style
+
+    // motion + budget. fps is the render ceiling (cava is fed at the same rate);
+    // adaptive sheds effects and rate under sustained load, never the spectrum.
+    property alias fps:        adapter.fps         // 30 default, up to 60
+    property alias adaptive:   adapter.adaptive    // auto-throttle under load
+    property alias smoothing:  adapter.smoothing   // decay slowness, 0 snappy .. 1 fluid
+    property alias gain:       adapter.gain         // level multiplier before clamp
+    property alias peaks:      adapter.peaks       // falling peak caps on bars/segments
 
     // persist on/off so the hub toggle and Super+M keybind agree, and it
     // survives a restart.
@@ -56,6 +65,12 @@ Singleton {
             property string shape: "rounded"
             property string position: "bottom"
             property bool mirror: false
+            property int segments: 10
+            property int fps: 30
+            property bool adaptive: true
+            property real smoothing: 0.5
+            property real gain: 1.0
+            property bool peaks: false
         }
     }
 

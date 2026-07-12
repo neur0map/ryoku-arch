@@ -42,6 +42,14 @@ ShellRoot {
         value: Config.bars
     }
 
+    // cava's framerate follows the render ceiling: no point sampling faster than
+    // the spectrum draws.
+    Binding {
+        target: Spectrum
+        property: "fps"
+        value: Config.fps
+    }
+
     Variants {
         model: Quickshell.screens
 

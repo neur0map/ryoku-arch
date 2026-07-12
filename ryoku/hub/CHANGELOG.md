@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- **The Visualizer tab gains four new looks and deeper control.** Style now
+  offers **Line** (a stiff angular readout), **Segments** (a lit LED stack per
+  band), **Radial** (a ring of bars around a pulsing centre) and **Circle** (a
+  blob whose radius breathes with the music), beside Bars, Dots and Wave, with
+  the picker promoted to a
+  full-width row. New knobs: a **Frame rate** choice (30/45/60), **Adaptive
+  quality** (auto-throttle under load), **Smoothing** and **Sensitivity** feel
+  sliders, **Peak caps** for bars and segments, and a **Segments** count. The
+  live preview renders every new look, cap and segment so you see the change
+  before it reaches the desktop (`ShellSettingsPage.qml`, `VizPreview.qml`).
 - **Recording page (System).** Screen recording finally has controls: framerate
   (30/60/120), constant vs variable framerate, quality (up to ultra), codec
   (H.264 / HEVC / AV1), GPU-or-CPU encoder, and cursor visibility, saved to
