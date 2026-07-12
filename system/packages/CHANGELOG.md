@@ -13,6 +13,10 @@
   nerd fonts, so the shell's Global font picker has more that render on a fresh
   install (JetBrains Mono already ships). The picker also lists other popular
   families and shows whichever ones you install yourself.
+- `base.packages`: add `waifu2x-ncnn-vulkan`, the GPU AI upscaler behind ryoshot
+  Beautify's HD ×2 export and ryowalls Enhance, so every fresh install ships it.
+  It is also a hard `depends` of `ryoku-desktop`, which reaches existing boxes on
+  `ryoku update` (an optdepend never installs on `-Syu`).
 - `base.packages`: add `ddcutil`, and `aur.packages`: add `nvibrant-bin`. The
   pill mixer's DISPLAY section drives external-monitor brightness through
   `ddcutil` (DDC/CI) and NVIDIA screen vibrance through `nvibrant`, both

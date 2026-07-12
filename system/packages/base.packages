@@ -137,6 +137,9 @@ cava
 cliphist
 hyprpicker
 imagemagick
+# waifu2x-ncnn-vulkan: GPU AI upscaler behind ryoshot Beautify's HD export and
+# ryowalls Enhance. official repo, in the base set so every install ships it.
+waifu2x-ncnn-vulkan
 jq
 openrgb
 # external-monitor brightness for the pill mixer's DISPLAY faders, over DDC/CI
