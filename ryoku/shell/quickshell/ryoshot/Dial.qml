@@ -55,6 +55,7 @@ Item {
 
         MouseArea {
             anchors.fill: parent
+            preventStealing: true
             function apply(e) {
                 var dx = e.x - face.width / 2;
                 var dy = e.y - face.height / 2;

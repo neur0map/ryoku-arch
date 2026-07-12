@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Controls as QQC
 import Quickshell
 import Quickshell.Io
 
@@ -306,13 +307,19 @@ Item {
             contentHeight: pcol.height
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            // wheel-only scroll: dragging must operate the sliders, not flick the
-            // panel, so flicking is off and the wheel drives contentY directly.
-            interactive: false
-            WheelHandler {
-                onWheel: (event) => {
-                    var max = Math.max(0, flick.contentHeight - flick.height);
-                    flick.contentY = Math.max(0, Math.min(max, flick.contentY - event.angleDelta.y));
+            // native flick handles the mouse wheel and touchpad scroll; the panel
+            // controls set preventStealing so a drag on a slider adjusts it instead
+            // of scrolling.
+            QQC.ScrollBar.vertical: QQC.ScrollBar {
+                id: sb
+                policy: QQC.ScrollBar.AsNeeded
+                width: 7
+                contentItem: Rectangle {
+                    implicitWidth: 4
+                    radius: 2
+                    color: beautify.idle
+                    opacity: sb.pressed ? 0.9 : (sb.hovered ? 0.7 : 0.4)
+                    Behavior on opacity { NumberAnimation { duration: 120 } }
                 }
             }
 

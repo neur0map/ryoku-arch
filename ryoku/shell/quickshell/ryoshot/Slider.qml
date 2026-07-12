@@ -85,6 +85,7 @@ Item {
         id: ma
         anchors.fill: parent
         hoverEnabled: true
+        preventStealing: true
         function apply(e) { var p = mapToItem(track, e.x, e.y); sl.setFromX(p.x); }
         onPressed: (e) => apply(e)
         onPositionChanged: (e) => { if (pressed) apply(e); }
