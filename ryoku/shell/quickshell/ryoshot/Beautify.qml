@@ -325,7 +325,7 @@ Item {
 
             Column {
                 id: pcol
-                width: flick.width
+                width: flick.width - 14
                 spacing: 24
 
                 // ---------- PRESETS ----------
