@@ -588,7 +588,7 @@ func forkRice(slug string) (Rice, error) {
 
 func runRice(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("rice needs list|capture|apply|restore|save|fork|delete")
+		return fmt.Errorf("rice needs list|capture|apply|restore|save|fork|delete|catalog|install|publish")
 	}
 	switch args[0] {
 	case "list":
@@ -640,6 +640,22 @@ func runRice(args []string) error {
 			return fmt.Errorf("rice delete needs a slug")
 		}
 		return deleteRice(args[1])
+	case "catalog":
+		items, err := catalogRices()
+		if err != nil {
+			return err
+		}
+		return printJSON(items)
+	case "install":
+		if len(args) < 2 {
+			return fmt.Errorf("rice install needs an id")
+		}
+		return installRice(args[1])
+	case "publish":
+		if len(args) < 3 {
+			return fmt.Errorf("rice publish needs a slug and a store path")
+		}
+		return publishRice(args[1], args[2])
 	default:
 		return fmt.Errorf("unknown rice subcommand: %s", args[0])
 	}
