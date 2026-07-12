@@ -67,6 +67,12 @@ QtObject {
     // ---- music / export ----
     property string musicPath: ""
     property real musicVolume: 0.6
+    property real musicStartMs: 0
+    property real musicEndMs: 0        // 0 = play through to the clip end
+    function setMusicRange(s, e) {
+        musicStartMs = Math.max(0, Math.min(durationMs, s));
+        musicEndMs = Math.max(musicStartMs + 200, Math.min(durationMs, e));
+    }
     property string format: "mp4"
     property string quality: "good"
     property int gifFps: 20
@@ -202,6 +208,7 @@ QtObject {
         clipUrl = url; clipPath = p;
         positionMs = 0;
         zooms = []; speeds = []; texts = []; overlays = []; cuts = [];
+        musicPath = ""; musicStartMs = 0; musicEndMs = 0;
         selStart = -1; selEnd = -1; clearSel();
         dirty();
     }
@@ -214,7 +221,7 @@ QtObject {
             bg: { kind: bgKind, a: "" + bgA, b: "" + bgB, angle: bgAngle, solid: "" + bgSolid, image: bgImage },
             padding: padding, roundness: roundness, shadow: shadow,
             border: { w: borderW, color: "" + borderColor },
-            music: { path: musicPath, volume: musicVolume },
+            music: { path: musicPath, volume: musicVolume, start: musicStartMs / 1000, end: (musicEndMs > 0 ? musicEndMs : durationMs) / 1000 },
             zoom: { auto: autoZoom, depth: zoomDepth, regions: zooms.map(function (r) {
                 return { start: r.startMs / 1000, end: r.endMs / 1000, scale: depthScale(r.depth), cx: r.cx, cy: r.cy };
             }) },

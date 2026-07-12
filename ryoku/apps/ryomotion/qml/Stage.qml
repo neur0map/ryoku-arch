@@ -38,7 +38,7 @@ Item {
         onMediaStatusChanged: if (mediaStatus === MediaPlayer.LoadedMedia && !primed) { primed = true; priming = true; play(); primeT.start(); }
         onPlaybackStateChanged: {
             Project.playing = (playbackState === MediaPlayer.PlayingState);
-            if (playbackState !== MediaPlayer.PlayingState) musicMp.pause();
+            stage.syncMusic(true);
         }
         onPositionChanged: {
             var cut = Project.cutAt(position);
@@ -47,21 +47,36 @@ Item {
             var sp = Project.speedAt(position);
             if (Math.abs(sp - mp.playbackRate) > 0.01)
                 mp.playbackRate = sp;
+            stage.syncMusic(false);
         }
     }
-    // background music, played live under the video (baked for real at export).
+    // background music, positioned on the timeline: it plays only within its
+    // [start, end] window, offset to the playhead. Baked for real at export.
     MediaPlayer {
         id: musicMp
         source: Project.musicPath ? "file://" + Project.musicPath : ""
         audioOutput: AudioOutput { volume: Project.musicVolume }
     }
+    function syncMusic(reseek) {
+        if (mp.priming || Project.musicPath === "" || mp.playbackState !== MediaPlayer.PlayingState) { musicMp.pause(); return; }
+        var start = Project.musicStartMs;
+        var end = Project.musicEndMs > 0 ? Project.musicEndMs : Project.durationMs;
+        if (mp.position >= start && mp.position < end) {
+            if (reseek || musicMp.playbackState !== MediaPlayer.PlayingState) {
+                musicMp.setPosition(Math.max(0, mp.position - start));
+                musicMp.play();
+            }
+        } else {
+            musicMp.pause();
+        }
+    }
     Timer { id: primeT; interval: 60; onTriggered: { mp.pause(); mp.setPosition(0); mp.priming = false; } }
     // UI talks to Project; Stage owns the players and keeps the music in sync.
     Connections {
         target: Project
-        function onPlayRequested() { mp.play(); if (Project.musicPath !== "") musicMp.play(); }
-        function onPauseRequested() { mp.pause(); musicMp.pause(); }
-        function onSeekRequested(ms) { mp.setPosition(ms); musicMp.setPosition(ms); }
+        function onPlayRequested() { mp.play(); }
+        function onPauseRequested() { mp.pause(); }
+        function onSeekRequested(ms) { mp.setPosition(ms); stage.syncMusic(true); }
     }
 
     Item {

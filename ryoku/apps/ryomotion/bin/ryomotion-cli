@@ -383,10 +383,11 @@ cmd_render() {
   local proj="${1:?project.json required}" out="${2:-}"
   need ffmpeg; need ffprobe; need jq; need magick
   [[ -r $proj ]] || die "no such project: $proj"
-  local clip fmt fps quality musicPath musicVol
+  local clip fmt fps quality musicPath musicVol musicStart musicEnd
   clip=$(jq -r '.clip' "$proj"); fmt=$(jq -r '.format // "mp4"' "$proj")
   fps=$(jq -r '.fps // 60' "$proj"); quality=$(jq -r '.quality // "good"' "$proj")
   musicPath=$(jq -r '.music.path // ""' "$proj"); musicVol=$(jq -r '.music.volume // 0.6' "$proj")
+  musicStart=$(jq -r '.music.start // 0' "$proj"); musicEnd=$(jq -r '.music.end // 0' "$proj")
   [[ -r $clip ]] || die "clip not found: $clip"
   [[ -n $out ]] || out="${proj%.json}_export.${fmt}"
 
@@ -462,9 +463,14 @@ cmd_render() {
   local music_input=()
   if [[ -n $musicPath && -r $musicPath ]]; then
     music_input=(-i "$musicPath")
-    local mvol; mvol=$(awk -v v="$musicVol" 'BEGIN{printf "%.3f", v}')
-    if [[ -n $aud ]]; then afg="${afg};[1:a]volume=${mvol}[mus];[${aud}][mus]amix=inputs=2:duration=first:dropout_transition=0[outa]"
-    else afg="${afg}${afg:+;}[1:a]volume=${mvol}[outa]"; fi
+    local mvol mdelay mdur mtrim=""
+    mvol=$(awk -v v="$musicVol" 'BEGIN{printf "%.3f", v}')
+    mdelay=$(awk -v s="$musicStart" 'BEGIN{printf "%d", (s>0?s*1000:0)}')
+    mdur=$(awk -v s="$musicStart" -v e="$musicEnd" 'BEGIN{d=e-s; print (d>0.05?d:0)}')
+    [[ $mdur != 0 ]] && mtrim="atrim=0:${mdur},asetpts=PTS-STARTPTS,"
+    # place the music at its start (adelay) and trim it to its length, then mix.
+    if [[ -n $aud ]]; then afg="${afg};[1:a]${mtrim}adelay=${mdelay}:all=1,volume=${mvol}[mus];[${aud}][mus]amix=inputs=2:duration=first:dropout_transition=0[outa]"
+    else afg="${afg}${afg:+;}[1:a]${mtrim}adelay=${mdelay}:all=1,volume=${mvol}[outa]"; fi
     mapa="[outa]"
   elif [[ -n $aud ]]; then mapa="[${aud}]"; fi
 

@@ -99,7 +99,7 @@ Window {
     Timeline {
         id: timeline
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-        height: 288
+        height: 300
     }
     OpenSheet {
         id: openSheet
@@ -119,7 +119,7 @@ Window {
     FileDialog {
         id: musicDialog
         nameFilters: ["Audio (*.mp3 *.flac *.wav *.ogg *.m4a *.opus)"]
-        onAccepted: { Project.musicPath = selectedFile.toString().replace(/^file:\/\//, ""); Project.dirty(); }
+        onAccepted: { Project.musicPath = selectedFile.toString().replace(/^file:\/\//, ""); Project.musicStartMs = 0; Project.musicEndMs = 0; Project.dirty(); }
     }
     Connections {
         target: Project

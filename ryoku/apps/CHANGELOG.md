@@ -11,8 +11,11 @@
   graph -- **what you see is what you get**, no preview that drifts from the render.
   A left tool rail (Canvas, Frame, Zoom, Cut, Speed, Text, Overlay, Music, Export)
   drives a contextual panel; the centre is a live stage you edit directly
-  (**drag** the zoom focus, text and overlay right on the preview); a timeline
-  carries draggable zoom/speed/text/overlay markers. **Cut is direct** -- mark a
+  (**drag** the zoom focus, text and overlay right on the preview); a timeline with
+  a labelled ruler and per-track headers carries draggable, trimmable blocks;
+  a **music** track carries a waveform and can be positioned and trimmed
+  anywhere under the video (its start and length shape the live preview and
+  the export). **Cut is direct** -- mark a
   section on the clip lane and remove it; it vanishes and shows as a gap, no
   abstract blocks. Background is the Beautify look ported to video (gradient /
   solid / image, padding, roundness, shadow, border) with a canvas **aspect**
