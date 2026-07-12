@@ -71,6 +71,18 @@
   up so restore.sh can put wants-wiring back, and clipboard/gamma daemons
   joined the conflict list.
 
+### Changed
+
+- `wallust` dropped from the installer's AUR extras (`aurPkgs`): it now ships from
+  the `[ryoku]` repo as a hard `ryoku-desktop` dependency, so the packages step
+  already pulls it. `stepVerify` treats it as a hard check (colors follow the
+  wallpaper) and `stepAUR` no longer best-effort-builds it; awww/mpvpaper stay
+  healed by the `ryoku doctor` pass.
+- `rust` installs by default now (moved from the devtools-gated `devPkgs` into the
+  always-installed `sessionPkgs`), matching the ISO. The shell's Rust AUR
+  dependencies (such as `awww`) need the toolchain to build, so it ships whether or
+  not the developer-tools toggle is on.
+
 ### Fixed
 
 - The post-driver initramfs rebuild probes for the box's actual generator

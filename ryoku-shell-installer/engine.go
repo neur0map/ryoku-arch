@@ -46,14 +46,20 @@ var sessionPkgs = []string{
 	"upower", "fuzzel", "curl", "libnotify", "python", "xdg-utils", "desktop-file-utils",
 	// tools the shell invokes by name (stash, launcher, media, night light)
 	"flatpak", "ffmpeg", "yt-dlp", "mpv", "libqalculate", "mpv-mpris", "songrec",
+	// rust: the shell's wallpaper daemon (awww) and other AUR deps are Rust
+	// programs; the toolchain ships by default (never gated on the devtools
+	// toggle) so they always build, matching the ISO's base set.
+	"rust",
 }
 
-// wallust and awww-git are the shell's wallpaper/palette engine; the rest are
-// the standard Ryoku extras. all best-effort, verify flags the critical two.
-var aurPkgs = []string{"wallust", "awww-git", "bibata-cursor-theme-bin", "localsend-bin", "voxtype-bin"}
+// awww-git is the shell's wallpaper daemon; the rest are the standard Ryoku
+// extras, all best-effort here. wallust (the palette generator) is a hard
+// ryoku-desktop depend from [ryoku], so the packages step already pulled it,
+// and ryoku doctor (stepDoctor) heals awww/mpvpaper if a build here failed.
+var aurPkgs = []string{"awww-git", "bibata-cursor-theme-bin", "localsend-bin", "voxtype-bin"}
 
 // system/packages/dev.packages; ryoku recovery builds from source and needs go.
-var devPkgs = []string{"go", "nodejs", "npm", "rust", "python", "python-pip", "python-pipx", "mise"}
+var devPkgs = []string{"go", "nodejs", "npm", "python", "python-pip", "python-pipx", "mise"}
 
 var sparsePaths = []string{
 	"ryoku/lockscreen", "ryoku/assets", "ryoku/apps",
@@ -1112,8 +1118,11 @@ func stepVerify(e *engine) error {
 		e.say("  DKMS modules are rejected at boot. To switch later, disable Secure Boot in")
 		e.say("  firmware or sign the kernel and modules (sbctl), then re-run this installer.")
 	}
-	if !has("wallust") || !has("awww") {
-		e.say(gWarn + " wallust/awww missing (AUR): wallpapers and palettes will not work until installed")
+	// wallust is a hard ryoku-desktop depend from [ryoku], so the packages step
+	// must have pulled it; a miss here means the desktop set install is broken.
+	check(has("wallust"), "wallust palette generator (colors follow the wallpaper)")
+	if !has("awww") {
+		e.say(gWarn + " awww missing (AUR): static wallpapers will not set until it installs (ryoku doctor retries it)")
 	}
 	if e.p.devtools {
 		check(has("go"), "go toolchain on PATH (ryoku recovery rebuilds from source)")
