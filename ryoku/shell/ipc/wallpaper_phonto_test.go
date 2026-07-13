@@ -20,6 +20,7 @@ func TestShowLiveWallpaperHandoff(t *testing.T) {
 			liveLog := filepath.Join(state, "live.args")
 			awwwLog := filepath.Join(state, "awww.args")
 			alive := filepath.Join(state, "live.alive")
+			killed := filepath.Join(state, "awww.killed")
 
 			fake := func(name, body string) {
 				if err := os.WriteFile(filepath.Join(bin, name), []byte("#!/bin/sh\n"+body+"\n"), 0o755); err != nil {
@@ -29,7 +30,11 @@ func TestShowLiveWallpaperHandoff(t *testing.T) {
 			// the backend records its argv and marks itself alive; pgrep reports
 			// the marker; pkill clears it; awww records subcommands (assert "kill").
 			fake(backend, `printf '%s\n' "$*" > "`+liveLog+`"; : > "`+alive+`"`)
-			fake("awww", `printf '%s\n' "$*" >> "`+awwwLog+`"`)
+			fake("awww", `case "$1" in
+kill) : > "`+killed+`"; printf '%s\n' "$*" >> "`+awwwLog+`" ;;
+query) [ -f "`+killed+`" ] && exit 1 || exit 0 ;;
+*) printf '%s\n' "$*" >> "`+awwwLog+`" ;;
+esac`)
 			fake("pgrep", `[ -f "`+alive+`" ]`)
 			fake("pkill", `rm -f "`+alive+`"; exit 0`)
 			t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))

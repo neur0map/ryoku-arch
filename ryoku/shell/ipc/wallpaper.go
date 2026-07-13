@@ -366,11 +366,21 @@ func (d *daemon) liveStill(pic string) bool {
 	return false
 }
 
-// stopImageDaemon stops the awww image daemon so its background surface is gone
-// while a video plays; a following image set restarts it via ensureWallDaemon.
-// best-effort: no daemon (or none installed) is a no-op.
+// stopImageDaemon stops the image daemon and waits until it no longer answers
+// IPC, so its background surface is torn down before the video daemon maps. else
+// the old image lingers under the starting video (the switch overlay): plain
+// `awww kill` returns before the daemon exits, and it can miss a daemon in a
+// non-default namespace. `kill -a` covers every namespace, and querying is
+// zombie-immune (a defunct daemon still matches a name-based pgrep but never
+// answers IPC).
 func stopImageDaemon() {
-	_ = exec.Command(wallDaemon, "kill").Run()
+	_ = exec.Command(wallDaemon, "kill", "-a").Run()
+	for range 40 {
+		if exec.Command(wallDaemon, "query").Run() != nil {
+			return
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
 }
 
 // liveFrame: one still from the video for wallust, which reads an image. offset
@@ -668,9 +678,10 @@ func ensureWallDaemon() bool {
 	}
 	for attempt := 0; attempt < 5; attempt++ {
 		cmd := exec.Command(wallDaemonStart)
-		_ = cmd.Start()
-		if cmd.Process != nil {
-			_ = cmd.Process.Release()
+		if cmd.Start() == nil {
+			// reap on exit so a later-killed daemon is never left a zombie (Release
+			// would orphan it as <defunct> until the shell itself exits).
+			go func() { _ = cmd.Wait() }()
 		}
 		for i := 0; i < 15; i++ {
 			if wallDaemonAlive() {

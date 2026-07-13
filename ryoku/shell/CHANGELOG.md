@@ -94,8 +94,10 @@
   mpv (mpvpaper) that mapped its surface *over* the still `awww` image without
   stopping it, so any letterbox, gap, or launch delay showed the old image
   through, and its documented per-loop leak grew to hundreds of MB. The daemon now
-  hands the background off cleanly (a video set stops the image daemon, so exactly
-  one surface is ever mapped) and picks the decoder by GPU: `phonto` (lean
+  hands the background off cleanly (a video set stops the image daemon and waits
+  for it to exit before the clip maps, so the old image can't linger under the
+  starting video and exactly one surface is ever mapped) and picks the decoder by
+  GPU: `phonto` (lean
   GStreamer/VAAPI) on AMD/Intel, `mpvpaper` (mpv `hwdec`=NVDEC) on NVIDIA, where
   VAAPI is unavailable and phonto would fall back to a heavy software decode. mpv
   runs `no-config load-scripts=no` (no mpris hijack), and a watcher relaunches it
