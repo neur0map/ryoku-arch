@@ -32,6 +32,10 @@ Singleton {
     // wouldn't resolve and recording would silently never start.
     readonly property string script: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/ryoku-cmd-screenrecord"
 
+    // studio uses gpu-screen-recorder + a cursor track (this wrapper), then opens
+    // the clip in the ryomotion editor; a bare name wouldn't resolve on PATH.
+    readonly property string studioScript: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/ryoku-cmd-studiorecord"
+
     function start(extraArgs) {
         Quickshell.execDetached([root.script, ...(extraArgs || [])]);
         root.paused = false;
@@ -79,16 +83,15 @@ Singleton {
         Quickshell.execDetached([root.script, "--pause"]);
         root.paused = !root.paused;
     }
-    // studio: launch ryomotion in RYOKU_RECORD mode (HUD hidden, auto-records with
-    // these options), tracked so our stop signals its exact main process. SIGUSR1
-    // maps to ryomotion's tray-stop, so it finalises the file and opens the editor.
+    // studio: record with gpu-screen-recorder + a cursor track, then open the clip
+    // in the ryomotion editor (its auto-zoom reads the cursor track we synthesise).
+    // Tracked so our stop can signal the wrapper; anyActive keeps the island up
+    // until the gsr poll confirms the capture.
     function startStudio(desktopAudio, mic) {
-        studioProc.command = ["sh", "-c",
-            "command -v ryomotion >/dev/null 2>&1 || { notify-send 'Ryomotion' 'Not installed yet'; exit 0; }; "
-            + "exec env RYOKU_RECORD=1"
-            + " RYOKU_AUDIO=" + (desktopAudio ? "1" : "0")
-            + " RYOKU_MIC=" + (mic ? "1" : "0")
-            + " RYOKU_WEBCAM=0 ryomotion"];
+        var args = [root.studioScript];
+        if (desktopAudio) args.push("--with-desktop-audio");
+        if (mic) args.push("--with-microphone-audio");
+        studioProc.command = args;
         studioProc.running = true;
         root.studioActive = true;
         root.paused = false;
@@ -97,8 +100,10 @@ Singleton {
         root.elapsedSec = 0;
     }
     function stopStudio() {
+        // SIGTERM the wrapper (not gsr): it stops the capture, writes the cursor
+        // sidecar, and opens the editor, so it needs to run its own shutdown.
         if (studioProc.running && studioProc.processId > 0)
-            Quickshell.execDetached(["kill", "-USR1", String(studioProc.processId)]);
+            Quickshell.execDetached(["kill", "-TERM", String(studioProc.processId)]);
         root.studioActive = false;
         root.paused = false;
         root.backend = "";
@@ -109,8 +114,8 @@ Singleton {
     Process {
         id: studioProc
         onRunningChanged: {
-            // ryomotion exited before we stopped (crash, or never installed): don't
-            // strand the island counting up in a studio state that isn't real.
+            // the studio wrapper exited on its own (gsr failed to start, or it
+            // finished and opened the editor): don't strand the island counting up.
             if (!studioProc.running && root.studioActive) {
                 root.studioActive = false;
                 root.backend = "";

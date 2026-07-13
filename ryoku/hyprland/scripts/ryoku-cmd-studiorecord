@@ -1,0 +1,94 @@
+#!/bin/bash
+# Ryoku Motion studio capture. Records the screen with gpu-screen-recorder (the
+# same clean, portal-free path the shell's Quick capture uses) AND samples the
+# cursor, then writes OpenScreen's <video>.cursor.json sidecar and opens the clip
+# in the ryomotion editor -- so the editor's automatic cursor-follow zoom still
+# works even though gsr itself carries no cursor track. Wayland-friendly: gsr
+# captures without the desktop-portal double-prompt.
+#
+#   ryoku-cmd-studiorecord [--with-desktop-audio] [--with-microphone-audio]
+#
+# The shell island starts this and stops it with SIGTERM (which finalises the
+# clip, writes the cursor sidecar, and opens the editor).
+set -uo pipefail
+
+state_dir="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
+last_rec="$state_dir/last-recording"
+here="$(dirname "$(readlink -f "$0")")"
+screenrec="$here/ryoku-cmd-screenrecord"
+raw="$(mktemp "${TMPDIR:-/tmp}/ryoku-cursor.XXXXXX")"
+sampler_pid=""
+done=0
+
+# Focused monitor geometry in logical coordinates, to normalise the global
+# cursor position to 0..1 within the recorded screen (matches how OpenScreen's
+# cursor telemetry is stored). Falls back to a common default.
+geom="$(hyprctl -j monitors 2>/dev/null \
+  | jq -r '(([.[] | select(.focused)] + .)[0]) | "\(.x) \(.y) \(.width / .scale) \(.height / .scale)"' 2>/dev/null || true)"
+read -r MX MY MW MH <<<"${geom:-0 0 1920 1080}"
+if [[ ! ${MW:-0} =~ ^[0-9.]+$ ]] || [[ $(awk -v w="${MW:-0}" 'BEGIN{print (w>0)}') != 1 ]]; then
+  MX=0; MY=0; MW=1920; MH=1080
+fi
+
+sample_cursor() {
+  local start now pos x y
+  start=$(date +%s%3N)
+  while :; do
+    pos="$(hyprctl cursorpos 2>/dev/null || true)"
+    now=$(date +%s%3N)
+    if [[ $pos == *,* ]]; then
+      x="${pos%%,*}"
+      y="${pos##*,}"
+      x="${x//[^0-9-]/}"
+      y="${y//[^0-9-]/}"
+      [[ -n $x && -n $y ]] && printf '%s %s %s\n' "$((now - start))" "$x" "$y" >>"$raw"
+    fi
+    sleep 0.05
+  done
+}
+
+finish() {
+  [[ $done -eq 1 ]] && return 0
+  done=1
+  "$screenrec" --stop >/dev/null 2>&1 || true
+  [[ -n $sampler_pid ]] && kill "$sampler_pid" 2>/dev/null || true
+  sleep 1.2 # let gpu-screen-recorder finalise the mp4 container
+
+  local video
+  video="$(cat "$last_rec" 2>/dev/null || true)"
+  if [[ -n $video && -f $video ]]; then
+    awk -v mx="$MX" -v my="$MY" -v mw="$MW" -v mh="$MH" '
+      BEGIN { printf "{\"version\":1,\"provider\":\"native\",\"assets\":[],\"samples\":["; sep="" }
+      {
+        cx=($2-mx)/mw; cy=($3-my)/mh;
+        if (cx<0) cx=0; if (cx>1) cx=1; if (cy<0) cy=0; if (cy>1) cy=1;
+        printf "%s{\"timeMs\":%d,\"cx\":%.5f,\"cy\":%.5f,\"interactionType\":\"move\"}", sep, $1, cx, cy;
+        sep=","
+      }
+      END { printf "]}" }' "$raw" >"$video.cursor.json" 2>/dev/null || true
+
+    if command -v ryomotion >/dev/null 2>&1; then
+      setsid ryomotion "$video" >/dev/null 2>&1 &
+    elif command -v notify-send >/dev/null 2>&1; then
+      notify-send -a ryoku-cli "Ryoku Motion" "Recording saved; editor (ryomotion) not installed" || true
+    fi
+  fi
+  rm -f "$raw" 2>/dev/null || true
+}
+trap 'finish; exit 0' TERM INT
+
+"$screenrec" --fullscreen "$@" &
+rec_pid=$!
+
+# Align the cursor clock to when the recorder actually starts capturing, so the
+# sidecar timestamps line up with the video.
+for _ in $(seq 1 50); do
+  pgrep -f '(^|/)gpu-screen-recorder( |$)' >/dev/null 2>&1 && break
+  pgrep -f '(^|/)wf-recorder( |$)' >/dev/null 2>&1 && break
+  sleep 0.1
+done
+sample_cursor &
+sampler_pid=$!
+
+wait "$rec_pid" 2>/dev/null || true
+finish

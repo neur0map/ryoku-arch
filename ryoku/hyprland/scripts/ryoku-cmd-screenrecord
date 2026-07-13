@@ -443,6 +443,10 @@ start_gsr() {
   output_dir="$(recordings_dir)"
   mkdir -p "$output_dir"
   output_path="$(next_recording_path "$output_dir")"
+  # record the output path so the studio flow (ryoku-cmd-studiorecord) can find
+  # the finished clip to write its cursor sidecar and hand to the editor.
+  mkdir -p "${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}" 2>/dev/null || true
+  printf '%s\n' "$output_path" >"${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/last-recording" 2>/dev/null || true
 
   # -fm cfr: a steady framerate every player and editor reads correctly (vfr
   # often imports as ~30fps and looks choppy). -q/-k/-encoder come from the
@@ -495,6 +499,8 @@ start_wf() {
   output_dir="$(recordings_dir)"
   mkdir -p "$output_dir"
   output_path="$(next_recording_path "$output_dir")"
+  mkdir -p "${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}" 2>/dev/null || true
+  printf '%s\n' "$output_path" >"${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/last-recording" 2>/dev/null || true
 
   # quality preset -> VAAPI qp / x264 crf (lower = crisper).
   case "$quality" in

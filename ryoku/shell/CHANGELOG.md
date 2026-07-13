@@ -3,17 +3,29 @@
 ## Unreleased
 
 ### Added
+- **The desktop mark and name are now user-overridable across the shell.** Every
+  力 seal in the chrome (the bar, launcher, overview, the pill deck and popouts,
+  desktop widgets and the calendar, the wallpaper switcher, ryoshot's watermark,
+  and the welcome tour) renders through a shared `BrandMark` that reads a new
+  `~/.config/ryoku/brand.json`: a short text/glyph mark (default 力), or a custom
+  SVG/PNG logo (tinted to the accent via `ColorOverlay`, or shown as-is), plus the
+  desktop name ("Ryoku" by default) in the welcome copy. Ryoku's own apps (the
+  Hub, ryo* apps) keep their brand and ignore it. Edit it in Ryoku Settings,
+  Shell, Global (`BrandMark.qml` per app, each `Singletons/Config.qml` and
+  `Theme.qml`, and the rewired seals across
+  pill/launcher/overview/widgets/wallpaper/welcome/ryoshot).
 - **The recorder island is now the single entry point for capture.** The 力
   deck's Record button no longer drops a mode menu; it opens the floating
   island in a pre-record chooser. The capture toggles (screen or region,
   desktop audio, microphone) moved into that chooser, next to three actions.
-  **Quick** uses the existing gpu-screen-recorder flow; **Studio** and **Edit**
-  drive **ryomotion** (the OpenScreen-based recorder and editor, its own
-  package). Studio records through ryomotion with its window hidden, so the
-  island is the only toolbar, and opens the editor when you stop; Edit imports
-  an existing clip. A Quick capture morphs the island into the live control bar
-  as before, and the gpu-screen-recorder backend is unchanged (`RecordHud.qml`,
-  `DeckRecord.qml`, `Singletons/Recorder.qml`, `shell.qml`).
+  **Quick** and **Studio** both capture with gpu-screen-recorder (clean on
+  Wayland, no screen-cast portal double-prompt); **Edit** opens **ryomotion**
+  (the OpenScreen-based editor, its own package) to import a clip. Quick morphs
+  the island into the live control bar and saves a plain recording; Studio also
+  samples the cursor, writes ryomotion's `<clip>.cursor.json` sidecar, and opens
+  the clip in the editor on stop, so its automatic cursor-follow zoom still works
+  (`RecordHud.qml`, `DeckRecord.qml`, `Singletons/Recorder.qml`,
+  `ryoku-cmd-screenrecord`, `ryoku-cmd-studiorecord`, `shell.qml`).
 - **`ryoku-shell system` toggles the right (System) sidebar**, so it can be
   bound like the left `toolkit`/`sidebarLeft`. `Super+Alt+D` uses it; the daemon
   maps the verb to the pill's existing `sidebarRight` handler (`ipc/daemon.go`).
