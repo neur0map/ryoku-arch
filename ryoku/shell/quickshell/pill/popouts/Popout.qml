@@ -65,7 +65,15 @@ Item {
     property real heldAlong: -1
     onAlongCenterChanged: if (triggerHovered || pinned) heldAlong = alongCenter
     onTriggerHoveredChanged: if (triggerHovered) heldAlong = alongCenter
-    onPinnedChanged: if (pinned) heldAlong = alongCenter
+    onPinnedChanged: {
+        if (pinned) { heldAlong = alongCenter; return; }
+        // a deliberate unpin (keybind re-toggle, tap, close button, Escape) shuts
+        // at once: the closeDelay grace only debounces a hover-leave across the
+        // blob rim, so a pin release skips it -- even under the pointer, an
+        // unpinned popout must not hold open on body hover. an active edge/corner
+        // hover gesture still holds it, so a clickless open is unaffected.
+        if (!triggerHovered) { closeGrace.stop(); heldOpen = false; }
+    }
     readonly property real effectiveAlong: (triggerHovered || pinned) ? alongCenter : heldAlong
 
     // hold the size for the whole close the same way heldAlong holds the

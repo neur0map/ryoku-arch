@@ -62,6 +62,12 @@
   returns a real error naming the fix (`install awww`, or `ryoku doctor` heals
   it), which the shell surfaces like any other wallpaper failure
   (`ipc/wallpaper.go`).
+- **The sidebars now close as fast as they open.** A keybind or click dismiss
+  sat through the 300ms hover-intent grace before it began melting, so `Super+D`
+  (and the right sidebar) snapped open but felt laggy to shut. The grace now
+  applies only to a hover-leave -- its real job, debouncing a graze across the
+  blob rim -- while a deliberate unpin melts at once, even under the pointer
+  (`quickshell/pill/popouts/Popout.qml`).
 - **Live (video) wallpapers stop freezing and play smooth and native.** Three
   bugs made a live wallpaper set, then freeze on the first frame, then stutter
   when it did move. (1) The daemon paused mpvpaper whenever the active workspace
