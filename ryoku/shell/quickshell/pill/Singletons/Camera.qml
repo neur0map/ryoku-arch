@@ -15,10 +15,12 @@ Singleton {
 
     property bool active: false
 
-    // shape
-    property string aspect: "square" // square | portrait | landscape
+    // shape (free-form; the resize handle writes bw/bh directly, logical px)
+    readonly property real base: 220 // default edge
+    readonly property real minEdge: 120 // smallest the resize handle allows
+    property real bw: base
+    property real bh: base
     property real roundness: 0.28 // 0 sharp corners .. 1 full circle/oval
-    property real sizeScale: 1.0 // small 0.72 .. large 1.5
     property bool flipped: true // horizontal mirror (selfie feel)
 
     // bubble top-left in global logical coordinates; NaN = unplaced (default
@@ -27,19 +29,8 @@ Singleton {
     property real px: NaN
     property real py: NaN
 
-    // reference edge (px) at sizeScale 1.0
-    readonly property real base: 220
-
     function toggle() {
         root.active = !root.active;
-    }
-
-    function cycleAspect() {
-        root.aspect = root.aspect === "square" ? "portrait" : root.aspect === "portrait" ? "landscape" : "square";
-    }
-
-    function cycleSize() {
-        root.sizeScale = root.sizeScale < 0.9 ? 1.0 : root.sizeScale < 1.2 ? 1.5 : 0.72;
     }
 
     // ── persistence (shape/size/flip/position; never `active`) ────────────────
@@ -52,9 +43,9 @@ Singleton {
     }
     function save() {
         const j = JSON.stringify({
-            aspect: root.aspect,
+            bw: root.bw,
+            bh: root.bh,
             roundness: root.roundness,
-            sizeScale: root.sizeScale,
             flipped: root.flipped,
             px: root.px,
             py: root.py
@@ -66,9 +57,9 @@ Singleton {
     }
     Timer { id: saveTimer; interval: 400; onTriggered: root.save() }
 
-    onAspectChanged: scheduleSave()
+    onBwChanged: scheduleSave()
+    onBhChanged: scheduleSave()
     onRoundnessChanged: scheduleSave()
-    onSizeScaleChanged: scheduleSave()
     onFlippedChanged: scheduleSave()
     onPxChanged: scheduleSave()
     onPyChanged: scheduleSave()
@@ -82,12 +73,12 @@ Singleton {
         onLoaded: {
             try {
                 const j = JSON.parse(cfg.text() || "{}");
-                if (typeof j.aspect === "string")
-                    root.aspect = j.aspect;
+                if (typeof j.bw === "number")
+                    root.bw = j.bw;
+                if (typeof j.bh === "number")
+                    root.bh = j.bh;
                 if (typeof j.roundness === "number")
                     root.roundness = j.roundness;
-                if (typeof j.sizeScale === "number")
-                    root.sizeScale = j.sizeScale;
                 if (typeof j.flipped === "boolean")
                     root.flipped = j.flipped;
                 if (typeof j.px === "number")

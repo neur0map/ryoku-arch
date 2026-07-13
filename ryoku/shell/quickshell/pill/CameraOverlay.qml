@@ -33,11 +33,12 @@ PanelWindow {
     readonly property real screenW: mon ? mon.width / win.monScale : (modelData ? modelData.width : 0)
     readonly property real screenH: mon ? mon.height / win.monScale : (modelData ? modelData.height : 0)
 
-    // bubble size from aspect + scale (reference edge s; portrait is narrower,
-    // landscape is shorter).
-    readonly property real s: Camera.base * Camera.sizeScale
-    readonly property real bw: Camera.aspect === "portrait" ? s * 0.75 : s
-    readonly property real bh: Camera.aspect === "landscape" ? s * 0.75 : s
+    // bubble size: free-form width/height, dragged via the resize grip; capped
+    // so it can never fill the monitor (also clamps a size persisted from a
+    // larger screen).
+    readonly property real maxEdge: Math.min(win.screenW, win.screenH) * 0.6
+    readonly property real bw: Math.max(Camera.minEdge, Math.min(Camera.bw, win.maxEdge))
+    readonly property real bh: Math.max(Camera.minEdge, Math.min(Camera.bh, win.maxEdge))
 
     // global logical position; default to the bottom-right corner when unplaced.
     readonly property real defX: win.monX + win.screenW - bw - 40
@@ -119,12 +120,12 @@ PanelWindow {
             border.color: Theme.brand
         }
 
-        // shape controls, revealed on hover and hidden while recording (never in
-        // the shot); floats inside the bubble so it fits any shape incl. a circle.
-        CameraControls {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: Math.max(8, bubble.rad * 0.5)
+        // Figma-style edit handles (roundness dot, resize grip, flip): revealed
+        // on hover, hidden while recording so they are never in the shot. Fills
+        // the bubble; its grips win the grab over the move-drag below.
+        CameraHandles {
+            anchors.fill: parent
+            maxEdge: win.maxEdge
             opacity: (bubbleHov.hovered && !Recorder.anyActive) ? 1 : 0
             visible: opacity > 0.01
             Behavior on opacity { NumberAnimation { duration: 140 } }
@@ -140,6 +141,7 @@ PanelWindow {
         DragHandler {
             id: drag
             target: null
+            dragThreshold: 8
             property real sx: 0
             property real sy: 0
             property real ax: 0
