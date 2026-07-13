@@ -17,15 +17,16 @@
 # Bump _commit (and pkgver/pkgrel) to ship a new upstream build to users.
 pkgname=ryomotion
 pkgver=1.5.0
-pkgrel=5
+pkgrel=6
 pkgdesc="Ryoku Motion: screen-demo recorder and editor (OpenScreen, Linux)"
 arch=('x86_64')
 url="https://github.com/neur0map/ryomotion"
 license=('MIT')
-depends=('gtk3' 'nss' 'alsa-lib' 'libnotify' 'pipewire' 'xdg-desktop-portal')
+# gpu-screen-recorder: the native Wayland capture backend (electron/recording/linuxCapture.ts).
+depends=('gtk3' 'nss' 'alsa-lib' 'libnotify' 'pipewire' 'xdg-desktop-portal' 'gpu-screen-recorder')
 makedepends=('git')
 options=('!strip' '!debug')
-_commit=afaad422f6af7660e43bdf2f065ef3f91905683f
+_commit=cc5ca8c496fb45560574452f4357ec20a14118fa
 _node=22.22.1
 source=("$pkgname::git+https://github.com/neur0map/ryomotion.git#commit=$_commit"
         "node-$_node-linux-x64.tar.xz::https://nodejs.org/dist/v$_node/node-v$_node-linux-x64.tar.xz")
