@@ -36,8 +36,12 @@ apple_cursor
 # it cannot be pacstrapped from base.
 awww-git
 
-# Live (video) wallpaper playback for ryowalls' Live tab: ryoku-shell drives
-# `mpvpaper` (mpv on the background layer). AUR-only, like the daemon above.
+# Live (video) wallpaper playback for ryowalls' Live tab. The backend is chosen
+# by GPU at runtime (ipc/wallpaper.go): `phonto` (lean GStreamer/VAAPI) on
+# AMD/Intel, `mpvpaper` (mpv, hwdec=NVDEC) on NVIDIA where VAAPI is unavailable.
+# Both ship so any box has its decoder; the shell runs only the right one. AUR;
+# phonto pulls its gst-plugin-va decode plugin as a dependency.
+phonto
 mpvpaper
 
 # NVIDIA digital vibrance for the pill mixer's DISPLAY saturation fader, on

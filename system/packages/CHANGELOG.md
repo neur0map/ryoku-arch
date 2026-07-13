@@ -114,6 +114,12 @@
   pacman transactions, wired to the snapper `root` config by the installer.
 
 ### Changed
+- `aur.packages`: the live (video) wallpaper backend is GPU-picked now, so both
+  ship: `phonto` (lean GStreamer/VAAPI) for AMD/Intel and `mpvpaper` (mpv NVDEC)
+  for NVIDIA, where VAAPI is unavailable and phonto would software-decode. Adds
+  `phonto` beside the existing `mpvpaper`. `base.packages`: add `gst-plugin-va`
+  (phonto's VAAPI hardware decode, so a 4K clip decodes on the GPU, not the CPU)
+  and `gst-libav` (broader codecs plus phonto's software-decode fallback).
 - `aur.packages`: drop `wallust`. It moved to the `[ryoku]` repo as a hard
   `ryoku-desktop` dependency (its AUR package pins a checksum against Codeberg's
   auto-generated source archive, which Codeberg regenerates non-reproducibly, so

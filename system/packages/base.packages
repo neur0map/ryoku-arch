@@ -96,6 +96,11 @@ gst-plugins-base
 gst-plugins-good
 gst-plugins-bad
 gst-plugins-ugly
+# gst-plugin-va: VAAPI hardware video decode for phonto's live wallpapers, so a
+# 4K clip decodes on the GPU instead of the CPU; gst-libav rounds out codec
+# coverage for clips gst-plugins-{good,bad} cannot demux or decode on their own.
+gst-plugin-va
+gst-libav
 
 # Wayland tools
 brightnessctl
