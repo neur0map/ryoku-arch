@@ -59,10 +59,10 @@ monitor the overlay layer holds:
   sliver inside), reserves no space, and retracts on fullscreen. The bar's edge
   gets `frameBorder + barBand`, so the border swells into a band there; the other
   edges stay `frameBorder`. Turning `Config.frameEnabled` off collapses every edge
-  to the 50px oversize, so no border ring or shadow shows; the bar keeps its band
-  (or, for triptych and nacre, its islands), so a top bar reads as its modules
-  floating at the screen edge with no frame around them. The `frameBorder` value
-  is kept for when it comes back;
+  to the 50px oversize, so no border ring or shadow shows; the bar keeps its
+  surface (a band for most skins, triptych's frame lobes, or nacre's own painted
+  tiles), so a top bar reads as its modules at the screen edge with no frame around
+  them. The `frameBorder` value is kept for when it comes back;
 - the **`Bar`**, drawn in the same scene above the popouts (no separate program,
   no seam), see `docs/bar.md`;
 - the **popouts**, each a `BlobRect` in `blobGroup` (see below).
