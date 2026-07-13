@@ -92,14 +92,6 @@ hl.window_rule({
 })
 
 hl.window_rule({
-    name   = "float-ryomotion",
-    match  = { class = "ryomotion" },
-    float  = true,
-    size   = { 1440, 900 },
-    center = true,
-})
-
-hl.window_rule({
     name   = "float-ryoku-extras",
     match  = { class = "ryoku-extras" },
     float  = true,

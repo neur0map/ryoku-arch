@@ -15,8 +15,8 @@ pkgdesc="Ryoku desktop: Hyprland + Quickshell configuration, helpers, and runtim
 arch=('x86_64')
 url="https://ryoku.dev"
 license=('GPL-3.0-or-later')
-# go builds the app helpers (ryovm-fetch); cmake+Qt6+qt6-multimedia build ryomotion.
-makedepends=('go' 'cmake' 'ninja' 'qt6-base' 'qt6-declarative' 'qt6-multimedia')
+# go builds the app helpers (ryovm-fetch); cmake+Qt6 build any compiled ryoku/apps app.
+makedepends=('go' 'cmake' 'ninja' 'qt6-base' 'qt6-declarative')
 depends=(
   # Ryoku. the monorepo components are pinned to this build's own version:
   # every publish rebuilds them all with one shared RYOKU_PKGVER, and the shell

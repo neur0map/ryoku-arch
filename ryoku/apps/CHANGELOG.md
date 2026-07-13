@@ -3,37 +3,6 @@
 ## Unreleased
 
 ### Added
-- `ryomotion/`: **Ryoku Motion**, a new first-party app: a native, on-brand
-  screen-demo recorder + editor (an answer to Screen Studio / borumi / openscreen).
-  It is a standalone **Qt6/QML app** (`src/` C++ + `qml/`, built by CMake): the
-  live preview is **QtMultimedia** with the effects applied as live QML transforms
-  and overlays, and the export bakes the identical numbers into an ffmpeg **lavfi**
-  graph -- **what you see is what you get**, no preview that drifts from the render.
-  A left tool rail (Canvas, Frame, Zoom, Cut, Speed, Text, Overlay, Music, Export)
-  drives a contextual panel; the centre is a live stage you edit directly
-  (**drag** the zoom focus, text and overlay right on the preview); a timeline with
-  a labelled ruler and per-track headers carries draggable, trimmable blocks;
-  a **music** track carries a waveform and can be positioned and trimmed
-  anywhere under the video (its start and length shape the live preview and
-  the export). **Cut is direct** -- mark a
-  section on the clip lane and remove it; it vanishes and shows as a gap, no
-  abstract blocks. Background is the Beautify look ported to video (gradient /
-  solid / image, padding, roundness, shadow, border) with a canvas **aspect**
-  (auto / 16:9 / 9:16 / 4:3 / 1:1), cursor-follow **auto-zoom** (openscreen math,
-  MIT) driven by the recorded cursor track, a **music** track, and MP4 / GIF
-  export with quality tiers (Source / 1080p / 720p). The `ryomotion` binary is the
-  editor; `bin/ryomotion-cli` is the backend: capture via **wf-recorder**
-  (wlr-screencopy, so recording works on multi-GPU / NVIDIA-hybrid boxes where
-  GPU-EGL recorders fall back to software and refuse) at the display's own
-  refresh rate (a 120/165Hz panel records as smoothly as it looks, not a flat
-  60), the ultrafast x264 preset keeping real-time encoding from falling behind
-  at native resolution; system audio captured natively with pw-record (wf-recorder's own
-  audio path is dead where libpulse can't connect), and a 60Hz cursor logger;
-  the shared ffmpeg graph builder bakes the export. The preview plays the clip
-  audio and the music track live through QtMultimedia. New hard deps
-  `qt6-multimedia` (preview) and `qt6-declarative`; built by `ryoku-desktop`'s
-  PKGBUILD (which now compiles CMake apps, not just Quickshell ones). ffmpeg,
-  imagemagick and jq already ship.
 - `ryowalls/`: a wallpaper **studio**, not just a browser. A new **Adjust** mode
   (a third tab beside Browse and Tune) shapes the picked wallpaper live in the
   rice preview. For an image: a colour **grade** (brightness, contrast,
