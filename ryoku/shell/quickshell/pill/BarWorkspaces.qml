@@ -37,9 +37,9 @@ Item {
     readonly property real activeLen: dotSize * 2.2
     readonly property real dotGap: 4 * s
     // nacre ring metrics.
-    readonly property real ringSize: 10 * s
-    readonly property real ringActive: 15 * s
-    readonly property real ringGap: 7 * s
+    readonly property real ringSize: 6 * s
+    readonly property real ringActive: 9 * s
+    readonly property real ringGap: 5 * s
 
     readonly property int base: Math.floor((activeWsId - 1) / 10) * 10
     // occupancy = which workspaces own a window, from hyprctl. Quickshell's

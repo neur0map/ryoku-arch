@@ -308,10 +308,13 @@ Item {
                 readonly property real titleMax: Math.max(0, nacreFace.sideMax - 2 * nacreFace.capPad - nSeal.width - nLeftRow.spacing - (nMediaMod.visible ? nMediaMod.width + nLeftRow.spacing : 0))
                 anchors.left: parent.left
                 anchors.leftMargin: nacreFace.edge
-                anchors.verticalCenter: parent.verticalCenter
-                height: bar.moduleSpan
-                radius: height / 2
-                color: "transparent"
+                anchors.top: parent.top
+                height: parent.height
+                topLeftRadius: 0
+                topRightRadius: 0
+                bottomLeftRadius: Math.min(height / 2, 18 * bar.s)
+                bottomRightRadius: Math.min(height / 2, 18 * bar.s)
+                color: Config.surfaceColor
                 width: nLeftRow.implicitWidth + 2 * nacreFace.capPad
                 Behavior on width { NumberAnimation { duration: Motion.spatial; easing.type: Easing.OutCubic } }
 
@@ -340,7 +343,7 @@ Item {
                         onTapped: nMedia.toggle()
                         onWheeled: (steps) => bar.nudgeVolume(steps)
                         onHoveredChanged: bar.hoverPopoutRequested("media", nMediaMod.mapToItem(null, nMediaMod.width / 2, nMediaMod.height / 2).x, nMediaMod.hovered)
-                        BarMedia { id: nMedia; s: bar.s }
+                        BarMedia { id: nMedia; s: bar.s; vertical: true }
                     }
                     BarTitle {
                         anchors.verticalCenter: parent.verticalCenter
@@ -355,10 +358,13 @@ Item {
             Rectangle {
                 id: nCentreCap
                 anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.verticalCenter
-                height: bar.moduleSpan
-                radius: height / 2
-                color: "transparent"
+                anchors.top: parent.top
+                height: parent.height
+                topLeftRadius: 0
+                topRightRadius: 0
+                bottomLeftRadius: Math.min(height / 2, 18 * bar.s)
+                bottomRightRadius: Math.min(height / 2, 18 * bar.s)
+                color: Config.surfaceColor
                 width: nCentreRow.implicitWidth + 2 * nacreFace.capPad
                 Behavior on width { NumberAnimation { duration: Motion.spatial; easing.type: Easing.OutCubic } }
 
@@ -400,10 +406,13 @@ Item {
                 id: nRightCap
                 anchors.right: parent.right
                 anchors.rightMargin: nacreFace.edge
-                anchors.verticalCenter: parent.verticalCenter
-                height: bar.moduleSpan
-                radius: height / 2
-                color: "transparent"
+                anchors.top: parent.top
+                height: parent.height
+                topLeftRadius: 0
+                topRightRadius: 0
+                bottomLeftRadius: Math.min(height / 2, 18 * bar.s)
+                bottomRightRadius: Math.min(height / 2, 18 * bar.s)
+                color: Config.surfaceColor
                 width: nRightRow.implicitWidth + 2 * nacreFace.capPad
                 Behavior on width { NumberAnimation { duration: Motion.spatial; easing.type: Easing.OutCubic } }
 

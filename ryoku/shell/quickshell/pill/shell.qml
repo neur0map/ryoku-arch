@@ -486,12 +486,12 @@ ShellRoot {
             readonly property bool triptych: Config.barStyle === "triptych"
             readonly property bool delos: Config.barStyle === "delos"
             readonly property bool nacre: Config.barStyle === "nacre"
-            // triptych and nacre both keep a hairline top edge and grow three
-            // lobes under the module clusters, so the bar dips between them and
-            // the wallpaper shows in the gaps. these islands are the bar design
-            // and stay whether the frame is on or off; the frame toggle strips
-            // only the screen border ring, never the bar.
-            readonly property bool triptychLobes: barTop && (triptych || nacre) && !monFullscreen
+            // triptych keeps a hairline top edge and grows three blob lobes under
+            // the module clusters, so the bar dips between them (organic dips).
+            // nacre does NOT use lobes: it paints its own crisp flat-top, rounded
+            // bottom tiles in Bar.qml, so the two styles read clearly differently
+            // and a popout melts back into the plain edge without lobe interference.
+            readonly property bool triptychLobes: barTop && triptych && !monFullscreen
             readonly property real frameTopVisible: Math.max(0, Config.effectiveFrameBorder - 50)
             // a vertical band needs room for stacked content; floor it at 30.
             readonly property real barBand: Math.max(Config.barHeight, barVertical ? 30 : 0) * s
@@ -662,7 +662,7 @@ ShellRoot {
                     anchors.fill: parent
                     anchors.margins: -50
                     group: blobGroup
-                    radius: Config.frameRadius
+                    radius: overlay.nacre ? 0 : Config.frameRadius
                     borderTop: (overlay.barTop && !overlay.triptych && !overlay.nacre && !overlay.delos) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
                     borderBottom: (overlay.barBottom && !overlay.delos) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
                     borderLeft: (overlay.barLeft && !overlay.delos) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
