@@ -42,8 +42,8 @@ PanelWindow {
     // global logical position; default to the bottom-right corner when unplaced.
     readonly property real defX: win.monX + win.screenW - bw - 40
     readonly property real defY: win.monY + win.screenH - bh - 40
-    readonly property real gx: Camera.px < 0 ? defX : Camera.px
-    readonly property real gy: Camera.py < 0 ? defY : Camera.py
+    readonly property real gx: isNaN(Camera.px) ? defX : Camera.px
+    readonly property real gy: isNaN(Camera.py) ? defY : Camera.py
     // screen-local, clamped inside this screen.
     readonly property real bx: Math.max(0, Math.min(win.screenW - bw, gx - win.monX))
     readonly property real by: Math.max(0, Math.min(win.screenH - bh, gy - win.monY))
@@ -155,8 +155,12 @@ PanelWindow {
             onCentroidChanged: {
                 if (!drag.active)
                     return;
-                Camera.px = drag.sx + (drag.centroid.scenePosition.x - drag.ax);
-                Camera.py = drag.sy + (drag.centroid.scenePosition.y - drag.ay);
+                const nx = drag.sx + (drag.centroid.scenePosition.x - drag.ax);
+                const ny = drag.sy + (drag.centroid.scenePosition.y - drag.ay);
+                // clamp so the bubble stays fully on this monitor: no teleport
+                // and no vanish when dragged past an edge.
+                Camera.px = Math.max(win.monX, Math.min(win.monX + win.screenW - win.bw, nx));
+                Camera.py = Math.max(win.monY, Math.min(win.monY + win.screenH - win.bh, ny));
             }
         }
     }

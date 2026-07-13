@@ -21,9 +21,11 @@ Singleton {
     property real sizeScale: 1.0 // small 0.72 .. large 1.5
     property bool flipped: true // horizontal mirror (selfie feel)
 
-    // bubble top-left in global logical coordinates; < 0 = unplaced (default corner)
-    property real px: -1
-    property real py: -1
+    // bubble top-left in global logical coordinates; NaN = unplaced (default
+    // corner). NaN (not < 0) is the sentinel so legit negative coords on a
+    // left/top monitor are never misread as unplaced.
+    property real px: NaN
+    property real py: NaN
 
     // reference edge (px) at sizeScale 1.0
     readonly property real base: 220
