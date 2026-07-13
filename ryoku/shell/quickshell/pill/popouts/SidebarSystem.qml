@@ -690,7 +690,7 @@ Item {
                     width: parent.width
                     s: root.s
                     active: root.open && root.effectivePane === "recording"
-                    onRequestClose: {}
+                    onRequestClose: root.dismiss()
                 }
             }
         }

@@ -605,7 +605,7 @@ ShellRoot {
                 Region { x: toastPop.maskX; y: toastPop.maskY; width: toastPop.maskW; height: toastPop.maskH }
                 Region { x: pluginPops.maskTrigX; y: pluginPops.maskTrigY; width: pluginPops.maskTrigW; height: pluginPops.maskTrigH }
                 Region { x: pluginPops.maskBodyX; y: pluginPops.maskBodyY; width: pluginPops.maskBodyW; height: pluginPops.maskBodyH }
-                Region { x: recHud.hudX; y: recHud.hudY; width: (Recorder.active && recHud.prog > 0.25) ? recHud.hudW : 0; height: (Recorder.active && recHud.prog > 0.25) ? recHud.hudH : 0 }
+                Region { x: recHud.hudX; y: recHud.hudY; width: ((Recorder.active || Recorder.chooserOpen) && recHud.prog > 0.25) ? recHud.hudW : 0; height: ((Recorder.active || Recorder.chooserOpen) && recHud.prog > 0.25) ? recHud.hudH : 0 }
                 Region { x: recHud.trigX; y: recHud.trigY; width: Recorder.active ? recHud.trigW : 0; height: Recorder.active ? recHud.trigH : 0 }
                 Region { x: delosIsland.hudX; y: delosIsland.hudY; width: (overlay.delos && delosIsland.prog > 0.25) ? delosIsland.hudW : 0; height: (overlay.delos && delosIsland.prog > 0.25) ? delosIsland.hudH : 0 }
                 Region { x: delosIsland.trigX; y: delosIsland.trigY; width: overlay.delos ? delosIsland.trigW : 0; height: overlay.delos ? delosIsland.trigH : 0 }

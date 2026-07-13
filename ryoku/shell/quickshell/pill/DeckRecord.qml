@@ -93,36 +93,6 @@ Item {
     }
     Timer { id: recRefresh; interval: 1500; onTriggered: root.refreshRecs() }
 
-    // ── record modes ──────────────────────────────────────────────────────
-    readonly property var recModes: [
-        { glyph: "monitor", label: "Record display",      args: [] },
-        { glyph: "region",  label: "Record region",       args: ["-r"] },
-        { glyph: "speaker", label: "Display with sound",  args: ["-s"] },
-        { glyph: "speaker", label: "Region with sound",   args: ["-sr"] }
-    ]
-    property bool menuOpen: false
-
-    // recording grabs the screen: region mode runs slurp, and gpu-screen-
-    // recorder would otherwise capture this very panel. close the deck, let
-    // the morph settle, then start.
-    property var pendingRec: null
-    function startRecording(args) {
-        root.pendingRec = args;
-        root.menuOpen = false;
-        root.requestClose();
-        recLaunch.restart();
-    }
-    Timer {
-        id: recLaunch
-        interval: 400
-        onTriggered: {
-            if (root.pendingRec !== null) {
-                Recorder.start(root.pendingRec);
-                root.pendingRec = null;
-            }
-        }
-    }
-
     // flat icon button (play / folder / trash / pause / stop). tints carry
     // semantics: vermilion = destructive, cream = neutral, iconDim = rest.
     component IconBtn: Rectangle {
@@ -210,7 +180,7 @@ Item {
             }
         }
 
-        // idle Record button: flat tile, opens the mode dropdown.
+        // idle Record button: flat tile that opens the recording island.
         Rectangle {
             id: recBtn
             width: parent.width
@@ -218,9 +188,8 @@ Item {
             height: 32 * root.s
             color: recBtnHov.hovered ? Theme.frameBg : Theme.tileBg
             border.width: 1
-            border.color: root.menuOpen ? Theme.brand : Theme.border
+            border.color: Theme.border
             Behavior on color { ColorAnimation { duration: Motion.fast } }
-            Behavior on border.color { ColorAnimation { duration: Motion.fast } }
 
             Row {
                 anchors.centerIn: parent
@@ -242,61 +211,9 @@ Item {
                     font.weight: Font.DemiBold
                     font.letterSpacing: 1.6 * root.s
                 }
-                GlyphIcon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 11 * root.s
-                    height: 11 * root.s
-                    name: "chevron-down"
-                    color: Theme.subtle
-                    stroke: 1.7
-                    rotation: root.menuOpen ? 180 : 0
-                    Behavior on rotation { NumberAnimation { duration: Motion.fast } }
-                }
             }
             HoverHandler { id: recBtnHov; cursorShape: Qt.PointingHandCursor }
-            TapHandler { onTapped: root.menuOpen = !root.menuOpen }
-        }
-
-        // inline mode dropdown: flat rows, hover-highlighted.
-        Column {
-            width: parent.width
-            visible: root.menuOpen && !Recorder.active
-            spacing: 0
-
-            Repeater {
-                model: root.recModes
-                delegate: Rectangle {
-                    id: mItem
-                    required property var modelData
-                    width: parent.width
-                    height: 30 * root.s
-                    color: mHov.hovered ? Theme.frameBg : "transparent"
-                    Behavior on color { ColorAnimation { duration: Motion.fast } }
-                    Row {
-                        anchors.left: parent.left
-                        anchors.leftMargin: 8 * root.s
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 9 * root.s
-                        GlyphIcon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 13 * root.s
-                            height: 13 * root.s
-                            name: mItem.modelData.glyph
-                            color: Theme.iconDim
-                            stroke: 1.6
-                        }
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: mItem.modelData.label
-                            color: Theme.cream
-                            font.family: Theme.font
-                            font.pixelSize: 11.5 * root.s
-                        }
-                    }
-                    HoverHandler { id: mHov; cursorShape: Qt.PointingHandCursor }
-                    TapHandler { onTapped: root.startRecording(mItem.modelData.args) }
-                }
-            }
+            TapHandler { onTapped: { Recorder.chooserOpen = true; root.requestClose(); } }
         }
 
         // empty state.

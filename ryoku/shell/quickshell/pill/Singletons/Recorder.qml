@@ -13,6 +13,9 @@ Singleton {
 
     property bool active: false
     property bool paused: false
+    // the sidebar Record button opens the floating island in its pre-record
+    // chooser, where the capture toggles and the Quick / Studio / Edit actions live.
+    property bool chooserOpen: false
     // owning backend: "gsr" | "wf" | "" when idle.
     property string backend: ""
     readonly property bool canPause: backend === "gsr"

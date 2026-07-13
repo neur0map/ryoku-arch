@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 import Ryoku.Blobs
 import "Singletons"
 
@@ -64,11 +65,85 @@ Item {
     Timer { id: revealGrace; interval: 260; onTriggered: hud.revealHeld = false }
 
     readonly property real nubProg: 0.14
-    readonly property real wantProg: !Recorder.active ? 0 : ((!hud.hidden || hud.revealHeld) ? 1 : hud.nubProg)
+    readonly property real wantProg: {
+        if (Recorder.active) return (!hud.hidden || hud.revealHeld) ? 1 : hud.nubProg;
+        return (Recorder.chooserOpen || hud.starting) ? 1 : 0;
+    }
     property real prog: hud.wantProg
     Behavior on prog { NumberAnimation { duration: hud.meltDur; easing.type: Easing.InOutCubic } }
     readonly property bool live: hud.prog > 0.002
     visible: hud.live
+
+    // chooser state: the sidebar Record button opens the island in a pre-record
+    // chooser (Recorder.chooserOpen). Quick records via gsr; Studio and Edit hand
+    // off to ryomotion. `starting` holds the island up through the short beat
+    // between closing the chooser and gsr coming up, so it never blinks out.
+    property bool starting: false
+    property bool optRegion: false
+    property bool optDesktopAudio: false
+    property bool optMic: false
+    function recordArgs() {
+        var a = [];
+        if (hud.optRegion) a.push("--region");
+        if (hud.optDesktopAudio) a.push("--with-desktop-audio");
+        if (hud.optMic) a.push("--with-microphone-audio");
+        return a;
+    }
+    function startQuick() {
+        hud.starting = true;
+        Recorder.chooserOpen = false;
+        quickTimer.restart();
+    }
+    Timer { id: quickTimer; interval: 420; onTriggered: { Recorder.start(hud.recordArgs()); hud.starting = false; } }
+    // studio and import both open ryomotion; a bare launch until the app grows
+    // its own intent flags. notify-send keeps a click from silently doing nothing
+    // before the app is installed.
+    function launchRyomotion() {
+        Recorder.chooserOpen = false;
+        Quickshell.execDetached(["sh", "-c",
+            "command -v ryomotion >/dev/null 2>&1 && exec ryomotion || notify-send 'Ryomotion' 'Not installed yet'"]);
+    }
+
+    // labelled action tile for the chooser (icon + short caption).
+    component Action: Rectangle {
+        id: act
+        property real s: 1
+        property string glyph: ""
+        property string label: ""
+        property color tint: Theme.cream
+        property bool primary: false
+        signal tapped()
+        implicitWidth: aRow.implicitWidth + 14 * act.s
+        implicitHeight: 26 * act.s
+        radius: 7 * act.s
+        color: aHov.hovered ? Theme.frameBg
+            : act.primary ? Qt.rgba(Theme.vermLit.r, Theme.vermLit.g, Theme.vermLit.b, 0.16) : "transparent"
+        Behavior on color { ColorAnimation { duration: Motion.fast } }
+        Row {
+            id: aRow
+            anchors.centerIn: parent
+            spacing: 5 * act.s
+            GlyphIcon {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 14 * act.s
+                height: 14 * act.s
+                name: act.glyph
+                color: act.tint
+                stroke: 1.7
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: act.label
+                color: act.tint
+                font.family: Theme.mono
+                font.pixelSize: 9.5 * act.s
+                font.weight: Font.DemiBold
+                font.letterSpacing: 0.8 * act.s
+            }
+        }
+        HoverHandler { id: aHov; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: act.tapped() }
+    }
 
     // --- orientation: vertical while a side edge is nearest and within range,
     // so it reorients while held. content fades out, the layout flips at the
@@ -101,8 +176,10 @@ Item {
     }
     Component.onCompleted: hud.layoutVertical = hud.vertical
 
-    property real bodyW: grid.implicitWidth + 20 * hud.s
-    property real bodyH: grid.implicitHeight + 14 * hud.s
+    readonly property real curW: (Recorder.active || hud.starting) ? grid.implicitWidth : chooserGrid.implicitWidth
+    readonly property real curH: (Recorder.active || hud.starting) ? grid.implicitHeight : chooserGrid.implicitHeight
+    property real bodyW: hud.curW + 20 * hud.s
+    property real bodyH: hud.curH + 14 * hud.s
     Behavior on bodyW { NumberAnimation { duration: hud.moveDur; easing.type: Easing.InOutCubic } }
     Behavior on bodyH { NumberAnimation { duration: hud.moveDur; easing.type: Easing.InOutCubic } }
 
@@ -250,6 +327,7 @@ Item {
             id: dragH
             target: null
             dragThreshold: 8
+            enabled: Recorder.active
             cursorShape: Qt.SizeAllCursor
             property real sx: 0
             property real sy: 0
@@ -280,6 +358,7 @@ Item {
 
         Grid {
             id: grid
+            visible: Recorder.active || hud.starting
             anchors.centerIn: parent
             columns: hud.layoutVertical ? 1 : 99
             rowSpacing: 7 * hud.s
@@ -355,6 +434,38 @@ Item {
                 tint: Theme.subtle
                 onTapped: hud.hidden = !hud.hidden
             }
+        }
+
+        // pre-record chooser: capture toggles, then Quick (gsr) / Studio / Edit
+        // (both open ryomotion). Same icon-tile idiom and orientation flip as the
+        // live control bar, so it reads as one island in two states.
+        Grid {
+            id: chooserGrid
+            anchors.centerIn: parent
+            visible: Recorder.chooserOpen && !Recorder.active && !hud.starting
+            columns: hud.layoutVertical ? 1 : 99
+            rowSpacing: 7 * hud.s
+            columnSpacing: 6 * hud.s
+            horizontalItemAlignment: Grid.AlignHCenter
+            verticalItemAlignment: Grid.AlignVCenter
+
+            RecordButton { s: hud.s; glyph: hud.optRegion ? "region" : "monitor"; tint: hud.optRegion ? Theme.cream : Theme.subtle; onTapped: hud.optRegion = !hud.optRegion }
+            RecordButton { s: hud.s; glyph: hud.optDesktopAudio ? "speaker" : "speaker-off"; tint: hud.optDesktopAudio ? Theme.cream : Theme.subtle; onTapped: hud.optDesktopAudio = !hud.optDesktopAudio }
+            RecordButton { s: hud.s; glyph: hud.optMic ? "mic" : "mic-off"; tint: hud.optMic ? Theme.cream : Theme.subtle; onTapped: hud.optMic = !hud.optMic }
+
+            Rectangle {
+                width: (hud.layoutVertical ? 18 : 1) * hud.s
+                height: (hud.layoutVertical ? 1 : 18) * hud.s
+                radius: 0.5 * hud.s
+                color: Theme.subtle
+                opacity: 0.35
+            }
+
+            Action { s: hud.s; glyph: "record"; label: "Quick"; tint: Theme.vermLit; primary: true; onTapped: hud.startQuick() }
+            Action { s: hud.s; glyph: "film"; label: "Studio"; onTapped: hud.launchRyomotion() }
+            Action { s: hud.s; glyph: "folder"; label: "Edit"; onTapped: hud.launchRyomotion() }
+
+            RecordButton { s: hud.s; glyph: "close"; tint: Theme.subtle; onTapped: Recorder.chooserOpen = false }
         }
     }
 
