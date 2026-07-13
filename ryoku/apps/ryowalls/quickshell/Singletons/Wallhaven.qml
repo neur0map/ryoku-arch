@@ -446,7 +446,7 @@ Singleton {
     // ---- apply (download full res, then set + theme through the shell) -------
     // wallhaven downloads the image, moewalls downloads the webm into livewalls,
     // live is already local so it sets straight away. all three land in the same
-    // set path so the daemon (awww or mpvpaper) fans out on the file type.
+    // set path so the daemon (awww or phonto) fans out on the file type.
     function apply(item) {
         var it = item || selected;
         if (!it || busy)
@@ -523,7 +523,7 @@ Singleton {
 
     // frame scrubbing for a live wallpaper: persist the second, then re-theme off
     // the new frame. repaint re-extracts + re-runs wallust without restarting
-    // mpvpaper, so scrubbing stays smooth. debounced since the slider fires often.
+    // phonto, so scrubbing stays smooth. debounced since the slider fires often.
     function retuneFrame(sec) {
         cfg.frame = sec;
         cfgFile.writeAdapter();
@@ -541,10 +541,9 @@ Singleton {
     }
     Process { id: repaintProc }
 
-    // live motion: persist the fps cap / fit, then relaunch mpvpaper with fresh
-    // opts if a live wallpaper is showing. debounced so dragging fps doesn't
-    // thrash the daemon.
-    function setLiveFps(v) { cfg.liveFps = Math.round(v); cfgFile.writeAdapter(); liveReload.restart(); }
+	// live motion: persist the fit, then relaunch phonto with the fresh --scale
+	// if a live wallpaper is showing. debounced so toggling it doesn't thrash the
+	// daemon.
     function setLiveFit(v) { cfg.liveFit = v; cfgFile.writeAdapter(); liveReload.restart(); }
     Timer {
         id: liveReload
@@ -641,9 +640,7 @@ Singleton {
             property bool contrast: false
             // live wallpapers: which second of the video wallust samples.
             property real frame: 1
-            // live wallpaper motion: max fps (15-60; 60 plays at the clip's own
-            // rate) and screen mapping (fill = cover, fit = letterbox).
-            property int liveFps: 60
+            // live wallpaper motion: screen mapping (fill = cover, fit = letterbox).
             property string liveFit: "fill"
             // user-added wallpaper libraries: [{name, repo, branch, path}]
             property var libraries: []

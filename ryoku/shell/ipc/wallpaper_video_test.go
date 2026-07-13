@@ -46,45 +46,37 @@ func TestFrameOffset(t *testing.T) {
 	}
 }
 
-// livePlaybackOpts must emit native, smooth mpv options: GPU decode (hwdec),
-// cheap scalers (profile=fast), and playback at the clip's own rate. It must NOT
-// carry video-sync=display-resample, which needs a display fps mpvpaper's libmpv
-// render path never reports, so it ran blind and juddered.
-func TestLivePlaybackOpts(t *testing.T) {
+// phontoArgs and mpvOpts must honour the ryowalls fit knob: phonto adds --scale
+// fit only for "fit" (fill is its default); mpv maps fit to panscan and keeps
+// hwdec + the mpris suppression.
+func TestLiveLaunchArgs(t *testing.T) {
 	cfg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", cfg)
 	rj := filepath.Join(cfg, "ryoku", "ryowalls.json")
 	if err := os.MkdirAll(filepath.Dir(rj), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	vid := "/home/x/Pictures/livewalls/clip.mp4"
 
-	// default (no config): native/smooth, fill, and the clip's own rate.
-	opts := livePlaybackOpts("/run/sock")
-	for _, must := range []string{"hwdec=auto", "profile=fast", "no-audio", "loop-file=inf", "panscan=1.0", "input-ipc-server=/run/sock"} {
-		if !strings.Contains(opts, must) {
-			t.Errorf("default opts missing %q: %s", must, opts)
-		}
+	// default (fill): phonto gets the clip alone; mpv hwdecs and fills.
+	if got := strings.Join(phontoArgs(vid), " "); got != vid {
+		t.Errorf("phonto fill must be the clip alone: %q", got)
 	}
-	if strings.Contains(opts, "display-resample") {
-		t.Errorf("display-resample must be gone (mpvpaper reports no display fps, so it juddered): %s", opts)
+	if got := mpvOpts(); !strings.Contains(got, "hwdec=auto") || !strings.Contains(got, "panscan=1.0") {
+		t.Errorf("mpv default must hwdec + fill (panscan 1.0): %q", got)
 	}
-	if strings.Contains(opts, "vf=fps") {
-		t.Errorf("default (60 fps) must play at the native rate, no fps filter: %s", opts)
+	if got := mpvOpts(); !strings.Contains(got, "no-config") || !strings.Contains(got, "load-scripts=no") {
+		t.Errorf("mpv opts must suppress mpris (no-config load-scripts=no): %q", got)
 	}
 
-	// fit -> letterbox (panscan 0.0) instead of fill.
+	// fit: phonto adds --scale fit; mpv letterboxes (panscan 0.0).
 	if err := os.WriteFile(rj, []byte(`{"liveFit":"fit"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if opts := livePlaybackOpts("/run/sock"); !strings.Contains(opts, "panscan=0.0") {
-		t.Errorf("fit must set panscan=0.0: %s", opts)
+	if got := strings.Join(phontoArgs(vid), " "); got != vid+" --scale fit" {
+		t.Errorf("phonto fit must add --scale fit: %q", got)
 	}
-
-	// a sub-60 cap adds the fps filter for battery.
-	if err := os.WriteFile(rj, []byte(`{"liveFps":30}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if opts := livePlaybackOpts("/run/sock"); !strings.Contains(opts, "vf=fps=30") {
-		t.Errorf("liveFps=30 must cap via vf=fps=30: %s", opts)
+	if got := mpvOpts(); !strings.Contains(got, "panscan=0.0") {
+		t.Errorf("mpv fit must set panscan 0.0: %q", got)
 	}
 }

@@ -156,14 +156,6 @@ Item {
 
             // ---- live: motion --------------------------------------------------
             SectionHead { text: "Motion"; visible: adj.videoMode }
-            SliderRow {
-                width: parent.width
-                visible: adj.videoMode
-                label: "Max FPS"
-                from: 15; to: 60; step: 5; decimals: 0
-                value: Wallhaven.settings.liveFps
-                onModified: (v) => Wallhaven.setLiveFps(v)
-            }
             SubLabel { text: "Fit"; visible: adj.videoMode }
             Segmented {
                 width: parent.width

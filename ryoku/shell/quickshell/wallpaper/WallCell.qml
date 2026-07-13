@@ -53,10 +53,15 @@ Item {
         fillMode: Image.PreserveAspectCrop
         sourceSize: Qt.size(Math.ceil(cell.width * 1.4), Math.ceil(cell.height * 1.4))
         source: (cell.live && cell.item && cell.item.thumb) ? "file://" + cell.item.thumb : ""
+        // fade the still out once the live preview is presenting, so the clip
+        // replaces the thumbnail cleanly instead of playing on top of it.
+        opacity: (vid.item && vid.item.ready) ? 0 : 1
+        Behavior on opacity { NumberAnimation { duration: Motion.highlight; easing.type: Motion.easeStandard } }
     }
 
     // live preview only for the picked video, so idle tiles never open a pipeline.
     Loader {
+        id: vid
         anchors.fill: parent
         active: cell.wantVideo && cell.videoArmed
         asynchronous: true

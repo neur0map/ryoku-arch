@@ -28,7 +28,6 @@ var components = []component{
 	{"visualizer", true},
 	{"widgets", true},
 	{"overview", true},
-	{"wallpaper", true},
 }
 
 // pillSurfaces maps a client command to the pill IpcHandler function it toggles.
@@ -169,6 +168,7 @@ func (d *daemon) bootstrap() {
 	d.prompter = startKeyringPrompter()
 	go d.paintWorker()
 	go d.ledsWorker()
+	go d.liveLeakWorker()
 	go d.watchHyprland()
 	go d.watchAudio()
 	go d.widgetGateWorker()
@@ -381,8 +381,6 @@ func route(cmd string) (config, target, fn string, ok bool) {
 		return "launcher", "launcher", "toggle", true
 	case "overview":
 		return "overview", "overview", "toggle", true
-	case "wallpaper-switcher":
-		return "wallpaper", "wallpaper", "toggle", true
 	case "visualizer":
 		return "visualizer", "visualizer", "toggle", true
 	case "visualizer-overlay":
@@ -433,6 +431,15 @@ func (d *daemon) dispatch(line string) string {
 		return d.voice()
 	case "lock":
 		return lockSession()
+	case "wallpaper-switcher":
+		// spawn the picker as a one-shot modal (like ryoshot or the hub), not a
+		// resident surface: it shows on launch and quits on close, so it holds no
+		// memory while idle. flock keeps a second press from stacking a duplicate;
+		// the goroutine reaps qs when it exits.
+		go func() {
+			_ = exec.Command("flock", append([]string{"-n", "-o", "/tmp/ryoku-wallpaper.lock", "qs"}, qsSelect("wallpaper")...)...).Run()
+		}()
+		return "ok"
 	case "wallpaper":
 		mode := "next"
 		arg := ""

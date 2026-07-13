@@ -10,7 +10,6 @@ func TestRoute(t *testing.T) {
 	}{
 		{"launcher", "launcher", "launcher", "toggle"},
 		{"overview", "overview", "overview", "toggle"},
-		{"wallpaper-switcher", "wallpaper", "wallpaper", "toggle"},
 		{"clipboard", "pill", "pill", "clipboard"},
 		{"link", "pill", "pill", "link"},
 		{"inbox", "pill", "pill", "inbox"},
@@ -29,7 +28,7 @@ func TestRoute(t *testing.T) {
 			t.Fatalf("route(%q) = (%s,%s,%s), want (%s,%s,%s)", c.cmd, config, target, fn, c.config, c.target, c.fn)
 		}
 	}
-	for _, cmd := range []string{"sysinfo", "voice", "lock", "wallpaper", "reload", "status", "ping", "quit", "bogus", ""} {
+	for _, cmd := range []string{"sysinfo", "voice", "lock", "wallpaper", "wallpaper-switcher", "reload", "status", "ping", "quit", "bogus", ""} {
 		if _, _, _, ok := route(cmd); ok {
 			t.Fatalf("route(%q) should not be a single IPC call", cmd)
 		}

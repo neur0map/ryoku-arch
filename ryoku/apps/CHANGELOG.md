@@ -85,6 +85,10 @@
   gaming VM in Ryoku Settings > GPU is a separate, single-VM path.
 
 ### Changed
+- `ryowalls/`: the Adjust tab's live **Max FPS** slider is gone. The wallpaper
+  daemon decodes video on the GPU now (phonto/VAAPI or mpv/NVDEC, by GPU) at the
+  clip's own rate, so there is no fps cap to tune; the **Fit** control stays and
+  maps to the backend's scale/panscan (fill/fit).
 - `fastfetch/` new emblem (`assets/brand/fastfetch-emblem.png`), redrawn to say
   what Ryoku is in one mark: a torii gate (the arch, and unmistakably Japanese)
   framing a robed Greek marble philosopher inside a Greek-key meander ring (the

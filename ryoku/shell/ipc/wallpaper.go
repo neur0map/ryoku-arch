@@ -137,8 +137,8 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 		return nil
 	}
 	// live-reload = relaunch the current live wallpaper with fresh motion opts
-	// (ryowalls changed the fps cap or fit). mpvpaper only, so it needs no
-	// wallpaper daemon; no state write and no retheme, just a restart.
+	// (ryowalls changed the fit). phonto only, so it needs no image daemon; no
+	// state write and no retheme, just a restart.
 	if mode == "live-reload" {
 		if cur := readState(); isVideo(cur) && isFile(cur) {
 			return d.showLiveWallpaper(cur)
@@ -146,9 +146,9 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 		return nil
 	}
 	// only init cares if a wallpaper is already up. a video is the exception:
-	// its mpvpaper died with the previous session, so relaunch it (mpvpaper, no
-	// awww). a live wallpaper never starts awww, which is why the set/next paths
-	// below must not depend on it.
+	// its phonto may have died with the previous session, so relaunch it (phonto,
+	// no awww). a live wallpaper never starts awww, which is why the set/next
+	// paths below must not depend on it.
 	if mode == "init" {
 		if cur := readState(); isVideo(cur) && isFile(cur) {
 			if !liveAlive() {
@@ -187,7 +187,7 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 		return nil
 	}
 
-	// backend by file type. a video plays through mpvpaper and never touches the
+	// backend by file type. a video plays through phonto and never touches the
 	// awww image daemon, so route it straight to the live backend: awww failing
 	// to start must not silently drop a live wallpaper (it once gated every set).
 	// refresh only repaints a hot-plugged output, so it skips the state write and
@@ -240,14 +240,50 @@ func (d *daemon) showWallpaperInstant(pic string) error {
 	return exec.Command(wallDaemon, "img", pic, "--transition-type", "none").Run()
 }
 
-// --- live (video) wallpapers: mpvpaper over awww -----------------------------
+// --- live (video) wallpapers: backend by GPU --------------------------------
 //
-// awww is image/GIF only, so a video plays through mpvpaper (mpv on the
-// background layer), whose surface maps over awww's. Only one backend paints at a
-// time: setting a video kills nothing of awww (it just covers it); setting an
-// image kills mpvpaper so awww shows through.
+// awww is image/GIF only, so a video plays on its own wlr background surface
+// through a decoder chosen by GPU: phonto (GStreamer VAAPI) is lean on AMD/Intel
+// but has no working NVIDIA decode, so a box with an NVIDIA GPU plays through
+// mpvpaper, whose hwdec uses NVDEC. Exactly one wallpaper surface is ever mapped:
+// setting a video stops the awww image daemon so nothing shows underneath (the
+// image never bleeds through); setting an image stops the video daemon and brings
+// awww back.
 
-const liveDaemon = "mpvpaper"
+const (
+	daemonPhonto   = "phonto"   // GStreamer VAAPI: lean on AMD/Intel, no NVIDIA
+	daemonMpvpaper = "mpvpaper" // mpv hwdec: portable (NVDEC on NVIDIA, VAAPI else)
+)
+
+// liveDaemon is the video backend for this box, resolved once at startup.
+var liveDaemon = resolveLiveDaemon()
+
+func resolveLiveDaemon() string {
+	if gpuHasNvidia() {
+		return daemonMpvpaper
+	}
+	return daemonPhonto
+}
+
+// gpuHasNvidia reports whether any DRM GPU uses the NVIDIA driver. phonto's only
+// hardware path is VAAPI (Intel/AMD), and GStreamer's NVDEC decoders are
+// unreliable, so an NVIDIA box would fall back to a heavy software decode; mpv's
+// hwdec uses NVDEC there instead. With no NVIDIA GPU the box is pure AMD/Intel,
+// where phonto's VAAPI decode is guaranteed and leaner. Keying on the card (not
+// the active render node) keeps mpv the safe pick on an AMD+NVIDIA laptop
+// whichever GPU the compositor happens to be on.
+func gpuHasNvidia() bool {
+	if _, err := os.Stat("/proc/driver/nvidia/version"); err == nil {
+		return true
+	}
+	nodes, _ := filepath.Glob("/sys/class/drm/card*/device/uevent")
+	for _, n := range nodes {
+		if b, err := os.ReadFile(n); err == nil && strings.Contains(string(b), "DRIVER=nvidia") {
+			return true
+		}
+	}
+	return false
+}
 
 func isVideo(p string) bool {
 	switch strings.ToLower(filepath.Ext(p)) {
@@ -259,9 +295,9 @@ func isVideo(p string) bool {
 
 func liveAlive() bool { return exec.Command("pgrep", "-x", liveDaemon).Run() == nil }
 
-// stopLive terminates every mpvpaper and waits for it to exit, so a following
-// awww image or a fresh mpvpaper is never raced by a lingering one: an async
-// pkill let the old instance and a just-launched one coexist and leak.
+// stopLive terminates every live-daemon instance and waits for it to exit, so a
+// following awww image or a fresh instance is never raced by a lingering one: an
+// async pkill let the old instance and a just-launched one coexist and leak.
 func stopLive() {
 	if exec.Command("pkill", "-x", liveDaemon).Run() != nil {
 		return
@@ -275,8 +311,8 @@ func stopLive() {
 	_ = exec.Command("pkill", "-9", "-x", liveDaemon).Run()
 }
 
-// showAny: route a video to mpvpaper and an image to awww, stopping the other
-// backend so exactly one paints.
+// showAny: route a video to the live daemon and an image to awww, stopping the
+// other backend so exactly one surface paints.
 func (d *daemon) showAny(pic string) error {
 	if isVideo(pic) {
 		return d.showLiveWallpaper(pic)
@@ -285,49 +321,56 @@ func (d *daemon) showAny(pic string) error {
 	return d.showWallpaper(pic)
 }
 
-// showLiveWallpaper: play the video looping and muted on the background layer at
-// its native rate. panscan fills the screen (a 16:9 clip letterboxes on a 16:10
-// panel otherwise). The ipc socket is the launch-completion signal: the call
-// returns once mpvpaper has created it, so a later stopLive can see and kill the
-// instance instead of racing its forking child.
+// showLiveWallpaper: play the video looping on its own background surface through
+// the GPU's live daemon (phonto/VAAPI or mpvpaper/NVDEC). Before launching, the
+// awww image daemon is stopped so its surface can't show through beneath.
 func (d *daemon) showLiveWallpaper(pic string) error {
-	// no mpvpaper installed: live playback is impossible, but the pick must still
-	// apply, so degrade to a still frame shown through the image daemon. mpvpaper
-	// stays a true optional enhancement (with it the wallpaper moves; without it
-	// it is the clip's frame), so ryowalls reports success either way.
+	// backend not installed: the pick must still apply, so degrade to a still
+	// frame through the image daemon. the live daemon stays a true optional
+	// enhancement (with it the wallpaper moves; without it it is the clip's
+	// frame), so ryowalls reports success either way.
 	if _, err := exec.LookPath(liveDaemon); err != nil {
-		if frame := liveFrame(pic); frame != "" && ensureWallDaemon() {
-			return d.showWallpaper(frame)
-		}
+		d.liveStill(pic)
 		return nil
 	}
-	stopLive()
-	sock := liveSockPath()
-	_ = os.Remove(sock) // the killed instance's stale socket
-	// no-config + load-scripts=no keep mpv-mpris out of the wallpaper mpv: without
-	// them the clip registers as an MPRIS player, so the shell's NowPlaying shows
-	// the silent wallpaper as media and its play/pause fights the real music --
-	// pausing music hands the slot to the wallpaper, resuming it freezes the clip.
-	opts := livePlaybackOpts(sock)
-	if err := exec.Command(liveDaemon, "-f", "-o", opts, "ALL", pic).Run(); err != nil {
-		return err
+	stopLive()        // kill any prior instance
+	stopImageDaemon() // remove awww's surface so no image bleeds under the video
+	cmd := exec.Command(liveDaemon, liveLaunchArgs(pic)...)
+	if err := cmd.Start(); err != nil {
+		d.liveStill(pic) // couldn't launch it; show the frame instead
+		return nil
 	}
-	// wait until mpvpaper is really up (its ipc socket appears) before returning,
-	// so a later stopLive can see and kill it instead of racing a forking child.
+	// reap when it exits (a later stopLive pkills it); the daemon outlives it.
+	go func() { _ = cmd.Wait() }()
+	// wait until the process exists so a later stopLive can see it. pgrep is true
+	// the moment it execs, well before it paints, so a slow start still counts up.
 	for range 80 {
-		if _, err := os.Stat(sock); err == nil {
-			break
+		if liveAlive() {
+			return nil
 		}
 		time.Sleep(25 * time.Millisecond)
 	}
+	// it exec'd but its process is already gone: decode failed or it crashed. it
+	// left no surface, so show a still frame rather than a black desktop.
+	d.liveStill(pic)
 	return nil
 }
 
-func liveSockPath() string {
-	if rt := os.Getenv("XDG_RUNTIME_DIR"); rt != "" {
-		return filepath.Join(rt, "ryoku-mpvpaper.sock")
+// liveStill degrades a video pick to one frame shown through the image daemon,
+// for when phonto is absent or its GPU decode fails. best-effort: reports whether
+// it painted anything.
+func (d *daemon) liveStill(pic string) bool {
+	if frame := liveFrame(pic); frame != "" && ensureWallDaemon() {
+		return d.showWallpaper(frame) == nil
 	}
-	return "/tmp/ryoku-mpvpaper.sock"
+	return false
+}
+
+// stopImageDaemon stops the awww image daemon so its background surface is gone
+// while a video plays; a following image set restarts it via ensureWallDaemon.
+// best-effort: no daemon (or none installed) is a no-op.
+func stopImageDaemon() {
+	_ = exec.Command(wallDaemon, "kill").Run()
 }
 
 // liveFrame: one still from the video for wallust, which reads an image. offset
@@ -360,50 +403,104 @@ func frameOffset(video string) string {
 	return "1"
 }
 
-// liveMotion: the ryowalls live-wallpaper motion knobs (max fps, fit), read from
-// ryowalls.json. defaults: 60 fps (play the clip at its own rate) and fill.
-func liveMotion() (fps int, fit string) {
-	fps, fit = 60, "fill"
+// liveFit: the ryowalls live-wallpaper fit knob, read from ryowalls.json.
+// "fill" (default) crops to cover the screen; "fit" letterboxes the whole clip.
+func liveFit() string {
 	base := os.Getenv("XDG_CONFIG_HOME")
 	if base == "" {
 		base = filepath.Join(os.Getenv("HOME"), ".config")
 	}
 	b, err := os.ReadFile(filepath.Join(base, "ryoku", "ryowalls.json"))
 	if err != nil {
-		return
+		return "fill"
 	}
 	var s struct {
-		LiveFps int    `json:"liveFps"`
 		LiveFit string `json:"liveFit"`
 	}
-	if json.Unmarshal(b, &s) == nil {
-		if s.LiveFps >= 15 && s.LiveFps <= 60 {
-			fps = s.LiveFps
-		}
-		if s.LiveFit == "fit" {
-			fit = "fit"
-		}
+	if json.Unmarshal(b, &s) == nil && s.LiveFit == "fit" {
+		return "fit"
 	}
-	return
+	return "fill"
 }
 
-// livePlaybackOpts: the mpv option string for a live wallpaper. hwdec keeps
-// decode on the GPU and profile=fast uses cheap scalers so a 4K clip downscales
-// without dropping frames; panscan fills (or fits) the screen. mpv paces to the
-// clip's own rate: no display-resample, because mpvpaper's libmpv render path
-// never reports a display fps, so resampling ran blind and juddered. A sub-60
-// fps target still caps decode/paint for battery.
-func livePlaybackOpts(sock string) string {
-	fps, fit := liveMotion()
+// liveLaunchArgs: the argv for the active backend. mpvpaper takes forking (-f) mpv
+// options over ALL outputs; phonto takes the clip and an optional --scale.
+func liveLaunchArgs(pic string) []string {
+	if liveDaemon == daemonMpvpaper {
+		return []string{"-f", "-o", mpvOpts(), "ALL", pic}
+	}
+	return phontoArgs(pic)
+}
+
+// phontoArgs: phonto mirrors across every output and decodes on the GPU by
+// default, so the only knob is the fit: fill (phonto's default, crop to cover)
+// needs no flag; fit letterboxes via --scale.
+func phontoArgs(pic string) []string {
+	if liveFit() == "fit" {
+		return []string{pic, "--scale", "fit"}
+	}
+	return []string{pic}
+}
+
+// mpvOpts: the mpv option string for a live wallpaper. hwdec=auto keeps decode on
+// the GPU (NVDEC on NVIDIA, VAAPI on AMD/Intel) and profile=fast uses cheap
+// scalers so a 4K clip downscales without dropping frames; panscan fills (or
+// fits) the screen. no-config + load-scripts=no keep mpv-mpris out of the
+// wallpaper mpv, so the shell's now-playing never shows the silent clip as media.
+func mpvOpts() string {
 	panscan := "1.0"
-	if fit == "fit" {
+	if liveFit() == "fit" {
 		panscan = "0.0"
 	}
-	opts := "no-config load-scripts=no no-audio loop-file=inf hwdec=auto profile=fast panscan=" + panscan
-	if fps >= 15 && fps < 60 {
-		opts += " vf=fps=" + strconv.Itoa(fps)
+	return "no-config load-scripts=no no-audio loop-file=inf hwdec=auto profile=fast panscan=" + panscan
+}
+
+// liveLeakWorker bounds mpvpaper's documented per-loop memory growth (an upstream
+// mpv leak): when mpv is the backend and a live wallpaper is up, it relaunches the
+// clip once its RSS crosses a ceiling. A no-op for phonto (no leak) and while no
+// video is set, so a healthy wallpaper is never disturbed. Runs for the life of
+// the daemon.
+func (d *daemon) liveLeakWorker() {
+	if liveDaemon != daemonMpvpaper {
+		return
 	}
-	return opts + " input-ipc-server=" + sock
+	const ceilKB = 1500 * 1024 // ~1.5 GB: past a healthy 4K clip, well under OOM
+	for {
+		time.Sleep(2 * time.Minute)
+		select {
+		case <-d.quit:
+			return
+		default:
+		}
+		if procRSS(liveDaemon) <= ceilKB {
+			continue
+		}
+		if cur := readState(); isVideo(cur) && isFile(cur) {
+			d.wallMu.Lock()
+			_ = d.showLiveWallpaper(cur)
+			d.wallMu.Unlock()
+		}
+	}
+}
+
+// procRSS returns the resident set size (KB) of the first process named name, or
+// 0 if none is running. reads /proc/<pid>/statm (field 2 = RSS in pages).
+func procRSS(name string) int64 {
+	out, err := exec.Command("pgrep", "-x", name).Output()
+	if err != nil {
+		return 0
+	}
+	pid := strings.TrimSpace(strings.SplitN(string(out), "\n", 2)[0])
+	b, err := os.ReadFile("/proc/" + pid + "/statm")
+	if err != nil {
+		return 0
+	}
+	f := strings.Fields(string(b))
+	if len(f) < 2 {
+		return 0
+	}
+	pages, _ := strconv.ParseInt(f[1], 10, 64)
+	return pages * int64(os.Getpagesize()) / 1024
 }
 
 // pickTransition: random preset, never the previous one (consecutive switches

@@ -27,33 +27,26 @@ ShellRoot {
 
     property bool open: false
 
+    // Spawned fresh per open by the daemon's `wallpaper-switcher` (under flock),
+    // so the picker shows on launch and quits on close: it holds no memory while
+    // idle, unlike the resident shell surfaces.
+    Component.onCompleted: root.show()
+
     function show() {
         Walls.refresh();
         root.open = true;
     }
     function hide() {
         root.open = false;
+        quitTimer.restart();
     }
-    function toggle() {
-        if (root.open)
-            root.hide();
-        else
-            root.show();
-    }
+    // Quit once the close animation has played, so the outro is visible and the
+    // process (its scene graph and GL context) frees on close.
+    Timer { id: quitTimer; interval: Motion.window + 60; onTriggered: Qt.quit() }
 
     readonly property string focusedMon: {
         var m = Hyprland.focusedMonitor;
         return m && m.name ? m.name : "";
-    }
-
-    // Toggled by the daemon over `qs ipc call wallpaper toggle`. The monitor arg
-    // is accepted for a uniform call shape but ignored: the card rides the
-    // focused monitor, the rest just dim.
-    IpcHandler {
-        target: "wallpaper"
-        function toggle(mon: string): void { root.toggle(); }
-        function show(mon: string): void { root.show(); }
-        function hide(): void { root.hide(); }
     }
 
     Variants {

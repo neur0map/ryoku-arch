@@ -834,31 +834,31 @@ func reconcileRyokuChannel(_ bool) recResult {
 
 // reconcileWallpaperDaemon heals a Ryoku desktop missing the AUR wallpaper
 // backends the shell drives: static wallpapers ride awww (swww renamed upstream),
-// live/video ones ride mpvpaper. both are AUR-only, so `ryoku update` (pacman)
-// never pulls them, and a box that predates them -- or one upgraded across the
-// swww->awww rename -- silently can't set a wallpaper, and without mpvpaper a
-// live pick only shows a still frame. in fix mode the one-shot AUR add IS the
-// fix, so `ryoku doctor` installs them; `--check` reports what it would add.
+// live/video ones ride phonto (GStreamer/VAAPI) on AMD/Intel or mpvpaper (mpv
+// NVDEC) on NVIDIA. all are AUR-only, so `ryoku update` (pacman) never pulls
+// them, and a box that predates them -- or one upgraded across the swww->awww
+// rename -- silently can't set a wallpaper. both video backends ship so the shell
+// runs whichever its GPU needs. in fix mode the one-shot AUR add IS the fix, so
+// `ryoku doctor` installs the missing ones; `--check` reports what it would add.
 func reconcileWallpaperDaemon(checkOnly bool) recResult {
 	if !sys.Exists(filepath.Join(sys.Home(), ".config", "hypr")) && !sys.Has("Hyprland") {
 		return okRes("not a Hyprland desktop")
 	}
-	hasImage := sys.Has("awww") || sys.Has("swww")
-	hasLive := sys.Has("mpvpaper")
-	if hasImage && hasLive {
+	var want []string
+	if !sys.Has("awww") && !sys.Has("swww") {
+		want = append(want, "awww-git")
+	}
+	if !sys.Has("phonto") {
+		want = append(want, "phonto")
+	}
+	if !sys.Has("mpvpaper") {
+		want = append(want, "mpvpaper")
+	}
+	if len(want) == 0 {
 		return okRes("wallpaper daemons present")
 	}
-	var want []string
-	var broke string
-	switch {
-	case !hasImage && !hasLive:
-		want, broke = []string{"awww-git", "mpvpaper"}, "ryowalls cannot set image or live wallpapers"
-	case !hasImage:
-		want, broke = []string{"awww-git"}, "ryowalls cannot set a wallpaper"
-	default: // only mpvpaper missing
-		want, broke = []string{"mpvpaper"}, "ryowalls' Live (video) wallpapers cannot play"
-	}
 	pkgs := strings.Join(want, " ")
+	broke := "ryowalls image or live wallpapers may not work on this GPU"
 	if checkOnly {
 		return wouldRes("missing %s; %s", pkgs, broke).withFix("ryoku-pkg-aur-add %s", pkgs)
 	}

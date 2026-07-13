@@ -102,6 +102,10 @@
   converted before that, and the `/etc` case the installer never handled.
 
 ### Changed
+- `doctor`: the `wallpaper daemons` reconciler ensures both live-wallpaper
+  backends now (`phonto` for AMD/Intel, `mpvpaper` for NVDEC on NVIDIA) beside
+  `awww`, pointing at the one-shot `ryoku-pkg-aur-add`, so a box gets whichever
+  its GPU needs (and one from the mpvpaper-only era gains phonto).
 - **The CLI is split into focused packages.** The one-package `ryoku` program is
   now a thin dispatcher over `internal/updater` (update, status, rollback,
   channel, run-state, materialize, version), `internal/doctor` (the convergent

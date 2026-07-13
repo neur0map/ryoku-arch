@@ -89,6 +89,28 @@
   plain grab when the tool is absent (`Beautify.qml`).
 
 ### Fixed
+- **Live (video) wallpapers stop eating RAM and no longer bleed through onto the
+  image beneath, with a GPU-picked hardware decoder.** The old path ran a full
+  mpv (mpvpaper) that mapped its surface *over* the still `awww` image without
+  stopping it, so any letterbox, gap, or launch delay showed the old image
+  through, and its documented per-loop leak grew to hundreds of MB. The daemon now
+  hands the background off cleanly (a video set stops the image daemon, so exactly
+  one surface is ever mapped) and picks the decoder by GPU: `phonto` (lean
+  GStreamer/VAAPI) on AMD/Intel, `mpvpaper` (mpv `hwdec`=NVDEC) on NVIDIA, where
+  VAAPI is unavailable and phonto would fall back to a heavy software decode. mpv
+  runs `no-config load-scripts=no` (no mpris hijack), and a watcher relaunches it
+  if its RSS crosses a ceiling, to bound the leak. The fit knob maps to `phonto
+  --scale` / mpv `panscan`; a missing backend degrades to a still frame through
+  `awww` (`ipc/wallpaper.go`).
+- **The wallpaper switcher no longer sits resident, and a live preview replaces
+  the thumbnail instead of playing on top of it.** The Super+C picker was a
+  supervised Quickshell surface kept running hidden (~100 MB of scene graph and GL
+  context for a picker opened occasionally); it is a one-shot modal like ryoshot
+  now, spawned on demand under `flock` and quitting on close, so it holds no
+  memory while idle. In the grid, a picked live tile fades its still thumbnail out
+  once the clip is actually presenting, so the preview no longer reads as a video
+  pasted over a photo (`ipc/daemon.go`, `quickshell/wallpaper/shell.qml`,
+  `WallCell.qml`, `VideoPreview.qml`).
 - **Setting a wallpaper with no wallpaper daemon installed says so instead of
   hanging and going silent.** With neither `awww` nor `swww` on the box (an
   AUR build that never landed), every image apply ground through ~15s of
