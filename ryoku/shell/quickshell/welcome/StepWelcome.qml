@@ -12,7 +12,7 @@ Column {
     Text {
         width: parent.width
         wrapMode: Text.WordWrap
-        text: "You've arrived. Ryoku is a single, hand-built desktop \u2014 one bar, one "
+        text: "You've arrived. " + Theme.brandName + " is a single, hand-built desktop \u2014 one bar, one "
             + "launcher, one control plane \u2014 carved on Arch and Hyprland. This is a "
             + "two-minute tour of where things live and how to make it yours."
         color: Theme.cream

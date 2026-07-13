@@ -145,13 +145,10 @@ Item {
                     Row {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 8
-                        Text {
+                        BrandMark {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "\u529b"
+                            size: 16
                             color: Theme.brand
-                            font.family: Theme.fontJp
-                            font.pixelSize: 16
-                            font.weight: Font.Medium
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter

@@ -59,6 +59,13 @@ Singleton {
     readonly property string font: Config.fontFamily.length > 0 ? Config.fontFamily : "Space Grotesk"
     readonly property string fontJp: "Noto Sans CJK JP"
     readonly property string mono: "JetBrainsMono Nerd Font"
+    // brand mark + name, user-overridable via ~/.config/ryoku/brand.json (Shell ->
+    // Global). defaults to the 力 seal / "Ryoku". BrandMark renders `mark`, or
+    // `markSource` (an image) when set. Ryoku's own apps never read these.
+    readonly property string mark: Config.markText.length > 0 ? Config.markText : "\u529b"
+    readonly property string markSource: Config.markImage
+    readonly property bool markTint: Config.markTint
+    readonly property string brandName: Config.brandName.length > 0 ? Config.brandName : "Ryoku"
     // inner corner radius, shell-wide: follows the Global "roundness" knob so
     // every tile, card, row and chip shares one rounded shape that echoes the
     // frame's melt. 0 restores the old brutalist sharp corners; true circles

@@ -533,15 +533,11 @@ Item {
             anchors.fill: parent
             z: -1
 
-            Text {
+            BrandMark {
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: -14 * stash.s
-                text: "力"
-                color: Theme.brand
+                size: 72 * stash.s
                 opacity: dropArea.containsDrag ? 0.32 : 0.14
-                font.family: Theme.fontJp
-                font.weight: Font.Medium
-                font.pixelSize: 72 * stash.s
                 Behavior on opacity { NumberAnimation { duration: Motion.fast } }
             }
 

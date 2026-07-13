@@ -18,11 +18,11 @@ Rectangle {
     function ink(a) { return Qt.rgba(15 / 255, 12 / 255, 7 / 255, a); }
 
     readonly property var steps: [
-        { "eyebrow": "Welcome",          "title": "Welcome to Ryoku",     "subtitle": "\u529b \u00b7 a hand-built Greek-noir desktop on Arch and Hyprland.", "next": "Take the tour" },
+        { "eyebrow": "Welcome",          "title": "Welcome to " + Theme.brandName,     "subtitle": Theme.mark + " \u00b7 a hand-built Greek-noir desktop on Arch and Hyprland.", "next": "Take the tour" },
         { "eyebrow": "Getting around",   "title": "The keys that matter", "subtitle": "Six shortcuts open almost everything.",                              "next": "Next" },
         { "eyebrow": "Where things live","title": "Know your desktop",    "subtitle": "Four surfaces, and how to summon each one.",                          "next": "Next" },
         { "eyebrow": "Make it yours",    "title": "A few quick choices",  "subtitle": "Set the essentials now; the rest waits in Settings.",                 "next": "Next" },
-        { "eyebrow": "Ready",            "title": "You're all set",       "subtitle": "Everything from here is yours to change.",                            "next": "Enter Ryoku" }
+        { "eyebrow": "Ready",            "title": "You're all set",       "subtitle": "Everything from here is yours to change.",                            "next": "Enter " + Theme.brandName }
     ]
     readonly property int lastStep: steps.length - 1
     property int step: 0
@@ -94,13 +94,11 @@ Rectangle {
             Rectangle {
                 anchors.fill: parent
                 color: Theme.brand
-                Text {
+                BrandMark {
                     anchors.centerIn: parent
-                    text: "\u529b"
+                    size: 24
                     color: Theme.onAccent
-                    font.family: Theme.fontJp
-                    font.pixelSize: 24
-                    font.weight: Font.Bold
+                    weight: Font.Bold
                 }
             }
         }
@@ -109,7 +107,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 3
             Text {
-                text: "RYOKU"
+                text: Theme.brandName.toUpperCase()
                 color: Theme.bright
                 font.family: Theme.mono
                 font.pixelSize: 17

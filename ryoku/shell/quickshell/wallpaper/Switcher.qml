@@ -280,12 +280,11 @@ Item {
             anchors.centerIn: parent
             spacing: Math.round(8 * body.s)
             visible: body.shown.length === 0
-            Text {
+            BrandMark {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "力"
+                size: Math.round(34 * body.s)
                 color: Theme.faint
-                font.family: Theme.fontJp
-                font.pixelSize: Math.round(34 * body.s)
+                weight: Font.Normal
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter

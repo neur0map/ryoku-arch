@@ -383,12 +383,9 @@ Item {
         anchors.topMargin: 46 * root.s
         spacing: 11 * root.s
 
-        Text {
+        BrandMark {
             anchors.verticalCenter: parent.verticalCenter
-            text: "力"
-            color: Theme.brand
-            font.family: Theme.fontJp
-            font.pixelSize: 20 * root.s
+            size: 20 * root.s
         }
         Column {
             anchors.verticalCenter: parent.verticalCenter

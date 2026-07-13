@@ -261,13 +261,21 @@ Item {
             anchors.topMargin: 16 * root.s
             spacing: 4 * root.s
 
-            Text {
+            Row {
                 width: parent.width
-                text: "力 NOW PLAYING"
-                color: Theme.vermLit
-                font.family: Theme.font
-                font.pixelSize: Metrics.fontEyebrow * root.s
-                font.letterSpacing: 1.5
+                BrandMark {
+                    anchors.verticalCenter: parent.verticalCenter
+                    size: Metrics.fontEyebrow * root.s
+                    color: Theme.vermLit
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: " NOW PLAYING"
+                    color: Theme.vermLit
+                    font.family: Theme.font
+                    font.pixelSize: Metrics.fontEyebrow * root.s
+                    font.letterSpacing: 1.5
+                }
             }
             Text {
                 width: parent.width

@@ -104,12 +104,8 @@ Item {
                     filled: false
                     onTapped: Quickshell.execDetached(["ryoku-shell", "launcher"])
 
-                    Text {
-                        text: "力"
-                        color: Theme.brand
-                        font.family: Theme.fontJp
-                        font.weight: Font.Medium
-                        font.pixelSize: 11 * bar.s
+                    BrandMark {
+                        size: 11 * bar.s
                     }
                 }
 

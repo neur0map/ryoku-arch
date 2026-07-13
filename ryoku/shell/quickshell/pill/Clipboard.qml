@@ -97,7 +97,6 @@ PillSurface {
         anchors.left: parent.left
         anchors.right: parent.right
         s: root.s
-        kanji: "力"
         placeholder: "Search clipboard"
         counterText: root.results.length + " / " + Cliphist.count
         onTextChanged: {

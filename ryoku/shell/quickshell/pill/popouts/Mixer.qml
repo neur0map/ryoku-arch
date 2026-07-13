@@ -45,13 +45,9 @@ Item {
 
         Row {
             spacing: 8 * root.s
-            Text {
+            BrandMark {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "力"
-                color: Theme.brand
-                font.family: Theme.fontJp
-                font.weight: Font.Medium
-                font.pixelSize: 16 * root.s
+                size: 16 * root.s
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter

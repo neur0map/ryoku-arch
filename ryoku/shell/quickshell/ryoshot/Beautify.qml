@@ -55,6 +55,11 @@ Item {
     property string ratioKey: "auto"
     property bool watermark: false
     readonly property string userName: Quickshell.env("USER") || "user"
+    // the desktop brand seal, user-overridable via ~/.config/ryoku/brand.json
+    // (Ryoku Settings -> Shell -> Global). the stamped watermark and the editor
+    // seals follow it; the user@host handle beside the watermark stays as-is.
+    // empty/absent markText falls back to the 力 default, so this never seeds.
+    readonly property string mark: brandAdapter.markText.length > 0 ? brandAdapter.markText : "\u529b"
     property bool composeOnly: false
     property string composeMode: ""
     property bool hd: false
@@ -232,6 +237,20 @@ Item {
         }
     }
 
+    // brand identity master (shared with the shell and the Hub's
+    // Shell -> Global editor). watched so a Settings change retunes the live
+    // editor. only markText is read here; the shell owns seeding and the other
+    // keys, so this reads gracefully with a 力 default and never writes back.
+    FileView {
+        id: brandFile
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/brand.json"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        JsonAdapter { id: brandAdapter; property string markText: "力" }
+    }
+
     // ============================ frosted backdrop ============================
     Rectangle {
         anchors.fill: parent
@@ -271,7 +290,7 @@ Item {
             anchors.leftMargin: 24
             anchors.verticalCenter: parent.verticalCenter
             spacing: 11
-            Text { anchors.verticalCenter: parent.verticalCenter; text: "\u529b"; color: beautify.vermilion; font.family: "Noto Sans CJK JP"; font.pixelSize: 21; font.weight: Font.DemiBold }
+            Text { anchors.verticalCenter: parent.verticalCenter; text: beautify.mark; color: beautify.vermilion; font.family: "Noto Sans CJK JP"; font.pixelSize: 21; font.weight: Font.DemiBold }
             Text { anchors.verticalCenter: parent.verticalCenter; text: "Beautify"; color: beautify.bright; font.family: "Space Grotesk"; font.pixelSize: 16; font.weight: Font.DemiBold }
             Text { anchors.verticalCenter: parent.verticalCenter; text: "ready to share"; color: beautify.dim; font.family: "Space Grotesk"; font.pixelSize: 12 }
         }
@@ -477,7 +496,7 @@ Item {
                 // ---------- SHARE ----------
                 Group {
                     title: "SHARE"
-                    ToggleRow { width: parent.width; label: "Watermark (力 handle)"; on: beautify.watermark; onToggled: (v) => beautify.watermark = v }
+                    ToggleRow { width: parent.width; label: "Watermark (" + beautify.mark + " handle)"; on: beautify.watermark; onToggled: (v) => beautify.watermark = v }
                     ToggleRow { width: parent.width; label: "HD \u00d72 (AI upscale)"; on: beautify.hd; onToggled: (v) => beautify.hd = v }
                 }
             }
@@ -614,7 +633,7 @@ Item {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "\u529b"
+                    text: beautify.mark
                     color: beautify.vermilion
                     font.family: "Noto Sans CJK JP"
                     font.pixelSize: wmark.fs * 1.4

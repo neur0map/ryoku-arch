@@ -62,6 +62,17 @@ Singleton {
     property alias calBg:        adapter.calBg          // none | card | glass
     property alias calRadius:    adapter.calRadius
 
+    // brand: the desktop's mark + name, user-overridable from Ryoku Settings ->
+    // Shell -> Global. a small cross-cutting identity master (like theme.json).
+    // markText is the glyph/short-text seal (default 力); markImage an optional
+    // image path that wins over the text; markTint recolours a single-colour
+    // image to the accent; name is the wordmark ("Ryoku") shown in chrome copy.
+    // Ryoku's own apps (the Hub, ryo* apps) never read this and keep the 力 brand.
+    property alias markText:  brandAdapter.markText
+    property alias markImage: brandAdapter.markImage
+    property alias markTint:  brandAdapter.markTint
+    property alias brandName: brandAdapter.name
+
     // write helpers used by desktop drag + right-click menu. write the same file
     // Settings does; the watch reloads it (no-op for the value just written) so
     // running widgets and the next Settings open agree.
@@ -143,6 +154,26 @@ Singleton {
             property real calOpacity: 1.0
             property string calBg: "glass"
             property int calRadius: 26
+        }
+    }
+
+    // brand identity master (mark + name), the cross-cutting identity shared with
+    // doctor, the Hub editor and the rest of the shell. the always-on
+    // pill seeds it; these defaults cover its absence, so no seed is written here.
+    FileView {
+        id: brandFile
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/brand.json"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        atomicWrites: true
+        onFileChanged: reload()
+        JsonAdapter {
+            id: brandAdapter
+            property string markText: "力"
+            property string markImage: ""
+            property bool markTint: true
+            property string name: "Ryoku"
         }
     }
 

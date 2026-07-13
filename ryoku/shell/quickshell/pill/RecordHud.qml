@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import Ryoku.Blobs
 import "Singletons"
 
@@ -83,35 +82,17 @@ Item {
     property bool optRegion: false
     property bool optDesktopAudio: false
     property bool optMic: false
-    // region is chosen up front: tapping the region tile runs slurp right now so
-    // you draw the box before recording. slurp is launched with execDetached -- a
-    // managed Process kills its session before it can grab the seat (nothing shows)
-    // -- and writes the geometry to a state file the FileView below reads back.
-    property string regionGeom: ""
-    property bool regionPicking: false
-    readonly property string regionFilePath: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku/region-pick"
+    // region is chosen up front: tapping the region tile runs slurp now (via
+    // execDetached -- a managed Process kills slurp's session before it can grab
+    // the seat) and writes the box to a state file. Quick passes --region and the
+    // recorder script reads that file, so the geometry never depends on QML timing.
+    readonly property string regionFilePath: (Quickshell.env("RYOKU_STATE_PATH") || (Quickshell.env("HOME") + "/.local/state/ryoku")) + "/region-pick"
     function pickRegion() {
-        hud.regionPicking = true;
         Quickshell.execDetached(["sh", "-c",
-            "d=$(dirname '" + hud.regionFilePath + "'); mkdir -p \"$d\"; "
+            "mkdir -p \"$(dirname '" + hud.regionFilePath + "')\"; "
             + "g=$(slurp -f '%wx%h+%x+%y' 2>/dev/null); "
             + "printf '%s' \"$g\" > '" + hud.regionFilePath + ".tmp'; "
             + "mv '" + hud.regionFilePath + ".tmp' '" + hud.regionFilePath + "'"]);
-    }
-    FileView {
-        id: regionFile
-        path: hud.regionFilePath
-        watchChanges: true
-        printErrors: false
-        onFileChanged: reload()
-        onLoaded: {
-            if (!hud.regionPicking)  // ignore the initial/stale load; only a fresh pick applies
-                return;
-            hud.regionPicking = false;
-            var g = (regionFile.text() || "").trim();
-            hud.regionGeom = g;
-            hud.optRegion = g.length > 0;
-        }
     }
     function recordArgs() {
         var a = [];
@@ -121,9 +102,9 @@ Item {
     }
     function startQuick() {
         Recorder.chooserOpen = false;
-        if (hud.optRegion && hud.regionGeom.length > 0) {
-            // record the box the user already drew -- no second prompt.
-            var a = ["--region", "--geometry", hud.regionGeom];
+        if (hud.optRegion) {
+            // the region picker already wrote the box; the recorder script reads it.
+            var a = ["--region"];
             if (hud.optDesktopAudio) a.push("--with-desktop-audio");
             if (hud.optMic) a.push("--with-microphone-audio");
             Recorder.start(a);
@@ -493,7 +474,7 @@ Item {
             horizontalItemAlignment: Grid.AlignHCenter
             verticalItemAlignment: Grid.AlignVCenter
 
-            RecordButton { s: hud.s; glyph: hud.optRegion ? "region" : "monitor"; tint: hud.optRegion ? Theme.cream : Theme.subtle; onTapped: { if (hud.optRegion) { hud.optRegion = false; hud.regionGeom = ""; } else hud.pickRegion(); } }
+            RecordButton { s: hud.s; glyph: hud.optRegion ? "region" : "monitor"; tint: hud.optRegion ? Theme.cream : Theme.subtle; onTapped: { hud.optRegion = !hud.optRegion; if (hud.optRegion) hud.pickRegion(); } }
             RecordButton { s: hud.s; glyph: hud.optDesktopAudio ? "speaker" : "speaker-off"; tint: hud.optDesktopAudio ? Theme.cream : Theme.subtle; onTapped: hud.optDesktopAudio = !hud.optDesktopAudio }
             RecordButton { s: hud.s; glyph: hud.optMic ? "mic" : "mic-off"; tint: hud.optMic ? Theme.cream : Theme.subtle; onTapped: hud.optMic = !hud.optMic }
 

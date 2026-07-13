@@ -6,7 +6,6 @@ Item {
     id: root
 
     property real s: 1
-    property string kanji: ""
     property string placeholder: ""
     property string counterText: ""
     readonly property alias input: field
@@ -20,15 +19,11 @@ Item {
 
     height: 30 * s
 
-    Text {
+    BrandMark {
         id: glyph
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
-        text: root.kanji
-        color: Theme.brand
-        font.family: Theme.fontJp
-        font.weight: Font.Medium
-        font.pixelSize: 16 * root.s
+        size: 16 * root.s
     }
 
     TextField {

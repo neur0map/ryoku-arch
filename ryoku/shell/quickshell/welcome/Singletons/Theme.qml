@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Io
 
 // Welcome walkthrough palette: the website's Greek-noir language, the same tokens
 // the Hub carries. A first-run window shown once on a fresh login, so it keeps the
@@ -50,6 +51,14 @@ Singleton {
     readonly property string fontJp:  "Noto Sans CJK JP"
     readonly property string mono:    "JetBrainsMono Nerd Font"
 
+    // brand mark + name, user-overridable via ~/.config/ryoku/brand.json (Shell ->
+    // Global). defaults to the 力 seal / "Ryoku". BrandMark renders `mark`, or
+    // `markSource` (an image) when set. Ryoku's own apps never read these.
+    readonly property string mark: brandAdapter.markText.length > 0 ? brandAdapter.markText : "\u529b"
+    readonly property string markSource: brandAdapter.markImage
+    readonly property bool markTint: brandAdapter.markTint
+    readonly property string brandName: brandAdapter.name.length > 0 ? brandAdapter.name : "Ryoku"
+
     // brutalist geometry: sharp corners, hairline borders, hard offset shadows.
     readonly property int radius:       0
     readonly property int radiusChip:   0
@@ -62,4 +71,24 @@ Singleton {
     readonly property int medium: 260
     readonly property int slow:   440
     readonly property int ease:   Easing.OutExpo
+
+    // brand identity master (mark + name), the same ~/.config/ryoku/brand.json the
+    // rest of the shell and the Hub read. read-only here: the always-on
+    // pill seeds the file, so this once-per-login window just falls back to the
+    // adapter defaults when it is absent.
+    FileView {
+        id: brandFile
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/brand.json"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        JsonAdapter {
+            id: brandAdapter
+            property string markText: "力"
+            property string markImage: ""
+            property bool markTint: true
+            property string name: "Ryoku"
+        }
+    }
 }

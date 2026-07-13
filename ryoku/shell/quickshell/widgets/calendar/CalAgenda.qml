@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import "../Singletons"
+import ".."
 import "lib/cal.js" as Cal
 import "lib/events.js" as EventsModel
 
@@ -65,13 +66,9 @@ Item {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Math.round(8 * face.s)
-                Text {
+                BrandMark {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "\u529b"
-                    color: Theme.brand
-                    font.family: Theme.fontJp
-                    font.weight: Font.Medium
-                    font.pixelSize: Math.round(15 * face.s)
+                    size: Math.round(15 * face.s)
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter

@@ -66,6 +66,17 @@ Singleton {
     // master shared with the daemon and window borders). on by default.
     property alias matchWallpaper: themeAdapter.followWallpaper
 
+    // brand: the desktop's mark + name, user-overridable from Ryoku Settings ->
+    // Shell -> Global. a small cross-cutting identity master (like theme.json).
+    // markText is the glyph/short-text seal (default 力); markImage an optional
+    // image path that wins over the text; markTint recolours a single-colour
+    // image to the accent; name is the wordmark ("Ryoku") shown in chrome copy.
+    // Ryoku's own apps (the Hub, ryo* apps) never read this and keep the 力 brand.
+    property alias markText:  brandAdapter.markText
+    property alias markImage: brandAdapter.markImage
+    property alias markTint:  brandAdapter.markTint
+    property alias brandName: brandAdapter.name
+
     FileView {
         id: file
         path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/shell.json"
@@ -109,6 +120,24 @@ Singleton {
         printErrors: false
         onFileChanged: reload()
         JsonAdapter { id: themeAdapter; property bool followWallpaper: true }
+    }
+
+    // brand identity master (mark + name), shared with doctor and the
+    // Hub's Shell -> Global editor. read-only here; the always-on pill seeds it.
+    FileView {
+        id: brandFile
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/brand.json"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        JsonAdapter {
+            id: brandAdapter
+            property string markText: "力"
+            property string markImage: ""
+            property bool markTint: true
+            property string name: "Ryoku"
+        }
     }
 
     // seed only on a genuine first run (nothing to load), so a slow or failed

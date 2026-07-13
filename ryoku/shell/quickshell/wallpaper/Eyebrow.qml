@@ -20,13 +20,10 @@ Row {
         height: Math.max(1, Math.round(1.5 * eye.s))
         color: eye.tick
     }
-    Text {
+    BrandMark {
         anchors.verticalCenter: parent.verticalCenter
-        text: "\u529b"
+        size: Math.round(13 * eye.s)
         color: eye.tick
-        font.family: Theme.fontJp
-        font.pixelSize: Math.round(13 * eye.s)
-        font.weight: Font.Medium
         opacity: 0.9
     }
     Text {

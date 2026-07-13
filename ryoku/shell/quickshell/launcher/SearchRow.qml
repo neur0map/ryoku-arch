@@ -30,16 +30,12 @@ Item {
     function focusField() { field.forceActiveFocus(); }
     function clear() { field.text = ""; }
 
-    Text {
+    BrandMark {
         id: glyph
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         anchors.leftMargin: Metrics.padOuter * root.s
-        text: "力"
-        color: Theme.brand
-        font.family: Theme.fontJp
-        font.weight: Font.Medium
-        font.pixelSize: 19 * root.s
+        size: 19 * root.s
     }
 
     TextField {

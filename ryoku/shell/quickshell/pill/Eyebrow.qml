@@ -22,14 +22,11 @@ Row {
         color: eye.tick
     }
 
-    Text {
+    BrandMark {
         visible: eye.mark
         anchors.verticalCenter: parent.verticalCenter
-        text: "\u529b"                 // 力
+        size: 13 * eye.s
         color: eye.tick
-        font.family: Theme.fontJp
-        font.pixelSize: 13 * eye.s
-        font.weight: Font.Medium
         opacity: 0.9
     }
 

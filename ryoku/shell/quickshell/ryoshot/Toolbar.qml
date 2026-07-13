@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 
 Item {
     id: tb
@@ -33,6 +35,20 @@ Item {
     readonly property color vermilion: "#e2342a"
     readonly property color idle: "#c7bfae"
     readonly property color sep: Qt.rgba(243 / 255, 237 / 255, 225 / 255, 0.14)
+
+    // the desktop brand seal, user-overridable via ~/.config/ryoku/brand.json
+    // (Ryoku Settings -> Shell -> Global). the beautify button follows markText;
+    // empty/absent falls back to the 力 default, so this never seeds.
+    readonly property string mark: brandAdapter.markText.length > 0 ? brandAdapter.markText : "\u529b"
+    FileView {
+        id: brandFile
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/brand.json"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        JsonAdapter { id: brandAdapter; property string markText: "力" }
+    }
 
     readonly property var tools: [
         { id: "select",  icon: "select",  implemented: true },
@@ -150,7 +166,7 @@ Item {
                 color: beautMa.containsMouse ? Qt.rgba(226 / 255, 52 / 255, 42 / 255, 0.16) : "transparent"
                 Text {
                     anchors.centerIn: parent
-                    text: "\u529b"
+                    text: tb.mark
                     color: tb.vermilion
                     font.family: "Noto Sans CJK JP"
                     font.pixelSize: 17

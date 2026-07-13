@@ -15,7 +15,7 @@ Grid {
 
     Repeater {
         model: [
-            { "name": "The bar",       "reach": "Top edge",      "desc": "The 力 seal, workspaces, clock, tray and status ride the top edge." },
+            { "name": "The bar",       "reach": "Top edge",      "desc": "The " + Theme.mark + " seal, workspaces, clock, tray and status ride the top edge." },
             { "name": "The launcher",  "reach": "Super + Space", "desc": "Search apps, run commands, or ask a quick question." },
             { "name": "The sidebars",  "reach": "Hover a corner","desc": "Left: your stash & features. Right: system controls, notifications, media." },
             { "name": "Ryoku Settings","reach": "Super + ,",     "desc": "Displays, appearance, keybinds, the shell \u2014 every knob in one place." }
