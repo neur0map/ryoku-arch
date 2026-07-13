@@ -17,7 +17,7 @@
 # Bump _commit (and pkgver/pkgrel) to ship a new upstream build to users.
 pkgname=ryomotion
 pkgver=1.5.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Ryoku Motion: screen-demo recorder and editor (OpenScreen, Linux)"
 arch=('x86_64')
 url="https://github.com/neur0map/ryomotion"
@@ -25,7 +25,7 @@ license=('MIT')
 depends=('gtk3' 'nss' 'alsa-lib' 'libnotify' 'pipewire' 'xdg-desktop-portal')
 makedepends=('git')
 options=('!strip' '!debug')
-_commit=f57e36e25448b5af6c7b1b271066fe5beb9b8a49
+_commit=524b79d8cd413322ab3aa75aa0ceea8b55855068
 _node=22.22.1
 source=("$pkgname::git+https://github.com/neur0map/ryomotion.git#commit=$_commit"
         "node-$_node-linux-x64.tar.xz::https://nodejs.org/dist/v$_node/node-v$_node-linux-x64.tar.xz")

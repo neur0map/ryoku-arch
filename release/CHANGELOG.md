@@ -34,9 +34,12 @@
   builds the Electron app from a pinned commit, fetching the fork's pinned node
   22 at build time (its npm 10 runs the electron/esbuild/sharp install scripts a
   newer npm blocks by default) and rebranding name, binary, and appId with
-  electron-builder `--config` overrides. Installs the unpacked app to
-  `/opt/ryomotion` with a `/usr/bin/ryomotion` launcher, a `.desktop`, and
-  hicolor icons; `build-repo.sh` picks it up by glob. `ryoku-desktop` depends on
+  electron-builder `--config` overrides. The fork now carries a `RYOKU_RECORD`
+  studio mode: launched with its window hidden, it auto-records and opens the
+  editor on stop, so the shell's recorder island is the only capture toolbar.
+  Installs the unpacked app to `/opt/ryomotion` with a `/usr/bin/ryomotion`
+  launcher, a `.desktop`, and hicolor icons; `build-repo.sh` picks it up by
+  glob. `ryoku-desktop` depends on
   it, so it ships in the ISO and reaches boxes on `ryoku update`.
 
 ### Changed
