@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- **`doctor` keeps the desktop brand off a broken logo image.** brand.json's
+  `markImage` override (Ryoku Settings, Shell, Global) wins over the text seal
+  everywhere in system chrome, but a moved or unreadable image leaves every
+  branded surface empty. A new reconciler clears a dangling `markImage` back to
+  the text seal, preserving the chosen name and tint; a no-op when the file is
+  absent, the image is unset, or it resolves (`internal/doctor/doctor.go`,
+  covered by `TestReconcileBrandLogo`).
 - **`doctor` clears a crashed update's stuck progress.** A `ryoku update` that
   dies mid-run (power loss, OOM, a kill) leaves the run-state file in
   "running", so the shell's update island and the Hub keep rendering a phantom

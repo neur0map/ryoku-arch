@@ -1378,3 +1378,127 @@ func TestReconcileStaleUpdateRun(t *testing.T) {
 		t.Errorf("run-state after fix = %s, want phase idle", b)
 	}
 }
+
+// reconcileBrandLogo keeps the desktop brand off a broken mark image. driven
+// entirely through env so it never touches the real HOME; one subtest per
+// branch of the decision: absent file, empty markImage, unparseable file,
+// resolvable image (plain path and file:// with ~), check-only, and a dangling
+// image cleared in place while the user's other fields survive.
+func TestReconcileBrandLogo(t *testing.T) {
+	blob := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0, 1, 2, 3}
+
+	setup := func(t *testing.T) string {
+		home := t.TempDir()
+		t.Setenv("HOME", home)
+		t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+		return home
+	}
+	brandPath := func() string { return filepath.Join(sys.ConfigHome(), "ryoku", "brand.json") }
+	writeBrand := func(t *testing.T, body string) {
+		p := brandPath()
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeBlob := func(t *testing.T, path string) {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, blob, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	t.Run("absent brand.json is a quiet ok", func(t *testing.T) {
+		setup(t)
+		if r := reconcileBrandLogo(false); r.status != recOK {
+			t.Fatalf("status=%s detail=%q, want ok", r.status.label(), r.detail)
+		}
+	})
+
+	t.Run("empty markImage uses the text seal", func(t *testing.T) {
+		setup(t)
+		writeBrand(t, `{"markText":"力","markImage":"","markTint":true,"name":"Ryoku"}`)
+		if r := reconcileBrandLogo(false); r.status != recOK {
+			t.Fatalf("status=%s detail=%q, want ok", r.status.label(), r.detail)
+		}
+	})
+
+	t.Run("unparseable brand.json is a quiet ok", func(t *testing.T) {
+		setup(t)
+		writeBrand(t, `{not json`)
+		if r := reconcileBrandLogo(false); r.status != recOK {
+			t.Fatalf("status=%s detail=%q, want ok", r.status.label(), r.detail)
+		}
+	})
+
+	t.Run("resolvable image resolves ok", func(t *testing.T) {
+		home := setup(t)
+		img := filepath.Join(home, "logo.png")
+		writeBlob(t, img)
+		writeBrand(t, `{"markText":"力","markImage":"`+img+`","markTint":false,"name":"Acme"}`)
+		if r := reconcileBrandLogo(false); r.status != recOK {
+			t.Fatalf("status=%s detail=%q, want ok", r.status.label(), r.detail)
+		}
+	})
+
+	t.Run("file:// url with tilde resolves ok", func(t *testing.T) {
+		home := setup(t)
+		writeBlob(t, filepath.Join(home, ".local", "logo.svg"))
+		writeBrand(t, `{"markText":"力","markImage":"file://~/.local/logo.svg","markTint":true,"name":"Ryoku"}`)
+		if r := reconcileBrandLogo(false); r.status != recOK {
+			t.Fatalf("status=%s detail=%q, want ok", r.status.label(), r.detail)
+		}
+	})
+
+	t.Run("check-only reports the fix without touching the file", func(t *testing.T) {
+		setup(t)
+		body := `{"markText":"力","markImage":"~/gone.png","markTint":true,"name":"Ryoku"}`
+		writeBrand(t, body)
+		r := reconcileBrandLogo(true)
+		if r.status != recWouldFix {
+			t.Fatalf("status=%s detail=%q, want todo", r.status.label(), r.detail)
+		}
+		got, err := os.ReadFile(brandPath())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != body {
+			t.Errorf("check-only rewrote brand.json:\n before=%q\n after=%q", body, got)
+		}
+	})
+
+	t.Run("missing image is cleared in place, other fields preserved", func(t *testing.T) {
+		setup(t)
+		writeBrand(t, `{"markText":"氣","markImage":"~/gone.png","markTint":false,"name":"Acme"}`)
+		if r := reconcileBrandLogo(false); r.status != recFixed {
+			t.Fatalf("status=%s detail=%q, want fixed", r.status.label(), r.detail)
+		}
+		var b struct {
+			MarkText  string `json:"markText"`
+			MarkImage string `json:"markImage"`
+			MarkTint  bool   `json:"markTint"`
+			Name      string `json:"name"`
+		}
+		raw, err := os.ReadFile(brandPath())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal(raw, &b); err != nil {
+			t.Fatalf("brand.json no longer parses after fix: %v", err)
+		}
+		if b.MarkImage != "" {
+			t.Errorf("markImage = %q, want cleared", b.MarkImage)
+		}
+		if b.MarkText != "氣" || b.MarkTint != false || b.Name != "Acme" {
+			t.Errorf("fix dropped user fields: markText=%q markTint=%v name=%q", b.MarkText, b.MarkTint, b.Name)
+		}
+		// idempotent: markImage now empty, a second run is a no-op ok.
+		if r := reconcileBrandLogo(false); r.status != recOK {
+			t.Fatalf("second run status=%s, want ok (idempotent)", r.status.label())
+		}
+	})
+}

@@ -115,6 +115,7 @@ func reconcilers() []reconciler {
 		{"shell config schema", reconcileShellConfig},
 		{"SDDM greeter theme", reconcileGreeterTheme},
 		{"fastfetch readout emblem", reconcileFastfetchEmblem},
+		{"brand mark image", reconcileBrandLogo},
 		{"Hyprland config integrity", reconcileHyprlandConfig},
 		{"orphaned theme.lua", reconcileThemeLua},
 		{"follow-mouse default", reconcileFollowMouseDefault},
@@ -1343,6 +1344,98 @@ func reconcileFastfetchEmblem(checkOnly bool) recResult {
 		return failRes("could not restore fastfetch emblem: %v", err).withFix("ryoku materialize")
 	}
 	return fixedRes("restored the fastfetch emblem; the readout no longer falls back to the Arch logo")
+}
+
+// ---- reconciler: brand mark image --------------------------------------------
+
+// brandMarkImage lifts the markImage override out of a brand.json body. false
+// when the file does not parse, so a garbled brand leaves the reconciler
+// nothing to defend (the JsonAdapter defaults, i.e. the 力 text seal, render).
+func brandMarkImage(raw []byte) (string, bool) {
+	var b struct {
+		MarkImage string `json:"markImage"`
+	}
+	if err := json.Unmarshal(raw, &b); err != nil {
+		return "", false
+	}
+	return b.MarkImage, true
+}
+
+// clearBrandImage blanks markImage in a brand.json body while preserving every
+// other field (markText / markTint / name), so a dangling image override falls
+// back to the text seal without dropping the user's name or tint pick.
+func clearBrandImage(raw []byte) ([]byte, error) {
+	var b map[string]any
+	if err := json.Unmarshal(raw, &b); err != nil {
+		return nil, err
+	}
+	b["markImage"] = ""
+	out, err := json.MarshalIndent(b, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return append(out, '\n'), nil
+}
+
+// expandBrandImage resolves a markImage the way the shell does before loading
+// it: drop a file:// scheme, then expand a leading ~ to the home dir. an
+// already-absolute path passes through, ready to stat.
+func expandBrandImage(p string) string {
+	return expandTilde(strings.TrimPrefix(p, "file://"))
+}
+
+// brandImageUsable: can the shell actually load this mark image? open (catches
+// a missing or permission-locked file) and reject a directory, matching the
+// only two ways QML's Image comes up empty on a set source.
+func brandImageUsable(path string) bool {
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	return err == nil && !fi.IsDir()
+}
+
+// reconcileBrandLogo keeps the desktop brand off a broken image. brand.json's
+// markImage override (Ryoku Settings -> Shell -> Global) wins over the 力 text
+// seal everywhere in system chrome, but a moved, deleted, or unreadable image
+// leaves every branded surface (pill, launcher, fastfetch, ...) with an empty
+// mark: QML's Image renders nothing on a dangling source. clear the override so
+// the mark falls back to the text seal, keeping the user's name and tint pick.
+// no-op when brand.json is absent (text seal always renders), the file does not
+// parse, markImage is empty, or the image resolves.
+func reconcileBrandLogo(checkOnly bool) recResult {
+	path := filepath.Join(sys.ConfigHome(), "ryoku", "brand.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return okRes("no brand override yet (seeded on first shell run)")
+	}
+	img, ok := brandMarkImage(raw)
+	if !ok || img == "" {
+		return okRes("brand mark uses the text seal")
+	}
+	resolved := expandBrandImage(img)
+	if brandImageUsable(resolved) {
+		return okRes("brand mark image resolves (%s)", resolved)
+	}
+	if checkOnly {
+		return wouldRes("brand mark image missing or unreadable (%s); the mark renders empty", resolved).
+			withFix("ryoku doctor clears it back to the text seal")
+	}
+	cleared, err := clearBrandImage(raw)
+	if err != nil {
+		return failRes("could not rewrite brand.json: %v", err).withFix("delete %s to re-seed it", path)
+	}
+	tmp := path + ".ryoku-tmp"
+	if err := os.WriteFile(tmp, cleared, 0o644); err != nil {
+		return failRes("could not write %s: %v", tmp, err)
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		os.Remove(tmp)
+		return failRes("could not replace %s: %v", path, err)
+	}
+	return fixedRes("cleared the broken brand image (%s); the mark falls back to the text seal", img)
 }
 
 // ---- reconciler: retired follow-mouse default --------------------------------
