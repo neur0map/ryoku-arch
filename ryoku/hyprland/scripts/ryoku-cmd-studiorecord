@@ -30,6 +30,26 @@ if [[ ! ${MW:-0} =~ ^[0-9.]+$ ]] || [[ $(awk -v w="${MW:-0}" 'BEGIN{print (w>0)}
   MX=0; MY=0; MW=1920; MH=1080
 fi
 
+# Region capture (from the shell island): --geometry WxH+X+Y crops the recording to
+# the box and re-bases the cursor sidecar to it, so auto-zoom maps inside the region;
+# without it we record the whole focused monitor. Other flags (audio) pass through.
+region_geom=""
+rec_args=()
+while (($#)); do
+  case "$1" in
+  --region) ;;
+  --geometry) shift; region_geom="${1:-}" ;;
+  *) rec_args+=("$1") ;;
+  esac
+  shift
+done
+mode_args=(--fullscreen)
+if [[ $region_geom =~ ^([0-9]+)x([0-9]+)\+([0-9]+)\+([0-9]+)$ ]]; then
+  MW="${BASH_REMATCH[1]}"; MH="${BASH_REMATCH[2]}"
+  MX="${BASH_REMATCH[3]}"; MY="${BASH_REMATCH[4]}"
+  mode_args=(--region --geometry "$region_geom")
+fi
+
 sample_cursor() {
   local start now pos x y
   start=$(date +%s%3N)
@@ -77,7 +97,7 @@ finish() {
 }
 trap 'finish; exit 0' TERM INT
 
-"$screenrec" --fullscreen "$@" &
+"$screenrec" "${mode_args[@]}" "${rec_args[@]}" &
 rec_pid=$!
 
 # Align the cursor clock to when the recorder actually starts capturing, so the

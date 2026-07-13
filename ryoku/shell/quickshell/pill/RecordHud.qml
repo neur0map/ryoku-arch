@@ -79,21 +79,8 @@ Item {
     // off to ryomotion. `starting` holds the island up through the short beat
     // between closing the chooser and gsr coming up, so it never blinks out.
     property bool starting: false
-    property bool optRegion: false
     property bool optDesktopAudio: false
     property bool optMic: false
-    // region is chosen up front: tapping the region tile runs slurp now (via
-    // execDetached -- a managed Process kills slurp's session before it can grab
-    // the seat) and writes the box to a state file. Quick passes --region and the
-    // recorder script reads that file, so the geometry never depends on QML timing.
-    readonly property string regionFilePath: (Quickshell.env("RYOKU_STATE_PATH") || (Quickshell.env("HOME") + "/.local/state/ryoku")) + "/region-pick"
-    function pickRegion() {
-        Quickshell.execDetached(["sh", "-c",
-            "mkdir -p \"$(dirname '" + hud.regionFilePath + "')\"; "
-            + "g=$(slurp -f '%wx%h+%x+%y' 2>/dev/null); "
-            + "printf '%s' \"$g\" > '" + hud.regionFilePath + ".tmp'; "
-            + "mv '" + hud.regionFilePath + ".tmp' '" + hud.regionFilePath + "'"]);
-    }
     function recordArgs() {
         var a = [];
         if (hud.optDesktopAudio) a.push("--with-desktop-audio");
@@ -102,9 +89,8 @@ Item {
     }
     function startQuick() {
         Recorder.chooserOpen = false;
-        if (hud.optRegion) {
-            // the region picker already wrote the box; the recorder script reads it.
-            var a = ["--region"];
+        if (Recorder.regionGeom !== "") {
+            var a = ["--region", "--geometry", Recorder.regionGeom];
             if (hud.optDesktopAudio) a.push("--with-desktop-audio");
             if (hud.optMic) a.push("--with-microphone-audio");
             Recorder.start(a);
@@ -126,7 +112,7 @@ Item {
     // hidden) with the chooser's options and we drive the stop from the control bar.
     function startStudio() {
         Recorder.chooserOpen = false;
-        Recorder.startStudio(hud.optDesktopAudio, hud.optMic);
+        Recorder.startStudio(hud.optDesktopAudio, hud.optMic, Recorder.regionGeom);
     }
 
     // labelled action tile for the chooser (icon + short caption).
@@ -474,7 +460,7 @@ Item {
             horizontalItemAlignment: Grid.AlignHCenter
             verticalItemAlignment: Grid.AlignVCenter
 
-            RecordButton { s: hud.s; glyph: hud.optRegion ? "region" : "monitor"; tint: hud.optRegion ? Theme.cream : Theme.subtle; onTapped: { hud.optRegion = !hud.optRegion; if (hud.optRegion) hud.pickRegion(); } }
+            RecordButton { s: hud.s; glyph: Recorder.regionGeom !== "" ? "region" : "monitor"; tint: Recorder.regionGeom !== "" ? Theme.cream : Theme.subtle; onTapped: { if (Recorder.regionGeom !== "") Recorder.regionGeom = ""; else Recorder.pickRegion(); } }
             RecordButton { s: hud.s; glyph: hud.optDesktopAudio ? "speaker" : "speaker-off"; tint: hud.optDesktopAudio ? Theme.cream : Theme.subtle; onTapped: hud.optDesktopAudio = !hud.optDesktopAudio }
             RecordButton { s: hud.s; glyph: hud.optMic ? "mic" : "mic-off"; tint: hud.optMic ? Theme.cream : Theme.subtle; onTapped: hud.optMic = !hud.optMic }
 

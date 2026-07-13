@@ -26,6 +26,15 @@
   the clip in the editor on stop, so its automatic cursor-follow zoom still works
   (`RecordHud.qml`, `DeckRecord.qml`, `Singletons/Recorder.qml`,
   `ryoku-cmd-screenrecord`, `ryoku-cmd-studiorecord`, `shell.qml`).
+- **Region recording shows a live boundary and works for Studio too.** Picking a
+  region now dims everything outside it while you record -- a click-through
+  overlay (`RegionOverlay.qml`) that stays up for the whole capture, so you can
+  keep moving windows around the box while only the region records. Both Quick
+  and Studio honour it (Studio used to always catch the full screen), and Studio
+  re-bases its cursor sidecar to the region so auto-zoom maps inside it. The box
+  the picker drew lives on `Recorder.regionGeom`, shared by the overlay and the
+  recorder, and gsr crops to exactly that box (`RegionOverlay.qml`,
+  `Singletons/Recorder.qml`, `RecordHud.qml`, `shell.qml`, `ryoku-cmd-studiorecord`).
 - **`ryoku-shell system` toggles the right (System) sidebar**, so it can be
   bound like the left `toolkit`/`sidebarLeft`. `Super+Alt+D` uses it; the daemon
   maps the verb to the pill's existing `sidebarRight` handler (`ipc/daemon.go`).

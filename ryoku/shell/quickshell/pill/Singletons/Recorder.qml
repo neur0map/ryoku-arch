@@ -36,6 +36,38 @@ Singleton {
     // the clip in the ryomotion editor; a bare name wouldn't resolve on PATH.
     readonly property string studioScript: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/ryoku-cmd-studiorecord"
 
+    // region capture: the box the user drew as gsr's "WxH+X+Y" (logical coords),
+    // "" = full monitor. slurp must launch detached (a managed Process gets its
+    // session killed before it can grab the seat), so it writes the box to a state
+    // file the FileView reads back -- QML (the overlay) and the recorder scripts
+    // then share one geometry. regionPicking gates it so a fresh pick applies but a
+    // stale file left from a past session does not.
+    property string regionGeom: ""
+    property bool regionPicking: false
+    readonly property string regionFilePath: (Quickshell.env("RYOKU_STATE_PATH") || (Quickshell.env("HOME") + "/.local/state/ryoku")) + "/region-pick"
+    function pickRegion() {
+        root.regionPicking = true;
+        Quickshell.execDetached(["sh", "-c",
+            "mkdir -p \"$(dirname '" + root.regionFilePath + "')\"; "
+            + "g=$(slurp -f '%wx%h+%x+%y' 2>/dev/null); "
+            + "printf '%s' \"$g\" > '" + root.regionFilePath + ".tmp'; "
+            + "mv '" + root.regionFilePath + ".tmp' '" + root.regionFilePath + "'"]);
+    }
+    FileView {
+        id: regionFile
+        path: root.regionFilePath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            if (!root.regionPicking)
+                return;
+            root.regionPicking = false;
+            var g = (regionFile.text() || "").trim();
+            root.regionGeom = /^\d+x\d+\+\d+\+\d+$/.test(g) ? g : "";
+        }
+    }
+
     function start(extraArgs) {
         Quickshell.execDetached([root.script, ...(extraArgs || [])]);
         root.paused = false;
@@ -61,8 +93,9 @@ Singleton {
     // in the ryomotion editor (its auto-zoom reads the cursor track we synthesise).
     // Tracked so our stop can signal the wrapper; anyActive keeps the island up
     // until the gsr poll confirms the capture.
-    function startStudio(desktopAudio, mic) {
+    function startStudio(desktopAudio, mic, regionGeom) {
         var args = [root.studioScript];
+        if (regionGeom) { args.push("--region", "--geometry", regionGeom); }
         if (desktopAudio) args.push("--with-desktop-audio");
         if (mic) args.push("--with-microphone-audio");
         studioProc.command = args;

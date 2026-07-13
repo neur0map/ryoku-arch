@@ -1273,4 +1273,10 @@ ShellRoot {
         OsdWindow {}
     }
 
+    // persistent region-capture boundary shown while a region recording runs.
+    Variants {
+        model: Quickshell.screens
+        RegionOverlay {}
+    }
+
 }
