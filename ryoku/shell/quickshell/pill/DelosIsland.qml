@@ -344,8 +344,8 @@ Item {
         }
     }
     Component { id: titleComp; BarTitle { s: hud.s; maxWidth: 220 * hud.s; label: Config.barShowTitle && ToplevelManager.activeToplevel ? (ToplevelManager.activeToplevel.title || "") : "" } }
-    Component { id: statusComp; BarStatus { s: hud.s; onRequestPopout: (name, center) => hud.popoutRequested(name) } }
-    Component { id: trayComp; BarTray { s: hud.s; trayWindow: hud.trayWindow; menuEdgeY: hud.py + hud.bodyH } }
+    Component { id: statusComp; BarStatus { s: hud.s; vertical: hud.layoutVertical; onRequestPopout: (name, center) => hud.popoutRequested(name) } }
+    Component { id: trayComp; BarTray { s: hud.s; vertical: hud.layoutVertical; trayWindow: hud.trayWindow; menuEdgeY: hud.py + hud.bodyH } }
 
     Item {
         id: content
