@@ -76,6 +76,12 @@ Item {
         if (!net)
             return;
         var ssid = net.name || "";
+        // tapping a network whose password row is already open closes it, so an
+        // expanded row is never stuck open when you decide not to connect.
+        if (page.expandedSsid === ssid) {
+            page.expandedSsid = "";
+            return;
+        }
         if (net.connected) {
             if (typeof net.disconnect === "function")
                 net.disconnect();
@@ -563,6 +569,20 @@ Item {
                                 anchors.rightMargin: 16
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 10
+                                Item {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 24
+                                    height: 24
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        name: "close"
+                                        size: 13
+                                        tint: pwCloseHov.hovered ? Theme.ember : Theme.faint
+                                        Behavior on tint { ColorAnimation { duration: Theme.quick } }
+                                    }
+                                    HoverHandler { id: pwCloseHov; cursorShape: Qt.PointingHandCursor }
+                                    TapHandler { onTapped: page.expandedSsid = "" }
+                                }
 
                                 Spinner {
                                     anchors.verticalCenter: parent.verticalCenter

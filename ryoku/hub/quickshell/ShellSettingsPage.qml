@@ -1,6 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
+import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Io
 import "Singletons"
@@ -31,7 +33,11 @@ Item {
         "style", "shape", "position", "mirror", "segments",
         "fps", "adaptive", "smoothing", "gain", "peaks"
     ]
-    readonly property var keys: page.shellKeys.concat(page.vizKeys)
+    // brand identity (~/.config/ryoku/brand.json), edited in the Global tab and
+    // shared with doctor: the desktop mark + name. Ryoku's own apps
+    // keep their brand and ignore these.
+    readonly property var brandKeys: ["markText", "markImage", "markTint", "name"]
+    readonly property var keys: page.shellKeys.concat(page.vizKeys).concat(page.brandKeys)
 
     // fonts offered in the Global tab: the popular set people rice with, keyed by
     // the family name fontconfig reports. only the ones actually installed
@@ -98,13 +104,15 @@ Item {
         "enabled": true, "bars": 64, "height": 0.42, "thickness": 0.58,
         "bloom": 0.6, "reflection": 0.1, "idleWave": true,
         "style": "bars", "shape": "rounded", "position": "bottom", "mirror": false,
-        "segments": 10, "fps": 30, "adaptive": true, "smoothing": 0.5, "gain": 1.0, "peaks": false
+        "segments": 10, "fps": 30, "adaptive": true, "smoothing": 0.5, "gain": 1.0, "peaks": false,
+        "markText": "\u529b", "markImage": "", "markTint": true, "name": "Ryoku"
     })
 
     property string group: "frame"
     property bool shellLoaded: false
     property bool vizLoaded: false
-    readonly property bool ready: page.shellLoaded && page.vizLoaded
+    property bool brandLoaded: false
+    readonly property bool ready: page.shellLoaded && page.vizLoaded && page.brandLoaded
     // last saved look. compare against it for dirty state; Revert and
     // leave-without-save restore from this.
     property var committedVals: ({})
@@ -162,6 +170,10 @@ Item {
         property real smoothing: 0.5
         property real gain: 1.0
         property bool peaks: false
+        property string markText: "\u529b"
+        property string markImage: ""
+        property bool markTint: true
+        property string name: "Ryoku"
     }
 
     function sameVal(a, b) { return String(a) === String(b); }
@@ -215,6 +227,8 @@ Item {
         cfgShell.writeAdapter();
         for (i = 0; i < page.vizKeys.length; i++) { k = page.vizKeys[i]; vizA[k] = draft[k]; }
         cfgViz.writeAdapter();
+        for (i = 0; i < page.brandKeys.length; i++) { k = page.brandKeys[i]; brandA[k] = draft[k]; }
+        cfgBrand.writeAdapter();
     }
 
     // throttle live writes: apply immediately, then at most once per interval
@@ -395,6 +409,35 @@ Item {
         }
     }
 
+    // brand identity master, edited live like the shell/viz configs; the running
+    // shell reads it. Ryoku's own apps ignore it and keep their brand.
+    FileView {
+        id: cfgBrand
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/brand.json"
+        blockLoading: true
+        watchChanges: false
+        printErrors: false
+        atomicWrites: true
+        onLoaded: { if (!page.brandLoaded) { page.adopt(page.brandKeys, brandA); page.brandLoaded = true; } }
+        onLoadFailed: { if (!page.brandLoaded) { page.adopt(page.brandKeys, brandA); page.brandLoaded = true; } }
+
+        JsonAdapter {
+            id: brandA
+            property string markText: "\u529b"
+            property string markImage: ""
+            property bool markTint: true
+            property string name: "Ryoku"
+        }
+    }
+
+    // OS file picker for a custom logo image (SVG or raster).
+    FileDialog {
+        id: logoPicker
+        title: "Choose a logo image"
+        nameFilters: ["Images (*.svg *.png *.jpg *.jpeg *.webp)", "All files (*)"]
+        onAccepted: page.edit("markImage", "" + logoPicker.selectedFile)
+    }
+
     // leaving the section (or closing the hub) with unsaved edits puts the
     // saved look back, so a preview is never left applied by accident.
     Component.onDestruction: {
@@ -404,6 +447,8 @@ Item {
             cfgShell.writeAdapter();
             for (i = 0; i < page.vizKeys.length; i++) { k = page.vizKeys[i]; vizA[k] = page.committedVals[k]; }
             cfgViz.writeAdapter();
+            for (i = 0; i < page.brandKeys.length; i++) { k = page.brandKeys[i]; brandA[k] = page.committedVals[k]; }
+            cfgBrand.writeAdapter();
         }
     }
 
@@ -564,6 +609,106 @@ Item {
                         width: parent.width; label: "Size"; unit: "px"
                         from: 0; to: 80; value: draft.shadowSize
                         onModified: (v) => page.edit("shadowSize", v)
+                    }
+                }
+
+                SettingSection {
+                    width: parent.width
+                    title: "BRAND"
+                    Row {
+                        width: parent.width
+                        spacing: 14
+                        Rectangle {
+                            width: 46; height: 46; radius: Theme.radius
+                            color: Theme.surface
+                            border.width: 1; border.color: Theme.line
+                            Text {
+                                visible: draft.markImage === ""
+                                anchors.centerIn: parent
+                                text: draft.markText.length > 0 ? draft.markText : "\u529b"
+                                color: Theme.brand
+                                font.family: Theme.fontJp
+                                font.pixelSize: 26
+                            }
+                            Image {
+                                id: prevImg
+                                visible: draft.markImage !== "" && !draft.markTint
+                                anchors.centerIn: parent
+                                width: 30; height: 30
+                                source: draft.markImage === "" ? "" : (draft.markImage.startsWith("file:") ? draft.markImage : "file://" + draft.markImage)
+                                fillMode: Image.PreserveAspectFit
+                                sourceSize.width: 60; sourceSize.height: 60
+                                smooth: true
+                            }
+                            ColorOverlay {
+                                anchors.fill: prevImg
+                                visible: draft.markImage !== "" && draft.markTint
+                                source: prevImg
+                                color: Theme.brand
+                            }
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Preview"
+                            color: Theme.faint
+                            font.family: Theme.font
+                            font.pixelSize: 12
+                        }
+                    }
+                    SettingField {
+                        width: parent.width; label: "Name"
+                        fieldWidth: 200
+                        placeholder: "Ryoku"
+                        value: draft.name
+                        onCommitted: (v) => page.edit("name", v)
+                    }
+                    SettingField {
+                        width: parent.width; label: "Text mark"
+                        fieldWidth: 200
+                        placeholder: "\u529b"
+                        value: draft.markText
+                        onCommitted: (v) => page.edit("markText", v)
+                    }
+                    Row {
+                        width: parent.width
+                        spacing: 12
+                        Text {
+                            width: parent.width - chooseLogo.width - clearLogo.width - 24
+                            anchors.verticalCenter: parent.verticalCenter
+                            elide: Text.ElideMiddle
+                            text: draft.markImage === "" ? "No image (using the text mark)" : draft.markImage
+                            color: draft.markImage === "" ? Theme.faint : Theme.cream
+                            font.family: Theme.font
+                            font.pixelSize: 13
+                        }
+                        HubButton {
+                            id: chooseLogo
+                            anchors.verticalCenter: parent.verticalCenter
+                            label: "Choose image"
+                            icon: "image"
+                            onClicked: logoPicker.open()
+                        }
+                        HubButton {
+                            id: clearLogo
+                            anchors.verticalCenter: parent.verticalCenter
+                            label: "Clear"
+                            icon: "close"
+                            enabled: draft.markImage !== ""
+                            onClicked: page.edit("markImage", "")
+                        }
+                    }
+                    ToggleRow {
+                        width: parent.width; label: "Tint image to accent"
+                        checked: draft.markTint
+                        onToggled: (v) => page.edit("markTint", v)
+                    }
+                    Text {
+                        width: Math.min(parent.width, 620)
+                        wrapMode: Text.WordWrap
+                        text: "Swaps the \u529b mark and \"Ryoku\" name across the desktop shell: the bar, launcher, and the rest of the chrome. Ryoku's own apps (this one, ryowalls, ryovm) keep their brand. For an image: a square SVG (crisp at any size) or a PNG at least 256\u00d7256, transparent background. A single-colour mark tints to your accent; turn tint off to show a full-colour logo as-is. It renders as small as ~14px, so keep it simple. Leave the image empty to use the text mark."
+                        color: Theme.dim
+                        font.family: Theme.font
+                        font.pixelSize: 12
                     }
                 }
             }

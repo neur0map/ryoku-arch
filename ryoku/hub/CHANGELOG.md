@@ -3,6 +3,24 @@
 ## Unreleased
 
 ### Added
+- **Fastfetch: a section to edit the branded terminal readout.** A new Desktop
+  section (`ryoku-hub fastfetch` + `FastfetchPage.qml`) reads
+  `~/.config/ryoku/fastfetch/config.jsonc` into a friendly model and writes it
+  back, so the GUI and hand-edits share one file. Pick the emblem (an image, an
+  SVG rasterized on import, an ASCII art file, a built-in, or none) and its size;
+  set the accent; toggle, reorder and rename the readout rows; and edit the
+  tagline, all beside a live preview that renders the real fastfetch output with
+  its colours parsed into the panel, plus a Preview in terminal button for the
+  exact thing. Edit config.jsonc opens the raw file; the shipped readout is
+  untouched until you change something (`backend/fastfetch.go`, `FastfetchPage.qml`,
+  `Hub.qml`).
+- **Shell, Global gains a Brand section to change the logo globally.** Set the
+  desktop's mark (a short text/glyph, or your own SVG/PNG logo) and name, written
+  to `~/.config/ryoku/brand.json` and previewed live on your desktop like the
+  other shell knobs, with a Save/Revert that follows the same draft model. A
+  monochrome mark tints to your accent; a full-colour logo can show as-is. The
+  section states the dimensions and format up front and leaves Ryoku's own apps
+  on their own brand (`ShellSettingsPage.qml`).
 - **Rices: the reworked, full-desktop theming system.** The Appearance
   **Themes** tab is now **Rices**: browse whole-desktop looks as big-preview
   cards, apply one in a tap, and restore your original setup in one click. A
@@ -179,6 +197,11 @@
   a centre carrying the clock and now-playing, and right).
 
 ### Changed
+- The sidebar sections are reordered for a cleaner scan: System leads with the
+  everyday (Displays, Input, Keybinds, Connections) and drops the niche ones
+  (GPU, Recording, Dictation) below; Desktop groups the shell chrome (Shell, App
+  Launcher, Fastfetch) right after Appearance, then Widgets, Lockscreen and
+  Animations (`Hub.qml`).
 - Shell -> Bar now places the bar on any frame edge (Top / Bottom / Left /
   Right) and picks its skin (Noctalia / Caelestia, both carried one-to-one
   from the credited shells), next to the thickness and
@@ -201,6 +224,11 @@
   `backend/schemes.go`, `backend/hypr.go`).
 
 ### Fixed
+- **A Wi-Fi network's password row can be dismissed again.** Tapping a secured,
+  unknown network opened an inline password row that only closed on a successful
+  connect, so deciding not to connect left it stuck open. Tapping the network
+  again now toggles the row closed, and it gains an explicit close control
+  (`WifiTab.qml`).
 - **Applying a rice reports a failed store write instead of claiming success
   over mixed state.** The three look overlays (hypr, shell, launcher) discarded
   their write errors, so a disk-full or bad-permission failure mid-apply left

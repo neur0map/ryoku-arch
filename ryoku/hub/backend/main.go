@@ -64,6 +64,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
 			os.Exit(1)
 		}
+	case "fastfetch":
+		if err := runFastfetch(args[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(2)
@@ -113,4 +118,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  ryoku-hub voxtype set <json>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub voxtype download|rmmodel <key>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub rice list|capture|apply|restore|save|fork|delete|files|export|catalog|install|publish")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub fastfetch get|preview <json>")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub fastfetch save <json>")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub fastfetch import-logo <path>")
 }

@@ -24,18 +24,19 @@ Rectangle {
         { "key": "displays",    "name": "Displays",        "icon": "display",  "group": "System" },
         { "key": "input",       "name": "Input",           "icon": "mouse",    "group": "System" },
         { "key": "keybinds",    "name": "Keybinds",        "icon": "keyboard", "group": "System" },
-        { "key": "dictation",   "name": "Dictation",       "icon": "mic",      "group": "System" },
         { "key": "connections", "name": "Connections",     "icon": "wifi",     "group": "System" },
         { "key": "gpu",         "name": "GPU",             "icon": "chip",     "group": "System" },
         { "key": "recording",   "name": "Recording",       "icon": "play",     "group": "System" },
+        { "key": "dictation",   "name": "Dictation",       "icon": "mic",      "group": "System" },
         { "key": "updates",     "name": "Updates",         "icon": "download", "pinned": "bottom" },
         { "key": "credits",     "name": "Credits",         "icon": "heart",    "pinned": "bottom" },
         { "key": "appearance",  "name": "Appearance",      "icon": "palette",  "group": "Desktop" },
-        { "key": "animations",  "name": "Animations",      "icon": "motion",   "group": "Desktop" },
-        { "key": "lockscreen",  "name": "Lockscreen",      "icon": "lock",     "group": "Desktop" },
-        { "key": "widgets",     "name": "Desktop Widgets", "icon": "widgets",  "group": "Desktop" },
         { "key": "shell",       "name": "Shell",           "icon": "gear",     "group": "Desktop" },
         { "key": "launcher",    "name": "App Launcher",    "icon": "search",   "group": "Desktop" },
+        { "key": "fastfetch",   "name": "Fastfetch",       "icon": "terminal", "group": "Desktop" },
+        { "key": "widgets",     "name": "Desktop Widgets", "icon": "widgets",  "group": "Desktop" },
+        { "key": "lockscreen",  "name": "Lockscreen",      "icon": "lock",     "group": "Desktop" },
+        { "key": "animations",  "name": "Animations",      "icon": "motion",   "group": "Desktop" },
         { "key": "store",       "name": "Store",           "icon": "sparkles", "group": "Add-ons" },
         { "key": "addons",      "name": "Installed",       "icon": "widgets",  "group": "Add-ons" },
         { "key": "windowrules", "name": "Window Rules",    "icon": "window",   "group": "Advanced" },
@@ -64,6 +65,7 @@ Rectangle {
         "shell":       { "title": "Shell", "subtitle": "Tune the Ryoku shell: the frame, the bar, notifications, and the desktop visualiser." },
         "widgets":     { "title": "Desktop Widgets", "subtitle": "Clock and weather on the wallpaper: pick a design, size, shape, and placement, with a live preview that follows your palette." },
         "launcher":    { "title": "App Launcher", "subtitle": "Tune the command palette you open with Super+Space: its roundness, the weather units, and the home card's backdrop and greeting." },
+        "fastfetch":   { "title": "Fastfetch", "subtitle": "The branded terminal readout: pick the emblem (an image, ASCII art, or a built-in), choose what shows, reorder and rename the rows, and edit the tagline, with a live preview." },
         "connections": { "title": "Connections", "subtitle": "Wi-Fi networks, Bluetooth devices, and your hotspot, all in one place." },
         "gpu":         { "title": "GPU", "subtitle": "Choose which GPU Ryoku renders on. GPU passthrough is an optional advanced path that frees the discrete GPU for a VM; run virtual machines from the ryovm app." },
         "recording":   { "title": "Recording", "subtitle": "Screen recording quality: framerate, definition, codec, and the hardware encoder Ryoku uses for your machine. Start and stop from the bar's screen-capture Tools." },
@@ -185,6 +187,7 @@ Rectangle {
         case "shell":       return { "edit": [ryoku + "/shell.json", ryoku + "/visualizer.json"], "editLabel": "Edit config", "editTip": "Opens this section's config files, where the Hub saves your changes. Yours; survives updates." };
         case "widgets":     return { "edit": [ryoku + "/widgets.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
         case "launcher":    return { "edit": [ryoku + "/launcher.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
+        case "fastfetch":   return { "edit": [base + "/fastfetch/config.jsonc"], "editLabel": "Edit config.jsonc", "editTip": "Opens the fastfetch readout config (config.jsonc) directly. Yours; the Hub writes your changes here too." };
         case "performance": return { "edit": [ryoku + "/performance.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
         case "recording":   return { "edit": [ryoku + "/recording.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
         default:            return {};
@@ -286,6 +289,7 @@ Rectangle {
         case "environment": return environmentComp;
         case "widgets": return widgetsComp;
         case "launcher": return launcherComp;
+        case "fastfetch": return fastfetchComp;
         case "updates": return updatesComp;
         case "credits": return creditsComp;
         case "connections": return connectionsComp;
@@ -316,6 +320,7 @@ Rectangle {
     Component { id: shellComp; ShellSettingsPage {} }
     Component { id: widgetsComp; WidgetsPage {} }
     Component { id: launcherComp; LauncherPage {} }
+    Component { id: fastfetchComp; FastfetchPage {} }
     Component { id: updatesComp; UpdatesPage {} }
     Component { id: creditsComp; CreditsPage {} }
     Component { id: storeComp; StorePage {} }
