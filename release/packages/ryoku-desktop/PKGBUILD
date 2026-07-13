@@ -130,7 +130,8 @@ depends=(
 )
 optdepends=(
   'awww: animated wallpaper transitions (AUR)'
-  'mpvpaper: video (live) wallpaper playback, ryowalls Live tab (AUR)'
+  'phonto: live (video) wallpaper on AMD/Intel (VAAPI), ryowalls Live tab (AUR)'
+  'mpvpaper: live (video) wallpaper on NVIDIA (mpv NVDEC), ryowalls Live tab (AUR)'
   'tesseract: OCR text grab (pill Super+D)'
   'tesseract-data-eng: English OCR language data'
   'zbar: QR code scanning (pill Super+D)'

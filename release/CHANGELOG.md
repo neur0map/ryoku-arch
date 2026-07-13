@@ -50,6 +50,9 @@
   it, so it ships in the ISO and reaches boxes on `ryoku update`.
 
 ### Changed
+- `ryoku-desktop`: the live (video) wallpaper optdepends are `phonto` (AMD/Intel
+  VAAPI) and `mpvpaper` (NVIDIA NVDEC), GPU-picked at runtime, replacing the
+  single mpvpaper optdepend.
 - **`waifu2x-ncnn-vulkan` is now a hard dependency of `ryoku-desktop`** (moved out
   of optdepends), so ryoshot's Beautify HD ×2 export and ryowalls Enhance reach
   every user: `pacman -Syu` pulls it onto existing boxes on `ryoku update`, and it
