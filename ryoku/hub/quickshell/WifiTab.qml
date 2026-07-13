@@ -514,9 +514,13 @@ Item {
 
                         // password row. secured + unknown only.
                         Item {
-                            visible: netItem.expanded
                             width: parent.width
-                            height: 44
+                            height: netItem.expanded ? 44 : 0
+                            clip: true
+                            visible: height > 0.5
+                            opacity: netItem.expanded ? 1 : 0
+                            Behavior on height { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+                            Behavior on opacity { NumberAnimation { duration: Theme.quick } }
 
                             Rectangle {
                                 id: pwBg
@@ -578,7 +582,13 @@ Item {
                         }
 
                         Text {
-                            visible: netItem.expanded && page.connectFailed
+                            readonly property bool show: netItem.expanded && page.connectFailed
+                            visible: height > 0.5
+                            height: show ? implicitHeight : 0
+                            opacity: show ? 1 : 0
+                            clip: true
+                            Behavior on height { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+                            Behavior on opacity { NumberAnimation { duration: Theme.quick } }
                             text: "Connection failed."
                             color: Theme.bad
                             font.family: Theme.font

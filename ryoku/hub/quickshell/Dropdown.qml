@@ -94,6 +94,8 @@ Item {
         padding: 6
         modal: false
         focus: true
+        enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.quick } }
+        exit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.quick } }
 
         background: Rectangle {
             color: Theme.surface

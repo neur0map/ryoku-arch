@@ -456,16 +456,25 @@ Item {
                         HoverHandler { id: chkHov; cursorShape: Qt.PointingHandCursor }
                         TapHandler { onTapped: page.showChecks = !page.showChecks }
                     }
-                    Column {
-                        visible: page.showChecks
+                    Item {
                         width: parent.width
-                        spacing: 0
-                        Repeater {
-                            model: page.showChecks ? (page.caps.checks || []) : []
-                            delegate: CheckRow {
-                                required property var modelData
-                                width: parent.width
-                                check: modelData
+                        clip: true
+                        height: page.showChecks ? checksCol.implicitHeight : 0
+                        visible: height > 0.5
+                        opacity: page.showChecks ? 1 : 0
+                        Behavior on height { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+                        Behavior on opacity { NumberAnimation { duration: Theme.quick } }
+                        Column {
+                            id: checksCol
+                            width: parent.width
+                            spacing: 0
+                            Repeater {
+                                model: page.caps.checks || []
+                                delegate: CheckRow {
+                                    required property var modelData
+                                    width: parent.width
+                                    check: modelData
+                                }
                             }
                         }
                     }
