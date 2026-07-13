@@ -18,10 +18,10 @@ Ryoku Settings drives the bar through `Config`:
     active dot widens into an accent lozenge with its number; the stacked clock.
   - **`caelestia`** the numbered workspace cell strip inside one container pill
     with a sliding indicator; Material Symbols Rounded iconography.
-  - **`nacre`** three crisp dark tiles (flat top flush to the screen edge, rounded
-    bottom corners) painted by the bar itself, with the wallpaper showing in the
-    gaps between them, so it reads distinctly from triptych's organic blob dips and
-    squares the display corners. The seal, a compact now-playing thumb, and the
+  - **`nacre`** grows the frame lobes like triptych, so the bar dips between three
+    dark module islands with the same organic concave transition, but holds a
+    persistent hairline top edge so the dips survive with the frame ring off and a
+    popout melts cleanly, and it squares the display corners. The seal, a compact now-playing thumb, and the
     title left; the clock, small hollow-ring workspaces, and a live CPU/RAM/temp
     readout centred; status and tray right. The stats open a resources popout, and
     the workspace rings light the active one in the accent.

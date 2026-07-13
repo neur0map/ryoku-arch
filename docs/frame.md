@@ -60,8 +60,8 @@ monitor the overlay layer holds:
   gets `frameBorder + barBand`, so the border swells into a band there; the other
   edges stay `frameBorder`. Turning `Config.frameEnabled` off collapses every edge
   to the 50px oversize, so no border ring or shadow shows; the bar keeps its
-  surface (a band for most skins, triptych's frame lobes, or nacre's own painted
-  tiles), so a top bar reads as its modules at the screen edge with no frame around
+  surface (a band for most skins, or the frame lobes for triptych and nacre,
+  nacre holding a hairline top so its dips persist), so a top bar reads as its modules at the screen edge with no frame around
   them. The `frameBorder` value is kept for when it comes back;
 - the **`Bar`**, drawn in the same scene above the popouts (no separate program,
   no seam), see `docs/bar.md`;
