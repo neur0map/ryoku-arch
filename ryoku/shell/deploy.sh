@@ -163,14 +163,35 @@ cp -a "$here/quickshell/." "$cfg/quickshell/"
 mkdir -p "$cfg/quickshell/hub"
 cp -a "$here/../hub/quickshell/." "$cfg/quickshell/hub/"
 
-# First-party GUI apps: each ryoku/apps/<name>/quickshell ships as qs -c <name>,
-# launched from a keybind and a .desktop entry. Drop in a new app dir and it ships.
+# First-party GUI apps: a Quickshell app (ryowalls, ryovm) ships its quickshell/
+# tree as qs -c <name>; a compiled app (ryomotion) has a CMakeLists.txt and builds
+# to a ~/.local/bin/<name> binary. Either way its bin/ helpers, .desktop and icon
+# are installed. Drop in a new app dir and it ships.
 appshare="${XDG_DATA_HOME:-$HOME/.local/share}"
 for appdir in "$here"/../apps/*/; do
-  [[ -d "${appdir}quickshell" ]] || continue
+  has_qs=0; [[ -d "${appdir}quickshell" ]] && has_qs=1
+  has_cmake=0; [[ -f "${appdir}CMakeLists.txt" ]] && has_cmake=1
+  (( has_qs || has_cmake )) || continue
   appname="$(basename "$appdir")"
-  mkdir -p "$cfg/quickshell/$appname"
-  cp -a "${appdir}quickshell/." "$cfg/quickshell/$appname/"
+  if (( has_qs )); then
+    mkdir -p "$cfg/quickshell/$appname"
+    cp -a "${appdir}quickshell/." "$cfg/quickshell/$appname/"
+  fi
+  if (( has_cmake )); then
+    # compiled Qt app: build in a throwaway dir (no in-tree artifacts) and install
+    # the binary named for the app dir. It lands in $bindir beside its own bin/
+    # helpers, so it resolves them relative to itself even when the graphical
+    # session's PATH omits ~/.local/bin (ryomotion -> ryomotion-cli).
+    say "building $appname"
+    appbuild="$(mktemp -d)"
+    if cmake -S "$appdir" -B "$appbuild" -G Ninja -DCMAKE_BUILD_TYPE=Release >/dev/null \
+       && cmake --build "$appbuild" >/dev/null; then
+      install -m755 "$appbuild/$appname" "$bindir/$appname"
+    else
+      say "warning: $appname build failed, skipping"
+    fi
+    rm -rf "$appbuild"
+  fi
   for b in "${appdir}bin/"*; do [[ -f "$b" ]] && install -m755 "$b" "$bindir/$(basename "$b")"; done
   # an app may carry Go helper(s): a subdir with a go.mod builds to a bin named
   # for the module (ryovm/fetch -> ryovm-fetch). keeps "drop in an app dir" true.
@@ -183,9 +204,10 @@ for appdir in "$here"/../apps/*/; do
     (cd "$helperdir" && go build -o "$helper" .) && install -m755 "$helperdir/$helper" "$bindir/$helper"
   done
   for d in "${appdir}"*.desktop; do [[ -f "$d" ]] && install -Dm644 "$d" "$appshare/applications/$(basename "$d")"; done
-  icon="${appdir}quickshell/logo.svg"; [[ -f "$icon" ]] || icon="$here/../assets/brand/logo-mark.svg"
+  icon="${appdir}quickshell/logo.svg"; [[ -f "$icon" ]] || icon="${appdir}logo.svg"
+  [[ -f "$icon" ]] || icon="$here/../assets/brand/logo-mark.svg"
   install -Dm644 "$icon" "$appshare/icons/hicolor/scalable/apps/$appname.svg"
-  say "installed app $appname -> $cfg/quickshell/$appname"
+  say "installed app $appname"
 done
 
 # Nautilus stash actions (a nautilus-python extension). Installs ship it system-wide
