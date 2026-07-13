@@ -1,0 +1,101 @@
+name: Go unit tests
+
+# Build + test gates for the Go modules no other workflow covered: the ryoku
+# CLI (update / doctor / materialize, the no-migrations delivery spine), the
+# shell IPC daemon, and the standalone shell installer. The build step alone
+# is load-bearing: these ship as prebuilt binaries or compile during ISO and
+# package builds, and an ipc compile break once reached unstable-dev unseen
+# because nothing built the package in CI. unstable-dev is in the push
+# triggers for the same reason: that is the branch integration happens on.
+
+on:
+  pull_request:
+    paths:
+      - 'ryoku/cli/**'
+      - 'ryoku/shell/ipc/**'
+      - 'ryoku-shell-installer/**'
+      - '.github/workflows/go-unit-tests.yml'
+  push:
+    branches:
+      - main
+      - unstable-dev
+    paths:
+      - 'ryoku/cli/**'
+      - 'ryoku/shell/ipc/**'
+      - 'ryoku-shell-installer/**'
+      - '.github/workflows/go-unit-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cli:
+    name: ryoku CLI (update/doctor/materialize)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ryoku/cli/go.mod
+
+      - name: Build, vet, and test
+        shell: bash
+        working-directory: ryoku/cli
+        run: |
+          go build ./...
+          go vet ./...
+          go test ./...
+
+  shell-ipc:
+    name: shell IPC daemon
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ryoku/shell/ipc/go.mod
+
+      - name: Build, vet, and test
+        shell: bash
+        working-directory: ryoku/shell/ipc
+        run: |
+          go build ./...
+          go vet ./...
+          go test -short ./...
+
+  shell-installer:
+    name: shell installer (binary parity)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ryoku-shell-installer/go.mod
+
+      - name: Committed binary matches its committed checksum
+        shell: bash
+        working-directory: ryoku-shell-installer
+        # install.sh verifies this checksum on every user's machine; a commit
+        # that updates one without the other bricks the curl|bash bootstrap.
+        # runs BEFORE the build: `go build ./...` overwrites the committed
+        # binary in the checkout, so checking afterwards compares the runner's
+        # own (non-reproduced) build and always fails.
+        run: sha256sum -c ryoku-shell-install.sha256
+
+      - name: Build, vet, and test
+        shell: bash
+        working-directory: ryoku-shell-installer
+        run: |
+          go build ./...
+          go vet ./...
+          go test ./...
