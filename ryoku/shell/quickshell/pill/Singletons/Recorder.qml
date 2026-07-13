@@ -50,32 +50,6 @@ Singleton {
         root.active = false;
         root.paused = false;
     }
-    // region quick-record: pick the box with slurp first, then start gsr with
-    // that geometry, so the elapsed clock begins with the capture, not while the
-    // user is still dragging the selection (which read as "recording early").
-    function startRegion(desktopAudio, mic) {
-        regionPick.wantDesktopAudio = desktopAudio;
-        regionPick.wantMic = mic;
-        regionPick.running = true;
-    }
-
-    Process {
-        id: regionPick
-        property bool wantDesktopAudio: false
-        property bool wantMic: false
-        command: ["slurp", "-f", "%wx%h+%x+%y"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var geom = text.trim();
-                if (geom.length === 0)  // cancelled: no recording
-                    return;
-                var args = ["--region", "--geometry", geom];
-                if (regionPick.wantDesktopAudio) args.push("--with-desktop-audio");
-                if (regionPick.wantMic) args.push("--with-microphone-audio");
-                root.start(args);
-            }
-        }
-    }
 
     function togglePause() {
         if (!root.canPause)

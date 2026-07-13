@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Ryoku.Blobs
 import "Singletons"
 
@@ -82,19 +83,35 @@ Item {
     property bool optRegion: false
     property bool optDesktopAudio: false
     property bool optMic: false
+    // region is chosen up front: tapping the region tile draws the box with slurp
+    // right away, and Quick records that exact geometry (empty string = cancelled).
+    property string regionGeom: ""
+    function pickRegion() { regionPicker.running = true; }
+    Process {
+        id: regionPicker
+        command: ["slurp", "-f", "%wx%h+%x+%y"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var g = text.trim();
+                hud.regionGeom = g;
+                hud.optRegion = g.length > 0;
+            }
+        }
+    }
     function recordArgs() {
         var a = [];
-        if (hud.optRegion) a.push("--region");
         if (hud.optDesktopAudio) a.push("--with-desktop-audio");
         if (hud.optMic) a.push("--with-microphone-audio");
         return a;
     }
     function startQuick() {
         Recorder.chooserOpen = false;
-        if (hud.optRegion) {
-            // region: slurp picks the box first (the island melts away), then the
-            // recording bar returns once capture actually starts.
-            Recorder.startRegion(hud.optDesktopAudio, hud.optMic);
+        if (hud.optRegion && hud.regionGeom.length > 0) {
+            // record the box the user already drew -- no second prompt.
+            var a = ["--region", "--geometry", hud.regionGeom];
+            if (hud.optDesktopAudio) a.push("--with-desktop-audio");
+            if (hud.optMic) a.push("--with-microphone-audio");
+            Recorder.start(a);
         } else {
             hud.starting = true;
             quickTimer.restart();
@@ -339,7 +356,7 @@ Item {
             id: dragH
             target: null
             dragThreshold: 8
-            enabled: Recorder.anyActive
+            enabled: Recorder.anyActive || Recorder.chooserOpen
             cursorShape: Qt.SizeAllCursor
             property real sx: 0
             property real sy: 0
@@ -461,7 +478,7 @@ Item {
             horizontalItemAlignment: Grid.AlignHCenter
             verticalItemAlignment: Grid.AlignVCenter
 
-            RecordButton { s: hud.s; glyph: hud.optRegion ? "region" : "monitor"; tint: hud.optRegion ? Theme.cream : Theme.subtle; onTapped: hud.optRegion = !hud.optRegion }
+            RecordButton { s: hud.s; glyph: hud.optRegion ? "region" : "monitor"; tint: hud.optRegion ? Theme.cream : Theme.subtle; onTapped: { if (hud.optRegion) { hud.optRegion = false; hud.regionGeom = ""; } else hud.pickRegion(); } }
             RecordButton { s: hud.s; glyph: hud.optDesktopAudio ? "speaker" : "speaker-off"; tint: hud.optDesktopAudio ? Theme.cream : Theme.subtle; onTapped: hud.optDesktopAudio = !hud.optDesktopAudio }
             RecordButton { s: hud.s; glyph: hud.optMic ? "mic" : "mic-off"; tint: hud.optMic ? Theme.cream : Theme.subtle; onTapped: hud.optMic = !hud.optMic }
 
