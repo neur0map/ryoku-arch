@@ -102,6 +102,11 @@
   converted before that, and the `/etc` case the installer never handled.
 
 ### Changed
+- **`doctor`'s wallpaper reconciler now heals only `awww`.** The live (video)
+  backend is `ryoku-livewall`, which ships inside the `ryoku-shell` package (the
+  `[ryoku]` repo, pulled by `ryoku update`) rather than the AUR, so the
+  reconciler no longer installs `phonto`/`mpvpaper` as AUR packages; only the
+  image daemon `awww` is still reconciled (`internal/doctor/doctor.go`).
 - `doctor`: the `wallpaper daemons` reconciler ensures both live-wallpaper
   backends now (`phonto` for AMD/Intel, `mpvpaper` for NVDEC on NVIDIA) beside
   `awww`, pointing at the one-shot `ryoku-pkg-aur-add`, so a box gets whichever

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -251,50 +252,29 @@ func (d *daemon) showWallpaperFade(pic string) error {
 		"--transition-fps", transitionFPS).Run()
 }
 
-// --- live (video) wallpapers: awww still + a GPU video daemon on top ---------
+// --- live (video) wallpapers: awww still + the ryoku-livewall daemon ---------
 //
-// awww is image/GIF only, so a video plays through a GPU-picked video daemon on
-// its own wlr background surface: phonto (GStreamer VAAPI) on AMD/Intel, mpvpaper
-// (mpv hwdec/NVDEC) on NVIDIA where VAAPI is unavailable. awww stays up under it
-// showing the clip's own first frame, so the desktop always shows the clip's
-// content (the opaque video covers awww; anything it doesn't cover is the clip's
-// still, never a stale image), and switching back to an image transitions from
-// that real frame instead of the pre-video image awww would otherwise restore.
+// A video plays through ryoku-livewall, a lightweight software-decode daemon that
+// paints wl_shm frames on its own wlr background surface. It maps no GPU/EGL
+// driver, so it holds ~40 MB RSS on any vendor, where mpv/mpvpaper (a client GL
+// pipeline) cost 300-700 MB and leak per loop, and hardware decode cannot beat it
+// on NVIDIA (the CUDA/GL userspace floor alone exceeds 100 MB). awww stays up
+// under it showing the clip's own first frame, so the desktop always shows the
+// clip's content: livewall's video covers awww; the gap before it paints (a
+// one-time transcode) is the clip's still, never a stale image; and switching back
+// to an image transitions from that real frame.
 
-const (
-	daemonPhonto   = "phonto"   // GStreamer VAAPI: lean on AMD/Intel, no NVIDIA
-	daemonMpvpaper = "mpvpaper" // mpv hwdec: portable (NVDEC on NVIDIA, VAAPI else)
-)
+const liveDaemon = "ryoku-livewall"
 
-// liveDaemon is the video backend for this box, resolved once at startup.
-var liveDaemon = resolveLiveDaemon()
+// liveCapWidth caps livewall's decode/render width; the compositor upscales it to
+// the output. A background clip past ~720p is wasted detail, and a smaller decode
+// keeps the CPU cost and the wl_shm buffers tiny.
+const liveCapWidth = "1280"
 
-func resolveLiveDaemon() string {
-	if gpuHasNvidia() {
-		return daemonMpvpaper
-	}
-	return daemonPhonto
-}
-
-// gpuHasNvidia reports whether any DRM GPU uses the NVIDIA driver. phonto's only
-// hardware path is VAAPI (Intel/AMD), and GStreamer's NVDEC decoders are
-// unreliable, so an NVIDIA box would fall back to a heavy software decode; mpv's
-// hwdec uses NVDEC there instead. With no NVIDIA GPU the box is pure AMD/Intel,
-// where phonto's VAAPI decode is guaranteed and leaner. Keying on the card (not
-// the active render node) keeps mpv the safe pick on an AMD+NVIDIA laptop
-// whichever GPU the compositor happens to be on.
-func gpuHasNvidia() bool {
-	if _, err := os.Stat("/proc/driver/nvidia/version"); err == nil {
-		return true
-	}
-	nodes, _ := filepath.Glob("/sys/class/drm/card*/device/uevent")
-	for _, n := range nodes {
-		if b, err := os.ReadFile(n); err == nil && strings.Contains(string(b), "DRIVER=nvidia") {
-			return true
-		}
-	}
-	return false
-}
+// liveGen serializes the async transcode+launch: every live-set or stop bumps it,
+// and a transcode goroutine launches livewall only if its generation is still
+// current, so a clip the user already switched away from never paints.
+var liveGen atomic.Int64
 
 func isVideo(p string) bool {
 	switch strings.ToLower(filepath.Ext(p)) {
@@ -306,10 +286,9 @@ func isVideo(p string) bool {
 
 func liveAlive() bool { return exec.Command("pgrep", "-x", liveDaemon).Run() == nil }
 
-// stopLive terminates every live-daemon instance and waits for it to exit, so a
-// following awww image or a fresh instance is never raced by a lingering one: an
-// async pkill let the old instance and a just-launched one coexist and leak.
-func stopLive() {
+// killLive terminates every livewall instance and waits for it to exit, so a
+// following awww image or a fresh instance is never raced by a lingering one.
+func killLive() {
 	if exec.Command("pkill", "-x", liveDaemon).Run() != nil {
 		return
 	}
@@ -320,6 +299,14 @@ func stopLive() {
 		time.Sleep(25 * time.Millisecond)
 	}
 	_ = exec.Command("pkill", "-9", "-x", liveDaemon).Run()
+}
+
+// stopLive stops the video and cancels any in-flight transcode (the generation
+// bump), so switching to an image never lets a late transcode relaunch livewall
+// over the new wallpaper.
+func stopLive() {
+	liveGen.Add(1)
+	killLive()
 }
 
 // showAny: route a video to the live path (awww still + video daemon) and an
@@ -334,35 +321,36 @@ func (d *daemon) showAny(pic string) error {
 	return d.showWallpaper(pic)
 }
 
-// showLiveWallpaper: show the clip through awww + the GPU's video daemon. awww
-// paints the clip's own first frame and stays up under the video, so the desktop
-// always shows the clip's content: the opaque video covers awww; any area it does
-// not cover (letterbox, or the moment before its first frame) is the clip's own
-// still, not a stale image or black; and a later switch to an image transitions
-// from that still, not the pre-video image awww's cache would restore. It is also
-// the whole wallpaper when no video daemon is installed (the clip's frame, shown
-// statically).
+// showLiveWallpaper: show a clip through awww's still + the ryoku-livewall daemon.
+// awww paints the clip's own first frame and stays up under livewall, so the
+// desktop always shows the clip's content: livewall's video covers awww; the gap
+// before it paints (only a one-time transcode) is the clip's still, not a stale
+// image or black; and a later switch to an image transitions from that real frame.
+// It is also the whole wallpaper when livewall is not installed (the still alone).
 func (d *daemon) showLiveWallpaper(pic string) error {
+	gen := liveGen.Add(1)
+	killLive() // stop the old video now; awww's frame shows under until the new paints
 	if frame := liveFrame(pic); frame != "" && ensureWallDaemon() {
 		_ = d.showWallpaperFade(frame)
 	}
 	if _, err := exec.LookPath(liveDaemon); err != nil {
-		return nil // no video daemon: the clip's still is the wallpaper
+		return nil // no livewall installed: the clip's still is the wallpaper
 	}
-	stopLive() // kill any prior video daemon; awww's frame shows under until the new paints
-	cmd := exec.Command(liveDaemon, liveLaunchArgs(pic)...)
-	if err := cmd.Start(); err != nil {
-		return nil // couldn't launch it; awww keeps the clip's frame
-	}
-	go func() { _ = cmd.Wait() }()
-	// return once the process exists (pgrep is true well before it paints; awww's
-	// still covers the gap), so a later stopLive can see and kill it.
-	for range 80 {
-		if liveAlive() {
-			return nil
+	// Transcode (cached) and launch off the hot path: the first encode of a clip
+	// takes a few seconds, during which awww holds the still; cached clips launch
+	// at once. The generation guard drops the launch if the wallpaper changed while
+	// the transcode ran.
+	go func() {
+		src := livewallSource(pic)
+		if src == "" || liveGen.Load() != gen {
+			return
 		}
-		time.Sleep(25 * time.Millisecond)
-	}
+		cmd := exec.Command(liveDaemon, src, liveCapWidth)
+		if cmd.Start() != nil {
+			return
+		}
+		go func() { _ = cmd.Wait() }()
+	}()
 	return nil
 }
 
@@ -396,104 +384,42 @@ func frameOffset(video string) string {
 	return "1"
 }
 
-// liveFit: the ryowalls live-wallpaper fit knob, read from ryowalls.json.
-// "fill" (default) crops to cover the screen; "fit" letterboxes the whole clip.
-func liveFit() string {
-	base := os.Getenv("XDG_CONFIG_HOME")
+// livewallSource: the cached <=720p30 H.264 that livewall decodes, transcoded once
+// per clip (keyed by path + mtime). Software-decoding a 4K source would blow the
+// RAM budget -- its reference-frame pool alone is ~100 MB -- while a downscaled
+// clip keeps livewall ~40 MB and the decode ~8% of one core. "" if ffmpeg fails,
+// so the caller keeps the clip's still frame.
+func livewallSource(pic string) string {
+	st, err := os.Stat(pic)
+	if err != nil {
+		return ""
+	}
+	base := os.Getenv("XDG_CACHE_HOME")
 	if base == "" {
-		base = filepath.Join(os.Getenv("HOME"), ".config")
+		base = filepath.Join(os.Getenv("HOME"), ".cache")
 	}
-	b, err := os.ReadFile(filepath.Join(base, "ryoku", "ryowalls.json"))
-	if err != nil {
-		return "fill"
+	dir := filepath.Join(base, "ryoku", "livewall")
+	name := strings.TrimSuffix(filepath.Base(pic), filepath.Ext(pic))
+	out := filepath.Join(dir, name+"-"+strconv.FormatInt(st.ModTime().Unix(), 10)+".mp4")
+	if isFile(out) {
+		return out
 	}
-	var s struct {
-		LiveFit string `json:"liveFit"`
+	if os.MkdirAll(dir, 0o755) != nil {
+		return ""
 	}
-	if json.Unmarshal(b, &s) == nil && s.LiveFit == "fit" {
-		return "fit"
+	tmp := out + ".tmp.mp4"
+	err = exec.Command("ffmpeg", "-y", "-i", pic,
+		"-vf", "scale='min(1280,iw)':-2:flags=bicubic", "-r", "30",
+		"-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", "-an", tmp).Run()
+	if err != nil || !isFile(tmp) {
+		_ = os.Remove(tmp)
+		return ""
 	}
-	return "fill"
-}
-
-// liveLaunchArgs: the argv for the active backend. mpvpaper takes forking (-f) mpv
-// options over ALL outputs; phonto takes the clip and an optional --scale.
-func liveLaunchArgs(pic string) []string {
-	if liveDaemon == daemonMpvpaper {
-		return []string{"-f", "-o", mpvOpts(), "ALL", pic}
+	if os.Rename(tmp, out) != nil {
+		_ = os.Remove(tmp)
+		return ""
 	}
-	return phontoArgs(pic)
-}
-
-// phontoArgs: phonto mirrors across every output and decodes on the GPU by
-// default, so the only knob is the fit: fill (phonto's default, crop to cover)
-// needs no flag; fit letterboxes via --scale.
-func phontoArgs(pic string) []string {
-	if liveFit() == "fit" {
-		return []string{pic, "--scale", "fit"}
-	}
-	return []string{pic}
-}
-
-// mpvOpts: the mpv option string for a live wallpaper. hwdec=auto keeps decode on
-// the GPU (NVDEC on NVIDIA, VAAPI on AMD/Intel) and profile=fast uses cheap
-// scalers so a 4K clip downscales without dropping frames; panscan fills (or
-// fits) the screen. no-config + load-scripts=no keep mpv-mpris out of the
-// wallpaper mpv, so the shell's now-playing never shows the silent clip as media.
-func mpvOpts() string {
-	panscan := "1.0"
-	if liveFit() == "fit" {
-		panscan = "0.0"
-	}
-	return "no-config load-scripts=no no-audio loop-file=inf hwdec=auto profile=fast panscan=" + panscan
-}
-
-// liveLeakWorker bounds mpvpaper's documented per-loop memory growth (an upstream
-// mpv leak): when mpv is the backend and a live wallpaper is up, it relaunches the
-// clip once its RSS crosses a ceiling. A no-op for phonto (no leak) and while no
-// video is set, so a healthy wallpaper is never disturbed. Runs for the life of
-// the daemon.
-func (d *daemon) liveLeakWorker() {
-	if liveDaemon != daemonMpvpaper {
-		return
-	}
-	const ceilKB = 1500 * 1024 // ~1.5 GB: past a healthy 4K clip, well under OOM
-	for {
-		time.Sleep(2 * time.Minute)
-		select {
-		case <-d.quit:
-			return
-		default:
-		}
-		if procRSS(liveDaemon) <= ceilKB {
-			continue
-		}
-		if cur := readState(); isVideo(cur) && isFile(cur) {
-			d.wallMu.Lock()
-			_ = d.showLiveWallpaper(cur)
-			d.wallMu.Unlock()
-		}
-	}
-}
-
-// procRSS returns the resident set size (KB) of the first process named name, or
-// 0 if none is running. reads /proc/<pid>/statm (field 2 = RSS in pages).
-func procRSS(name string) int64 {
-	out, err := exec.Command("pgrep", "-x", name).Output()
-	if err != nil {
-		return 0
-	}
-	pid := strings.TrimSpace(strings.SplitN(string(out), "\n", 2)[0])
-	b, err := os.ReadFile("/proc/" + pid + "/statm")
-	if err != nil {
-		return 0
-	}
-	f := strings.Fields(string(b))
-	if len(f) < 2 {
-		return 0
-	}
-	pages, _ := strconv.ParseInt(f[1], 10, 64)
-	return pages * int64(os.Getpagesize()) / 1024
+	return out
 }
 
 // pickTransition: random preset, never the previous one (consecutive switches

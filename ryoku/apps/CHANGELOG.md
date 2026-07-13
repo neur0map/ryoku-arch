@@ -85,6 +85,12 @@
   gaming VM in Ryoku Settings > GPU is a separate, single-VM path.
 
 ### Changed
+- `ryowalls/`: the Live tab plays video wallpapers through **`ryoku-livewall`**
+  now, a lightweight software-decode daemon that holds ~40 MB of RAM on any GPU
+  vendor, in place of `mpvpaper`/`phonto`, so setting a live wallpaper stays well
+  under 100 MB. Browse and select are unchanged; the clip is transcoded to a
+  cached <=720p30 clip once, then played. ryowalls still calls `ryoku-shell
+  wallpaper set`; the shell's `ipc/wallpaper.go` picks the backend.
 - `ryowalls/`: the Adjust tab's live **Max FPS** slider is gone. The wallpaper
   daemon decodes video on the GPU now (phonto/VAAPI or mpv/NVDEC, by GPU) at the
   clip's own rate, so there is no fps cap to tune; the **Fit** control stays and

@@ -832,40 +832,28 @@ func reconcileRyokuChannel(_ bool) recResult {
 
 // ---- reconciler: wallpaper daemons -------------------------------------------
 
-// reconcileWallpaperDaemon heals a Ryoku desktop missing the AUR wallpaper
-// backends the shell drives: static wallpapers ride awww (swww renamed upstream),
-// live/video ones ride phonto (GStreamer/VAAPI) on AMD/Intel or mpvpaper (mpv
-// NVDEC) on NVIDIA. all are AUR-only, so `ryoku update` (pacman) never pulls
-// them, and a box that predates them -- or one upgraded across the swww->awww
-// rename -- silently can't set a wallpaper. both video backends ship so the shell
-// runs whichever its GPU needs. in fix mode the one-shot AUR add IS the fix, so
-// `ryoku doctor` installs the missing ones; `--check` reports what it would add.
+// reconcileWallpaperDaemon heals a Ryoku desktop missing awww, the AUR image
+// wallpaper daemon the shell drives (swww renamed upstream). It is AUR-only, so
+// `ryoku update` (pacman) never pulls it, and a box that predates it -- or one
+// upgraded across the swww->awww rename -- silently can't set a static wallpaper.
+// Live (video) wallpapers ride ryoku-livewall, which ships inside ryoku-shell
+// (the [ryoku] repo) and so reaches boxes on `ryoku update` with no reconcile. In
+// fix mode the one-shot AUR add IS the fix; `--check` reports what it would add.
 func reconcileWallpaperDaemon(checkOnly bool) recResult {
 	if !sys.Exists(filepath.Join(sys.Home(), ".config", "hypr")) && !sys.Has("Hyprland") {
 		return okRes("not a Hyprland desktop")
 	}
-	var want []string
-	if !sys.Has("awww") && !sys.Has("swww") {
-		want = append(want, "awww-git")
+	if sys.Has("awww") || sys.Has("swww") {
+		return okRes("wallpaper daemon present")
 	}
-	if !sys.Has("phonto") {
-		want = append(want, "phonto")
-	}
-	if !sys.Has("mpvpaper") {
-		want = append(want, "mpvpaper")
-	}
-	if len(want) == 0 {
-		return okRes("wallpaper daemons present")
-	}
-	pkgs := strings.Join(want, " ")
-	broke := "ryowalls image or live wallpapers may not work on this GPU"
+	broke := "static wallpapers and the still under live ones may not work"
 	if checkOnly {
-		return wouldRes("missing %s; %s", pkgs, broke).withFix("ryoku-pkg-aur-add %s", pkgs)
+		return wouldRes("missing awww; %s", broke).withFix("ryoku-pkg-aur-add awww-git")
 	}
-	if err := sys.Run("ryoku-pkg-aur-add", want...); err != nil {
-		return failRes("could not install %s: %v", pkgs, err).withFix("ryoku-pkg-aur-add %s", pkgs)
+	if err := sys.Run("ryoku-pkg-aur-add", "awww-git"); err != nil {
+		return failRes("could not install awww-git: %v", err).withFix("ryoku-pkg-aur-add awww-git")
 	}
-	return fixedRes("installed the wallpaper backends: %s", pkgs)
+	return fixedRes("installed the wallpaper daemon: awww-git")
 }
 
 // ---- reconciler: Material Symbols icon font ------------------------------------

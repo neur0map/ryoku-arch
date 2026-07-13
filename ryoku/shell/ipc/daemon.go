@@ -168,7 +168,6 @@ func (d *daemon) bootstrap() {
 	d.prompter = startKeyringPrompter()
 	go d.paintWorker()
 	go d.ledsWorker()
-	go d.liveLeakWorker()
 	go d.watchHyprland()
 	go d.watchAudio()
 	go d.widgetGateWorker()

@@ -89,6 +89,26 @@
   plain grab when the tool is absent (`Beautify.qml`).
 
 ### Fixed
+- **Live (video) wallpapers now play through `ryoku-livewall`, a tiny
+  software-decode daemon that holds around 40 MB on any GPU instead of the old
+  300-700 MB.** The previous backends were client GL pipelines (`mpvpaper` on
+  NVIDIA, `phonto` on AMD/Intel) that cost 300-700 MB RSS; mpvpaper leaked per
+  loop (needing a restart watcher), and neither could reach the hard <100 MB
+  target on NVIDIA, where the CUDA/GL userspace floor alone exceeds it. Both are
+  gone. `ryoku-livewall` (a small C daemon) maps no GPU or EGL driver: it
+  software-decodes a downscaled clip on the CPU into `wl_shm` buffers on a
+  `wlr-layer-shell` background surface and lets `wp_viewport` upscale to the
+  output, so it sits around 40 MB regardless of GPU vendor (measured 40 MB PSS,
+  60 MB RSS, ~8% of one core at 720p30, flat across loops with no leak). The
+  shell transcodes each clip to a cached <=720p30 H.264 once so the CPU decode
+  stays cheap and the frame pool small, then launches livewall; `awww` (the
+  image daemon, unchanged) paints the clip's still frame during that one-time
+  transcode and stays under the video. Both wallpaper classes are now under the
+  100 MB requirement (static via awww ~31 MB, live via livewall ~40 MB). Hardware
+  video decode was investigated and rejected: it cannot beat 100 MB on NVIDIA.
+  livewall is single-output for now, and the ryowalls fit knob is not yet honoured
+  (it fills via viewport); both are follow-ups (`ipc/wallpaper.go`,
+  `ipc/daemon.go`, `livewall/livewall.c`, `livewall/build.sh`, `deploy.sh`).
 - **Live (video) wallpapers stop eating RAM and no longer bleed through onto the
   image beneath, with a GPU-picked hardware decoder.** The old path ran a full
   mpv (mpvpaper) that mapped its surface *over* the still `awww` image without

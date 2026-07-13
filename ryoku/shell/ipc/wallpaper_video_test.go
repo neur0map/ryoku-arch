@@ -46,37 +46,35 @@ func TestFrameOffset(t *testing.T) {
 	}
 }
 
-// phontoArgs and mpvOpts must honour the ryowalls fit knob: phonto adds --scale
-// fit only for "fit" (fill is its default); mpv maps fit to panscan and keeps
-// hwdec + the mpris suppression.
-func TestLiveLaunchArgs(t *testing.T) {
-	cfg := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", cfg)
-	rj := filepath.Join(cfg, "ryoku", "ryowalls.json")
-	if err := os.MkdirAll(filepath.Dir(rj), 0o755); err != nil {
+// livewallSource transcodes a clip once and caches it (keyed by path+mtime): a
+// second call reuses the cache without re-running ffmpeg.
+func TestLivewallSource(t *testing.T) {
+	bin := t.TempDir()
+	cache := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+	runs := filepath.Join(cache, "ffmpeg.runs")
+	// fake ffmpeg: append a run marker, then create the output (its last arg).
+	body := `printf x >> "` + runs + `"; for a in "$@"; do o="$a"; done; : > "$o"`
+	if err := os.WriteFile(filepath.Join(bin, "ffmpeg"), []byte("#!/bin/sh\n"+body+"\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	vid := "/home/x/Pictures/livewalls/clip.mp4"
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	// default (fill): phonto gets the clip alone; mpv hwdecs and fills.
-	if got := strings.Join(phontoArgs(vid), " "); got != vid {
-		t.Errorf("phonto fill must be the clip alone: %q", got)
-	}
-	if got := mpvOpts(); !strings.Contains(got, "hwdec=auto") || !strings.Contains(got, "panscan=1.0") {
-		t.Errorf("mpv default must hwdec + fill (panscan 1.0): %q", got)
-	}
-	if got := mpvOpts(); !strings.Contains(got, "no-config") || !strings.Contains(got, "load-scripts=no") {
-		t.Errorf("mpv opts must suppress mpris (no-config load-scripts=no): %q", got)
-	}
-
-	// fit: phonto adds --scale fit; mpv letterboxes (panscan 0.0).
-	if err := os.WriteFile(rj, []byte(`{"liveFit":"fit"}`), 0o644); err != nil {
+	vid := filepath.Join(t.TempDir(), "clip.mp4")
+	if err := os.WriteFile(vid, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(phontoArgs(vid), " "); got != vid+" --scale fit" {
-		t.Errorf("phonto fit must add --scale fit: %q", got)
+	first := livewallSource(vid)
+	if first == "" || !strings.HasSuffix(first, ".mp4") {
+		t.Fatalf("first transcode returned %q", first)
 	}
-	if got := mpvOpts(); !strings.Contains(got, "panscan=0.0") {
-		t.Errorf("mpv fit must set panscan 0.0: %q", got)
+	if !strings.Contains(first, filepath.Join("ryoku", "livewall")) {
+		t.Errorf("cache not under ryoku/livewall: %q", first)
+	}
+	if second := livewallSource(vid); second != first {
+		t.Errorf("cache key not stable: %q != %q", second, first)
+	}
+	if b, _ := os.ReadFile(runs); len(b) != 1 {
+		t.Errorf("ffmpeg ran %d times, want 1 (miss then cache reuse)", len(b))
 	}
 }

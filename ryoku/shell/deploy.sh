@@ -77,6 +77,18 @@ mkdir -p "$bindir"
 install -m755 "$here/ipc/ryoku-shell" "$bindir/ryoku-shell"
 say "installed $bindir/ryoku-shell"
 
+# Build ryoku-livewall, the software-decode video-wallpaper daemon the shell drives
+# for live wallpapers. Needs wayland-scanner + a C toolchain + ffmpeg/wayland dev
+# libs (build-time only); skip cleanly when absent so a plain config deploy still
+# works (it ships prebuilt on installs, and a missing daemon just leaves the clip's
+# still frame as the wallpaper).
+if command -v wayland-scanner >/dev/null 2>&1 && command -v cc >/dev/null 2>&1 &&
+   "$here/livewall/build.sh" "$bindir/ryoku-livewall"; then
+  say "installed $bindir/ryoku-livewall"
+else
+  say "skipped ryoku-livewall (toolchain or ffmpeg/wayland dev libs absent; live falls back to the still)"
+fi
+
 # Build the Ryoku Hub backend (a separate Go binary; the hub's quickshell config
 # shells out to it for the keybind legend and its TOML config).
 say "building ryoku-hub"
