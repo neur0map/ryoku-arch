@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -134,6 +135,12 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 	// no wallpaper daemon: the paint worker reads state and runs wallust.
 	if mode == "repaint" {
 		d.scheduleTheme()
+		return nil
+	}
+	// pause-sync = reconcile the live wallpaper's paused state (ryowalls toggled
+	// pause-when-covered). mpvpaper only, so it needs no wallpaper daemon.
+	if mode == "pause-sync" {
+		livePauseReconcile()
 		return nil
 	}
 	// live-reload = relaunch the current live wallpaper with fresh motion opts
@@ -285,11 +292,10 @@ func (d *daemon) showAny(pic string) error {
 	return d.showWallpaper(pic)
 }
 
-// showLiveWallpaper: play the video looping and muted on the background layer at
-// its native rate. panscan fills the screen (a 16:9 clip letterboxes on a 16:10
-// panel otherwise). The ipc socket is the launch-completion signal: the call
-// returns once mpvpaper has created it, so a later stopLive can see and kill the
-// instance instead of racing its forking child.
+// showLiveWallpaper: play the video, looping and muted, on the background layer.
+// panscan fills the screen (a 16:9 clip letterboxes on a 16:10 panel otherwise).
+// The IPC socket is how the daemon pauses it: mpvpaper's own auto-pause never
+// fires under Hyprland, which keeps sending frame callbacks to covered layers.
 func (d *daemon) showLiveWallpaper(pic string) error {
 	// no mpvpaper installed: live playback is impossible, but the pick must still
 	// apply, so degrade to a still frame shown through the image daemon. mpvpaper
@@ -320,6 +326,7 @@ func (d *daemon) showLiveWallpaper(pic string) error {
 		}
 		time.Sleep(25 * time.Millisecond)
 	}
+	time.AfterFunc(time.Second, livePauseReconcile)
 	return nil
 }
 
@@ -328,6 +335,23 @@ func liveSockPath() string {
 		return filepath.Join(rt, "ryoku-mpvpaper.sock")
 	}
 	return "/tmp/ryoku-mpvpaper.sock"
+}
+
+// pause the live wallpaper while every monitor's desktop is covered, matching
+// how the widget layer parks itself off desktopVisible. Stateless on purpose:
+// uncovering any monitor resumes.
+func livePauseReconcile() {
+	sock := liveSockPath()
+	if _, err := os.Stat(sock); err != nil {
+		return
+	}
+	pause := livePauseWhenCovered() && !desktopVisible()
+	conn, err := net.Dial("unix", sock)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+	fmt.Fprintf(conn, `{"command":["set_property","pause",%t]}`+"\n", pause)
 }
 
 // liveFrame: one still from the video for wallust, which reads an image. offset
@@ -360,6 +384,22 @@ func frameOffset(video string) string {
 	return "1"
 }
 
+// livePauseWhenCovered: the ryowalls toggle (off by default).
+func livePauseWhenCovered() bool {
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		base = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	b, err := os.ReadFile(filepath.Join(base, "ryoku", "ryowalls.json"))
+	if err != nil {
+		return false
+	}
+	var s struct {
+		PauseWhenCovered bool `json:"pauseWhenCovered"`
+	}
+	return json.Unmarshal(b, &s) == nil && s.PauseWhenCovered
+}
+
 // liveMotion: the ryowalls live-wallpaper motion knobs (max fps, fit), read from
 // ryowalls.json. defaults: 60 fps (play the clip at its own rate) and fill.
 func liveMotion() (fps int, fit string) {
@@ -387,19 +427,17 @@ func liveMotion() (fps int, fit string) {
 	return
 }
 
-// livePlaybackOpts: the mpv option string for a live wallpaper. hwdec keeps
-// decode on the GPU and profile=fast uses cheap scalers so a 4K clip downscales
-// without dropping frames; panscan fills (or fits) the screen. mpv paces to the
-// clip's own rate: no display-resample, because mpvpaper's libmpv render path
-// never reports a display fps, so resampling ran blind and juddered. A sub-60
-// fps target still caps decode/paint for battery.
+// livePlaybackOpts: the mpv option string for a live wallpaper. panscan fills (or
+// fits) the screen; display-resample paces frames to the panel refresh so motion
+// is smooth instead of juddery; a sub-60 fps target caps decode/paint for battery
+// while 60 (default) lets the clip play at its own native rate.
 func livePlaybackOpts(sock string) string {
 	fps, fit := liveMotion()
 	panscan := "1.0"
 	if fit == "fit" {
 		panscan = "0.0"
 	}
-	opts := "no-config load-scripts=no no-audio loop-file=inf hwdec=auto profile=fast panscan=" + panscan
+	opts := "no-config load-scripts=no no-audio loop-file=inf hwdec=auto video-sync=display-resample panscan=" + panscan
 	if fps >= 15 && fps < 60 {
 		opts += " vf=fps=" + strconv.Itoa(fps)
 	}
