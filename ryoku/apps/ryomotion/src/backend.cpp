@@ -5,6 +5,7 @@
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <QUrl>
+#include <QCoreApplication>
 
 Backend::Backend(QObject *parent) : QObject(parent) {}
 
@@ -26,6 +27,16 @@ QString Backend::writeTemp(const QString &content, const QString &name) const
         f.close();
     }
     return path;
+}
+
+QString Backend::cliPath() const
+{
+    // The GUI and ryomotion-cli install together (both /usr/bin when packaged,
+    // both ~/.local/bin on a dev deploy). Resolve the CLI next to our own binary
+    // so export/record work even when the graphical session's PATH omits the dir
+    // the CLI lives in; fall back to PATH when it isn't co-located.
+    const QString co = QCoreApplication::applicationDirPath() + QStringLiteral("/ryomotion-cli");
+    return QFileInfo::exists(co) ? co : QStringLiteral("ryomotion-cli");
 }
 
 QString Backend::basename(const QString &path) const
@@ -68,14 +79,25 @@ void Backend::exportVideo(const QString &projJson, const QString &outPath)
     Q_EMIT renderingChanged();
 
     m_render = new QProcess(this);
-    connect(m_render, &QProcess::finished, this, [this, out](int code, QProcess::ExitStatus) {
+    connect(m_render, &QProcess::finished, this, [this, out](int code, QProcess::ExitStatus st) {
         m_rendering = false;
         Q_EMIT renderingChanged();
-        Q_EMIT exportDone(code == 0, out);
+        Q_EMIT exportDone(code == 0 && st == QProcess::NormalExit, out);
         m_render->deleteLater();
         m_render = nullptr;
     });
-    m_render->start(QStringLiteral("ryomotion-cli"), {"render", proj, out});
+    // ryomotion-cli missing or unlaunchable must not wedge the UI on "Rendering…":
+    // FailedToStart never emits finished, so surface it as a failed export.
+    connect(m_render, &QProcess::errorOccurred, this, [this, out](QProcess::ProcessError e) {
+        if (e != QProcess::FailedToStart || !m_render)
+            return;
+        m_rendering = false;
+        Q_EMIT renderingChanged();
+        Q_EMIT exportDone(false, out);
+        m_render->deleteLater();
+        m_render = nullptr;
+    });
+    m_render->start(cliPath(), {"render", proj, out});
 }
 
 void Backend::record(bool region)
@@ -85,7 +107,7 @@ void Backend::record(bool region)
     QStringList args{"record"};
     if (region)
         args << "--region";
-    m_recProj = runSync(QStringLiteral("ryomotion-cli"), args, 15000);
+    m_recProj = runSync(cliPath(), args, 15000);
     if (!m_recProj.isEmpty()) {
         m_recording = true;
         Q_EMIT recordingChanged();
@@ -96,7 +118,7 @@ void Backend::stopRecord()
 {
     if (!m_recording)
         return;
-    runSync(QStringLiteral("ryomotion-cli"), {"stop"}, 20000);
+    runSync(cliPath(), {"stop"}, 20000);
     m_recording = false;
     Q_EMIT recordingChanged();
     // give gsr a beat to flush the muxer, then hand the clip back.

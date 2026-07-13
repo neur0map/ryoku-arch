@@ -42,6 +42,7 @@ Q_SIGNALS:
 private:
     QString runSync(const QString &program, const QStringList &args, int timeoutMs = 8000, const QString &jsonArgFile = {});
     QString writeTemp(const QString &content, const QString &name) const;
+    QString cliPath() const;   // co-located ryomotion-cli, PATH fallback
 
     bool m_recording = false;
     bool m_rendering = false;
