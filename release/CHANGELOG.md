@@ -28,6 +28,16 @@
   sidesteps the archive, and `pacman -Syu` pulls it onto existing boxes on `ryoku
   update`. The publish workflow installs `rust` (cargo builds wallust) and skips
   wallust in its official-repo dependency check.
+- **`ryomotion` ships from the `[ryoku]` repo**: Ryoku Motion, the screen-demo
+  recorder and editor, built from the OpenScreen fork
+  (github.com/neur0map/ryomotion) and rebranded to Ryo Motion. The PKGBUILD
+  builds the Electron app from a pinned commit, fetching the fork's pinned node
+  22 at build time (its npm 10 runs the electron/esbuild/sharp install scripts a
+  newer npm blocks by default) and rebranding name, binary, and appId with
+  electron-builder `--config` overrides. Installs the unpacked app to
+  `/opt/ryomotion` with a `/usr/bin/ryomotion` launcher, a `.desktop`, and
+  hicolor icons; `build-repo.sh` picks it up by glob. `ryoku-desktop` depends on
+  it, so it ships in the ISO and reaches boxes on `ryoku update`.
 
 ### Changed
 - **`waifu2x-ncnn-vulkan` is now a hard dependency of `ryoku-desktop`** (moved out

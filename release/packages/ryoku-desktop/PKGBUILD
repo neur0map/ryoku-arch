@@ -91,11 +91,15 @@ depends=(
   # live (video) wallpapers: the daemon grabs one frame with ffmpeg to derive the
   # wallust palette. official repo, so a hard depend reaches existing boxes.
   'ffmpeg'
-  # Ryoku Motion (native editor) previews with QtMultimedia and exports through
-  # ffmpeg; the QtQuick UI needs qt6-declarative. Hard depends so the editor works
-  # out of the box on every install and reaches existing boxes on `ryoku update`.
+  # qt6-multimedia + qt6-declarative back the QML video surfaces: ryowalls' live
+  # previews, the shell's video-wallpaper preview, and the qylock lockscreen.
+  # official repo, hard depends so they reach existing boxes on `ryoku update`.
   'qt6-multimedia'
   'qt6-declarative'
+  # Ryoku Motion: the screen-demo recorder and editor (OpenScreen fork, built for
+  # the [ryoku] repo). The shell's record island opens it for a studio capture or
+  # to import a clip; ships in the ISO and reaches boxes on `ryoku update`.
+  'ryomotion'
   # ryoshot Beautify's HD export and ryowalls Enhance AI-upscale on the GPU with
   # this. official repo (extra), so a hard depend ships it in the ISO install and
   # reaches existing boxes on `ryoku update` -- an optdepend never installs on -Syu,

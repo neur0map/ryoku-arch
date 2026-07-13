@@ -1,0 +1,78 @@
+# Maintainer: Ryoku <releases@ryoku.dev>
+#
+# ryomotion: Ryoku Motion, the screen-demo recorder and editor. A Linux build of
+# the OpenScreen fork (github.com/neur0map/ryomotion), rebranded to Ryo Motion
+# and packaged for the [ryoku] repo. The shell's record island opens it for a
+# studio capture and for importing a clip to edit; the one-click quick capture
+# stays on gpu-screen-recorder. Native Linux capture is a later phase; today the
+# app uses OpenScreen's browser pipeline (screen through the portal, audio
+# through PipeWire).
+#
+# Electron app: built from source into an unpacked tree under /opt with a
+# /usr/bin/ryomotion launcher. The fork pins node 22 (.nvmrc), and its bundled
+# npm 10 runs the electron/esbuild/sharp install scripts that a newer npm blocks
+# by default, so the matching node is fetched at build time instead of trusting
+# the host's. The rebrand (name, binary, appId) is applied with electron-builder
+# --config overrides, so it holds whether or not the fork carries it upstream.
+# Bump _commit (and pkgver/pkgrel) to ship a new upstream build to users.
+pkgname=ryomotion
+pkgver=1.5.0
+pkgrel=1
+pkgdesc="Ryoku Motion: screen-demo recorder and editor (OpenScreen, Linux)"
+arch=('x86_64')
+url="https://github.com/neur0map/ryomotion"
+license=('MIT')
+depends=('gtk3' 'nss' 'alsa-lib' 'libnotify' 'pipewire' 'xdg-desktop-portal')
+makedepends=('git')
+options=('!strip' '!debug')
+_commit=f57e36e25448b5af6c7b1b271066fe5beb9b8a49
+_node=22.22.1
+source=("$pkgname::git+https://github.com/neur0map/ryomotion.git#commit=$_commit"
+        "node-$_node-linux-x64.tar.xz::https://nodejs.org/dist/v$_node/node-v$_node-linux-x64.tar.xz")
+sha256sums=('SKIP'
+            '9a6bc82f9b491279147219f6a18add1e18424dce90d41d2a5fcd69d4924ba3aa')
+
+build() {
+  cd "$srcdir/$pkgname"
+  export PATH="$srcdir/node-v$_node-linux-x64/bin:$PATH"
+  export ELECTRON_CACHE="$srcdir/.electron-cache"
+  export npm_config_cache="$srcdir/.npm-cache"
+  export HUSKY=0
+  hash -r
+
+  npm ci --no-audit --no-fund
+  npm run build-vite
+  ./node_modules/.bin/electron-builder --linux dir --config.npmRebuild=false \
+    --config.productName='Ryo Motion' \
+    --config.executableName='ryomotion' \
+    --config.appId='dev.ryoku.ryomotion'
+}
+
+package() {
+  cd "$srcdir/$pkgname"
+
+  install -d "$pkgdir/opt/$pkgname"
+  cp -a release/*/linux-unpacked/. "$pkgdir/opt/$pkgname/"
+  install -d "$pkgdir/usr/bin"
+  ln -s "/opt/$pkgname/ryomotion" "$pkgdir/usr/bin/ryomotion"
+
+  # electron-builder --dir does not emit a launcher or icons; write them here.
+  install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/ryomotion.desktop" <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=Ryo Motion
+GenericName=Screen Demo Editor
+Comment=Record your screen and turn it into a polished demo
+Exec=ryomotion %U
+Icon=ryomotion
+Terminal=false
+Categories=AudioVideo;Video;Recorder;
+StartupWMClass=Ryo Motion
+DESKTOP
+
+  local s
+  for s in 16 32 48 64 128 256 512 1024; do
+    install -Dm644 "icons/icons/png/${s}x${s}.png" \
+      "$pkgdir/usr/share/icons/hicolor/${s}x${s}/apps/ryomotion.png"
+  done
+}
