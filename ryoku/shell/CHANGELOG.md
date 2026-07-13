@@ -105,6 +105,16 @@
   if its RSS crosses a ceiling, to bound the leak. The fit knob maps to `phonto
   --scale` / mpv `panscan`; a missing backend degrades to a still frame through
   `awww` (`ipc/wallpaper.go`).
+- **Switching between an image and a live wallpaper now crossfades instead of
+  flashing.** The wallpaper rides Hyprland's background layer, where the image
+  (`awww`) and video (`mpvpaper`/`phonto`) daemons each map a surface, so a switch
+  maps one over the other. The global `layers` animation is `popin 90%`, which
+  scale-pops a fullscreen wallpaper surface in and reads as a flicker on every
+  image<->live change; a per-namespace `fade` layer rule crossfades the wallpaper
+  surfaces instead (the video fades in over the image, and out to reveal it).
+  `awww` also fades onto the clip's first frame rather than hard-cutting to it, so
+  image->live is one crossfade into the video, matching the Super+C switcher's own
+  fade (`hyprland/modules/decoration.lua`, `ipc/wallpaper.go`).
 - **The wallpaper switcher no longer sits resident, and a live preview replaces
   the thumbnail instead of playing on top of it.** The Super+C picker was a
   supervised Quickshell surface kept running hidden (~100 MB of scene graph and GL

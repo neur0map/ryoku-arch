@@ -240,6 +240,17 @@ func (d *daemon) showWallpaperInstant(pic string) error {
 	return exec.Command(wallDaemon, "img", pic, "--transition-type", "none").Run()
 }
 
+// showWallpaperFade: crossfade to an image with a plain fade (not a random
+// preset). used to settle awww onto a live clip's first frame, so switching
+// image->live reads as a crossfade rather than a hard cut before the video daemon
+// fades in on top of it (matching the Hyprland wallpaper-crossfade layer rule).
+func (d *daemon) showWallpaperFade(pic string) error {
+	return exec.Command(wallDaemon, "img", pic,
+		"--transition-type", "fade",
+		"--transition-duration", transitionDuration,
+		"--transition-fps", transitionFPS).Run()
+}
+
 // --- live (video) wallpapers: awww still + a GPU video daemon on top ---------
 //
 // awww is image/GIF only, so a video plays through a GPU-picked video daemon on
@@ -333,7 +344,7 @@ func (d *daemon) showAny(pic string) error {
 // statically).
 func (d *daemon) showLiveWallpaper(pic string) error {
 	if frame := liveFrame(pic); frame != "" && ensureWallDaemon() {
-		_ = d.showWallpaperInstant(frame)
+		_ = d.showWallpaperFade(frame)
 	}
 	if _, err := exec.LookPath(liveDaemon); err != nil {
 		return nil // no video daemon: the clip's still is the wallpaper
