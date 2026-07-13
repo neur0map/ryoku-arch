@@ -239,7 +239,7 @@ Item {
     // the fillet residual is already zero when the shape drops out.
     readonly property real burial: (1 - Math.max(0, Math.min(1, prog))) * smoothing
 
-    // triptych's top frame is a hairline that dips between the three lobes. a
+    // triptych and nacre keep a hairline top that dips between the three lobes. a
     // popout there fills the band across its own span while open (bodyBlob's
     // neck does that, so the frame swells under it while the other clusters
     // keep their dips). on close it does not deflate in place and leave a wide
@@ -247,7 +247,7 @@ Item {
     // (curW tracks the melt, centred on the trigger), so the band retracts into
     // that lobe and the dips return around it -- the popout melts back into the
     // frame it came out of.
-    readonly property bool dipHost: Config.barStyle === "delos" || (Config.barStyle === "triptych" && atTop)
+    readonly property bool dipHost: Config.barStyle === "delos" || ((Config.barStyle === "triptych" || Config.barStyle === "nacre") && atTop)
 
     BlobRect {
         id: bodyBlob
