@@ -213,17 +213,19 @@ select_backend() {
 # slurp geometry as "WxH+X+Y" for gpu-screen-recorder. empty = cancelled.
 region_geometry_gsr() {
   local slurp_cmd="${RYOKU_SCREENRECORD_SLURP:-slurp}"
-  local geometry
-  local pos
-  local size
-  local x
-  local y
+  local region_pick="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/region-pick"
+  local geometry pos size x y
 
-  # the island can pre-pick the region (slurp runs in the shell before the
-  # recording state shows), passed as --geometry; honour it and skip slurp.
+  # geometry sources in order: an explicit --geometry, the box the island's region
+  # picker drew (a state file we consume so it is never reused stale), else slurp.
   if [[ -n ${region_geom_override:-} ]]; then
     geometry="$region_geom_override"
-  else
+  elif [[ -s $region_pick ]]; then
+    geometry="$(tr -d '[:space:]' < "$region_pick" 2>/dev/null || true)"
+    rm -f "$region_pick" 2>/dev/null || true
+  fi
+
+  if [[ -z ${geometry:-} ]]; then
     require_command "$slurp_cmd" slurp
     geometry="$("$slurp_cmd" -f "%wx%h+%x+%y" 2>/dev/null || true)"
     [[ -n $geometry ]] || return 0
@@ -249,10 +251,17 @@ region_geometry_gsr() {
 # slurp's native "X,Y WxH" for wf-recorder -g. empty = cancelled.
 region_geometry_wf() {
   local slurp_cmd="${RYOKU_SCREENRECORD_SLURP:-slurp}"
-  local geometry
+  local region_pick="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/region-pick"
+  local geometry gsr_geom
 
-  # island-provided region (WxH+X+Y) -> wf-recorder's "X,Y WxH".
-  if [[ -n ${region_geom_override:-} && $region_geom_override =~ ^([0-9]+)x([0-9]+)[+]([0-9]+)[+]([0-9]+)$ ]]; then
+  # island-provided region (WxH+X+Y, via --geometry or the picker file) ->
+  # wf-recorder's "X,Y WxH".
+  gsr_geom="${region_geom_override:-}"
+  if [[ -z $gsr_geom && -s $region_pick ]]; then
+    gsr_geom="$(tr -d '[:space:]' < "$region_pick" 2>/dev/null || true)"
+    rm -f "$region_pick" 2>/dev/null || true
+  fi
+  if [[ -n $gsr_geom && $gsr_geom =~ ^([0-9]+)x([0-9]+)[+]([0-9]+)[+]([0-9]+)$ ]]; then
     printf '%s,%s %sx%s' "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
     return
   fi
