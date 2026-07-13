@@ -66,7 +66,7 @@ Item {
 
     readonly property real nubProg: 0.14
     readonly property real wantProg: {
-        if (Recorder.active) return (!hud.hidden || hud.revealHeld) ? 1 : hud.nubProg;
+        if (Recorder.anyActive) return (!hud.hidden || hud.revealHeld) ? 1 : hud.nubProg;
         return (Recorder.chooserOpen || hud.starting) ? 1 : 0;
     }
     property real prog: hud.wantProg
@@ -102,6 +102,12 @@ Item {
         Recorder.chooserOpen = false;
         Quickshell.execDetached(["sh", "-c",
             "command -v ryomotion >/dev/null 2>&1 && exec ryomotion || notify-send 'Ryomotion' 'Not installed yet'"]);
+    }
+    // studio: our island is the toolbar, so ryomotion records headless (its HUD
+    // hidden) with the chooser's options and we drive the stop from the control bar.
+    function startStudio() {
+        Recorder.chooserOpen = false;
+        Recorder.startStudio(hud.optDesktopAudio, hud.optMic);
     }
 
     // labelled action tile for the chooser (icon + short caption).
@@ -176,8 +182,8 @@ Item {
     }
     Component.onCompleted: hud.layoutVertical = hud.vertical
 
-    readonly property real curW: (Recorder.active || hud.starting) ? grid.implicitWidth : chooserGrid.implicitWidth
-    readonly property real curH: (Recorder.active || hud.starting) ? grid.implicitHeight : chooserGrid.implicitHeight
+    readonly property real curW: (Recorder.anyActive || hud.starting) ? grid.implicitWidth : chooserGrid.implicitWidth
+    readonly property real curH: (Recorder.anyActive || hud.starting) ? grid.implicitHeight : chooserGrid.implicitHeight
     property real bodyW: hud.curW + 20 * hud.s
     property real bodyH: hud.curH + 14 * hud.s
     Behavior on bodyW { NumberAnimation { duration: hud.moveDur; easing.type: Easing.InOutCubic } }
@@ -327,7 +333,7 @@ Item {
             id: dragH
             target: null
             dragThreshold: 8
-            enabled: Recorder.active
+            enabled: Recorder.anyActive
             cursorShape: Qt.SizeAllCursor
             property real sx: 0
             property real sy: 0
@@ -358,7 +364,7 @@ Item {
 
         Grid {
             id: grid
-            visible: Recorder.active || hud.starting
+            visible: Recorder.anyActive || hud.starting
             anchors.centerIn: parent
             columns: hud.layoutVertical ? 1 : 99
             rowSpacing: 7 * hud.s
@@ -414,7 +420,7 @@ Item {
                 s: hud.s
                 glyph: "stop"
                 tint: Theme.vermLit
-                onTapped: Recorder.stop()
+                onTapped: Recorder.studioActive ? Recorder.stopStudio() : Recorder.stop()
             }
             RecordButton {
                 s: hud.s
@@ -442,7 +448,7 @@ Item {
         Grid {
             id: chooserGrid
             anchors.centerIn: parent
-            visible: Recorder.chooserOpen && !Recorder.active && !hud.starting
+            visible: Recorder.chooserOpen && !Recorder.anyActive && !hud.starting
             columns: hud.layoutVertical ? 1 : 99
             rowSpacing: 7 * hud.s
             columnSpacing: 6 * hud.s
@@ -462,7 +468,7 @@ Item {
             }
 
             Action { s: hud.s; glyph: "record"; label: "Quick"; tint: Theme.vermLit; primary: true; onTapped: hud.startQuick() }
-            Action { s: hud.s; glyph: "film"; label: "Studio"; onTapped: hud.launchRyomotion() }
+            Action { s: hud.s; glyph: "film"; label: "Studio"; onTapped: hud.startStudio() }
             Action { s: hud.s; glyph: "folder"; label: "Edit"; onTapped: hud.launchRyomotion() }
 
             RecordButton { s: hud.s; glyph: "close"; tint: Theme.subtle; onTapped: Recorder.chooserOpen = false }
@@ -480,7 +486,7 @@ Item {
         x: cx - width / 2
         y: cy - height / 2
         color: Recorder.paused ? Theme.faint : Theme.vermLit
-        opacity: Recorder.active ? Math.max(0, 1 - hud.prog / 0.5) * (Recorder.paused ? 0.9 : Recorder.pulse) : 0
+        opacity: Recorder.anyActive ? Math.max(0, 1 - hud.prog / 0.5) * (Recorder.paused ? 0.9 : Recorder.pulse) : 0
         visible: opacity > 0.01
     }
 

@@ -6,13 +6,14 @@
 - **The recorder island is now the single entry point for capture.** The 力
   deck's Record button no longer drops a mode menu; it opens the floating
   island in a pre-record chooser. The capture toggles (screen or region,
-  desktop audio, microphone) moved into that chooser, next to three actions:
-  **Quick** (the existing gpu-screen-recorder flow), **Studio** and **Edit**,
-  which open **ryomotion** (the OpenScreen-based editor, coming as its own
-  package) to record a polished demo or import a clip. A Quick capture morphs
-  the island into the live control bar as before, and the recording backend is
-  unchanged (`RecordHud.qml`, `DeckRecord.qml`, `Singletons/Recorder.qml`,
-  `shell.qml`).
+  desktop audio, microphone) moved into that chooser, next to three actions.
+  **Quick** uses the existing gpu-screen-recorder flow; **Studio** and **Edit**
+  drive **ryomotion** (the OpenScreen-based recorder and editor, its own
+  package). Studio records through ryomotion with its window hidden, so the
+  island is the only toolbar, and opens the editor when you stop; Edit imports
+  an existing clip. A Quick capture morphs the island into the live control bar
+  as before, and the gpu-screen-recorder backend is unchanged (`RecordHud.qml`,
+  `DeckRecord.qml`, `Singletons/Recorder.qml`, `shell.qml`).
 - **`ryoku-shell system` toggles the right (System) sidebar**, so it can be
   bound like the left `toolkit`/`sidebarLeft`. `Super+Alt+D` uses it; the daemon
   maps the verb to the pill's existing `sidebarRight` handler (`ipc/daemon.go`).

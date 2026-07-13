@@ -16,6 +16,10 @@ Singleton {
     // the sidebar Record button opens the floating island in its pre-record
     // chooser, where the capture toggles and the Quick / Studio / Edit actions live.
     property bool chooserOpen: false
+    // studio recording runs ryomotion (the OpenScreen fork) headless: our island
+    // is the toolbar, so ryomotion's own HUD stays hidden and we drive start/stop.
+    property bool studioActive: false
+    readonly property bool anyActive: root.active || root.studioActive
     // owning backend: "gsr" | "wf" | "" when idle.
     property string backend: ""
     readonly property bool canPause: backend === "gsr"
@@ -49,9 +53,49 @@ Singleton {
         Quickshell.execDetached([root.script, "--pause"]);
         root.paused = !root.paused;
     }
+    // studio: launch ryomotion in RYOKU_RECORD mode (HUD hidden, auto-records with
+    // these options), tracked so our stop signals its exact main process. SIGUSR1
+    // maps to ryomotion's tray-stop, so it finalises the file and opens the editor.
+    function startStudio(desktopAudio, mic) {
+        studioProc.command = ["sh", "-c",
+            "command -v ryomotion >/dev/null 2>&1 || { notify-send 'Ryomotion' 'Not installed yet'; exit 0; }; "
+            + "exec env RYOKU_RECORD=1"
+            + " RYOKU_AUDIO=" + (desktopAudio ? "1" : "0")
+            + " RYOKU_MIC=" + (mic ? "1" : "0")
+            + " RYOKU_WEBCAM=0 ryomotion"];
+        studioProc.running = true;
+        root.studioActive = true;
+        root.paused = false;
+        root.backend = "studio";
+        root.startedAt = Math.floor(Date.now() / 1000);
+        root.elapsedSec = 0;
+    }
+    function stopStudio() {
+        if (studioProc.running && studioProc.processId > 0)
+            Quickshell.execDetached(["kill", "-USR1", String(studioProc.processId)]);
+        root.studioActive = false;
+        root.paused = false;
+        root.backend = "";
+        root.startedAt = 0;
+        root.elapsedSec = 0;
+    }
+
+    Process {
+        id: studioProc
+        onRunningChanged: {
+            // ryomotion exited before we stopped (crash, or never installed): don't
+            // strand the island counting up in a studio state that isn't real.
+            if (!studioProc.running && root.studioActive) {
+                root.studioActive = false;
+                root.backend = "";
+                root.startedAt = 0;
+                root.elapsedSec = 0;
+            }
+        }
+    }
 
     SequentialAnimation on pulse {
-        running: root.active && !root.paused
+        running: root.anyActive && !root.paused
         loops: Animation.Infinite
         NumberAnimation { to: 0.18; duration: 620; easing.type: Easing.InOutSine }
         NumberAnimation { to: 1.0; duration: 620; easing.type: Easing.InOutSine }
@@ -73,14 +117,15 @@ Singleton {
                     root.startedAt = Math.floor(Date.now() / 1000);
                     root.elapsedSec = 0;
                 }
-                if (!nowActive) {
+                if (!nowActive && !root.studioActive) {
                     root.startedAt = 0;
                     root.elapsedSec = 0;
                     root.pulse = 1;
                     root.paused = false;
                 }
                 root.active = nowActive;
-                root.backend = nowActive ? b : "";
+                if (nowActive) root.backend = b;
+                else if (!root.studioActive) root.backend = "";
             }
         }
     }
@@ -105,7 +150,7 @@ Singleton {
     // and a resume continues it.
     Timer {
         interval: 1000
-        running: root.active && !root.paused
+        running: root.anyActive && !root.paused
         repeat: true
         onTriggered: root.elapsedSec++
     }
