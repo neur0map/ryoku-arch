@@ -83,19 +83,34 @@ Item {
     property bool optRegion: false
     property bool optDesktopAudio: false
     property bool optMic: false
-    // region is chosen up front: tapping the region tile draws the box with slurp
-    // right away, and Quick records that exact geometry (empty string = cancelled).
+    // region is chosen up front: tapping the region tile runs slurp right now so
+    // you draw the box before recording. slurp is launched with execDetached -- a
+    // managed Process kills its session before it can grab the seat (nothing shows)
+    // -- and writes the geometry to a state file the FileView below reads back.
     property string regionGeom: ""
-    function pickRegion() { regionPicker.running = true; }
-    Process {
-        id: regionPicker
-        command: ["slurp", "-f", "%wx%h+%x+%y"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var g = text.trim();
-                hud.regionGeom = g;
-                hud.optRegion = g.length > 0;
-            }
+    property bool regionPicking: false
+    readonly property string regionFilePath: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku/region-pick"
+    function pickRegion() {
+        hud.regionPicking = true;
+        Quickshell.execDetached(["sh", "-c",
+            "d=$(dirname '" + hud.regionFilePath + "'); mkdir -p \"$d\"; "
+            + "g=$(slurp -f '%wx%h+%x+%y' 2>/dev/null); "
+            + "printf '%s' \"$g\" > '" + hud.regionFilePath + ".tmp'; "
+            + "mv '" + hud.regionFilePath + ".tmp' '" + hud.regionFilePath + "'"]);
+    }
+    FileView {
+        id: regionFile
+        path: hud.regionFilePath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            if (!hud.regionPicking)  // ignore the initial/stale load; only a fresh pick applies
+                return;
+            hud.regionPicking = false;
+            var g = (regionFile.text() || "").trim();
+            hud.regionGeom = g;
+            hud.optRegion = g.length > 0;
         }
     }
     function recordArgs() {
