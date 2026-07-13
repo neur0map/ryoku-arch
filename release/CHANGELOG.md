@@ -71,6 +71,13 @@
   installs on `-Syu`, so existing boxes would never have received it.
 
 ### Fixed
+- **The camera self-view now hides when recording stops.** The webcam bubble is
+  a recording companion, so the shell clears it when the last capture ends (a
+  plain mirror toggled on with no recording stays until toggled off).
+- **A new Studio recording no longer wipes an open Ryo Motion edit.** `ryomotion`
+  (repinned, `pkgrel` 9) reuses the running app for a new clip; it now runs the
+  save / discard / cancel dialog before replacing the editor instead of
+  force-closing it, so an in-progress edit is never silently lost.
 - **The portal file chooser renders dark in a dark session.** `gnome-themes-extra`
   is now a hard dependency of `ryoku-desktop`, so the `Adwaita-dark` GTK theme the
   Hyprland autostart selects (`gsettings gtk-theme`) actually exists on disk.
