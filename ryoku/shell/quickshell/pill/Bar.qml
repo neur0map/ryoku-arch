@@ -307,13 +307,13 @@ Item {
                 id: nLeftCap
                 readonly property real titleMax: Math.max(0, nacreFace.sideMax - 2 * nacreFace.capPad - nSeal.width - nLeftRow.spacing - (nMediaMod.visible ? nMediaMod.width + nLeftRow.spacing : 0))
                 anchors.left: parent.left
-                anchors.leftMargin: nacreFace.edge
+                anchors.leftMargin: 0
                 anchors.top: parent.top
                 height: parent.height
                 topLeftRadius: 0
                 topRightRadius: 0
-                bottomLeftRadius: Math.min(height / 2, 18 * bar.s)
-                bottomRightRadius: Math.min(height / 2, 18 * bar.s)
+                bottomLeftRadius: 0
+                bottomRightRadius: height / 3
                 color: Config.surfaceColor
                 width: nLeftRow.implicitWidth + 2 * nacreFace.capPad
                 Behavior on width { NumberAnimation { duration: Motion.spatial; easing.type: Easing.OutCubic } }
@@ -362,8 +362,8 @@ Item {
                 height: parent.height
                 topLeftRadius: 0
                 topRightRadius: 0
-                bottomLeftRadius: Math.min(height / 2, 18 * bar.s)
-                bottomRightRadius: Math.min(height / 2, 18 * bar.s)
+                bottomLeftRadius: height / 3
+                bottomRightRadius: height / 3
                 color: Config.surfaceColor
                 width: nCentreRow.implicitWidth + 2 * nacreFace.capPad
                 Behavior on width { NumberAnimation { duration: Motion.spatial; easing.type: Easing.OutCubic } }
@@ -405,13 +405,13 @@ Item {
             Rectangle {
                 id: nRightCap
                 anchors.right: parent.right
-                anchors.rightMargin: nacreFace.edge
+                anchors.rightMargin: 0
                 anchors.top: parent.top
                 height: parent.height
                 topLeftRadius: 0
                 topRightRadius: 0
-                bottomLeftRadius: Math.min(height / 2, 18 * bar.s)
-                bottomRightRadius: Math.min(height / 2, 18 * bar.s)
+                bottomLeftRadius: height / 3
+                bottomRightRadius: 0
                 color: Config.surfaceColor
                 width: nRightRow.implicitWidth + 2 * nacreFace.capPad
                 Behavior on width { NumberAnimation { duration: Motion.spatial; easing.type: Easing.OutCubic } }
