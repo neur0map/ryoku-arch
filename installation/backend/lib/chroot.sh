@@ -22,11 +22,18 @@ ryoku_cfg_locale() {
   run sed -i "s|^#\(${RYOKU_LOCALE//./\\.} \)|\1|" /mnt/etc/locale.gen
   # a locale locale.gen does not list (a manual RYOKU_LOCALE, a slimmed file)
   # would generate nothing and leave every tool warning "cannot set locale";
-  # append it so locale-gen builds exactly what locale.conf names.
+  # append it so locale-gen builds exactly what locale.conf names. only when
+  # the target has the source definition: locale-gen is set -e, so appending a
+  # bogus name (localedef exits 4) would abort the install after the wipe,
+  # strictly worse than the warning it fixes.
   if [[ -z ${RYOKU_DRYRUN:-} && $RYOKU_LOCALE == *.* ]] \
     && ! grep -q "^${RYOKU_LOCALE} " /mnt/etc/locale.gen; then
-    log "locale: $RYOKU_LOCALE not listed in locale.gen, appending"
-    printf '%s %s\n' "$RYOKU_LOCALE" "${RYOKU_LOCALE##*.}" >>/mnt/etc/locale.gen
+    if [[ -f /mnt/usr/share/i18n/locales/${RYOKU_LOCALE%%.*} ]]; then
+      log "locale: $RYOKU_LOCALE not listed in locale.gen, appending"
+      printf '%s %s\n' "$RYOKU_LOCALE" "${RYOKU_LOCALE##*.}" >>/mnt/etc/locale.gen
+    else
+      log "warn: $RYOKU_LOCALE has no source definition in the target; not appending (locale-gen would fail the install)"
+    fi
   fi
   write_file /mnt/etc/locale.conf <<EOF
 LANG=$RYOKU_LOCALE

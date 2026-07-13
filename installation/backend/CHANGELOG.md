@@ -28,9 +28,11 @@
 - `lib/chroot.sh`: the locale uncomment cannot silently generate nothing. The
   sed now escapes the dots (so `en_US.UTF-8` matches only its own line), and a
   locale that `locale.gen` does not list (a manual `RYOKU_LOCALE`, a slimmed
-  file) is appended before `locale-gen` runs; before, the pattern matched
-  nothing, nothing was generated, and every tool on the target warned "cannot
-  set locale" from first boot.
+  file) is appended before `locale-gen` runs, gated on the target actually
+  having its source definition (locale-gen is `set -e`, so appending a bogus
+  name would abort the install after the wipe; that input class only logs a
+  warning). Before, the pattern matched nothing, nothing was generated, and
+  every tool on the target warned "cannot set locale" from first boot.
 - `lib/drivers.sh`: a failed vendor driver script no longer claims "the iGPU
   still drives the display", which is false on dGPU-only machines; the message
   now points at `ryoku doctor` after first boot.
