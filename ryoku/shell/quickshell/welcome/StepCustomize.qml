@@ -180,7 +180,8 @@ Flickable {
                     { "key": "aegis",     "label": "Aegis" },
                     { "key": "stele",     "label": "Stele" },
                     { "key": "triptych",  "label": "Triptych" },
-                    { "key": "delos",     "label": "Delos" }
+                    { "key": "delos",     "label": "Delos" },
+                    { "key": "nacre",     "label": "Nacre" }
                 ]
                 current: step.barStyle
                 onSelected: (k) => { step.barStyle = k; step.setKey("barStyle", k); }

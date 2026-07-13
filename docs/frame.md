@@ -58,7 +58,9 @@ monitor the overlay layer holds:
   outer gap (`general:gaps_out`, a touch larger than the border so tiles sit a
   sliver inside), reserves no space, and retracts on fullscreen. The bar's edge
   gets `frameBorder + barBand`, so the border swells into a band there; the other
-  edges stay `frameBorder`;
+  edges stay `frameBorder`. Turning `Config.frameEnabled` off collapses every edge
+  to the 50px oversize, so no ring or shadow shows and a bar sits flush at the
+  screen edge (the `frameBorder` value is kept for when it comes back);
 - the **`Bar`**, drawn in the same scene above the popouts (no separate program,
   no seam), see `docs/bar.md`;
 - the **popouts**, each a `BlobRect` in `blobGroup` (see below).

@@ -19,10 +19,14 @@ Singleton {
     // frame = rounded screen border the popouts swell out of.
     property alias frameRadius:    adapter.frameRadius
     property alias frameBorder:    adapter.frameBorder
+    property alias frameEnabled:   adapter.frameEnabled
     property alias frameSmoothing: adapter.frameSmoothing
     property alias frameOpacity:   adapter.frameOpacity
     property alias shadowStrength: adapter.shadowStrength
     property alias shadowSize:     adapter.shadowSize
+    // frame off collapses the border ring (and its shadow) to nothing, so a bar
+    // sits flush at the screen edge; the frameBorder setting is kept intact.
+    readonly property real effectiveFrameBorder: frameEnabled ? frameBorder : 50
 
     // surface = warm dark fill shared by the frame and its popouts. one blob field,
     // so a single colour reads as one continuous surface.
@@ -123,6 +127,7 @@ Singleton {
             id: adapter
             property real frameRadius: 9
             property real frameBorder: 59
+            property bool frameEnabled: true
             property real frameSmoothing: 8
             property real frameOpacity: 1
             property real shadowStrength: 0.63

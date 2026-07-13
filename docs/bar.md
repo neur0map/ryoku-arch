@@ -12,11 +12,17 @@ Ryoku Settings drives the bar through `Config`:
 
 - `barEnabled` on/off; `barPosition` is **top** or **bottom** (left/right were
   dropped, so anything but `bottom` reads as top).
-- `barStyle` the skin, carried one-to-one from the credited reference shells:
+- `barStyle` the skin. `noctalia` and `caelestia` are carried from the credited
+  reference shells; `aegis`, `stele`, `triptych`, `delos`, and `nacre` are Ryoku's own:
   - **`noctalia`** fully rounded capsule modules in a row; dot workspaces whose
     active dot widens into an accent lozenge with its number; the stacked clock.
   - **`caelestia`** the numbered workspace cell strip inside one container pill
     with a sliding indicator; Material Symbols Rounded iconography.
+  - **`nacre`** three soft frosted capsules floating on a flat, straight band (no
+    frame dip): the seal, now-playing, and title left; the clock, hollow-ring
+    workspaces, and a live CPU/RAM/temp readout centred; status and tray right.
+    The stats open a resources popout, and the workspace rings light the active
+    one in the accent.
 - `barHeight` and `fontScale` size it. Everything scales off `s =
   monitor.height / 1080 x fontScale` (clamped 0.7-1.6). The band the frame swells
   by is `barBand = barHeight x s`; modules size against `moduleSpan =
@@ -42,6 +48,10 @@ A left group and a right group flank the centred clock:
   each opens its own popout.
 - **tray** (`BarTray`) the system tray.
 - **power** a session glyph; clicking opens the power popout.
+- **system stats** (`BarStats`, nacre only) a CPU / RAM / temperature readout off
+  the `SysStats` singleton (native `/proc` + `/sys` polling); clicking opens the
+  resources popout (`ResourcesPopout`) with usage sparklines and the top
+  processes by CPU.
 
 ## BarModule: the shared capsule
 

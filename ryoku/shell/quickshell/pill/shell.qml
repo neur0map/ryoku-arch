@@ -409,7 +409,7 @@ ShellRoot {
             // sideReserve; with no island there is nothing else to reserve at
             // the top, so this window only maps for a top bar.
             readonly property real barBand: Config.barHeight * s
-            readonly property real barVisibleH: Math.max(0, Config.frameBorder - 50) + barBand
+            readonly property real barVisibleH: Math.max(0, Config.effectiveFrameBorder - 50) + barBand
             readonly property real zone: delos ? Math.max(0, IslandDock.thickness) : barVisibleH
 
             screen: modelData
@@ -442,7 +442,7 @@ ShellRoot {
             readonly property bool active: rEdge === "bottom" || rEdge === "left" || rEdge === "right"
             // a vertical band needs room for stacked content; floor it at 30.
             readonly property real minBand: rEdge === "left" || rEdge === "right" ? 30 : 0
-            readonly property real zone: delos ? Math.max(0, IslandDock.thickness) : (Math.max(0, Config.frameBorder - 50) + Math.max(Config.barHeight, minBand) * s)
+            readonly property real zone: delos ? Math.max(0, IslandDock.thickness) : (Math.max(0, Config.effectiveFrameBorder - 50) + Math.max(Config.barHeight, minBand) * s)
 
             screen: modelData
             visible: active
@@ -488,7 +488,7 @@ ShellRoot {
             // triptych: the top edge stays a hairline and three lobes fuse
             // under the module clusters, so the bar dips between them (top only).
             readonly property bool triptychLobes: barTop && triptych && !monFullscreen
-            readonly property real frameTopVisible: Math.max(0, Config.frameBorder - 50)
+            readonly property real frameTopVisible: Math.max(0, Config.effectiveFrameBorder - 50)
             // a vertical band needs room for stacked content; floor it at 30.
             readonly property real barBand: Math.max(Config.barHeight, barVertical ? 30 : 0) * s
             readonly property real barVisibleH: frameTopVisible + barBand
@@ -659,10 +659,10 @@ ShellRoot {
                     anchors.margins: -50
                     group: blobGroup
                     radius: Config.frameRadius
-                    borderTop: (overlay.barTop && !overlay.triptych && !overlay.delos) ? (Config.frameBorder + overlay.barBand) : Config.frameBorder
-                    borderBottom: (overlay.barBottom && !overlay.delos) ? (Config.frameBorder + overlay.barBand) : Config.frameBorder
-                    borderLeft: (overlay.barLeft && !overlay.delos) ? (Config.frameBorder + overlay.barBand) : Config.frameBorder
-                    borderRight: (overlay.barRight && !overlay.delos) ? (Config.frameBorder + overlay.barBand) : Config.frameBorder
+                    borderTop: (overlay.barTop && !overlay.triptych && !overlay.delos) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
+                    borderBottom: (overlay.barBottom && !overlay.delos) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
+                    borderLeft: (overlay.barLeft && !overlay.delos) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
+                    borderRight: (overlay.barRight && !overlay.delos) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
                     opacity: Config.frameOpacity
                     visible: !overlay.monFullscreen
                 }
@@ -831,6 +831,30 @@ ShellRoot {
                         id: batContent
                         s: overlay.s
                         open: batteryPop.prog > 0.5
+                    }
+                }
+
+                // resources popout: opened from the Nacre stats module, the CPU /
+                // memory / temp readout grows from the bar edge at the module.
+                Popout {
+                    id: resourcesPop
+                    group: blobGroup
+                    frameThickness: overlay.barVisibleH
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.barPos
+                    hoverOpen: false
+                    alongCenter: root.popoutCenter
+                    s: overlay.s
+                    active: !overlay.monFullscreen
+                    pinned: root.popout === "resources" && root.popoutMon === overlay.modelData.name
+                    openW: resContent.implicitWidth
+                    openH: resContent.implicitHeight
+
+                    ResourcesPopout {
+                        id: resContent
+                        s: overlay.s
+                        open: resourcesPop.prog > 0.5
                     }
                 }
 
@@ -1277,6 +1301,12 @@ ShellRoot {
     Variants {
         model: Quickshell.screens
         RegionOverlay {}
+    }
+
+    // draggable, shaped webcam bubble; stays across workspaces, captured by gsr.
+    Variants {
+        model: Quickshell.screens
+        CameraOverlay {}
     }
 
 }

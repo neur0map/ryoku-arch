@@ -10,6 +10,7 @@ singleton Battery Battery.qml
 singleton Vpn Vpn.qml
 singleton VoiceCall VoiceCall.qml
 singleton Recorder Recorder.qml
+singleton Camera Camera.qml
 singleton Audio Audio.qml
 singleton VoiceBars VoiceBars.qml
 singleton Weather Weather.qml
@@ -22,3 +23,4 @@ singleton Performance Performance.qml
 singleton Network Network.qml
 singleton Media Media.qml
 singleton IslandDock IslandDock.qml
+singleton SysStats SysStats.qml

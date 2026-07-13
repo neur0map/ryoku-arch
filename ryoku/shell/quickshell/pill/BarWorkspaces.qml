@@ -25,6 +25,7 @@ Item {
     readonly property bool caelestia: style === "caelestia"
     readonly property bool aegis: style === "aegis"
     readonly property bool stele: style === "stele"
+    readonly property bool nacre: style === "nacre"
     readonly property bool cells: caelestia || aegis || stele
 
     // caelestia cell metrics (inside the container pill).
@@ -35,6 +36,10 @@ Item {
     readonly property real dotSize: 10 * s
     readonly property real activeLen: dotSize * 2.2
     readonly property real dotGap: 4 * s
+    // nacre ring metrics.
+    readonly property real ringSize: 10 * s
+    readonly property real ringActive: 15 * s
+    readonly property real ringGap: 7 * s
 
     readonly property int base: Math.floor((activeWsId - 1) / 10) * 10
     // occupancy = which workspaces own a window, from hyprctl. Quickshell's
@@ -97,9 +102,11 @@ Item {
     readonly property int count: wsList.length
     readonly property int activeIdx: Math.max(0, wsList.indexOf(activeWsId))
 
-    implicitWidth: cells ? (vertical ? cellW : count * cellW)
+    implicitWidth: nacre ? (vertical ? ringActive : count * ringActive + (count - 1) * ringGap)
+        : cells ? (vertical ? cellW : count * cellW)
         : (vertical ? dotSize : count * dotSize + (count - 1) * dotGap + (activeLen - dotSize))
-    implicitHeight: cells ? (vertical ? count * cellH : cellH)
+    implicitHeight: nacre ? (vertical ? count * ringActive + (count - 1) * ringGap : ringActive)
+        : cells ? (vertical ? count * cellH : cellH)
         : (vertical ? count * dotSize + (count - 1) * dotGap + (activeLen - dotSize) : dotSize)
 
     function jump(id) {
@@ -203,7 +210,7 @@ Item {
 
     // ---- noctalia dialect ---------------------------------------------------
     Grid {
-        visible: !strip.cells
+        visible: !strip.cells && !strip.nacre
         anchors.centerIn: parent
         columns: strip.vertical ? 1 : strip.count
         columnSpacing: strip.dotGap
@@ -242,6 +249,47 @@ Item {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: strip.jump(nPill.wsId)
+                }
+            }
+        }
+    }
+
+    // ---- nacre dialect: hollow rings, the active one an accent donut --------
+    Grid {
+        visible: strip.nacre
+        anchors.centerIn: parent
+        columns: strip.vertical ? 1 : strip.count
+        columnSpacing: strip.ringGap
+        rowSpacing: strip.ringGap
+        verticalItemAlignment: Grid.AlignVCenter
+        horizontalItemAlignment: Grid.AlignHCenter
+
+        Repeater {
+            model: strip.wsList
+            delegate: Item {
+                id: nRing
+                required property int modelData
+                readonly property bool active: nRing.modelData === strip.activeWsId
+                readonly property bool occupied: strip.occupiedSet[nRing.modelData] === true
+                width: strip.ringActive
+                height: strip.ringActive
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: nRing.active ? strip.ringActive : strip.ringSize
+                    height: width
+                    radius: width / 2
+                    color: "transparent"
+                    border.width: Math.max(1.5, 2 * strip.s)
+                    border.color: nRing.active ? Theme.verm
+                        : (nRing.occupied ? Qt.alpha(Theme.cream, 0.55) : Qt.alpha(Theme.cream, 0.20))
+                    Behavior on width { NumberAnimation { duration: Motion.effects; easing.type: Easing.OutCubic } }
+                    Behavior on border.color { ColorAnimation { duration: Motion.effects } }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: strip.jump(nRing.modelData)
                 }
             }
         }

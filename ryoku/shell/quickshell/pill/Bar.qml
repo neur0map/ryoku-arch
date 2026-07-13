@@ -30,6 +30,7 @@ Item {
 
     readonly property real moduleSpan: Math.round(bar.band * 0.76)
     readonly property bool triptych: Config.barStyle === "triptych"
+    readonly property bool nacre: Config.barStyle === "nacre"
     // triptych wraps each cluster in a transparent hugger and shell.qml grows a
     // matching frame lobe under it, so the bar dips between the three; every
     // other skin keeps the hugger invisible and the plain straight band.
@@ -46,7 +47,9 @@ Item {
     // the bell's along-axis centre (from the status cluster), so the toast
     // popout can grow from the bell like the inbox does. -1 when the status
     // cluster is hidden (no bell), so the toast falls back to the bar end.
-    readonly property real bellCenter: Config.barShowStatus ? hStatus.bellCenter : -1
+    readonly property real bellCenter: bar.nacre
+        ? (nacreLoader.item ? nacreLoader.item.bellCenter : -1)
+        : (Config.barShowStatus ? hStatus.bellCenter : -1)
 
     property int seedWsId: -1
     readonly property int activeWsId: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : seedWsId
@@ -78,6 +81,8 @@ Item {
     Item {
         id: face
         anchors.fill: parent
+        visible: !bar.nacre
+        enabled: !bar.nacre
 
         // ---- left island: seal + workspaces + title --------------------
         Rectangle {
@@ -261,6 +266,160 @@ Item {
                         text: "power_settings_new"
                         color: Theme.verm
                         font.pixelSize: 14 * bar.s
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- nacre: three frosted capsules riding a flat, straight band. loaded
+    // only when the skin is active, so the five other skins pay nothing for it.
+    Loader {
+        id: nacreLoader
+        anchors.fill: parent
+        active: bar.nacre
+        sourceComponent: nacreComp
+    }
+    Component {
+        id: nacreComp
+        Item {
+            id: nacreFace
+
+            readonly property real capPad: 12 * bar.s
+            readonly property color capFill: Qt.alpha(Theme.bright, 0.1)
+            readonly property real edge: 16 * bar.s
+            // the bell's centre, published up so the toast grows from it.
+            readonly property real bellCenter: Config.barShowStatus ? nStatus.bellCenter : -1
+            // a side capsule must not reach the centred centre capsule: cap the
+            // width each side may take, so the title elides instead of overlapping.
+            readonly property real sideMax: Math.max(0, (nacreFace.width - nCentreCap.width) / 2 - nacreFace.edge - 14 * bar.s)
+
+            // left capsule: seal, now-playing, title.
+            Rectangle {
+                id: nLeftCap
+                readonly property real titleMax: Math.max(0, nacreFace.sideMax - 2 * nacreFace.capPad - nSeal.width - nLeftRow.spacing - (nMediaMod.visible ? nMediaMod.width + nLeftRow.spacing : 0))
+                anchors.left: parent.left
+                anchors.leftMargin: nacreFace.edge
+                anchors.verticalCenter: parent.verticalCenter
+                height: bar.moduleSpan
+                radius: height / 2
+                color: nacreFace.capFill
+                width: nLeftRow.implicitWidth + 2 * nacreFace.capPad
+                Behavior on width { NumberAnimation { duration: Motion.spatial; easing.type: Easing.OutCubic } }
+
+                Row {
+                    id: nLeftRow
+                    anchors.centerIn: parent
+                    spacing: 6 * bar.s
+
+                    BarModule {
+                        id: nSeal
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        width: bar.moduleSpan
+                        filled: false
+                        onTapped: Quickshell.execDetached(["ryoku-shell", "launcher"])
+                        BrandMark { size: 11 * bar.s }
+                    }
+                    BarModule {
+                        id: nMediaMod
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 8 * bar.s
+                        visible: Config.barShowMedia && Media.present
+                        onTapped: nMedia.toggle()
+                        onWheeled: (steps) => bar.nudgeVolume(steps)
+                        onHoveredChanged: bar.hoverPopoutRequested("media", nMediaMod.mapToItem(null, nMediaMod.width / 2, nMediaMod.height / 2).x, nMediaMod.hovered)
+                        BarMedia { id: nMedia; s: bar.s }
+                    }
+                    BarTitle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        maxWidth: nLeftCap.titleMax
+                        label: Config.barShowTitle && ToplevelManager.activeToplevel ? (ToplevelManager.activeToplevel.title || "") : ""
+                    }
+                }
+            }
+
+            // centre capsule: clock, workspaces, system stats.
+            Rectangle {
+                id: nCentreCap
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
+                height: bar.moduleSpan
+                radius: height / 2
+                color: nacreFace.capFill
+                width: nCentreRow.implicitWidth + 2 * nacreFace.capPad
+                Behavior on width { NumberAnimation { duration: Motion.spatial; easing.type: Easing.OutCubic } }
+
+                Row {
+                    id: nCentreRow
+                    anchors.centerIn: parent
+                    spacing: 10 * bar.s
+
+                    BarModule {
+                        id: nClockMod
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 8 * bar.s
+                        onTapped: bar.popoutRequested("calendar", nClockMod.mapToItem(null, nClockMod.width / 2, nClockMod.height / 2).x)
+                        BarClock { s: bar.s }
+                    }
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 6 * bar.s
+                        interactive: false
+                        BarWorkspaces { s: bar.s; activeWsId: bar.activeWsId }
+                    }
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 6 * bar.s
+                        interactive: false
+                        BarStats { s: bar.s; onRequestPopout: (name, center) => bar.popoutRequested(name, center) }
+                    }
+                }
+            }
+
+            // right capsule: status glyphs, tray.
+            Rectangle {
+                anchors.right: parent.right
+                anchors.rightMargin: nacreFace.edge
+                anchors.verticalCenter: parent.verticalCenter
+                height: bar.moduleSpan
+                radius: height / 2
+                color: nacreFace.capFill
+                width: nRightRow.implicitWidth + 2 * nacreFace.capPad
+                Behavior on width { NumberAnimation { duration: Motion.spatial; easing.type: Easing.OutCubic } }
+
+                Row {
+                    id: nRightRow
+                    anchors.centerIn: parent
+                    spacing: 6 * bar.s
+
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 8 * bar.s
+                        visible: Config.barShowStatus
+                        interactive: false
+                        BarStatus { id: nStatus; s: bar.s; onRequestPopout: (name, center) => bar.popoutRequested(name, center) }
+                    }
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 8 * bar.s
+                        visible: nTray.count > 0
+                        interactive: false
+                        BarTray { id: nTray; s: bar.s; trayWindow: bar.trayWindow; menuEdgeY: bar.height }
                     }
                 }
             }

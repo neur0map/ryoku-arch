@@ -17,7 +17,7 @@ Item {
     id: page
 
     readonly property var shellKeys: [
-        "frameRadius", "roundness", "frameBorder", "frameSmoothing", "frameOpacity",
+        "frameRadius", "roundness", "frameBorder", "frameEnabled", "frameSmoothing", "frameOpacity",
         "shadowStrength", "shadowSize", "surfaceColor",
         "osdRadius", "osdOpacity",
         "barEnabled", "barPosition", "barStyle", "barHeight",
@@ -91,7 +91,7 @@ Item {
     // mirror of the shells' canonical defaults (pill Singletons/Config.qml +
     // visualizer Singletons/Config.qml). only used for "Reset to defaults".
     readonly property var defaults: ({
-        "frameRadius": 9, "roundness": 10, "frameBorder": 59, "frameSmoothing": 8, "frameOpacity": 1,
+        "frameRadius": 9, "roundness": 10, "frameBorder": 59, "frameEnabled": true, "frameSmoothing": 8, "frameOpacity": 1,
         "shadowStrength": 0.63, "shadowSize": 12, "surfaceColor": "#0f1115",
         "osdRadius": 28, "osdOpacity": 1,
         "barEnabled": true, "barPosition": "top", "barStyle": "noctalia", "barHeight": 30,
@@ -122,6 +122,7 @@ Item {
         property real frameRadius: 9
         property real roundness: 10
         property real frameBorder: 59
+        property bool frameEnabled: true
         property real frameSmoothing: 8
         property real frameOpacity: 1
         property real shadowStrength: 0.63
@@ -342,6 +343,7 @@ Item {
             property real frameRadius: 9
             property real roundness: 10
             property real frameBorder: 59
+            property bool frameEnabled: true
             property real frameSmoothing: 8
             property real frameOpacity: 1
             property real shadowStrength: 0.63
@@ -536,6 +538,11 @@ Item {
                 SettingSection {
                     width: parent.width
                     title: "SHAPE"
+                    ToggleRow {
+                        width: parent.width; label: "Enable frame"
+                        checked: draft.frameEnabled
+                        onToggled: (v) => page.edit("frameEnabled", v)
+                    }
                     NumberField {
                         width: parent.width; label: "Border thickness"; unit: "px"
                         from: 24; to: 140; value: draft.frameBorder
@@ -806,7 +813,8 @@ Item {
                             { "key": "aegis", "label": "Aegis", "hint": "instrument" },
                             { "key": "stele", "label": "Stele", "hint": "engraved" },
                             { "key": "triptych", "label": "Triptych", "hint": "islands" },
-                            { "key": "delos", "label": "Delos", "hint": "one island" }
+                            { "key": "delos", "label": "Delos", "hint": "one island" },
+                            { "key": "nacre", "label": "Nacre", "hint": "frosted pods" }
                         ]
                         current: draft.barStyle
                         onChosen: (k) => page.edit("barStyle", k)
@@ -819,7 +827,7 @@ Item {
                     Text {
                         width: parent.width
                         wrapMode: Text.WordWrap
-                        text: "A bar riding the top or bottom edge of the frame. Noctalia (pill and dot) and Caelestia (numbered cell strip) are carried from their namesake shells; Aegis is a flat instrument panel with hairline accent underlines, Stele an engraved strip of bracketed cells, and Triptych groups the modules into three rounded islands riding the band. Panels grow from the bar edge at whichever module you click or hover, and windows tuck in against the band."
+                        text: "A bar riding the top or bottom edge of the frame. Noctalia (pill and dot) and Caelestia (numbered cell strip) are carried from their namesake shells; Aegis is a flat instrument panel with hairline accent underlines, Stele an engraved strip of bracketed cells, Triptych groups the modules into three rounded islands riding the band, and Nacre floats them in soft frosted capsules on a flat band with hollow-ring workspaces and a live CPU, memory and temperature readout. Panels grow from the bar edge at whichever module you click or hover, and windows tuck in against the band."
                         color: Theme.faint
                         font.family: Theme.font
                         font.pixelSize: 12

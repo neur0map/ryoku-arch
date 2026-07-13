@@ -5,7 +5,9 @@ import "Singletons"
 // caelestia) wear the fully rounded pill with the caelestia StateLayer feel
 // (hover overlay + press ripple). aegis is flat on the band with a hairline
 // accent underline that brightens on hover. stele is a sharp engraved cell
-// with L-bracket corners. content centres; the module hugs it plus padding.
+// with L-bracket corners. nacre is flat and transparent too: the frosted
+// capsule drawn behind each cluster is the surface, so a module only lifts a
+// soft hover overlay. content centres; the module hugs it plus padding.
 Item {
     id: mod
 
