@@ -37,6 +37,10 @@
   electron-builder `--config` overrides. `ryomotion <file>` opens a clip straight
   in the editor, so the shell captures with gpu-screen-recorder + a synthesised
   cursor track and hands the clip here with auto-zoom intact.
+  `ryomotion --edit` opens the editor straight to its import screen (the island's
+  Edit action). Recording from inside the editor is native too: on Linux it
+  captures with gpu-screen-recorder (a hard dependency) instead of OpenScreen's
+  browser pipeline, falling back to the browser recorder only when gsr is absent.
   Installs the unpacked app to `/opt/ryomotion` with a `/usr/bin/ryomotion`
   launcher, a `.desktop`, and hicolor icons; `build-repo.sh` picks it up by
   glob. `ryoku-desktop` depends on
