@@ -114,13 +114,13 @@ Item {
         }
     }
     Timer { id: quickTimer; interval: 420; onTriggered: { Recorder.start(hud.recordArgs()); hud.starting = false; } }
-    // studio and import both open ryomotion; a bare launch until the app grows
-    // its own intent flags. notify-send keeps a click from silently doing nothing
-    // before the app is installed.
+    // Edit opens ryomotion straight to its import screen (--edit) so you pick a
+    // clip to edit; notify-send keeps a click from silently doing nothing before
+    // the app is installed.
     function launchRyomotion() {
         Recorder.chooserOpen = false;
         Quickshell.execDetached(["sh", "-c",
-            "command -v ryomotion >/dev/null 2>&1 && exec ryomotion || notify-send 'Ryomotion' 'Not installed yet'"]);
+            "command -v ryomotion >/dev/null 2>&1 && exec ryomotion --edit || notify-send 'Ryomotion' 'Not installed yet'"]);
     }
     // studio: our island is the toolbar, so ryomotion records headless (its HUD
     // hidden) with the chooser's options and we drive the stop from the control bar.
