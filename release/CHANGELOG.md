@@ -48,6 +48,15 @@
   launcher, a `.desktop`, and hicolor icons; `build-repo.sh` picks it up by
   glob. `ryoku-desktop` depends on
   it, so it ships in the ISO and reaches boxes on `ryoku update`.
+- **Webcam self-view overlay** replaces the mpv `ryoku-cmd-mirror` PiP. The 力
+  deck's Mirror tile and the record island now toggle a shaped, draggable camera
+  bubble on a Wayland layer surface (aspect / roundness / size / flip controls,
+  position persisted to `~/.config/ryoku/camera.json`); it stays across workspace
+  switches and gpu-screen-recorder captures it into recordings. The feed is a
+  native `CameraFeed` item in the `ryoku-blobs` QML plugin, which now hard-depends
+  on `qt6-multimedia` (linked at runtime, required to build) so the `.so` loads on
+  `ryoku update`. The retired mpv script and its `float-webcam-mirror` Hyprland
+  window rule are removed.
 
 ### Changed
 - `ryoku-desktop`: the live (video) wallpaper optdepends are `phonto` (AMD/Intel

@@ -15,8 +15,10 @@ pkgdesc="Ryoku.Blobs: SDF metaball QML plugin for the screen frame"
 arch=('x86_64')
 url="https://ryoku.dev"
 license=('GPL-3.0-or-later')
-depends=('qt6-base' 'qt6-declarative')
-makedepends=('cmake' 'ninja' 'qt6-shadertools' 'qt6-declarative')
+# qt6-multimedia backs the CameraFeed item (webcam self-view overlay): it links
+# libQt6Multimedia at runtime and needs the CMake config + headers to build.
+depends=('qt6-base' 'qt6-declarative' 'qt6-multimedia')
+makedepends=('cmake' 'ninja' 'qt6-shadertools' 'qt6-declarative' 'qt6-multimedia')
 source=()
 
 _repo="$startdir/../../.."
