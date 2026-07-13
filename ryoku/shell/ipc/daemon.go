@@ -33,19 +33,20 @@ var components = []component{
 
 // pillSurfaces maps a client command to the pill IpcHandler function it toggles.
 var pillSurfaces = map[string]string{
-	"clipboard":        "clipboard",
-	"link":             "link",
-	"inbox":            "inbox",
-	"mixer":            "mixer",
-	"calendar":         "calendar",
-	"power":            "power",
-	"battery":          "battery",
-	"peek":             "peek",
-	"hide":             "hide",
-	"stash":            "stash",
-	"toolkit":          "toolkit",
-	"utilities":        "utilities",
-	"workspaces":       "workspaces",
+	"clipboard":  "clipboard",
+	"link":       "link",
+	"inbox":      "inbox",
+	"mixer":      "mixer",
+	"calendar":   "calendar",
+	"power":      "power",
+	"battery":    "battery",
+	"peek":       "peek",
+	"hide":       "hide",
+	"stash":      "stash",
+	"toolkit":    "toolkit",
+	"utilities":  "utilities",
+	"system":     "sidebarRight", // Super+Alt+D: right (System) sidebar
+	"workspaces": "workspaces",
 }
 
 type daemon struct {

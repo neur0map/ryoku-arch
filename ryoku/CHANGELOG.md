@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- `hyprland` + `shell`: **`Super+Alt+D` opens the right (System) sidebar**, the
+  mirror of `Super+D` for the left (Features) sidebar. The bind runs
+  `ryoku-shell system`, a new IPC verb that toggles the System control centre;
+  the Hub's keybind reference lists it automatically since it reads `binds.lua`
+  (`hyprland/modules/binds.lua`, `shell/ipc/daemon.go`).
 - `hyprland` + `hub`: **recordings are constant-framerate and crisp by default,
   and now configurable.** `ryoku-cmd-screenrecord` recorded variable-framerate
   with no quality flag, so clips felt like 30fps and imported as ~30 in editors.

@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- **`ryoku-shell system` toggles the right (System) sidebar**, so it can be
+  bound like the left `toolkit`/`sidebarLeft`. `Super+Alt+D` uses it; the daemon
+  maps the verb to the pill's existing `sidebarRight` handler (`ipc/daemon.go`).
 - **The desktop visualiser gains four new looks: a stiff line, LED segments, a
   radial ring and a morphing circle, plus peak caps and a frame budget you
   control.** Beside bars, dots and the filled wave the spectrum now draws as a

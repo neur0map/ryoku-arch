@@ -38,6 +38,7 @@ hl.bind(mod .. " + C",         hl.dsp.exec_cmd("ryoku-shell wallpaper-switcher")
 hl.bind(mod .. " + SHIFT + W", hl.dsp.exec_cmd("ryoku-summon ryowalls flock -n -o /tmp/ryowalls.lock qs -c ryowalls")) -- ryowalls: summon to current workspace
 hl.bind(mod .. " + SHIFT + V", hl.dsp.exec_cmd("ryoku-summon ryovm flock -n -o /tmp/ryovm.lock qs -c ryovm")) -- ryovm: summon to current workspace
 hl.bind(mod .. " + D",         hl.dsp.exec_cmd("ryoku-shell toolkit"))           -- left features sidebar (stash, tools)
+hl.bind(mod .. " + ALT + D",   hl.dsp.exec_cmd("ryoku-shell system"))            -- right system sidebar (control centre, glances)
 hl.bind(mod .. " + Tab",       hl.dsp.exec_cmd("ryoku-shell overview")) -- workspace overview (expo: live previews, drag windows between workspaces, cycle)
 hl.bind(mod .. " + ALT + Tab", hl.dsp.exec_cmd("ryoku-shell overview")) -- workspace overview, stepping desktops (Alt+Tab again inside cycles desktops)
 hl.bind(mod .. " + M",         hl.dsp.exec_cmd("ryoku-shell visualizer"))        -- toggle the desktop audio visualiser
