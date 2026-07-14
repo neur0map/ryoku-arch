@@ -404,6 +404,13 @@
   `shell/fish` (with its non-brand greeting) was dropped for `ryoku/apps/fish`.
 
 ### Fixed
+- `hyprland/modules/autostart.lua`: the welcome tour's double-fire guard now
+  actually guards. `flock -o` closes the lock fd before exec, releasing the
+  lock the instant `qs -c welcome` starts, so two racing autostart fires could
+  both open the tour; and the lock file lived at a fixed `/tmp` path one user
+  owns, so on a multi-user box the second user's flock failed to open and their
+  first-login tour was silently skipped (the seen-marker still got written).
+  The `-o` is gone and the lock lives under `$XDG_RUNTIME_DIR`.
 - `hyprland/modules/env.lua` + `shell/qt6ct`: app logos in the launcher's
   all-apps grid resolve again. `QT_QPA_PLATFORMTHEME` was `kde`, but the `kde`
   platform-theme plugin comes only from `plasma-integration` (a 122-package

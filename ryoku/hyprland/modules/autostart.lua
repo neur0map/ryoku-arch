@@ -21,5 +21,5 @@ hl.on("hyprland.start", function()
     -- finish or close, then the flag is written -- so it appears exactly once. exec
     -- is async, so the blocking `qs` here never holds up the rest of autostart.
     local welcome_state = (os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state")) .. "/ryoku"
-    hl.exec_cmd("[ -e '" .. welcome_state .. "/welcome-seen' ] || { flock -n -o /tmp/ryoku-welcome.lock qs -c welcome; mkdir -p '" .. welcome_state .. "'; touch '" .. welcome_state .. "/welcome-seen'; }")
+    hl.exec_cmd("[ -e '" .. welcome_state .. "/welcome-seen' ] || { flock -n \"${XDG_RUNTIME_DIR:-/tmp}/ryoku-welcome.lock\" qs -c welcome; mkdir -p '" .. welcome_state .. "'; touch '" .. welcome_state .. "/welcome-seen'; }")
 end)
