@@ -42,6 +42,12 @@ ISO detail live in `backend/CHANGELOG.md` and `iso/CHANGELOG.md`.
   live kernel needed VMD to see the NVMe.
 
 ### Fixed
+- The packaged install smoke test (`installation/tests/container-install.sh`) now
+  installs the Hyprland-plugin and wallust build deps (`rust`, `hyprland`,
+  `hyprcursor`, `pango`, `cairo`, `pkgconf`) it always claimed to mirror from
+  `publish-repo.yml`. Without them the newly packaged compositor-plugin PKGBUILDs
+  failed in `prepare()` (`pkg-config` could not find `hyprland`), so the smoke
+  test - and the publish gate that reuses it - could not build the `[ryoku]` set.
 - The TUI catches a failed password hash at the password screen. `hashPassword`
   shells out to `openssl passwd -6`; on a failure it returned "" and the wizard
   marched on, handing the backend an empty `RYOKU_PASSWORD_HASH` that only died
