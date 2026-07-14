@@ -100,6 +100,19 @@
   plain grab when the tool is absent (`Beautify.qml`).
 
 ### Fixed
+- **The frame and bar now retract over a fullscreen window on every monitor, not
+  just the focused one.** quickshell 0.3.0 learns a workspace went fullscreen two
+  ways: the raw `fullscreen` event, which only marks the focused workspace, and a
+  `j/workspaces` resync fired right after to catch the rest (a second monitor, a
+  fullscreen window dragged between workspaces). Ryoku's Hyprland fork answers that
+  request socket in a shape quickshell cannot parse, so the resync did nothing and
+  only the focused monitor's shell ever hid. A single panel never noticed (focused
+  and active workspace coincide); on a second monitor the frame and top bar stayed
+  drawn over the fullscreen content. A new `Singletons/Fullscreen.qml` probes
+  `hyprctl -j workspaces` itself on the fullscreen and workspace events and keys
+  the result by workspace id; the pill and the OSD read their monitor's active
+  workspace from it instead of the resync-derived property (`shell.qml`,
+  `OsdWindow.qml`, `Singletons/Fullscreen.qml`, `Singletons/qmldir`).
 - **Live (video) wallpapers now play through `ryoku-livewall`, a tiny
   software-decode daemon that holds around 40 MB on any GPU instead of the old
   300-700 MB.** The previous backends were client GL pipelines (`mpvpaper` on

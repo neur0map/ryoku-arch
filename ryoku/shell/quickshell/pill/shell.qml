@@ -536,12 +536,14 @@ ShellRoot {
                 && root.kbPopouts.indexOf(root.popout) >= 0
             readonly property bool modal: kbPopout
 
-            // true if this monitor's active workspace has a fullscreen window.
+            // true when this monitor's visible workspace holds a fullscreen
+            // window. Fullscreen owns the id -> fullscreen map (hyprctl-backed,
+            // fork-proof); the monitor -> active workspace hop stays event-driven.
             readonly property bool monFullscreen: {
                 var mons = Hyprland.monitors.values;
                 for (var i = 0; i < mons.length; i++)
                     if (mons[i].name === modelData.name)
-                        return mons[i].activeWorkspace ? mons[i].activeWorkspace.hasFullscreen : false;
+                        return mons[i].activeWorkspace ? (Fullscreen.byWs[mons[i].activeWorkspace.id] === true) : false;
                 return false;
             }
 

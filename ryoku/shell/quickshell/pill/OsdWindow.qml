@@ -26,13 +26,14 @@ PanelWindow {
     readonly property real barVisibleH: frameLip + Config.barHeight * s
     readonly property real bottomInset: (barBottom ? barVisibleH : frameLip) + 12 * s
 
-    // this monitor's active workspace has a fullscreen window: the whole shell
-    // hides then, so the OSD stays down too (suppressed clears its flashing).
+    // this monitor's visible workspace holds a fullscreen window: the whole
+    // shell hides then, so the OSD stays down too (suppressed clears its
+    // flashing). shares the hyprctl-backed Fullscreen map with the pill.
     readonly property bool monFullscreen: {
         var mons = Hyprland.monitors.values;
         for (var i = 0; i < mons.length; i++)
             if (mons[i].name === (modelData ? modelData.name : ""))
-                return mons[i].activeWorkspace ? mons[i].activeWorkspace.hasFullscreen : false;
+                return mons[i].activeWorkspace ? (Fullscreen.byWs[mons[i].activeWorkspace.id] === true) : false;
         return false;
     }
 
