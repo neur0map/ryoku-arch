@@ -18,6 +18,12 @@ ShellRoot {
     property string openMon: ""
     readonly property bool open: openMon !== ""
 
+    // Report open/close to the shell daemon so its opt-in idle-park worker
+    // (unloadLauncherWhenIdle) can free this resident palette after a grace of
+    // being hidden and respawn it on the next open. A no-op when the flag is off;
+    // the daemon just records the state.
+    onOpenChanged: Quickshell.execDetached(["ryoku-shell", "state", "launcher", open ? "1" : "0"])
+
     // Any MPRIS player actively playing. Gates the now-playing wave backdrop's
     // cava process (Spectrum) so it runs only while the launcher is open AND
     // there is real audio, never on a hidden or silent palette.

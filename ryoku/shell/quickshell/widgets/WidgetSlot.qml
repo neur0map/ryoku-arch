@@ -90,7 +90,7 @@ Item {
     MultiEffect {
         source: backing
         anchors.fill: backing
-        visible: slot.bg !== "none"
+        visible: !Performance.shadowsDisabled && slot.bg !== "none"
         shadowEnabled: true
         shadowColor: Qt.rgba(0, 0, 0, 0.5)
         shadowBlur: 1.0
@@ -184,7 +184,7 @@ Item {
         y: slot.pad
         width: slot.cw
         height: slot.ch
-        layer.enabled: slot.bg === "none"
+        layer.enabled: !Performance.shadowsDisabled && slot.bg === "none"
         layer.effect: MultiEffect {
             shadowEnabled: true
             shadowColor: Qt.rgba(0, 0, 0, 0.5)

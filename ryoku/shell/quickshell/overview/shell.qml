@@ -32,6 +32,11 @@ ShellRoot {
     // the next Super+Tab is an instant toggle rather than a fresh process.
     property bool open: false
 
+    // Report open/close to the shell daemon so its opt-in idle-park worker
+    // (unloadOverviewWhenIdle) can free this resident expo after a grace of being
+    // hidden and respawn it on the next Super+Tab. A no-op when the flag is off.
+    onOpenChanged: Quickshell.execDetached(["ryoku-shell", "state", "overview", open ? "1" : "0"])
+
     function focusedMonitor() {
         var m = Hyprland.focusedMonitor;
         return m && m.name ? m.name : (Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "");

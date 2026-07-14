@@ -79,6 +79,7 @@ Item {
     MultiEffect {
         source: panel
         anchors.fill: panel
+        visible: !Performance.shadowsDisabled
         shadowEnabled: true
         shadowColor: Qt.rgba(0, 0, 0, 0.6)
         shadowBlur: 1.0

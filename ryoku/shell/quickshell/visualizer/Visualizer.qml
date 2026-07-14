@@ -98,7 +98,7 @@ Item {
     // tab holding an audio context) otherwise defeats the freeze and leaves
     // idle lines breathing on a silent desktop. freezing also spares this
     // Qt/NVIDIA stack the idle animation, which leaks there.
-    readonly property bool idleFrozen: Performance.freezeVisualizerWhenIdle && !root.sounding
+    readonly property bool idleFrozen: Performance.visualizerFrozen && !root.sounding
     readonly property bool wantIdleWave: Config.idleWave && !root.idleFrozen
     // anything to animate at all? silent, settled, and no wave -> ticker stops.
     readonly property bool animating: root.sounding || root.wantIdleWave || root.maxLevel > 0.004
@@ -287,8 +287,8 @@ Item {
         source: field
         anchors.fill: field
         z: 0
-        visible: root.effBloom > 0 && root.maxLevel > 0.01
-        blurEnabled: root.effBloom > 0 && root.maxLevel > 0.01
+        visible: !Performance.blurDisabled && root.effBloom > 0 && root.maxLevel > 0.01
+        blurEnabled: !Performance.blurDisabled && root.effBloom > 0 && root.maxLevel > 0.01
         blur: 1.0
         blurMax: 24
         autoPaddingEnabled: true

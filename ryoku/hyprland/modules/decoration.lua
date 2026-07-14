@@ -10,6 +10,24 @@ end
 local active   = border(wc and wc.active, "#e0563b")
 local inactive = border(wc and wc.inactive, "#313a4d")
 
+-- Low-power switches, read from the shell's performance.json (the file Ryoku
+-- Settings' Performance page writes). A flat-JSON pattern match keeps this
+-- dependency-free; a missing file or key reads false. Compositor blur and shadow
+-- are the heaviest present-time GPU cost, so lowPowerMode (or the individual
+-- disableBlur / disableShadows) strips them here for weak GPUs. The Performance
+-- page runs `hyprctl reload` on toggle so this re-reads live; on login it applies
+-- on first parse.
+local function perf_flag(key)
+  local f = io.open(home .. "/.config/ryoku/performance.json", "r")
+  if not f then return false end
+  local s = f:read("*a")
+  f:close()
+  return s:match('"' .. key .. '"%s*:%s*true') ~= nil
+end
+local low_power = perf_flag("lowPowerMode")
+local no_blur   = low_power or perf_flag("disableBlur")
+local no_shadow = low_power or perf_flag("disableShadows")
+
 hl.config({
   general = {
     gaps_in                 = 12,
@@ -26,13 +44,13 @@ hl.config({
     active_opacity   = 1,
     inactive_opacity = 0.94,
     shadow           = {
-      enabled      = true,
+      enabled      = not no_shadow,
       range        = 45,
       render_power = 4,
       color        = 0xd10a0807,
     },
     blur             = {
-      enabled           = true,
+      enabled           = not no_blur,
       size              = 4,
       passes            = 1,
       vibrancy          = 0.17,
@@ -48,7 +66,7 @@ hl.config({
 hl.layer_rule({
   name    = "launcher-blur",
   match   = { namespace = "launcher" },
-  blur    = true,
+  blur    = not no_blur,
   no_anim = true,
 })
 
@@ -59,7 +77,7 @@ hl.layer_rule({
 hl.layer_rule({
   name    = "overview-blur",
   match   = { namespace = "overview" },
-  blur    = true,
+  blur    = not no_blur,
   no_anim = true,
 })
 

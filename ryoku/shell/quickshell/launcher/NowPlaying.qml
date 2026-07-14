@@ -181,8 +181,8 @@ Item {
             anchors.fill: parent
             source: bleed
             scale: 1.12
-            visible: root.effectiveArt !== "" && bleed.status === Image.Ready
-            blurEnabled: true
+            visible: !Performance.blurDisabled && root.effectiveArt !== "" && bleed.status === Image.Ready
+            blurEnabled: !Performance.blurDisabled
             blur: 0.95
             blurMax: 48
             saturation: 0.1

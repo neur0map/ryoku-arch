@@ -3,6 +3,54 @@
 ## Unreleased
 
 ### Added
+- **Low Power mode: one Ryoku Settings toggle strips every heavy effect so a weak
+  GPU runs the shell without lag.** New Performance page switches, all off by
+  default and written to `~/.config/ryoku/performance.json`: **Low power mode**
+  (the master -- implies all four below), **Reduce motion** (collapses every
+  `Motion` duration to 0 so transitions cut instantly and stop forcing per-frame
+  repaints), **Disable blur**, and **Disable shadows**. The blur/shadow switches
+  cut both the shell's own passes AND the compositor's: `hyprland/modules/
+  decoration.lua` now reads the same flags and gates `blur`/`shadow` (plus the
+  launcher/overview backdrop-blur layer rules), and the toggle fires `hyprctl
+  reload` so it applies at once; on login the Lua reads it on first parse. The
+  master and each switch are OR'd in a derived `Performance` singleton, so
+  consumers read `blurDisabled` / `shadowsDisabled` / `motionReduced` /
+  `pillFrozen`, never the raw flag. Wired through: pill bead
+  (`pill/Ame.qml`, `pill/Singletons/Performance.qml` + `Motion.qml`), the
+  now-playing art blur (`launcher/NowPlaying.qml` + new
+  `launcher/Singletons/Performance.qml`, `launcher/Singletons/Motion.qml`), the
+  visualiser bloom + freeze (`visualizer/Visualizer.qml`,
+  `visualizer/Singletons/Performance.qml`), the desktop-widget drop shadows (new
+  `widgets/Singletons/Performance.qml`, `widgets/WidgetSlot.qml`,
+  `widgets/WidgetMenu.qml`), the overview motion (`overview/Singletons/Motion.qml`),
+  the compositor (`hyprland/modules/decoration.lua`), and the Hub Performance page
+  (`hub/quickshell/PerformancePage.qml`).
+- **Optional shell components can be turned off entirely.** A `"disabledComponents"`
+  array in `~/.config/ryoku/performance.json` (any of `launcher`, `visualizer`,
+  `widgets`, `overview`; `pill` is always on) stops the daemon from ever starting
+  those processes, at boot or on a keybind -- the Ryoku answer to "disable what
+  you don't use" for someone who never opens a surface, so it costs zero rather
+  than parking and respawning. A missing key disables nothing (`ipc/daemon.go`
+  `componentDisabled`/`parseDisabledComponents`).
+- **The launcher and workspace overview can free their memory when idle, opt-in.**
+  Both stay resident-and-hidden for an instant open -- a full Qt/jemalloc process
+  (~300 MB RSS, ~110-160 MB PSS) each, drawing nothing. New Performance toggles
+  let the daemon SIGTERM a palette after 60 s hidden and respawn it on the next
+  open; the palettes report their open state over a new `state` IPC and the
+  existing `ipcCall` retry covers the cold start, so the open still lands. Off by
+  default, mirroring the visualiser and widget unload gates (`ipc/idlewatch.go`,
+  `ipc/daemon.go`, `quickshell/launcher/shell.qml`, `quickshell/overview/shell.qml`,
+  Hub `PerformancePage.qml`; keys `unloadLauncherWhenIdle`, `unloadOverviewWhenIdle`).
+- **Supervised Quickshell processes launch with jemalloc tuned to hoard less idle
+  memory.** Quickshell links jemalloc, whose default `narenas` is 4x the CPU count
+  (64 on a 16-thread box) and which only returns freed pages to the OS on later
+  allocation activity, so an idle shell keeps every dirty page mapped. The daemon
+  now hands each `qs` it starts
+  `MALLOC_CONF=narenas:2,background_thread:true,dirty_decay_ms:5000,muzzy_decay_ms:5000`
+  (a user-set `MALLOC_CONF` still wins), capping arenas and running a background
+  thread that purges freed pages on a short decay even while idle. Bounds RSS
+  growth over a long session more than it cuts the fresh-idle figure
+  (`ipc/daemon.go` `qsEnv`/`jemallocConf`).
 - **Three flat frame-off bar styles ported from snowarch's iNiR: `inir`,
   `aurora`, `angel`.** Each is a flush, full-width bar at the screen edge with
   borderless modules (seal, workspaces, stats and now-playing left; the clock
@@ -130,9 +178,12 @@
   transcode and stays under the video. Both wallpaper classes are now under the
   100 MB requirement (static via awww ~31 MB, live via livewall ~40 MB). Hardware
   video decode was investigated and rejected: it cannot beat 100 MB on NVIDIA.
-  livewall is single-output for now, and the ryowalls fit knob is not yet honoured
-  (it fills via viewport); both are follow-ups (`ipc/wallpaper.go`,
-  `ipc/daemon.go`, `livewall/livewall.c`, `livewall/build.sh`, `deploy.sh`).
+  The ryowalls Fit knob now drives the mapping: fill crops the clip to the output
+  aspect through the `wp_viewport` source rect (cover), fit letterboxes it whole
+  against the shm's opaque-black fill, so a clip never stretches to the panel
+  aspect. Single-output for now (multi-monitor is the remaining follow-up)
+  (`ipc/wallpaper.go`, `ipc/daemon.go`, `livewall/livewall.c`,
+  `livewall/build.sh`, `deploy.sh`).
 - **Live (video) wallpapers stop eating RAM and no longer bleed through onto the
   image beneath, with a GPU-picked hardware decoder.** The old path ran a full
   mpv (mpvpaper) that mapped its surface *over* the still `awww` image without

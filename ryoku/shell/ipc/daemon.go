@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -28,6 +29,42 @@ var components = []component{
 	{"visualizer", true},
 	{"widgets", true},
 	{"overview", true},
+}
+
+// parseDisabledComponents pulls the "disabledComponents" string array from a
+// performance.json body. pill is never returned: the frame and bar are the shell
+// itself, so turning them off is not offered. A malformed or absent list
+// disables nothing.
+func parseDisabledComponents(b []byte) map[string]bool {
+	var m struct {
+		Disabled []string `json:"disabledComponents"`
+	}
+	out := map[string]bool{}
+	if json.Unmarshal(b, &m) != nil {
+		return out
+	}
+	for _, name := range m.Disabled {
+		if name != "pill" {
+			out[name] = true
+		}
+	}
+	return out
+}
+
+// componentDisabled reports whether the user turned a component off in
+// performance.json. Disabled components never start, at boot or on demand, so a
+// user who never opens the overview, launcher, or visualiser stops paying for its
+// resident process entirely (the Ryoku analogue of iNiR's enabledPanels). pill is
+// always on; a missing file disables nothing.
+func componentDisabled(name string) bool {
+	if name == "pill" {
+		return false
+	}
+	b, err := os.ReadFile(perfPath())
+	if err != nil {
+		return false
+	}
+	return parseDisabledComponents(b)[name]
 }
 
 // pillSurfaces maps a client command to the pill IpcHandler function it toggles.
@@ -69,6 +106,8 @@ type daemon struct {
 	gateMu         sync.Mutex               // guards gateWant / gateWake
 	gateWant       map[string]bool          // component -> may run now (absent = yes)
 	gateWake       map[string]chan struct{} // wakes a parked supervisor when its gate opens
+	parkMu         sync.Mutex               // guards hiddenSince
+	hiddenSince    map[string]time.Time     // parkable palette -> when it last went hidden (absent = shown)
 }
 
 func runDaemon() error {
@@ -91,14 +130,15 @@ func runDaemon() error {
 	}
 
 	d := &daemon{
-		sup:       map[string]bool{},
-		proc:      map[string]*exec.Cmd{},
-		paintSig:  make(chan struct{}, 1),
-		ledsSig:   make(chan struct{}, 1),
-		widgetSig: make(chan struct{}, 1),
-		quit:      make(chan struct{}),
-		gateWant:  map[string]bool{},
-		gateWake:  map[string]chan struct{}{},
+		sup:         map[string]bool{},
+		proc:        map[string]*exec.Cmd{},
+		paintSig:    make(chan struct{}, 1),
+		ledsSig:     make(chan struct{}, 1),
+		widgetSig:   make(chan struct{}, 1),
+		quit:        make(chan struct{}),
+		gateWant:    map[string]bool{},
+		gateWake:    map[string]chan struct{}{},
+		hiddenSince: map[string]time.Time{},
 	}
 	d.ln = ln
 
@@ -171,6 +211,7 @@ func (d *daemon) bootstrap() {
 	go d.watchHyprland()
 	go d.watchAudio()
 	go d.widgetGateWorker()
+	go d.idlePark()
 	go func() {
 		d.wallMu.Lock()
 		defer d.wallMu.Unlock()
@@ -192,6 +233,9 @@ func (d *daemon) startComponents() {
 		if !c.persistent {
 			continue
 		}
+		if componentDisabled(c.name) {
+			continue
+		}
 		d.ensure(c.name)
 		select {
 		case <-d.quit:
@@ -203,6 +247,9 @@ func (d *daemon) startComponents() {
 
 // ensure guarantees a supervisor goroutine exists for a component.
 func (d *daemon) ensure(name string) {
+	if componentDisabled(name) {
+		return
+	}
 	d.mu.Lock()
 	if d.sup[name] {
 		d.mu.Unlock()
@@ -211,6 +258,26 @@ func (d *daemon) ensure(name string) {
 	d.sup[name] = true
 	d.mu.Unlock()
 	go d.supervise(name)
+}
+
+// jemallocConf tunes the allocator Quickshell links. jemalloc defaults narenas
+// to 4*ncpu (64 on a 16-thread box) and only returns freed pages to the OS on
+// later allocation activity, so an idle shell that stops allocating keeps every
+// dirty page mapped as RSS. Two arenas is ample for an event-driven GUI, and a
+// background thread purges on the decay schedule even while idle. Each supervised
+// qs process pays this once, so five of them stop hoarding a dozen arenas of
+// freed heap apiece.
+const jemallocConf = "narenas:2,background_thread:true,dirty_decay_ms:5000,muzzy_decay_ms:5000"
+
+// qsEnv is the environment for a supervised quickshell process: the daemon's own
+// env (which carries the QML import path setupQmlImportPath exports) plus the
+// jemalloc tuning, unless the user already pinned MALLOC_CONF.
+func qsEnv() []string {
+	env := os.Environ()
+	if os.Getenv("MALLOC_CONF") == "" {
+		env = append(env, "MALLOC_CONF="+jemallocConf)
+	}
+	return env
 }
 
 // supervise runs `qs -c <name>` and restarts it whenever it exits, backing off if
@@ -234,6 +301,7 @@ func (d *daemon) supervise(name string) {
 			}
 		}
 		cmd := exec.Command("qs", qsSelect(name)...)
+		cmd.Env = qsEnv()
 		if err := cmd.Start(); err != nil {
 			time.Sleep(backoff)
 			backoff = capDur(backoff*2, 30*time.Second)
@@ -242,6 +310,9 @@ func (d *daemon) supervise(name string) {
 		d.mu.Lock()
 		d.proc[name] = cmd
 		d.mu.Unlock()
+		if parkable(name) {
+			d.markHidden(name)
+		}
 
 		start := time.Now()
 		_ = cmd.Wait()
@@ -410,10 +481,17 @@ func (d *daemon) dispatch(line string) string {
 	cmd, args := fields[0], fields[1:]
 
 	if config, target, fn, ok := route(cmd); ok {
+		if componentDisabled(config) {
+			// the user turned this component off; its keybind is a silent no-op
+			// rather than a failed ipc call to a process that will never start.
+			return "ok"
+		}
 		d.ensure(config)
-		if config == "visualizer" {
-			// an explicit toggle/overlay must win over the audio-unload gate.
-			d.setGate("visualizer", true)
+		if config == "visualizer" || parkable(config) {
+			// an explicit toggle must win over the idle-unload gate: reopen a
+			// parked visualiser or palette so its supervisor respawns, then
+			// ipcCall retries until the fresh instance answers.
+			d.setGate(config, true)
 		}
 		mon := ""
 		if needsMonitor(fn) {
@@ -491,6 +569,16 @@ func (d *daemon) dispatch(line string) string {
 		}
 		d.ensure("pill")
 		return ipcCallN("pill", "pill", "stashSend", d.activeMonitor(), path)
+	case "state":
+		// a parkable palette (launcher/overview) reporting its open state for the
+		// idle-park worker: `state <name> <0|1>`. 1 shows (cancels the park grace),
+		// 0 hides (starts it).
+		if len(args) < 2 {
+			return "err state: need <name> <0|1>"
+		}
+		d.setPaletteVisible(args[0], args[1] == "1")
+		return "ok"
+
 	default:
 		return "err unknown command: " + cmd
 	}

@@ -28,18 +28,23 @@ func parsePerfFlag(b []byte, key string) bool {
 	return v
 }
 
-// perfFlag reads one opt-in out of ~/.config/ryoku/performance.json (the file
-// the Performance section in Ryoku Settings writes). A missing file is off.
-func perfFlag(key string) bool {
+// perfPath is ~/.config/ryoku/performance.json, the file the Performance section
+// in Ryoku Settings writes. Empty only when the home dir is unknowable.
+func perfPath() string {
 	dir := os.Getenv("XDG_CONFIG_HOME")
 	if dir == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return false
+			return ""
 		}
 		dir = filepath.Join(home, ".config")
 	}
-	b, err := os.ReadFile(filepath.Join(dir, "ryoku", "performance.json"))
+	return filepath.Join(dir, "ryoku", "performance.json")
+}
+
+// perfFlag reads one opt-in out of performance.json. A missing file is off.
+func perfFlag(key string) bool {
+	b, err := os.ReadFile(perfPath())
 	if err != nil {
 		return false
 	}
@@ -50,15 +55,7 @@ func perfFlag(key string) bool {
 // ship on by default (the user opts out). A missing file, missing key, or wrong
 // type all yield def.
 func perfFlagDefault(key string, def bool) bool {
-	dir := os.Getenv("XDG_CONFIG_HOME")
-	if dir == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return def
-		}
-		dir = filepath.Join(home, ".config")
-	}
-	b, err := os.ReadFile(filepath.Join(dir, "ryoku", "performance.json"))
+	b, err := os.ReadFile(perfPath())
 	if err != nil {
 		return def
 	}

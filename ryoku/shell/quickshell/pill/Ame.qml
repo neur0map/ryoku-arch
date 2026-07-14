@@ -313,7 +313,7 @@ Item {
     // animates during morphs/flights (FrameAnimation, while busy) and while an
     // interactive surface is open; only the idle "rest" glow is held still.
     Timer {
-        running: root.visible && !root.busy && root.activeForm !== "rest" && !Performance.freezePillWhenIdle
+        running: root.visible && !root.busy && root.activeForm !== "rest" && !Performance.pillFrozen
         interval: root.blinking ? 33 : 83
         repeat: true
         onTriggered: {
@@ -568,7 +568,7 @@ Item {
     // layer only exists while something draws or fades. the live MultiEffect also
     // re-captures every vsync, so the opt-in idle freeze drops the layer too: a
     // frozen, idle bead is a plain static dab with no per-frame GPU cost.
-    layer.enabled: busy || (opacity > 0.001 && !Performance.freezePillWhenIdle)
+    layer.enabled: !Performance.blurDisabled && (busy || (opacity > 0.001 && !Performance.pillFrozen))
     layer.effect: MultiEffect {
         blurEnabled: true
         blur: 0.34
