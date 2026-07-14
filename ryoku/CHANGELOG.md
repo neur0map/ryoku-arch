@@ -363,6 +363,16 @@
   or peg the voice wave.
 
 ### Changed
+- `shell/quickshell/visualizer` + `hub/quickshell`: **the `line` visualiser
+  style is now an oscilloscope** that draws the actual playback waveform, not a
+  spectrum with sharp points. A new `Waveform` singleton captures the default
+  sink's monitor (PipeWire-native, downsampled by `wavecap.py`) and the line
+  traces it live: a glowing filament on a baseline that flatlines in silence and
+  moves with the music, wearing the heart-monitor look as skin over a real music
+  visualiser. Capture runs only while the style is selected and tears down with
+  the surface. The Shell settings preview mirrors it and the style picker labels
+  it "Monitor" (the `line` key is unchanged) (`Visualizer.qml`, `Waveform.qml`,
+  `wavecap.py`, `VizPreview.qml`, `ShellSettingsPage.qml`).
 - `shell/quickshell/{pill,widgets}`: the always-on shell layers render on demand
   (the basic Qt loop) instead of the threaded loop, which on NVIDIA spun the
   render thread every vsync whenever a live MultiEffect (card shadows, the bead

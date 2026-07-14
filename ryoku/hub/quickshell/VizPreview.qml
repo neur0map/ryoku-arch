@@ -55,6 +55,14 @@ Item {
     readonly property bool wantPeaks: preview.peaks && preview.position !== "center"
         && (preview.vs === "bars" || preview.vs === "segments")
 
+    // oscilloscope (line style): a lively synthetic waveform standing in for the
+    // live capture (the real style draws the actual audio), so the picker shows
+    // a moving scope. mirrors the desktop's baseline + glow.
+    readonly property real scopeAmp: preview.maxH * 0.5
+    readonly property real scopeDir: preview.position === "top" ? -1 : 1
+    readonly property real scopeBaseY: preview.position === "center" ? preview.cy
+        : (preview.position === "top" ? preview.scopeAmp * 1.15 : preview.baseBottom - preview.scopeAmp * 1.15)
+
     readonly property var ramp: [[1.0, 0.478, 0.239], [1.0, 0.698, 0.302], [0.525, 0.831, 0.447], [0.302, 0.784, 0.902], [0.604, 0.482, 1.0]]
     function colorAt(t) {
         var s = preview.ramp, m = s.length;
@@ -252,17 +260,27 @@ Item {
             }
         }
 
+        // baseline: the faint centre line the waveform rides.
+        Rectangle {
+            visible: preview.vs === "line"
+            x: 0
+            width: preview.width
+            height: 1.5
+            y: preview.scopeBaseY - height / 2
+            color: Qt.alpha(preview.accent, 0.20)
+            antialiasing: true
+        }
         Shape {
             anchors.fill: parent
             visible: preview.vs === "line"
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
-                strokeColor: Qt.alpha(Qt.lighter(preview.accent, 1.5), 0.22)
-                strokeWidth: 7
-                capStyle: ShapePath.FlatCap
+                strokeColor: Qt.alpha(Qt.lighter(preview.accent, 1.5), 0.20)
+                strokeWidth: 8
+                capStyle: ShapePath.RoundCap
                 joinStyle: ShapePath.RoundJoin
                 fillColor: "transparent"
-                PathSvg { path: preview.vs === "line" ? preview.buildAnglePath() : "" }
+                PathSvg { path: preview.vs === "line" ? preview.buildScopePath() : "" }
             }
         }
         Shape {
@@ -270,12 +288,12 @@ Item {
             visible: preview.vs === "line"
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
-                strokeColor: Qt.lighter(preview.accent, 1.8)
+                strokeColor: Qt.lighter(preview.accent, 1.9)
                 strokeWidth: 2.4
-                capStyle: ShapePath.FlatCap
-                joinStyle: ShapePath.MiterJoin
+                capStyle: ShapePath.RoundCap
+                joinStyle: ShapePath.RoundJoin
                 fillColor: "transparent"
-                PathSvg { path: preview.vs === "line" ? preview.buildAnglePath() : "" }
+                PathSvg { path: preview.vs === "line" ? preview.buildScopePath() : "" }
             }
         }
 
@@ -397,12 +415,27 @@ Item {
         return "M0 " + baseY + " L" + xs[0] + " " + ys[0] + " " + preview.svgSmooth(xs, ys, false)
             + "L" + w + " " + ys[preview.n - 1] + " L" + w + " " + baseY + " Z";
     }
-    function buildAnglePath() {
-        var xs = preview.tipXs();
-        var s = "M0 " + preview.tipY(preview.lengthAt(0));
-        for (var i = 0; i < preview.n; i++)
-            s += " L" + xs[i] + " " + preview.tipY(preview.lengthAt(i));
-        s += " L" + preview.width + " " + preview.tipY(preview.lengthAt(preview.n - 1));
+    // a lively synthetic waveform driven by the preview phase/beat, standing in
+    // for the live audio scope so the picker shows a moving oscilloscope.
+    function buildScopePath() {
+        var w = preview.width;
+        var steps = Math.max(80, Math.min(240, Math.round(w / 3)));
+        var ph = preview.phase, bt = preview.beat;
+        var base = preview.scopeBaseY, dir = preview.scopeDir, A = preview.scopeAmp;
+        var s = "";
+        for (var i = 0; i < steps; i++) {
+            var x = i / (steps - 1);
+            var v = 0.5 * Math.sin(2 * Math.PI * 3 * x + ph * 2) * (0.4 + 0.6 * bt)
+                  + 0.28 * Math.sin(2 * Math.PI * 7 * x - ph * 1.3)
+                  + 0.18 * Math.sin(2 * Math.PI * 13 * x + ph * 0.7) * bt;
+            v *= Math.sin(Math.PI * x);
+            if (v > 1)
+                v = 1;
+            else if (v < -1)
+                v = -1;
+            var y = base - dir * v * A;
+            s += (i === 0 ? "M" : "L") + (x * w).toFixed(2) + " " + y.toFixed(2) + " ";
+        }
         return s;
     }
     function buildCirclePath() {

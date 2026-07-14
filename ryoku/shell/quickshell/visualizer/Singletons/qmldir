@@ -1,4 +1,5 @@
 singleton Wallust Wallust.qml
 singleton Spectrum Spectrum.qml
+singleton Waveform Waveform.qml
 singleton Config Config.qml
 singleton Performance Performance.qml

@@ -50,6 +50,14 @@ ShellRoot {
         value: Config.fps
     }
 
+    // the line style draws the actual playback waveform; capture the monitor
+    // only while that style is selected and the visualiser is on.
+    Binding {
+        target: Waveform
+        property: "active"
+        value: root.enabled && Config.style === "line"
+    }
+
     Variants {
         model: Quickshell.screens
 

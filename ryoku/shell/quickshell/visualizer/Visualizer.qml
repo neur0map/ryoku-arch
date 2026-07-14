@@ -5,8 +5,8 @@ import QtQuick.Shapes
 import "Singletons"
 
 // desktop spectrum. full-width cava analyser in seven looks: bars, floating
-// dots, a stiff angular line, a filled wave, lit segments, and two polar looks,
-// a radial ring of bars and a morphing circle whose radius is the amplitude.
+// dots, an oscilloscope line (the live audio waveform), a filled wave, lit
+// polar looks: a radial ring of bars and a morphing circle sized by amplitude.
 // bars/dots/line/wave/segments anchor bottom/top/centre; radial and circle sit
 // at screen centre. each band = a wallust colour so the sweep retunes with the
 // wallpaper. soft bloom behind, fading reflection under bottom bars, optional
@@ -79,6 +79,17 @@ Item {
 
     readonly property bool areaStyle: root.effStyle === "wave"
 
+    // --- oscilloscope (line style) ------------------------------------------
+    // a real music visualiser wearing a heart-monitor look: the filament traces
+    // the actual playback waveform (the Waveform singleton, a PipeWire monitor
+    // capture), centred on a baseline, so it flatlines in silence and dances
+    // with the music. amplitude scaled by gain, clamped to the height budget.
+    readonly property real scopeAmp: root.maxBarH * 0.5
+    readonly property real scopeDir: root.position === "top" ? -1 : 1
+    readonly property real scopeGain: Math.max(1.5, 3.5 * Config.gain)
+    readonly property real scopeBaseY: root.position === "center" ? root.cy
+        : (root.position === "top" ? root.scopeAmp * 1.15 : root.baseBottom - root.scopeAmp * 1.15)
+
     // --- motion engine ------------------------------------------------------
     // smoothed per-band heights (0..1), falling peak holds, and a 0..1 "is
     // music playing" signal. everything eases per frame, nothing jumps.
@@ -91,6 +102,10 @@ Item {
     property string fillPath: ""
     property string linePath: ""
     property string circlePath: ""
+    // oscilloscope runtime: just a settled-flat latch so the ticker can stop
+    // when the waveform goes silent; the trace itself is driven straight off the
+    // Waveform singleton each frame.
+    property bool lineFlat: true
     readonly property bool sounding: Spectrum.energy > 0.04 || root.activity > 0.02
     // the idle wave breathes only while sound is actually present, and freezes
     // (clears) on real silence, keyed off measured energy, not merely an
@@ -102,6 +117,7 @@ Item {
     readonly property bool wantIdleWave: Config.idleWave && !root.idleFrozen
     // anything to animate at all? silent, settled, and no wave -> ticker stops.
     readonly property bool animating: root.sounding || root.wantIdleWave || root.maxLevel > 0.004
+        || (root.effStyle === "line" && !root.lineFlat)
 
     function srcIndex(i) {
         if (!root.mirror)
@@ -189,12 +205,6 @@ Item {
         // default matches the old fixed feel.
         var decay = 0.06 + 0.20 * Config.smoothing;
         var attack = 0.035 + 0.02 * Config.smoothing;
-        // the line is a stiff readout: snap up hard, fall fast, so its motion
-        // stays staccato where the wave flows.
-        if (root.effStyle === "line") {
-            decay *= 0.5;
-            attack *= 0.55;
-        }
         var out = new Array(n);
         for (var i = 0; i < n; i++) {
             var target = root.activity * root.rawLevel(i) + idleAmt * root.idleLevel(i);
@@ -231,10 +241,12 @@ Item {
         } else if (root.fillPath !== "") {
             root.fillPath = "";
         }
-        if (root.effStyle === "line")
-            root.linePath = draw ? root.buildAnglePath() : "";
-        else if (root.linePath !== "")
+        if (root.effStyle === "line") {
+            root.stepScope(dt);
+        } else if (root.linePath !== "") {
             root.linePath = "";
+            root.lineFlat = true;
+        }
         if (root.effStyle === "circle")
             root.circlePath = draw ? root.buildCirclePath() : "";
         else if (root.circlePath !== "")
@@ -429,16 +441,26 @@ Item {
             }
         }
 
-        // line: a stiff angular readout with its own soft halo behind the bright
-        // filament, so it glows even when bloom is low. sharp miter corners.
+        // line = a real music visualiser in a heart-monitor skin: a glowing
+        // filament traces a waveform resynthesised from the live spectrum on a
+        // faint baseline, with a soft halo behind it for the CRT glow.
+        Rectangle {
+            visible: root.effStyle === "line"
+            x: 0
+            width: root.width
+            height: Math.max(1.5, 1.5 * root.ui)
+            y: root.scopeBaseY - height / 2
+            color: Qt.alpha(Wallust.accent, 0.20)
+            antialiasing: true
+        }
         Shape {
             anchors.fill: parent
             visible: root.effStyle === "line"
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
-                strokeColor: Qt.alpha(Qt.lighter(Wallust.accent, 1.5), 0.22)
-                strokeWidth: Math.max(7, 8 * root.ui)
-                capStyle: ShapePath.FlatCap
+                strokeColor: Qt.alpha(Qt.lighter(Wallust.accent, 1.5), 0.20)
+                strokeWidth: Math.max(8, 9 * root.ui)
+                capStyle: ShapePath.RoundCap
                 joinStyle: ShapePath.RoundJoin
                 fillColor: "transparent"
                 PathSvg { path: root.linePath }
@@ -449,10 +471,10 @@ Item {
             visible: root.effStyle === "line"
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
-                strokeColor: Qt.lighter(Wallust.accent, 1.8)
-                strokeWidth: Math.max(2.5, 2.8 * root.ui)
-                capStyle: ShapePath.FlatCap
-                joinStyle: ShapePath.MiterJoin
+                strokeColor: Qt.lighter(Wallust.accent, 1.9)
+                strokeWidth: Math.max(2, 2.4 * root.ui)
+                capStyle: ShapePath.RoundCap
+                joinStyle: ShapePath.RoundJoin
                 fillColor: "transparent"
                 PathSvg { path: root.linePath }
             }
@@ -589,17 +611,30 @@ Item {
         return "M0 " + baseY + " L" + xs[0] + " " + ys[0] + " " + root.svgSmooth(xs, ys, false)
             + "L" + w + " " + ys[root.bands - 1] + " L" + w + " " + baseY + " Z";
     }
-    // line = a stiff angular polyline through the tips (no smoothing), a
-    // reactive visualiser edge distinct from the wave's soft curve.
-    function buildAnglePath() {
-        if (root.bands < 2 || root.maxLevel < 0.003)
-            return "";
-        var xs = root.tipXs();
-        var s = "M0 " + root.tipY(root.lengthAt(0));
-        for (var i = 0; i < root.bands; i++)
-            s += " L" + xs[i] + " " + root.tipY(root.lengthAt(i));
-        s += " L" + root.width + " " + root.tipY(root.lengthAt(root.bands - 1));
-        return s;
+    // line = a real music visualiser wearing a heart-monitor look: the filament
+    // is the actual playback waveform (the Waveform singleton, a live PipeWire
+    // monitor capture), centred on the baseline. no audio -> a flat readout.
+    function stepScope(dt) {
+        var wav = Waveform.samples;
+        var base = root.scopeBaseY;
+        var n = wav ? wav.length : 0;
+        if (n < 2) {
+            root.lineFlat = true;
+            root.linePath = "M0 " + base.toFixed(2) + " L" + root.width.toFixed(2) + " " + base.toFixed(2);
+            return;
+        }
+        root.lineFlat = false;
+        var dir = root.scopeDir;
+        var A = root.scopeAmp;
+        var gain = root.scopeGain;
+        var w = root.width;
+        var s = "";
+        for (var i = 0; i < n; i++) {
+            // soft-clip so loud peaks saturate gracefully instead of flat-topping.
+            var y = base - dir * Math.tanh(wav[i] * gain) * A;
+            s += (i === 0 ? "M" : "L") + ((i / (n - 1)) * w).toFixed(2) + " " + y.toFixed(2) + " ";
+        }
+        root.linePath = s;
     }
     // circle = a closed smoothed loop in polar coords, radius per band = level.
     function buildCirclePath() {

@@ -1037,7 +1037,7 @@ Item {
                 title: "STYLE"
                 ChoiceRow {
                     width: parent.width; label: "Style"
-                    options: [{ "key": "bars", "label": "Bars" }, { "key": "dots", "label": "Dots" }, { "key": "line", "label": "Line" }, { "key": "wave", "label": "Wave" }, { "key": "segments", "label": "Segments" }, { "key": "radial", "label": "Radial" }, { "key": "circle", "label": "Circle" }]
+                    options: [{ "key": "bars", "label": "Bars" }, { "key": "dots", "label": "Dots" }, { "key": "line", "label": "Monitor" }, { "key": "wave", "label": "Wave" }, { "key": "segments", "label": "Segments" }, { "key": "radial", "label": "Radial" }, { "key": "circle", "label": "Circle" }]
                     current: draft.style
                     onChosen: (k) => page.edit("style", k)
                 }
