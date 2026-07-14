@@ -25,6 +25,13 @@
   `ryoku doctor`, and `ryoku materialize` all manage.
 
 ### Fixed
+- `lib/snapshots.sh`: declining snapshots at install now sticks. The opt-out
+  only skipped the snapper setup, and `ryoku doctor` (run inside every
+  `ryoku update`) converges any btrfs root missing the snapper config onto the
+  canonical layout, so the choice was silently reverted on the first update.
+  The installer now records it as `/etc/ryoku/snapshots-disabled`, which the
+  doctor reconciler honors; deleting the marker and running `ryoku doctor`
+  enables snapshots later.
 - `lib/chroot.sh`: the locale uncomment cannot silently generate nothing. The
   sed now escapes the dots (so `en_US.UTF-8` matches only its own line), and a
   locale that `locale.gen` does not list (a manual `RYOKU_LOCALE`, a slimmed
