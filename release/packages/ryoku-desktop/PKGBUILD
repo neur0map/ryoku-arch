@@ -80,6 +80,11 @@ depends=(
   'grim'
   'slurp'
   'cava'
+  # the visualiser's line style is an oscilloscope: wavecap.py (python) drives
+  # pw-record (pipewire) to capture the sink monitor and downsample its waveform.
+  # pactl (already used by the shell's audio-watch) resolves the monitor node.
+  'python'
+  'pipewire'
   'jq'
   'imagemagick'
   # wallpaper -> color palette generator. the shell runs `wallust run <image>`
