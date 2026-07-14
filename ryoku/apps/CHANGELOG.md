@@ -9,13 +9,14 @@
   saturation, warmth, vignette) and one-tap **Look** presets (Vivid, Faded,
   Cinematic, Noir, Warm, Cool), baked into a sibling file on Set so the desktop
   matches the preview exactly and the extracted palette follows the edit. For a
-  live clip: **Motion** controls, a **Max FPS** cap (15-60; 60 plays at the
-  clip's own rate) and **Fill / Fit**. Both offer an on-demand **Enhance** (AI
-  upscale on the GPU) with a real progress bar and honest phases, replacing the
-  buried "Enhance on save" toggle. New `AdjustPanel.qml`, an `adjust` verb and a
-  reworked on-demand `enhance` verb in the `ryowalls` engine, and `liveFps` /
-  `liveFit` settings (`App.qml`, `MockDesktop.qml`, `SettingsPanel.qml`,
-  `Singletons/Wallhaven.qml`).
+  live clip: a **Fill / Fit** control that maps the clip onto the screen through
+  `ryoku-livewall` (fill covers, fit letterboxes). Both offer an on-demand
+  **Enhance** (AI upscale on the GPU) with a real progress bar and honest phases,
+  replacing the buried "Enhance on save" toggle; for a live clip Enhance is a
+  no-op once the source already meets livewall's decode width, so it never burns
+  GPU on detail the compositor would only downscale away. New `AdjustPanel.qml`,
+  an `adjust` verb and a reworked on-demand `enhance` verb in the `ryowalls`
+  engine, and a `liveFit` setting (`App.qml`, `Singletons/Wallhaven.qml`).
 - `ryowalls/`: a **Local** source browses the wallpapers already on the machine,
   images from `~/Pictures/Wallpapers` and live clips from `~/Pictures/livewalls`,
   in one grid with the same All/Images/Live filter the library source uses.

@@ -4,8 +4,8 @@ import "Singletons"
 
 // Adjust mode: shape the picked wallpaper itself. For an image, a look preset
 // plus a colour grade (brightness / contrast / saturation / warmth / vignette),
-// baked on Set so the desktop matches the preview. For a live clip, the motion
-// controls (max fps, fit). Both offer an on-demand GPU Enhance with progress.
+// baked on Set so the desktop matches the preview. For a live clip, the fit
+// control (cover or letterbox). Both offer an on-demand GPU Enhance with progress.
 // Every change drives the live rice preview on the right.
 Item {
     id: adj

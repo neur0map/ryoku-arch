@@ -271,6 +271,27 @@ const liveDaemon = "ryoku-livewall"
 // keeps the CPU cost and the wl_shm buffers tiny.
 const liveCapWidth = "1280"
 
+// liveFit reads the ryowalls Fit knob (ryowalls.json) that livewall applies when
+// mapping the clip onto the screen: "fit" letterboxes the whole clip, the
+// default covers. Passed to livewall as argv[3]; a missing config means cover.
+func liveFit() string {
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		base = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	b, err := os.ReadFile(filepath.Join(base, "ryoku", "ryowalls.json"))
+	if err != nil {
+		return "fill"
+	}
+	var s struct {
+		LiveFit string `json:"liveFit"`
+	}
+	if json.Unmarshal(b, &s) == nil && s.LiveFit == "fit" {
+		return "fit"
+	}
+	return "fill"
+}
+
 // liveGen serializes the async transcode+launch: every live-set or stop bumps it,
 // and a transcode goroutine launches livewall only if its generation is still
 // current, so a clip the user already switched away from never paints.
@@ -345,7 +366,7 @@ func (d *daemon) showLiveWallpaper(pic string) error {
 		if src == "" || liveGen.Load() != gen {
 			return
 		}
-		cmd := exec.Command(liveDaemon, src, liveCapWidth)
+		cmd := exec.Command(liveDaemon, src, liveCapWidth, liveFit())
 		if cmd.Start() != nil {
 			return
 		}

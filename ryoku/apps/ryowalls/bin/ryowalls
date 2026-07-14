@@ -56,12 +56,14 @@ enhance_image() {
 # foreground so the UI can track the phase and frame count; only swaps the crisp
 # clip onto the desktop if it is still the live wallpaper when it lands.
 enhance_video() {
-	local f="$1" d fps h total wpid
+	local f="$1" d fps w total wpid
 	command -v ffmpeg >/dev/null 2>&1 || { enh_write "$f" error; return 1; }
 	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || { enh_write "$f" unsupported; return 3; }
 	enh_write "$f" probe
-	h="$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$f" 2>/dev/null | head -1)"
-	if [ "${h:-0}" -ge 2160 ]; then enh_write "$f" "done"; return 0; fi
+	# livewall renders live wallpapers at <=1280 wide (liveCapWidth in the shell),
+	# so a clip already that wide gains nothing on screen: skip the minutes of GPU.
+	w="$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$f" 2>/dev/null | head -1)"
+	if [ "${w:-0}" -ge 1280 ]; then enh_write "$f" "done"; return 0; fi
 	fps="$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$f" 2>/dev/null | head -1)"
 	[ -n "$fps" ] && [ "$fps" != "0/0" ] || fps=30
 	d="$(mktemp -d)" || { enh_write "$f" error; return 1; }

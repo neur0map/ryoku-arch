@@ -8,7 +8,7 @@
 // swww/awww class regardless of GPU vendor. Decoded frames live in ordinary
 // shared memory, kept tiny by decoding at <=CAP_W width; the compositor scales.
 //
-// Usage: livewall <video-file> [cap_width]
+// Usage: livewall <video-file> [cap_width] [fit]
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -139,10 +139,13 @@ static void pump_until(int64_t deadline) {
 }
 
 int main(int argc, char **argv) {
-	if (argc < 2) { fprintf(stderr, "usage: %s <video> [cap_width]\n", argv[0]); return 2; }
+	if (argc < 2) { fprintf(stderr, "usage: %s <video> [cap_width] [fit]\n", argv[0]); return 2; }
 	const char *path = argv[1];
 	int cap_w = argc > 2 ? atoi(argv[2]) : 1280;
 	if (cap_w < 64) cap_w = 1280;
+	// fill (cover, default) crops the frame to the screen aspect; fit
+	// letterboxes it whole. ryoku-shell passes the ryowalls Fit knob as argv[3].
+	int fit = (argc > 3 && strcmp(argv[3], "fit") == 0);
 
 	dpy = wl_display_connect(NULL);
 	if (!dpy) { fprintf(stderr, "no wayland display\n"); return 1; }
@@ -185,14 +188,61 @@ int main(int argc, char **argv) {
 	if (avcodec_open2(dec, codec, NULL) < 0) { fprintf(stderr, "codec open failed\n"); return 1; }
 
 	int src_w = dec->width, src_h = dec->height;
-	render_w = src_w <= cap_w ? src_w : cap_w;
-	render_h = (int)((long)src_h * render_w / src_w);
-	render_w &= ~1; render_h &= ~1;
-	if (render_w < 2) render_w = 2;
-	if (render_h < 2) render_h = 2;
+	if (src_w < 2) src_w = 2;
+	if (src_h < 2) src_h = 2;
+
+	// Aspect-correct mapping. The buffer is decoded small (width capped at
+	// cap_w) and wp_viewport upscales it to the screen on the compositor GPU
+	// for free. fill keeps a video-aspect buffer and crops it to the screen
+	// via the viewport source rect (cover); fit decodes into a screen-aspect
+	// buffer with the frame centred, leaving the shm zero-fill as black bars.
+	int sws_w, sws_h, dst_ox = 0, dst_oy = 0;
+	int crop_x = 0, crop_y = 0, crop_w = 0, crop_h = 0;
+	if (fit) {
+		render_w = src_w <= cap_w ? src_w : cap_w;
+		render_h = (int)((long)render_w * screen_h / screen_w);
+		render_w &= ~1; render_h &= ~1;
+		if (render_w < 2) render_w = 2;
+		if (render_h < 2) render_h = 2;
+		if ((long)src_w * render_h > (long)render_w * src_h) { // src wider than buffer
+			sws_w = render_w;
+			sws_h = (int)((long)render_w * src_h / src_w);
+		} else {
+			sws_h = render_h;
+			sws_w = (int)((long)render_h * src_w / src_h);
+		}
+		sws_w &= ~1; sws_h &= ~1;
+		if (sws_w < 2) sws_w = 2;
+		if (sws_h < 2) sws_h = 2;
+		if (sws_w > render_w) sws_w = render_w;
+		if (sws_h > render_h) sws_h = render_h;
+		dst_ox = ((render_w - sws_w) / 2) & ~1;
+		dst_oy = ((render_h - sws_h) / 2) & ~1;
+	} else {
+		render_w = src_w <= cap_w ? src_w : cap_w;
+		render_h = (int)((long)src_h * render_w / src_w);
+		render_w &= ~1; render_h &= ~1;
+		if (render_w < 2) render_w = 2;
+		if (render_h < 2) render_h = 2;
+		sws_w = render_w; sws_h = render_h;
+		crop_w = render_w; crop_h = render_h;
+		if ((long)render_w * screen_h > (long)render_h * screen_w) { // buffer wider than screen
+			crop_w = (int)((long)render_h * screen_w / screen_h);
+			crop_x = (render_w - crop_w) / 2;
+		} else {
+			crop_h = (int)((long)render_w * screen_h / screen_w);
+			crop_y = (render_h - crop_h) / 2;
+		}
+		if (crop_w < 1) crop_w = 1;
+		if (crop_h < 1) crop_h = 1;
+	}
 
 	if (alloc_buffers() < 0) return 1;
 	viewport = wp_viewporter_get_viewport(viewporter, surface);
+	if (!fit)
+		wp_viewport_set_source(viewport,
+			wl_fixed_from_int(crop_x), wl_fixed_from_int(crop_y),
+			wl_fixed_from_int(crop_w), wl_fixed_from_int(crop_h));
 	wp_viewport_set_destination(viewport, screen_w, screen_h);
 
 	AVRational afr = fmt->streams[vid]->avg_frame_rate;
@@ -201,13 +251,13 @@ int main(int argc, char **argv) {
 	int64_t frame_ns = (int64_t)(1e9 / fps);
 
 	struct SwsContext *sws = sws_getContext(src_w, src_h, dec->pix_fmt,
-		render_w, render_h, AV_PIX_FMT_BGRA, SWS_BILINEAR, NULL, NULL, NULL);
+		sws_w, sws_h, AV_PIX_FMT_BGRA, SWS_BILINEAR, NULL, NULL, NULL);
 	if (!sws) { fprintf(stderr, "sws init failed\n"); return 1; }
 
 	AVPacket *pkt = av_packet_alloc();
 	AVFrame *frame = av_frame_alloc();
-	fprintf(stderr, "livewall: %dx%d src -> %dx%d render -> %dx%d screen @ %.1ffps\n",
-	        src_w, src_h, render_w, render_h, screen_w, screen_h, fps);
+	fprintf(stderr, "livewall: %dx%d src -> %dx%d buffer (%s) -> %dx%d screen @ %.1ffps\n",
+	        src_w, src_h, render_w, render_h, fit ? "fit" : "fill", screen_w, screen_h, fps);
 
 	int64_t next = now_ns();
 	while (running) {
@@ -235,7 +285,7 @@ int main(int argc, char **argv) {
 			b = free_buffer();
 			if (!b) { av_frame_unref(frame); continue; }
 		}
-		uint8_t *dst[4] = { b->data, NULL, NULL, NULL };
+		uint8_t *dst[4] = { b->data + (size_t)dst_oy * stride + (size_t)dst_ox * 4, NULL, NULL, NULL };
 		int dstride[4] = { stride, 0, 0, 0 };
 		sws_scale(sws, (const uint8_t *const *)frame->data, frame->linesize, 0, src_h, dst, dstride);
 		av_frame_unref(frame);
