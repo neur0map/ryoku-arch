@@ -170,8 +170,12 @@ Singleton {
         }
     }
 
+    // reconcile cadence: poll hard (2s) only while a capture is live, so an
+    // external stop or crash can't strand the island; idle we poll slowly (30s),
+    // enough to catch a capture started outside the shell without spawning a
+    // pgrep subprocess every 2s around the clock.
     Timer {
-        interval: 2000
+        interval: root.anyActive ? 2000 : 30000
         running: true
         repeat: true
         triggeredOnStart: true
