@@ -215,7 +215,7 @@ func (d *daemon) bootstrap() {
 	go func() {
 		d.wallMu.Lock()
 		defer d.wallMu.Unlock()
-		_ = d.wallpaperApply("init", "")
+		d.wallInit()
 	}()
 	go d.startComponents()
 }

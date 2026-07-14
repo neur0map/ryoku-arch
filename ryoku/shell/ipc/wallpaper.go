@@ -340,6 +340,34 @@ func isVideo(p string) bool {
 
 func liveAlive() bool { return exec.Command("pgrep", "-x", liveDaemon).Run() == nil }
 
+// legacyLiveDaemons: video backends previous releases shipped (mpvpaper through
+// beta 16, phonto in the interim GPU-picked era). an update swaps the daemon
+// binary but not the detached player the old daemon left running, and that
+// orphan's background surface stacks ABOVE awww's, so every static set paints
+// invisibly under the old clip ("the wallpaper won't change"). nothing else
+// manages them anymore, so killLegacyLive reaps them where the daemon takes
+// ownership of the wallpaper stack: once at bootstrap (wallInit), and in the
+// updater's quiesce. NOT in killLive: an orphan cannot appear mid-session (no
+// old daemon is left to spawn one), and livewall is single-output today, so a
+// user may legitimately run mpvpaper on a second monitor -- reaping on every
+// wallpaper change would kill that setup over and over.
+var legacyLiveDaemons = []string{"mpvpaper", "phonto"}
+
+func killLegacyLive() {
+	for _, name := range legacyLiveDaemons {
+		_ = exec.Command("pkill", "-x", name).Run()
+	}
+}
+
+// wallInit is the daemon's first wallpaper pass, under wallMu in bootstrap.
+// the legacy reap must precede the init apply: with a static state and awww
+// alive, init returns without reaching any kill path, and the orphan would
+// keep occluding the desktop until the user's next wallpaper change.
+func (d *daemon) wallInit() {
+	killLegacyLive()
+	_ = d.wallpaperApply("init", "")
+}
+
 // killLive terminates every livewall instance and waits for it to exit, so a
 // following awww image or a fresh instance is never raced by a lingering one.
 func killLive() {

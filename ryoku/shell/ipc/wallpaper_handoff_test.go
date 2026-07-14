@@ -69,3 +69,53 @@ func TestShowLiveWallpaperHandoff(t *testing.T) {
 		t.Errorf("awww must stay up under the video (its still is the clip's frame), not be killed: %q", aw)
 	}
 }
+
+// An update replaces the video backend (mpvpaper -> phonto -> ryoku-livewall)
+// but cannot kill the detached player the old daemon left behind, and that
+// orphan's background surface stacks above awww's, occluding every static set
+// (the beta-16 -> beta-17 "wallpaper won't change" upgrade bug). The bootstrap
+// pass reaps the legacy backends BEFORE the init apply: this pins the exact
+// configuration where init early-returns (static state, awww alive) and would
+// otherwise never reach a kill path, leaving the orphan on screen.
+func TestWallInitReapsLegacyBackends(t *testing.T) {
+	bin := t.TempDir()
+	state := t.TempDir()
+	t.Setenv("XDG_STATE_HOME", state)
+	log := filepath.Join(state, "pkill.args")
+	awwwLog := filepath.Join(state, "awww.args")
+	fake := func(name, body string) {
+		if err := os.WriteFile(filepath.Join(bin, name), []byte("#!/bin/sh\n"+body+"\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fake("pkill", `printf '%s\n' "$*" >> "`+log+`"; exit 1`)
+	fake("pgrep", `exit 1`)
+	// awww is alive and answers query, so init takes its earliest image return.
+	fake("awww", `printf '%s\n' "$*" >> "`+awwwLog+`"; exit 0`)
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	// saved wallpaper is a static image that exists.
+	pic := filepath.Join(t.TempDir(), "still.jpg")
+	if err := os.WriteFile(pic, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(state, "ryoku-wallpaper"), []byte(pic+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	(&daemon{}).wallInit()
+
+	b, err := os.ReadFile(log)
+	if err != nil {
+		t.Fatalf("pkill never ran: %v", err)
+	}
+	for _, want := range []string{"-x mpvpaper", "-x phonto"} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("wallInit did not reap %q; pkill calls:\n%s", want, b)
+		}
+	}
+	// the early return must hold: awww is only queried, never repainted.
+	if aw, _ := os.ReadFile(awwwLog); strings.Contains(string(aw), "img") {
+		t.Errorf("init repainted awww on the early-return path: %q", aw)
+	}
+}

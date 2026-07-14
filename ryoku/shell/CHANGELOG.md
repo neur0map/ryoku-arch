@@ -148,6 +148,26 @@
   plain grab when the tool is absent (`Beautify.qml`).
 
 ### Fixed
+- **Upgrading with a live wallpaper active no longer strands the old video
+  player over every static set.** Releases through beta 16 played live
+  wallpapers with mpvpaper (phonto in the interim GPU-picked era), spawned
+  detached so it survives its daemon; the livewall-era `stopLive` only pkills
+  `ryoku-livewall`, so an update left the old player's background surface
+  stacked above awww's forever: every static apply succeeded in awww but
+  painted invisibly under the looping clip ("the wallpaper won't change",
+  Super+W included), while live picks kept working because livewall's newer
+  surface maps above. The daemon now reaps the legacy backends by name where
+  it takes ownership of the wallpaper stack -- once at bootstrap, before the
+  init apply whose early returns would otherwise skip every kill path -- and
+  `ryoku update`'s quiesce does the same. Deliberately NOT on every wallpaper
+  change: livewall is single-output today, so a user may run mpvpaper on a
+  second monitor on purpose (`ipc/wallpaper.go`, `ipc/daemon.go`, covered by
+  `TestWallInitReapsLegacyBackends`).
+- **Live wallpapers crossfade in and out like the rest of the wallpaper
+  stack.** The `wallpaper-crossfade` layer rule never matched livewall's
+  namespace, so a live wallpaper scale-popped in (the global `popin` layers
+  animation) instead of fading over the still
+  (`hyprland/modules/decoration.lua`).
 - **`ryoku-shell lock` blocks until the compositor confirms the lock, so
   suspend can no longer race the lockscreen.** hypridle's `before_sleep_cmd`
   holds logind's sleep delay-inhibitor only while the command runs, but
