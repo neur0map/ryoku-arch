@@ -136,6 +136,15 @@
   `qs -c wallpaper...`-named config never matches), and kills the video
   players (`ryoku-livewall`, plus legacy `mpvpaper`/`phonto`) so no orphan
   from the old release survives the swap (`internal/updater/update.go`).
+- **`doctor` clears every home-deployed binary shadowing a packaged one, not
+  just four.** The dev-residue reconciler's fixed name list missed
+  `ryoku-livewall`, the hardware helpers, and the app bins deploy.sh installs,
+  leaving a stale player and stale tools pinning every later update. It now
+  scans `~/.local/bin` and treats any entry whose `/usr/bin` twin is owned by
+  a `ryoku*` package as residue; files the packages never shipped are
+  untouched, and paths that fail to delete are reported instead of silently
+  claimed removed. Doctor's shell-daemon restart also prefers the packaged
+  binary on packaged boxes (`internal/doctor/doctor.go`).
 - **`rollback` no longer runs a `snapper rollback` that cannot restore the
   system.** Ryoku pins the root subvolume on the kernel cmdline and in fstab
   (`rootflags=subvol=@`), and snapper's rollback works by flipping the btrfs

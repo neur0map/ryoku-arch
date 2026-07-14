@@ -914,11 +914,28 @@ func reconcileDevResidue(checkOnly bool) recResult {
 	if qml := filepath.Join(sys.Home(), ".local", "lib", "qt6", "qml", "Ryoku"); sys.Exists(qml) {
 		residue = append(residue, qml)
 	}
-	for _, b := range []string{"ryoku", "ryoku-shell", "ryoku-hub", "ryoku-rashin"} {
-		p := filepath.Join(sys.Home(), ".local", "bin", b)
-		if sys.Exists(p) && sys.Exists("/usr/bin/"+b) {
-			residue = append(residue, p)
+	// every ~/.local/bin entry that shadows a Ryoku-packaged /usr/bin binary.
+	// deploy.sh installs a wide, release-dependent set (shell, livewall, CLI,
+	// hub, rashin, hardware helpers, app bins), so pacman is the manifest: a
+	// home copy of anything a ryoku package ships is residue. A fixed name
+	// list here once missed ryoku-livewall and the helpers, leaving a stale
+	// player and tools shadowing every later update. Anything the packages
+	// never shipped (a user's own script) has no ryoku-owned /usr/bin twin
+	// and is left alone; a wrapper deliberately named after a packaged ryoku
+	// tool is treated as residue too -- doctor owns converging the packaged
+	// toolchain, and an intercepted tool is exactly the drift it heals.
+	localBin := filepath.Join(sys.Home(), ".local", "bin")
+	entries, _ := os.ReadDir(localBin)
+	for _, e := range entries {
+		usr := "/usr/bin/" + e.Name()
+		if !sys.Exists(usr) {
+			continue
 		}
+		owner, err := sys.RunOut("pacman", "-Qoq", usr)
+		if err != nil || !strings.HasPrefix(strings.TrimSpace(owner), "ryoku") {
+			continue
+		}
+		residue = append(residue, filepath.Join(localBin, e.Name()))
 	}
 	if len(residue) == 0 {
 		return okRes("no home-deployed artifacts shadowing the packages")
@@ -927,8 +944,18 @@ func reconcileDevResidue(checkOnly bool) recResult {
 		return wouldRes("stale home-deployed artifacts shadow the packaged install: %s", strings.Join(residue, ", ")).
 			withFix("ryoku doctor removes them; the packaged copies take over on the next reload")
 	}
+	// report what could not be removed: a survivor keeps shadowing the packaged
+	// install (Hyprland's autostart relaunches it by PATH at next login), so
+	// claiming "removed" while it lives would hide the very drift this heals.
+	var kept []string
 	for _, p := range residue {
-		_ = os.RemoveAll(p)
+		if err := os.RemoveAll(p); err != nil {
+			kept = append(kept, p)
+		}
+	}
+	if len(kept) > 0 {
+		return failRes("could not remove home-deployed artifact(s) still shadowing the packaged install: %s", strings.Join(kept, ", ")).
+			withFix("remove them by hand (check ownership/permissions), then `ryoku reload`")
 	}
 	return fixedRes("removed %d home-deployed artifact(s) shadowing the packaged install; `ryoku reload` switches to the packaged shell", len(residue))
 }
@@ -1588,9 +1615,16 @@ func shellDaemonReachable() bool {
 // startShellDaemon launches `ryoku-shell daemon` detached from doctor: own
 // session so it outlives this process, stdio to /dev/null. the daemon clears
 // a stale socket and refuses to double-start, so this is only safe to call
-// when the socket is already unreachable.
+// when the socket is already unreachable. On a packaged box the packaged
+// binary is preferred over PATH, where dev/recovery residue in ~/.local/bin
+// would resurrect a stale daemon; a checkout box's home deploy IS the
+// desktop, so PATH is right there.
 func startShellDaemon() error {
-	cmd := exec.Command("ryoku-shell", "daemon")
+	shell := "ryoku-shell"
+	if sys.ResolveRepo() == "" && sys.Exists("/usr/bin/ryoku-shell") {
+		shell = "/usr/bin/ryoku-shell"
+	}
+	cmd := exec.Command(shell, "daemon")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	if devnull, err := os.OpenFile(os.DevNull, os.O_RDWR, 0); err == nil {
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = devnull, devnull, devnull
