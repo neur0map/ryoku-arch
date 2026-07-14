@@ -29,7 +29,7 @@ few commands belong to only one world; that is called out per command below.
 |---|---|---|---|
 |`update`|Snapshot, then bring the system current and redeploy|both|you|
 |`status [--json]`|Version, how far behind, snapshot count|both|you, the Hub|
-|`rollback [id]`|Restore a snapper snapshot (no id: list them)|both|you|
+|`rollback [id]`|Guide restoring a snapshot from the boot menu (no id: list them)|both|you|
 |`snapshots`|List snapper snapshots|both|you|
 |`reload`|Restart the shell and reload Hyprland|both|you|
 |`materialize`|Lay the base configs into `~/.config`|packaged install|the updater/installer|
@@ -70,9 +70,13 @@ humans.
 
 ### `ryoku rollback [id]`
 
-Restore a snapper snapshot. With no id it lists the snapshots so you can pick one
-(the same snapshots are selectable from the Limine boot menu); with an id it runs
-`sudo snapper rollback <id>`.
+Guide restoring a snapper snapshot. With no id it lists the snapshots so you can
+pick one. Ryoku boots the `@` subvolume directly (`rootflags=subvol=@`), a layout
+`snapper rollback` cannot restore (it flips the btrfs default subvolume, which a
+pinned `subvol=` ignores), so the restore runs from the boot menu: reboot, boot
+the snapshot under the Limine Snapshots menu, and run `sudo
+limine-snapper-restore` there; it copies the booted snapshot (and its matching
+kernels on the ESP) back onto `@`.
 
 ### `ryoku snapshots`
 
