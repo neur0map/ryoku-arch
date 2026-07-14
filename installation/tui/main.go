@@ -1102,8 +1102,13 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 				}
 			} else if m.input != m.pw1 {
 				m.pw1, m.input, m.pwStage, m.pwErr = "", "", 0, "did not match, try again"
+			} else if h := hashPassword(m.pw1); h == "" {
+				// openssl failed: catch it HERE with a visible error instead of
+				// handing the backend an empty RYOKU_PASSWORD_HASH that only
+				// dies at preflight, after the user walked the whole wizard.
+				m.pw1, m.input, m.pwStage, m.pwErr = "", "", 0, "could not hash the password (openssl failed); try again"
 			} else {
-				m.pwHash = hashPassword(m.pw1)
+				m.pwHash = h
 				m.picks["password"], m.pw1, m.input, m.pwStage = "set", "", "", 0
 				m.advance()
 			}

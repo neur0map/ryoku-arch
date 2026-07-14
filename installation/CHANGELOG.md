@@ -42,6 +42,11 @@ ISO detail live in `backend/CHANGELOG.md` and `iso/CHANGELOG.md`.
   live kernel needed VMD to see the NVMe.
 
 ### Fixed
+- The TUI catches a failed password hash at the password screen. `hashPassword`
+  shells out to `openssl passwd -6`; on a failure it returned "" and the wizard
+  marched on, handing the backend an empty `RYOKU_PASSWORD_HASH` that only died
+  at preflight after the whole wizard was walked. Enter on the confirm field now
+  re-prompts with a visible error instead (`tui/main.go`).
 - The chosen keyboard layout now reaches every place a password is typed, so a
   non-us layout no longer locks you out after install. The graphical installer
   runs in a Wayland session (cage) whose layout is fixed at launch and `loadkeys`
