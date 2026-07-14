@@ -148,6 +148,13 @@
   plain grab when the tool is absent (`Beautify.qml`).
 
 ### Fixed
+- **The now-playing elapsed line no longer pixelates near the end of a track.**
+  The wavy seekbar sampled the filled portion with a fixed 48-point budget while
+  the number of waves grew with the fill, so past the midpoint each crest got
+  fewer than ~5 points and near the end only ~3: the sine aliased into a jagged,
+  pixelated polyline (~113 degrees between samples). Resolution now scales with
+  the wave count (~16 points per crest, a constant ~22.5 degrees per step at any
+  fill), so the line stays smooth from 0 to 100% (`launcher/NowPlaying.qml`).
 - **The frame and bar now retract over a fullscreen window on every monitor, not
   just the focused one.** quickshell 0.3.0 learns a workspace went fullscreen two
   ways: the raw `fullscreen` event, which only marks the focused workspace, and a

@@ -403,7 +403,12 @@ Item {
                 ctx.stroke();
 
                 var amp = root.playing ? 3 * root.s : 0;
-                var pts = Wave.samplePoints(fillW, cy, amp, Math.max(1, Math.round(fillW / (24 * root.s))), seek.phase, 48);
+                // Resolution tracks the wave count (~16 points per crest) so the
+                // sine stays smooth however long the fill grows; a fixed step
+                // budget starved long fills near track end into an aliased,
+                // pixelated polyline.
+                var waves = Math.max(1, Math.round(fillW / (24 * root.s)));
+                var pts = Wave.samplePoints(fillW, cy, amp, waves, seek.phase, waves * 16);
                 ctx.strokeStyle = Theme.vermLit;
                 ctx.lineWidth = 2.5 * root.s;
                 ctx.beginPath();
