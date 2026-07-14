@@ -37,10 +37,16 @@ restart_shell() {
 
   # quit should stop the surfaces, but a crashed daemon orphans them and the
   # leftover qs keeps its single-instance lock, so the fresh pill cant come up and
-  # the new daemon dies with it. clear any strays before i start again.
-  pkill -f 'qs -c pill' >/dev/null 2>&1 || true
-  pkill -f 'qs -c launcher' >/dev/null 2>&1 || true
-  pkill -f 'qs -c visualizer' >/dev/null 2>&1 || true
+  # the new daemon dies with it. clear any strays before i start again. the
+  # pattern is anchored so a user's own longer config name never matches;
+  # plugins/wallpaper are retired residents a stale daemon may still hold.
+  for c in pill launcher visualizer widgets overview plugins wallpaper; do
+    pkill -f "qs -c $c(\$| )" >/dev/null 2>&1 || true
+  done
+  # kill the video player too: a running livewall satisfies init's liveAlive
+  # early return, so a freshly built binary would never take effect until the
+  # next live switch. the restarted daemon relaunches it from state.
+  pkill -x ryoku-livewall >/dev/null 2>&1 || true
   sleep 0.2
 
   mkdir -p "$(dirname -- "$log")"
