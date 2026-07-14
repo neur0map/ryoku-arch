@@ -15,7 +15,11 @@
   replacing the buried "Enhance on save" toggle. Enhance leaves a source already
   sharp enough as-is and says so ("Already sharp") instead of faking a pass: an
   image past 4K, or a clip past livewall's decode width where the compositor
-  would only downscale the extra detail away. New `AdjustPanel.qml`,
+  would only downscale the extra detail away. A GPU is chosen by validating its
+  real output, not a quick probe (a flaky hybrid dGPU can pass a probe then emit
+  black); the H.264 result lands in a new .mp4 beside the source instead of
+  overwriting it, and any black run is discarded, so a bad enhance never destroys
+  or garbles the original. New `AdjustPanel.qml`,
   an `adjust` verb and a reworked on-demand `enhance` verb in the `ryowalls`
   engine, and a `liveFit` setting (`App.qml`, `Singletons/Wallhaven.qml`).
 - `ryowalls/`: a **Local** source browses the wallpapers already on the machine,

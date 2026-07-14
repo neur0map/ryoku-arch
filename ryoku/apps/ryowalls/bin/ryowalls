@@ -40,23 +40,30 @@ screen_cap() {
 	printf '%s' "$w"
 }
 
-# waifu2x picks the highest-scored Vulkan GPU by default, but on a hybrid laptop
-# that is usually the dGPU, which can fail vkCreateDevice (suspended, or a compute
-# ICD that is not actually usable) and crash the whole run. Probe each device
-# index with a tiny upscale and echo the first that produces output; non-zero when
-# none work, so the caller reports it instead of dying mid-enhance.
+# waifu2x picks the highest-scored Vulkan GPU by default; on a hybrid laptop that
+# is the dGPU, which here fails vkCreateDevice when suspended AND intermittently
+# emits all-black frames under PRIME (a clean probe, then garbage on the real
+# run). A small probe cannot catch that, so the enhance instead runs each GPU on
+# the actual clip, validates the output, and keeps the first that is not black;
+# the last good GPU is remembered so the reliable one is tried first next time.
 w2x_model="/usr/share/waifu2x-ncnn-vulkan/models-cunet"
-pick_gpu() {
-	local dir g
-	dir="$(mktemp -d)" || return 1
-	magick -size 8x8 xc:gray "$dir/t.png" >/dev/null 2>&1 || { rm -rf "$dir"; return 1; }
-	for g in 0 1 2 3; do
-		if waifu2x-ncnn-vulkan -i "$dir/t.png" -o "$dir/o.png" -s 2 -g "$g" -m "$w2x_model" >/dev/null 2>&1 && [ -s "$dir/o.png" ]; then
-			rm -rf "$dir"; printf '%s' "$g"; return 0
-		fi
-		rm -f "$dir/o.png"
-	done
-	rm -rf "$dir"; return 1
+
+# sane_img: succeed only when an image has real content, not the near-black /
+# flat garbage a wedged or overloaded GPU can emit. Guards every waifu2x output
+# so a bad run is discarded, never written over a good source.
+sane_img() {
+	local m s
+	m="$(identify -format '%[fx:mean]' "$1" 2>/dev/null)"
+	s="$(identify -format '%[fx:standard_deviation]' "$1" 2>/dev/null)"
+	[ -n "$m" ] && [ -n "$s" ] && awk -v m="$m" -v s="$s" 'BEGIN{exit !(m>0.02 && s>0.01)}'
+}
+w2x_gpu_pref="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-w2x-gpu"
+# w2x_order: GPU indices to attempt, last-known-good first (persisted after a
+# clean run) then every index.
+w2x_order() {
+	local p
+	p="$(cat "$w2x_gpu_pref" 2>/dev/null || true)"
+	case "$p" in 0 | 1 | 2 | 3) printf '%s 0 1 2 3' "$p" ;; *) printf '0 1 2 3' ;; esac
 }
 
 # downloads land as-is now; enhancing is an explicit, on-demand action.
@@ -65,23 +72,26 @@ finish() { printf '%s\n' "$1"; }
 # enhance an image in place on the GPU: waifu2x doubles the resolution and
 # denoises. 4k sources are already sharp, so skip them (minutes of GPU, no gain).
 enhance_image() {
-	local f="$1" ext tmp h gpu
+	local f="$1" ext tmp h gpu gpus
 	ext="$(printf '%s' "${f##*.}" | tr '[:upper:]' '[:lower:]')"
 	[ "$ext" = jpeg ] && ext=jpg
 	h="$(identify -format '%h' "$f" 2>/dev/null || echo 0)"
 	if [ "${h:-0}" -ge 2160 ]; then enh_write "$f" "sharp"; return 2; fi
 	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || { enh_write "$f" unsupported; return 3; }
-	gpu="$(pick_gpu)" || { enh_write "$f" unsupported; return 3; }
 	enh_write "$f" enhance
 	tmp="$f.up.$ext"
-	if waifu2x-ncnn-vulkan -i "$f" -o "$tmp" -s 2 -n 2 -g "$gpu" -m "$w2x_model" >/dev/null 2>&1 && [ -s "$tmp" ]; then
-		mv -f "$tmp" "$f"
-		enh_write "$f" "done"
-	else
+	read -ra gpus <<<"$(w2x_order)"
+	for gpu in "${gpus[@]}"; do
 		rm -f "$tmp"
-		enh_write "$f" error
-		return 1
-	fi
+		waifu2x-ncnn-vulkan -i "$f" -o "$tmp" -s 2 -n 2 -g "$gpu" -m "$w2x_model" >/dev/null 2>&1 || continue
+		if [ -s "$tmp" ] && sane_img "$tmp"; then
+			mv -f "$tmp" "$f"
+			printf '%s' "$gpu" >"$w2x_gpu_pref" 2>/dev/null || true
+			enh_write "$f" "done"
+			return 0
+		fi
+	done
+	rm -f "$tmp"; enh_write "$f" error; return 1
 }
 
 # enhance a video frame by frame: ffmpeg extracts, waifu2x doubles every frame,
@@ -89,7 +99,7 @@ enhance_image() {
 # foreground so the UI can track the phase and frame count; only swaps the crisp
 # clip onto the desktop if it is still the live wallpaper when it lands.
 enhance_video() {
-	local f="$1" d fps w cap total wpid gpu
+	local f="$1" d fps w cap total wpid gpu out chk ok gpus
 	command -v ffmpeg >/dev/null 2>&1 || { enh_write "$f" error; return 1; }
 	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || { enh_write "$f" unsupported; return 3; }
 	enh_write "$f" probe
@@ -99,7 +109,6 @@ enhance_video() {
 	w="$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$f" 2>/dev/null | head -1)"
 	cap="$(screen_cap)"
 	if [ "${w:-0}" -ge "$cap" ]; then enh_write "$f" "sharp"; return 2; fi
-	gpu="$(pick_gpu)" || { enh_write "$f" unsupported; return 3; }
 	fps="$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$f" 2>/dev/null | head -1)"
 	[ -n "$fps" ] && [ "$fps" != "0/0" ] || fps=30
 	d="$(mktemp -d)" || { enh_write "$f" error; return 1; }
@@ -110,25 +119,38 @@ enhance_video() {
 	fi
 	total="$(find "$d/in" -name '*.png' | wc -l)"
 	[ "${total:-0}" -gt 0 ] || { rm -rf "$d"; enh_write "$f" error; return 1; }
-	enh_write "$f" enhance 0 "$total"
-	# waifu2x processes the whole directory in one call, so a watcher counts the
-	# output frames for a real progress bar until the process exits.
-	waifu2x-ncnn-vulkan -i "$d/in" -o "$d/out" -s 2 -n 2 -g "$gpu" -m "$w2x_model" >/dev/null 2>&1 &
-	wpid=$!
-	while kill -0 "$wpid" 2>/dev/null; do
-		enh_write "$f" enhance "$(find "$d/out" -name '*.png' 2>/dev/null | wc -l)" "$total"
-		sleep 1
+	# try each GPU on the real clip and validate a middle frame: a hybrid dGPU can
+	# pass a small probe then emit all-black, so only the actual output proves a
+	# GPU. Last good GPU first; the first clean run wins and is remembered.
+	read -ra gpus <<<"$(w2x_order)"
+	for gpu in "${gpus[@]}"; do
+		rm -rf "$d/out"; mkdir -p "$d/out"
+		enh_write "$f" enhance 0 "$total"
+		waifu2x-ncnn-vulkan -i "$d/in" -o "$d/out" -s 2 -n 2 -g "$gpu" -m "$w2x_model" >/dev/null 2>&1 &
+		wpid=$!
+		while kill -0 "$wpid" 2>/dev/null; do
+			enh_write "$f" enhance "$(find "$d/out" -name '*.png' 2>/dev/null | wc -l)" "$total"
+			sleep 1
+		done
+		wait "$wpid" || continue
+		chk="$(printf '%08d' "$(( total / 2 > 0 ? total / 2 : 1 ))")"
+		if [ -s "$d/out/$chk.png" ] && sane_img "$d/out/$chk.png"; then
+			printf '%s' "$gpu" >"$w2x_gpu_pref" 2>/dev/null || true
+			ok=1; break
+		fi
 	done
-	wait "$wpid" || { rm -rf "$d"; enh_write "$f" error; return 1; }
+	[ -n "$ok" ] || { rm -rf "$d"; enh_write "$f" error; return 1; }
 	enh_write "$f" assemble "$total" "$total"
-	if ffmpeg -y -framerate "$fps" -i "$d/out/%08d.png" -i "$f" -map 0:v:0 -map 1:a:0? -c:a copy -c:v libx264 -pix_fmt yuv420p -movflags +faststart "$d/final.mp4" >/dev/null 2>&1; then
-		mv -f "$d/final.mp4" "$f"
-		enh_write "$f" "done" "$total" "$total"
-		still_current "$f" && ryoku-shell wallpaper set "$f" >/dev/null 2>&1 || true
-	else
+	if ! ffmpeg -y -framerate "$fps" -i "$d/out/%08d.png" -i "$f" -map 0:v:0 -map 1:a:0? -c:a copy -c:v libx264 -pix_fmt yuv420p -movflags +faststart "$d/final.mp4" >/dev/null 2>&1; then
 		rm -rf "$d"; enh_write "$f" error; return 1
 	fi
+	# non-destructive: waifu2x output is H.264, so write a correctly-named .mp4
+	# beside the source and switch to it, never overwriting the original clip.
+	out="${f%.*}.mp4"
+	mv -f "$d/final.mp4" "$out"
 	rm -rf "$d"
+	enh_write "$out" "done" "$total" "$total"
+	still_current "$f" && ryoku-shell wallpaper set "$out" >/dev/null 2>&1 || true
 }
 
 # grade an image with imagemagick: brightness / contrast / saturation / warmth,
