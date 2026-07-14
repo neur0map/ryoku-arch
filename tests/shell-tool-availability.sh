@@ -9,14 +9,17 @@ ROOT=${RYOKU_PATH:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}
 pkgs="$ROOT/system/packages"
 
 ships() {
-  grep -qxF "$1" "$pkgs/base.packages" "$pkgs/dev.packages" "$pkgs/aur.packages" 2>/dev/null
+  grep -qxF "$1" "$pkgs/base.packages" "$pkgs/dev.packages" "$pkgs/aur.packages" 2>/dev/null && return 0
+  # first-party [ryoku] repo packages (wallust, ...) ship from release/packages,
+  # not the package sets.
+  [[ -d "$ROOT/release/packages/$1" ]]
 }
 
 # feature -> package that provides it
 declare -A need=(
+  # live wallpapers ride ryoku-livewall, which ships inside the ryoku-shell
+  # package itself (phonto/mpvpaper were dropped with it, 7c20f7dd).
   [wallpaper-daemon]=awww-git
-  [live-wallpaper]=phonto
-  [live-wallpaper-nvidia]=mpvpaper
   [palette]=wallust
   [clipboard-history]=cliphist
   [color-picker]=hyprpicker
@@ -43,7 +46,6 @@ declare -A need=(
   [file-cli]=yazi
   [video]=mpv
   [calc]=libqalculate
-  [music-mpris]=mpv-mpris
   [music-recognition]=songrec
   [display-brightness]=ddcutil
   [vibrance]=nvibrant-bin
