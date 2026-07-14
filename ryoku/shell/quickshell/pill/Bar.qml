@@ -484,16 +484,25 @@ Item {
             // translucent glass the wallpaper shows through; angel: opaque with a
             // heavy base border and a bright inset top edge (the brutalist glow).
             Rectangle {
+                id: flatBg
                 anchors.fill: parent
                 readonly property color surf: Config.matchWallpaper ? Wallust.surface : Config.surfaceColor
                 readonly property color deep: Config.matchWallpaper ? Wallust.base : Config.surfaceColor
-                color: bar.aurora ? Qt.alpha(surf, 0.5) : (bar.angel ? deep : surf)
+                // aurora reads as a lit glass pane: a top-down translucency gradient
+                // (denser up top where the light catches, clearer below) keeps the
+                // modules legible and stops it collapsing into inir's flat panel on a
+                // dark wallpaper. inir and angel are flat, so both stops resolve to
+                // one solid tone.
+                gradient: Gradient {
+                    GradientStop { position: 0; color: bar.aurora ? Qt.alpha(flatBg.surf, 0.62) : (bar.angel ? flatBg.deep : flatBg.surf) }
+                    GradientStop { position: 1; color: bar.aurora ? Qt.alpha(flatBg.surf, 0.44) : (bar.angel ? flatBg.deep : flatBg.surf) }
+                }
 
-                Rectangle { // aurora top sheen
+                Rectangle { // aurora glass edge: a crisp lit highlight along the top
                     visible: bar.aurora
                     anchors { left: parent.left; right: parent.right; top: parent.top }
-                    height: Math.max(1, bar.s)
-                    color: Qt.alpha(Theme.cream, 0.16)
+                    height: Math.max(1, 2 * bar.s)
+                    color: Qt.alpha(Theme.cream, 0.3)
                 }
                 Rectangle { // angel inset top glow
                     visible: bar.angel
