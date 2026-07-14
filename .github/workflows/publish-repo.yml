@@ -155,8 +155,8 @@ jobs:
               d="${d%%[<>=]*}"
               [[ -z $d ]] && continue
               # skip packages built here in [ryoku] (self-referential deps): the
-              # ryoku* set, gpk, wallust, and the compositor-plugin packages.
-              case "$d" in ryoku*|gpk|hypr-dynamic-cursors|hyprglass|imgborders|wallust) continue ;; esac
+              # ryoku* set, gpk, wallust, ryomotion, and the compositor plugins.
+              case "$d" in ryoku*|gpk|hypr-dynamic-cursors|hyprglass|imgborders|wallust|ryomotion) continue ;; esac
               if ! pacman -Si "$d" >/dev/null 2>&1; then
                 echo "::error::$p: dependency '$d' not found in the official repos"
                 missing=1

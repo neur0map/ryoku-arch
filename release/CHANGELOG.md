@@ -96,6 +96,11 @@
   them, so `ryoku-blobs` failed `build()` (Qt6 Multimedia not found), the
   compositor plugins failed `prepare()`, and the ISO stage-check failed. All four
   toolchains now install what they build.
+- **The publish dependency gate no longer rejects `ryomotion`.** The gate
+  `pacman -Si`s every hard dep and skips sibling `[ryoku]` packages via an
+  allowlist; `ryomotion` (now a hard dep of `ryoku-desktop`) is a `[ryoku]`
+  package but doesn't match the `ryoku*` glob, so the gate searched the official
+  repos for it and failed the publish. It's allowlisted now.
 - **The camera self-view now hides when recording stops.** The webcam bubble is
   a recording companion, so the shell clears it when the last capture ends (a
   plain mirror toggled on with no recording stays until toggled off).
