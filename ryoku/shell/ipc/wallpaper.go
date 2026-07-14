@@ -266,10 +266,43 @@ func (d *daemon) showWallpaperFade(pic string) error {
 
 const liveDaemon = "ryoku-livewall"
 
-// liveCapWidth caps livewall's decode/render width; the compositor upscales it to
-// the output. A background clip past ~720p is wasted detail, and a smaller decode
-// keeps the CPU cost and the wl_shm buffers tiny.
-const liveCapWidth = "1280"
+// liveCapWidth caps livewall's decode/render width at the widest monitor's
+// logical width (physical / fractional scale), so a video wallpaper renders near
+// 1:1 with its surface instead of the old fixed 1280 upscaled to a blur. Software
+// decode scales with resolution, so the width is clamped to 2560 to hold
+// livewall's PSS under the 100 MB budget (~57 MB at 2048, ~78 MB at 2560); a
+// wider panel plays at 2560 rather than blow it. "1920" when hyprctl is absent.
+func liveCapWidth() string {
+	const floor, ceil = 1280, 2560
+	out, err := exec.Command("hyprctl", "monitors", "-j").Output()
+	if err != nil {
+		return "1920"
+	}
+	var mons []struct {
+		Width int     `json:"width"`
+		Scale float64 `json:"scale"`
+	}
+	if json.Unmarshal(out, &mons) != nil {
+		return "1920"
+	}
+	best := 0
+	for _, m := range mons {
+		w := m.Width
+		if m.Scale > 0 {
+			w = int(float64(m.Width)/m.Scale + 0.5)
+		}
+		if w > best {
+			best = w
+		}
+	}
+	if best < floor {
+		best = floor
+	}
+	if best > ceil {
+		best = ceil
+	}
+	return strconv.Itoa(best)
+}
 
 // liveFit reads the ryowalls Fit knob (ryowalls.json) that livewall applies when
 // mapping the clip onto the screen: "fit" letterboxes the whole clip, the
@@ -362,11 +395,12 @@ func (d *daemon) showLiveWallpaper(pic string) error {
 	// at once. The generation guard drops the launch if the wallpaper changed while
 	// the transcode ran.
 	go func() {
-		src := livewallSource(pic)
+		capW := liveCapWidth()
+		src := livewallSource(pic, capW)
 		if src == "" || liveGen.Load() != gen {
 			return
 		}
-		cmd := exec.Command(liveDaemon, src, liveCapWidth, liveFit())
+		cmd := exec.Command(liveDaemon, src, capW, liveFit())
 		if cmd.Start() != nil {
 			return
 		}
@@ -405,12 +439,12 @@ func frameOffset(video string) string {
 	return "1"
 }
 
-// livewallSource: the cached <=720p30 H.264 that livewall decodes, transcoded once
-// per clip (keyed by path + mtime). Software-decoding a 4K source would blow the
-// RAM budget -- its reference-frame pool alone is ~100 MB -- while a downscaled
-// clip keeps livewall ~40 MB and the decode ~8% of one core. "" if ffmpeg fails,
-// so the caller keeps the clip's still frame.
-func livewallSource(pic string) string {
+// livewallSource: the cached H.264 that livewall decodes, transcoded once per
+// clip + cap width (keyed by path, mtime and cap). Software-decoding the 4K
+// source directly would blow the RAM budget; downscaling to the screen's width
+// keeps livewall bounded while matching the panel, so the video is not upscaled
+// to a blur. "" if ffmpeg fails, so the caller keeps the clip's still frame.
+func livewallSource(pic, capW string) string {
 	st, err := os.Stat(pic)
 	if err != nil {
 		return ""
@@ -421,7 +455,7 @@ func livewallSource(pic string) string {
 	}
 	dir := filepath.Join(base, "ryoku", "livewall")
 	name := strings.TrimSuffix(filepath.Base(pic), filepath.Ext(pic))
-	out := filepath.Join(dir, name+"-"+strconv.FormatInt(st.ModTime().Unix(), 10)+".mp4")
+	out := filepath.Join(dir, name+"-"+strconv.FormatInt(st.ModTime().Unix(), 10)+"-"+capW+".mp4")
 	if isFile(out) {
 		return out
 	}
@@ -430,7 +464,7 @@ func livewallSource(pic string) string {
 	}
 	tmp := out + ".tmp.mp4"
 	err = exec.Command("ffmpeg", "-y", "-i", pic,
-		"-vf", "scale='min(1280,iw)':-2:flags=bicubic", "-r", "30",
+		"-vf", "scale='min("+capW+",iw)':-2:flags=bicubic", "-r", "30",
 		"-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", "-an", tmp).Run()
 	if err != nil || !isFile(tmp) {
 		_ = os.Remove(tmp)

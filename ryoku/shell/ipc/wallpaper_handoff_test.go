@@ -38,6 +38,7 @@ func TestShowLiveWallpaperHandoff(t *testing.T) {
 	fake("awww", `case "$1" in query) exit 0 ;; *) printf '%s\n' "$*" >> "`+awwwLog+`" ;; esac`)
 	fake("pgrep", `[ -f "`+alive+`" ]`)
 	fake("pkill", `rm -f "`+alive+`"; exit 0`)
+	fake("hyprctl", `printf '%s' '[{"width":1920,"scale":1}]'`)
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	vid := filepath.Join(t.TempDir(), "clip.mp4")
@@ -57,8 +58,8 @@ func TestShowLiveWallpaperHandoff(t *testing.T) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	if !strings.Contains(string(got), ".mp4") || !strings.Contains(string(got), liveCapWidth) {
-		t.Errorf("livewall not launched with the transcoded clip + cap width %s: %q", liveCapWidth, got)
+	if !strings.Contains(string(got), ".mp4") || !strings.Contains(string(got), liveCapWidth()) {
+		t.Errorf("livewall not launched with the transcoded clip + cap width %s: %q", liveCapWidth(), got)
 	}
 	aw, err := os.ReadFile(awwwLog)
 	if err != nil || !strings.Contains(string(aw), "img") {
