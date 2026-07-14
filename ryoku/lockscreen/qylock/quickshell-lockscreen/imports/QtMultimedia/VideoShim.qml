@@ -45,7 +45,7 @@ Item {
             var lastSlash = str.lastIndexOf("/");
             var filename = lastSlash >= 0 ? str.substring(lastSlash + 1) : str;
             
-            var tName = Quickshell.env("QS_THEME") || "nier-automata";
+            var tName = Quickshell.env("QS_THEME") || "clockwork/orbital";
             var resolvedStr = "file://" + Quickshell.shellDir + "/themes_link/" + tName + "/" + filename;
             
             if (player.source.toString() !== resolvedStr) {

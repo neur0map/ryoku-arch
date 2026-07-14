@@ -3,6 +3,26 @@
 ## Unreleased
 
 ### Fixed
+- **Suspend now waits for the lock to actually cover the screen.** qylock's
+  `lock_shell.qml` touches `$XDG_RUNTIME_DIR/qylock.locked` the moment the
+  compositor confirms every output is covered (`WlSessionLock.secure`) and
+  removes it on unlock, giving `ryoku-shell lock` a real "locked" signal to
+  block on. Before, hypridle's `before_sleep_cmd` returned while Quickshell was
+  still loading QML, so logind's sleep inhibitor was released with the desktop
+  still in the framebuffer: opening the lid showed your windows for a beat
+  before the lock painted.
+- **A missing lock theme can no longer lock you out.** `lock.sh` defaulted to
+  `nier-automata`, a theme the shipped bundle does not contain, and never
+  checked the resolved theme path: with `~/.config/qylock/theme` lost (or an
+  uninstalled skin still named there) the theme Loader errored and the session
+  locked into a plain black surface that absorbed every keypress with no
+  password field. The default is now the shipped `clockwork/orbital` (also in
+  `lock_shell.qml` and the QtMultimedia shims), and `lock.sh` verifies
+  `Main.qml` exists, falling back to the stock theme before launching.
+- `lock.sh` resolves the session type from `$XDG_SESSION_ID` (or the user's
+  first logind session) instead of `loginctl | grep $(whoami)`, which matched
+  whichever of several sessions happened to sort first (re-login, a second
+  seat) and could misread wayland as tty.
 - The desktop no longer strands itself on a black lock screen after sleep. The
   ext-session-lock protocol wedges the whole session if the locker crashes while
   locked, which a GPU glitch on resume can trigger: the machine wakes to a black

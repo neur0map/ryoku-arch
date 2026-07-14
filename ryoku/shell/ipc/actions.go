@@ -131,19 +131,48 @@ func queryActiveMonitor() string {
 	return w.Monitor
 }
 
+// lockMarker is the file qylock's lock_shell.qml touches once the compositor
+// confirms every output is covered by a lock surface (WlSessionLock.secure)
+// and removes again on unlock. lockSession blocks on it so hypridle's
+// before_sleep_cmd keeps logind's sleep delay-inhibitor held until the screen
+// is really locked; returning early suspends with the desktop still in the
+// framebuffer, visible for a beat on resume.
+func lockMarker() string {
+	dir := os.Getenv("XDG_RUNTIME_DIR")
+	if dir == "" {
+		dir = "/tmp"
+	}
+	return filepath.Join(dir, "qylock.locked")
+}
+
+// lockWait bounds the wait for the compositor-confirmed lock. It stays under
+// logind's 5s InhibitDelayMaxSec so a locker that never confirms (a qylock
+// predating the marker, a wedged Quickshell) delays suspend, never blocks it.
+var lockWait = 3 * time.Second
+
 // lockSession locks the screen with qylock, the in-session lock Ryoku ships.
-// the shell has no lock of its own.
+// the shell has no lock of its own. It returns once the compositor has
+// confirmed the lock (the marker), or after lockWait.
 func lockSession() string {
-	if pgrepRunning("quickshell.*quickshell-lockscreen.*/lock_shell.qml") {
-		return "ok"
+	marker := lockMarker()
+	if !pgrepRunning("quickshell.*quickshell-lockscreen.*/lock_shell.qml") {
+		// no live locker: a marker on disk is a leftover of a killed one and
+		// must not fake "locked" below.
+		_ = os.Remove(marker)
+		lock := filepath.Join(os.Getenv("HOME"), ".local", "share", "quickshell-lockscreen", "lock.sh")
+		cmd := exec.Command(lock)
+		if err := cmd.Start(); err != nil {
+			return "err lock: " + err.Error()
+		}
+		// reap at unlock; Release() would leave one zombie per lock cycle.
+		go func() { _ = cmd.Wait() }()
 	}
-	lock := filepath.Join(os.Getenv("HOME"), ".local", "share", "quickshell-lockscreen", "lock.sh")
-	cmd := exec.Command(lock)
-	if err := cmd.Start(); err != nil {
-		return "err lock: " + err.Error()
-	}
-	if cmd.Process != nil {
-		_ = cmd.Process.Release()
+	deadline := time.Now().Add(lockWait)
+	for time.Now().Before(deadline) {
+		if _, err := os.Stat(marker); err == nil {
+			return "ok"
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
 	return "ok"
 }

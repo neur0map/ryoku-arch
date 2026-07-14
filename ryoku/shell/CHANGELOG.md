@@ -148,6 +148,22 @@
   plain grab when the tool is absent (`Beautify.qml`).
 
 ### Fixed
+- **`ryoku-shell lock` blocks until the compositor confirms the lock, so
+  suspend can no longer race the lockscreen.** hypridle's `before_sleep_cmd`
+  holds logind's sleep delay-inhibitor only while the command runs, but
+  `lockSession` fire-and-forgot `lock.sh` and returned in milliseconds:
+  Quickshell was still loading QML when the machine suspended, and opening the
+  lid showed the desktop for a beat before the lock painted. The daemon now
+  waits (bounded at 3s, under logind's 5s `InhibitDelayMaxSec`) for the
+  `$XDG_RUNTIME_DIR/qylock.locked` marker qylock touches once
+  `WlSessionLock.secure` flips true, clearing a stale marker from a killed
+  locker first; a qylock predating the marker just rides out the wait, so
+  suspend is delayed, never blocked (`ipc/actions.go`, covered by
+  `TestLockSessionWaitsForMarker` and `TestLockSessionClearsStaleMarker`).
+- `ipc/actions.go`: the lock no longer leaks one zombie per lock/unlock cycle.
+  `lockSession` released the `lock.sh` process handle instead of reaping it, so
+  every unlock left a defunct entry in the daemon's process table for the rest
+  of the session.
 - **The now-playing elapsed line no longer pixelates near the end of a track.**
   The wavy seekbar sampled the filled portion with a fixed 48-point budget while
   the number of waves grew with the fill, so past the midpoint each crest got

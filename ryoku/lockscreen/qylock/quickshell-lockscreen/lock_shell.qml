@@ -8,7 +8,7 @@ import "./shim"
 ShellRoot {
     id: shellRoot
 
-    property string activeTheme: Quickshell.env("QS_THEME") || "nier-automata"
+    property string activeTheme: Quickshell.env("QS_THEME") || "clockwork/orbital"
     property string themePath: Quickshell.env("QS_THEME_PATH") || (Quickshell.shellDir + "/themes_link/" + activeTheme)
 
     readonly property var sddm: sddmShim.sddm
@@ -80,6 +80,18 @@ ShellRoot {
             WlSessionLock {
                 id: lock
                 locked: shellRoot.sessionLocked
+                // ryoku-shell's `lock` command blocks on this marker so
+                // hypridle's before_sleep_cmd only returns once the compositor
+                // confirms every output is covered (no desktop flash on
+                // resume). secure flips false on unlock; remove it then so a
+                // later lock never reads stale state.
+                onSecureChanged: {
+                    if (lock.secure) {
+                        Quickshell.execDetached(["sh", "-c", "umask 077; : > \"${XDG_RUNTIME_DIR:-/tmp}/qylock.locked\""])
+                    } else {
+                        Quickshell.execDetached(["sh", "-c", "rm -f \"${XDG_RUNTIME_DIR:-/tmp}/qylock.locked\""])
+                    }
+                }
                 surface: Component {
                     WlSessionLockSurface {
                         color: "black"
