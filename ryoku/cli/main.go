@@ -4,7 +4,7 @@
 // rather than reimplementing them.
 //
 //	ryoku update            snapshot -> channel pull or pacman -Syu -> deploy -> reload
-//	ryoku rollback [id]     restore a snapper snapshot (or list them)
+//	ryoku rollback [id]     guide restoring a snapshot from the boot menu (or list them)
 //	ryoku snapshots         list snapper snapshots
 //	ryoku status            version, commits behind the channel, snapshot count
 //	ryoku materialize       lay the base configs into ~/.config (override-safe)
@@ -68,7 +68,7 @@ func usage() {
 	fmt.Print(`Usage: ryoku <command>
 
   update         apply channel commits (or pacman -Syu), redeploy, reload
-  rollback [id]  restore a snapper snapshot (no id: list them)
+  rollback [id]  guide restoring a snapshot from the boot menu (no id: list them)
   snapshots      list snapper snapshots
   status         version, commits behind the channel, snapshot count
   version        print the running version (--branch = channel · sha)

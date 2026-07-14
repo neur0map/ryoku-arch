@@ -121,6 +121,35 @@
   update`/`doctor`/`status`/...) are unchanged.
 
 ### Fixed
+- **`rollback` no longer runs a `snapper rollback` that cannot restore the
+  system.** Ryoku pins the root subvolume on the kernel cmdline and in fstab
+  (`rootflags=subvol=@`), and snapper's rollback works by flipping the btrfs
+  default subvolume, which a pinned `subvol=` ignores; limine-snapper-sync's
+  own tooling states the layout is "not compatible with 'snapper rollback'".
+  So `ryoku rollback <id>` either failed with a cryptic snapper error or
+  flipped a default subvolume nothing reads, while the Hub's one-click "Roll
+  back" after a failed update inherited the same dead end. The command now
+  teaches the supported flow: reboot into the snapshot from the Limine
+  Snapshots menu and run `sudo limine-snapper-restore` there (it restores the
+  booted snapshot with its matching kernels from the ESP); with no id it still
+  lists the snapshots first, and it points at the sync package when the boot
+  menu has no snapshots (`internal/updater/update.go`, `docs/cli.md`).
+- **`doctor` respects an install-time "no snapshots" choice.** The snapper
+  reconciler converges every btrfs root missing the snapper config onto the
+  canonical layout, which silently re-enabled snapshots (creating the
+  /.snapshots subvolume and config) on the first update after a user declined
+  them in the installer. The installer now records the opt-out as
+  `/etc/ryoku/snapshots-disabled`, and the reconciler reads it: marker present
+  and no config, snapshots stay off with an explanatory ok (delete the marker
+  and run `ryoku doctor` to enable); an existing config always wins over a
+  stale marker. Installs that predate the marker keep the old converging
+  behavior (`internal/doctor/doctor.go`, covered in `TestPlanSnapper`).
+- `update` no longer points a failed `pacman -Syu` at `ryoku rollback` when the
+  pre-update snapshot it needs was skipped. Snapshots are best-effort (no
+  snapper, no root config), and `snapperPre` then returns empty; the failure
+  message still advertised a rollback that had nothing to restore. The hint now
+  names the actual pre snapshot when one exists, and says to recover with
+  pacman directly when none does (`internal/updater/update.go`).
 - **`materialize` guarantees `~/.config/ryoku` exists.** The shell's JSON
   stores (shell.json, launcher.json, hypr.json) live there, but the package
   ships no file under it and the shell's QML self-seed cannot create parent

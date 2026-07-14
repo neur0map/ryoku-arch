@@ -419,6 +419,7 @@ const (
 	snapperWarnInconsistent
 	snapperCreate
 	snapperWarnMissingPkgs
+	snapperOptedOut
 )
 
 // snapperState: the slice of the filesystem reconcileSnapper looks at, lifted
@@ -427,6 +428,7 @@ const (
 type snapperState struct {
 	rootIsBtrfs         bool
 	configExists        bool
+	optedOut            bool
 	snapshotsExists     bool
 	snapshotsIsSubvol   bool
 	snapshotsMode       os.FileMode
@@ -446,6 +448,13 @@ func planSnapper(s snapperState) (snapperOutcome, []string) {
 	if !s.configExists {
 		if !s.rootIsBtrfs {
 			return snapperWarnNotBtrfs, nil
+		}
+		// the installer records an explicit "no snapshots" choice
+		// (RYOKU_SUBVOL_SNAPSHOTS=0) as /etc/ryoku/snapshots-disabled; creating
+		// the layout anyway would silently revert it on the first update. an
+		// existing config always wins over a stale marker.
+		if s.optedOut {
+			return snapperOptedOut, nil
 		}
 		if !s.snapperInstalled {
 			return snapperWarnMissingPkgs, nil
@@ -490,6 +499,7 @@ func gatherSnapperState() snapperState {
 	s := snapperState{
 		rootIsBtrfs:         sys.IsBtrfs("/"),
 		configExists:        sys.Exists("/etc/snapper/configs/root"),
+		optedOut:            sys.Exists("/etc/ryoku/snapshots-disabled"),
 		snapperInstalled:    sys.Has("snapper"),
 		snapPacInstalled:    sys.PkgInstalled("snap-pac"),
 		limineInstalled:     sys.PkgInstalled("limine"),
@@ -520,6 +530,8 @@ func reconcileSnapper(checkOnly bool) recResult {
 	case snapperWarnMissingPkgs:
 		return warnRes("root is btrfs but snapper is not installed; snapshots and rollback are off").
 			withFix("sudo pacman -S snapper snap-pac, then ryoku doctor")
+	case snapperOptedOut:
+		return okRes("snapshots were declined at install (/etc/ryoku/snapshots-disabled); delete the marker and run `ryoku doctor` to enable them")
 	case snapperCreate:
 		if checkOnly {
 			return wouldRes("snapper root config is missing; snapshots and rollback are off").

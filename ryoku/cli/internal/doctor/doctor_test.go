@@ -346,6 +346,8 @@ func TestPlanSnapper(t *testing.T) {
 		{"missing config + btrfs + snapper installed converges with create", snapperState{rootIsBtrfs: true, snapperInstalled: true}, snapperCreate, ""},
 		{"missing config + btrfs + snapper not installed recommends install", snapperState{rootIsBtrfs: true}, snapperWarnMissingPkgs, ""},
 		{"missing config + non-btrfs root warns honestly", snapperState{rootIsBtrfs: false}, snapperWarnNotBtrfs, ""},
+		{"missing config + install-time opt-out marker is respected, not converged", snapperState{rootIsBtrfs: true, snapperInstalled: true, optedOut: true}, snapperOptedOut, ""},
+		{"existing config wins over a stale opt-out marker", func() snapperState { s := consistent; s.optedOut = true; return s }(), snapperOK, ""},
 		{"present + consistent reads ok", consistent, snapperOK, ""},
 		{"/.snapshots wrong mode warns inconsistent", withMode(0o755), snapperWarnInconsistent, "mode 0755"},
 		{"conf.d missing root warns inconsistent", withConfd("SNAPPER_CONFIGS=\"home\"\n"), snapperWarnInconsistent, "does not list the root config"},

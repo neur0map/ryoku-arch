@@ -131,12 +131,13 @@ Item {
         page.phase = "running";
     }
 
-    // roll back to the pre-update snapshot after a failed run, in a terminal
-    // (rollback needs sudo), then clear the error state.
+    // guide restoring the pre-update snapshot after a failed run, in a terminal
+    // (`ryoku rollback` prints the boot-menu restore steps and exits, so hold
+    // the window for the user to read), then clear the error state.
     function rollback() {
         if (page.snapshot === "")
             return;
-        Quickshell.execDetached(["kitty", "-e", "sh", "-c", "exec ryoku rollback \"$1\"", "sh", page.snapshot]);
+        Quickshell.execDetached(["kitty", "-e", "sh", "-c", "ryoku rollback \"$1\"; printf '\\npress enter to close '; read -r _", "sh", page.snapshot]);
         page.dismiss();
     }
 

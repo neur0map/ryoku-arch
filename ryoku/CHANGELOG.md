@@ -404,6 +404,13 @@
   `shell/fish` (with its non-brand greeting) was dropped for `ryoku/apps/fish`.
 
 ### Fixed
+- `hyprland/modules/autostart.lua`: booting a snapshot from the Limine menu now
+  actually offers the one-click restore. limine-snapper-sync ships its restore
+  prompt as an XDG autostart entry, but Hyprland runs no XDG autostart manager,
+  so under Ryoku's own session the notification never fired and a user booted
+  into a snapshot got no cue to restore it. Autostart now runs
+  `limine-snapper-restore --notify` (command-gated); on a normal boot it
+  detects no snapshot and exits silently.
 - `hyprland/modules/autostart.lua`: the welcome tour's double-fire guard now
   actually guards. `flock -o` closes the lock fd before exec, releasing the
   lock the instant `qs -c welcome` starts, so two racing autostart fires could

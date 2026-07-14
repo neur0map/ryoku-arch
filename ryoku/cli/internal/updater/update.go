@@ -86,7 +86,13 @@ func Update(args []string) error {
 	progress.logf("Updating system packages (pacman)")
 	clearStalePacmanLock()
 	if err := sys.Sudo("pacman", "-Syu", "--noconfirm"); err != nil {
-		e := fmt.Errorf("pacman -Syu failed; system unchanged from this point, see `ryoku rollback`: %w", err)
+		// only advertise `ryoku rollback` when the pre snapshot it needs exists;
+		// snapperPre is best-effort and returns "" when it was skipped.
+		hint := "no pre-update snapshot exists (snapper was unavailable), so `ryoku rollback` cannot revert this; recover with pacman directly"
+		if pre != "" {
+			hint = "see `ryoku rollback` (pre-update snapshot " + pre + ")"
+		}
+		e := fmt.Errorf("pacman -Syu failed; %s: %w", hint, err)
 		progress.fail(e)
 		return e
 	}
@@ -301,14 +307,40 @@ func runFreshDoctor() {
 	_ = sys.Run("ryoku", "doctor")
 }
 
+// Rollback guides restoring a snapshot. Ryoku pins the root subvolume on the
+// kernel cmdline and in fstab (rootflags=subvol=@), and `snapper rollback`
+// cannot serve that layout: it works by flipping the btrfs default subvolume,
+// which a pinned subvol= simply ignores -- limine-snapper-sync's own tooling
+// states the layout is "not compatible with 'snapper rollback'". The supported
+// restore is the boot menu: boot the snapshot entry (whose matching kernels
+// limine-snapper-sync staged on the ESP), then `limine-snapper-restore` copies
+// it back onto @. So this command teaches that flow instead of running a
+// snapper command that cannot restore the system.
 func Rollback(args []string) error {
+	id := "<id>"
 	if len(args) == 0 {
-		fmt.Println("Pick a snapshot id and run `ryoku rollback <id>` (or choose it from the Limine boot menu):")
-		return Snapshots()
+		fmt.Println("Snapshots (pick an id, or choose one under Snapshots in the Limine boot menu):")
+		if err := Snapshots(); err != nil {
+			return err
+		}
+		fmt.Println()
+	} else {
+		id = args[0]
+		fmt.Printf("==> Restoring snapshot %s\n\n", id)
 	}
-	id := args[0]
-	fmt.Printf("==> Rolling back to snapshot %s\n", id)
-	return sys.Sudo("snapper", "-c", snapperConfig, "rollback", id)
+	fmt.Println("Ryoku boots the @ subvolume directly, so a live `snapper rollback` cannot")
+	fmt.Println("restore the system; the restore runs from the boot menu instead:")
+	fmt.Printf("  1. Reboot, and in the Limine menu open Snapshots -> snapshot %s.\n", id)
+	fmt.Println("  2. Boot it, then run `sudo limine-snapper-restore` in a terminal (it offers")
+	fmt.Println("     to restore the snapshot you are booted into, matching kernels included).")
+	fmt.Println("  3. Reboot back into the restored system.")
+	if !sys.PkgInstalled("limine-snapper-sync") {
+		fmt.Println()
+		fmt.Println("limine-snapper-sync is not installed, so snapshots are missing from the boot")
+		fmt.Println("menu. Install it first:")
+		fmt.Println("  ryoku-pkg-aur-add limine-snapper-sync && sudo systemctl enable --now limine-snapper-sync.service")
+	}
+	return nil
 }
 
 func Snapshots() error {

@@ -10,6 +10,11 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("command -v ryoku-idle >/dev/null 2>&1 && ryoku-idle start")
     hl.exec_cmd("command -v ryoku-leds >/dev/null 2>&1 && ryoku-leds apply")
     hl.exec_cmd("command -v ryoku-mic >/dev/null 2>&1 && ryoku-mic")
+    -- Booted into a btrfs snapshot from the Limine menu: offer the one-click
+    -- restore. limine-snapper-sync ships this as an XDG autostart entry, which
+    -- Hyprland never runs (no autostart manager), so start it here; on a normal
+    -- boot it detects no snapshot and exits silently.
+    hl.exec_cmd("command -v limine-snapper-restore >/dev/null 2>&1 && limine-snapper-restore --notify")
     -- Voxtype dictation: `ryoku-hub voxtype ensure` seeds a default config with
     -- the built-in hotkey off (the shell owns Super+` and the mic wave), installs
     -- the user service once, and starts it unless you turned dictation off in the
