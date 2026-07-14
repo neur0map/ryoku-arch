@@ -20,7 +20,7 @@ enh_state="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-ryowalls-enhance.json"
 still_current() { [ "$(cat "$state_file" 2>/dev/null)" = "$1" ]; }
 
 # progress the ryowalls UI polls while enhancing: {file, phase, done, total}.
-# phase is probe | extract | enhance | assemble | done | error | unsupported.
+# phase is probe | extract | enhance | assemble | done | sharp | error | unsupported.
 enh_write() {
 	mkdir -p "$(dirname "$enh_state")" 2>/dev/null || true
 	jq -cn --arg file "$1" --arg phase "$2" --argjson dn "${3:-0}" --argjson total "${4:-0}" \
@@ -37,7 +37,7 @@ enhance_image() {
 	ext="$(printf '%s' "${f##*.}" | tr '[:upper:]' '[:lower:]')"
 	[ "$ext" = jpeg ] && ext=jpg
 	h="$(identify -format '%h' "$f" 2>/dev/null || echo 0)"
-	if [ "${h:-0}" -ge 2160 ]; then enh_write "$f" "done"; return 0; fi
+	if [ "${h:-0}" -ge 2160 ]; then enh_write "$f" "sharp"; return 2; fi
 	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || { enh_write "$f" unsupported; return 3; }
 	enh_write "$f" enhance
 	tmp="$f.up.$ext"
@@ -63,7 +63,7 @@ enhance_video() {
 	# livewall renders live wallpapers at <=1280 wide (liveCapWidth in the shell),
 	# so a clip already that wide gains nothing on screen: skip the minutes of GPU.
 	w="$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$f" 2>/dev/null | head -1)"
-	if [ "${w:-0}" -ge 1280 ]; then enh_write "$f" "done"; return 0; fi
+	if [ "${w:-0}" -ge 1280 ]; then enh_write "$f" "sharp"; return 2; fi
 	fps="$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$f" 2>/dev/null | head -1)"
 	[ -n "$fps" ] && [ "$fps" != "0/0" ] || fps=30
 	d="$(mktemp -d)" || { enh_write "$f" error; return 1; }

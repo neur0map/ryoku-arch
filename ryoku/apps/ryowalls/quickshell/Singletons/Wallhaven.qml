@@ -83,7 +83,7 @@ Singleton {
     // path guards its desktop swap so a slow finish never yanks an old wallpaper
     // back. No tool installed -> the action offers Install instead.
     property bool enhancing: false
-    property string enhancePhase: ""     // probe|extract|enhance|assemble|done|error|unsupported
+    property string enhancePhase: ""     // probe|extract|enhance|assemble|done|sharp|error|unsupported
     property real enhanceFrac: 0
     property bool _enhanceAfterDl: false
 
@@ -122,7 +122,7 @@ Singleton {
             root.enhancing = false;
             // the exit code is authoritative for the final state; the watched file
             // drives only the live progress while it runs.
-            root.enhancePhase = code === 3 ? "unsupported" : (code !== 0 ? "error" : "done");
+            root.enhancePhase = code === 3 ? "unsupported" : code === 2 ? "sharp" : (code !== 0 ? "error" : "done");
             root._enhClear.restart();
         }
     }

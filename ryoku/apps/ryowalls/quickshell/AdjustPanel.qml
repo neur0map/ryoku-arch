@@ -35,6 +35,7 @@ Item {
         case "enhance": return "Enhancing";
         case "assemble": return "Reassembling";
         case "done": return "Enhanced";
+        case "sharp": return "Already sharp";
         case "error": return "Enhance failed";
         case "unsupported": return "No enhancer installed";
         default: return "";
@@ -197,7 +198,7 @@ Item {
                     visible: Wallhaven.upscaleSupported && Wallhaven.upscaler
 
                     HubButton {
-                        visible: !Wallhaven.enhancing && Wallhaven.enhancePhase !== "done"
+                        visible: !Wallhaven.enhancing && Wallhaven.enhancePhase !== "done" && Wallhaven.enhancePhase !== "sharp"
                         primary: true
                         icon: "sparkles"
                         label: adj.videoMode ? "Enhance clip" : "Enhance image"
@@ -210,6 +211,7 @@ Item {
                         height: 32
                         visible: Wallhaven.enhancing
                             || Wallhaven.enhancePhase === "done"
+                            || Wallhaven.enhancePhase === "sharp"
                             || Wallhaven.enhancePhase === "error"
                             || Wallhaven.enhancePhase === "unsupported"
                         Row {

@@ -12,9 +12,10 @@
   live clip: a **Fill / Fit** control that maps the clip onto the screen through
   `ryoku-livewall` (fill covers, fit letterboxes). Both offer an on-demand
   **Enhance** (AI upscale on the GPU) with a real progress bar and honest phases,
-  replacing the buried "Enhance on save" toggle; for a live clip Enhance is a
-  no-op once the source already meets livewall's decode width, so it never burns
-  GPU on detail the compositor would only downscale away. New `AdjustPanel.qml`,
+  replacing the buried "Enhance on save" toggle. Enhance leaves a source already
+  sharp enough as-is and says so ("Already sharp") instead of faking a pass: an
+  image past 4K, or a clip past livewall's decode width where the compositor
+  would only downscale the extra detail away. New `AdjustPanel.qml`,
   an `adjust` verb and a reworked on-demand `enhance` verb in the `ryowalls`
   engine, and a `liveFit` setting (`App.qml`, `Singletons/Wallhaven.qml`).
 - `ryowalls/`: a **Local** source browses the wallpapers already on the machine,
