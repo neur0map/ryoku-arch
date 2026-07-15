@@ -20,7 +20,7 @@ Item {
 
     // hard shadow only while lit: a lit tile is raised, an unlit one is flush.
     Rectangle {
-        x: 3; y: 3
+        x: 2; y: 2
         width: tile.tileW
         height: tile.tileH
         color: Theme.shadow
@@ -28,23 +28,36 @@ Item {
         antialiasing: false
     }
 
+    // backlit, not painted: a lit annunciator is a dark tile whose LABEL glows
+    // through — a panel of solid colour blocks read as candy, not instruments.
     Rectangle {
         id: face
         width: tile.tileW
         height: tile.tileH
-        color: tile.lit ? tile.litColor : Theme.surfaceLo
+        color: tile.lit ? Qt.rgba(tile.litColor.r, tile.litColor.g, tile.litColor.b, 0.16) : Theme.surfaceLo
         border.width: 1
-        border.color: tile.lit ? Qt.darker(tile.litColor, 1.35) : Theme.lineSoft
+        border.color: tile.lit ? Qt.alpha(tile.litColor, 0.55) : Theme.lineSoft
         antialiasing: false
 
         Text {
             anchors.centerIn: parent
             text: tile.label
-            color: tile.lit ? Theme.onAccent : Theme.faint
+            color: tile.lit ? Qt.lighter(tile.litColor, 1.25) : Theme.faint
             font.family: Theme.mono
             font.pixelSize: 9
-            font.weight: Font.DemiBold
+            font.weight: tile.lit ? Font.Bold : Font.DemiBold
             font.letterSpacing: 1.2
+        }
+        // the lamp strip: a thin lit filament along the base of the glass.
+        Rectangle {
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.margins: 1
+            height: 2
+            visible: tile.lit
+            color: Qt.alpha(tile.litColor, 0.85)
+            antialiasing: false
         }
 
         // 1Hz square-wave blink for warnings: visible toggles, nothing eases.

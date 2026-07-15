@@ -266,7 +266,11 @@ Item {
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: "ssh -p " + (pane.vm ? pane.vm.ssh : "") + " localhost"
+                                        // what Open/Copy actually run (short form): a
+                                        // display line that hides the login invites a
+                                        // "password I never set" haunting.
+                                        text: "ssh -p " + (pane.vm ? pane.vm.ssh : "")
+                                            + " " + (pane.det && pane.det.sshUser ? pane.det.sshUser + "@" : "") + "localhost"
                                         color: Theme.cream
                                         font.family: Theme.mono; font.pixelSize: 12
                                     }
@@ -290,6 +294,51 @@ Item {
                                 font.family: Theme.font; font.pixelSize: 11
                             }
 
+                            // the account ssh signs in with — the #1 "asked for a
+                            // password I never set": that account must exist in the
+                            // guest. Editable hot; the conf keeps it per machine.
+                            Row {
+                                width: parent.width
+                                spacing: 10
+                                visible: pane.vm && (pane.vm.ssh || "").length > 0
+                                SubLabel { anchors.verticalCenter: parent.verticalCenter; text: "Login as" }
+                                Rectangle {
+                                    width: 170
+                                    height: 30
+                                    color: Theme.bgBot
+                                    border.width: 1
+                                    border.color: sshUserField.activeFocus ? Theme.ember : Theme.lineSoft
+                                    antialiasing: false
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    TextInput {
+                                        id: sshUserField
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 10
+                                        anchors.rightMargin: 10
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        color: Theme.bright
+                                        font.family: Theme.mono
+                                        font.pixelSize: 12
+                                        clip: true
+                                        selectByMouse: true
+                                        text: pane.det && pane.det.sshUser ? pane.det.sshUser : ""
+                                        onTextEdited: text = text.replace(/\s+/g, "")
+                                        onEditingFinished: {
+                                            var u = text.trim();
+                                            if (u.length > 0 && pane.det && u !== pane.det.sshUser) {
+                                                Vm.setConfig(pane.name, "ryovm_ssh_user", u);
+                                                Vm.reselect();
+                                            }
+                                        }
+                                    }
+                                }
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "the guest account ssh signs in with"
+                                    color: Theme.faint; font.family: Theme.font; font.pixelSize: 11
+                                }
+                            }
+
                             // console line: honest about socket AND viewer.
                             Row {
                                 spacing: 10
@@ -303,7 +352,7 @@ Item {
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: Vm.caps.spice === true
-                                        ? "SPICE screen on localhost:" + pane.vm.spice
+                                        ? "SPICE screen on localhost:" + (pane.vm ? pane.vm.spice : "")
                                         : "needs the SPICE viewer — install the spice-gtk package"
                                     color: Vm.caps.spice === true ? Theme.dim : Theme.warn
                                     font.family: Theme.font; font.pixelSize: 11

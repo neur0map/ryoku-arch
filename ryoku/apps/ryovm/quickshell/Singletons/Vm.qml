@@ -560,6 +560,7 @@ Singleton {
     }
     Process {
         id: sshProc
+        property string vmName: ""
         stdout: StdioCollector {
             onStreamFinished: {
                 var c = this.text.trim();
@@ -579,11 +580,10 @@ Singleton {
                     "cmd=$1; port=$2; vm=$3; user=$4",
                     "printf '  %s — ssh to localhost:%s as \\033[1m%s\\033[0m\\n' \"$vm\" \"$port\" \"$user\"",
                     "printf '  wrong account? set it once:  ryovm config %s ryovm_ssh_user <guest user>\\n\\n' \"$vm\"",
-                    "n=0",
+                    "hinted=",
                     "until b=$(timeout 3 bash -c \"exec 3<>/dev/tcp/127.0.0.1/$port && head -c4 <&3\" 2>/dev/null); [ \"$b\" = \"SSH-\" ]; do",
-                    "  n=$((n+1))",
-                    "  printf '\\r  waiting for the guest to answer — ~%ss (a booting VM takes a while; Ctrl+C aborts) ' $((n*4))",
-                    "  if [ $n -eq 15 ]; then printf '\\n  a minute with no answer: a live installer ISO runs no SSH login — install the OS first; an installed guest needs openssh added inside it once.\\n'; fi",
+                    "  printf '\\r  waiting for the guest to answer — %ss (a booting VM takes a while; Ctrl+C aborts) ' \"$SECONDS\"",
+                    "  if [ \"$SECONDS\" -ge 60 ] && [ -z \"$hinted\" ]; then hinted=1; printf '\\n  a minute with no answer: a live installer ISO runs no SSH login — install the OS first; an installed guest needs openssh added inside it once.\\n'; fi",
                     "  sleep 1",
                     "done",
                     "printf '\\n  answered — connecting.\\n\\n'",

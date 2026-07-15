@@ -164,16 +164,25 @@ Item {
             spacing: 16
 
             Column {
+                width: parent.width
                 spacing: 2
                 Text {
+                    // long quickget names (artixlinux-20260402-base-openrc) must
+                    // stay inside the ticket: shrink display type a step for the
+                    // long ones, elide whatever still overflows.
+                    width: parent.width
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
                     text: stage.name.length > 0 ? stage.name : "machine"
                     color: Theme.bright
                     font.family: Theme.display
-                    font.pixelSize: 28
+                    font.pixelSize: stage.name.length > 22 ? 21 : 28
                     font.weight: Font.DemiBold
                     font.letterSpacing: 0.4
                 }
                 Text {
+                    width: parent.width
+                    elide: Text.ElideRight
                     text: (stage.guest || "linux").toUpperCase() + " GUEST · QEMU/KVM CARRIER"
                     color: Theme.faint
                     font.family: Theme.mono
@@ -205,19 +214,23 @@ Item {
                 Field { k: "Console"; v: stage.running && stage.spice.length > 0 ? "SPICE" : "—"; vc: stage.running && stage.spice.length > 0 ? Theme.ok : Theme.faint }
             }
 
-            // the annunciator row: subsystems as lit tiles. Dark = not engaged.
-            Flow {
-                width: parent.width
-                spacing: 5
-                Annunciator { label: "KVM"; lit: Vm.caps.kvm === true; tileW: 46 }
-                Annunciator { label: "UEFI"; lit: stage.uefiOn; tileW: 46 }
-                Annunciator { label: "TPM"; lit: stage.tpmOn; tileW: 46 }
-                Annunciator { label: "DISK"; lit: stage.installed; tileW: 46 }
-                Annunciator { label: "NET"; lit: stage.running; tileW: 46 }
-                Annunciator { label: "SSH"; lit: stage.running && stage.sshReady; tileW: 46 }
-                Annunciator { label: "SPICE"; lit: stage.running && stage.spice.length > 0; tileW: 50 }
-                Annunciator { label: "SEALED"; lit: stage.sealed; litColor: Theme.gold; tileW: 58 }
-                Annunciator { label: "BURN"; lit: stage.running && stage.disposable; warn: true; litColor: Theme.ember; tileW: 46 }
+            // the annunciator cluster: a rigid instrument matrix — uniform
+            // tiles, hard column registration, however narrow the pane. Dark
+            // means honestly off.
+            Grid {
+                id: annGrid
+                columns: Math.max(3, Math.floor((parent.width + 5) / 59))
+                columnSpacing: 5
+                rowSpacing: 5
+                Annunciator { label: "KVM"; lit: Vm.caps.kvm === true; tileW: 54 }
+                Annunciator { label: "UEFI"; lit: stage.uefiOn; tileW: 54 }
+                Annunciator { label: "TPM"; lit: stage.tpmOn; tileW: 54 }
+                Annunciator { label: "DISK"; lit: stage.installed; tileW: 54 }
+                Annunciator { label: "NET"; lit: stage.running; tileW: 54 }
+                Annunciator { label: "SSH"; lit: stage.running && stage.sshReady; tileW: 54 }
+                Annunciator { label: "SPICE"; lit: stage.running && stage.spice.length > 0; tileW: 54 }
+                Annunciator { label: "SEALED"; lit: stage.sealed; litColor: Theme.gold; tileW: 54 }
+                Annunciator { label: "BURN"; lit: stage.running && stage.disposable; warn: true; litColor: Theme.ember; tileW: 54 }
             }
         }
     }
