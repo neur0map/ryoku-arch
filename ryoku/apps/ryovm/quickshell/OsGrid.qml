@@ -10,6 +10,7 @@ Item {
     id: g
 
     property string filter: ""
+    signal installRequested()
 
     readonly property real gap: 10
     readonly property int cols: Math.max(2, Math.floor(width / 150))
@@ -21,8 +22,11 @@ Item {
         var f = g.filter.toLowerCase();
         return o.name.toLowerCase().indexOf(f) >= 0 || o.os.toLowerCase().indexOf(f) >= 0;
     }
-    readonly property var popular: { void Vm.iconRev; return Vm.osList.filter(o => g._match(o) && Vm.hasArt(o.os)); }
-    readonly property var rest: { void Vm.iconRev; return Vm.osList.filter(o => g._match(o) && !Vm.hasArt(o.os)); }
+    // curated headliners; everything else files under All systems.
+    readonly property var popularSlugs: ["ubuntu", "debian", "archlinux", "linuxmint", "opensuse",
+        "nixos", "alpine", "kali", "freebsd", "windows", "macos", "cachyos"]
+    readonly property var popular: { void Vm.iconRev; return Vm.osList.filter(o => g._match(o) && g.popularSlugs.indexOf(o.os) >= 0); }
+    readonly property var rest: { void Vm.iconRev; return Vm.osList.filter(o => g._match(o) && g.popularSlugs.indexOf(o.os) < 0); }
     readonly property int total: popular.length + rest.length
 
     Flickable {
@@ -35,7 +39,7 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         opacity: Vm.catalogLoading ? 0.4 : 1
         Behavior on opacity { NumberAnimation { duration: Theme.quick } }
-        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+        ScrollBar.vertical: BoardScrollBar {}
 
         Column {
             id: col
@@ -74,11 +78,27 @@ Item {
             width: parent.width
             wrapMode: Text.WordWrap
             text: Vm.catalogLoading ? "Fetching the OS catalogue"
+                : (Vm.caps.quickget !== true ? "The catalogue needs the engine (quickget) — install it and the 90+ systems appear here."
                 : (Vm.catalogError.length > 0 ? Vm.catalogError
-                : (g.filter.length > 0 ? "No systems match" : "No catalogue"))
+                : (g.filter.length > 0 ? "No systems match" : "No catalogue")))
             color: Theme.dim
             font.family: Theme.font
             font.pixelSize: 13
+        }
+        HubButton {
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: !Vm.catalogLoading && Vm.caps.quickget !== true
+            primary: true
+            icon: "download"
+            label: "Install engine"
+            onClicked: g.installRequested()
+        }
+        HubButton {
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: !Vm.catalogLoading && Vm.caps.quickget === true && Vm.catalogError.length > 0
+            icon: "refresh"
+            label: "Retry"
+            onClicked: Vm.loadCatalog(true)
         }
     }
 

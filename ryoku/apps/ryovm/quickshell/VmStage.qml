@@ -1,15 +1,15 @@
 import QtQuick
 import "Singletons"
 
-// The machine specimen: a brutalist carbon stage (hard offset shadow, hairline
-// border, a registration crosshair) carrying the guest's mark, a power-state
-// line, and a live dossier of the real machine, the guest, cores, memory, disk
-// footprint and the SPICE / SSH endpoints once it is running. The hero of the
-// detail pane; it informs rather than decorates. A true-circle status dot is the
-// only motion, and only while the VM runs.
+// The machine's ticket: a boarding-pass hero on the brutalist stage. Left is
+// the tear-off stub — hanko seal, split-flap power state. A punched perforation
+// column separates it from the manifest: the machine's name finally in display
+// type, an IATA-style field grid of the real hardware, and the annunciator row
+// reporting each subsystem as a lit or dark tile. It informs, loudly.
 Item {
     id: stage
 
+    property string name: ""
     property string guest: "linux"
     property string os: ""
     property bool running: false
@@ -20,33 +20,33 @@ Item {
     property string ram: "auto"
     property real diskUsed: 0
     property string diskCap: ""
+    property bool installed: false
+    property bool disposable: false
+    property bool sealed: false
+    property bool tpmOn: false
+    property bool uefiOn: true
 
-    // one dossier line: a mono uppercase key and its value.
-    component Spec: Row {
-        id: sp
+    // one manifest field: an 8px caps label over a mono value.
+    component Field: Column {
+        id: fld
         property string k: ""
         property string v: ""
         property color vc: Theme.cream
-        property bool show: true
-        visible: sp.show
-        width: parent ? parent.width : 0
+        spacing: 3
         Text {
-            width: 66
-            text: sp.k
+            text: fld.k
             color: Theme.faint
             font.family: Theme.mono
-            font.pixelSize: 10
+            font.pixelSize: 8
             font.weight: Font.DemiBold
-            font.letterSpacing: 1.4
+            font.letterSpacing: 1.6
             font.capitalization: Font.AllUppercase
         }
         Text {
-            width: sp.width - 66
-            elide: Text.ElideRight
-            text: sp.v
-            color: sp.vc
+            text: fld.v
+            color: fld.vc
             font.family: Theme.mono
-            font.pixelSize: 13
+            font.pixelSize: 14
             font.weight: Font.Medium
         }
     }
@@ -58,7 +58,6 @@ Item {
         line: stage.running ? Qt.alpha(Theme.ember, 0.55) : Theme.lineStrong
         Behavior on line { ColorAnimation { duration: Theme.medium } }
 
-        // registration crosshair: poster chrome, warms with the accent when live.
         RegMark {
             x: parent.width - width - 16
             y: 15
@@ -67,94 +66,152 @@ Item {
             Behavior on tint { ColorAnimation { duration: Theme.medium } }
         }
 
-        // left: the guest mark on a bordered square, then the power state.
-        Column {
-            id: left
+        // ---- the stub: seal + power flap --------------------------------------
+        Item {
+            id: stub
             anchors.left: parent.left
-            anchors.leftMargin: 24
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 14
-            width: 92
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: 148
 
-            Rectangle {
-                width: 92
-                height: 92
-                color: Qt.alpha(Theme.cream, 0.03)
-                border.width: 1
-                border.color: stage.running ? Qt.alpha(Theme.ember, 0.5) : Theme.line
-                Behavior on border.color { ColorAnimation { duration: Theme.medium } }
-                OsIcon {
-                    anchors.centerIn: parent
-                    width: 54
-                    height: 54
-                    size: 54
-                    slug: stage.os
-                    label: stage.os.length > 0 ? stage.os : stage.guest
-                    glyphTint: stage.running ? Theme.ember : Theme.subtle
-                }
-            }
-            Row {
-                spacing: 8
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 8
-                    height: 8
-                    radius: 4
-                    color: stage.running ? Theme.ok : Theme.faint
-                    SequentialAnimation on opacity {
-                        running: stage.running
-                        loops: Animation.Infinite
-                        NumberAnimation { from: 1; to: 0.3; duration: 900; easing.type: Easing.InOutSine }
-                        NumberAnimation { from: 0.3; to: 1; duration: 900; easing.type: Easing.InOutSine }
+            Column {
+                anchors.centerIn: parent
+                spacing: 18
+
+                // the carrier mark: real brand art, with the yard's registration
+                // hanko stamped over its corner like a customs seal.
+                Item {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 96
+                    height: 92
+
+                    OsIcon {
+                        x: 2; y: 2
+                        width: 64
+                        height: 64
+                        size: 64
+                        slug: stage.os
+                        label: stage.os.length > 0 ? stage.os : stage.guest
+                        opacity: stage.running ? 1 : 0.75
+                        Behavior on opacity { NumberAnimation { duration: Theme.medium } }
+                    }
+                    HankoSeal {
+                        x: 46; y: 42
+                        size: 48
+                        title: stage.os.length > 0 ? stage.os : stage.guest
+                        glyph: (stage.os.length > 0 ? stage.os : stage.guest).charAt(0).toUpperCase()
+                        ink: stage.running ? Theme.brand : Theme.dim
+                        inkOpacity: stage.running ? 0.9 : 0.5
+                        Behavior on ink { ColorAnimation { duration: Theme.medium } }
                     }
                 }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: stage.running ? "POWERED ON" : "POWERED OFF"
-                    color: stage.running ? Theme.ok : Theme.faint
-                    font.family: Theme.mono
-                    font.pixelSize: 10
-                    font.weight: Font.DemiBold
-                    font.letterSpacing: 1.5
+
+                FlapWord {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: stage.running ? (stage.disposable ? "BURNING" : "RUNNING") : "STOPPED"
+                    pad: 7
+                    cellW: 13
+                    cellH: 20
+                    fontPx: 11
+                    ink: stage.running ? (stage.disposable ? Theme.ember : Theme.ok) : Theme.dim
+                }
+            }
+
+            Text {
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "RYOVM · PASS"
+                color: Theme.faint
+                font.family: Theme.mono
+                font.pixelSize: 8
+                font.letterSpacing: 2
+            }
+        }
+
+        // ---- perforation: punched holes through the ticket --------------------
+        Column {
+            id: perf
+            anchors.left: stub.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.topMargin: 8
+            anchors.bottomMargin: 8
+            width: 8
+            spacing: 9
+            Repeater {
+                model: Math.max(0, Math.floor((perf.height + 9) / 15))
+                delegate: Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 6
+                    height: 6
+                    radius: 3            // a punched hole is round; it is absence, not chrome
+                    color: Theme.bgBot
+                    border.width: 1
+                    border.color: Theme.shadow
                 }
             }
         }
 
-        // a vertical hairline splits the mark from the dossier.
-        Rectangle {
-            anchors.left: left.right
-            anchors.leftMargin: 26
-            anchors.verticalCenter: parent.verticalCenter
-            width: 1
-            height: parent.height * 0.6
-            color: Theme.line
-        }
-
-        // right: the real machine, read from the conf and the live run state.
+        // ---- the manifest ------------------------------------------------------
         Column {
-            anchors.left: left.right
-            anchors.leftMargin: 52
+            anchors.left: perf.right
+            anchors.leftMargin: 24
             anchors.right: parent.right
             anchors.rightMargin: 26
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 9
+            spacing: 16
 
-            Spec { k: "Guest"; v: stage.guest }
-            Spec {
-                k: "CPU"
-                v: stage.cores === "auto" ? "Automatic"
-                    : stage.cores + (parseInt(stage.cores) === 1 ? " core" : " cores")
+            Column {
+                spacing: 2
+                Text {
+                    text: stage.name.length > 0 ? stage.name : "machine"
+                    color: Theme.bright
+                    font.family: Theme.display
+                    font.pixelSize: 28
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 0.4
+                }
+                Text {
+                    text: (stage.guest || "linux").toUpperCase() + " GUEST · QEMU/KVM CARRIER"
+                    color: Theme.faint
+                    font.family: Theme.mono
+                    font.pixelSize: 9
+                    font.letterSpacing: 1.8
+                }
             }
-            Spec { k: "Memory"; v: stage.ram === "auto" ? "Automatic" : stage.ram }
-            Spec {
-                k: "Disk"
-                v: stage.diskUsed > 0
-                    ? (Vm.human(stage.diskUsed) + (stage.diskCap.length > 0 ? "  /  " + stage.diskCap : " used"))
-                    : (stage.diskCap.length > 0 ? stage.diskCap + " (empty)" : "not created")
+
+            Grid {
+                columns: 3
+                columnSpacing: 34
+                rowSpacing: 12
+                Field { k: "Cores"; v: stage.cores === "auto" ? "AUTO" : stage.cores }
+                Field { k: "Memory"; v: stage.ram === "auto" ? "AUTO" : stage.ram }
+                Field {
+                    k: "Disk"
+                    v: stage.diskUsed > 0
+                        ? Vm.human(stage.diskUsed) + (stage.diskCap.length > 0 ? " / " + stage.diskCap : "")
+                        : (stage.diskCap.length > 0 ? stage.diskCap + " · EMPTY" : "NONE")
+                }
+                Field { k: "Mode"; v: ({ "gtk": "WINDOW", "spice": "SPICE", "none": "HEADLESS" })[stage.mode] || stage.mode }
+                Field { k: "SSH"; v: stage.running && stage.ssh.length > 0 ? ":" + stage.ssh : "—"; vc: stage.running && stage.ssh.length > 0 ? Theme.ok : Theme.faint }
+                Field { k: "Console"; v: stage.running && stage.spice.length > 0 ? "SPICE" : "—"; vc: stage.running && stage.spice.length > 0 ? Theme.ok : Theme.faint }
             }
-            Spec { k: "Mode"; v: ({ "gtk": "Window", "spice": "SPICE", "none": "Headless" })[stage.mode] || stage.mode }
-            Spec { k: "SPICE"; v: "localhost:" + stage.spice; vc: Theme.ember; show: stage.running && stage.spice.length > 0 }
-            Spec { k: "SSH"; v: "localhost:" + stage.ssh; vc: Theme.ember; show: stage.running && stage.ssh.length > 0 }
+
+            // the annunciator row: subsystems as lit tiles. Dark = not engaged.
+            Flow {
+                width: parent.width
+                spacing: 5
+                Annunciator { label: "KVM"; lit: Vm.caps.kvm === true; tileW: 46 }
+                Annunciator { label: "UEFI"; lit: stage.uefiOn; tileW: 46 }
+                Annunciator { label: "TPM"; lit: stage.tpmOn; tileW: 46 }
+                Annunciator { label: "DISK"; lit: stage.installed; tileW: 46 }
+                Annunciator { label: "NET"; lit: stage.running; tileW: 46 }
+                Annunciator { label: "SSH"; lit: stage.running && stage.ssh.length > 0; tileW: 46 }
+                Annunciator { label: "SPICE"; lit: stage.running && stage.spice.length > 0; tileW: 50 }
+                Annunciator { label: "SEALED"; lit: stage.sealed; litColor: Theme.gold; tileW: 58 }
+                Annunciator { label: "BURN"; lit: stage.running && stage.disposable; warn: true; litColor: Theme.ember; tileW: 46 }
+            }
         }
     }
 }

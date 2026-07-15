@@ -30,7 +30,19 @@ Item {
         TapHandler { onTapped: dlg.closed() }
     }
 
+    // the modal is a raised plate: same hard offset shadow as the board.
     Rectangle {
+        anchors.centerIn: parent
+        anchors.horizontalCenterOffset: 8
+        anchors.verticalCenterOffset: 8
+        width: 480
+        height: panelFace.height
+        color: Theme.shadow
+        antialiasing: false
+        visible: panelFace.visible
+    }
+    Rectangle {
+        id: panelFace
         anchors.centerIn: parent
         width: 480
         height: col.implicitHeight + 44

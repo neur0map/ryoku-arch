@@ -47,7 +47,7 @@ Rectangle {
         }
     }
 
-    // ember corner tick on the active tile.
+    // ember corner tick on the active tile: a lit square, board-style.
     Rectangle {
         visible: cell.active
         anchors.right: parent.right
@@ -55,9 +55,11 @@ Rectangle {
         anchors.margins: 7
         width: 16
         height: 16
-        radius: 8
-        color: Theme.ember
-        Icon { anchors.centerIn: parent; name: "check"; size: 11; weight: 2.2; tint: Theme.onAccent }
+        color: Theme.frameBg
+        border.width: 1
+        border.color: Theme.ember
+        antialiasing: false
+        Icon { anchors.centerIn: parent; name: "check"; size: 11; weight: 2.2; tint: Theme.ember }
     }
 
     MouseArea {

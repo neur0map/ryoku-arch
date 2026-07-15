@@ -60,6 +60,20 @@ Singleton {
     // ---- pipeline -----------------------------------------------------------
     property bool busy
     property string status
+    // the sticky fault surface: errors stay up until dismissed or the next
+    // verb succeeds — a fault that clears itself after 4.5s never happened.
+    property string fault: ""            // first line, for the fault row
+    property string faultDetail: ""      // full engine stderr, un-truncated
+    function raiseFault(text) {
+        var t = ("" + text).trim();
+        if (t.length === 0)
+            return;
+        fault = t.split("\n")[0];
+        faultDetail = t;
+        status = "";
+    }
+    function clearFault() { fault = ""; faultDetail = ""; }
+    function info(msg) { status = msg; }
 
     // ---- in-app download (the fast Go fetcher, streamed live) ---------------
     property bool downloading
@@ -87,8 +101,10 @@ Singleton {
         pathsProc.running = true;
     }
 
-    // status lines clear themselves so the bar never carries a stale message.
-    onStatusChanged: if (status.length > 0) statusClear.restart()
+    // info lines clear themselves — but not while an operation runs, so a long
+    // seal/restore keeps "Sealing alpine" pinned instead of decaying to mystery.
+    onStatusChanged: if (status.length > 0 && !busy) statusClear.restart()
+    onBusyChanged: if (!busy && status.length > 0) statusClear.restart()
     Timer { id: statusClear; interval: 4500; onTriggered: root.status = "" }
     // bytes to a short human size ("1.9 GB", "880 MB"), for disk footprints.
     function human(b) {
@@ -107,16 +123,35 @@ Singleton {
         if (name.length > 0) {
             getProc.command = ["ryovm", "get", name];
             getProc.running = true;
+            root.loadUsb(name);
         }
     }
     function reselect() { if (selectedName.length > 0) select(selectedName); }
 
-    function launch(name, mode) {
+    function launch(name, mode, disposable) {
         if (busy)
             return;
         busy = true;
-        status = "Starting " + name;
-        runProc.exec(["ryovm", "launch", name, mode || "window"]);
+        status = disposable ? "Starting " + name + " (disposable)" : "Starting " + name;
+        var cmd = ["ryovm", "launch", name, mode || "window"];
+        if (disposable === true)
+            cmd.push("--disposable");
+        runProc.exec(cmd);
+    }
+    // seal = the golden-state anchor: one reserved snapshot + the conf stamp.
+    function seal(name) {
+        if (busy)
+            return;
+        busy = true;
+        status = "Sealing " + name;
+        runProc.exec(["ryovm", "seal", name]);
+    }
+    function restoreSeal(name) {
+        if (busy)
+            return;
+        busy = true;
+        status = "Restoring the seal on " + name;
+        runProc.exec(["ryovm", "restore-seal", name]);
     }
     function stop(name) {
         if (busy)
@@ -135,8 +170,10 @@ Singleton {
     }
     function setConfig(name, key, value) { runProc.exec(["ryovm", "config", name, key, "" + value]); }
     function snapshot(name, sub, tag) {
+        if (busy)
+            return;
         busy = true;
-        status = sub === "create" ? "Saving snapshot" : sub === "restore" ? "Restoring" : "Working";
+        status = ({ "create": "Saving snapshot", "restore": "Restoring snapshot", "delete": "Deleting snapshot" })[sub] || "Working";
         runProc.exec(["ryovm", "snapshot", name, sub].concat(tag ? [tag] : []));
     }
     function openFolder(name) {
@@ -146,6 +183,22 @@ Singleton {
     function openSsh(name) {
         sshProc.command = ["ryovm", "ssh", name];
         sshProc.running = true;
+    }
+    // copy the ready-to-paste ssh command for a running VM.
+    function copySsh(name) {
+        copyProc.command = ["sh", "-c", "ryovm ssh \"$1\" | tr -d '\\n' | wl-copy", "--", name];
+        copyProc.running = true;
+    }
+    // host USB devices + this VM's assignments (usb_devices in its conf).
+    property var usb: []
+    function loadUsb(name) {
+        if (!name || name.length === 0) { usb = []; return; }
+        usbProc.command = ["ryovm", "usb", "list", name];
+        usbProc.running = true;
+    }
+    function setUsb(name, id, on) {
+        usbSetProc.command = ["ryovm", "usb", "set", name, id, on ? "on" : "off"];
+        usbSetProc.running = true;
     }
     // rename repoints the conf, dir and relative paths, then reselects the new
     // name once the reloaded list carries it (via pendingSelect).
@@ -227,12 +280,18 @@ Singleton {
         case "log": dlLog = o.line || ""; break;
         case "done":
             status = (o.name || dlName) + " is ready";
-            if (o.name) selectedName = o.name;
+            if (o.name) {
+                selectedName = o.name;
+                root.created(o.name);
+            }
             break;
         case "cancelled": status = "Download cancelled"; break;
-        case "error": status = o.message || "Download failed"; break;
+        case "error": root.raiseFault(o.message || "Download failed"); break;
         }
     }
+    // a finished create announces itself so the app can bring the new machine
+    // on screen instead of stranding the user in the catalogue.
+    signal created(string name)
     // a VM from any local ISO, off-catalogue (full QEMU reach). os is the logo
     // slug (defaults to the guest type, so windows/macos/android still get marks).
     function importVm(name, iso, guest, os) {
@@ -289,6 +348,13 @@ Singleton {
                         var want = root.pendingSelect;
                         root.pendingSelect = "";
                         if (arr.some(v => v.name === want)) { root.select(want); return; }
+                    }
+                    // a deleted machine must not leave a dead selection behind
+                    // (the pane would empty out and reselect() would fail 5s
+                    // after 5s forever): advance to the next machine.
+                    if (root.selectedName.length > 0 && !arr.some(v => v.name === root.selectedName)) {
+                        root.select(arr.length > 0 ? arr[0].name : "");
+                        return;
                     }
                     if (root.selectedName.length === 0 && arr.length > 0)
                         root.select(arr[0].name);
@@ -358,30 +424,108 @@ Singleton {
         }
     }
     // in-app create: streams JSON (resolve/download/config/done) line by line,
-    // updating the live bar; on exit, drops the download UI and reloads.
+    // updating the live bar; on exit, drops the download UI and reloads. A
+    // create that dies without ever emitting an error phase (a crashed engine)
+    // still surfaces its stderr instead of the pane just vanishing.
     Process {
         id: createProc
+        property string errText: ""
+        property bool sawTerminalPhase: false
         stdout: SplitParser {
             splitMarker: "\n"
-            onRead: (line) => root._onCreateLine(line)
+            onRead: (line) => {
+                var s = ("" + line);
+                if (s.indexOf('"done"') >= 0 || s.indexOf('"error"') >= 0 || s.indexOf('"cancelled"') >= 0)
+                    createProc.sawTerminalPhase = true;
+                root._onCreateLine(line);
+            }
         }
-        onExited: {
+        stderr: StdioCollector { onStreamFinished: createProc.errText = this.text }
+        onStarted: { errText = ""; sawTerminalPhase = false; }
+        onExited: (code) => {
             root.downloading = false;
             root.dlPhase = "";
+            if (code !== 0 && !createProc.sawTerminalPhase)
+                root.raiseFault("create failed (exit " + code + ")"
+                    + (createProc.errText.trim().length > 0 ? "\n" + createProc.errText.trim() : ""));
             root.refresh();
         }
     }
     // shared lifecycle runner: any verb that mutates, then reloads the library.
+    // Commands issued while one runs are QUEUED — Process.exec mid-run is a
+    // silent no-op, which used to eat rapid stepper clicks and even a Launch.
+    // Consecutive writes to the same config key coalesce to the final value.
     Process {
         id: runProc
         property string errText: ""
-        function exec(cmd) { errText = ""; command = cmd; running = true; }
+        property string outText: ""
+        property var queue: []
+        function exec(cmd) {
+            if (running) {
+                if (cmd[1] === "config") {
+                    for (var i = 0; i < queue.length; i++) {
+                        if (queue[i][1] === "config" && queue[i][2] === cmd[2] && queue[i][3] === cmd[3]) {
+                            queue[i] = cmd;
+                            return;
+                        }
+                    }
+                }
+                queue.push(cmd);
+                return;
+            }
+            errText = "";
+            outText = "";
+            command = cmd;
+            running = true;
+        }
         stderr: StdioCollector { onStreamFinished: runProc.errText = this.text }
+        stdout: StdioCollector { onStreamFinished: runProc.outText = this.text }
         onExited: (code) => {
+            if (code !== 0 && runProc.errText.trim().length > 0) {
+                root.raiseFault(runProc.errText.trim());
+            } else if (code === 0) {
+                root.clearFault();
+                // the engine speaks in one-line receipts; show them.
+                if (runProc.outText.trim().length > 0)
+                    root.info(runProc.outText.trim().split("\n")[0]);
+            }
+            if (runProc.queue.length > 0) {
+                var next = runProc.queue.shift();
+                runProc.errText = "";
+                runProc.outText = "";
+                runProc.command = next;
+                runProc.running = true;
+                return;                      // stay busy until the queue drains
+            }
             root.busy = false;
-            if (code !== 0 && runProc.errText.trim().length > 0)
-                root.status = runProc.errText.trim().split("\n")[0];
             root.refresh();
+        }
+    }
+    Process {
+        id: copyProc
+        onExited: (code) => {
+            if (code === 0)
+                root.info("SSH command copied");
+            else
+                root.raiseFault("Could not copy the SSH command");
+        }
+    }
+    Process {
+        id: usbProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try { root.usb = JSON.parse(this.text); } catch (e) { root.usb = []; }
+            }
+        }
+    }
+    Process {
+        id: usbSetProc
+        property string errText: ""
+        stderr: StdioCollector { onStreamFinished: usbSetProc.errText = this.text }
+        onExited: (code) => {
+            if (code !== 0 && usbSetProc.errText.trim().length > 0)
+                root.raiseFault(usbSetProc.errText.trim());
+            root.loadUsb(root.selectedName);
         }
     }
     Process {
@@ -399,17 +543,31 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 var c = this.text.trim();
-                if (c.length > 0)
-                    Quickshell.execDetached(["kitty", "--class", "ryovm-ssh", "-e", "sh", "-c", c]);
+                if (c.length === 0)
+                    return;
+                // $TERMINAL wins over the shipped kitty; hold the window open on
+                // failure so "connection refused" is readable, with the fix.
+                var held = c + "; ec=$?; if [ $ec -ne 0 ]; then echo; "
+                    + "echo \"ssh exited $ec — the guest may have no SSH server yet; install openssh inside it once.\"; "
+                    + "echo \"press Enter to close\"; read _; fi";
+                Quickshell.execDetached(["sh", "-c",
+                    "exec \"${TERMINAL:-kitty}\" --class ryovm-ssh -e sh -c \"$1\"", "--", held]);
             }
         }
     }
-    // keep Launch/Stop in step while the window is open.
+    // keep Launch/Stop in step while the window is open. caps ride along (five
+    // `command -v` checks) so installing the engine lights the app up within 5s
+    // instead of after a restart.
     Timer {
         interval: 5000
         repeat: true
         running: true
-        onTriggered: { listProc.running = true; if (root.selectedName.length > 0) root.reselect(); }
+        onTriggered: {
+            listProc.running = true;
+            capsProc.running = true;
+            if (root.selectedName.length > 0)
+                root.reselect();
+        }
     }
 
     FileView {

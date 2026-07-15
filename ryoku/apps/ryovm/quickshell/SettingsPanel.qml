@@ -20,7 +20,19 @@ Item {
         TapHandler { onTapped: sp.closed() }
     }
 
+    // the modal is a raised plate: same hard offset shadow as the board.
     Rectangle {
+        anchors.centerIn: parent
+        anchors.horizontalCenterOffset: 8
+        anchors.verticalCenterOffset: 8
+        width: 480
+        height: panelFace.height
+        color: Theme.shadow
+        antialiasing: false
+        visible: panelFace.visible
+    }
+    Rectangle {
+        id: panelFace
         anchors.centerIn: parent
         width: 480
         height: col.implicitHeight + 44
@@ -132,7 +144,7 @@ Item {
                 spacing: 9
                 Text { text: "Catalogue"; color: Theme.subtle; font.family: Theme.mono; font.pixelSize: 10; font.letterSpacing: 2; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase }
                 ProvRow { k: "Source"; v: (Vm.paths.provider || "quickemu + quickget") + " · " + (Vm.paths.source || "github.com/quickemu-project") }
-                ProvRow { k: "Logos"; v: Vm.paths.icons_provider || "quickemu-icons" }
+                ProvRow { k: "Logos"; v: Vm.paths.icons_provider || "simple-icons + quickemu-icons" }
                 ProvRow { k: "Cached"; v: Vm.paths.icons || "~/.cache/ryoku/ryovm-icons" }
             }
         }
@@ -148,7 +160,7 @@ Item {
         }
 
     function installEngine() {
-        Quickshell.execDetached(["kitty", "--class", "ryovm", "-e", "sh", "-c",
-            "ryovm setup; echo; read -n1 -rsp 'Press any key to close…'; echo"]);
+        Quickshell.execDetached(["sh", "-c",
+            "exec \"${TERMINAL:-kitty}\" --class ryovm -e sh -c \"ryovm setup; echo; read -n1 -rsp 'Press any key to close…'; echo\""]);
     }
 }

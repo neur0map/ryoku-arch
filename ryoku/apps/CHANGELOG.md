@@ -3,6 +3,42 @@
 ## Unreleased
 
 ### Added
+- `ryovm/`: **the dispatch board — a full rework of the VM manager.** The window
+  reads as a rail-dispatch wall crossed with an instrument panel: split-flap
+  cells spell the live state (the header board counts `NN MACHINES · NN
+  RUNNING`, every card and the machine stage carry their own drums), each
+  machine is a boarding-pass ticket (hanko seal over the real brand mark,
+  punched perforation, Fraunces display name, mono manifest grid), subsystems
+  report on an annunciator row (KVM/UEFI/TPM/DISK/NET/SSH/SPICE/SEALED/BURN —
+  lit means engaged, dark means honestly off), and the destructive verbs live
+  under caution-striped guard covers that arm on one click and fire on the
+  second. Brand marks come from simple-icons tinted to the board's cream ink
+  (one visual system across all ~50 that resolve, Fedora included) with the
+  quickemu-icons colour badges as fallback and stamped-initial plates for the
+  rest.
+- `ryovm/`: **disposable machines.** Set a machine up, hit Seal (one reserved
+  qcow2 snapshot + a conf stamp), and every launch with the DISPOSABLE switch
+  runs on quickemu's `--status-quo`: all disk writes burn up at power-off and
+  the machine boots identical next time — the flaps spell BURNING while it
+  runs. A dirtied normal run rolls back under the RESTORE SEAL guard. Proven
+  end to end on an installed guest (created files evaporate from disposable
+  sessions, survive normal ones, and the seal restore reverts everything).
+- `ryovm/`: **USB passthrough per machine.** The detail pane lists the host's
+  USB devices with hardware slide-switches; engaged devices write quickemu's
+  `usb_devices` array and are handed to the guest at the next boot (engine
+  verbs `usb list|set`).
+- `ryovm/`: **the library works without the engine.** A missing quickemu is a
+  blinking ENGINE OFFLINE banner (with the install action) instead of a locked
+  app — importing, configuring and deleting machines never needed it. The
+  engine's readiness re-polls every 5s, so the board lights up the moment an
+  install finishes. Launch failures, dead-end empty states and every error now
+  land on a sticky FAULT row with the full engine output behind a DETAIL
+  toggle; commands issued mid-operation queue instead of vanishing; create
+  defaults skip dev channels (no more `daily-live` Ubuntu) and prefer vanilla
+  editions; Esc dismisses instead of quitting (Ctrl+Q quits, with a handshake
+  while a download runs); arrows/Enter drive the library and `/` jumps to
+  search; SSH gets a copyable command line, `$TERMINAL` respect and a
+  hold-open diagnosis when the guest has no sshd yet.
 - `ryowalls/`: a wallpaper **studio**, not just a browser. A new **Adjust** mode
   (a third tab beside Browse and Tune) shapes the picked wallpaper live in the
   rice preview. For an image: a colour **grade** (brightness, contrast,

@@ -23,14 +23,6 @@ Item {
     readonly property string imgSource: localPath.length > 0 ? ("file://" + localPath) : ""
     readonly property bool hasArt: img.status === Image.Ready
 
-    // a stable hue from the slug, so each OS keeps the same monogram colour.
-    readonly property int _hue: {
-        var s = root.slug.length > 0 ? root.slug : root.label;
-        var h = 0;
-        for (var i = 0; i < s.length; i++)
-            h = (h * 31 + s.charCodeAt(i)) % 360;
-        return h;
-    }
     readonly property string _initial: {
         var s = (root.label.length > 0 ? root.label : root.slug).trim();
         return s.length > 0 ? s.charAt(0).toUpperCase() : "?";
@@ -50,24 +42,27 @@ Item {
     readonly property bool catReady: Vm.catalogReady
     onCatReadyChanged: resolve()
 
-    // monogram fallback: a tinted rounded tile + the name's initial. Shown until
-    // (or unless) real art resolves.
+    // monogram fallback: a stamped cream initial on a keycap plate — the same
+    // ink as the mono marks, so a missing logo still belongs to the set.
     Rectangle {
         anchors.centerIn: parent
         width: root.size
         height: root.size
-        radius: root.size * 0.26
+        antialiasing: false
         visible: !root.hasArt
-        color: Qt.hsla(root._hue / 360, 0.42, 0.34, 1)
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Theme.keyTop }
+            GradientStop { position: 1.0; color: Theme.keyBot }
+        }
         border.width: 1
-        border.color: Qt.hsla(root._hue / 360, 0.5, 0.6, 0.5)
+        border.color: Theme.line
         Text {
             anchors.centerIn: parent
             text: root._initial
-            color: Qt.hsla(root._hue / 360, 0.55, 0.9, 1)
-            font.family: Theme.font
-            font.pixelSize: root.size * 0.5
-            font.weight: Font.DemiBold
+            color: Theme.cream
+            font.family: Theme.display
+            font.pixelSize: root.size * 0.52
+            font.weight: Font.Bold
         }
     }
 

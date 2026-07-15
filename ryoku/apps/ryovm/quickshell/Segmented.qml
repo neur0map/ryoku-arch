@@ -1,8 +1,9 @@
 import QtQuick
 import "Singletons"
 
-// Single-select segmented control with a sliding selection pill, matching the
-// hub's moving-indicator look. `model` = list of { key, label }.
+// Single-select segmented control: butt-joined sharp segments on a recessed
+// slot, the selection a raised key plate that slides between stops. Hardware,
+// not a pill. `model` = list of { key, label }.
 Item {
     id: seg
 
@@ -14,7 +15,7 @@ Item {
     readonly property int count: model.length
 
     implicitWidth: count * segW + 8
-    implicitHeight: 34
+    implicitHeight: 38
 
     function indexOfKey(k) {
         for (var i = 0; i < model.length; i++)
@@ -25,10 +26,25 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: height / 2
         color: Theme.surfaceLo
         border.width: 1
         border.color: Theme.line
+        antialiasing: false
+    }
+
+    // segment dividers: the slot's machined stops.
+    Row {
+        anchors.fill: parent
+        anchors.margins: 4
+        Repeater {
+            model: Math.max(0, seg.count - 1)
+            delegate: Item {
+                required property int index
+                width: seg.segW
+                height: parent.height
+                Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Theme.lineSoft; antialiasing: false }
+            }
+        }
     }
 
     Rectangle {
@@ -36,10 +52,13 @@ Item {
         height: parent.height - 8
         width: seg.segW
         x: 4 + seg.indexOfKey(seg.current) * seg.segW
-        radius: height / 2
-        color: Theme.keyTop
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Theme.keyTop }
+            GradientStop { position: 1.0; color: Theme.keyBot }
+        }
         border.width: 1
-        border.color: Theme.line
+        border.color: Theme.lineStrong
+        antialiasing: false
         Behavior on x { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
     }
 

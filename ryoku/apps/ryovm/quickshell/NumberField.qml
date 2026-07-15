@@ -26,7 +26,24 @@ Item {
         var p = Math.pow(10, root.decimals);
         return Math.round(c * p) / p;
     }
-    function bump(dir) { root.modified(root.clampq(root.value + dir * root.step)); }
+    // steppers accumulate locally and commit once the hand settles (350ms):
+    // the engine round-trip is slower than the 90ms hold-repeat, and per-click
+    // commits both flooded it and snapped the display back mid-edit.
+    property real pending: NaN
+    readonly property real shown: isNaN(pending) ? value : pending
+    function bump(dir) {
+        root.pending = root.clampq((isNaN(root.pending) ? root.value : root.pending) + dir * root.step);
+        settle.restart();
+    }
+    Timer {
+        id: settle
+        interval: 350
+        onTriggered: {
+            if (!isNaN(root.pending) && root.pending !== root.value)
+                root.modified(root.pending);
+            root.pending = NaN;
+        }
+    }
 
     Text {
         anchors.left: parent.left
@@ -96,7 +113,7 @@ Item {
                 anchors.rightMargin: root.unit !== "" ? 24 : 0
                 horizontalAlignment: TextInput.AlignHCenter
                 verticalAlignment: TextInput.AlignVCenter
-                text: root.value.toFixed(root.decimals)
+                text: root.shown.toFixed(root.decimals)
                 color: Theme.bright
                 font.family: Theme.mono
                 font.pixelSize: 14
@@ -114,7 +131,7 @@ Item {
                     if (activeFocus)
                         selectAll();
                     else
-                        text = Qt.binding(() => root.value.toFixed(root.decimals));
+                        text = Qt.binding(() => root.shown.toFixed(root.decimals));
                 }
                 onEditingFinished: {
                     var v = parseFloat(text);

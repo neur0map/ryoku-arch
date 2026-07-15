@@ -20,11 +20,26 @@ Item {
     }
 
     onOsChanged: {
-        pane.release = (pane.os && pane.os.releases.length > 0) ? pane.os.releases[0] : "";
+        // quickget lists releases oldest-first — but the tail is often a dev
+        // channel (ubuntu daily-live, kali weekly, nixos unstable). Default to
+        // the newest STABLE: scan from the end, skip development slugs.
+        var r = pane.os ? pane.os.releases : [];
+        var dev = /(^|[-_])(daily|weekly|nightly|unstable|testing|preview|beta|canary|sid)([-_]|$)|^rc/i;
+        var pick = "";
+        for (var i = r.length - 1; i >= 0; i--)
+            if (!dev.test(r[i])) { pick = r[i]; break; }
+        pane.release = pick.length > 0 ? pick : (r.length > 0 ? r[r.length - 1] : "");
         pane._resetEdition();
     }
     onReleaseChanged: pane._resetEdition()
-    function _resetEdition() { var e = pane.editions || []; pane.edition = e.length > 0 ? e[0] : ""; }
+    function _resetEdition() {
+        var e = pane.editions || [];
+        // prefer the vanilla edition over whatever sorts first alphabetically.
+        var ranked = ["standard", "default", "gnome", "plasma", "kde"];
+        for (var i = 0; i < ranked.length; i++)
+            if (e.indexOf(ranked[i]) >= 0) { pane.edition = ranked[i]; return; }
+        pane.edition = e.length > 0 ? e[0] : "";
+    }
 
     // empty state.
     Column {
@@ -184,7 +199,7 @@ Item {
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             interactive: contentHeight > height
-            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            ScrollBar.vertical: BoardScrollBar {}
 
             Column {
                 id: form
@@ -249,14 +264,9 @@ Item {
             HubButton {
                 primary: true
                 icon: "download"
-                label: "Create VM"
+                label: "Create machine"
                 enabled: pane.release.length > 0
                 onClicked: Vm.createVm(pane.os.os, pane.release, pane.edition)
-            }
-            HubButton {
-                icon: "external"
-                label: "Homepage"
-                onClicked: if (pane.os) Quickshell.execDetached(["xdg-open", "https://github.com/quickemu-project/quickemu/wiki"])
             }
         }
     }
@@ -277,13 +287,13 @@ Item {
         signal picked()
         implicitWidth: ct.implicitWidth + 22
         height: 30
-        radius: height / 2
         color: chip.on ? Theme.frameBg : Theme.surfaceLo
         border.width: 1
         border.color: chip.on ? Theme.ember : (ch.hovered ? Qt.alpha(Theme.ember, 0.5) : Theme.line)
+        antialiasing: false
         Behavior on color { ColorAnimation { duration: Theme.quick } }
         Behavior on border.color { ColorAnimation { duration: Theme.quick } }
-        Text { id: ct; anchors.centerIn: parent; text: chip.text; color: chip.on ? Theme.ember : Theme.cream; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Medium }
+        Text { id: ct; anchors.centerIn: parent; text: chip.text; color: chip.on ? Theme.ember : Theme.cream; font.family: Theme.mono; font.pixelSize: 12; font.weight: Font.Medium }
         HoverHandler { id: ch; cursorShape: Qt.PointingHandCursor }
         TapHandler { onTapped: chip.picked() }
     }

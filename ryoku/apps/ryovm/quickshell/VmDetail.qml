@@ -16,6 +16,15 @@ Item {
     // the launch display also persists, so the choice survives the 5s refresh
     // (which re-creates the vm object) and is remembered next session.
     property string launchMode: "window"
+    // run the next launch on a burn-after-use overlay (quickemu --status-quo).
+    property bool disposableRun: false
+    readonly property var sealSnap: {
+        var ss = pane.det ? (pane.det.snapshots || []) : [];
+        for (var i = 0; i < ss.length; i++)
+            if (ss[i].name === "sealed")
+                return ss[i];
+        return null;
+    }
     readonly property var _modeFromDisplay: ({ "gtk": "window", "spice": "spice", "none": "headless" })
     // current disk cap in GB (from the conf), and the grow target the field edits.
     readonly property int capGb: {
@@ -78,7 +87,13 @@ Item {
             anchors.topMargin: 12
             anchors.left: parent.left
             anchors.right: parent.right
-            height: Math.max(190, parent.height * 0.34)
+            height: Math.max(210, parent.height * 0.36)
+            name: pane.name
+            installed: pane.det ? pane.det.installed === true : false
+            disposable: pane.vm ? pane.vm.disposable === true : false
+            sealed: pane.det ? pane.det.sealed === true : (pane.vm ? pane.vm.sealed === true : false)
+            tpmOn: pane.vm ? pane.vm.tpm === true : false
+            uefiOn: pane.vm ? pane.vm.uefi !== false : true
             guest: pane.vm ? (pane.vm.guest || "linux") : "linux"
             os: pane.vm ? (pane.vm.os || "") : ""
             running: pane.running
@@ -98,25 +113,67 @@ Item {
             anchors.topMargin: 14
             anchors.left: parent.left
             anchors.right: parent.right
-            height: 38
+            height: 56
 
-            // stopped: Launch + mode selector.
-            Row {
+            // stopped: Launch + mode selector + the disposable switch, and an
+            // honest caption per mode.
+            Column {
                 visible: !pane.running
-                spacing: 10
-                HubButton {
-                    primary: true
-                    icon: "play"
-                    label: "Launch"
-                    enabled: !Vm.busy
-                    onClicked: Vm.launch(pane.name, pane.launchMode)
+                spacing: 6
+                Row {
+                    spacing: 10
+                    HubButton {
+                        primary: true
+                        icon: "play"
+                        label: pane.disposableRun ? "Launch · burn" : "Launch"
+                        enabled: !Vm.busy && Vm.caps.quickemu === true
+                            && !(pane.launchMode === "spice" && Vm.caps.spice !== true)
+                        onClicked: Vm.launch(pane.name, pane.launchMode, pane.disposableRun)
+                    }
+                    Segmented {
+                        anchors.verticalCenter: parent.verticalCenter
+                        segW: 74
+                        model: [{ key: "window", label: "Window" }, { key: "spice", label: "SPICE" }, { key: "headless", label: "Headless" }]
+                        current: pane.launchMode
+                        onSelected: (k) => { pane.launchMode = k; Vm.setConfig(pane.name, "display", ({ "window": "gtk", "spice": "spice", "headless": "none" })[k]); }
+                    }
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 8
+                        visible: pane.det && pane.det.installed === true
+                        Toggle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            on: pane.disposableRun
+                            enabled: !Vm.busy
+                            onToggled: (v) => pane.disposableRun = v
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "DISPOSABLE"
+                            color: pane.disposableRun ? Theme.ember : Theme.faint
+                            font.family: Theme.mono; font.pixelSize: 9
+                            font.weight: Font.DemiBold; font.letterSpacing: 1.5
+                            Behavior on color { ColorAnimation { duration: Theme.quick } }
+                        }
+                    }
                 }
-                Segmented {
-                    anchors.verticalCenter: parent.verticalCenter
-                    segW: 74
-                    model: [{ key: "window", label: "Window" }, { key: "spice", label: "SPICE" }, { key: "headless", label: "Headless" }]
-                    current: pane.launchMode
-                    onSelected: (k) => { pane.launchMode = k; Vm.setConfig(pane.name, "display", ({ "window": "gtk", "spice": "spice", "headless": "none" })[k]); }
+                Text {
+                    text: pane.det && pane.det.installed !== true
+                        ? "First launch boots the OS installer — install onto the virtual disk, then power off. After that it boots from disk."
+                        : pane.launchMode === "spice" && Vm.caps.spice !== true
+                        ? "SPICE needs its viewer — install the spice-gtk package, then relaunch"
+                        : pane.disposableRun
+                        ? "Disposable session: every disk write burns up at power-off — the machine boots identical next time"
+                        : ({
+                            "window": "Plain window · host↔guest clipboard is OFF in this mode",
+                            "spice": "SPICE viewer · shared clipboard, USB redirect, best desktop fidelity",
+                            "headless": "No display · reach it over SSH or attach a console anytime"
+                        })[pane.launchMode] || ""
+                    color: pane.det && pane.det.installed !== true ? Theme.dim
+                        : pane.launchMode === "spice" && Vm.caps.spice !== true ? Theme.warn
+                        : pane.disposableRun ? Theme.ember : Theme.dim
+                    font.family: Theme.font
+                    font.pixelSize: 11
                 }
             }
 
@@ -135,7 +192,7 @@ Item {
                     primary: true
                     icon: "display"
                     label: "Console"
-                    enabled: (pane.vm && (pane.vm.spice || "").length > 0)
+                    enabled: (pane.vm && (pane.vm.spice || "").length > 0) && Vm.caps.spice === true
                     onClicked: Vm.openConsole(pane.name)
                 }
                 HubButton {
@@ -159,27 +216,29 @@ Item {
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             interactive: contentHeight > height
-            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            ScrollBar.vertical: BoardScrollBar {}
 
             Column {
                 id: lower
                 width: parent.width - 8
                 spacing: 18
 
-                // ── controls: how to free the cursor + reach the VM ─────────
-                // The single most important thing when a VM grabs input, so it
-                // leads, and the release key matches the actual display mode.
+                // ── reach it: every live line into the machine ──────────────
+                // The most important panel while a VM runs: the SSH endpoint as
+                // a ready command with one-tap copy, the console's real
+                // availability (socket AND viewer), and the release keys for
+                // whichever display mode has the cursor.
                 Column {
                     width: parent.width
                     spacing: 10
                     visible: pane.running
-                    SectionHead { text: "Controls" }
+                    SectionHead { text: "Reach it" }
                     Rectangle {
                         width: parent.width
-                        radius: Theme.radius
-                        color: Qt.rgba(Theme.ember.r, Theme.ember.g, Theme.ember.b, 0.07)
+                        color: Qt.rgba(Theme.ember.r, Theme.ember.g, Theme.ember.b, 0.06)
                         border.width: 1
-                        border.color: Qt.rgba(Theme.ember.r, Theme.ember.g, Theme.ember.b, 0.4)
+                        border.color: Qt.rgba(Theme.ember.r, Theme.ember.g, Theme.ember.b, 0.35)
+                        antialiasing: false
                         implicitHeight: ctrlCol.implicitHeight + 28
                         Column {
                             id: ctrlCol
@@ -187,7 +246,66 @@ Item {
                             anchors.right: parent.right
                             anchors.top: parent.top
                             anchors.margins: 14
-                            spacing: 10
+                            spacing: 12
+
+                            // SSH line: the command as-is, then act on it.
+                            Row {
+                                width: parent.width
+                                spacing: 10
+                                visible: pane.vm && (pane.vm.ssh || "").length > 0
+                                Rectangle {
+                                    width: parent.width - sshBtns.width - 10
+                                    height: 30
+                                    color: Theme.bgBot
+                                    border.width: 1
+                                    border.color: Theme.lineSoft
+                                    antialiasing: false
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    Text {
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "ssh -p " + (pane.vm ? pane.vm.ssh : "") + " localhost"
+                                        color: Theme.cream
+                                        font.family: Theme.mono; font.pixelSize: 12
+                                    }
+                                }
+                                Row {
+                                    id: sshBtns
+                                    spacing: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    HubButton { label: "Open"; icon: "terminal"; onClicked: Vm.openSsh(pane.name) }
+                                    HubButton { label: "Copy"; icon: "copy"; onClicked: Vm.copySsh(pane.name) }
+                                }
+                            }
+                            Text {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                visible: pane.vm && (pane.vm.ssh || "").length > 0
+                                text: "Connection refused means the guest has no SSH server yet — install openssh inside it once."
+                                color: Theme.faint; font.family: Theme.font; font.pixelSize: 11
+                            }
+
+                            // console line: honest about socket AND viewer.
+                            Row {
+                                spacing: 10
+                                visible: pane.vm && (pane.vm.spice || "").length > 0
+                                HubButton {
+                                    label: "Attach console"
+                                    icon: "display"
+                                    enabled: Vm.caps.spice === true
+                                    onClicked: Vm.openConsole(pane.name)
+                                }
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Vm.caps.spice === true
+                                        ? "SPICE screen on localhost:" + pane.vm.spice
+                                        : "needs the SPICE viewer — install the spice-gtk package"
+                                    color: Vm.caps.spice === true ? Theme.dim : Theme.warn
+                                    font.family: Theme.font; font.pixelSize: 11
+                                }
+                            }
+
                             KeyHint {
                                 keys: pane.vm && pane.vm.display === "spice" ? "Shift  F12"
                                     : pane.vm && pane.vm.display === "gtk" ? "Ctrl  Alt  G" : ""
@@ -202,14 +320,9 @@ Item {
                             Text {
                                 width: parent.width
                                 wrapMode: Text.WordWrap
-                                visible: pane.vm && pane.vm.display === "none"
-                                text: "This machine runs headless (no window). Open Console for a SPICE screen, or SSH in."
-                                color: Theme.subtle; font.family: Theme.font; font.pixelSize: 13
-                            }
-                            Text {
-                                width: parent.width
-                                wrapMode: Text.WordWrap
-                                text: "Stuck with the cursor grabbed? The Stop button above always powers the machine off."
+                                text: pane.vm && pane.vm.display === "none"
+                                    ? "Headless: no window exists — this panel is the machine's only door."
+                                    : "Stuck with the cursor grabbed? The Stop button above always powers the machine off."
                                 color: Theme.dim; font.family: Theme.font; font.pixelSize: 12
                             }
                         }
@@ -226,7 +339,7 @@ Item {
                         width: parent.width
                         wrapMode: Text.WordWrap
                         text: "Stop the machine to rename it."
-                        color: Theme.ember; font.family: Theme.font; font.pixelSize: 12
+                        color: Theme.dim; font.family: Theme.font; font.pixelSize: 11
                     }
                     Row {
                         width: parent.width
@@ -278,7 +391,7 @@ Item {
                         visible: !pane.running
                         width: parent.width
                         wrapMode: Text.WordWrap
-                        text: "Blank values are tuned automatically by quickemu. Set a number to pin it."
+                        text: "AUTO means quickemu tunes it to your hardware at launch. Set a number here to pin it."
                         color: Theme.dim; font.family: Theme.font; font.pixelSize: 11
                     }
                     Text {
@@ -286,7 +399,7 @@ Item {
                         width: parent.width
                         wrapMode: Text.WordWrap
                         text: "Stop the machine to change its hardware."
-                        color: Theme.ember; font.family: Theme.font; font.pixelSize: 12
+                        color: Theme.dim; font.family: Theme.font; font.pixelSize: 11
                     }
                     NumberField {
                         width: Math.min(parent.width, 460)
@@ -359,24 +472,161 @@ Item {
                     }
                 }
 
+                // ── the seal: golden state for disposable machines ──────────
+                Column {
+                    width: parent.width
+                    spacing: 10
+                    visible: pane.det && pane.det.installed === true
+                    SectionHead { text: "Seal" }
+                    Text {
+                        visible: pane.running
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: "Stop the machine to seal or restore it."
+                        color: Theme.dim; font.family: Theme.font; font.pixelSize: 11
+                    }
+                    Column {
+                        width: parent.width
+                        spacing: 10
+                        visible: !pane.running
+                        Text {
+                            width: parent.width
+                            wrapMode: Text.WordWrap
+                            text: pane.sealSnap !== null
+                                ? "Sealed " + pane.sealSnap.date + ". Disposable runs never touch the seal; a normal run that dirties the machine can be rolled back to it."
+                                : "Set the machine up the way you want it — packages, users, config — then seal that state. Disposable runs will boot from it forever; restore brings a dirtied machine back."
+                            color: Theme.dim; font.family: Theme.font; font.pixelSize: 12
+                        }
+                        Row {
+                            spacing: 12
+                            HubButton {
+                                visible: pane.sealSnap === null
+                                label: "Seal machine"
+                                icon: "snapshot"
+                                primary: true
+                                enabled: !Vm.busy
+                                onClicked: Vm.seal(pane.name)
+                            }
+                            ConfirmButton {
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: pane.sealSnap !== null
+                                enabled: !Vm.busy
+                                label: "Re-seal now"
+                                confirmLabel: "Overwrite seal?"
+                                icon: "snapshot"
+                                onConfirmed: Vm.seal(pane.name)
+                            }
+                            GuardSwitch {
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: pane.sealSnap !== null
+                                enabled: !Vm.busy
+                                label: "RESTORE SEAL"
+                                armedLabel: "ROLL BACK"
+                                onFired: Vm.restoreSeal(pane.name)
+                            }
+                        }
+                    }
+                }
+
+                // ── usb: host devices handed to this machine at boot ────────
+                Column {
+                    width: parent.width
+                    spacing: 10
+                    SectionHead { text: "USB devices" }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: pane.running
+                            ? "Stop the machine to change assignments — devices attach at the next launch."
+                            : "Engaged devices are handed to the guest when it boots."
+                        color: pane.running ? Theme.ember : Theme.dim
+                        font.family: Theme.font; font.pixelSize: pane.running ? 12 : 11
+                    }
+                    Text {
+                        visible: Vm.usb.length === 0
+                        text: "No USB devices detected on the host."
+                        color: Theme.faint; font.family: Theme.font; font.pixelSize: 12
+                    }
+                    Repeater {
+                        model: Vm.usb
+                        delegate: Rectangle {
+                            id: usbRow
+                            required property var modelData
+                            width: parent ? parent.width : 0
+                            height: 40
+                            color: usbRow.modelData.assigned ? Qt.rgba(Theme.ember.r, Theme.ember.g, Theme.ember.b, 0.05) : Theme.surfaceLo
+                            border.width: 1
+                            border.color: usbRow.modelData.assigned ? Qt.alpha(Theme.ember, 0.35) : Theme.lineSoft
+                            antialiasing: false
+                            Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+
+                            Toggle {
+                                id: usbToggle
+                                anchors.left: parent.left
+                                anchors.leftMargin: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                enabled: !pane.running && !Vm.busy
+                                on: usbRow.modelData.assigned === true
+                                onToggled: (v) => Vm.setUsb(pane.name, usbRow.modelData.id, v)
+                            }
+                            Text {
+                                anchors.left: usbToggle.right
+                                anchors.leftMargin: 12
+                                anchors.right: usbId.left
+                                anchors.rightMargin: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                elide: Text.ElideRight
+                                text: usbRow.modelData.name
+                                color: usbRow.modelData.assigned ? Theme.cream : Theme.subtle
+                                font.family: Theme.font; font.pixelSize: 13
+                            }
+                            Text {
+                                id: usbId
+                                anchors.right: parent.right
+                                anchors.rightMargin: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: usbRow.modelData.id
+                                color: Theme.faint
+                                font.family: Theme.mono; font.pixelSize: 11
+                            }
+                        }
+                    }
+                }
+
                 // ── snapshots ────────────────────────────────────────────────
                 Column {
                     width: parent.width
                     spacing: 10
                     SectionHead { text: "Snapshots" }
-                    Text {
+                    // no disk yet: say exactly what a snapshot needs and what to
+                    // press, instead of promising a section that never appears.
+                    Rectangle {
                         visible: !(pane.det && pane.det.installed)
                         width: parent.width
-                        wrapMode: Text.WordWrap
-                        text: "Launch the machine once to create its disk, then snapshots appear here."
-                        color: Theme.faint; font.family: Theme.font; font.pixelSize: 12
+                        height: 44
+                        color: Theme.surfaceLo
+                        border.width: 1
+                        border.color: Theme.lineSoft
+                        antialiasing: false
+                        Row {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 14
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 10
+                            Annunciator { anchors.verticalCenter: parent.verticalCenter; label: "NO DISK"; lit: false; tileW: 60 }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Snapshots capture the disk — press Launch once to create it, then save states here."
+                                color: Theme.dim; font.family: Theme.font; font.pixelSize: 12
+                            }
+                        }
                     }
                     Text {
                         visible: pane.running
                         width: parent.width
                         wrapMode: Text.WordWrap
                         text: "Stop the machine to manage snapshots."
-                        color: Theme.ember; font.family: Theme.font; font.pixelSize: 12
+                        color: Theme.dim; font.family: Theme.font; font.pixelSize: 11
                     }
                     Row {
                         width: parent.width
@@ -467,12 +717,12 @@ Item {
                                     anchors.rightMargin: 10
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: 8
-                                    ConfirmButton {
-                                        enabled: !pane.running
-                                        label: "Restore"
-                                        confirmLabel: "Roll back?"
-                                        icon: "refresh"
-                                        onConfirmed: Vm.snapshot(pane.name, "restore", snapRow.modelData.name)
+                                    GuardSwitch {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        enabled: !pane.running && !Vm.busy
+                                        label: "RESTORE"
+                                        armedLabel: "ROLL BACK"
+                                        onFired: Vm.snapshot(pane.name, "restore", snapRow.modelData.name)
                                     }
                                     ConfirmButton {
                                         enabled: !pane.running
@@ -487,32 +737,89 @@ Item {
                     }
                 }
 
-                // ── danger ───────────────────────────────────────────────────
+                // ── danger: verbs under guard covers ────────────────────────
                 Column {
                     width: parent.width
                     spacing: 10
                     SectionHead { text: "Danger zone" }
                     Row {
-                        spacing: 10
+                        spacing: 12
                         HubButton {
                             icon: "folder"
                             label: "Open folder"
                             onClicked: Vm.openFolder(pane.name)
                         }
-                        ConfirmButton {
-                            visible: pane.det && pane.det.installed
-                            enabled: !pane.running
-                            label: "Reclaim disk"
-                            confirmLabel: "Erase disk?"
-                            icon: "trash"
-                            onConfirmed: Vm.reclaimDisk(pane.name)
+                        GuardSwitch {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: pane.det && pane.det.installed === true
+                            enabled: !pane.running && !Vm.busy
+                            label: "RECLAIM DISK"
+                            armedLabel: "WIPE DISK"
+                            onFired: Vm.reclaimDisk(pane.name)
                         }
-                        ConfirmButton {
-                            enabled: !pane.running
-                            label: "Delete VM"
-                            confirmLabel: "Erase everything?"
-                            icon: "trash"
-                            onConfirmed: Vm.deleteVm(pane.name)
+                        GuardSwitch {
+                            anchors.verticalCenter: parent.verticalCenter
+                            enabled: !pane.running && !Vm.busy
+                            label: "DELETE MACHINE"
+                            armedLabel: "DESTROY"
+                            onFired: Vm.deleteVm(pane.name)
+                        }
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: "Reclaim deletes the disk image but keeps the machine and its setup, ready to reinstall. Delete removes everything."
+                        color: Theme.dim; font.family: Theme.font; font.pixelSize: 11
+                    }
+                }
+
+                // ── the machine plate: engraved, screwed on ─────────────────
+                Rectangle {
+                    width: parent.width
+                    height: 54
+                    color: Theme.surfaceLo
+                    border.width: 1
+                    border.color: Theme.line
+                    antialiasing: false
+
+                    // inner engraved bevel.
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 3
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Theme.lineSoft
+                        antialiasing: false
+                    }
+                    // corner screws.
+                    Repeater {
+                        model: 4
+                        delegate: Rectangle {
+                            required property int index
+                            width: 4; height: 4
+                            radius: 2
+                            color: Theme.faint
+                            x: index % 2 === 0 ? 7 : parent.width - 11
+                            y: index < 2 ? 7 : parent.height - 11
+                        }
+                    }
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 26
+                        Text {
+                            text: "RYOKU RYOVM · TYPE V-01"
+                            color: Theme.dim
+                            font.family: Theme.mono; font.pixelSize: 10; font.letterSpacing: 2
+                        }
+                        Text {
+                            text: "GUEST " + (pane.vm ? (pane.vm.guest || "linux").toUpperCase() : "—")
+                            color: Theme.faint
+                            font.family: Theme.mono; font.pixelSize: 10; font.letterSpacing: 2
+                        }
+                        Text {
+                            text: "CARRIER QEMU·KVM"
+                            color: Theme.faint
+                            font.family: Theme.mono; font.pixelSize: 10; font.letterSpacing: 2
                         }
                     }
                 }

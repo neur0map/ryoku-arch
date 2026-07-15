@@ -13,17 +13,93 @@ Rectangle {
     implicitHeight: 760
 
     color: Theme.bgBot
+    gradient: Gradient {
+        GradientStop { position: 0.0; color: Theme.bgTop }
+        GradientStop { position: 1.0; color: Theme.bgBot }
+    }
 
     property bool settingsOpen: false
     property bool importOpen: false
     property string mode: "library"     // library | catalog
     property string query: ""
 
-    readonly property bool gated: Vm.capsLoaded && (!Vm.caps.quickemu || Vm.kvmOff)
+    // only a hard hardware fault gates the whole window; a missing engine is an
+    // annunciator banner instead, so the library (list/import need no engine)
+    // stays a working room rather than a locked door.
+    readonly property bool gated: Vm.capsLoaded && Vm.kvmOff
+    readonly property bool engineMissing: Vm.capsLoaded && !Vm.kvmOff && !Vm.caps.quickemu
+    readonly property int runningCount: {
+        var n = 0;
+        for (var i = 0; i < Vm.vms.length; i++)
+            if (Vm.vms[i].running === true)
+                n++;
+        return n;
+    }
 
     focus: true
-    Keys.onEscapePressed: { if (app.importOpen) app.importOpen = false; else if (app.settingsOpen) app.settingsOpen = false; else Qt.quit(); }
+    // keyboard grammar: Esc dismisses one layer and never quits (that muscle
+    // memory kills downloads); arrows walk the library, Enter launches/stops,
+    // / or Ctrl+F jumps to search, Ctrl+Q quits — with a handshake when a
+    // download would die with the window.
+    Keys.onEscapePressed: {
+        if (app.importOpen) app.importOpen = false;
+        else if (app.settingsOpen) app.settingsOpen = false;
+        else if (input.activeFocus) { input.focus = false; app.forceActiveFocus(); }
+        else if (app.query.length > 0) app.query = "";
+        else if (app.mode === "catalog") app.mode = "library";
+    }
+    Keys.onUpPressed: app.moveSelection(-1)
+    Keys.onDownPressed: app.moveSelection(1)
+    Keys.onReturnPressed: app.launchSelected()
+    Keys.onEnterPressed: app.launchSelected()
+    Shortcut {
+        sequences: ["/", "Ctrl+F"]
+        onActivated: { if (!input.activeFocus) { input.forceActiveFocus(); input.selectAll(); } }
+    }
+    Shortcut { sequence: "Ctrl+Q"; onActivated: app.requestQuit() }
+
+    function moveSelection(dir) {
+        if (app.mode !== "library" || lib.shown.length === 0)
+            return;
+        var idx = -1;
+        for (var i = 0; i < lib.shown.length; i++)
+            if (lib.shown[i].name === Vm.selectedName) { idx = i; break; }
+        idx = Math.max(0, Math.min(lib.shown.length - 1, idx + dir));
+        Vm.select(lib.shown[idx].name);
+    }
+    function launchSelected() {
+        if (app.mode !== "library" || Vm.busy || !Vm.selected)
+            return;
+        if (Vm.selected.running)
+            Vm.stop(Vm.selected.name);
+        else if (Vm.caps.quickemu === true)
+            Vm.launch(Vm.selected.name, ({ "gtk": "window", "spice": "spice", "none": "headless" })[Vm.selected.display] || "window");
+    }
+    function requestQuit() {
+        if (Vm.downloading && !quitArm.running) {
+            Vm.info("A download is running — Cancel it, or quit again to abandon it");
+            quitArm.restart();
+            return;
+        }
+        Qt.quit();
+    }
+    Timer { id: quitArm; interval: 3000 }
+
     onModeChanged: if (mode === "catalog") Vm.loadCatalog(false)
+    // deep-link start mode (the .desktop Browse action, tooling, tests), and an
+    // optional OS to preselect once the catalogue lands.
+    Component.onCompleted: if (Quickshell.env("RYOVM_START_MODE") === "catalog") mode = "catalog"
+    readonly property string startOs: Quickshell.env("RYOVM_START_OS") || ""
+    Connections {
+        target: Vm
+        function onCreated(name) { app.mode = "library"; }
+        function onOsListChanged() {
+            if (app.startOs.length === 0 || Vm.selectedOs !== null)
+                return;
+            for (var i = 0; i < Vm.osList.length; i++)
+                if (Vm.osList[i].os === app.startOs) { Vm.selectOs(Vm.osList[i]); break; }
+        }
+    }
 
     // ---- header -------------------------------------------------------------
     Item {
@@ -58,9 +134,26 @@ Rectangle {
         Row {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 4
-            IconBtn { name: "gear"; onClicked: app.settingsOpen = true }
-            IconBtn { name: "close"; danger: true; onClicked: Qt.quit() }
+            spacing: 14
+
+            // the departure board: the yard's headline, always live.
+            FlapWord {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: !app.gated
+                text: String(Vm.vms.length).padStart(2, "0") + " MACHINES  "
+                    + String(app.runningCount).padStart(2, "0") + " RUNNING"
+                pad: 22
+                cellW: 14
+                cellH: 21
+                fontPx: 12
+            }
+
+            Row {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 4
+                IconBtn { name: "gear"; onClicked: app.settingsOpen = true }
+                IconBtn { name: "close"; danger: true; onClicked: app.requestQuit() }
+            }
         }
     }
 
@@ -92,7 +185,7 @@ Rectangle {
             anchors.leftMargin: 14
             anchors.verticalCenter: parent.verticalCenter
             width: 280
-            height: 36
+            height: 38
             radius: Theme.radius
             color: Theme.surfaceLo
             border.width: 1
@@ -132,18 +225,10 @@ Rectangle {
             spacing: 12
             HubButton { anchors.verticalCenter: parent.verticalCenter; icon: "disk"; label: "Load ISO"; onClicked: app.importOpen = true }
             IconBtn { anchors.verticalCenter: parent.verticalCenter; visible: app.mode === "catalog"; name: "refresh"; dim: Vm.catalogLoading; onClicked: Vm.loadCatalog(true) }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: app.mode === "library"
-                text: Vm.vms.length + (Vm.vms.length === 1 ? " machine" : " machines")
-                color: Theme.faint
-                font.family: Theme.mono
-                font.pixelSize: 11
-            }
         }
     }
 
-    // ---- gate: engine missing / virtualization off --------------------------
+    // ---- gate: virtualization off (the only whole-window fault) -------------
     Item {
         anchors.top: toolbar.bottom
         anchors.topMargin: 12
@@ -159,13 +244,13 @@ Rectangle {
             width: Math.min(parent.width, 520)
             spacing: 16
 
-            Icon { anchors.horizontalCenter: parent.horizontalCenter; name: Vm.kvmOff ? "cpu" : "download"; size: 40; tint: Vm.kvmOff ? Theme.bad : Theme.ember }
+            Icon { anchors.horizontalCenter: parent.horizontalCenter; name: "cpu"; size: 40; tint: Theme.bad }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 horizontalAlignment: Text.AlignHCenter
                 width: parent.width
                 wrapMode: Text.WordWrap
-                text: Vm.kvmOff ? "Virtualization is off" : "Install QEMU to run virtual machines"
+                text: "Virtualization is off"
                 color: Theme.bright; font.family: Theme.font; font.pixelSize: 18; font.weight: Font.DemiBold
             }
             Text {
@@ -173,29 +258,77 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
                 width: parent.width
                 wrapMode: Text.WordWrap
-                text: Vm.kvmOff
-                    ? "A virtual machine needs hardware virtualization. Turn on SVM / AMD-V (AMD) or VT-x (Intel) in your BIOS/firmware, then reboot."
-                    : "ryovm runs on quickemu, which downloads and tunes machines for you. This installs quickemu and the SPICE viewer."
+                text: "A virtual machine needs hardware virtualization. Turn on SVM / AMD-V (AMD) or VT-x (Intel) in your BIOS/firmware, then reboot."
                 color: Theme.subtle; font.family: Theme.font; font.pixelSize: 13
             }
-            HubButton {
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: !Vm.kvmOff
-                label: "Install QEMU"
-                icon: "download"
-                primary: true
-                onClicked: settings.installEngine()
+        }
+    }
+
+    // ---- engine banner: quickemu missing = a lit fault row, not a locked app --
+    Rectangle {
+        id: engineBanner
+        anchors.top: toolbar.bottom
+        anchors.topMargin: app.engineMissing ? 12 : 0
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: 40
+        anchors.rightMargin: 24
+        height: app.engineMissing ? 44 : 0
+        visible: app.engineMissing
+        color: Qt.rgba(Theme.ember.r, Theme.ember.g, Theme.ember.b, 0.08)
+        border.width: 1
+        border.color: Qt.alpha(Theme.ember, 0.45)
+        antialiasing: false
+
+        Row {
+            anchors.left: parent.left
+            anchors.leftMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 10
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 10; height: 10
+                color: Theme.ember
+                antialiasing: false
+                SequentialAnimation on visible {
+                    loops: Animation.Infinite
+                    PropertyAction { value: true }
+                    PauseAnimation { duration: 500 }
+                    PropertyAction { value: false }
+                    PauseAnimation { duration: 500 }
+                }
             }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "ENGINE OFFLINE"
+                color: Theme.ember
+                font.family: Theme.mono; font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 2
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "quickemu is not installed — machines can be imported and configured, not launched."
+                color: Theme.subtle
+                font.family: Theme.font; font.pixelSize: 12
+            }
+        }
+        HubButton {
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            label: "Install engine"
+            icon: "download"
+            primary: true
+            onClicked: settings.installEngine()
         }
     }
 
     // ---- main: grid (left) + hero (right) -----------------------------------
     Item {
         id: main
-        anchors.top: toolbar.bottom
+        anchors.top: engineBanner.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: statusBar.top
+        anchors.bottom: faultRow.top
         anchors.leftMargin: 40
         anchors.rightMargin: 24
         anchors.topMargin: 12
@@ -209,6 +342,7 @@ Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width * 0.44
             filter: app.query
+            onBuildRequested: app.mode = "catalog"
             opacity: app.mode === "library" ? 1 : 0
             visible: opacity > 0
             Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
@@ -219,6 +353,7 @@ Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width * 0.44
             filter: app.query
+            onInstallRequested: settings.installEngine()
             opacity: app.mode === "catalog" ? 1 : 0
             visible: opacity > 0
             Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
@@ -258,6 +393,91 @@ Rectangle {
         }
     }
 
+    // ---- fault row: errors stay lit until dismissed or superseded -----------
+    Rectangle {
+        id: faultRow
+        anchors.bottom: statusBar.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: 40
+        anchors.rightMargin: 24
+        anchors.bottomMargin: Vm.fault.length > 0 ? 6 : 0
+        height: Vm.fault.length > 0 ? faultCol.implicitHeight + 20 : 0
+        visible: Vm.fault.length > 0
+        color: Qt.rgba(Theme.ember.r, Theme.ember.g, Theme.ember.b, 0.08)
+        border.width: 1
+        border.color: Qt.alpha(Theme.ember, 0.5)
+        antialiasing: false
+        property bool expanded: false
+
+        Column {
+            id: faultCol
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: 10
+            spacing: 8
+
+            Item {
+                width: parent.width
+                height: 22
+                Row {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 10
+                    Annunciator { anchors.verticalCenter: parent.verticalCenter; label: "FAULT"; lit: true; warn: true; litColor: Theme.ember; tileW: 52 }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: faultRow.width - 220
+                        elide: Text.ElideRight
+                        text: Vm.fault
+                        color: Theme.bright
+                        font.family: Theme.font; font.pixelSize: 12
+                    }
+                }
+                Row {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 12
+                    Text {
+                        visible: Vm.faultDetail.indexOf("\n") >= 0
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: faultRow.expanded ? "LESS" : "DETAIL"
+                        color: fdh.hovered ? Theme.bright : Theme.subtle
+                        font.family: Theme.mono; font.pixelSize: 9; font.letterSpacing: 1.5; font.weight: Font.DemiBold
+                        HoverHandler { id: fdh; cursorShape: Qt.PointingHandCursor }
+                        TapHandler { onTapped: faultRow.expanded = !faultRow.expanded }
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "DISMISS"
+                        color: fxh.hovered ? Theme.ember : Theme.subtle
+                        font.family: Theme.mono; font.pixelSize: 9; font.letterSpacing: 1.5; font.weight: Font.DemiBold
+                        HoverHandler { id: fxh; cursorShape: Qt.PointingHandCursor }
+                        TapHandler { onTapped: { faultRow.expanded = false; Vm.clearFault(); } }
+                    }
+                }
+            }
+
+            Flickable {
+                visible: faultRow.expanded
+                width: parent.width
+                height: Math.min(faultDetailText.implicitHeight, 140)
+                contentHeight: faultDetailText.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                Text {
+                    id: faultDetailText
+                    width: parent.width
+                    wrapMode: Text.WrapAnywhere
+                    text: Vm.faultDetail
+                    color: Theme.subtle
+                    font.family: Theme.mono; font.pixelSize: 11
+                }
+            }
+        }
+    }
+
     // ---- status bar ---------------------------------------------------------
     Item {
         id: statusBar
@@ -272,7 +492,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             text: Vm.status.length > 0 ? Vm.status : (Vm.busy ? "Working…" : "")
-            color: Vm.status.length > 0 ? Theme.ember : Theme.faint
+            color: Vm.status.length > 0 ? Theme.subtle : Theme.faint
             font.family: Theme.mono
             font.pixelSize: 11
             font.letterSpacing: 0.5
