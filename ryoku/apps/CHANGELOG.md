@@ -173,6 +173,17 @@
   `PATH` and works from day one.
 
 ### Fixed
+- `ryovm/`: **SSH from the app survives more than one machine.** Every VM
+  forwards its guest onto the same small host-port range, so the global
+  `known_hosts` collided the moment a second machine answered on a port a
+  first one once used — ssh failed with "REMOTE HOST IDENTIFICATION HAS
+  CHANGED" against your own VM, and the old packaged app's terminal closed
+  before the message could be read. The engine's `ssh` verb now pins each
+  machine to its own known-hosts file beside its disk with
+  `StrictHostKeyChecking=accept-new`: first connect just works, a genuinely
+  changed key still fails loudly, and machines can never poison each other
+  (`bin/ryovm`). The reworked app already holds the terminal open with the
+  diagnosis when the guest refuses.
 - `ryovm/`: **the launch and scroll flicker is gone.** Three compounding
   causes: the 5-second poll rebuilt the whole library from a fresh array even
   when nothing changed (every card torn down and re-created, replaying its

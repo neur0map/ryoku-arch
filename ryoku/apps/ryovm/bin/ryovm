@@ -476,13 +476,19 @@ cmd_snapshot() {
 }
 
 # ---- ssh -------------------------------------------------------------------
+# Every VM forwards its guest :22 onto the same small host-port range, so the
+# global known_hosts collides the moment a second machine answers on a port a
+# first one once used — "REMOTE HOST IDENTIFICATION HAS CHANGED" against your
+# own VM. Each machine gets its own known-hosts file beside its disk instead,
+# with accept-new so the first connect just works and a genuinely changed key
+# still fails loudly.
 cmd_ssh() {
 	local conf; conf="$(conf_path "$1")"
 	vm_paths "$conf"
 	vm_running "$vm_pid" || die "$vm_name is not running"
 	local port; port="$(port_of "$vm_ports" ssh)"
 	[ -n "$port" ] || die "$vm_name has no forwarded SSH port"
-	echo "ssh -p $port ${SUDO_USER:-$USER}@localhost"
+	echo "ssh -o UserKnownHostsFile=$vm_subdir/$vm_name.known_hosts -o StrictHostKeyChecking=accept-new -p $port ${SUDO_USER:-$USER}@localhost"
 }
 
 # ---- delete ----------------------------------------------------------------
