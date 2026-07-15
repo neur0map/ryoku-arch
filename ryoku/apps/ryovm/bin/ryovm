@@ -140,7 +140,7 @@ cmd_caps() {
 # through the Ryoku package helpers so the install matches every other one.
 cmd_setup() {
 	# shellcheck disable=SC2015  # pacman fallback runs if the helper is absent or fails; both are fine
-	have ryoku-pkg-add && ryoku-pkg-add --needed spice-gtk || sudo pacman -S --needed --noconfirm spice-gtk
+	have ryoku-pkg-add && ryoku-pkg-add --needed spice-gtk libisoburn || sudo pacman -S --needed --noconfirm spice-gtk libisoburn
 	if have ryoku-pkg-aur-add; then
 		ryoku-pkg-aur-add quickemu
 	elif have yay; then
@@ -456,9 +456,25 @@ write_seed() { # $1 = vm subdir, $2 = vm name, $3 = install sudo? (true/false)
 	} >"$dir/user-data"
 	# bumping instance-id forces cloud-init to re-run on a reused disk.
 	printf 'instance-id: iid-%s-%s\nlocal-hostname: %s\n' "$name" "$(date +%s)" "$name" >"$dir/meta-data"
-	genisoimage -quiet -output "$dir/seed.iso" -volid cidata -joliet -rock \
-		"$dir/user-data" "$dir/meta-data" 2>/dev/null || return 1
+	iso_build "$dir/seed.iso" "$dir/user-data" "$dir/meta-data" || return 1
 }
+
+# build a cidata ISO with whatever tool is installed. xorriso is in the Arch
+# repos (libisoburn); genisoimage/mkisofs come from cdrtools (AUR). The volid
+# MUST be cidata — that's the only thing cloud-init's NoCloud datasource scans.
+iso_build() { # $1 = out.iso, $2.. = files
+	local out="$1"; shift
+	if have genisoimage; then
+		genisoimage -quiet -output "$out" -volid cidata -joliet -rock "$@" 2>/dev/null
+	elif have xorriso; then
+		xorriso -as mkisofs -quiet -o "$out" -V cidata -J -r "$@" >/dev/null 2>&1
+	elif have mkisofs; then
+		mkisofs -quiet -output "$out" -volid cidata -joliet -rock "$@" 2>/dev/null
+	else
+		return 1
+	fi
+}
+have_iso_builder() { have genisoimage || have xorriso || have mkisofs; }
 
 cmd_instant() {
 	local os="" name="" disposable="" sealme="" a
@@ -470,7 +486,7 @@ cmd_instant() {
 		esac
 	done
 	[ -n "$os" ] || { emit '{"phase":"error","message":"instant needs an OS (e.g. debian)"}'; exit 1; }
-	command -v genisoimage >/dev/null 2>&1 || { emit '{"phase":"error","message":"genisoimage is missing (cdrtools/cdrkit)"}'; exit 1; }
+	have_iso_builder || { emit '{"phase":"error","message":"no ISO builder — install xorriso: sudo pacman -S libisoburn"}'; exit 1; }
 	have qemu-img || { emit '{"phase":"error","message":"qemu-img is missing"}'; exit 1; }
 
 	local entry; entry="$(cloud_catalog | jq -c --arg q "$os" 'first(.[] | select(.os==$q))')"
@@ -715,7 +731,10 @@ cmd_ssh() {
 	else
 		hostpol="-o UserKnownHostsFile=$vm_subdir/$vm_name.known_hosts -o StrictHostKeyChecking=accept-new"
 	fi
-	echo "ssh $hostpol -o ConnectTimeout=8 ${ident}-p $port ${user:-${SUDO_USER:-$USER}}@localhost"
+	# TERM=xterm-256color: a booting/minimal guest has no terminfo for
+	# xterm-kitty (or foot/wezterm/...), so clear/less/vim would die with
+	# "unknown terminal type". Advertise the one every guest ships.
+	echo "TERM=xterm-256color ssh $hostpol -o ConnectTimeout=8 ${ident}-p $port ${user:-${SUDO_USER:-$USER}}@localhost"
 }
 
 # ---- delete ----------------------------------------------------------------

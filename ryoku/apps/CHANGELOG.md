@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- `ryovm/`: **SSH sessions no longer break on the terminal type.** Opening SSH
+  from kitty (or foot, WezTerm, …) advertised a `TERM` a minimal guest has no
+  terminfo for — `clear`, `less`, `vim` died with `'xterm-kitty': unknown
+  terminal type`. The ssh command now advertises `TERM=xterm-256color`, which
+  every guest ships, so the session just works; the fix rides in both the
+  app-opened terminal and the copyable command. The instant-machine seed also
+  builds with whatever ISO tool is present — xorriso (Arch repos, via
+  `libisoburn`), genisoimage, or mkisofs — and `ryovm setup` now pulls xorriso
+  so a box that installs the engine can build instant machines too
+  (`bin/ryovm`, `ryoku-desktop` optdepend).
 - `ryovm/`: **instant machines — a prebuilt VM with a known login, no installer.**
   `ryovm instant <os>` is the Kali/Vagrant model: it fetches a distro's official
   pre-installed cloud qcow2 (Ubuntu, Debian, Fedora, Arch, Alpine, openSUSE,

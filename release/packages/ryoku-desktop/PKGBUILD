@@ -150,6 +150,7 @@ optdepends=(
   'swtpm: TPM 2.0 for the Windows 11 VM'
   'looking-glass: low-latency VM display in a desktop window'
   'quickemu: build and run virtual machines in ryovm'
+  'libisoburn: instant cloud machines in ryovm (cloud-init seed ISO; xorriso)'
   'spice-gtk: SPICE console + headless VM viewer for ryovm'
 )
 install="$pkgname.install"
