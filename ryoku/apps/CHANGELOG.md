@@ -37,8 +37,19 @@
   defaults skip dev channels (no more `daily-live` Ubuntu) and prefer vanilla
   editions; Esc dismisses instead of quitting (Ctrl+Q quits, with a handshake
   while a download runs); arrows/Enter drive the library and `/` jumps to
-  search; SSH gets a copyable command line, `$TERMINAL` respect and a
-  hold-open diagnosis when the guest has no sshd yet.
+  search; SSH gets a copyable command line, `$TERMINAL` respect, and boot
+  honesty end to end: QEMU forwards the guest's port the instant the machine
+  starts — long before anything answers — so the board probes for the real
+  `SSH-` banner and only lights the SSH lamp and endpoint once the guest can
+  actually be reached (until then the field reads "no answer"); the
+  click-to-connect window narrates the wait instead of sitting pitch dark on a
+  booting guest — where it's going, which account it signs in as, elapsed
+  seconds, a live-ISO hint after a quiet minute — then hands over to plain ssh
+  the moment the banner lands, holding open on failure with the fix spelled
+  out; and the login account rides the detail JSON (`sshUser`), shows in the
+  Reach-it command line and is editable in place (`ryovm_ssh_user`), because a
+  password prompt for an account that doesn't exist in the guest reads as a
+  haunted machine.
 - `ryowalls/`: a wallpaper **studio**, not just a browser. A new **Adjust** mode
   (a third tab beside Browse and Tune) shapes the picked wallpaper live in the
   rice preview. For an image: a colour **grade** (brightness, contrast,

@@ -238,15 +238,19 @@ cmd_get() {
 	tpm=false; [ "$(conf_get "$conf" tpm)" = "on" ] && tpm=true
 	sb=false; [ "$(conf_get "$conf" secureboot)" = "on" ] && sb=true
 	uefi=true; [ "$(conf_get "$conf" boot)" = "legacy" ] && uefi=false
+	# the login ssh will use, said out loud: a password prompt for an account
+	# that doesn't exist in the guest reads as a haunted machine otherwise.
+	local suser; suser="$(conf_get "$conf" ryovm_ssh_user)"
+	[ -n "$suser" ] || suser="${SUDO_USER:-$USER}"
 	jq -cn --arg name "$vm_name" --arg guest "${guest:-linux}" --arg os "${os:-}" --arg display "$disp" \
 		--arg cores "${cores:-auto}" --arg ram "${ram:-auto}" --arg disk "${disk:-}" --argjson used "$used" \
 		--argjson running "$running" --arg ssh "${ssh:-}" --arg spice "${spice:-}" \
 		--argjson installed "$([ -e "$vm_disk" ] && echo true || echo false)" \
 		--argjson disposable "$disposable" --argjson sealed "$sealed" \
 		--argjson tpm "$tpm" --argjson secureboot "$sb" --argjson uefi "$uefi" \
-		--argjson sshready "$ssh_ready" \
+		--argjson sshready "$ssh_ready" --arg sshuser "$suser" \
 		--argjson snapshots "$snaps" --arg conf "$conf" --arg dir "$vm_subdir" \
-		'{name:$name,guest:$guest,os:$os,display:$display,cores:$cores,ram:$ram,disk:$disk,diskUsed:$used,running:$running,installed:$installed,ssh:$ssh,spice:$spice,disposable:$disposable,sealed:$sealed,tpm:$tpm,secureboot:$secureboot,uefi:$uefi,sshReady:$sshready,snapshots:$snapshots,conf:$conf,dir:$dir}'
+		'{name:$name,guest:$guest,os:$os,display:$display,cores:$cores,ram:$ram,disk:$disk,diskUsed:$used,running:$running,installed:$installed,ssh:$ssh,spice:$spice,disposable:$disposable,sealed:$sealed,tpm:$tpm,secureboot:$secureboot,uefi:$uefi,sshReady:$sshready,sshUser:$sshuser,snapshots:$snapshots,conf:$conf,dir:$dir}'
 }
 
 # ---- create (catalogue OS, in-app download with live progress) --------------
@@ -523,7 +527,7 @@ cmd_ssh() {
 	# the conf pins the login (config verb sets it); host username is only the
 	# fallback guess.
 	local user; user="$(conf_get "$conf" ryovm_ssh_user)"
-	echo "ssh -o UserKnownHostsFile=$vm_subdir/$vm_name.known_hosts -o StrictHostKeyChecking=accept-new -p $port ${user:-${SUDO_USER:-$USER}}@localhost"
+	echo "ssh -o UserKnownHostsFile=$vm_subdir/$vm_name.known_hosts -o StrictHostKeyChecking=accept-new -o ConnectTimeout=8 -p $port ${user:-${SUDO_USER:-$USER}}@localhost"
 }
 
 # ---- delete ----------------------------------------------------------------
