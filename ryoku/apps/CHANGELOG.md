@@ -3,6 +3,24 @@
 ## Unreleased
 
 ### Added
+- `ryovm/`: **instant machines — a prebuilt VM with a known login, no installer.**
+  `ryovm instant <os>` is the Kali/Vagrant model: it fetches a distro's official
+  pre-installed cloud qcow2 (Ubuntu, Debian, Fedora, Arch, Alpine, openSUSE,
+  Rocky, Alma — the curated catalogue quickget refuses to carry), makes a thin
+  copy-on-write overlay so every machine costs ~200 KB until written, and
+  attaches a cloud-init `cidata` seed that bakes in the standard **Ryoku burn
+  account** — `ryoku`/`ryoku`, the ryovm burn SSH key, passwordless sudo — on
+  first boot. No 14-step wizard; ssh-able in under a minute, and every later
+  instant of that distro is seconds (overlay + seed + boot, zero download). It
+  composes with disposable: a `--disposable` instant discards all writes at
+  power-off *including* `/var/lib/cloud`, so every boot is a factory-fresh
+  re-provision from the same read-only seed — born configured, dies clean.
+  Because a burn machine regenerates its SSH host key each boot, its ssh
+  command skips host-key pinning (a throwaway has no identity to verify) while
+  installed machines keep their per-VM `known_hosts`. Verified end to end on a
+  real Debian 13 cloud image: instant → ssh as `ryoku` (key, no password) →
+  passwordless root → disposable re-burn wipes writes and re-creates the
+  account (`bin/ryovm`).
 - `ryovm/`: **the dispatch board — a full rework of the VM manager.** The window
   reads as a rail-dispatch wall crossed with an instrument panel: split-flap
   cells spell the live state (the header board counts `NN MACHINES · NN

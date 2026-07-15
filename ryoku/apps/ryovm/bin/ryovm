@@ -13,6 +13,8 @@
 #   list                             local VMs + live run state
 #   get <name>                       one VM: config + state + snapshots
 #   create <os> <release> [edition]  quickget download+config (streams progress)
+#   instant <os> [name] [--disposable] a prebuilt cloud image, ryoku/ryoku burn account, no installer
+#   cloud-catalog                    the curated cloud-image list (JSON)
 #   import <name> <iso> [guest]      a VM from any ISO (full QEMU, off-catalogue)
 #   launch <name> [window|spice|headless]   start detached
 #   console <name>                   open the SPICE viewer for a running VM
@@ -361,6 +363,180 @@ cmd_import() {
 	echo "Created $conf"
 }
 
+# ---- instant (a prebuilt cloud image, no installer) ------------------------
+# The Kali/Vagrant model: distros publish qcow2 images that are ALREADY
+# installed. ryovm fetches one (cached + shared), makes a thin copy-on-write
+# overlay, and attaches a cloud-init "cidata" seed that bakes in the Ryoku burn
+# account (ryoku/ryoku + the burn key + passwordless sudo) on first boot. No
+# 14-step installer, ssh-able in under a minute. quickget deliberately excludes
+# cloud images, so the catalogue is ours.
+imagesDir() { printf '%s' "$vms_dir/.images"; }
+burnKey()   { printf '%s' "${XDG_DATA_HOME:-$HOME/.local/share}/ryoku/keys/ryovm"; }
+
+# ensure the burn keypair exists (ed25519, no passphrase): the identity the app
+# logs into every burn/instant machine with.
+ensure_burn_key() {
+	local k; k="$(burnKey)"
+	[ -f "$k" ] && return 0
+	mkdir -p "$(dirname "$k")"
+	ssh-keygen -t ed25519 -N "" -C "ryovm-burn" -f "$k" -q 2>/dev/null || die "could not create the burn key"
+}
+
+# the curated cloud-image catalogue: os slug -> qcow2 url (or a fedora-style
+# resolver), the image's own default login, and whether the guest needs sudo
+# installed for the burn account. Every URL is a rolling "latest" pointer so it
+# never goes stale. Sizes are the download, not the (auto-grown) virtual disk.
+cloud_catalog() {
+	cat <<-'JSON'
+	[
+	 {"os":"ubuntu","name":"Ubuntu 24.04 LTS","user":"ubuntu","size":"593M","sudo":false,
+	  "url":"https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"},
+	 {"os":"debian","name":"Debian 13","user":"debian","size":"325M","sudo":false,
+	  "url":"https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2"},
+	 {"os":"fedora","name":"Fedora Cloud","user":"fedora","size":"557M","sudo":false,
+	  "resolve":"fedora"},
+	 {"os":"archlinux","name":"Arch Linux","user":"arch","size":"559M","sudo":false,
+	  "url":"https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2"},
+	 {"os":"alpine","name":"Alpine Linux","user":"alpine","size":"175M","sudo":true,
+	  "url":"https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/cloud/generic_alpine-3.24.1-x86_64-bios-cloudinit-r0.qcow2"},
+	 {"os":"opensuse","name":"openSUSE Tumbleweed","user":"opensuse","size":"293M","sudo":false,
+	  "url":"https://download.opensuse.org/tumbleweed/appliances/openSUSE-Tumbleweed-Minimal-VM.x86_64-Cloud.qcow2"},
+	 {"os":"rocky","name":"Rocky Linux 10","user":"rocky","size":"545M","sudo":false,
+	  "url":"https://dl.rockylinux.org/pub/rocky/10/images/x86_64/Rocky-10-GenericCloud-Base.latest.x86_64.qcow2"},
+	 {"os":"alma","name":"AlmaLinux 10","user":"almalinux","size":"573M","sudo":false,
+	  "url":"https://repo.almalinux.org/almalinux/10/cloud/x86_64/images/AlmaLinux-10-GenericCloud-latest.x86_64.qcow2"}
+	]
+	JSON
+}
+cmd_cloud_catalog() { cloud_catalog; }
+
+# resolve a catalogue entry's real qcow2 URL. Most are direct rolling pointers;
+# Fedora embeds the respin in the filename, so it's resolved via releases.json.
+cloud_resolve_url() { # $1 = entry json
+	local e="$1" r
+	r="$(printf '%s' "$e" | jq -r '.resolve // empty')"
+	if [ "$r" = "fedora" ]; then
+		curl -fsSL "https://fedoraproject.org/releases.json" 2>/dev/null \
+			| jq -r 'map(select(.arch=="x86_64" and .variant=="Cloud" and (.link|endswith(".qcow2")))) | sort_by(.version) | last | .link' 2>/dev/null
+		return
+	fi
+	printf '%s' "$e" | jq -r '.url'
+}
+
+# build the cidata seed ISO for a VM: a cloud-init NoCloud payload that creates
+# the ryoku burn account (password ryoku, passwordless sudo, the burn key + any
+# host keys). Re-read on every disposable boot (the overlay resets), applied
+# once on a persistent one. genisoimage is on the box; the volid MUST be cidata.
+write_seed() { # $1 = vm subdir, $2 = vm name, $3 = install sudo? (true/false)
+	local dir="$1" name="$2" want_sudo="$3"
+	ensure_burn_key
+	local keys; keys="$(printf '      - %s\n' "$(cat "$(burnKey).pub")")"
+	local k
+	for k in "$HOME"/.ssh/id_*.pub; do
+		[ -f "$k" ] && keys="$keys"$'\n'"$(printf '      - %s' "$(cat "$k")")"
+	done
+	local pkgs=""
+	[ "$want_sudo" = true ] && pkgs=$'packages:\n  - sudo\n'
+	{
+		printf '#cloud-config\n'
+		printf 'hostname: %s\n' "$name"
+		printf 'ssh_pwauth: true\n'
+		printf 'package_update: false\n'
+		printf 'package_upgrade: false\n'
+		printf 'chpasswd:\n  expire: false\n'
+		printf '%s' "$pkgs"
+		printf 'users:\n'
+		printf '  - name: ryoku\n'
+		printf '    plain_text_passwd: ryoku\n'
+		printf '    lock_passwd: false\n'
+		printf '    sudo: "ALL=(ALL) NOPASSWD:ALL"\n'
+		printf '    groups: [wheel, adm, sudo]\n'
+		printf '    ssh_authorized_keys:\n'
+		printf '%s\n' "$keys"
+	} >"$dir/user-data"
+	# bumping instance-id forces cloud-init to re-run on a reused disk.
+	printf 'instance-id: iid-%s-%s\nlocal-hostname: %s\n' "$name" "$(date +%s)" "$name" >"$dir/meta-data"
+	genisoimage -quiet -output "$dir/seed.iso" -volid cidata -joliet -rock \
+		"$dir/user-data" "$dir/meta-data" 2>/dev/null || return 1
+}
+
+cmd_instant() {
+	local os="" name="" disposable="" sealme="" a
+	for a in "$@"; do
+		case "$a" in
+			--disposable) disposable=1 ;;
+			--sealed)     sealme=1 ;;
+			*) [ -z "$os" ] && os="$a" || name="$a" ;;
+		esac
+	done
+	[ -n "$os" ] || { emit '{"phase":"error","message":"instant needs an OS (e.g. debian)"}'; exit 1; }
+	command -v genisoimage >/dev/null 2>&1 || { emit '{"phase":"error","message":"genisoimage is missing (cdrtools/cdrkit)"}'; exit 1; }
+	have qemu-img || { emit '{"phase":"error","message":"qemu-img is missing"}'; exit 1; }
+
+	local entry; entry="$(cloud_catalog | jq -c --arg q "$os" 'first(.[] | select(.os==$q))')"
+	[ -n "$entry" ] && [ "$entry" != null ] || { emit "{\"phase\":\"error\",\"message\":\"no cloud image named '$os'\"}"; exit 1; }
+	[ -z "$name" ] && name="$os-instant"
+	mkdir -p "$vms_dir"
+	[ -e "$vms_dir/$name.conf" ] && { emit "{\"phase\":\"error\",\"message\":\"$name already exists\"}"; exit 1; }
+
+	local want_sudo; want_sudo="$(printf '%s' "$entry" | jq -r '.sudo')"
+	local url; url="$(cloud_resolve_url "$entry")"
+	[ -n "$url" ] || { emit '{"phase":"error","message":"could not resolve the image URL"}'; exit 1; }
+
+	# cache the base image once, shared by every instant/spawn off this OS.
+	mkdir -p "$(imagesDir)"
+	local base; base="$(imagesDir)/$os-cloud.qcow2"
+	local child=""
+	trap 'set +e; [ -n "$child" ] && kill -TERM "$child" 2>/dev/null; wait "$child" 2>/dev/null; emit "{\"phase\":\"cancelled\"}"; exit 130' TERM INT
+	if [ ! -s "$base" ]; then
+		emit "{\"phase\":\"download\",\"name\":\"$name\"}"
+		if have ryovm-fetch; then
+			ryovm-fetch "$url" "$base.part" & child=$!
+			local rc=0; wait "$child" || rc=$?; child=""
+			[ "$rc" -eq 0 ] || { rm -f "$base.part"; emit '{"phase":"error","message":"image download failed"}'; exit 1; }
+		else
+			curl -fL --retry 3 -o "$base.part" "$url" 2>/dev/null || { rm -f "$base.part"; emit '{"phase":"error","message":"image download failed"}'; exit 1; }
+		fi
+		mv "$base.part" "$base"
+	fi
+
+	emit '{"phase":"config"}'
+	local sub="$vms_dir/$name"; mkdir -p "$sub"
+	# a thin copy-on-write overlay over the read-only cached base, grown to a
+	# usable size (cloud-init's growpart expands the rootfs on first boot).
+	qemu-img create -f qcow2 -F qcow2 -b "$base" "$sub/disk.qcow2" 32G >/dev/null 2>&1 \
+		|| { rm -rf "$sub"; emit '{"phase":"error","message":"could not create the disk overlay"}'; exit 1; }
+	write_seed "$sub" "$name" "$want_sudo" \
+		|| { rm -rf "$sub"; emit '{"phase":"error","message":"could not build the cloud-init seed"}'; exit 1; }
+
+	# quickemu conf: point at the overlay, attach the seed as a read-only cdrom
+	# via extra_args (a first-class conf key), and set preallocation so quickemu
+	# does not mistake the tiny fresh overlay for an unused disk and refuse.
+	{
+		echo "guest_os=\"linux\""
+		echo "disk_img=\"$name/disk.qcow2\""
+		echo "preallocation=\"metadata\""
+		echo "extra_args=\"-drive file=$sub/seed.iso,media=cdrom,readonly=on\""
+		echo "ryovm_os=\"$os\""
+		echo "ryovm_ssh_user=\"ryoku\""
+		echo "ryovm_burn=\"1\""
+	} >"$vms_dir/$name.conf"
+	[ -n "$sealme" ] && echo 'ryovm_sealed="1"' >>"$vms_dir/$name.conf"
+
+	trap - TERM INT
+	# seal the pristine cloud state so restore-seal returns here.
+	if [ -n "$sealme" ]; then
+		qemu-img snapshot -c sealed "$sub/disk.qcow2" >/dev/null 2>&1 || true
+	fi
+	emit "{\"phase\":\"done\",\"name\":\"$name\"}"
+	# auto-launch: instant means instant.
+	if [ -n "$disposable" ]; then
+		cmd_launch "$name" headless --disposable >/dev/null 2>&1 || true
+	else
+		cmd_launch "$name" headless >/dev/null 2>&1 || true
+	fi
+}
+
 # ---- launch ----------------------------------------------------------------
 # Detach so the engine returns at once and the VM (and any viewer) outlives it.
 # display: window (gtk) | spice (spicy viewer + clipboard) | headless (none).
@@ -476,7 +652,7 @@ cmd_config() {
 	local conf; conf="$(conf_path "$1")"
 	local key="${2:?config needs a key}" val="${3-}"
 	case "$key" in
-		cpu_cores|ram|disk_size|display|guest_os|secureboot|tpm|iso|ryovm_os|ryovm_ssh_user) ;;
+		cpu_cores|ram|disk_size|display|guest_os|secureboot|tpm|iso|ryovm_os|ryovm_ssh_user|ryovm_burn) ;;
 		*) die "config key not allowed: $key" ;;
 	esac
 	vm_paths "$conf"
@@ -527,7 +703,19 @@ cmd_ssh() {
 	# the conf pins the login (config verb sets it); host username is only the
 	# fallback guess.
 	local user; user="$(conf_get "$conf" ryovm_ssh_user)"
-	echo "ssh -o UserKnownHostsFile=$vm_subdir/$vm_name.known_hosts -o StrictHostKeyChecking=accept-new -o ConnectTimeout=8 -p $port ${user:-${SUDO_USER:-$USER}}@localhost"
+	local ident=""; [ -f "$(burnKey)" ] && ident="-i $(burnKey) "
+	# host-key policy: an installed machine has a stable identity, pinned to its
+	# own known_hosts (accept-new). A burn/cloud machine REGENERATES its host key
+	# on every boot (cloud-init), so pinning it would reject the very next
+	# disposable boot as a changed host — a throwaway has no identity to verify,
+	# so accept anything and store nothing.
+	local hostpol
+	if [ "$(conf_get "$conf" ryovm_burn)" = "1" ]; then
+		hostpol="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR"
+	else
+		hostpol="-o UserKnownHostsFile=$vm_subdir/$vm_name.known_hosts -o StrictHostKeyChecking=accept-new"
+	fi
+	echo "ssh $hostpol -o ConnectTimeout=8 ${ident}-p $port ${user:-${SUDO_USER:-$USER}}@localhost"
 }
 
 # ---- delete ----------------------------------------------------------------
@@ -801,6 +989,8 @@ case "$cmd" in
 	list)     cmd_list "$@" ;;
 	get)      cmd_get "$@" ;;
 	create)   cmd_create "$@" ;;
+	instant)  cmd_instant "$@" ;;
+	cloud-catalog) cmd_cloud_catalog "$@" ;;
 	import)   cmd_import "$@" ;;
 	launch)   cmd_launch "$@" ;;
 	console)  cmd_console "$@" ;;
@@ -818,5 +1008,5 @@ case "$cmd" in
 	icon)     cmd_icon "$@" ;;
 	prefetch) cmd_prefetch "$@" ;;
 	paths)    cmd_paths "$@" ;;
-	*) die "usage: ryovm caps|setup|catalog|list|get|create|import|launch|console|stop|config|rename|resize|snapshot|ssh|delete|folder|icon|prefetch|paths" 2 ;;
+	*) die "usage: ryovm caps|setup|catalog|cloud-catalog|list|get|create|instant|import|launch|console|stop|config|rename|resize|snapshot|seal|restore-seal|usb|ssh|delete|folder|icon|prefetch|paths" 2 ;;
 esac
