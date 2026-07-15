@@ -619,8 +619,12 @@ Singleton {
                 // fix is readable.
                 var pm = c.match(/-p (\d+)/);
                 var um = c.match(/(\S+)@localhost/);
+                // a burn/cloud machine provisions with cloud-init; its emitted ssh
+                // command pins /dev/null known-hosts (the burn host-key policy).
+                // That's the reliable "this box installs its tools on boot" tell.
+                var burn = c.indexOf("/dev/null") >= 0 ? "1" : "";
                 var script = [
-                    "cmd=$1; port=$2; vm=$3; user=$4",
+                    "cmd=$1; port=$2; vm=$3; user=$4; burn=$5",
                     "printf '  %s — ssh to localhost:%s as \\033[1m%s\\033[0m\\n' \"$vm\" \"$port\" \"$user\"",
                     "printf '  wrong account? set it once:  ryovm config %s ryovm_ssh_user <guest user>\\n\\n' \"$vm\"",
                     "hinted=",
@@ -630,14 +634,34 @@ Singleton {
                     "  if [ \"$SECONDS\" -ge 180 ]; then printf '\\n\\n  no answer after 3 minutes — the guest may have no SSH server (a live installer ISO never does), or it did not boot.\\n  press Enter to close\\n'; read _; exit 1; fi",
                     "  sleep 1",
                     "done",
-                    "printf '\\n  answered — connecting.\\n\\n'",
+                    "printf '\\n  answered.\\n'",
+                    // sshd answers 20-120s BEFORE the tools exist: an instant machine
+                    // installs its toolset in cloud-init's FINAL stage. Handing over
+                    // the shell at the SSH banner gives a box with no git/go yet —
+                    // invisible on Alpine's ~2s apk, glaring on Arch's ~20s pacman
+                    // and Fedora's ~2min dnf (the "it didn't deploy the tools" bug).
+                    // For a burn machine, wait for cloud-init to finish before the
+                    // shell, with a live timer; Ctrl+C drops in early.
+                    "if [ -n \"$burn\" ]; then",
+                    "  skip=; trap 'skip=1' INT; sec=0",
+                    "  while [ -z \"$skip\" ]; do",
+                    "    s=$($cmd cloud-init status 2>/dev/null)",
+                    "    case \"$s\" in *done*|*error*|*disabled*) break;; esac",
+                    "    [ \"$sec\" -ge 420 ] && break",
+                    "    printf '\\r  provisioning — installing your tools\\342\\200\\246 %ss (first boot only; Ctrl+C for the shell now)   ' \"$sec\"",
+                    "    sec=$((sec+3)); sleep 3",
+                    "  done",
+                    "  trap - INT",
+                    "  if [ -n \"$skip\" ]; then printf '\\n  opening the shell — tools may still be finishing in the background.\\n'; else printf '\\r  tools ready.                                                              \\n'; fi",
+                    "fi",
+                    "printf '\\n  connecting.\\n\\n'",
                     "$cmd",
                     "ec=$?",
                     "if [ $ec -ne 0 ]; then echo; echo \"ssh exited $ec — a password you never set means the guest has no '$user' account: ryovm config $vm ryovm_ssh_user <guest user>\"; echo 'press Enter to close'; read _; fi"
                 ].join("\n");
                 Quickshell.execDetached(["sh", "-c",
-                    "exec \"${TERMINAL:-kitty}\" --class ryovm-ssh -e bash -c \"$1\" ryovm-ssh \"$2\" \"$3\" \"$4\" \"$5\"",
-                    "--", script, c, pm ? pm[1] : "", sshProc.vmName, um ? um[1] : ""]);
+                    "exec \"${TERMINAL:-kitty}\" --class ryovm-ssh -e bash -c \"$1\" ryovm-ssh \"$2\" \"$3\" \"$4\" \"$5\" \"$6\"",
+                    "--", script, c, pm ? pm[1] : "", sshProc.vmName, um ? um[1] : "", burn]);
             }
         }
     }

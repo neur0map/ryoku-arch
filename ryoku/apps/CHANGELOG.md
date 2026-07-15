@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Fixed
+- `ryovm/`: **instant machines now hand over a shell only once the tools are
+  actually there.** The connect flow waited for `sshd` to answer, but a cloud
+  image installs its toolset in cloud-init's *final* stage — which runs 20s
+  (Arch `pacman`) to ~2min (Fedora `dnf`) after SSH is already up. So you'd
+  land in a shell with no `git`/`go` and think the toolset never deployed;
+  Alpine's ~2s `apk` hid the gap, which is why only it looked fine. The connect
+  now waits for `cloud-init status` to reach `done` before the shell, with a
+  live timer and Ctrl+C to drop in early. The tools were installing correctly
+  all along — the shell was just handed over too soon (`Singletons/Vm.qml`).
+- `ryovm/`: **`<tab>` completion works out of the box.** Cloud images ship bash
+  but no `bash-completion`, so programmable completion (git subcommands, service
+  and package names) was dead in instant machines. Every provisioned machine now
+  bakes `bash-completion` (and `bash` itself on Alpine, whose login shell is
+  ash); a template spawn inherits it from its base and keeps its refresh seed
+  empty so it still boots in seconds (`bin/ryovm`).
+
 ### Added
 - `ryovm/`: **SSH sessions no longer break on the terminal type.** Opening SSH
   from kitty (or foot, WezTerm, …) advertised a `TERM` a minimal guest has no

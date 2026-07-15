@@ -505,8 +505,8 @@ tool_runcmd() { # $1 tool  $2 family
 # host keys), bakes the OSC-52 `clip` helper, and installs the chosen toolset.
 # Re-read on every disposable boot (the overlay resets), applied once on a
 # persistent one. The volid MUST be cidata.
-write_seed() { # $1=dir $2=name $3=want_sudo $4=os $5=tools_csv $6=extra_csv
-	local dir="$1" name="$2" want_sudo="$3" os="${4:-}" tools_csv="${5:-}" extra_csv="${6:-}"
+write_seed() { # $1=dir $2=name $3=want_sudo $4=os $5=tools_csv $6=extra_csv $7=want_base
+	local dir="$1" name="$2" want_sudo="$3" os="${4:-}" tools_csv="${5:-}" extra_csv="${6:-}" want_base="${7:-true}"
 	ensure_burn_key
 	local keys; keys="$(printf '      - %s\n' "$(cat "$(burnKey).pub")")"
 	local k
@@ -535,6 +535,20 @@ write_seed() { # $1=dir $2=name $3=want_sudo $4=os $5=tools_csv $6=extra_csv
 		p="$(printf '%s' "$p" | tr -d ' ')"
 		[ -n "$p" ] && pkg_lines="$pkg_lines  - $p"$'\n'
 	done
+
+	# bash-completion is always baked into a provisioned machine: every cloud
+	# image ships bash but no programmable completion, so <tab> feels dead next
+	# to a real desktop (git subcommands, service names, package names — nothing
+	# completes). It's tiny and universally wanted. Alpine's login shell is ash,
+	# so it also needs bash itself for the completion to have a shell to load in.
+	# A spawn (want_base=false) inherits it from its template's base and keeps the
+	# refresh seed empty so it still boots in seconds.
+	if [ "$want_base" = true ]; then
+		case "$fam" in
+			apk) pkg_lines="$pkg_lines  - bash"$'\n'"  - bash-completion"$'\n' ;;
+			*)   pkg_lines="$pkg_lines  - bash-completion"$'\n' ;;
+		esac
+	fi
 
 	{
 		printf '#cloud-config\n'
@@ -728,10 +742,11 @@ cmd_spawn() {
 	local sub="$vms_dir/$name"; mkdir -p "$sub"
 	qemu-img create -f qcow2 -F qcow2 -b "$base" "$sub/disk.qcow2" 32G >/dev/null 2>&1 \
 		|| { rm -rf "$sub"; emit '{"phase":"error","message":"overlay failed"}'; exit 1; }
-	# the tools + ryoku account are already baked into the base; the spawn needs
-	# no packages: seed. A tiny seed only refreshes the hostname/instance so
-	# cloud-init settles quickly. ssh identity stays the burn policy.
-	write_seed "$sub" "$name" false "$os" "" "" \
+	# the tools + ryoku account (and bash-completion) are already baked into the
+	# base; the spawn needs no packages: seed. A tiny seed only refreshes the
+	# hostname/instance so cloud-init settles quickly. want_base=false keeps it
+	# empty so the clone still boots in seconds. ssh identity stays burn policy.
+	write_seed "$sub" "$name" false "$os" "" "" false \
 		|| { rm -rf "$sub"; emit '{"phase":"error","message":"seed failed"}'; exit 1; }
 	{
 		echo "guest_os=\"linux\""
