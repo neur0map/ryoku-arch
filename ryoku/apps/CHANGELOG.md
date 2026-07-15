@@ -6,12 +6,24 @@
 - `ryovm/`: **SSH sessions no longer break on the terminal type.** Opening SSH
   from kitty (or foot, WezTerm, …) advertised a `TERM` a minimal guest has no
   terminfo for — `clear`, `less`, `vim` died with `'xterm-kitty': unknown
-  terminal type`. The ssh command now advertises `TERM=xterm-256color`, which
-  every guest ships, so the session just works; the fix rides in both the
-  app-opened terminal and the copyable command. The instant-machine seed also
-  builds with whatever ISO tool is present — xorriso (Arch repos, via
-  `libisoburn`), genisoimage, or mkisofs — and `ryovm setup` now pulls xorriso
-  so a box that installs the engine can build instant machines too
+  terminal type`. The command now prefixes `env TERM=xterm-256color` (a real
+  binary, so it survives the app's unquoted `$cmd` run — a bare `TERM=` prefix
+  was parsed as a command name and failed with exit 127), advertising a
+  terminal type every guest ships; the fix is in both the app-opened terminal
+  and the copyable command. The wait-for-boot narration also stops crying wolf
+  at 60s — a fresh cloud image legitimately takes about a minute to provision
+  on first boot (Arch, Fedora), so it reassures instead of warning, and only
+  calls it dead after three minutes. Two instant-catalogue fixes rode along:
+  Alpine now uses its UEFI cloud image (quickemu boots OVMF; the BIOS variant
+  never booted), and the Fedora resolver picks the plain Generic Base qcow2,
+  not the UEFI-UKI secure-boot variant. Verified live: Debian, Ubuntu, Arch,
+  and Alpine instant machines all ssh in as ryoku with a working terminal
+  (`bin/ryovm`, `Singletons/Vm.qml`).
+- `ryovm/`: **the instant-machine seed builds with any ISO tool.** genisoimage
+  is AUR-only (cdrtools), so a fresh box could not build the cloud-init seed;
+  it now uses whatever is present — xorriso (in the Arch repos via
+  `libisoburn`), genisoimage, or mkisofs — and `ryovm setup` pulls xorriso
+  alongside quickemu so installing the engine also enables instant machines
   (`bin/ryovm`, `ryoku-desktop` optdepend).
 - `ryovm/`: **instant machines — a prebuilt VM with a known login, no installer.**
   `ryovm instant <os>` is the Kali/Vagrant model: it fetches a distro's official

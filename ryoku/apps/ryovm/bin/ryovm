@@ -398,7 +398,7 @@ cloud_catalog() {
 	 {"os":"archlinux","name":"Arch Linux","user":"arch","size":"559M","sudo":false,
 	  "url":"https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2"},
 	 {"os":"alpine","name":"Alpine Linux","user":"alpine","size":"175M","sudo":true,
-	  "url":"https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/cloud/generic_alpine-3.24.1-x86_64-bios-cloudinit-r0.qcow2"},
+	  "url":"https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/cloud/generic_alpine-3.24.1-x86_64-uefi-cloudinit-r0.qcow2"},
 	 {"os":"opensuse","name":"openSUSE Tumbleweed","user":"opensuse","size":"293M","sudo":false,
 	  "url":"https://download.opensuse.org/tumbleweed/appliances/openSUSE-Tumbleweed-Minimal-VM.x86_64-Cloud.qcow2"},
 	 {"os":"rocky","name":"Rocky Linux 10","user":"rocky","size":"545M","sudo":false,
@@ -417,7 +417,7 @@ cloud_resolve_url() { # $1 = entry json
 	r="$(printf '%s' "$e" | jq -r '.resolve // empty')"
 	if [ "$r" = "fedora" ]; then
 		curl -fsSL "https://fedoraproject.org/releases.json" 2>/dev/null \
-			| jq -r 'map(select(.arch=="x86_64" and .variant=="Cloud" and (.link|endswith(".qcow2")))) | sort_by(.version) | last | .link' 2>/dev/null
+			| jq -r 'map(select(.arch=="x86_64" and .variant=="Cloud" and (.link|endswith(".qcow2")) and (.link|contains("Generic")) and (.link|contains("UKI")|not))) | sort_by(.version) | last | .link' 2>/dev/null
 		return
 	fi
 	printf '%s' "$e" | jq -r '.url'
@@ -734,7 +734,12 @@ cmd_ssh() {
 	# TERM=xterm-256color: a booting/minimal guest has no terminfo for
 	# xterm-kitty (or foot/wezterm/...), so clear/less/vim would die with
 	# "unknown terminal type". Advertise the one every guest ships.
-	echo "TERM=xterm-256color ssh $hostpol -o ConnectTimeout=8 ${ident}-p $port ${user:-${SUDO_USER:-$USER}}@localhost"
+	# `env TERM=...` not a bare `TERM=...` prefix: the app runs this via an
+	# unquoted $cmd, and a shell assignment prefix is only honoured in literal
+	# command syntax, never from an expansion (it'd try to run the assignment as
+	# a command — exit 127). env is a real binary, so it works everywhere: the
+	# app's $cmd, a pasted copy, and a bare CLI invocation.
+	echo "env TERM=xterm-256color ssh $hostpol -o ConnectTimeout=8 ${ident}-p $port ${user:-${SUDO_USER:-$USER}}@localhost"
 }
 
 # ---- delete ----------------------------------------------------------------
