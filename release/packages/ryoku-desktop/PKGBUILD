@@ -74,6 +74,11 @@ depends=(
   'hypridle'
   'brightnessctl'
   'playerctl'
+  # the launcher's "@" live radio: mpv plays the stream, mpv-mpris puts it on
+  # the players bus, yt-dlp resolves the Lofi Girl live page at play time.
+  'mpv'
+  'mpv-mpris'
+  'yt-dlp'
   'wl-clipboard'
   'cliphist'
   'hyprpicker'

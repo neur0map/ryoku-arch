@@ -5,6 +5,7 @@ import "calc"
 import "find"
 import "media/mpris"
 import "packages"
+import "radio"
 import "script"
 import "snippets"
 import "web"
@@ -21,6 +22,7 @@ Item {
     Find {}
     Mpris {}
     Packages {}
+    RadioTuner {}
     Script {}
     Snippets {}
     Web { id: webProvider }

@@ -17,6 +17,7 @@ Item {
         { k: ">",      d: "packages: >install, >remove, >search" },
         { k: "=",      d: "calculator" },
         { k: "?",      d: "web search (supports !bangs)" },
+        { k: "@",      d: "live radio: @lofi tunes in, @stop tunes out" },
         { k: "\\",     d: "ask the Rashin agent (one terse answer)" }
     ]
     readonly property var keyRows: [

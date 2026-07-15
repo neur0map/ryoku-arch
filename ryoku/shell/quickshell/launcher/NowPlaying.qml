@@ -5,6 +5,7 @@ import Quickshell.Io
 import Quickshell.Widgets
 import "Singletons"
 import "lib/wave.js" as Wave
+import "lib/radio.js" as RadioLib
 import "providers/media/albumart.js" as AlbumArt
 import "lib/spectrum.js" as SpectrumWave
 
@@ -26,23 +27,34 @@ Item {
 
     readonly property bool hasPlayer: player !== null && player !== undefined
     readonly property bool playing: hasPlayer && player.isPlaying
+    // The ryoku radio wears a different coat: ON AIR eyebrow, station name, a
+    // LIVE pulse where a track would show elapsed/total, and no seekbar — a
+    // broadcast has no position to scrub.
+    readonly property bool radio: hasPlayer && RadioLib.isRadioPlayer(player.dbusName, player.trackTitle)
     // The player's own title, but a raw URL-ish stream title (a browser tab, or an
     // mpv still resolving) is suppressed to a neutral label, not shown as a URL.
     readonly property string rawTitle: hasPlayer && player.trackTitle ? player.trackTitle : ""
     readonly property bool rawIsUrl: rawTitle.indexOf("watch?v=") !== -1
         || /^(https?:\/\/|www\.)/i.test(rawTitle)
-    readonly property string title: rawTitle.length > 0 && !rawIsUrl ? rawTitle : "Nothing playing"
-    readonly property string artist: hasPlayer ? Theme.joinArtists(player.trackArtists, player.trackArtist) : ""
+    readonly property string title: radio ? rawTitle.slice(RadioLib.TITLE_PREFIX.length)
+        : (rawTitle.length > 0 && !rawIsUrl ? rawTitle : "Nothing playing")
+    readonly property string artist: radio
+        ? (Radio.fellBack ? "internet radio · fallback station" : "internet radio · 24/7 live")
+        : (hasPlayer ? Theme.joinArtists(player.trackArtists, player.trackArtist) : "")
     readonly property string artUrl: hasPlayer && player.trackArtUrl ? player.trackArtUrl : ""
     // Empty when the player already has art, when there is no player, or when
     // the title is a placeholder; keyed on artist+title so a track change is
-    // detected even when the title alone repeats across artists.
-    readonly property string fetchKey: hasPlayer && title.length > 0 && title !== "Nothing playing" ? (artist + "|" + title) : ""
+    // detected even when the title alone repeats across artists. A radio never
+    // fetches: iTunes has no cover for a broadcast, only wrong guesses.
+    readonly property string fetchKey: hasPlayer && !radio && title.length > 0 && title !== "Nothing playing" ? (artist + "|" + title) : ""
     property string fetchedArt: ""
     property string lastFetchKey: ""
     // The player's own art, else the fetched iTunes cover. Both Image sources and
     // the fallback glyph read this so the veil, bleed, and cover switch in lockstep.
-    readonly property string effectiveArt: artUrl.length > 0 ? artUrl : fetchedArt
+    // A radio uses the station's own art (the live stream's thumbnail, or the
+    // station's published cover) supplied by the engine — never an iTunes guess.
+    readonly property string effectiveArt: radio ? Radio.artUrl
+        : (artUrl.length > 0 ? artUrl : fetchedArt)
     readonly property real positionSec: hasPlayer ? player.position : 0
     readonly property real lengthSec: hasPlayer && player.length > 0 ? player.length : 0
     readonly property real frac: lengthSec > 0 ? Math.max(0, Math.min(1, positionSec / lengthSec)) : 0
@@ -51,8 +63,9 @@ Item {
     readonly property bool canPrev: hasPlayer && player.canGoPrevious
     // Scrub-to-seek: canSeek gates it (the player allows a seek and has a known
     // length); while dragging, the fill follows the cursor and the elapsed label
-    // previews the target, committed to player.position on release.
-    readonly property bool canSeek: hasPlayer && player.canSeek && lengthSec > 0
+    // previews the target, committed to player.position on release. Never on a
+    // radio: a live stream's "length" is whatever the buffer claims.
+    readonly property bool canSeek: hasPlayer && !radio && player.canSeek && lengthSec > 0
     property bool scrubbing: false
     property real scrubFrac: 0
 
@@ -243,11 +256,33 @@ Item {
             // inline Text so NowPlaying has no external glyph dependency.
             Text {
                 anchors.centerIn: parent
-                visible: root.effectiveArt === ""
+                visible: root.effectiveArt === "" && !root.radio
                 text: "\u266a"
                 color: Theme.subtle
                 font.family: Theme.font
                 font.pixelSize: 28 * root.s
+            }
+            // The radio's station plate: a broadcast mark instead of a cover \u2014
+            // no album exists, and an iTunes guess would be someone else's.
+            Column {
+                anchors.centerIn: parent
+                visible: root.radio && root.effectiveArt === ""
+                spacing: 2 * root.s
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "\u25ce"
+                    color: Theme.vermLit
+                    font.family: Theme.font
+                    font.pixelSize: 30 * root.s
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "ON AIR"
+                    color: Theme.vermLit
+                    font.family: Theme.mono
+                    font.pixelSize: 9 * root.s
+                    font.letterSpacing: 2
+                }
             }
         }
 
@@ -263,14 +298,33 @@ Item {
 
             Row {
                 width: parent.width
+                spacing: 6 * root.s
                 BrandMark {
                     anchors.verticalCenter: parent.verticalCenter
                     size: Metrics.fontEyebrow * root.s
                     color: Theme.vermLit
                 }
+                // the radio's tally lamp: a slow pulse that says "broadcast",
+                // where a track just states NOW PLAYING.
+                Rectangle {
+                    id: tallyDot
+                    visible: root.radio
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 6 * root.s
+                    height: width
+                    radius: width / 2
+                    color: Theme.vermLit
+                    SequentialAnimation on opacity {
+                        running: root.radio && root.visible && root.playing
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 1; to: 0.25; duration: 900; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 0.25; to: 1; duration: 900; easing.type: Easing.InOutSine }
+                        onStopped: tallyDot.opacity = 1
+                    }
+                }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: " NOW PLAYING"
+                    text: root.radio ? "ON AIR · LIVE RADIO" : " NOW PLAYING"
                     color: Theme.vermLit
                     font.family: Theme.font
                     font.pixelSize: Metrics.fontEyebrow * root.s
@@ -327,18 +381,29 @@ Item {
             anchors.left: cover.right
             anchors.leftMargin: 14 * root.s
             anchors.verticalCenter: transport.verticalCenter
-            text: root.fmt(root.scrubbing ? root.scrubFrac * root.lengthSec : root.positionSec)
-            color: Theme.faint
+            // a broadcast has no elapsed: the corner carries the LIVE tally
+            // instead, pulsing while on air, steady when paused.
+            text: root.radio ? "● LIVE" : root.fmt(root.scrubbing ? root.scrubFrac * root.lengthSec : root.positionSec)
+            color: root.radio ? Theme.vermLit : Theme.faint
             font.family: Theme.mono
             font.pixelSize: Metrics.fontEyebrow * root.s
             font.features: { "tnum": 1 }
+            SequentialAnimation on opacity {
+                running: root.radio && root.visible && root.playing
+                loops: Animation.Infinite
+                NumberAnimation { from: 1; to: 0.35; duration: 900; easing.type: Easing.InOutSine }
+                NumberAnimation { from: 0.35; to: 1; duration: 900; easing.type: Easing.InOutSine }
+                // the pulse can stop mid-fade (pause, or a track takes over);
+                // land back at rest instead of wherever the wave was.
+                onStopped: elapsed.opacity = 1
+            }
         }
         Text {
             id: total
             anchors.right: parent.right
             anchors.rightMargin: 14 * root.s
             anchors.verticalCenter: transport.verticalCenter
-            text: root.fmt(root.lengthSec)
+            text: root.radio ? "24/7" : root.fmt(root.lengthSec)
             color: Theme.faint
             font.family: Theme.mono
             font.pixelSize: Metrics.fontEyebrow * root.s
@@ -357,6 +422,9 @@ Item {
             anchors.rightMargin: 14 * root.s
             anchors.bottomMargin: 6 * root.s
             height: 12 * root.s
+            // a broadcast has no position: the bar would be a lie at 0:00
+            // forever. The cava wave behind the card carries the motion.
+            visible: !root.radio
 
             property real phase: 0
             // While scrubbing the fill snaps to the cursor (no glide); otherwise it

@@ -35,6 +35,12 @@ declare -A need=(
   [voice-type]=wtype
   [voice-stt]=voxtype-bin
   [media-control]=playerctl
+  # the launcher's "@" live radio: mpv plays, mpv-mpris puts it on the players
+  # bus (without it every now-playing surface goes blind to the broadcast),
+  # yt-dlp resolves the YouTube /live pages at play time.
+  [radio-player]=mpv
+  [radio-mpris]=mpv-mpris
+  [radio-resolver]=yt-dlp
   [brightness]=brightnessctl
   [idle]=hypridle
   [battery]=upower

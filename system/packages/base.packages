@@ -114,6 +114,7 @@ wl-clipboard
 chromium
 kitty
 mpv
+mpv-mpris
 nautilus
 # nautilus-python: runs the Ryoku stash actions in the file-manager right-click menu
 nautilus-python

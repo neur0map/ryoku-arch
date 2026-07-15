@@ -3,6 +3,31 @@
 ## Unreleased
 
 ### Added
+- **Launcher: an "@" prefix tunes a live lofi radio.** `@` lists the stations
+  — Lofi Girl and Chillhop Radio (YouTube 24/7 streams), SomaFM Groove Salad
+  and Fluid (plain Icecast) — `@lofi` puts Lofi Girl on air, `@stop` (or the
+  row's Stop) tunes out. The engine (`ryoku-cmd-radio`) resolves a channel's
+  /live page with yt-dlp at play time — pinned video ids rot whenever the
+  stream restarts — pulling the stream's own thumbnail in the same call, so
+  the card wears the broadcast's real artwork (direct stations carry their
+  published covers; no iTunes guessing for a radio). When YouTube or yt-dlp is
+  having a day, each YouTube station falls back to its paired Icecast one,
+  saying so in the row and on the card.
+  A detached supervisor re-resolves and reconnects when the stream drops (the
+  resolved URLs expire after a few hours), so the radio survives everything
+  except an explicit stop. On air, the now-playing surfaces wear a broadcast
+  coat instead of the track dress: a pulsing ON AIR tally and station plate on
+  the launcher card, "● LIVE / 24/7" where elapsed/total would be, and no
+  seekbar anywhere — a broadcast has no position, so the pill popout and
+  sidebar retire their scrubbers too (the cava wave carries the motion). When
+  other music starts, the radio doesn't fight it: a collision watcher sets it
+  aside (live wallpapers, which are mpv on the players bus too, never count as
+  music) and a slim parked-radio chip keeps it one tap from returning —
+  RESUME restarts the stream, × lets it go. Playback is mpv + mpv-mpris (new
+  `ryoku-desktop` deps with yt-dlp), so the radio is an ordinary MPRIS player
+  everywhere else. New `lib/radio.js` (+ tests), `Singletons/Radio.qml`,
+  `providers/radio/RadioTuner.qml`, `RadioAside.qml`; engine contract pinned
+  by `tests/radio-engine.sh`.
 - **Low Power mode: one Ryoku Settings toggle strips every heavy effect so a weak
   GPU runs the shell without lag.** New Performance page switches, all off by
   default and written to `~/.config/ryoku/performance.json`: **Low power mode**

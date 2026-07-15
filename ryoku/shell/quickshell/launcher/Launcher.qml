@@ -65,6 +65,7 @@ Item {
         if (p === ">") return "PACKAGE";
         if (p === "=") return "CALC";
         if (p === "?") return "WEB";
+        if (p === "@") return "RADIO";
         if (askMode) return "RASHIN";
         return "";
     }
@@ -151,6 +152,11 @@ Item {
     readonly property real restH: rest.implicitHeight
         + (hasMedia ? nowPlaying.implicitHeight + Metrics.padRow * s : 0)
         + (hasMedia && mediaSources.sources.length > 0 ? mediaSources.implicitHeight + 6 * s : 0)
+        + (radioParked ? radioAside.implicitHeight + 6 * s : 0)
+    // the radio's between-states chip: a station the watcher parked, or a
+    // tune-in still resolving (state on air, no player yet) — both need a
+    // visible line or the radio reads as vanished/failed.
+    readonly property bool radioParked: (Radio.aside !== null && !Radio.on) || Radio.tuning
     // Extra body slice for the instant-answer panel; padRow separates it from
     // the Search fallback row that stays underneath so Enter still targets it.
     readonly property real answerH: answerMode ? answerPanel.implicitHeight + Metrics.padRow * s : 0
@@ -392,6 +398,21 @@ Item {
         activePlayer: root.activePlayer
     }
 
+    // The parked-radio chip, at the bottom of the media stack (or directly
+    // under the rest card when nothing else plays): the radio the watcher set
+    // aside stays one tap from returning instead of silently vanishing.
+    RadioAside {
+        id: radioAside
+        visible: root.resting && !root.allApps && !root.help && root.radioParked
+        anchors.top: mediaSources.bottom
+        anchors.topMargin: visible ? 6 * root.s : 0
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Metrics.padOuter * root.s
+        anchors.rightMargin: Metrics.padOuter * root.s
+        height: visible ? implicitHeight : 0
+        s: root.s
+    }
 
     ResultGrid {
         id: appGrid

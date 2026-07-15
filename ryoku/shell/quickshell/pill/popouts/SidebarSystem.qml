@@ -480,14 +480,22 @@ Item {
                     Text {
                         id: elapsed
                         anchors.left: parent.left
-                        text: root.fmt(parent.pos)
-                        color: Theme.dim
+                        // a live radio has no elapsed: the tally lamp stands in.
+                        text: Media.radio ? "● LIVE" : root.fmt(parent.pos)
+                        color: Media.radio ? Theme.vermLit : Theme.dim
                         font.family: Theme.mono
                         font.pixelSize: 10 * root.s
+                        SequentialAnimation on opacity {
+                            running: Media.radio && Media.playing && root.open
+                            loops: Animation.Infinite
+                            NumberAnimation { from: 1; to: 0.35; duration: 900; easing.type: Easing.InOutSine }
+                            NumberAnimation { from: 0.35; to: 1; duration: 900; easing.type: Easing.InOutSine }
+                            onStopped: elapsed.opacity = 1
+                        }
                     }
                     Text {
                         anchors.right: parent.right
-                        text: root.fmt(parent.len)
+                        text: Media.radio ? "24/7" : root.fmt(parent.len)
                         color: Theme.dim
                         font.family: Theme.mono
                         font.pixelSize: 10 * root.s
@@ -499,7 +507,9 @@ Item {
                     height: 3 * root.s
                     radius: Theme.radius
                     color: Qt.alpha(Theme.bright, 0.14)
-                    readonly property real frac: (Media.player && Media.player.length > 0)
+                    // flat while the radio broadcasts: a buffer length is not a
+                    // position, and a creeping bar on a 24/7 stream is a lie.
+                    readonly property real frac: (!Media.radio && Media.player && Media.player.length > 0)
                         ? Math.max(0, Math.min(1, Media.player.position / Media.player.length)) : 0
                     Rectangle {
                         width: parent.width * parent.frac

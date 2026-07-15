@@ -83,6 +83,13 @@ mkdir -p "$bindir"
 install -m755 "$here/ipc/ryoku-shell" "$bindir/ryoku-shell"
 say "installed $bindir/ryoku-shell"
 
+# The launcher's "@" radio engine: it lives with the hyprland leaf scripts
+# (packaged into /usr/bin by ryoku-desktop), but the launcher calls it by bare
+# name — a dev deploy must put it on PATH too or a repo-ahead launcher points
+# at a script the installed package does not ship yet.
+install -m755 "$here/../hyprland/scripts/ryoku-cmd-radio" "$bindir/ryoku-cmd-radio"
+say "installed $bindir/ryoku-cmd-radio"
+
 # Build ryoku-livewall, the software-decode video-wallpaper daemon the shell drives
 # for live wallpapers. Needs wayland-scanner + a C toolchain + ffmpeg/wayland dev
 # libs (build-time only); skip cleanly when absent so a plain config deploy still

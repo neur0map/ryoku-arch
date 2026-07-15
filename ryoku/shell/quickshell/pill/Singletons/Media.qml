@@ -13,6 +13,13 @@ Singleton {
     function isWallpaper(p) {
         return /\.(mp4|webm|mkv|gif)$/i.test(p.trackTitle || "");
     }
+    // the ryoku live radio (launcher "@"): an mpv whose forced title carries
+    // the LIVE prefix. Same signature the launcher matches on — a broadcast
+    // gets a tally lamp instead of a seek bar (it has no position to show).
+    function isRadio(p) {
+        return !!p && String(p.dbusName || "").indexOf(".mpv") !== -1
+            && String(p.trackTitle || "").indexOf("LIVE · ") === 0;
+    }
 
     readonly property var player: {
         var l = Mpris.players.values.filter(function(p) { return p && !root.isWallpaper(p); });
@@ -23,6 +30,7 @@ Singleton {
     }
     readonly property bool playing: player !== null && player.isPlaying
     readonly property bool present: player !== null && (player.trackTitle || "").length > 0
+    readonly property bool radio: player !== null && isRadio(player)
     readonly property string line: {
         if (!player)
             return "";

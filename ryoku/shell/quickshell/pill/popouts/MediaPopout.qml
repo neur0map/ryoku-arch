@@ -19,12 +19,15 @@ Item {
 
     readonly property var player: Media.player
     readonly property bool playing: Media.playing
+    // the live radio has no honest position: the panel swaps the time row for
+    // a LIVE tally and retires the scrubber while it broadcasts.
+    readonly property bool radio: Media.radio
     readonly property real pos: player ? player.position : 0
     readonly property real len: (player && player.length > 0) ? player.length : 0
     readonly property real frac: len > 0 ? Math.max(0, Math.min(1, pos / len)) : 0
     readonly property bool canPrev: player ? player.canGoPrevious : false
     readonly property bool canNext: player ? player.canGoNext : false
-    readonly property bool canSeek: (player ? player.canSeek : false) && len > 0
+    readonly property bool canSeek: (player ? player.canSeek : false) && len > 0 && !radio
 
     // scrub-to-seek: drag/click the line to preview a target (fill + elapsed
     // label follow the cursor), committed to player.position on release.
@@ -94,17 +97,24 @@ Item {
                 id: elapsed
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.fmt(root.scrubbing ? root.scrubFrac * root.len : root.pos)
+                text: root.radio ? "● LIVE" : root.fmt(root.scrubbing ? root.scrubFrac * root.len : root.pos)
                 // dim, not faint: position/duration is information, and faint
                 // drops below reading contrast on the wallust-matched surfaces.
-                color: Theme.dim
+                color: root.radio ? Theme.vermLit : Theme.dim
                 font.family: Theme.mono
                 font.pixelSize: 10 * root.s
+                SequentialAnimation on opacity {
+                    running: root.radio && root.open && root.playing
+                    loops: Animation.Infinite
+                    NumberAnimation { from: 1; to: 0.35; duration: 900; easing.type: Easing.InOutSine }
+                    NumberAnimation { from: 0.35; to: 1; duration: 900; easing.type: Easing.InOutSine }
+                    onStopped: elapsed.opacity = 1
+                }
             }
             Text {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.fmt(root.len)
+                text: root.radio ? "24/7" : root.fmt(root.len)
                 color: Theme.dim
                 font.family: Theme.mono
                 font.pixelSize: 10 * root.s
@@ -116,8 +126,9 @@ Item {
             width: parent.width
             height: 12 * root.s
             // the drawn fill eases between the 500ms position polls so playback
-            // advances smoothly; snaps to the cursor while scrubbing.
-            property real drawFrac: root.scrubbing ? root.scrubFrac : root.frac
+            // advances smoothly; snaps to the cursor while scrubbing. A radio
+            // stays flat: whatever length its buffer claims is not a position.
+            property real drawFrac: root.radio ? 0 : (root.scrubbing ? root.scrubFrac : root.frac)
             Behavior on drawFrac { enabled: !root.scrubbing; NumberAnimation { duration: 480; easing.type: Easing.Linear } }
 
             Rectangle {

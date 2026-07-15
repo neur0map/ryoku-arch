@@ -9,4 +9,5 @@ singleton Dispatcher Dispatcher.qml
 singleton Weather Weather.qml
 singleton Spectrum Spectrum.qml
 singleton Players Players.qml
+singleton Radio Radio.qml
 singleton Performance Performance.qml
