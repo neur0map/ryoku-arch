@@ -88,7 +88,7 @@ Rectangle {
     onModeChanged: if (mode === "catalog") Vm.loadCatalog(false)
     // deep-link start mode (the .desktop Browse action, tooling, tests), and an
     // optional OS to preselect once the catalogue lands.
-    Component.onCompleted: if (Quickshell.env("RYOVM_START_MODE") === "catalog") mode = "catalog"
+    Component.onCompleted: { var m = Quickshell.env("RYOVM_START_MODE"); if (m === "catalog" || m === "instant") mode = m; }
     readonly property string startOs: Quickshell.env("RYOVM_START_OS") || ""
     Connections {
         target: Vm
@@ -173,8 +173,8 @@ Rectangle {
             id: modeToggle
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            segW: 86
-            model: [{ key: "library", label: "Library" }, { key: "catalog", label: "Catalog" }]
+            segW: 84
+            model: [{ key: "library", label: "Library" }, { key: "catalog", label: "Catalog" }, { key: "instant", label: "Instant" }]
             current: app.mode
             onSelected: (k) => { app.mode = k; app.query = ""; }
         }
@@ -212,7 +212,7 @@ Rectangle {
                     anchors.fill: parent
                     visible: input.text.length === 0
                     verticalAlignment: Text.AlignVCenter
-                    text: app.mode === "library" ? "Filter your machines" : "Search 90+ operating systems"
+                    text: app.mode === "library" ? "Filter your machines" : app.mode === "instant" ? "Search instant images" : "Search 90+ operating systems"
                     color: Theme.faint
                     font: input.font
                 }
@@ -358,6 +358,19 @@ Rectangle {
             visible: opacity > 0
             Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
         }
+        CloudGrid {
+            id: cloud
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: parent.width * 0.44
+            filter: app.query
+            selected: cloudPanel.os
+            onPicked: (e) => cloudPanel.os = e
+            opacity: app.mode === "instant" ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+        }
 
         Rectangle {
             id: gutter
@@ -388,6 +401,17 @@ Rectangle {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             opacity: app.mode === "catalog" ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+        }
+        CloudPanel {
+            id: cloudPanel
+            anchors.left: gutter.right
+            anchors.leftMargin: 24
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            opacity: app.mode === "instant" ? 1 : 0
             visible: opacity > 0
             Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
         }

@@ -243,6 +243,29 @@ Singleton {
     }
     function selectOs(entry) { selectedOs = entry; }
 
+    // ---- instant (prebuilt cloud image + ryoku burn account) ----------------
+    property var cloudList: []
+    property bool cloudLoading
+    function loadCloud() {
+        if (cloudList.length > 0) return;
+        cloudLoading = true;
+        cloudProc.running = true;
+    }
+    // instant reuses the create streaming pipeline (same download/config/done
+    // JSON), so the download bar and "created" hand-off work unchanged.
+    function instant(os, name, disposable) {
+        if (downloading) return;
+        downloading = true;
+        dlName = name && name.length > 0 ? name : os + "-instant";
+        dlPhase = "resolve"; dlProgress = 0; dlBps = 0; dlIndeterminate = true; dlLog = "";
+        status = "Building " + dlName;
+        var cmd = ["ryovm", "instant", os];
+        if (name && name.length > 0) cmd.push(name);
+        if (disposable === true) cmd.push("--disposable");
+        createProc.command = cmd;
+        createProc.running = true;
+    }
+
     // create downloads the image in-app with a live bar (the Go fetcher streams
     // JSON), so progress shows in the window and Cancel actually stops it -- no
     // detached terminal that can't report being closed.
@@ -429,6 +452,16 @@ Singleton {
                     root.iconCache = cache;            // reassign so iconFor bindings re-evaluate
                     root.iconRev++;                    // warm tiles render the local file at once
                 } catch (e) {}
+            }
+        }
+    }
+    Process {
+        id: cloudProc
+        command: ["ryovm", "cloud-catalog"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.cloudLoading = false;
+                try { root.cloudList = JSON.parse(this.text); } catch (e) { root.cloudList = []; }
             }
         }
     }
