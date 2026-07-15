@@ -16,8 +16,10 @@ instantly and toggles with `ryoku-shell launcher`.
 
 - `shell.qml` the layer-shell overlay window (namespace `launcher`), resident and
   hidden at rest, shown on the focused monitor. Toggled over the daemon socket
-  with an IPC fallback. Blurred backdrop via the `launcher` layer rule in
-  `hyprland/modules/decoration.lua`.
+  with an IPC fallback. The desktop behind it is blurred via the `launcher` layer
+  rule in `hyprland/modules/decoration.lua`; while open, `shell.qml` drives the
+  compositor blur to the strength set by the Hub's App Launcher page (`bgBlur`,
+  through `hyprctl eval`) and puts the prior blur back on hide.
 - `Launcher.qml` the card body: the search row over the rest dashboard (empty
   query), the all-apps grid (`Ctrl+A`), the action-mode tabs (`/` prefix), or the
   ranked result list. Grows and shrinks on the Ryoku morph curve.

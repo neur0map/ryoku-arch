@@ -64,7 +64,7 @@ Rectangle {
         "environment": { "title": "Environment", "subtitle": "Environment variables for the Hyprland session." },
         "shell":       { "title": "Shell", "subtitle": "Tune the Ryoku shell: the frame, the bar, notifications, and the desktop visualiser." },
         "widgets":     { "title": "Desktop Widgets", "subtitle": "Clock and weather on the wallpaper: pick a design, size, shape, and placement, with a live preview that follows your palette." },
-        "launcher":    { "title": "App Launcher", "subtitle": "Tune the command palette you open with Super+Space: its roundness, the weather units, and the home card's backdrop and greeting." },
+        "launcher":    { "title": "App Launcher", "subtitle": "Tune the command palette you open with Super+Space: its roundness, how much the desktop behind it blurs, the weather units, and the home card's backdrop and greeting." },
         "fastfetch":   { "title": "Fastfetch", "subtitle": "The branded terminal readout: pick the emblem (an image, ASCII art, or a built-in), choose what shows, reorder and rename the rows, and edit the tagline, with a live preview." },
         "connections": { "title": "Connections", "subtitle": "Wi-Fi networks, Bluetooth devices, and your hotspot, all in one place." },
         "gpu":         { "title": "GPU", "subtitle": "Choose which GPU Ryoku renders on. GPU passthrough is an optional advanced path that frees the discrete GPU for a VM; run virtual machines from the ryovm app." },

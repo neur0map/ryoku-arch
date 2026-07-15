@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- **App Launcher: a Background blur slider.** A new slider on the App Launcher
+  page sets how much the desktop behind the command palette blurs while it is
+  open (0 to 30 px; 0 keeps it sharp). It saves to `launcher.json` as `bgBlur`;
+  the launcher then drives the compositor blur to that strength on open, on top
+  of the global setting so it frosts even when window blur is off, and restores
+  the prior blur on hide (`LauncherPage.qml`, `Hub.qml`, launcher `shell.qml`).
 - **Fastfetch: a section to edit the branded terminal readout.** A new Desktop
   section (`ryoku-hub fastfetch` + `FastfetchPage.qml`) reads
   `~/.config/ryoku/fastfetch/config.jsonc` into a friendly model and writes it

@@ -11,6 +11,7 @@ Singleton {
     id: root
 
     property alias radius:       adapter.radius        // outer card corner, px
+    property alias bgBlur:      adapter.bgBlur         // desktop blur behind the palette while open, px (0 = off)
     property alias weatherUnit:  adapter.weatherUnit   // auto (locale) | C | F
     property alias heroImage:    adapter.heroImage     // backdrop file, "" = shipped art
     property alias heroStrength: adapter.heroStrength  // backdrop opacity, 0..1
@@ -31,6 +32,7 @@ Singleton {
         JsonAdapter {
             id: adapter
             property real radius: 16
+            property int bgBlur: 12
             property string weatherUnit: "auto"
             property string heroImage: ""
             property real heroStrength: 0.6

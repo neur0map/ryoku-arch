@@ -22,7 +22,71 @@ ShellRoot {
     // (unloadLauncherWhenIdle) can free this resident palette after a grace of
     // being hidden and respawn it on the next open. A no-op when the flag is off;
     // the daemon just records the state.
-    onOpenChanged: Quickshell.execDetached(["ryoku-shell", "state", "launcher", open ? "1" : "0"])
+    onOpenChanged: {
+        Quickshell.execDetached(["ryoku-shell", "state", "launcher", open ? "1" : "0"]);
+        if (open)
+            root.applyBackdropBlur();
+        else
+            root.restoreBackdropBlur();
+    }
+
+    // --- backdrop blur -----------------------------------------------------
+    // Frost the desktop behind the palette while it is open, by how much the App
+    // Launcher page's slider says (LauncherConfig.bgBlur, px; 0 = off). Hyprland
+    // blur size and enable are global (no per-layer size), so this reads the live
+    // blur on open, drives it to the chosen strength, and puts it back on hide,
+    // turning blur on even when the user keeps it off globally. The low-power
+    // blur switch (weak GPUs) suppresses it. Hyprland's Lua parser takes runtime
+    // config through `hyprctl eval`, not `keyword`.
+    property bool blurForced: false
+    property bool savedBlurEnabled: false
+    property int  savedBlurSize: 5
+
+    function evalBlur(enabled, size) {
+        Quickshell.execDetached(["hyprctl", "eval",
+            "hl.config({ decoration = { blur = { enabled = " + (enabled ? "true" : "false")
+                + ", size = " + Math.max(1, size) + " } } })"]);
+    }
+    function applyBackdropBlur() {
+        if (Performance.blurDisabled)
+            return;
+        blurProbe.running = true;
+    }
+    function restoreBackdropBlur() {
+        if (!root.blurForced)
+            return;
+        root.blurForced = false;
+        root.evalBlur(root.savedBlurEnabled, root.savedBlurSize);
+    }
+
+    // Read the live compositor blur once per open (the real baseline to put
+    // back), then push the launcher's strength. Ignored if the palette closed
+    // before the read returned.
+    Process {
+        id: blurProbe
+        command: ["sh", "-c", "hyprctl getoption -j decoration:blur:enabled; hyprctl getoption -j decoration:blur:size"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (!root.open)
+                    return;
+                var en, sz;
+                try {
+                    var lines = this.text.trim().split("\n");
+                    en = JSON.parse(lines[0]);
+                    sz = JSON.parse(lines[1]);
+                } catch (e) {
+                    return;
+                }
+                if (!root.blurForced) {
+                    root.savedBlurEnabled = en.bool === true;
+                    root.savedBlurSize = sz.int > 0 ? sz.int : 5;
+                }
+                root.blurForced = true;
+                var want = LauncherConfig.bgBlur | 0;
+                root.evalBlur(want > 0, want);
+            }
+        }
+    }
 
     // Any MPRIS player actively playing. Gates the now-playing wave backdrop's
     // cava process (Spectrum) so it runs only while the launcher is open AND

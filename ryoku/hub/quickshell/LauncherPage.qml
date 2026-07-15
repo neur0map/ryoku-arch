@@ -14,13 +14,13 @@ Item {
     id: page
 
     readonly property var keys: [
-        "radius", "weatherUnit", "heroImage", "heroStrength", "heroPosX", "heroPosY", "showWeather", "showGreeting"
+        "radius", "bgBlur", "weatherUnit", "heroImage", "heroStrength", "heroPosX", "heroPosY", "showWeather", "showGreeting"
     ]
 
     // mirror of the launcher's canonical defaults (launcher Singletons/
     // LauncherConfig.qml), for "Reset to defaults" only.
     readonly property var defaults: ({
-        "radius": 16, "weatherUnit": "auto", "heroImage": "", "heroStrength": 0.6,
+        "radius": 16, "bgBlur": 12, "weatherUnit": "auto", "heroImage": "", "heroStrength": 0.6,
         "heroPosX": 0.5, "heroPosY": 0.5, "showWeather": true, "showGreeting": true
     })
 
@@ -30,6 +30,7 @@ Item {
     QtObject {
         id: draft
         property real radius: 16
+        property int bgBlur: 12
         property string weatherUnit: "auto"
         property string heroImage: ""
         property real heroStrength: 0.6
@@ -156,6 +157,7 @@ Item {
         JsonAdapter {
             id: adapter
             property real radius: 16
+            property int bgBlur: 12
             property string weatherUnit: "auto"
             property string heroImage: ""
             property real heroStrength: 0.6
@@ -232,6 +234,25 @@ Item {
                         width: parent.width; label: "Corner radius"; unit: "px"
                         from: 0; to: 28; value: draft.radius
                         onModified: (v) => page.edit("radius", v)
+                    }
+                }
+
+                SettingSection {
+                    width: parent.width
+                    title: "BACKGROUND"
+                    SliderRow {
+                        width: parent.width; label: "Blur"
+                        from: 0; to: 30; step: 1; decimals: 0; value: draft.bgBlur
+                        onModified: (v) => page.edit("bgBlur", v)
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        lineHeight: 1.3
+                        text: "How much the desktop behind the palette blurs while it is open. 0 keeps it sharp."
+                        color: Theme.faint
+                        font.family: Theme.font
+                        font.pixelSize: 12
                     }
                 }
 
