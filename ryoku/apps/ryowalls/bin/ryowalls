@@ -27,6 +27,20 @@ enh_write() {
 		'{file:$file,phase:$phase,done:$dn,total:$total}' >"$enh_state" 2>/dev/null || true
 }
 
+# final verdict, one JSON line on stdout: the state file races the process exit,
+# so the numbers behind a skip ride the exit instead. "sharp" carries px (the
+# side that was measured) and cap (the threshold it met) so the UI can say WHY
+# nothing happened — a silent or bare skip reads as a broken button. An error
+# carries why (gpu | read | tools | io | assemble): blaming the GPU for a
+# truncated download sends users chasing drivers that were never involved.
+enh_verdict() { # result kind [px] [cap] [out] [why]
+	jq -cn --arg result "$1" --arg kind "$2" --argjson px "${3:-0}" --argjson cap "${4:-0}" \
+		--arg out "${5:-}" --arg why "${6:-}" \
+		'{result:$result,kind:$kind,px:$px,cap:$cap}
+		 + (if $out == "" then {} else {out:$out} end)
+		 + (if $why == "" then {} else {why:$why} end)' 2>/dev/null || true
+}
+
 # screen_cap: the width livewall actually decodes a live wallpaper at, so enhance
 # skips only a source that already meets it (a smaller one gains real detail).
 # Mirrors the shell's liveCapWidth: the widest monitor's logical width (physical
@@ -53,8 +67,11 @@ w2x_model="/usr/share/waifu2x-ncnn-vulkan/models-cunet"
 # so a bad run is discarded, never written over a good source.
 sane_img() {
 	local m s
-	m="$(identify -format '%[fx:mean]' "$1" 2>/dev/null)"
-	s="$(identify -format '%[fx:standard_deviation]' "$1" 2>/dev/null)"
+	# [0]: probe the first frame only — a bare %[fx:...] on an animation prints
+	# one value per frame concatenated ("0.4966390.496639"), which awk reads as
+	# garbage and the sanity gate then rejects every animated enhance.
+	m="$(identify -format '%[fx:mean]' "$1[0]" 2>/dev/null)"
+	s="$(identify -format '%[fx:standard_deviation]' "$1[0]" 2>/dev/null)"
 	[ -n "$m" ] && [ -n "$s" ] && awk -v m="$m" -v s="$s" 'BEGIN{exit !(m>0.02 && s>0.01)}'
 }
 w2x_gpu_pref="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-w2x-gpu"
@@ -66,6 +83,19 @@ w2x_order() {
 	case "$p" in 0 | 1 | 2 | 3) printf '%s 0 1 2 3' "$p" ;; *) printf '0 1 2 3' ;; esac
 }
 
+# real dimensions for a batch of local clips: newline-separated paths in,
+# "path<TAB>WxH" rows out ("" when unreadable). The local grids badge from
+# this, and the amber low-res hint marks exactly the clips worth enhancing.
+# Only videos get probed — clip pools stay small, image pools don't. 8 probes
+# at a time: the UI renders only after the whole list closes, so one serial
+# ffprobe per clip would hold a big pool's grid hostage. Each row is a single
+# short write (well under PIPE_BUF), so parallel probes never interleave; the
+# path is passed as a positional, never spliced into the sh -c text.
+vid_res_map() {
+	xargs -r -d '\n' -n 1 -P 8 sh -c \
+		'printf "%s\t%s\n" "$1" "$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$1" 2>/dev/null | head -1)"' _
+}
+
 # downloads land as-is now; enhancing is an explicit, on-demand action.
 finish() { printf '%s\n' "$1"; }
 
@@ -75,9 +105,14 @@ enhance_image() {
 	local f="$1" ext tmp h gpu gpus
 	ext="$(printf '%s' "${f##*.}" | tr '[:upper:]' '[:lower:]')"
 	[ "$ext" = jpeg ] && ext=jpg
-	h="$(identify -format '%h' "$f" 2>/dev/null || echo 0)"
-	if [ "${h:-0}" -ge 2160 ]; then enh_write "$f" "sharp"; return 2; fi
-	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || { enh_write "$f" unsupported; return 3; }
+	# [0]: probe the first frame only — on an animated webp/gif a bare %h prints
+	# every frame's height concatenated ("12001200"), which would both misread a
+	# 1080p wallpaper as past-4K and put that nonsense number in the verdict.
+	h="$(identify -format '%h' "$f[0]" 2>/dev/null || echo 0)"
+	case "$h" in '' | *[!0-9]*) h=0 ;; esac
+	[ "$h" -gt 0 ] || { enh_write "$f" error; enh_verdict error image 0 0 "" read; return 1; }
+	if [ "$h" -ge 2160 ]; then enh_write "$f" "sharp"; enh_verdict sharp image "$h" 2160; return 2; fi
+	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || { enh_write "$f" unsupported; enh_verdict unsupported image; return 3; }
 	enh_write "$f" enhance
 	tmp="$f.up.$ext"
 	read -ra gpus <<<"$(w2x_order)"
@@ -88,10 +123,11 @@ enhance_image() {
 			mv -f "$tmp" "$f"
 			printf '%s' "$gpu" >"$w2x_gpu_pref" 2>/dev/null || true
 			enh_write "$f" "done"
+			enh_verdict done image
 			return 0
 		fi
 	done
-	rm -f "$tmp"; enh_write "$f" error; return 1
+	rm -f "$tmp"; enh_write "$f" error; enh_verdict error image 0 0 "" gpu; return 1
 }
 
 # enhance a video frame by frame: ffmpeg extracts, waifu2x doubles every frame,
@@ -100,28 +136,33 @@ enhance_image() {
 # clip onto the desktop if it is still the live wallpaper when it lands.
 enhance_video() {
 	local f="$1" d fps w cap total wpid gpu out chk ok gpus
-	command -v ffmpeg >/dev/null 2>&1 || { enh_write "$f" error; return 1; }
-	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || { enh_write "$f" unsupported; return 3; }
+	command -v ffmpeg >/dev/null 2>&1 || { enh_write "$f" error; enh_verdict error video 0 0 "" tools; return 1; }
+	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || { enh_write "$f" unsupported; enh_verdict unsupported video; return 3; }
 	enh_write "$f" probe
 	# livewall decodes a live wallpaper at the screen width (screen_cap); a source
 	# already that wide gains nothing on screen, but a smaller one (e.g. a 720p
 	# moewalls loop on a 1440p panel) gets real detail, so only skip at/above it.
-	w="$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$f" 2>/dev/null | head -1)"
+	# || true: ffprobe failing on a truncated download must fall through to the
+	# extract error below, not errexit the whole verb with no verdict written.
+	w="$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$f" 2>/dev/null | head -1 || true)"
 	cap="$(screen_cap)"
-	if [ "${w:-0}" -ge "$cap" ]; then enh_write "$f" "sharp"; return 2; fi
-	fps="$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$f" 2>/dev/null | head -1)"
+	if [ "${w:-0}" -ge "$cap" ]; then enh_write "$f" "sharp"; enh_verdict sharp video "${w:-0}" "$cap"; return 2; fi
+	fps="$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$f" 2>/dev/null | head -1 || true)"
 	[ -n "$fps" ] && [ "$fps" != "0/0" ] || fps=30
-	d="$(mktemp -d)" || { enh_write "$f" error; return 1; }
+	d="$(mktemp -d)" || { enh_write "$f" error; enh_verdict error video 0 0 "" io; return 1; }
 	mkdir -p "$d/in" "$d/out"
 	enh_write "$f" extract
 	if ! ffmpeg -y -i "$f" -qscale:v 1 -qmin 1 -qmax 1 -vsync 0 "$d/in/%08d.png" >/dev/null 2>&1; then
-		rm -rf "$d"; enh_write "$f" error; return 1
+		rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" read; return 1
 	fi
 	total="$(find "$d/in" -name '*.png' | wc -l)"
-	[ "${total:-0}" -gt 0 ] || { rm -rf "$d"; enh_write "$f" error; return 1; }
+	[ "${total:-0}" -gt 0 ] || { rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" read; return 1; }
 	# try each GPU on the real clip and validate a middle frame: a hybrid dGPU can
 	# pass a small probe then emit all-black, so only the actual output proves a
 	# GPU. Last good GPU first; the first clean run wins and is remembered.
+	# ok starts assigned: a bare `local ok` stays unset, and when every GPU fails
+	# set -u would kill the [ -n "$ok" ] check before the error verdict prints.
+	ok=""
 	read -ra gpus <<<"$(w2x_order)"
 	for gpu in "${gpus[@]}"; do
 		rm -rf "$d/out"; mkdir -p "$d/out"
@@ -139,17 +180,18 @@ enhance_video() {
 			ok=1; break
 		fi
 	done
-	[ -n "$ok" ] || { rm -rf "$d"; enh_write "$f" error; return 1; }
+	[ -n "$ok" ] || { rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" gpu; return 1; }
 	enh_write "$f" assemble "$total" "$total"
 	if ! ffmpeg -y -framerate "$fps" -i "$d/out/%08d.png" -i "$f" -map 0:v:0 -map 1:a:0? -c:a copy -c:v libx264 -pix_fmt yuv420p -movflags +faststart "$d/final.mp4" >/dev/null 2>&1; then
-		rm -rf "$d"; enh_write "$f" error; return 1
+		rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" assemble; return 1
 	fi
 	# non-destructive: waifu2x output is H.264, so write a correctly-named .mp4
 	# beside the source and switch to it, never overwriting the original clip.
 	out="${f%.*}.mp4"
-	mv -f "$d/final.mp4" "$out"
+	mv -f "$d/final.mp4" "$out" || { rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" io; return 1; }
 	rm -rf "$d"
 	enh_write "$out" "done" "$total" "$total"
+	enh_verdict done video 0 0 "$out"
 	still_current "$f" && ryoku-shell wallpaper set "$out" >/dev/null 2>&1 || true
 }
 
@@ -296,6 +338,9 @@ moewalls-search)
 	fi
 	resp="$(curl -fsSL -A "$ua" "${params[@]}")"
 	# poster: /uploads/YYYY/MM/BASE-thumb.jpg -> preview: /uploads/preview/YYYY/BASE-preview.webm
+	# resolution stays empty: previews range from 720p to 1440p and dual-wide, and
+	# neither the URL nor the poster metadata says which — a hardcoded label made
+	# enhance look broken ("Already sharp" on a clip the grid had promised was 720p).
 	jq -c '.[]
 		| (._embedded["wp:featuredmedia"][0].source_url // "") as $thumb
 		| ($thumb | sub("/uploads/(?<y>[0-9]{4})/[0-9]{2}/(?<b>[^/]+)-thumb\\.(jpe?g|png)"; "/uploads/preview/\(.y)/\(.b)-preview.webm")) as $vid
@@ -305,7 +350,7 @@ moewalls-search)
 			thumb: $thumb,
 			video: $webm,
 			dl: $webm,
-			resolution: "1280x720",
+			resolution: "",
 			name: (.title.rendered | gsub(" Live Wallpaper$"; "")),
 			moewalls_url: .link
 		}' <<<"$resp"
@@ -487,12 +532,15 @@ extras-download)
 	finish "$out"
 	;;
 live-list)
-	# Local live wallpapers the user dropped or downloaded. Newest first.
+	# Local live wallpapers the user dropped or downloaded. Newest first, each
+	# badged with its real resolution (parallel probe, order restored via map).
 	dir="$HOME/Pictures/livewalls"; mkdir -p "$dir"
-	find "$dir" -maxdepth 1 -type f \( -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov' \) -printf '%T@\t%p\n' 2>/dev/null \
-		| sort -rn | cut -f2- | while IFS= read -r f; do
-			jq -cn --arg p "$f" --arg n "$(basename "$f")" '{id: $p, thumb: "", video: $p, resolution: "", name: $n}'
-		done
+	mapfile -t vids < <(find "$dir" -maxdepth 1 -type f \( -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov' \) -printf '%T@\t%p\n' 2>/dev/null | sort -rn | cut -f2-)
+	declare -A vres=()
+	[ "${#vids[@]}" -gt 0 ] && while IFS="$(printf '\t')" read -r vf vr; do vres["$vf"]="$vr"; done < <(printf '%s\n' "${vids[@]}" | vid_res_map)
+	for f in "${vids[@]}"; do
+		jq -cn --arg p "$f" --arg n "$(basename "$f")" --arg r "${vres[$f]:-}" '{id: $p, thumb: "", video: $p, resolution: $r, name: $n}'
+	done
 	;;
 live-import)
 	# Copy the user's own mp4 into livewalls.
@@ -535,14 +583,22 @@ local-list)
 		esac
 	done
 	ql="$(printf '%s' "$query" | tr '[:upper:]' '[:lower:]')"
-	{
+	mapfile -t lrows < <({
 		[ "$ltype" = live ] || find "$HOME/Pictures/Wallpapers" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -printf '%T@\timage\t%p\n' 2>/dev/null
 		[ "$ltype" = images ] || find "$HOME/Pictures/livewalls" -maxdepth 1 -type f \( -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov' \) -printf '%T@\tvideo\t%p\n' 2>/dev/null
-	} | sort -rn | cut -f2- | while IFS="$(printf '\t')" read -r kind f; do
+	} | sort -rn | cut -f2-)
+	vids=()
+	for row in "${lrows[@]}"; do
+		[ "${row%%$'\t'*}" = video ] && vids+=("${row#*$'\t'}")
+	done
+	declare -A vres=()
+	[ "${#vids[@]}" -gt 0 ] && while IFS="$(printf '\t')" read -r vf vr; do vres["$vf"]="$vr"; done < <(printf '%s\n' "${vids[@]}" | vid_res_map)
+	for row in "${lrows[@]}"; do
+		kind="${row%%$'\t'*}"; f="${row#*$'\t'}"
 		n="$(basename "$f")"
 		[ -z "$ql" ] || case "$(printf '%s' "$n" | tr '[:upper:]' '[:lower:]')" in *"$ql"*) ;; *) continue ;; esac
 		if [ "$kind" = video ]; then
-			jq -cn --arg p "$f" --arg n "$n" '{id:$p, thumb:"", video:$p, resolution:"", name:$n}'
+			jq -cn --arg p "$f" --arg n "$n" --arg r "${vres[$f]:-}" '{id:$p, thumb:"", video:$p, resolution:$r, name:$n}'
 		else
 			jq -cn --arg p "$f" --arg n "$n" '{id:$p, path:$p, thumb:$p, large:$p, resolution:"", name:$n}'
 		fi

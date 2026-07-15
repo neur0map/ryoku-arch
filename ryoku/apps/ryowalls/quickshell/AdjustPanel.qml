@@ -197,8 +197,12 @@ Item {
                     spacing: 9
                     visible: Wallhaven.upscaleSupported && Wallhaven.upscaler
 
+                    // the button stays through "sharp": the skip depends on the
+                    // screen cap, which changes when a monitor or scale does, so a
+                    // retry must always be one click away — a vanished button was
+                    // the old "enhance looks broken" complaint in a new coat.
                     HubButton {
-                        visible: !Wallhaven.enhancing && Wallhaven.enhancePhase !== "done" && Wallhaven.enhancePhase !== "sharp"
+                        visible: !Wallhaven.enhancing && Wallhaven.enhancePhase !== "done"
                         primary: true
                         icon: "sparkles"
                         label: adj.videoMode ? "Enhance clip" : "Enhance image"
@@ -270,6 +274,45 @@ Item {
                                 Behavior on width { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
                             }
                         }
+                    }
+                    // why a skip skipped: the engine's verdict carries the measured
+                    // pixels vs the threshold, so "nothing happened" never reads as
+                    // a broken button. Falls back to prose on an engine too old to
+                    // report numbers.
+                    Text {
+                        width: parent.width
+                        visible: !Wallhaven.enhancing && Wallhaven.enhancePhase === "sharp"
+                        wrapMode: Text.WordWrap
+                        text: {
+                            var kind = Wallhaven.enhanceKind || (adj.videoMode ? "video" : "image");
+                            if (kind === "video")
+                                return Wallhaven.enhancePx > 0
+                                    ? "This clip is already " + Wallhaven.enhancePx + "px wide. The desktop plays live wallpapers at " + Wallhaven.enhanceCap + "px, so upscaling can't add detail you would see."
+                                    : "This clip already meets the width the desktop plays it at, so upscaling can't add detail you would see.";
+                            return Wallhaven.enhancePx > 0
+                                ? "This image is already " + Wallhaven.enhancePx + "px tall — 4K class. Enhancing would cost GPU time without making it sharper."
+                                : "This image is already 4K class, sharper than enhancing can improve.";
+                        }
+                        color: Theme.dim
+                        font.family: Theme.font
+                        font.pixelSize: 11
+                    }
+                    Text {
+                        width: parent.width
+                        visible: !Wallhaven.enhancing && Wallhaven.enhancePhase === "error"
+                        wrapMode: Text.WordWrap
+                        // blame by cause: pointing every failure at the GPU sends a
+                        // user with a truncated download chasing driver ghosts.
+                        text: {
+                            if (Wallhaven.enhanceWhy === "gpu")
+                                return "No GPU produced a clean result; the original file is untouched. Try again, or check the GPU driver if it keeps failing.";
+                            if (Wallhaven.enhanceWhy === "read")
+                                return "The file could not be read — it may be truncated or corrupt. The original is untouched; re-downloading it usually fixes this.";
+                            return "Enhance failed; the original file is untouched. The file may be unreadable, the disk full, or a required tool missing.";
+                        }
+                        color: Theme.dim
+                        font.family: Theme.font
+                        font.pixelSize: 11
                     }
                     Text {
                         width: parent.width

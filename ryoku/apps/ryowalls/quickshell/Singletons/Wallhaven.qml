@@ -85,7 +85,24 @@ Singleton {
     property bool enhancing: false
     property string enhancePhase: ""     // probe|extract|enhance|assemble|done|sharp|error|unsupported
     property real enhanceFrac: 0
+    // the verdict line enhance prints on exit: what was measured (px) against
+    // which threshold (cap), so a skip can say why. 0/"" on an engine too old
+    // to print one — the panel then falls back to a generic explanation.
+    property string enhanceKind: ""      // image|video
+    property int enhancePx: 0
+    property int enhanceCap: 0
+    property string enhanceWhy: ""       // error cause: gpu|read|tools|io|assemble
     property bool _enhanceAfterDl: false
+    // the pick the running enhance belongs to: a run can outlive its selection
+    // (a download-then-enhance, or minutes of frame-by-frame work), and its
+    // verdict must not pin itself — numbers, hidden button and all — under a
+    // wallpaper it never touched.
+    property var _enhItem: null
+    function _enhReset() {
+        _enhClear.stop();
+        enhancePhase = ""; enhanceFrac = 0;
+        enhanceKind = ""; enhancePx = 0; enhanceCap = 0; enhanceWhy = "";
+    }
 
     readonly property bool selectedVideo: !!(selected && selected.video && ("" + selected.video).length > 0)
     function localPathOf(it) {
@@ -98,6 +115,7 @@ Singleton {
         var it = selected;
         if (!it || busy || enhancing) return;
         if (!upscaler) { installUpscaler(); return; }
+        _enhItem = it;
         var local = localPathOf(it);
         if (local.length > 0) { _startEnhance(local); return; }
         // remote: fetch the full file first, then enhance the saved copy.
@@ -110,23 +128,53 @@ Singleton {
         dlProc.running = true;
     }
     function _startEnhance(path) {
+        _enhReset();
         enhancing = true;
         enhancePhase = "probe";
-        enhanceFrac = 0;
         enhProc.command = ["ryowalls", "enhance", path];
         enhProc.running = true;
     }
     Process {
         id: enhProc
+        // the engine's last stdout line is the verdict: it rides the exit (the
+        // state file races it), carrying px vs cap so a skip can explain itself.
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var lines = text.split("\n").filter(l => l.trim().length > 0);
+                if (lines.length === 0) return;
+                try {
+                    var v = JSON.parse(lines[lines.length - 1]);
+                    root.enhanceKind = ("" + (v.kind || ""));
+                    root.enhancePx = v.px || 0;
+                    root.enhanceCap = v.cap || 0;
+                    root.enhanceWhy = ("" + (v.why || ""));
+                } catch (e) {}
+            }
+        }
         onExited: code => {
             root.enhancing = false;
             // the exit code is authoritative for the final state; the watched file
             // drives only the live progress while it runs.
-            root.enhancePhase = code === 3 ? "unsupported" : code === 2 ? "sharp" : (code !== 0 ? "error" : "done");
-            root._enhClear.restart();
+            var phase = code === 3 ? "unsupported" : code === 2 ? "sharp" : (code !== 0 ? "error" : "done");
+            // a run that outlived its pick reports through the status toast: its
+            // verdict describes a file the current selection never touched.
+            if (root.selected !== root._enhItem) {
+                root._enhReset();
+                root.status = phase === "done" ? "Enhance finished"
+                    : phase === "sharp" ? "Enhance skipped: already sharp"
+                    : "Enhance failed";
+                return;
+            }
+            // "done" fades after a moment; a skip or a failure stays put until the
+            // pick changes, so the reason is on screen whenever the user looks. The
+            // bar's fraction is zeroed for them — a frozen 60% bar under a failure
+            // note reads as a hang, not an explanation.
+            root.enhancePhase = phase;
+            if (phase === "done") root._enhClear.restart();
+            else root.enhanceFrac = 0;
         }
     }
-    Timer { id: _enhClear; interval: 3500; onTriggered: { root.enhancePhase = ""; root.enhanceFrac = 0; } }
+    Timer { id: _enhClear; interval: 3500; onTriggered: root._enhReset() }
     FileView {
         id: enhView
         path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku-ryowalls-enhance.json"
@@ -422,6 +470,9 @@ Singleton {
         if (!item)
             return;
         selected = item;
+        // a lingering enhance verdict belongs to the previous pick; a run still in
+        // flight keeps its status so its finish is never silent.
+        if (!enhancing) _enhReset();
         adjust = { brightness: 0, contrast: 0, saturation: 0, warmth: 0, vignette: false };
         adjustPreview = "";
         _preview();

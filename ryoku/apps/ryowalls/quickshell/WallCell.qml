@@ -30,8 +30,9 @@ Rectangle {
         var p = cell.resText.split("x");
         return p.length === 2 ? (parseInt(p[1]) || 0) : 0;
     }
-    // flag clips that would upscale-blur on a 1080p+ screen.
-    readonly property bool lowRes: cell.isVideo && cell.resH > 0 && cell.resH < 1080
+    // flag media that would upscale-blur on a 1080p+ screen — exactly the files
+    // worth running Enhance on, image or clip.
+    readonly property bool lowRes: cell.resH > 0 && cell.resH < 1080
 
     radius: Theme.radius
     color: Theme.surfaceLo

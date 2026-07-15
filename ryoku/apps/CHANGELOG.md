@@ -137,6 +137,37 @@
   `PATH` and works from day one.
 
 ### Fixed
+- `ryowalls/`: **a skipped enhance now explains itself instead of looking dead.**
+  The engine's `enhance` prints a one-line JSON verdict on exit (`result`, `kind`,
+  the pixels it measured and the cap they met, a `why` on failure), and the panel
+  keeps an "Already sharp" or failure note on screen until the pick changes,
+  spelling out the numbers ("already 5120px wide — the desktop plays live
+  wallpapers at 2560px") instead of flashing a generic label for 3.5 seconds; the
+  Enhance button stays through a skip, since the cap moves with the monitor and a
+  retry must stay one click away. Failures name their cause (bad GPU output vs. a
+  truncated file vs. a missing tool) instead of blaming the GPU for everything.
+  The moewalls grid also stopped promising `1280x720` for every clip — the site
+  serves previews from 720p to 1440p and dual-wide with no per-item resolution
+  anywhere in its API, so a user could pick a tile labelled 720p, hit Enhance on
+  the 1440p file it actually downloaded, and read the correct "Already sharp"
+  skip as the feature being broken (motionbgs labels were checked against the
+  downloaded masters and are honest; wallhaven's come from its API). Local grids
+  (Live and Local sources) now badge each clip with its real `ffprobe`d
+  resolution — probed 8 at a time so a big pool can't hold the grid hostage —
+  and the amber low-res hint covers images too. Also fixed while pinning the
+  verdict contract down: an animated webp/gif no longer misreads as past-4K
+  (a bare `identify %h` concatenates every frame's height into nonsense like
+  "12001200"; the probe now reads the first frame), an unreadable clip no longer
+  errexits the verb with no verdict and a state file stuck at "probe" (the user
+  saw a GPU blamed for a truncated download), the all-GPUs-failed path no longer
+  dies on an unset `ok` under `set -u` before its error verdict prints, a verdict
+  from a run that outlived its pick (a download-then-enhance, or minutes of
+  frame-by-frame work) reports through the status toast instead of pinning the
+  wrong numbers under a wallpaper it never touched, a failed video enhance no
+  longer leaves a frozen progress bar under the failure note, and re-enhancing
+  within the fade window no longer lets the stale clear-timer blank the status of
+  the new run (`bin/ryowalls`, `Singletons/Wallhaven.qml`, `AdjustPanel.qml`,
+  `WallCell.qml`; contract pinned by `tests/ryowalls-enhance-verdict.sh`).
 - `ryowalls/`: **a live wallpaper set from the app no longer reverts on its own.**
   Enhancing a downloaded video ran a detached background job that, minutes later,
   re-issued `wallpaper set` for whatever file it had upscaled, so a clip enhanced
