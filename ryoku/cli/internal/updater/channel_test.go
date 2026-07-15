@@ -68,9 +68,6 @@ func TestChannelStatus(t *testing.T) {
 	if r.Channel != "main" {
 		t.Errorf("channel = %q, want main", r.Channel)
 	}
-	if !r.Git {
-		t.Error("report should be flagged as git-sourced")
-	}
 	if r.Available || r.Behind != 0 || len(r.Updates) != 0 {
 		t.Errorf("fresh checkout should be up to date: behind=%d available=%v updates=%d",
 			r.Behind, r.Available, len(r.Updates))
@@ -228,10 +225,15 @@ func TestChannelUpdateDeploysWithoutFastForwardOffChannel(t *testing.T) {
 	mustGit(t, work, "add", "-A")
 	mustGit(t, work, "commit", "-m", "seed with deploy stub")
 	mustGit(t, work, "push", "origin", "main")
+
+	// A maintainer mid-dev: a feature branch with its own commit origin/main lacks.
 	mustGit(t, work, "checkout", "-b", "feature-branch")
+	writeFile(t, filepath.Join(work, "wip"), "z\n")
+	mustGit(t, work, "add", "-A")
+	mustGit(t, work, "commit", "-m", "local wip")
 	feature := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD"))
 
-	// origin/main advances while the maintainer stays on a feature branch.
+	// origin/main advances independently, so the branch and origin/main diverge.
 	other := filepath.Join(root, "other")
 	mustGit(t, "", "clone", origin, other)
 	commitPush(t, other, "feature", "x\n", "add feature", "main")
@@ -240,13 +242,13 @@ func TestChannelUpdateDeploysWithoutFastForwardOffChannel(t *testing.T) {
 	t.Setenv("RYOKU_CHANNEL", "main")
 	t.Setenv("XDG_RUNTIME_DIR", root)
 
-	// The git path still handles the update (redeploys), but must not move the
-	// maintainer's branch: branch management stays with git.
+	// The git path still redeploys, but a diverged feature branch keeps its
+	// commits: branch management stays with the maintainer.
 	if err := channelUpdate(); err != nil {
 		t.Fatalf("channelUpdate off-channel: err=%v, want nil", err)
 	}
 	if got := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD")); got != feature {
-		t.Errorf("off-channel update fast-forwarded the branch (HEAD %s, want %s)", got, feature)
+		t.Errorf("off-channel update moved the maintainer's branch (HEAD %s, want %s)", got, feature)
 	}
 }
 
@@ -357,5 +359,187 @@ func TestShortCommit(t *testing.T) {
 		if got := shortCommit(c.in); got != c.want {
 			t.Errorf("shortCommit(%q) = %q, want %q", c.in, got, c.want)
 		}
+	}
+}
+
+func TestSyncChannelFastForwardsNonMainBranch(t *testing.T) {
+	root := t.TempDir()
+	origin := filepath.Join(root, "origin.git")
+	work := filepath.Join(root, "work")
+	mustGit(t, "", "init", "--bare", "-b", "main", origin)
+	mustGit(t, "", "clone", origin, work)
+	commitPush(t, work, "README", "one\n", "first commit", "main")
+
+	// The dev box develops on unstable-dev, branched from the first commit; its
+	// update channel is still main.
+	mustGit(t, work, "checkout", "-b", "unstable-dev")
+
+	// origin/main advances two commits ahead of the dev checkout.
+	other := filepath.Join(root, "other")
+	mustGit(t, "", "clone", origin, other)
+	commitPush(t, other, "f1", "x\n", "release commit one", "main")
+	commitPush(t, other, "f2", "y\n", "release commit two", "main")
+	mustGit(t, work, "fetch", "origin", "main")
+
+	if err := syncChannel(work, "main"); err != nil {
+		t.Fatalf("syncChannel: %v", err)
+	}
+
+	head := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD"))
+	want := strings.TrimSpace(mustGit(t, work, "rev-parse", "refs/remotes/origin/main"))
+	if head != want {
+		t.Errorf("HEAD = %s, want origin/main %s: a clean non-main branch must fast-forward onto the channel", head, want)
+	}
+	if br := strings.TrimSpace(mustGit(t, work, "symbolic-ref", "--short", "HEAD")); br != "unstable-dev" {
+		t.Errorf("branch = %s, want unstable-dev: the fast-forward must not switch branches", br)
+	}
+}
+
+func TestSyncChannelPreservesDivergedBranch(t *testing.T) {
+	root := t.TempDir()
+	origin := filepath.Join(root, "origin.git")
+	work := filepath.Join(root, "work")
+	mustGit(t, "", "init", "--bare", "-b", "main", origin)
+	mustGit(t, "", "clone", origin, work)
+	commitPush(t, work, "README", "one\n", "first commit", "main")
+
+	// A maintainer mid-dev: a feature branch with its own unpushed commit.
+	mustGit(t, work, "checkout", "-b", "feature")
+	writeFile(t, filepath.Join(work, "wip"), "z\n")
+	mustGit(t, work, "add", "-A")
+	mustGit(t, work, "commit", "-m", "local wip")
+	wip := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD"))
+
+	// origin/main advances independently, so feature and origin/main diverge.
+	other := filepath.Join(root, "other")
+	mustGit(t, "", "clone", origin, other)
+	commitPush(t, other, "f1", "x\n", "upstream commit", "main")
+	mustGit(t, work, "fetch", "origin", "main")
+
+	if err := syncChannel(work, "main"); err != nil {
+		t.Fatalf("syncChannel: %v", err)
+	}
+	if head := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD")); head != wip {
+		t.Errorf("HEAD = %s, want the local wip %s: a diverged feature branch must not be moved", head, wip)
+	}
+}
+
+func TestSyncChannelResetsDivergedChannelBranch(t *testing.T) {
+	root := t.TempDir()
+	origin := filepath.Join(root, "origin.git")
+	work := filepath.Join(root, "work")
+	mustGit(t, "", "init", "--bare", "-b", "main", origin)
+	mustGit(t, "", "clone", origin, work)
+	commitPush(t, work, "README", "one\n", "first commit", "main")
+
+	// A stray local commit on the channel branch that was never pushed.
+	writeFile(t, filepath.Join(work, "local"), "l\n")
+	mustGit(t, work, "add", "-A")
+	mustGit(t, work, "commit", "-m", "stray local main commit")
+
+	// origin/main advances differently, so local main and origin/main diverge.
+	other := filepath.Join(root, "other")
+	mustGit(t, "", "clone", origin, other)
+	commitPush(t, other, "f1", "x\n", "upstream commit", "main")
+	mustGit(t, work, "fetch", "origin", "main")
+
+	if err := syncChannel(work, "main"); err != nil {
+		t.Fatalf("syncChannel: %v", err)
+	}
+	// The channel branch mirrors upstream: it is reset onto origin/main, dropping
+	// the stray commit.
+	head := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD"))
+	want := strings.TrimSpace(mustGit(t, work, "rev-parse", "refs/remotes/origin/main"))
+	if head != want {
+		t.Errorf("HEAD = %s, want origin/main %s: a diverged channel branch resets onto upstream", head, want)
+	}
+}
+
+func TestSyncChannelLeavesDirtyTree(t *testing.T) {
+	root := t.TempDir()
+	origin := filepath.Join(root, "origin.git")
+	work := filepath.Join(root, "work")
+	mustGit(t, "", "init", "--bare", "-b", "main", origin)
+	mustGit(t, "", "clone", origin, work)
+	commitPush(t, work, "README", "one\n", "first commit", "main")
+	before := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD"))
+
+	// origin/main advances; the checkout is behind but has uncommitted changes.
+	other := filepath.Join(root, "other")
+	mustGit(t, "", "clone", origin, other)
+	commitPush(t, other, "f1", "x\n", "upstream commit", "main")
+	mustGit(t, work, "fetch", "origin", "main")
+	writeFile(t, filepath.Join(work, "README"), "dirty edit\n")
+
+	if err := syncChannel(work, "main"); err != nil {
+		t.Fatalf("syncChannel: %v", err)
+	}
+	if head := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD")); head != before {
+		t.Errorf("HEAD = %s, want unchanged %s: a dirty tree must not be fast-forwarded", head, before)
+	}
+}
+
+func TestSyncChannelNoOpWhenCurrent(t *testing.T) {
+	root := t.TempDir()
+	origin := filepath.Join(root, "origin.git")
+	work := filepath.Join(root, "work")
+	mustGit(t, "", "init", "--bare", "-b", "main", origin)
+	mustGit(t, "", "clone", origin, work)
+	commitPush(t, work, "README", "one\n", "first commit", "main")
+	mustGit(t, work, "fetch", "origin", "main")
+	before := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD"))
+
+	if err := syncChannel(work, "main"); err != nil {
+		t.Fatalf("syncChannel: %v", err)
+	}
+	if head := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD")); head != before {
+		t.Errorf("HEAD = %s, want unchanged %s: a current checkout is a no-op", head, before)
+	}
+}
+
+// TestUpdateClearsBehindOnDevBranch is the regression guard for the reported
+// symptom: a dev box on unstable-dev, behind origin/main, kept reporting updates
+// after every `ryoku update`. It runs the channel sync `ryoku update` does and
+// records the deployed commit the way deploy.sh does, then asserts status reads
+// up to date.
+func TestUpdateClearsBehindOnDevBranch(t *testing.T) {
+	root := t.TempDir()
+	origin := filepath.Join(root, "origin.git")
+	work := filepath.Join(root, "work")
+	mustGit(t, "", "init", "--bare", "-b", "main", origin)
+	mustGit(t, "", "clone", origin, work)
+	commitPush(t, work, "README", "one\n", "first commit", "main")
+	mustGit(t, work, "checkout", "-b", "unstable-dev")
+
+	other := filepath.Join(root, "other")
+	mustGit(t, "", "clone", origin, other)
+	commitPush(t, other, "f1", "x\n", "release commit one", "main")
+	commitPush(t, other, "f2", "y\n", "release commit two", "main")
+
+	t.Setenv("RYOKU_REPO", work)
+	t.Setenv("RYOKU_CHANNEL", "main")
+	state := t.TempDir()
+	t.Setenv("XDG_STATE_HOME", state)
+
+	// Before the update: the dev box is behind the channel.
+	if r, ok := channelStatus(); !ok || !r.Available || r.Behind == 0 {
+		t.Fatalf("precondition: expected behind, got ok=%v available=%v behind=%d", ok, r.Available, r.Behind)
+	}
+
+	// The channel sync `ryoku update` runs, then deploy.sh records HEAD as the
+	// deployed commit.
+	if err := syncChannel(work, "main"); err != nil {
+		t.Fatalf("syncChannel: %v", err)
+	}
+	head := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD"))
+	writeFile(t, filepath.Join(state, "ryoku", "deployed"), head+"\n")
+
+	// After the update: nothing left behind.
+	r, ok := channelStatus()
+	if !ok {
+		t.Fatal("channelStatus not ok after the sync")
+	}
+	if r.Available || r.Behind != 0 || len(r.Updates) != 0 {
+		t.Errorf("after update want up to date, got available=%v behind=%d updates=%d", r.Available, r.Behind, len(r.Updates))
 	}
 }

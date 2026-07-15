@@ -121,6 +121,34 @@
   update`/`doctor`/`status`/...) are unchanged.
 
 ### Fixed
+- **`ryoku update` on a dev checkout clears "behind" instead of nagging
+  forever.** The update fast-forwarded the checkout onto origin/<channel> only
+  when the current branch was literally named after the channel (`main`); a dev
+  box on `unstable-dev` (or any other branch) skipped the fast-forward and just
+  redeployed the same commit, so `deploy.sh` re-recorded the unchanged deployed
+  commit and `ryoku status` kept reporting the same commits behind after every
+  update. `ryoku update` now fast-forwards any clean checkout that is strictly
+  behind the channel onto it, whatever the branch is named (always lossless), so
+  updating actually advances the box and the count reaches zero. A branch with
+  its own commits (a maintainer mid-dev) or a dirty tree is left untouched and
+  redeployed as-is; only the channel branch is still reset onto upstream when it
+  has diverged (new `syncChannel`/`isAncestor` in `internal/updater/channel.go`,
+  covered by `TestSyncChannel*` and `TestUpdateClearsBehindOnDevBranch`).
+- **The Hub's Updates section shows real commit messages on a packaged install,
+  not bare package names.** `ryoku status` surfaced the channel's incoming commit
+  subjects only on a dev checkout; a packaged box (every ISO or shell install) has
+  no checkout, so it fell back to the pacman view and the Hub listed pending
+  package names ("ryoku-desktop") under the "INCOMING COMMITS" header, with "N
+  commits behind" counting all pending packages. The packaged path now reads the
+  running and available commits from the installed and `[ryoku]`-repo
+  `ryoku-desktop` versions and lists the commits between them via the public
+  GitHub compare API, so a user sees the same commit list a dev box does. The
+  lookup is cached by the installed..latest sha pair (a polled status fetches once
+  per release) and best-effort: offline or rate-limited, it degrades to a single
+  `ryoku-desktop` version-bump row and never hangs the status query. New
+  `internal/updater/commits.go` (covered by `commits_test.go`),
+  `internal/updater/update.go`, `internal/updater/channel.go`; `RYOKU_REPO_SLUG`
+  overrides the repo for a fork.
 - **`ryoku update` can no longer run stale home-deployed binaries over the
   freshly materialized configs.** Stage2 resolved `ryoku-shell` (and `ryoku`
   for the doctor step, and `ryoku-rashin`) on PATH, where a past `ryoku

@@ -369,26 +369,13 @@ func Status(args []string) error {
 	}
 
 	fmt.Printf("config base:   %s\n", sys.BaseConfigDir())
-	if r.Git {
-		fmt.Printf("channel:       %s\n", r.Channel)
-		fmt.Printf("installed:     %s\n", orDash(r.Installed))
-		if r.Available {
-			fmt.Printf("available:     %s\n", orDash(r.Latest))
-			fmt.Printf("behind:        %d commit(s)\n", r.Behind)
-		} else {
-			fmt.Println("behind:        up to date")
-		}
+	fmt.Printf("channel:       %s\n", orDash(r.Channel))
+	fmt.Printf("installed:     %s\n", orDash(r.Installed))
+	if r.Available {
+		fmt.Printf("available:     %s\n", orDash(r.Latest))
+		fmt.Printf("behind:        %d commit(s)\n", r.Behind)
 	} else {
-		fmt.Printf("channel:       %s\n", orDash(r.Channel))
-		fmt.Printf("installed:     %s\n", orDash(r.Installed))
-		if r.Available {
-			fmt.Printf("available:     %s\n", orDash(r.Latest))
-		}
-		if sys.Has("checkupdates") {
-			fmt.Printf("pending:       %d package update(s)\n", r.Behind)
-		} else {
-			fmt.Println("pending:       (install pacman-contrib for checkupdates)")
-		}
+		fmt.Println("behind:        up to date")
 	}
 	// a bare 0 can't tell "configured but empty" from "snapper has no root
 	// config at all". doctor restores a missing config, so send the user
@@ -413,32 +400,49 @@ type statusReport struct {
 	Updates   []updateItem `json:"updates"`
 	Channel   string       `json:"channel"`
 	Snapshots int          `json:"snapshots"`
-	Git       bool         `json:"-"`
 }
 
-// buildStatus prefers the git update channel (a checkout tracking main).
-// no checkout -> fall back to the pacman view of the [ryoku] repo.
+// buildStatus prefers the git update channel (a checkout tracking main). No
+// checkout (a packaged install) -> read the running and available commits from
+// the [ryoku] repo's package versions and list what is incoming between them via
+// the public GitHub compare API, so the Hub's Updates list is the same commit
+// subjects a dev box shows, not bare package names.
 func buildStatus() statusReport {
 	if r, ok := channelStatus(); ok {
 		return r
 	}
 	installed := sys.InstalledVersion()
 	latest := latestAvailable("ryoku-desktop")
-	ups := pendingUpdates()
-	for _, u := range ups {
+	for _, u := range pendingUpdates() {
 		if u.Name == "ryoku-desktop" {
 			latest = u.New
 		}
 	}
-	return statusReport{
-		Installed: shortCommit(installed),
-		Latest:    shortCommit(latest),
-		Available: len(ups) > 0,
-		Behind:    len(ups),
-		Updates:   ups,
+	installedSha := shortCommit(installed)
+	latestSha := shortCommit(latest)
+
+	r := statusReport{
+		Installed: installedSha,
+		Latest:    latestSha,
+		Updates:   []updateItem{}, // non-nil, so a current box marshals [] like the git path
 		Channel:   ryokuChannel(),
 		Snapshots: snapshotCount(),
 	}
+	// current, or the [ryoku] repo isn't synced yet: nothing incoming.
+	if installedSha == "" || latestSha == "" || installedSha == latestSha {
+		return r
+	}
+	r.Available = true
+	if ups, behind := incomingCommits(installedSha, latestSha); len(ups) > 0 {
+		r.Updates = ups
+		r.Behind = behind
+	} else {
+		// compare unreachable (offline / rate-limited): still surface the
+		// pending Ryoku bump so the section isn't empty and available holds.
+		r.Updates = []updateItem{{Name: "ryoku-desktop", Old: installed, New: latest}}
+		r.Behind = 1
+	}
+	return r
 }
 
 // shortCommit pulls the abbreviated commit hash out of a packaged version

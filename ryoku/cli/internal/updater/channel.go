@@ -87,15 +87,12 @@ func channelStatus() (statusReport, bool) {
 		Updates:   gitLog(repo, base+".."+remote),
 		Channel:   ch,
 		Snapshots: snapshotCount(),
-		Git:       true,
 	}, true
 }
 
-// channelUpdate brings the checkout's channel up to origin/<channel> and
-// redeploys: the git equivalent of a package upgrade. Clean checkout on the
-// channel branch -> fast-forward first; feature branch (a maintainer mid-dev)
-// or dirty tree -> leave branch management to git, just redeploy. The caller
-// only reaches here on a checkout (a packaged install has no repo to track).
+// channelUpdate brings the checkout up to origin/<channel> and redeploys: the
+// git equivalent of a package upgrade. The caller only reaches here on a
+// checkout (a packaged install has no repo to track).
 func channelUpdate() error {
 	repo := sys.ResolveRepo()
 	if repo == "" {
@@ -106,19 +103,8 @@ func channelUpdate() error {
 	progress.at("channel")
 	progress.logf("Updating Ryoku (channel: %s)", ch)
 	gitFetch(repo, ch)
-
-	head, _ := sys.RunOut("git", "-C", repo, "symbolic-ref", "--short", "--quiet", "HEAD")
-	dirty, _ := sys.RunOut("git", "-C", repo, "status", "--porcelain")
-	if strings.TrimSpace(head) == ch && strings.TrimSpace(dirty) == "" {
-		if err := sys.Run("git", "-C", repo, "merge", "--ff-only", "refs/remotes/origin/"+ch); err != nil {
-			// Diverged: HEAD holds commits origin/<ch> lacks, so ff is impossible
-			// and the update would dead-end forever. <ch> mirrors upstream (a dirty
-			// tree already skipped above), so reset onto it.
-			progress.logf("Channel history diverged; reconciling %s onto origin/%s", ch, ch)
-			if err := sys.Run("git", "-C", repo, "reset", "--hard", "refs/remotes/origin/"+ch); err != nil {
-				return fmt.Errorf("reconcile to origin/%s failed: %w", ch, err)
-			}
-		}
+	if err := syncChannel(repo, ch); err != nil {
+		return err
 	}
 
 	progress.at("deploy")
@@ -127,6 +113,53 @@ func channelUpdate() error {
 		return fmt.Errorf("deploy from %s failed: %w", repo, err)
 	}
 	return nil
+}
+
+// syncChannel advances a clean checkout onto origin/<ch> when that is a lossless
+// fast-forward, whatever branch is checked out, so `ryoku update` clears "behind"
+// on a dev box tracking unstable-dev exactly as it does on main, not only when
+// the branch is named <ch>. A branch that already contains the channel tip
+// (current or ahead) is left alone; a diverged branch keeps its own commits,
+// except the channel branch, which mirrors upstream and is reset onto it. A dirty
+// tree is never touched: the deploy runs on what is checked out.
+func syncChannel(repo, ch string) error {
+	remote := "refs/remotes/origin/" + ch
+	// No channel ref to track (offline first run, or the branch is gone): deploy
+	// what is checked out rather than guess.
+	if _, err := sys.RunOut("git", "-C", repo, "rev-parse", "--verify", "--quiet", remote); err != nil {
+		return nil
+	}
+	if dirty, _ := sys.RunOut("git", "-C", repo, "status", "--porcelain"); strings.TrimSpace(dirty) != "" {
+		return nil
+	}
+	// HEAD already contains the channel tip (current or ahead): nothing to pull.
+	if isAncestor(repo, remote, "HEAD") {
+		return nil
+	}
+	// HEAD is strictly behind on a straight line: fast-forward onto the channel.
+	if isAncestor(repo, "HEAD", remote) {
+		if err := sys.Run("git", "-C", repo, "merge", "--ff-only", remote); err != nil {
+			return fmt.Errorf("fast-forward to origin/%s failed: %w", ch, err)
+		}
+		return nil
+	}
+	// Diverged: HEAD holds commits origin/<ch> lacks. The channel branch mirrors
+	// upstream, so reset it; any other branch keeps its work (a maintainer mid-dev).
+	head, _ := sys.RunOut("git", "-C", repo, "symbolic-ref", "--short", "--quiet", "HEAD")
+	if strings.TrimSpace(head) == ch {
+		progress.logf("Channel history diverged; reconciling %s onto origin/%s", ch, ch)
+		if err := sys.Run("git", "-C", repo, "reset", "--hard", remote); err != nil {
+			return fmt.Errorf("reconcile to origin/%s failed: %w", ch, err)
+		}
+	}
+	return nil
+}
+
+// isAncestor reports whether commit a is contained in b's history. A bad ref
+// reports false, so the caller falls through safely.
+func isAncestor(repo, a, b string) bool {
+	_, err := sys.RunOut("git", "-C", repo, "merge-base", "--is-ancestor", a, b)
+	return err == nil
 }
 
 // gitFetch updates the remote-tracking ref for one branch, best-effort.
