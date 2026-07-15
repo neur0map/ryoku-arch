@@ -149,7 +149,7 @@ cmd_setup() {
 		die "no AUR helper found (expected yay or paru) to install quickemu"
 	fi
 	have quickemu || die "the install finished but quickemu is still missing; see the output above"
-	echo "Done. quickemu is installed. Launch ryovm to create a VM."
+	echo "Done — quickemu is installed. Close this window; ryovm lights up in a few seconds."
 }
 
 # ---- catalog ---------------------------------------------------------------
@@ -159,7 +159,8 @@ cmd_catalog() {
 		mkdir -p "$cache_dir"
 		# shellcheck disable=SC2015  # on failure, keep a usable cached catalogue if one exists
 		quickget --list-json >"$catalog_cache.tmp" 2>/dev/null && mv "$catalog_cache.tmp" "$catalog_cache" \
-			|| { rm -f "$catalog_cache.tmp"; [ -s "$catalog_cache" ] || die "could not fetch the OS catalogue"; }
+			|| { rm -f "$catalog_cache.tmp"; [ -s "$catalog_cache" ] || die "could not fetch the OS catalogue"; \
+				echo "catalogue refresh failed — showing the cached list" >&2; }
 	fi
 	cat "$catalog_cache"
 }
@@ -173,7 +174,7 @@ cmd_list() {
 	for conf in "$vms_dir"/*.conf; do
 		[ -e "$conf" ] || continue
 		vm_paths "$conf"
-		local guest os disp cores ram disk used running ssh spice
+		local guest os disp cores ram disk used running ssh spice disposable sealed tpm sb uefi
 		guest="$(conf_get "$conf" guest_os)"
 		os="$(os_slug "$conf")"
 		disp="$(conf_get "$conf" display)"; [ -z "$disp" ] && disp="gtk"
@@ -186,13 +187,21 @@ cmd_list() {
 		if [ "$running" = true ]; then
 			ssh="$(port_of "$vm_ports" ssh)"; spice="$(spice_target "$vm_ports" "$vm_subdir")"
 		fi
+		disposable=false; [ "$running" = true ] && [ -e "$vm_subdir/$vm_name.disposable" ] && disposable=true
+		sealed=false; [ "$(conf_get "$conf" ryovm_sealed)" = "1" ] && [ -e "$vm_disk" ] && sealed=true
+		tpm=false; [ "$(conf_get "$conf" tpm)" = "on" ] && tpm=true
+		sb=false; [ "$(conf_get "$conf" secureboot)" = "on" ] && sb=true
+		# quickemu boots EFI unless the conf pins legacy.
+		uefi=true; [ "$(conf_get "$conf" boot)" = "legacy" ] && uefi=false
 		[ $first -eq 1 ] && first=0 || printf ','
 		jq -cn --arg name "$vm_name" --arg guest "${guest:-linux}" --arg os "${os:-}" \
 			--arg display "$disp" --arg cores "${cores:-auto}" --arg ram "${ram:-auto}" \
 			--arg disk "${disk:-}" --argjson used "$used" --argjson running "$running" \
 			--arg ssh "${ssh:-}" --arg spice "${spice:-}" \
+			--argjson disposable "$disposable" --argjson sealed "$sealed" \
+			--argjson tpm "$tpm" --argjson secureboot "$sb" --argjson uefi "$uefi" \
 			--argjson exists "$([ -e "$vm_disk" ] && echo true || echo false)" \
-			'{name:$name,guest:$guest,os:$os,display:$display,cores:$cores,ram:$ram,disk:$disk,diskUsed:$used,running:$running,installed:$exists,ssh:$ssh,spice:$spice}'
+			'{name:$name,guest:$guest,os:$os,display:$display,cores:$cores,ram:$ram,disk:$disk,diskUsed:$used,running:$running,installed:$exists,ssh:$ssh,spice:$spice,disposable:$disposable,sealed:$sealed,tpm:$tpm,secureboot:$secureboot,uefi:$uefi}'
 	done
 	printf ']\n'
 }
@@ -201,7 +210,7 @@ cmd_list() {
 cmd_get() {
 	local conf; conf="$(conf_path "$1")"
 	vm_paths "$conf"
-	local guest os disp cores ram disk used running snaps="[]"
+	local guest os disp cores ram disk used running snaps="[]" disposable sealed tpm sb uefi
 	guest="$(conf_get "$conf" guest_os)"
 	os="$(os_slug "$conf")"
 	disp="$(conf_get "$conf" display)"; [ -z "$disp" ] && disp="gtk"
@@ -215,12 +224,20 @@ cmd_get() {
 		ssh="$(port_of "$vm_ports" ssh)"; spice="$(spice_target "$vm_ports" "$vm_subdir")"
 	fi
 	snaps="$(snaps_json "$vm_disk")"
+	disposable=false; [ "$running" = true ] && [ -e "$vm_subdir/$vm_name.disposable" ] && disposable=true
+	# sealed truth for the detail view comes from the disk itself.
+	sealed=false; printf '%s' "$snaps" | jq -e 'any(.[]; .name == "sealed")' >/dev/null 2>&1 && sealed=true
+	tpm=false; [ "$(conf_get "$conf" tpm)" = "on" ] && tpm=true
+	sb=false; [ "$(conf_get "$conf" secureboot)" = "on" ] && sb=true
+	uefi=true; [ "$(conf_get "$conf" boot)" = "legacy" ] && uefi=false
 	jq -cn --arg name "$vm_name" --arg guest "${guest:-linux}" --arg os "${os:-}" --arg display "$disp" \
 		--arg cores "${cores:-auto}" --arg ram "${ram:-auto}" --arg disk "${disk:-}" --argjson used "$used" \
 		--argjson running "$running" --arg ssh "${ssh:-}" --arg spice "${spice:-}" \
 		--argjson installed "$([ -e "$vm_disk" ] && echo true || echo false)" \
+		--argjson disposable "$disposable" --argjson sealed "$sealed" \
+		--argjson tpm "$tpm" --argjson secureboot "$sb" --argjson uefi "$uefi" \
 		--argjson snapshots "$snaps" --arg conf "$conf" --arg dir "$vm_subdir" \
-		'{name:$name,guest:$guest,os:$os,display:$display,cores:$cores,ram:$ram,disk:$disk,diskUsed:$used,running:$running,installed:$installed,ssh:$ssh,spice:$spice,snapshots:$snapshots,conf:$conf,dir:$dir}'
+		'{name:$name,guest:$guest,os:$os,display:$display,cores:$cores,ram:$ram,disk:$disk,diskUsed:$used,running:$running,installed:$installed,ssh:$ssh,spice:$spice,disposable:$disposable,sealed:$sealed,tpm:$tpm,secureboot:$secureboot,uefi:$uefi,snapshots:$snapshots,conf:$conf,dir:$dir}'
 }
 
 # ---- create (catalogue OS, in-app download with live progress) --------------
@@ -260,7 +277,9 @@ cmd_create() {
 	if ! create_special "$os" && have ryovm-fetch; then
 		emit '{"phase":"resolve"}'
 		local url base
-		url="$(quickget --url "$os" "$release" ${edition:+"$edition"} 2>/dev/null | grep -oE 'https?://[^ ]+' | head -1)"
+		# `|| true`: no URL match must fall through to the quickget path, not
+		# kill the whole engine under pipefail before any error JSON is emitted.
+		url="$(quickget --url "$os" "$release" ${edition:+"$edition"} 2>/dev/null | grep -oE 'https?://[^ ]+' | head -1 || true)"
 		base="${url##*/}"
 		case "$base" in
 			*.iso|*.img|*.ISO|*.IMG)
@@ -281,23 +300,33 @@ cmd_create() {
 	fi
 
 	# fallback: quickget downloads + configures; stream its output as log lines
-	# through a temp file that tail --pid follows until quickget exits.
+	# through a temp file that tail --pid follows until quickget exits. Snapshot
+	# the conf set first: only a conf NEW since then counts as the result, so a
+	# failed gnome build can never claim a pre-existing kde sibling as success.
 	emit "{\"phase\":\"download\",\"name\":\"$name\",\"fallback\":true}"
+	local before; before="$(ls "$vms_dir"/*.conf 2>/dev/null || true)"
 	local logf; logf="$(mktemp)"
 	setsid quickget "$os" "$release" ${edition:+"$edition"} >"$logf" 2>&1 & child=$!
 	tail --pid="$child" -n +1 -f "$logf" 2>/dev/null | while IFS= read -r line; do
 		[ -n "$line" ] && emit "$(jq -cn --arg l "$line" '{phase:"log",line:$l}')"
 	done
-	wait "$child" 2>/dev/null; child=""
+	local rc=0; wait "$child" 2>/dev/null || rc=$?; child=""
+	local lastline; lastline="$(tail -n1 "$logf" 2>/dev/null | tr -d '\r' || true)"
 	rm -f "$logf"
-	# stamp + report from whatever quickget produced for this OS.
+	# stamp + report only what this run actually produced.
 	local c made=""
 	for c in "$vms_dir/$os-$release"*.conf; do
 		[ -e "$c" ] || continue
+		case "$before" in *"$c"*) continue ;; esac
 		grep -q '^ryovm_os=' "$c" || echo "ryovm_os=\"$os\"" >>"$c"
 		made="$(basename "$c" .conf)"
 	done
-	if [ -n "$made" ]; then emit "{\"phase\":\"done\",\"name\":\"$made\"}"; else emit '{"phase":"error","message":"download failed"}'; exit 1; fi
+	if [ "$rc" -eq 0 ] && [ -n "$made" ]; then
+		emit "{\"phase\":\"done\",\"name\":\"$made\"}"
+	else
+		emit "$(jq -cn --arg m "download failed${lastline:+: $lastline}" '{phase:"error",message:$m}')"
+		exit 1
+	fi
 }
 
 # ---- import (any ISO, off-catalogue, full control) -------------------------
@@ -322,10 +351,15 @@ cmd_import() {
 # ---- launch ----------------------------------------------------------------
 # Detach so the engine returns at once and the VM (and any viewer) outlives it.
 # display: window (gtk) | spice (spicy viewer + clipboard) | headless (none).
+# --disposable runs the session on quickemu's --status-quo (qemu -snapshot):
+# every disk write lands in a temp overlay and burns up at power-off, so a
+# sealed machine boots identical every time. A marker file beside the pid lets
+# list/get report the mode while it runs.
 cmd_launch() {
 	require_engine
 	local conf; conf="$(conf_path "$1")"
-	local mode="${2:-window}" display
+	local mode="${2:-window}" display disposable=""
+	[ "${3:-}" = "--disposable" ] && disposable=1
 	case "$mode" in
 		window)   display="gtk" ;;
 		spice)    display="spice" ;;
@@ -337,15 +371,34 @@ cmd_launch() {
 	cd "$vms_dir"
 	local log="$vm_subdir/$vm_name.launch.log"
 	mkdir -p "$vm_subdir"
-	setsid quickemu --vm "$vm_name.conf" --display "$display" >"$log" 2>&1 < /dev/null &
-	# quickemu backgrounds qemu then exits; give it a moment and surface a fast
-	# failure (bad firmware, missing tool) instead of a silent no-op launch.
-	sleep 1.2
-	if [ "$mode" != headless ] || ! vm_running "$vm_pid"; then
-		if ! vm_running "$vm_pid"; then
-			die "the VM failed to start:
+	# --viewer none for the non-SPICE modes: quickemu validates its default
+	# viewer (spicy) even when the display never uses one, so a box without
+	# spice-gtk could not launch a plain gtk window or a headless machine.
+	local viewer=()
+	[ "$display" != "spice" ] && viewer=(--viewer none)
+	local extra=()
+	if [ -n "$disposable" ]; then
+		extra+=(--status-quo)
+		: > "$vm_subdir/$vm_name.disposable"
+	else
+		rm -f "$vm_subdir/$vm_name.disposable"
+	fi
+	setsid quickemu --vm "$vm_name.conf" --display "$display" "${viewer[@]}" "${extra[@]}" >"$log" 2>&1 < /dev/null &
+	local qpid=$!
+	# poll for readiness instead of one fixed beat: a slow first boot (qcow2
+	# creation, EFI vars) takes longer than any constant, and calling it a
+	# failure while the window then appears makes the board contradict itself.
+	# Fail only when quickemu itself has died AND no pid file ever appeared;
+	# the first line of the die() carries the cause (the UI keeps line one).
+	local i
+	for i in $(seq 1 32); do
+		vm_running "$vm_pid" && break
+		kill -0 "$qpid" 2>/dev/null || break
+		sleep 0.25
+	done
+	if ! vm_running "$vm_pid" && ! kill -0 "$qpid" 2>/dev/null; then
+		die "the VM failed to start: $(tail -n1 "$log" 2>/dev/null)
 $(tail -n 12 "$log" 2>/dev/null)"
-		fi
 	fi
 	echo "launched $vm_name ($mode)"
 }
@@ -433,17 +486,21 @@ cmd_ssh() {
 }
 
 # ---- delete ----------------------------------------------------------------
+# No require_engine: deleting is file removal, and a box that imported a
+# machine before installing the engine must be able to remove it again. The
+# quickemu calls are best-effort tidying; the rm fallbacks are the guarantee.
 cmd_delete() {
-	require_engine
 	local conf; conf="$(conf_path "$1")"
 	vm_paths "$conf"
 	vm_running "$vm_pid" && die "stop $vm_name before deleting it"
 	cd "$vms_dir"
 	if [ "${2:-}" = "--disk-only" ]; then
-		quickemu --vm "$vm_name.conf" --delete-disk >/dev/null 2>&1 || true
-		echo "wiped the disk for $vm_name"
+		have quickemu && quickemu --vm "$vm_name.conf" --delete-disk >/dev/null 2>&1 || true
+		rm -f "$vm_disk"
+		echo "reclaimed the disk for $vm_name"
 	else
-		quickemu --vm "$vm_name.conf" --delete-vm >/dev/null 2>&1 || true
+		have quickemu && quickemu --vm "$vm_name.conf" --delete-vm >/dev/null 2>&1 || true
+		[ -d "$vm_subdir" ] && [ "$vm_subdir" != "$vms_dir" ] && rm -rf "$vm_subdir"
 		rm -f "$conf"
 		echo "deleted $vm_name"
 	fi
@@ -494,6 +551,92 @@ cmd_resize() {
 	echo "resized $vm_name disk to $size"
 }
 
+# ---- seal (the golden-state anchor for disposable machines) -----------------
+# Set the machine up once, then seal it: one reserved qcow2 snapshot ("sealed")
+# capturing the golden state, and a conf stamp so the library can badge it
+# without probing every disk. Disposable runs never touch the disk, so the seal
+# stays pristine forever; a normal run that dirties the machine can always be
+# rolled back to the seal. Re-sealing replaces the old seal with the current
+# state.
+cmd_seal() {
+	local conf; conf="$(conf_path "${1:?seal needs a VM name}")"
+	vm_paths "$conf"
+	vm_running "$vm_pid" && die "stop $vm_name before sealing it"
+	[ -e "$vm_disk" ] || die "$vm_name has no disk yet; install it first, then seal"
+	qemu-img snapshot -d sealed "$vm_disk" >/dev/null 2>&1 || true
+	qemu-img snapshot -c sealed "$vm_disk" || die "could not write the seal"
+	if grep -qE '^ryovm_sealed=' "$conf"; then
+		sed -i -E 's|^ryovm_sealed=.*|ryovm_sealed="1"|' "$conf"
+	else
+		echo 'ryovm_sealed="1"' >>"$conf"
+	fi
+	echo "sealed $vm_name at its current state"
+}
+
+# restore-seal: roll the disk back to the sealed state (a guarded action in the
+# UI). The seal itself survives the rollback, ready for the next one.
+cmd_restore_seal() {
+	local conf; conf="$(conf_path "${1:?restore-seal needs a VM name}")"
+	vm_paths "$conf"
+	vm_running "$vm_pid" && die "stop $vm_name before restoring the seal"
+	qemu-img snapshot -a sealed "$vm_disk" || die "no seal to restore on $vm_name"
+	echo "restored $vm_name to its sealed state"
+}
+
+# ---- usb (host devices + per-VM assignment) ---------------------------------
+# list <name>: host USB devices (root hubs excluded), each with its assignment
+# state in the VM's conf. set <name> <vid:pid> on|off: edit the quickemu
+# usb_devices=(...) array. Assignment applies at the next launch; quickemu hands
+# the devices to qemu at boot (and fixes their node permissions when needed).
+cmd_usb() {
+	local sub="${1:?usb needs list|set}"; shift
+	local conf; conf="$(conf_path "${1:?usb needs a VM name}")"; shift || true
+	# current assignments, parsed without sourcing the conf (same rule as
+	# conf_get: parsing beats executing).
+	local line devices=() tok
+	line="$(sed -n -E 's/^usb_devices=\((.*)\)/\1/p' "$conf")"
+	if [ -n "$line" ]; then
+		while IFS= read -r tok; do
+			tok="${tok//\"/}"
+			[ -n "$tok" ] && devices+=("$tok")
+		done < <(printf '%s' "$line" | grep -oE '"[^"]*"')
+	fi
+	case "$sub" in
+		list)
+			local first=1
+			printf '['
+			local l id name on d
+			while IFS= read -r l; do
+				id="$(printf '%s' "$l" | sed -n -E 's/^.*ID ([0-9a-f]{4}:[0-9a-f]{4}).*$/\1/p')"
+				name="$(printf '%s' "$l" | sed -n -E 's/^.*ID [0-9a-f]{4}:[0-9a-f]{4} ?(.*)$/\1/p')"
+				[ -z "$id" ] && continue
+				case "$name" in *"root hub"*) continue ;; esac
+				on=false
+				for d in "${devices[@]}"; do [ "$d" = "$id" ] && { on=true; break; }; done
+				[ $first -eq 1 ] && first=0 || printf ','
+				jq -cn --arg id "$id" --arg name "${name:-USB device}" --argjson on "$on" \
+					'{id:$id,name:$name,assigned:$on}'
+			done < <(lsusb 2>/dev/null)
+			printf ']\n' ;;
+		set)
+			local id="${1:?usb set needs <vid:pid>}" want="${2:?usb set needs on|off}"
+			[[ "$id" =~ ^[0-9a-f]{4}:[0-9a-f]{4}$ ]] || die "bad device id: $id"
+			vm_paths "$conf"
+			vm_running "$vm_pid" && die "stop $vm_name before changing USB devices"
+			local out=() d
+			for d in "${devices[@]}"; do [ "$d" != "$id" ] && out+=("$d"); done
+			[ "$want" = on ] && out+=("$id")
+			sed -i -E '/^usb_devices=/d' "$conf"
+			if [ "${#out[@]}" -gt 0 ]; then
+				local newline="usb_devices=(" q
+				for q in "${out[@]}"; do newline+="\"$q\" "; done
+				printf '%s)\n' "${newline% }" >>"$conf"
+			fi
+			echo "usb $id $want for $vm_name" ;;
+		*) die "unknown usb subcommand: $sub" ;;
+	esac
+}
+
 # ---- folder ----------------------------------------------------------------
 cmd_folder() {
 	if [ -n "${1:-}" ]; then
@@ -525,7 +668,31 @@ cmd_icon() {
 		local mage=$(( ( $(date +%s) - $(stat -c %Y "$miss" 2>/dev/null || echo 0) ) / 86400 ))
 		[ "$mage" -lt "$icon_ttl_days" ] && { serve_stale || true; return 0; }
 	fi
-	# need the catalogue to know the URLs; absent -> serve any stale cache.
+	# primary source: simple-icons (MIT, monochrome), tinted to the app's cream
+	# so every mark reads as the same stamped ink on the dark plate — one visual
+	# system across the whole catalogue, and it covers OSes quickemu-icons does
+	# not (fedora included). The quickemu-icons colour badges stay as fallback.
+	local si="$os"
+	case "$os" in
+		alma) si="almalinux" ;;
+		alpine) si="alpinelinux" ;;
+		kali) si="kalilinux" ;;
+		macos) si="apple" ;;
+		void) si="voidlinux" ;;
+		garuda) si="garudalinux" ;;
+		ubuntu-server) si="ubuntu" ;;
+		centos-stream) si="centos" ;;
+		parrotsec) si="parrotsecurity" ;;
+		proxmox-ve) si="proxmox" ;;
+		lmde) si="linuxmint" ;;
+		windows|windows-server) si="" ;;   # trademarked; quickemu-icons' badge serves
+	esac
+	if [ -n "$si" ] && curl -fsSL "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/$si.svg" -o "$svg.tmp" 2>/dev/null && [ -s "$svg.tmp" ]; then
+		sed -i 's/<svg /<svg fill="#e6dccb" /' "$svg.tmp"
+		mv "$svg.tmp" "$svg"; rm -f "$png" "$miss"; printf '%s\n' "$svg"; return 0
+	fi
+	rm -f "$svg.tmp"
+	# fallback: the catalogue's own art URLs (quickemu-icons badges).
 	[ -s "$catalog_cache" ] || { serve_stale || true; return 0; }
 	local svgurl pngurl
 	svgurl="$(jq -r --arg os "$os" 'first(.[] | select(.OS==$os) | .SVG) // empty' "$catalog_cache" 2>/dev/null)"
@@ -589,6 +756,9 @@ case "$cmd" in
 	rename)   cmd_rename "$@" ;;
 	resize)   cmd_resize "$@" ;;
 	snapshot) cmd_snapshot "$@" ;;
+	seal)     cmd_seal "$@" ;;
+	restore-seal) cmd_restore_seal "$@" ;;
+	usb)      cmd_usb "$@" ;;
 	ssh)      cmd_ssh "$@" ;;
 	delete)   cmd_delete "$@" ;;
 	folder)   cmd_folder "$@" ;;
