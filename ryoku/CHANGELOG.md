@@ -404,6 +404,12 @@
   `shell/fish` (with its non-brand greeting) was dropped for `ryoku/apps/fish`.
 
 ### Fixed
+- `hyprland/modules/autostart.lua`: the first-run welcome walkthrough is no longer
+  suppressed forever when it fails to launch. The launch chained `qs -c welcome`,
+  `mkdir`, and `touch welcome-seen` with `;`, so the seen-flag was written even
+  when `qs` exited without showing the tour, and the walkthrough never returned. It
+  now gates the flag on `qs` succeeding (`&&`), so a first-boot launch failure
+  retries on the next login instead of marking the tour seen.
 - `hyprland/modules/autostart.lua`: booting a snapshot from the Limine menu now
   actually offers the one-click restore. limine-snapper-sync ships its restore
   prompt as an XDG autostart entry, but Hyprland runs no XDG autostart manager,

@@ -23,8 +23,9 @@ hl.on("hyprland.start", function()
     -- First-login welcome walkthrough: show the guided tour once, then mark it
     -- seen so it never returns. The flag lives in state (not config), so it needs
     -- no doctor reconciler; an flock guards a double fire. The tour window quits on
-    -- finish or close, then the flag is written -- so it appears exactly once. exec
-    -- is async, so the blocking `qs` here never holds up the rest of autostart.
+    -- finish or close, then the flag is written only if qs actually ran the tour
+    -- (`&&`), so a first-boot launch failure retries next login instead of marking
+    -- it seen forever. exec is async, so the blocking `qs` never holds up autostart.
     local welcome_state = (os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state")) .. "/ryoku"
-    hl.exec_cmd("[ -e '" .. welcome_state .. "/welcome-seen' ] || { flock -n \"${XDG_RUNTIME_DIR:-/tmp}/ryoku-welcome.lock\" qs -c welcome; mkdir -p '" .. welcome_state .. "'; touch '" .. welcome_state .. "/welcome-seen'; }")
+    hl.exec_cmd("[ -e '" .. welcome_state .. "/welcome-seen' ] || { flock -n \"${XDG_RUNTIME_DIR:-/tmp}/ryoku-welcome.lock\" qs -c welcome && mkdir -p '" .. welcome_state .. "' && touch '" .. welcome_state .. "/welcome-seen'; }")
 end)
