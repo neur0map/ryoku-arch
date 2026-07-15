@@ -423,28 +423,127 @@ cloud_resolve_url() { # $1 = entry json
 	printf '%s' "$e" | jq -r '.url'
 }
 
+# ---- toolset: cross-distro dev tools baked in by cloud-init ------------------
+# The user picks tools (git, node, docker, ...); the seed installs them on first
+# boot with the target distro's own package names. cloud-init's packages: module
+# dispatches to apt/dnf/pacman/apk/zypper by name; runcmd: handles the rest
+# (docker service + group, rustup, spice-vdagent). Heavy tools re-install on
+# every DISPOSABLE boot (minutes) — the golden template (template/spawn) bakes
+# them once and is the right home for a disposable-with-tools workflow.
+
+# os slug -> package family.
+pkg_family() {
+	case "$1" in
+		ubuntu|debian) echo apt ;;
+		fedora)        echo dnf-fedora ;;
+		rocky|alma)    echo dnf-rhel ;;
+		archlinux)     echo pacman ;;
+		alpine)        echo apk ;;
+		opensuse)      echo zypper ;;
+		*)             echo apt ;;
+	esac
+}
+
+# packages for one tool on one family (space-separated; empty = runcmd-only).
+tool_pkgs() { # $1 tool  $2 family
+	case "$1:$2" in
+		git:*)          echo git ;;
+		build:apt)      echo build-essential ;;
+		build:pacman)   echo base-devel ;;
+		build:apk)      echo build-base ;;
+		build:*)        echo gcc gcc-c++ make ;;
+		python:apt)     echo python3 python3-pip python3-venv ;;
+		python:apk)     echo python3 py3-pip ;;
+		python:pacman)  echo python python-pip ;;
+		python:*)       echo python3 python3-pip ;;
+		node:zypper)    echo nodejs-default npm-default ;;
+		node:*)         echo nodejs npm ;;
+		go:apt)         echo golang-go ;;
+		go:dnf-fedora|go:dnf-rhel) echo golang ;;
+		go:*)           echo go ;;
+		rust:apt)       echo rustc cargo ;;
+		rust:pacman)    echo rust ;;
+		rust:*)         echo rust cargo ;;
+		docker:apt)     echo docker.io docker-compose-v2 ;;
+		docker:dnf-fedora) echo moby-engine docker-compose ;;
+		docker:pacman)  echo docker docker-compose docker-buildx ;;
+		docker:apk)     echo docker docker-cli-compose ;;
+		docker:zypper)  echo docker docker-compose ;;
+		docker:dnf-rhel) echo ;;                    # repo-added in runcmd
+		podman:*)       echo podman ;;
+		jq:*)           echo jq ;;
+		net:*)          echo curl wget ;;
+		cli:apt|cli:dnf-fedora|cli:dnf-rhel) echo htop tmux vim ripgrep fd-find unzip ;;
+		cli:*)          echo htop tmux vim ripgrep fd unzip ;;
+		spice:*)        echo spice-vdagent qemu-guest-agent ;;
+	esac
+}
+
+# runcmd YAML list-items for one tool on one family (each printed line "  - ...").
+tool_runcmd() { # $1 tool  $2 family
+	case "$1:$2" in
+		docker:apk)
+			printf '  - rc-update add docker default\n  - rc-service docker start\n  - addgroup ryoku docker\n' ;;
+		docker:dnf-rhel)
+			printf '  - dnf -y install dnf-plugins-core\n'
+			printf '  - dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo\n'
+			printf '  - dnf -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin\n'
+			printf '  - systemctl enable --now docker\n  - groupadd -f docker\n  - usermod -aG docker ryoku\n' ;;
+		docker:*)
+			printf '  - systemctl enable --now docker\n  - groupadd -f docker\n  - usermod -aG docker ryoku\n' ;;
+		rustup:*)
+			printf "  - [ su, -l, ryoku, -c, \"curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y\" ]\n" ;;
+		spice:apk)
+			printf '  - rc-update add spice-vdagentd default\n  - rc-service spice-vdagentd start\n' ;;
+		spice:*)
+			printf '  - systemctl enable --now spice-vdagentd\n' ;;
+	esac
+}
+
 # build the cidata seed ISO for a VM: a cloud-init NoCloud payload that creates
 # the ryoku burn account (password ryoku, passwordless sudo, the burn key + any
-# host keys). Re-read on every disposable boot (the overlay resets), applied
-# once on a persistent one. genisoimage is on the box; the volid MUST be cidata.
-write_seed() { # $1 = vm subdir, $2 = vm name, $3 = install sudo? (true/false)
-	local dir="$1" name="$2" want_sudo="$3"
+# host keys), bakes the OSC-52 `clip` helper, and installs the chosen toolset.
+# Re-read on every disposable boot (the overlay resets), applied once on a
+# persistent one. The volid MUST be cidata.
+write_seed() { # $1=dir $2=name $3=want_sudo $4=os $5=tools_csv $6=extra_csv
+	local dir="$1" name="$2" want_sudo="$3" os="${4:-}" tools_csv="${5:-}" extra_csv="${6:-}"
 	ensure_burn_key
 	local keys; keys="$(printf '      - %s\n' "$(cat "$(burnKey).pub")")"
 	local k
 	for k in "$HOME"/.ssh/id_*.pub; do
 		[ -f "$k" ] && keys="$keys"$'\n'"$(printf '      - %s' "$(cat "$k")")"
 	done
-	local pkgs=""
-	[ "$want_sudo" = true ] && pkgs=$'packages:\n  - sudo\n'
+
+	# resolve the toolset to packages: + runcmd: for this distro. Each cloud-init
+	# packages: item must be ONE package (a "- nodejs npm" line installs nothing),
+	# so split the CSV tool list with read -ra (comma) and keep the inner package
+	# split on the default IFS (space). $() strips a block's trailing newline, so
+	# re-add one between runcmd blocks or they merge.
+	local fam; fam="$(pkg_family "$os")"
+	local pkg_lines="" run_lines="" t p rc
+	[ "$want_sudo" = true ] && pkg_lines="  - sudo"$'\n'
+	local tools_arr extra_arr
+	IFS=',' read -ra tools_arr <<<"$tools_csv"
+	for t in "${tools_arr[@]}"; do
+		[ -n "$t" ] || continue
+		for p in $(tool_pkgs "$t" "$fam"); do pkg_lines="$pkg_lines  - $p"$'\n'; done
+		rc="$(tool_runcmd "$t" "$fam")"
+		[ -n "$rc" ] && run_lines="$run_lines$rc"$'\n'
+	done
+	IFS=',' read -ra extra_arr <<<"$extra_csv"
+	for p in "${extra_arr[@]}"; do
+		p="$(printf '%s' "$p" | tr -d ' ')"
+		[ -n "$p" ] && pkg_lines="$pkg_lines  - $p"$'\n'
+	done
+
 	{
 		printf '#cloud-config\n'
 		printf 'hostname: %s\n' "$name"
 		printf 'ssh_pwauth: true\n'
-		printf 'package_update: false\n'
+		# a fresh index is required before any install (apt 404s, pacman needs -Sy).
+		if [ -n "$pkg_lines" ] || [ -n "$run_lines" ]; then printf 'package_update: true\n'; else printf 'package_update: false\n'; fi
 		printf 'package_upgrade: false\n'
 		printf 'chpasswd:\n  expire: false\n'
-		printf '%s' "$pkgs"
 		printf 'users:\n'
 		printf '  - name: ryoku\n'
 		printf '    plain_text_passwd: ryoku\n'
@@ -453,6 +552,18 @@ write_seed() { # $1 = vm subdir, $2 = vm name, $3 = install sudo? (true/false)
 		printf '    groups: [wheel, adm, sudo]\n'
 		printf '    ssh_authorized_keys:\n'
 		printf '%s\n' "$keys"
+		# the clip helper: copy stdin to the HOST clipboard over the ssh terminal
+		# via OSC 52 (kitty writes it). No package cost; always baked.
+		printf 'write_files:\n'
+		printf '  - path: /usr/local/bin/clip\n'
+		printf '    permissions: "0755"\n'
+		printf '    content: |\n'
+		printf '      #!/bin/sh\n'
+		printf '      b64=$(base64 2>/dev/null | tr -d "\\n")\n'
+		printf '      if [ -n "$TMUX" ]; then printf "\\033Ptmux;\\033\\033]52;c;%%s\\007\\033\\\\" "$b64" > /dev/tty\n'
+		printf '      else printf "\\033]52;c;%%s\\007" "$b64" > /dev/tty; fi\n'
+		if [ -n "$pkg_lines" ]; then printf 'packages:\n%s' "$pkg_lines"; fi
+		if [ -n "$run_lines" ]; then printf 'runcmd:\n%s' "$run_lines"; fi
 	} >"$dir/user-data"
 	# bumping instance-id forces cloud-init to re-run on a reused disk.
 	printf 'instance-id: iid-%s-%s\nlocal-hostname: %s\n' "$name" "$(date +%s)" "$name" >"$dir/meta-data"
@@ -477,14 +588,18 @@ iso_build() { # $1 = out.iso, $2.. = files
 have_iso_builder() { have genisoimage || have xorriso || have mkisofs; }
 
 cmd_instant() {
-	local os="" name="" disposable="" sealme="" a
+	local os="" name="" disposable="" sealme="" tools="" extra="" a
 	for a in "$@"; do
 		case "$a" in
 			--disposable) disposable=1 ;;
 			--sealed)     sealme=1 ;;
+			--tools=*)    tools="${a#--tools=}" ;;
+			--pkgs=*)     extra="${a#--pkgs=}" ;;
 			*) [ -z "$os" ] && os="$a" || name="$a" ;;
 		esac
 	done
+	# the clip helper is always baked; spice-vdagent gives console clipboard.
+	# both are cheap; a user who wants nothing else still gets clipboard.
 	[ -n "$os" ] || { emit '{"phase":"error","message":"instant needs an OS (e.g. debian)"}'; exit 1; }
 	have_iso_builder || { emit '{"phase":"error","message":"no ISO builder — install xorriso: sudo pacman -S libisoburn"}'; exit 1; }
 	have qemu-img || { emit '{"phase":"error","message":"qemu-img is missing"}'; exit 1; }
@@ -522,7 +637,7 @@ cmd_instant() {
 	# usable size (cloud-init's growpart expands the rootfs on first boot).
 	qemu-img create -f qcow2 -F qcow2 -b "$base" "$sub/disk.qcow2" 32G >/dev/null 2>&1 \
 		|| { rm -rf "$sub"; emit '{"phase":"error","message":"could not create the disk overlay"}'; exit 1; }
-	write_seed "$sub" "$name" "$want_sudo" \
+	write_seed "$sub" "$name" "$want_sudo" "$os" "$tools" "$extra" \
 		|| { rm -rf "$sub"; emit '{"phase":"error","message":"could not build the cloud-init seed"}'; exit 1; }
 
 	# quickemu conf: point at the overlay, attach the seed as a read-only cdrom
@@ -536,6 +651,7 @@ cmd_instant() {
 		echo "ryovm_os=\"$os\""
 		echo "ryovm_ssh_user=\"ryoku\""
 		echo "ryovm_burn=\"1\""
+		[ -n "$tools" ] && echo "ryovm_tools=\"$tools\""
 	} >"$vms_dir/$name.conf"
 	[ -n "$sealme" ] && echo 'ryovm_sealed="1"' >>"$vms_dir/$name.conf"
 
@@ -546,6 +662,88 @@ cmd_instant() {
 	fi
 	emit "{\"phase\":\"done\",\"name\":\"$name\"}"
 	# auto-launch: instant means instant.
+	if [ -n "$disposable" ]; then
+		cmd_launch "$name" headless --disposable >/dev/null 2>&1 || true
+	else
+		cmd_launch "$name" headless >/dev/null 2>&1 || true
+	fi
+}
+
+# ---- template / spawn (golden image: bake tools once, spawn fast) -----------
+# The disposable-with-tools answer. A disposable re-runs cloud-init every boot,
+# so heavy tools would reinstall each time. Instead: build ONE machine with the
+# toolset (a keeper instant, tools installed on its first boot), template it
+# (flatten to an immutable base), then spawn thin overlays that inherit the
+# tools read-only and boot in seconds — disposable or not.
+templatesDir() { printf '%s' "$(imagesDir)/templates"; }
+
+cmd_template() {
+	local src="${1:?template needs a source VM}" tpl="${2:-$1}"
+	local conf; conf="$(conf_path "$src")"
+	vm_paths "$conf"
+	vm_running "$vm_pid" && die "stop $src before templating it"
+	[ -e "$vm_disk" ] || die "$src has no disk yet"
+	mkdir -p "$(templatesDir)"
+	local out; out="$(templatesDir)/$tpl.qcow2"
+	[ -e "$out" ] && die "a template named '$tpl' already exists"
+	# flatten the distro-base + this VM's deltas into one standalone qcow2, then
+	# freeze it read-only: every spawn overlays this file, and a mutable base
+	# would corrupt its children the moment the source booted again.
+	qemu-img convert -O qcow2 "$vm_disk" "$out.part" || die "could not build the template"
+	mv "$out.part" "$out"; chmod 0444 "$out"
+	jq -cn --arg os "$(conf_get "$conf" ryovm_os)" --arg tools "$(conf_get "$conf" ryovm_tools)" \
+		--arg base "$out" '{os:$os,tools:$tools,base:$base}' >"$(templatesDir)/$tpl.json"
+	echo "templated $src as '$tpl'"
+}
+
+cmd_templates() {
+	mkdir -p "$(templatesDir)"
+	local first=1 m
+	printf '['
+	for m in "$(templatesDir)"/*.json; do
+		[ -e "$m" ] || continue
+		[ $first -eq 1 ] && first=0 || printf ','
+		jq -c --arg name "$(basename "$m" .json)" '. + {name:$name}' "$m"
+	done
+	printf ']\n'
+}
+
+cmd_spawn() {
+	local tpl="" name="" disposable="" a
+	for a in "$@"; do
+		case "$a" in
+			--disposable) disposable=1 ;;
+			*) [ -z "$tpl" ] && tpl="$a" || name="$a" ;;
+		esac
+	done
+	[ -n "$tpl" ] || { emit '{"phase":"error","message":"spawn needs a template"}'; exit 1; }
+	local meta; meta="$(templatesDir)/$tpl.json"
+	[ -f "$meta" ] || { emit "{\"phase\":\"error\",\"message\":\"no template '$tpl'\"}"; exit 1; }
+	local base os; base="$(jq -r .base "$meta")"; os="$(jq -r .os "$meta")"
+	[ -s "$base" ] || { emit '{"phase":"error","message":"template base is missing"}'; exit 1; }
+	[ -n "$name" ] || name="$tpl-$(date +%s | tail -c 5)"
+	mkdir -p "$vms_dir"
+	[ -e "$vms_dir/$name.conf" ] && { emit "{\"phase\":\"error\",\"message\":\"$name already exists\"}"; exit 1; }
+	emit '{"phase":"config"}'
+	local sub="$vms_dir/$name"; mkdir -p "$sub"
+	qemu-img create -f qcow2 -F qcow2 -b "$base" "$sub/disk.qcow2" 32G >/dev/null 2>&1 \
+		|| { rm -rf "$sub"; emit '{"phase":"error","message":"overlay failed"}'; exit 1; }
+	# the tools + ryoku account are already baked into the base; the spawn needs
+	# no packages: seed. A tiny seed only refreshes the hostname/instance so
+	# cloud-init settles quickly. ssh identity stays the burn policy.
+	write_seed "$sub" "$name" false "$os" "" "" \
+		|| { rm -rf "$sub"; emit '{"phase":"error","message":"seed failed"}'; exit 1; }
+	{
+		echo "guest_os=\"linux\""
+		echo "disk_img=\"$name/disk.qcow2\""
+		echo "preallocation=\"metadata\""
+		echo "extra_args=\"-drive file=$sub/seed.iso,media=cdrom,readonly=on\""
+		echo "ryovm_os=\"$os\""
+		echo "ryovm_ssh_user=\"ryoku\""
+		echo "ryovm_burn=\"1\""
+		echo "ryovm_template=\"$tpl\""
+	} >"$vms_dir/$name.conf"
+	emit "{\"phase\":\"done\",\"name\":\"$name\"}"
 	if [ -n "$disposable" ]; then
 		cmd_launch "$name" headless --disposable >/dev/null 2>&1 || true
 	else
@@ -1015,6 +1213,9 @@ case "$cmd" in
 	create)   cmd_create "$@" ;;
 	instant)  cmd_instant "$@" ;;
 	cloud-catalog) cmd_cloud_catalog "$@" ;;
+	template) cmd_template "$@" ;;
+	templates) cmd_templates "$@" ;;
+	spawn)    cmd_spawn "$@" ;;
 	import)   cmd_import "$@" ;;
 	launch)   cmd_launch "$@" ;;
 	console)  cmd_console "$@" ;;
@@ -1032,5 +1233,5 @@ case "$cmd" in
 	icon)     cmd_icon "$@" ;;
 	prefetch) cmd_prefetch "$@" ;;
 	paths)    cmd_paths "$@" ;;
-	*) die "usage: ryovm caps|setup|catalog|cloud-catalog|list|get|create|instant|import|launch|console|stop|config|rename|resize|snapshot|seal|restore-seal|usb|ssh|delete|folder|icon|prefetch|paths" 2 ;;
+	*) die "usage: ryovm caps|setup|catalog|cloud-catalog|list|get|create|instant|template|templates|spawn|import|launch|console|stop|config|rename|resize|snapshot|seal|restore-seal|usb|ssh|delete|folder|icon|prefetch|paths" 2 ;;
 esac

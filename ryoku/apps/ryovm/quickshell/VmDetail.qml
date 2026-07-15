@@ -790,6 +790,29 @@ Item {
                     }
                 }
 
+                // ── template: freeze this machine into a spawnable base ─────
+                Column {
+                    width: parent.width
+                    spacing: 10
+                    visible: pane.det && pane.det.installed === true
+                    SectionHead { text: "Template" }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: pane.running
+                            ? "Stop the machine to template it."
+                            : "Freeze this machine — tools and all — into a golden base, then spawn instant clones off it (ryovm spawn). A disposable spawn boots in seconds with everything already baked."
+                        color: pane.running ? Theme.ember : Theme.dim
+                        font.family: Theme.font; font.pixelSize: pane.running ? 12 : 11
+                    }
+                    HubButton {
+                        label: "Save as template"
+                        icon: "snapshot"
+                        enabled: !pane.running && !Vm.busy
+                        onClicked: Vm.template(pane.name)
+                    }
+                }
+
                 // ── danger: verbs under guard covers ────────────────────────
                 Column {
                     width: parent.width

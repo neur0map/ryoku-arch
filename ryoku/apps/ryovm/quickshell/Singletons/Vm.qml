@@ -157,6 +157,14 @@ Singleton {
         status = "Restoring the seal on " + name;
         runProc.exec(["ryovm", "restore-seal", name]);
     }
+    // template = freeze this machine (tools + all) into a reusable golden base;
+    // spawn = a thin clone off it that boots in seconds with everything baked.
+    function template(name) {
+        if (busy) return;
+        busy = true;
+        status = "Saving " + name + " as a template";
+        runProc.exec(["ryovm", "template", name, name]);
+    }
     function stop(name) {
         if (busy)
             return;
@@ -253,7 +261,7 @@ Singleton {
     }
     // instant reuses the create streaming pipeline (same download/config/done
     // JSON), so the download bar and "created" hand-off work unchanged.
-    function instant(os, name, disposable) {
+    function instant(os, name, disposable, tools, pkgs) {
         if (downloading) return;
         downloading = true;
         dlName = name && name.length > 0 ? name : os + "-instant";
@@ -262,6 +270,8 @@ Singleton {
         var cmd = ["ryovm", "instant", os];
         if (name && name.length > 0) cmd.push(name);
         if (disposable === true) cmd.push("--disposable");
+        if (tools && tools.length > 0) cmd.push("--tools=" + tools);
+        if (pkgs && pkgs.length > 0) cmd.push("--pkgs=" + pkgs);
         createProc.command = cmd;
         createProc.running = true;
     }
@@ -658,6 +668,11 @@ Singleton {
             property int defaultRam: 8
             property int defaultDisk: 64
             property string defaultDisplay: "window"
+            // instant-machine toolset: chip ids + free-text packages, remembered
+            // between sessions. clip (OSC 52) is always baked; spice adds console
+            // clipboard. This default gives a light dev box + clipboard.
+            property string tools: "git,build,cli,spice"
+            property string extraPkgs: ""
         }
     }
     function saveSettings() { cfgFile.writeAdapter(); }

@@ -25,6 +25,25 @@
   `libisoburn`), genisoimage, or mkisofs — and `ryovm setup` pulls xorriso
   alongside quickemu so installing the engine also enables instant machines
   (`bin/ryovm`, `ryoku-desktop` optdepend).
+- `ryovm/`: **toolsets, clipboard, and golden templates for instant machines.**
+  An instant machine can now boot with a dev toolset already installed — a
+  "Tools" panel in the create sheet offers curated chips (git, build tools,
+  python, node, go, rust, docker, podman, jq, curl/wget, cli utils, SPICE
+  clipboard) plus a free-text field for any other packages, remembered between
+  sessions. The seed maps each tool to the target distro's own package names
+  (docker is `docker.io`/`moby-engine`/`docker` per distro, with the service
+  enabled and `ryoku` added to the docker group) and installs them via
+  cloud-init on first boot. **Clipboard**: a `clip` helper is baked into every
+  machine — `some-command | clip` copies to the host clipboard over SSH via
+  OSC 52 (kitty), host→guest is native terminal paste, and the SPICE-clipboard
+  tool adds bidirectional sync in the Console. **Golden templates**: because a
+  disposable re-runs cloud-init (and re-installs tools) every boot, a keeper
+  machine can be frozen with `Save as template` (or `ryovm template`) into an
+  immutable base, and `ryovm spawn` makes thin clones that boot in seconds with
+  the tools already baked. Verified live: a Debian instant installed
+  git/go/docker in ~40s, was templated, and a disposable spawn came up in 11s
+  with docker and go present, no reinstall (`bin/ryovm`, `CloudPanel.qml`,
+  `VmDetail.qml`, `Singletons/Vm.qml`).
 - `ryovm/`: **instant machines — a prebuilt VM with a known login, no installer.**
   `ryovm instant <os>` is the Kali/Vagrant model: it fetches a distro's official
   pre-installed cloud qcow2 (Ubuntu, Debian, Fedora, Arch, Alpine, openSUSE,
