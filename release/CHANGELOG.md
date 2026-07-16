@@ -73,6 +73,16 @@
   window rule are removed.
 
 ### Changed
+- **`ryomotion` now ships the Ryoku brand mark**, not the upstream OpenScreen
+  artwork (`pkgrel` 10, so `pacman -Syu` upgrades existing boxes). The PKGBUILD
+  bundles the Ryoku logo (`ryomotion-logo.png`) and overrides the fork's assets
+  at build time: it replaces the in-app empty-state and tray logo
+  (`public/openscreen.png`, before `build-vite`, which vite copies into the
+  bundle) and installs the Ryoku mark as the app icon for every hicolor size,
+  in place of the fork's green-aperture icons. It is a build-safe asset swap
+  (a sha256-validated local PNG copied over an existing file), so it cannot
+  fail the Electron build. The remaining "OpenScreen" i18n text (About/Project
+  strings) and the recording HUD/launch island stay fork-source concerns.
 - **The live (video) wallpaper backend now ships hard via `ryoku-shell`, not as
   GPU-picked `ryoku-desktop` optdepends.** `ryoku-shell` also builds and installs
   `ryoku-livewall`, the tiny C video-wallpaper daemon (it software-decodes a

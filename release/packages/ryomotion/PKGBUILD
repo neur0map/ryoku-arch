@@ -14,10 +14,13 @@
 # by default, so the matching node is fetched at build time instead of trusting
 # the host's. The rebrand (name, binary, appId) is applied with electron-builder
 # --config overrides, so it holds whether or not the fork carries it upstream.
+# The fork's OpenScreen artwork is overridden at build time with the Ryoku
+# brand mark (bundled ryomotion-logo.png): it replaces the in-app empty-state
+# and tray logo (public/openscreen.png) and is installed as the app icon.
 # Bump _commit (and pkgver/pkgrel) to ship a new upstream build to users.
 pkgname=ryomotion
 pkgver=1.5.0
-pkgrel=9
+pkgrel=10
 pkgdesc="Ryoku Motion: screen-demo recorder and editor (OpenScreen, Linux)"
 arch=('x86_64')
 url="https://github.com/neur0map/ryomotion"
@@ -29,9 +32,11 @@ options=('!strip' '!debug')
 _commit=60ea129dabfed8c4936aa6264dc43452c1ed8ab5
 _node=22.22.1
 source=("$pkgname::git+https://github.com/neur0map/ryomotion.git#commit=$_commit"
-        "node-$_node-linux-x64.tar.xz::https://nodejs.org/dist/v$_node/node-v$_node-linux-x64.tar.xz")
+        "node-$_node-linux-x64.tar.xz::https://nodejs.org/dist/v$_node/node-v$_node-linux-x64.tar.xz"
+        "ryomotion-logo.png")
 sha256sums=('SKIP'
-            '9a6bc82f9b491279147219f6a18add1e18424dce90d41d2a5fcd69d4924ba3aa')
+            '9a6bc82f9b491279147219f6a18add1e18424dce90d41d2a5fcd69d4924ba3aa'
+            '47d47e9e262ba023d9c92bc101e15018eff57bfc80a9f16d7df9c0c19c1c5778')
 
 build() {
   cd "$srcdir/$pkgname"
@@ -42,6 +47,9 @@ build() {
   hash -r
 
   npm ci --no-audit --no-fund
+  # Override the fork's OpenScreen empty-state/tray logo with the Ryoku mark;
+  # vite copies public/ verbatim into dist, so the built app shows the Ryoku logo.
+  install -m644 "$srcdir/ryomotion-logo.png" public/openscreen.png
   npm run build-vite
   ./node_modules/.bin/electron-builder --linux dir --config.npmRebuild=false \
     --config.productName='Ryo Motion' \
@@ -73,7 +81,9 @@ DESKTOP
 
   local s
   for s in 16 32 48 64 128 256 512 1024; do
-    install -Dm644 "icons/icons/png/${s}x${s}.png" \
+    # Install the bundled Ryoku mark as the app icon (overrides the fork's
+    # green-aperture icons/icons/png/${s}x${s}.png); the desktop scales it.
+    install -Dm644 "$srcdir/ryomotion-logo.png" \
       "$pkgdir/usr/share/icons/hicolor/${s}x${s}/apps/ryomotion.png"
   done
 }
