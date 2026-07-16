@@ -2,16 +2,24 @@
 
 ## Unreleased
 
+### Changed
+- **`ryowalls` and `ryovm` get distinct app icons.** New flat marks on Ryoku's
+  dark tile in the brand orange (a framed mountain-and-sun for the wallpaper
+  gallery, cascading screens for the virtual machines), replacing the old
+  `logo.svg` and matching the Ryo Motion aperture as one cohesive set. They ship
+  via `ryoku-desktop` as the scalable hicolor app icon, so `ryoku update`
+  delivers them (`ryowalls/quickshell/logo.svg`, `ryovm/quickshell/logo.svg`).
+
 ### Fixed
 - `ryovm/`: **instant machines now hand over a shell only once the tools are
   actually there.** The connect flow waited for `sshd` to answer, but a cloud
-  image installs its toolset in cloud-init's *final* stage — which runs 20s
+  image installs its toolset in cloud-init's *final* stage, which runs 20s
   (Arch `pacman`) to ~2min (Fedora `dnf`) after SSH is already up. So you'd
   land in a shell with no `git`/`go` and think the toolset never deployed;
   Alpine's ~2s `apk` hid the gap, which is why only it looked fine. The connect
   now waits for `cloud-init status` to reach `done` before the shell, with a
   live timer and Ctrl+C to drop in early. The tools were installing correctly
-  all along — the shell was just handed over too soon (`Singletons/Vm.qml`).
+  all along, the shell was just handed over too soon (`Singletons/Vm.qml`).
 - `ryovm/`: **`<tab>` completion works out of the box.** Cloud images ship bash
   but no `bash-completion`, so programmable completion (git subcommands, service
   and package names) was dead in instant machines. Every provisioned machine now
@@ -22,13 +30,13 @@
 ### Added
 - `ryovm/`: **SSH sessions no longer break on the terminal type.** Opening SSH
   from kitty (or foot, WezTerm, …) advertised a `TERM` a minimal guest has no
-  terminfo for — `clear`, `less`, `vim` died with `'xterm-kitty': unknown
+  terminfo for, `clear`, `less`, `vim` died with `'xterm-kitty': unknown
   terminal type`. The command now prefixes `env TERM=xterm-256color` (a real
-  binary, so it survives the app's unquoted `$cmd` run — a bare `TERM=` prefix
+  binary, so it survives the app's unquoted `$cmd` run, a bare `TERM=` prefix
   was parsed as a command name and failed with exit 127), advertising a
   terminal type every guest ships; the fix is in both the app-opened terminal
   and the copyable command. The wait-for-boot narration also stops crying wolf
-  at 60s — a fresh cloud image legitimately takes about a minute to provision
+  at 60s, a fresh cloud image legitimately takes about a minute to provision
   on first boot (Arch, Fedora), so it reassures instead of warning, and only
   calls it dead after three minutes. Two instant-catalogue fixes rode along:
   Alpine now uses its UEFI cloud image (quickemu boots OVMF; the BIOS variant
@@ -38,12 +46,12 @@
   (`bin/ryovm`, `Singletons/Vm.qml`).
 - `ryovm/`: **the instant-machine seed builds with any ISO tool.** genisoimage
   is AUR-only (cdrtools), so a fresh box could not build the cloud-init seed;
-  it now uses whatever is present — xorriso (in the Arch repos via
-  `libisoburn`), genisoimage, or mkisofs — and `ryovm setup` pulls xorriso
+  it now uses whatever is present, xorriso (in the Arch repos via
+  `libisoburn`), genisoimage, or mkisofs, and `ryovm setup` pulls xorriso
   alongside quickemu so installing the engine also enables instant machines
   (`bin/ryovm`, `ryoku-desktop` optdepend).
 - `ryovm/`: **toolsets, clipboard, and golden templates for instant machines.**
-  An instant machine can now boot with a dev toolset already installed — a
+  An instant machine can now boot with a dev toolset already installed, a
   "Tools" panel in the create sheet offers curated chips (git, build tools,
   python, node, go, rust, docker, podman, jq, curl/wget, cli utils, SPICE
   clipboard) plus a free-text field for any other packages, remembered between
@@ -51,7 +59,7 @@
   (docker is `docker.io`/`moby-engine`/`docker` per distro, with the service
   enabled and `ryoku` added to the docker group) and installs them via
   cloud-init on first boot. **Clipboard**: a `clip` helper is baked into every
-  machine — `some-command | clip` copies to the host clipboard over SSH via
+  machine, `some-command | clip` copies to the host clipboard over SSH via
   OSC 52 (kitty), host→guest is native terminal paste, and the SPICE-clipboard
   tool adds bidirectional sync in the Console. **Golden templates**: because a
   disposable re-runs cloud-init (and re-installs tools) every boot, a keeper
@@ -61,31 +69,31 @@
   git/go/docker in ~40s, was templated, and a disposable spawn came up in 11s
   with docker and go present, no reinstall (`bin/ryovm`, `CloudPanel.qml`,
   `VmDetail.qml`, `Singletons/Vm.qml`).
-- `ryovm/`: **instant machines — a prebuilt VM with a known login, no installer.**
+- `ryovm/`: **instant machines, a prebuilt VM with a known login, no installer.**
   `ryovm instant <os>` is the Kali/Vagrant model: it fetches a distro's official
   pre-installed cloud qcow2 (Ubuntu, Debian, Fedora, Arch, Alpine, openSUSE,
-  Rocky, Alma — the curated catalogue quickget refuses to carry), makes a thin
+  Rocky, Alma, the curated catalogue quickget refuses to carry), makes a thin
   copy-on-write overlay so every machine costs ~200 KB until written, and
   attaches a cloud-init `cidata` seed that bakes in the standard **Ryoku burn
-  account** — `ryoku`/`ryoku`, the ryovm burn SSH key, passwordless sudo — on
+  account**, `ryoku`/`ryoku`, the ryovm burn SSH key, passwordless sudo, on
   first boot. No 14-step wizard; ssh-able in under a minute, and every later
   instant of that distro is seconds (overlay + seed + boot, zero download). It
   composes with disposable: a `--disposable` instant discards all writes at
   power-off *including* `/var/lib/cloud`, so every boot is a factory-fresh
-  re-provision from the same read-only seed — born configured, dies clean.
+  re-provision from the same read-only seed, born configured, dies clean.
   Because a burn machine regenerates its SSH host key each boot, its ssh
   command skips host-key pinning (a throwaway has no identity to verify) while
   installed machines keep their per-VM `known_hosts`. Verified end to end on a
   real Debian 13 cloud image: instant → ssh as `ryoku` (key, no password) →
   passwordless root → disposable re-burn wipes writes and re-creates the
   account (`bin/ryovm`).
-- `ryovm/`: **the dispatch board — a full rework of the VM manager.** The window
+- `ryovm/`: **the dispatch board, a full rework of the VM manager.** The window
   reads as a rail-dispatch wall crossed with an instrument panel: split-flap
   cells spell the live state (the header board counts `NN MACHINES · NN
   RUNNING`, every card and the machine stage carry their own drums), each
   machine is a boarding-pass ticket (hanko seal over the real brand mark,
   punched perforation, Fraunces display name, mono manifest grid), subsystems
-  report on an annunciator row (KVM/UEFI/TPM/DISK/NET/SSH/SPICE/SEALED/BURN —
+  report on an annunciator row (KVM/UEFI/TPM/DISK/NET/SSH/SPICE/SEALED/BURN,
   lit means engaged, dark means honestly off), and the destructive verbs live
   under caution-striped guard covers that arm on one click and fire on the
   second. Brand marks come from simple-icons tinted to the board's cream ink
@@ -95,7 +103,7 @@
 - `ryovm/`: **disposable machines.** Set a machine up, hit Seal (one reserved
   qcow2 snapshot + a conf stamp), and every launch with the DISPOSABLE switch
   runs on quickemu's `--status-quo`: all disk writes burn up at power-off and
-  the machine boots identical next time — the flaps spell BURNING while it
+  the machine boots identical next time, the flaps spell BURNING while it
   runs. A dirtied normal run rolls back under the RESTORE SEAL guard. Proven
   end to end on an installed guest (created files evaporate from disposable
   sessions, survive normal ones, and the seal restore reverts everything).
@@ -105,7 +113,7 @@
   verbs `usb list|set`).
 - `ryovm/`: **the library works without the engine.** A missing quickemu is a
   blinking ENGINE OFFLINE banner (with the install action) instead of a locked
-  app — importing, configuring and deleting machines never needed it. The
+  app, importing, configuring and deleting machines never needed it. The
   engine's readiness re-polls every 5s, so the board lights up the moment an
   install finishes. Launch failures, dead-end empty states and every error now
   land on a sticky FAULT row with the full engine output behind a DETAIL
@@ -115,12 +123,12 @@
   while a download runs); arrows/Enter drive the library and `/` jumps to
   search; SSH gets a copyable command line, `$TERMINAL` respect, and boot
   honesty end to end: QEMU forwards the guest's port the instant the machine
-  starts — long before anything answers — so the board probes for the real
+  starts, long before anything answers, so the board probes for the real
   `SSH-` banner and only lights the SSH lamp and endpoint once the guest can
   actually be reached (until then the field reads "no answer"); the
   click-to-connect window narrates the wait instead of sitting pitch dark on a
-  booting guest — where it's going, which account it signs in as, elapsed
-  seconds, a live-ISO hint after a quiet minute — then hands over to plain ssh
+  booting guest, where it's going, which account it signs in as, elapsed
+  seconds, a live-ISO hint after a quiet minute, then hands over to plain ssh
   the moment the banner lands, holding open on failure with the fix spelled
   out; and the login account rides the detail JSON (`sshUser`), shows in the
   Reach-it command line and is editable in place (`ryovm_ssh_user`), because a
@@ -262,19 +270,19 @@
 ### Fixed
 - `ryovm/`: **the app knows whether SSH will answer before you click.** A
   forwarded port is no promise: slirp accepts the TCP connect even while the
-  guest is still booting — or is a live ISO that will never run sshd — so
+  guest is still booting, or is a live ISO that will never run sshd, so
   clicking SSH hung a silent terminal for minutes with no sign of life. The
   engine now probes the actual SSH banner (1s, real signal) and `get` reports
-  `sshReady`; the REACH IT panel says "Guest is answering — connect away" in
-  green or exactly why not ("still booting, or no SSH server inside — live
+  `sshReady`; the REACH IT panel says "Guest is answering, connect away" in
+  green or exactly why not ("still booting, or no SSH server inside, live
   ISOs never have one"), the manifest marks the port "· no answer", the SSH
   annunciator lights only on real readiness, and the interactive attempt is
   bounded at 20s with the diagnosis held on screen instead of an endless
   blank hang (`bin/ryovm`, `VmStage.qml`, `VmDetail.qml`,
   `Singletons/Vm.qml`).
 - `ryovm/`: **Stop is a power button, not a hatchet.** `stop` sent quickemu's
-  --kill (SIGKILL) straight away: the guest's unflushed writes died with it —
-  a machine provisioned seconds before a stop came back missing files — and
+  --kill (SIGKILL) straight away: the guest's unflushed writes died with it,
+  a machine provisioned seconds before a stop came back missing files, and
   the qcow2 took leaked-cluster damage that had to be repaired on the next
   launch. The engine now presses the ACPI power button over the per-VM QEMU
   monitor socket and gives the guest 20s to shut down clean (a cooperative
@@ -290,7 +298,7 @@
 - `ryovm/`: **SSH from the app survives more than one machine.** Every VM
   forwards its guest onto the same small host-port range, so the global
   `known_hosts` collided the moment a second machine answered on a port a
-  first one once used — ssh failed with "REMOTE HOST IDENTIFICATION HAS
+  first one once used, ssh failed with "REMOTE HOST IDENTIFICATION HAS
   CHANGED" against your own VM, and the old packaged app's terminal closed
   before the message could be read. The engine's `ssh` verb now pins each
   machine to its own known-hosts file beside its disk with
@@ -301,8 +309,8 @@
 - `ryovm/`: **the launch and scroll flicker is gone.** Three compounding
   causes: the 5-second poll rebuilt the whole library from a fresh array even
   when nothing changed (every card torn down and re-created, replaying its
-  entrance), the entrance animation itself ran from `Component.onCompleted` —
-  which also fires for delegates the view creates while scrolling back — and
+  entrance), the entrance animation itself ran from `Component.onCompleted`,
+  which also fires for delegates the view creates while scrolling back, and
   the catalogue re-filtered (and so rebuilt all ~92 tiles) on every single
   logo resolution during launch. The engine payloads are now compared before
   they touch a model (identical poll = untouched model, stale detail stays on
@@ -314,19 +322,19 @@
   The engine's `enhance` prints a one-line JSON verdict on exit (`result`, `kind`,
   the pixels it measured and the cap they met, a `why` on failure), and the panel
   keeps an "Already sharp" or failure note on screen until the pick changes,
-  spelling out the numbers ("already 5120px wide — the desktop plays live
+  spelling out the numbers ("already 5120px wide, the desktop plays live
   wallpapers at 2560px") instead of flashing a generic label for 3.5 seconds; the
   Enhance button stays through a skip, since the cap moves with the monitor and a
   retry must stay one click away. Failures name their cause (bad GPU output vs. a
   truncated file vs. a missing tool) instead of blaming the GPU for everything.
-  The moewalls grid also stopped promising `1280x720` for every clip — the site
+  The moewalls grid also stopped promising `1280x720` for every clip, the site
   serves previews from 720p to 1440p and dual-wide with no per-item resolution
   anywhere in its API, so a user could pick a tile labelled 720p, hit Enhance on
   the 1440p file it actually downloaded, and read the correct "Already sharp"
   skip as the feature being broken (motionbgs labels were checked against the
   downloaded masters and are honest; wallhaven's come from its API). Local grids
   (Live and Local sources) now badge each clip with its real `ffprobe`d
-  resolution — probed 8 at a time so a big pool can't hold the grid hostage —
+  resolution, probed 8 at a time so a big pool can't hold the grid hostage,
   and the amber low-res hint covers images too. Also fixed while pinning the
   verdict contract down: an animated webp/gif no longer misreads as past-4K
   (a bare `identify %h` concatenates every frame's height into nonsense like
