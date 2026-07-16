@@ -20,7 +20,7 @@
 # Bump _commit (and pkgver/pkgrel) to ship a new upstream build to users.
 pkgname=ryomotion
 pkgver=1.5.0
-pkgrel=10
+pkgrel=11
 pkgdesc="Ryoku Motion: screen-demo recorder and editor (OpenScreen, Linux)"
 arch=('x86_64')
 url="https://github.com/neur0map/ryomotion"
@@ -36,7 +36,7 @@ source=("$pkgname::git+https://github.com/neur0map/ryomotion.git#commit=$_commit
         "ryomotion-logo.png")
 sha256sums=('SKIP'
             '9a6bc82f9b491279147219f6a18add1e18424dce90d41d2a5fcd69d4924ba3aa'
-            '47d47e9e262ba023d9c92bc101e15018eff57bfc80a9f16d7df9c0c19c1c5778')
+            'fc1bf35f8da9cd9b7663c254838f6bc0b9d9e7478823ad8cf3bfb30930786b93')
 
 build() {
   cd "$srcdir/$pkgname"
