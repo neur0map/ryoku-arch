@@ -101,9 +101,12 @@ scripted fakes.
 - **Profile and Credits** are designed with art and are not built. The user said
   twice these matter most: the Profile is the showoff piece, not an overview.
 - **ryowalls and ryovm** are designed and not built.
-- A workflow (`hub-port`) was running when this handoff was written: chrome plus
-  30 page ports plus an adversarial audit. **Check `git status` and its output
-  before starting.** It may have landed work, or half of it.
+A `hub-port` workflow (chrome plus 30 page ports plus an audit) was started and
+then stopped before it wrote anything, so the tree is clean. Its script is at
+`.claude/projects/.../workflows/scripts/hub-port-*.js` if the approach is worth
+reusing: one agent per page, each told to list the page's surfaces from
+inventory.json first and treat them as a checklist, with an adversarial audit
+that greps for surviving colour and for pages that lost their action bar.
 
 ## The mistake to not repeat
 
