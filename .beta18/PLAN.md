@@ -182,15 +182,17 @@ not a sketch. The decisions worth knowing before reading it:
   Hub's dirty-state grammar applied to a wallpaper, with SET as its SAVE. ryovm
   gets a yard log, a per-machine flight recorder grown from info()/raiseFault().
 
-## Open, and honest
+## The barcode, settled
 
-`Ryoku.Ui/Barcode.qml` draws Code 39 from the real glyph table. **It has not been
-proven to scan.** zbarimg read nothing back, with and without a quiet zone, and
-there was no known-good reference to hand to tell a bad encoder from a bad
-harness (python-barcode is not installed, and zbar's code39 support here is
-unconfirmed).
+It scans. tests/ui/barcode.sh reads it back with zbarimg and is green.
 
-This matters because the whole reason the dossier carries a real barcode instead
-of a bar-shaped ornament is that someone will point a phone at it. Either prove
-it with a reference generator, or take the claim out of DESIGN.md and let it be
-ornament honestly. Do not ship the claim unproven.
+Worth the story, because the debugging was backwards. zbarimg read nothing, so I
+labelled the encoder unproven. The encoder was correct: I checked the glyph
+table against the standard for 0, R and star and all three matched. What was
+wrong was the render. The window came up narrower than the code, the start and
+stop bars fell off the edge, and a Code 39 without its stop bars is not a Code
+39. It still looks exactly like one, which is why the test floats and sizes the
+window before it grabs: a tiled window silently clips it.
+
+The rule that keeps generalising: a thing that looks right is not evidence. The
+Shell port looked right and ate saves. This looked broken and was fine.

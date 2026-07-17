@@ -1,10 +1,9 @@
 import QtQuick
 import "Singletons"
 
-// Code 39, drawn as ink bars. The glyph table is the real one, not a
-// bar-shaped decoration, but whether it scans is UNVERIFIED: zbarimg read
-// nothing back and I could not establish a known-good reference to tell a bad
-// encoder from a bad harness. Verify before the dossier claims it scans.
+// Code 39, drawn as ink bars, and it scans: tests/ui/barcode.sh reads it back
+// with zbarimg. Give it room. A clipped barcode loses its stop bars and stops
+// being a barcode, which is a silent failure: it still looks like one.
 Item {
     id: code
 
