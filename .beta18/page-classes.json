@@ -1,36 +1,122 @@
 {
- "sheet": [
-  "AppearancePage",
-  "HyprStore",
-  "InputPage",
-  "PerformancePage",
-  "ShellSettingsPage",
-  "WidgetsPage"
- ],
- "bespoke": [
-  "AddonsPage",
-  "AnimationsPage",
-  "AppOverridesPage",
-  "AutostartPage",
-  "BluetoothTab",
-  "DictationPage",
-  "DisplaysPage",
-  "EnvironmentPage",
-  "FastfetchPage",
-  "GpuPage",
-  "HotspotTab",
-  "KeybindsEditor",
-  "KeybindsPage",
-  "LauncherPage",
-  "LayerRulesPage",
-  "LockscreenPage",
-  "PluginPlacementEditor",
-  "PluginsPage",
-  "RashinPage",
-  "RecordingPage",
-  "RicesPage",
-  "UpdatesPage",
-  "WifiTab",
-  "WindowRulesPage"
- ]
+ "AddonsPage": {
+  "settings": 3,
+  "surfaces": 18
+ },
+ "AnimationsPage": {
+  "settings": 67,
+  "surfaces": 22
+ },
+ "AppOverridesPage": {
+  "settings": 1,
+  "surfaces": 20
+ },
+ "AppearancePage": {
+  "settings": 58,
+  "surfaces": 20
+ },
+ "AutostartPage": {
+  "settings": 2,
+  "surfaces": 12
+ },
+ "BluetoothTab": {
+  "settings": 1,
+  "surfaces": 23
+ },
+ "DictationPage": {
+  "settings": 9,
+  "surfaces": 14
+ },
+ "DisplaysPage": {
+  "settings": 15,
+  "surfaces": 21
+ },
+ "EnvironmentPage": {
+  "settings": 2,
+  "surfaces": 16
+ },
+ "FastfetchPage": {
+  "settings": 8,
+  "surfaces": 20
+ },
+ "GpuPage": {
+  "settings": 12,
+  "surfaces": 14
+ },
+ "HotspotTab": {
+  "settings": 3,
+  "surfaces": 13
+ },
+ "HyprStore": {
+  "settings": 95,
+  "surfaces": 12
+ },
+ "InputPage": {
+  "settings": 32,
+  "surfaces": 13
+ },
+ "KeybindsEditor": {
+  "settings": 5,
+  "surfaces": 13
+ },
+ "KeybindsPage": {
+  "settings": 2,
+  "surfaces": 20
+ },
+ "LauncherPage": {
+  "settings": 9,
+  "surfaces": 17
+ },
+ "LayerRulesPage": {
+  "settings": 4,
+  "surfaces": 15
+ },
+ "LockscreenPage": {
+  "settings": 1,
+  "surfaces": 22
+ },
+ "PerformancePage": {
+  "settings": 10,
+  "surfaces": 6
+ },
+ "PluginPlacementEditor": {
+  "settings": 4,
+  "surfaces": 12
+ },
+ "PluginsPage": {
+  "settings": 6,
+  "surfaces": 18
+ },
+ "RashinPage": {
+  "settings": 7,
+  "surfaces": 12
+ },
+ "RecordingPage": {
+  "settings": 6,
+  "surfaces": 7
+ },
+ "RicesPage": {
+  "settings": 20,
+  "surfaces": 17
+ },
+ "ShellSettingsPage": {
+  "settings": 53,
+  "surfaces": 26
+ },
+ "UpdatesPage": {
+  "settings": 1,
+  "surfaces": 21
+ },
+ "WidgetsPage": {
+  "settings": 40,
+  "surfaces": 16
+ },
+ "WifiTab": {
+  "settings": 1,
+  "surfaces": 31
+ },
+ "WindowRulesPage": {
+  "settings": 2,
+  "surfaces": 17
+ }
 }

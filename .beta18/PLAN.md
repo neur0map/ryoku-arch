@@ -92,6 +92,40 @@ was a raw config key. 26 remain, concentrated in GpuPage (11), DisplaysPage (6)
 and RashinPage (6), where the setting's purpose was not clear from the source.
 Those want eyes, not another pass: an invented description is worse than none.
 
+## What the Shell port proved, by breaking
+
+I ported Shell by cutting the view and keeping the state. The settings all
+survived. The action bar did not, because the action bar was in the view.
+save(), revert() and resetDefaults() stayed in the file with nothing calling
+them; the live preview still wrote through the throttle so edits looked applied;
+and Component.onDestruction still restored committedVals on leave. Edit a
+setting, leave the page, lose it. That is data loss and I shipped it, then
+backed it out in 33095045 / its revert.
+
+It shipped because I checked that the settings survived and never checked that
+the surfaces did. The inventory told me Shell had 26 non-setting surfaces. I
+read the number as context. It was a list.
+
+**There is no "schema-shaped page".** page-classes.json used to claim six of
+them; that claim is what caused the bug. Every one of the 30 pages has
+surfaces: 479 settings against 508 surfaces, and not a single page has zero.
+WifiTab is 1 setting and 31 surfaces. Shell is 53 and 26. Even Performance
+seeds its config and reloads the compositor.
+
+So the schema is half a page, never a whole one. The correct order for any page:
+
+1. List its surfaces from inventory.json. That is the work; the schema is not.
+2. Port the surfaces first, into the sheet's grid as full-width blocks. A
+   preview, a console, a drag-arrange, an action bar: these are not settings and
+   do not go in a cell.
+3. Then let SchemaPage draw the rows around them.
+4. Then check: every surface present, every key in the schema, wire-probe green
+   for that page's keys. A page is ported when all four hold, not when it
+   renders.
+
+The action bar is the first surface to build, because it is the one whose
+absence silently destroys work rather than merely looking wrong.
+
 ## What rendering all 30 pages actually proved
 
 SchemaPage draws every schema with no errors, and that is not the same as every
@@ -102,14 +136,5 @@ WindowRulesPage is a rule editor, not a settings page.
 
 Classified in page-classes.json:
 
-- **6 pages are schema-shaped** and carry 288 of 479 settings, about 60%:
-  HyprStore (95), AppearancePage (58), ShellSettingsPage (53), WidgetsPage (40),
-  InputPage (32), PerformancePage (10). These are done when their draft is wired
-  and the probe is green for their keys.
-- **24 pages need their bespoke surface** and carry the other 191. They are
-  mostly surface: WifiTab is 1 setting and 31 surfaces, LockscreenPage 1 and 22,
-  UpdatesPage 1 and 21. A schema is the wrong shape for them and forcing one on
-  is how a setting gets hidden behind a control that does not fit it.
-
-So the split is not 30 pages of the same work. It is 6 pages of wiring and 24
-pages of design, and the 24 are the ones that decide whether this holds up.
+page-classes.json now records what is actually there: settings and surfaces per
+page, no verdict. The verdict was the mistake.
