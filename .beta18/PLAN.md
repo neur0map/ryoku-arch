@@ -181,3 +181,16 @@ not a sketch. The decisions worth knowing before reading it:
 - Each app gets one thing it never had. ryowalls gets a pending rice diff, the
   Hub's dirty-state grammar applied to a wallpaper, with SET as its SAVE. ryovm
   gets a yard log, a per-machine flight recorder grown from info()/raiseFault().
+
+## Open, and honest
+
+`Ryoku.Ui/Barcode.qml` draws Code 39 from the real glyph table. **It has not been
+proven to scan.** zbarimg read nothing back, with and without a quiet zone, and
+there was no known-good reference to hand to tell a bad encoder from a bad
+harness (python-barcode is not installed, and zbar's code39 support here is
+unconfirmed).
+
+This matters because the whole reason the dossier carries a real barcode instead
+of a bar-shaped ornament is that someone will point a phone at it. Either prove
+it with a reference generator, or take the claim out of DESIGN.md and let it be
+ornament honestly. Do not ship the claim unproven.
