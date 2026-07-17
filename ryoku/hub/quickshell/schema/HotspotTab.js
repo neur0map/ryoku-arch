@@ -1,0 +1,37 @@
+.pragma library
+
+// HotspotTab as data. Generated from the page it replaces.
+// Descriptions are written by hand; the inventory carries engineering
+// notes, which are not user copy.
+
+var rows = [
+    {
+        "tab": "Hotspot",
+        "group": "OTHER",
+        "key": "",
+        "label": "Hotspot",
+        "desc": "",
+        "ctl": "sw",
+        "src": "down); nothing is written to any Ryoku config file"
+    },
+    {
+        "tab": "Hotspot",
+        "group": "DETAILS",
+        "key": "802-11-wireless.ssid",
+        "label": "Network name",
+        "desc": "",
+        "ctl": "text",
+        "src": "RyokuHotspot.nmconnection (written via `nmcli connection add|modify`, read back via `nmcli -t -s -g 802-11-wireless.ssid,802-11-wireless-security.psk connection show RyokuHotspot`)"
+    },
+    {
+        "tab": "Hotspot",
+        "group": "DETAILS",
+        "key": "802-11-wireless-security.psk",
+        "label": "Password",
+        "desc": "",
+        "ctl": "text",
+        "src": "RyokuHotspot.nmconnection (written via `nmcli connection add|modify`, read back via `nmcli -t -s -g \u2026802-11-wireless-security.psk connection show RyokuHotspot` \u2014 the -s secrets flag is required)",
+        "lo": 8.0,
+        "unit": "characters"
+    }
+];

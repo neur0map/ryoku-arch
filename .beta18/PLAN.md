@@ -69,3 +69,24 @@ one-off (keep it, and say why in the cell).
 - QML ids cannot start with a capital.
 - The repo rejects em-dashes, authorship trailers and generated-content
   attribution at commit time. Subjects need an impact label.
+
+## What the schemas settled
+
+All 30 pages are schemas now: 515 settings, 482 controls (the difference is
+hand-wired set members collapsing into `multi`). The taxonomy covers 514 of
+515. The one holdout is AddonsPage's plugin field, whose kind is declared by a
+plugin manifest at runtime and cannot be known statically; it stays dynamic.
+
+The 204 `custom` controls were a false alarm. They are bespoke *implementations*
+of ordinary kinds: 53 bools, 40 reals, 32 strings, 24 ints. Nothing about them
+needed a bespoke control, they just never had a shared one.
+
+**The real remaining work is the 605 non-setting surfaces**, not the settings.
+Previews, live consoles, the monitor drag-arrange, the bezier editor, keybind
+capture, store cards, wizards, scan buttons, loading and empty states. Those are
+in `inventory.json` under `nonSettingSurfaces`, per file. A page is not ported
+when its schema renders; it is ported when its surfaces come with it.
+
+Schema rows still need written descriptions. Only ShellSettingsPage has them.
+The inventory's notes are engineering observations and must not be shipped as
+user copy.
