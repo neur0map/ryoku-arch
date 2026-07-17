@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import "schema/ShellSettingsPage.js" as Schema
 import QtQuick.Controls
 import QtQuick.Dialogs
 import Qt5Compat.GraphicalEffects
@@ -454,17 +453,798 @@ Item {
             cfgBrand.writeAdapter();
         }
     }
-    // The view is the schema. The 66 settings used to be declared five times
-    // over (a key array, a defaults literal, a draft property, an adapter
-    // property, and the row itself, with the key restated as a bare string in
-    // every closure); the rows are now data and this draws them.
-    SchemaPage {
-        anchors.fill: parent
-        schema: Schema.rows
-        draft: draft
-        defaults: page.defaults
-        // Hub.qml still draws PageHeader above this. Until the chrome is
-        // ported, the page must not draw its own or the title renders twice.
-        onEdited: (k, v) => page.edit(k, v)
+
+    // --- top: section tabs + live hint -------------------------------------
+    Segmented {
+        id: tabs
+        anchors.left: parent.left
+        anchors.top: parent.top
+        model: [
+            { "key": "frame", "label": "Frame" },
+            { "key": "global", "label": "Global" },
+            { "key": "bar", "label": "Bar" },
+            { "key": "sidebar", "label": "Sidebar" },
+            { "key": "visualizer", "label": "Visualizer" }
+        ]
+        current: page.group
+        onSelected: (k) => page.group = k
+    }
+
+    Text {
+        anchors.left: tabs.right
+        anchors.leftMargin: 18
+        anchors.verticalCenter: tabs.verticalCenter
+        text: "Edits show on your desktop as you make them"
+        color: Theme.faint
+        font.family: Theme.font
+        font.pixelSize: 12
+        font.weight: Font.Medium
+    }
+
+    // --- controls ----------------------------------------------------------
+    Flickable {
+        id: flick
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: tabs.bottom
+        anchors.topMargin: 26
+        anchors.bottom: bar.top
+        anchors.bottomMargin: 18
+        contentWidth: width
+        contentHeight: Math.max(loader.height, height)
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+
+        ScrollBar.vertical: ScrollBar {
+            id: sb
+            policy: ScrollBar.AsNeeded
+            width: 7
+            contentItem: Rectangle {
+                implicitWidth: 4
+                radius: Theme.radius
+                color: Theme.line
+                opacity: sb.pressed ? 0.9 : (sb.hovered ? 0.7 : 0.4)
+                Behavior on opacity { NumberAnimation { duration: Theme.quick } }
+            }
+        }
+
+        Loader {
+            id: loader
+            width: flick.width - 12
+            height: item ? item.implicitHeight : 0
+        sourceComponent: page.group === "frame" ? frameComp : (page.group === "global" ? globalComp : (page.group === "bar" ? barComp : (page.group === "sidebar" ? sidebarComp : vizComp)))
+            onLoaded: {
+                if (!item)
+                    return;
+                item.opacity = 0;
+                fade.restart();
+            }
+        }
+
+        NumberAnimation { id: fade; target: loader.item; property: "opacity"; to: 1; duration: Theme.medium; easing.type: Theme.ease }
+    }
+
+    Component {
+        id: frameComp
+        Row {
+            id: frameRow
+            spacing: 56
+            readonly property real colW: (width - spacing) / 2
+
+            Column {
+                width: frameRow.colW
+                spacing: 30
+
+                SettingSection {
+                    width: parent.width
+                    title: "SHAPE"
+                    ToggleRow {
+                        width: parent.width; label: "Enable frame"
+                        checked: draft.frameEnabled
+                        onToggled: (v) => page.edit("frameEnabled", v)
+                    }
+                    NumberField {
+                        width: parent.width; label: "Border thickness"; unit: "px"
+                        from: 24; to: 140; value: draft.frameBorder
+                        onModified: (v) => page.edit("frameBorder", v)
+                    }
+                }
+            }
+
+            Column {
+                width: frameRow.colW
+                spacing: 30
+
+                SettingSection {
+                    width: parent.width
+                    title: "NOTIFICATIONS"
+                    NumberField {
+                        width: parent.width; label: "OSD & toast corner"; unit: "px"
+                        from: 0; to: 40; value: draft.osdRadius
+                        onModified: (v) => page.edit("osdRadius", v)
+                    }
+                    SliderRow {
+                        width: parent.width; label: "Opacity"; percent: true
+                        from: 0.2; to: 1; step: 0.01; value: draft.osdOpacity
+                        onModified: (v) => page.edit("osdOpacity", v)
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: globalComp
+        Row {
+            id: globalRow
+            spacing: 56
+            readonly property real colW: (width - spacing) / 2
+
+            Column {
+                width: globalRow.colW
+                spacing: 30
+
+                SettingSection {
+                    width: parent.width
+                    title: "ROUNDNESS"
+                    NumberField {
+                        width: parent.width; label: "Inner roundness"; unit: "px"
+                        from: 0; to: 24; value: draft.roundness
+                        onModified: (v) => page.edit("roundness", v)
+                    }
+                    NumberField {
+                        width: parent.width; label: "Frame corner"; unit: "px"
+                        from: 0; to: 60; value: draft.frameRadius
+                        onModified: (v) => page.edit("frameRadius", v)
+                    }
+                    SliderRow {
+                        width: parent.width; label: "Edge melt"
+                        from: 1; to: 60; step: 1; decimals: 0; value: draft.frameSmoothing
+                        onModified: (v) => page.edit("frameSmoothing", v)
+                    }
+                }
+
+                SettingSection {
+                    width: parent.width
+                    title: "SHADOW"
+                    SliderRow {
+                        width: parent.width; label: "Strength"; percent: true
+                        from: 0; to: 1; step: 0.01; value: draft.shadowStrength
+                        onModified: (v) => page.edit("shadowStrength", v)
+                    }
+                    NumberField {
+                        width: parent.width; label: "Size"; unit: "px"
+                        from: 0; to: 80; value: draft.shadowSize
+                        onModified: (v) => page.edit("shadowSize", v)
+                    }
+                }
+
+                SettingSection {
+                    width: parent.width
+                    title: "BRAND"
+                    Row {
+                        width: parent.width
+                        spacing: 14
+                        Rectangle {
+                            width: 46; height: 46; radius: Theme.radius
+                            color: Theme.surface
+                            border.width: 1; border.color: Theme.line
+                            Text {
+                                visible: draft.markImage === ""
+                                anchors.centerIn: parent
+                                text: draft.markText.length > 0 ? draft.markText : "\u529b"
+                                color: Theme.brand
+                                font.family: Theme.fontJp
+                                font.pixelSize: 26
+                            }
+                            Image {
+                                id: prevImg
+                                visible: draft.markImage !== "" && !draft.markTint
+                                anchors.centerIn: parent
+                                width: 30; height: 30
+                                source: draft.markImage === "" ? "" : (draft.markImage.startsWith("file:") ? draft.markImage : "file://" + draft.markImage)
+                                fillMode: Image.PreserveAspectFit
+                                sourceSize.width: 60; sourceSize.height: 60
+                                smooth: true
+                            }
+                            ColorOverlay {
+                                anchors.fill: prevImg
+                                visible: draft.markImage !== "" && draft.markTint
+                                source: prevImg
+                                color: Theme.brand
+                            }
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Preview"
+                            color: Theme.faint
+                            font.family: Theme.font
+                            font.pixelSize: 12
+                        }
+                    }
+                    SettingField {
+                        width: parent.width; label: "Name"
+                        fieldWidth: 200
+                        placeholder: "Ryoku"
+                        value: draft.name
+                        onCommitted: (v) => page.edit("name", v)
+                    }
+                    SettingField {
+                        width: parent.width; label: "Text mark"
+                        fieldWidth: 200
+                        placeholder: "\u529b"
+                        value: draft.markText
+                        onCommitted: (v) => page.edit("markText", v)
+                    }
+                    Row {
+                        width: parent.width
+                        spacing: 12
+                        Text {
+                            width: parent.width - chooseLogo.width - clearLogo.width - 24
+                            anchors.verticalCenter: parent.verticalCenter
+                            elide: Text.ElideMiddle
+                            text: draft.markImage === "" ? "No image (using the text mark)" : draft.markImage
+                            color: draft.markImage === "" ? Theme.faint : Theme.cream
+                            font.family: Theme.font
+                            font.pixelSize: 13
+                        }
+                        HubButton {
+                            id: chooseLogo
+                            anchors.verticalCenter: parent.verticalCenter
+                            label: "Choose image"
+                            icon: "image"
+                            onClicked: logoPicker.open()
+                        }
+                        HubButton {
+                            id: clearLogo
+                            anchors.verticalCenter: parent.verticalCenter
+                            label: "Clear"
+                            icon: "close"
+                            enabled: draft.markImage !== ""
+                            onClicked: page.edit("markImage", "")
+                        }
+                    }
+                    ToggleRow {
+                        width: parent.width; label: "Tint image to accent"
+                        checked: draft.markTint
+                        onToggled: (v) => page.edit("markTint", v)
+                    }
+                    Text {
+                        width: Math.min(parent.width, 620)
+                        wrapMode: Text.WordWrap
+                        text: "Swaps the \u529b mark and \"Ryoku\" name across the desktop shell: the bar, launcher, and the rest of the chrome. Ryoku's own apps (this one, ryowalls, ryovm) keep their brand. For an image: a square SVG (crisp at any size) or a PNG at least 256\u00d7256, transparent background. A single-colour mark tints to your accent; turn tint off to show a full-colour logo as-is. It renders as small as ~14px, so keep it simple. Leave the image empty to use the text mark."
+                        color: Theme.dim
+                        font.family: Theme.font
+                        font.pixelSize: 12
+                    }
+                }
+            }
+
+            Column {
+                width: globalRow.colW
+                spacing: 30
+
+                SettingSection {
+                    width: parent.width
+                    title: "SURFACE"
+                    ColorField {
+                        width: parent.width; label: "Colour"
+                        value: draft.surfaceColor
+                        onModified: (v) => page.edit("surfaceColor", v)
+                    }
+                    SliderRow {
+                        width: parent.width; label: "Opacity"; percent: true
+                        from: 0.2; to: 1; step: 0.01; value: draft.frameOpacity
+                        onModified: (v) => page.edit("frameOpacity", v)
+                    }
+                }
+
+                SettingSection {
+                    width: parent.width
+                    title: "TEXT"
+                    Dropdown {
+                        width: parent.width; label: "Font"
+                        fieldWidth: 200
+                        options: page.fontOptions
+                        current: draft.fontFamily
+                        onChosen: (k) => page.edit("fontFamily", k)
+                    }
+                    SliderRow {
+                        width: parent.width; label: "Size"; percent: true
+                        from: 0.7; to: 1.6; step: 0.05; value: draft.fontScale
+                        onModified: (v) => page.edit("fontScale", v)
+                    }
+                }
+                SettingSection {
+                    width: parent.width
+                    title: "WEATHER"
+                    SettingField {
+                        width: parent.width; label: "Location"
+                        fieldWidth: 200
+                        placeholder: "Auto (from IP)"
+                        value: draft.weatherLocation
+                        onCommitted: (v) => page.edit("weatherLocation", v)
+                    }
+                    ChoiceRow {
+                        width: parent.width; label: "Units"
+                        options: [{ "key": "auto", "label": "Auto" }, { "key": "celsius", "label": "\u00b0C" }, { "key": "fahrenheit", "label": "\u00b0F" }]
+                        current: draft.weatherUnit
+                        onChosen: (k) => page.edit("weatherUnit", k)
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: barComp
+        Row {
+            id: barRow
+            spacing: 56
+            readonly property real colW: (width - spacing) / 2
+
+            Column {
+                width: barRow.colW
+                spacing: 30
+
+                SettingSection {
+                    width: parent.width
+                    title: "BAR"
+                    ToggleRow {
+                        width: parent.width; label: "Enable bar"
+                        checked: draft.barEnabled
+                        onToggled: (v) => page.edit("barEnabled", v)
+                    }
+                    ChoiceRow {
+                        width: parent.width; label: "Position"
+                        options: [
+                            { "key": "top", "label": "Top" },
+                            { "key": "bottom", "label": "Bottom" },
+                        ]
+                        current: draft.barPosition
+                        onChosen: (k) => page.edit("barPosition", k)
+                    }
+                    Dropdown {
+                        width: parent.width; label: "Style"
+                        fieldWidth: 170
+                        options: [
+                            { "key": "noctalia", "label": "Noctalia", "hint": "pill · dot" },
+                            { "key": "caelestia", "label": "Caelestia", "hint": "cell strip" },
+                            { "key": "aegis", "label": "Aegis", "hint": "instrument" },
+                            { "key": "stele", "label": "Stele", "hint": "engraved" },
+                            { "key": "triptych", "label": "Triptych", "hint": "islands" },
+                            { "key": "delos", "label": "Delos", "hint": "one island" },
+                            { "key": "nacre", "label": "Nacre", "hint": "frosted pods" },
+                            { "key": "inir", "label": "iNiR", "hint": "flat TUI" },
+                            { "key": "aurora", "label": "Aurora", "hint": "glass" },
+                            { "key": "angel", "label": "Angel", "hint": "brutalist" }
+                        ]
+                        current: draft.barStyle
+                        onChosen: (k) => page.edit("barStyle", k)
+                    }
+                    NumberField {
+                        width: parent.width; label: "Thickness"; unit: "px"
+                        from: 18; to: 48; value: draft.barHeight
+                        onModified: (v) => page.edit("barHeight", v)
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: "A bar riding the top or bottom edge of the frame. Noctalia (pill and dot) and Caelestia (numbered cell strip) are carried from their namesake shells; Aegis is a flat instrument panel with hairline accent underlines, Stele an engraved strip of bracketed cells, Triptych groups the modules into three rounded islands riding the band, and Nacre floats them in soft frosted capsules on a flat band with hollow-ring workspaces and a live CPU, memory and temperature readout. Panels grow from the bar edge at whichever module you click or hover, and windows tuck in against the band."
+                        color: Theme.faint
+                        font.family: Theme.font
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                    }
+                }
+            }
+
+            Column {
+                width: barRow.colW
+                spacing: 30
+
+                SettingSection {
+                    width: parent.width
+                    title: "CONTENT"
+                    ToggleRow {
+                        width: parent.width; label: "Focused window title"
+                        checked: draft.barShowTitle
+                        onToggled: (v) => page.edit("barShowTitle", v)
+                    }
+                    ToggleRow {
+                        width: parent.width; label: "Now playing"
+                        checked: draft.barShowMedia
+                        onToggled: (v) => page.edit("barShowMedia", v)
+                    }
+                    ToggleRow {
+                        width: parent.width; label: "Status glyphs (network, battery, inbox)"
+                        checked: draft.barShowStatus
+                        onToggled: (v) => page.edit("barShowStatus", v)
+                    }
+                    ToggleRow {
+                        width: parent.width; label: "Only occupied workspaces"
+                        checked: draft.barOccupiedWorkspaces
+                        onToggled: (v) => page.edit("barOccupiedWorkspaces", v)
+                    }
+                }
+
+                SettingSection {
+                    width: parent.width
+                    visible: draft.barStyle === "delos"
+                    title: "ISLAND"
+                    NumberField {
+                        width: parent.width; label: "Roundness"; unit: "px"
+                        from: 0; to: 40; value: draft.islandRadius
+                        onModified: (v) => page.edit("islandRadius", v)
+                    }
+                    ToggleRow { width: parent.width; label: "Workspaces"; checked: (draft.islandModules || []).indexOf("workspaces") >= 0; onToggled: (v) => page.toggleIslandModule("workspaces", v) }
+                    ToggleRow { width: parent.width; label: "Clock"; checked: (draft.islandModules || []).indexOf("clock") >= 0; onToggled: (v) => page.toggleIslandModule("clock", v) }
+                    ToggleRow { width: parent.width; label: "Date"; checked: (draft.islandModules || []).indexOf("date") >= 0; onToggled: (v) => page.toggleIslandModule("date", v) }
+                    ToggleRow { width: parent.width; label: "Now playing"; checked: (draft.islandModules || []).indexOf("media") >= 0; onToggled: (v) => page.toggleIslandModule("media", v) }
+                    ToggleRow { width: parent.width; label: "Window title"; checked: (draft.islandModules || []).indexOf("title") >= 0; onToggled: (v) => page.toggleIslandModule("title", v) }
+                    ToggleRow { width: parent.width; label: "Status glyphs"; checked: (draft.islandModules || []).indexOf("status") >= 0; onToggled: (v) => page.toggleIslandModule("status", v) }
+                    ToggleRow { width: parent.width; label: "Tray"; checked: (draft.islandModules || []).indexOf("tray") >= 0; onToggled: (v) => page.toggleIslandModule("tray", v) }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: sidebarComp
+        Row {
+            id: sbRow
+            spacing: 56
+            readonly property real colW: (width - spacing) / 2
+
+            Column {
+                width: sbRow.colW
+                spacing: 30
+
+                SettingSection {
+                    width: parent.width
+                    title: "LEFT \u00b7 FEATURES"
+                    ToggleRow {
+                        width: parent.width; label: "Enable left sidebar"
+                        checked: draft.sidebarLeftEnabled
+                        onToggled: (v) => page.edit("sidebarLeftEnabled", v)
+                    }
+                    ToggleRow { width: parent.width; label: "Stash"; checked: (draft.sidebarLeftPanes || []).indexOf("stash") >= 0; onToggled: (v) => page.toggleSidebarPane("sidebarLeftPanes", "stash", v) }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: "Melts out of the frame's left edge when you hover (or click) the top-left corner, carrying your chosen feature panes as tabs in the order you enable them."
+                        color: Theme.faint
+                        font.family: Theme.font
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                    }
+                }
+
+                SettingSection {
+                    width: parent.width
+                    title: "BEHAVIOUR"
+                    ToggleRow {
+                        width: parent.width; label: "Open on hover"
+                        checked: draft.sidebarClickless
+                        onToggled: (v) => page.edit("sidebarClickless", v)
+                    }
+                }
+            }
+
+            Column {
+                width: sbRow.colW
+                spacing: 30
+
+                SettingSection {
+                    width: parent.width
+                    title: "RIGHT \u00b7 SYSTEM"
+                    ToggleRow {
+                        width: parent.width; label: "Enable right sidebar"
+                        checked: draft.sidebarRightEnabled
+                        onToggled: (v) => page.edit("sidebarRightEnabled", v)
+                    }
+                    ToggleRow { width: parent.width; label: "Notifications"; checked: (draft.sidebarRightPanes || []).indexOf("notifications") >= 0; onToggled: (v) => page.toggleSidebarPane("sidebarRightPanes", "notifications", v) }
+                    ToggleRow { width: parent.width; label: "Calendar"; checked: (draft.sidebarRightPanes || []).indexOf("calendar") >= 0; onToggled: (v) => page.toggleSidebarPane("sidebarRightPanes", "calendar", v) }
+                    ToggleRow { width: parent.width; label: "Media"; checked: (draft.sidebarRightPanes || []).indexOf("media") >= 0; onToggled: (v) => page.toggleSidebarPane("sidebarRightPanes", "media", v) }
+                    ToggleRow { width: parent.width; label: "Weather"; checked: (draft.sidebarRightPanes || []).indexOf("weather") >= 0; onToggled: (v) => page.toggleSidebarPane("sidebarRightPanes", "weather", v) }
+                    ToggleRow { width: parent.width; label: "Recording"; checked: (draft.sidebarRightPanes || []).indexOf("recording") >= 0; onToggled: (v) => page.toggleSidebarPane("sidebarRightPanes", "recording", v) }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: "Melts out of the frame's right edge when you hover (or click) the top-right corner, carrying your chosen system panes as tabs in the order you enable them."
+                        color: Theme.faint
+                        font.family: Theme.font
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                    }
+                }
+
+                SettingSection {
+                    width: parent.width
+                    title: "SIZE"
+                    NumberField {
+                        width: parent.width; label: "Width"; unit: "px"
+                        from: 240; to: 520; value: draft.sidebarWidth
+                        onModified: (v) => page.edit("sidebarWidth", v)
+                    }
+                    NumberField {
+                        width: parent.width; label: "Corner hotspot"; unit: "px"
+                        from: 16; to: 80; value: draft.sidebarCornerSize
+                        onModified: (v) => page.edit("sidebarCornerSize", v)
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: vizComp
+        Column {
+            id: vizCol
+            spacing: 22
+
+            // live preview window. the styles hide behind your windows on the
+            // real desktop, so the viz tab previews them here instead.
+            Rectangle {
+                width: vizCol.width
+                height: 150
+                radius: Theme.radius
+                color: Theme.surfaceLo
+                border.width: 1
+                border.color: Theme.line
+                clip: true
+
+                VizPreview {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    style: draft.style
+                    shape: draft.shape
+                    position: draft.position
+                    mirror: draft.mirror
+                    bars: draft.bars
+                    heightFrac: draft.height
+                    thickness: draft.thickness
+                    bloom: draft.bloom
+                    reflection: draft.reflection
+                    enabled: draft.enabled
+                    peaks: draft.peaks
+                    segments: draft.segments
+                }
+
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.margins: 12
+                    width: previewTag.width + 18
+                    height: 20
+                    radius: Theme.radius
+                    color: Qt.rgba(0, 0, 0, 0.4)
+                    Text {
+                        id: previewTag
+                        anchors.centerIn: parent
+                        text: draft.enabled ? "LIVE PREVIEW" : "OFF"
+                        color: Theme.dim
+                        font.family: Theme.mono
+                        font.pixelSize: 10
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 2
+                    }
+                }
+            }
+
+            SettingSection {
+                width: vizCol.width
+                title: "STYLE"
+                ChoiceRow {
+                    width: parent.width; label: "Style"
+                    options: [{ "key": "bars", "label": "Bars" }, { "key": "dots", "label": "Dots" }, { "key": "line", "label": "Monitor" }, { "key": "wave", "label": "Wave" }, { "key": "segments", "label": "Segments" }, { "key": "radial", "label": "Radial" }, { "key": "circle", "label": "Circle" }]
+                    current: draft.style
+                    onChosen: (k) => page.edit("style", k)
+                }
+            }
+
+            Row {
+                id: vizRow
+                width: vizCol.width
+                spacing: 56
+                readonly property real colW: (width - spacing) / 2
+
+                Column {
+                    width: vizRow.colW
+                    spacing: 30
+
+                    SettingSection {
+                        width: parent.width
+                        title: "LAYOUT"
+                        ChoiceRow {
+                            width: parent.width; label: "Position"
+                            options: [{ "key": "bottom", "label": "Bottom" }, { "key": "top", "label": "Top" }, { "key": "center", "label": "Centre" }]
+                            current: draft.position
+                            onChosen: (k) => page.edit("position", k)
+                        }
+                        ChoiceRow {
+                            width: parent.width; label: "Shape"
+                            options: [{ "key": "rounded", "label": "Rounded" }, { "key": "flat", "label": "Flat" }]
+                            current: draft.shape
+                            onChosen: (k) => page.edit("shape", k)
+                        }
+                        ToggleRow {
+                            width: parent.width; label: "Mirror"
+                            checked: draft.mirror
+                            onToggled: (v) => page.edit("mirror", v)
+                        }
+                    }
+
+                    SettingSection {
+                        width: parent.width
+                        title: "SPECTRUM"
+                        ToggleRow {
+                            width: parent.width; label: "Enabled"
+                            checked: draft.enabled
+                            onToggled: (v) => page.edit("enabled", v)
+                        }
+                        NumberField {
+                            width: parent.width; label: "Bars"
+                            from: 16; to: 128; step: 4; value: draft.bars
+                            onModified: (v) => page.edit("bars", v)
+                        }
+                        NumberField {
+                            width: parent.width; label: "Segments"
+                            from: 4; to: 16; value: draft.segments
+                            onModified: (v) => page.edit("segments", v)
+                        }
+                        ToggleRow {
+                            width: parent.width; label: "Peak caps"
+                            checked: draft.peaks
+                            onToggled: (v) => page.edit("peaks", v)
+                        }
+                    }
+                }
+
+                Column {
+                    width: vizRow.colW
+                    spacing: 30
+
+                    SettingSection {
+                        width: parent.width
+                        title: "SIZE"
+                        SliderRow {
+                            width: parent.width; label: "Height"; percent: true
+                            from: 0.1; to: 0.6; step: 0.01; value: draft.height
+                            onModified: (v) => page.edit("height", v)
+                        }
+                        SliderRow {
+                            width: parent.width; label: "Bar width"; percent: true
+                            from: 0.2; to: 1; step: 0.01; value: draft.thickness
+                            onModified: (v) => page.edit("thickness", v)
+                        }
+                    }
+
+                    SettingSection {
+                        width: parent.width
+                        title: "GLOW"
+                        SliderRow {
+                            width: parent.width; label: "Bloom"; percent: true
+                            from: 0; to: 1; step: 0.01; value: draft.bloom
+                            onModified: (v) => page.edit("bloom", v)
+                        }
+                        SliderRow {
+                            width: parent.width; label: "Reflection"; percent: true
+                            from: 0; to: 0.3; step: 0.01; value: draft.reflection
+                            onModified: (v) => page.edit("reflection", v)
+                        }
+                    }
+
+                    SettingSection {
+                        width: parent.width
+                        title: "FEEL"
+                        SliderRow {
+                            width: parent.width; label: "Smoothing"; percent: true
+                            from: 0; to: 1; step: 0.01; value: draft.smoothing
+                            onModified: (v) => page.edit("smoothing", v)
+                        }
+                        SliderRow {
+                            width: parent.width; label: "Sensitivity"; percent: true
+                            from: 0.5; to: 2; step: 0.01; value: draft.gain
+                            onModified: (v) => page.edit("gain", v)
+                        }
+                    }
+
+                    SettingSection {
+                        width: parent.width
+                        title: "MOTION"
+                        ChoiceRow {
+                            width: parent.width; label: "Frame rate"
+                            options: [{ "key": "30", "label": "30" }, { "key": "45", "label": "45" }, { "key": "60", "label": "60" }]
+                            current: String(draft.fps)
+                            onChosen: (k) => page.edit("fps", parseInt(k))
+                        }
+                        ToggleRow {
+                            width: parent.width; label: "Adaptive quality"
+                            checked: draft.adaptive
+                            onToggled: (v) => page.edit("adaptive", v)
+                        }
+                    }
+
+                    SettingSection {
+                        width: parent.width
+                        title: "AT REST"
+                        ToggleRow {
+                            width: parent.width; label: "Idle wave"
+                            checked: draft.idleWave
+                            onToggled: (v) => page.edit("idleWave", v)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // --- bottom: status + actions ------------------------------------------
+    Rectangle {
+        id: bar
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 8
+        height: 60
+        radius: Theme.radius
+        color: page.dirty ? Qt.rgba(Theme.ember.r, Theme.ember.g, Theme.ember.b, 0.08) : Theme.surfaceLo
+        border.width: 1
+        border.color: page.dirty ? Qt.rgba(Theme.ember.r, Theme.ember.g, Theme.ember.b, 0.4) : Theme.line
+        Behavior on color { ColorAnimation { duration: Theme.medium } }
+        Behavior on border.color { ColorAnimation { duration: Theme.medium } }
+
+        Rectangle {
+            id: statusDot
+            anchors.left: parent.left
+            anchors.leftMargin: 20
+            anchors.verticalCenter: parent.verticalCenter
+            width: 9
+            height: 9
+            radius: 4.5
+            color: page.dirty ? Theme.ember : Theme.ok
+            Behavior on color { ColorAnimation { duration: Theme.quick } }
+        }
+
+        Text {
+            anchors.left: statusDot.right
+            anchors.leftMargin: 11
+            anchors.verticalCenter: parent.verticalCenter
+            text: page.dirty ? "Previewing unsaved changes" : "Saved \u00b7 live on your desktop"
+            color: page.dirty ? Theme.bright : Theme.dim
+            font.family: Theme.font
+            font.pixelSize: 13
+            font.weight: Font.DemiBold
+        }
+
+        Row {
+            anchors.right: parent.right
+            anchors.rightMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 10
+
+            HubButton {
+                anchors.verticalCenter: parent.verticalCenter
+                label: "Reset to defaults"
+                icon: "refresh"
+                onClicked: page.resetDefaults()
+            }
+            HubButton {
+                anchors.verticalCenter: parent.verticalCenter
+                label: "Revert"
+                icon: "close"
+                enabled: page.dirty
+                onClicked: page.revert()
+            }
+            HubButton {
+                anchors.verticalCenter: parent.verticalCenter
+                label: "Save"
+                icon: "check"
+                primary: true
+                enabled: page.dirty
+                onClicked: page.save()
+            }
+        }
     }
 }
