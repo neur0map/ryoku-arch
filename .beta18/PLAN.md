@@ -129,10 +129,17 @@ Ryoku.Ui/ActionBar.qml, both states verified. It also splits the two verbs the
 old pages ran together, revert discards unsaved edits and reset writes factory
 values, which is itself an edit and leaves the page dirty.
 
-The remaining surfaces, in the order they hurt: the live previews (Viz, Clock,
-Weather, Calendar, MockDesktop), the update console, the monitor drag-arrange,
-keybind capture, the bezier editor, store cards, scan lists, file pickers,
-empty and loading states. inventory.json has them per page.
+Preview is built too: the frame, the label, the corner tag and the off state.
+What goes inside stays the page's, because only the page knows what it draws.
+Shell, Widgets, Appearance and ryowalls each grew their own preview block with
+its own gradient and its own badge, which is four products' worth of chrome for
+one idea.
+
+Still to build, in the order they hurt: the update console, the monitor
+drag-arrange, keybind capture, the bezier editor, store cards, scan lists, file
+pickers, empty and loading states. inventory.json lists them per page. The
+previews themselves (Viz, Clock, Weather, Calendar, MockDesktop) now only need
+their canvas lifted into a Preview.
 
 ## What rendering all 30 pages actually proved
 
