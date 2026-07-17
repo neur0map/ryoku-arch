@@ -91,3 +91,25 @@ Descriptions are written: 453 of 479, and 178 labels replaced where the old one
 was a raw config key. 26 remain, concentrated in GpuPage (11), DisplaysPage (6)
 and RashinPage (6), where the setting's purpose was not clear from the source.
 Those want eyes, not another pass: an invented description is worse than none.
+
+## What rendering all 30 pages actually proved
+
+SchemaPage draws every schema with no errors, and that is not the same as every
+page being ported. Rendering WindowRulesPage through it produces a raw filename
+for a title, overlapping labels, and multi chips whose options are inventory
+prose. The component is fine. The premise does not hold for that page, because
+WindowRulesPage is a rule editor, not a settings page.
+
+Classified in page-classes.json:
+
+- **6 pages are schema-shaped** and carry 288 of 479 settings, about 60%:
+  HyprStore (95), AppearancePage (58), ShellSettingsPage (53), WidgetsPage (40),
+  InputPage (32), PerformancePage (10). These are done when their draft is wired
+  and the probe is green for their keys.
+- **24 pages need their bespoke surface** and carry the other 191. They are
+  mostly surface: WifiTab is 1 setting and 31 surfaces, LockscreenPage 1 and 22,
+  UpdatesPage 1 and 21. A schema is the wrong shape for them and forcing one on
+  is how a setting gets hidden behind a control that does not fit it.
+
+So the split is not 30 pages of the same work. It is 6 pages of wiring and 24
+pages of design, and the 24 are the ones that decide whether this holds up.

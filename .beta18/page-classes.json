@@ -1,0 +1,36 @@
+{
+ "sheet": [
+  "AppearancePage",
+  "HyprStore",
+  "InputPage",
+  "PerformancePage",
+  "ShellSettingsPage",
+  "WidgetsPage"
+ ],
+ "bespoke": [
+  "AddonsPage",
+  "AnimationsPage",
+  "AppOverridesPage",
+  "AutostartPage",
+  "BluetoothTab",
+  "DictationPage",
+  "DisplaysPage",
+  "EnvironmentPage",
+  "FastfetchPage",
+  "GpuPage",
+  "HotspotTab",
+  "KeybindsEditor",
+  "KeybindsPage",
+  "LauncherPage",
+  "LayerRulesPage",
+  "LockscreenPage",
+  "PluginPlacementEditor",
+  "PluginsPage",
+  "RashinPage",
+  "RecordingPage",
+  "RicesPage",
+  "UpdatesPage",
+  "WifiTab",
+  "WindowRulesPage"
+ ]
+}
