@@ -550,6 +550,7 @@ write_seed() { # $1=dir $2=name $3=want_sudo $4=os $5=tools_csv $6=extra_csv $7=
 		esac
 	fi
 
+	# shellcheck disable=SC2016  # printf emits a literal script; $vars must not expand here
 	{
 		printf '#cloud-config\n'
 		printf 'hostname: %s\n' "$name"
@@ -808,8 +809,7 @@ cmd_launch() {
 	# failure while the window then appears makes the board contradict itself.
 	# Fail only when quickemu itself has died AND no pid file ever appeared;
 	# the first line of the die() carries the cause (the UI keeps line one).
-	local i
-	for i in $(seq 1 32); do
+	for _ in $(seq 1 32); do
 		vm_running "$vm_pid" && break
 		kill -0 "$qpid" 2>/dev/null || break
 		sleep 0.25
@@ -859,8 +859,7 @@ cmd_stop() {
 	if [ "$force" != "--force" ] && vm_running "$vm_pid" && [ -S "$vm_subdir/$vm_name-monitor.socket" ] && have python3; then
 		python3 -c 'import socket,sys,time; s=socket.socket(socket.AF_UNIX); s.settimeout(2); s.connect(sys.argv[1]); time.sleep(0.2); s.sendall(b"system_powerdown\n"); time.sleep(0.3)' \
 			"$vm_subdir/$vm_name-monitor.socket" >/dev/null 2>&1 || true
-		local i
-		for i in $(seq 1 80); do
+		for _ in $(seq 1 80); do
 			vm_running "$vm_pid" || { echo "stopped $vm_name (clean shutdown)"; return 0; }
 			sleep 0.25
 		done
@@ -868,8 +867,7 @@ cmd_stop() {
 	quickemu --vm "$vm_name.conf" --kill >/dev/null 2>&1 || true
 	# don't return while qemu still holds the image lock: a seal or snapshot
 	# issued right after "stopped" would race the dying process and fail.
-	local j
-	for j in $(seq 1 20); do
+	for _ in $(seq 1 20); do
 		vm_running "$vm_pid" || break
 		sleep 0.25
 	done

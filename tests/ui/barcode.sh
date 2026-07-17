@@ -9,7 +9,6 @@ set -euo pipefail
 command -v zbarimg >/dev/null || { echo "zbar not installed"; exit 77; }
 command -v grim    >/dev/null || { echo "no compositor to render in"; exit 77; }
 
-here="$(cd "$(dirname "$0")" && pwd)"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 want="RYOKU-KUROGANE-20260717"

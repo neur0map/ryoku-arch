@@ -92,6 +92,7 @@ w2x_order() {
 # short write (well under PIPE_BUF), so parallel probes never interleave; the
 # path is passed as a positional, never spliced into the sh -c text.
 vid_res_map() {
+	# shellcheck disable=SC2016  # $1 must expand inside the child sh -c, not here
 	xargs -r -d '\n' -n 1 -P 8 sh -c \
 		'printf "%s\t%s\n" "$1" "$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$1" 2>/dev/null | head -1)"' _
 }
@@ -108,7 +109,7 @@ enhance_image() {
 	# [0]: probe the first frame only — on an animated webp/gif a bare %h prints
 	# every frame's height concatenated ("12001200"), which would both misread a
 	# 1080p wallpaper as past-4K and put that nonsense number in the verdict.
-	h="$(identify -format '%h' "$f[0]" 2>/dev/null || echo 0)"
+	h="$(identify -format '%h' "${f}[0]" 2>/dev/null || echo 0)"
 	case "$h" in '' | *[!0-9]*) h=0 ;; esac
 	[ "$h" -gt 0 ] || { enh_write "$f" error; enh_verdict error image 0 0 "" read; return 1; }
 	if [ "$h" -ge 2160 ]; then enh_write "$f" "sharp"; enh_verdict sharp image "$h" 2160; return 2; fi
@@ -123,7 +124,7 @@ enhance_image() {
 			mv -f "$tmp" "$f"
 			printf '%s' "$gpu" >"$w2x_gpu_pref" 2>/dev/null || true
 			enh_write "$f" "done"
-			enh_verdict done image
+			enh_verdict "done" image
 			return 0
 		fi
 	done
@@ -191,7 +192,7 @@ enhance_video() {
 	mv -f "$d/final.mp4" "$out" || { rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" io; return 1; }
 	rm -rf "$d"
 	enh_write "$out" "done" "$total" "$total"
-	enh_verdict done video 0 0 "$out"
+	enh_verdict "done" video 0 0 "$out"
 	# the desktop swap detaches, bounded at 20s: the shell's set can take seconds
 	# (wallust + livewall relaunch) or wedge outright, and the UI holds a dead
 	# "Enhanced" — button hidden, every click swallowed — until this process

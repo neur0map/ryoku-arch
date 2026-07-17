@@ -150,8 +150,7 @@ do_start() { # [id]
 	# hold the lock until the supervisor has stamped its process group: the
 	# pgid-0 window is the one moment a stop (or a second start) has nothing
 	# to kill — reproduced double-radio orphans ride exactly that gap.
-	local i
-	for i in $(seq 1 40); do
+	for _ in $(seq 1 40); do
 		[ "$(state_get pgid)" != "0" ] && [ -n "$(state_get pgid)" ] && break
 		[ -f "$state_file" ] || break
 		sleep 0.05
