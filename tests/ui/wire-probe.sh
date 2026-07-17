@@ -20,7 +20,7 @@ src="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/shell.json"
 mkdir -p "$work/cfg" "$work/qs/schema"
 cp "$src" "$work/cfg/shell.json"
 cp "$here/wire-probe.qml" "$work/qs/shell.qml"
-cp "$repo/ryoku/hub/quickshell/schema/shell.js" "$work/qs/schema/"
+cp "$repo/ryoku/hub/quickshell/schema/ShellSettingsPage.js" "$work/qs/schema/"
 
 RYOKU_TEST_CFG="$work/cfg" \
 QML_IMPORT_PATH="${QML_IMPORT_PATH:-$HOME/.local/lib/qt6/qml}" \

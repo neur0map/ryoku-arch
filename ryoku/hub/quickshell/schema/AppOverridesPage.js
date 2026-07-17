@@ -9,8 +9,8 @@ var rows = [
         "tab": "",
         "group": "Match row (card header, above the LOOK divider \u2014 no SettingSection)",
         "key": "appOverrides",
-        "label": "appOverrides",
-        "desc": "",
+        "label": "App overrides",
+        "desc": "Per-app look on top of the global Appearance, applied as a rule on Save",
         "ctl": "multi",
         "src": "shell",
         "opts": [

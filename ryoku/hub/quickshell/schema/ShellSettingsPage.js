@@ -1,8 +1,7 @@
 .pragma library
 
-// ShellSettingsPage as data. Generated from the page it replaces.
-// Descriptions are written by hand; the inventory carries engineering
-// notes, which are not user copy.
+// ShellSettingsPage as data. 66 settings, 56 controls: the 13 hand-wired
+// member toggles are three sets, not thirteen switches.
 
 var rows = [
     {
@@ -10,7 +9,7 @@ var rows = [
         "group": "SHAPE",
         "key": "frameEnabled",
         "label": "Enable frame",
-        "desc": "",
+        "desc": "Draw the rounded border around the screen",
         "ctl": "sw",
         "src": "shell"
     },
@@ -19,7 +18,7 @@ var rows = [
         "group": "SHAPE",
         "key": "frameBorder",
         "label": "Border thickness",
-        "desc": "",
+        "desc": "How far the frame intrudes on each edge",
         "ctl": "step",
         "src": "shell",
         "lo": 24.0,
@@ -31,7 +30,7 @@ var rows = [
         "group": "NOTIFICATIONS",
         "key": "osdRadius",
         "label": "OSD & toast corner",
-        "desc": "",
+        "desc": "Corner rounding of OSDs and toasts",
         "ctl": "step",
         "src": "shell",
         "lo": 0.0,
@@ -43,7 +42,7 @@ var rows = [
         "group": "NOTIFICATIONS",
         "key": "osdOpacity",
         "label": "Opacity",
-        "desc": "",
+        "desc": "Toast surface opacity over the wallpaper",
         "ctl": "slid",
         "src": "shell",
         "lo": 0.2,
@@ -56,7 +55,7 @@ var rows = [
         "group": "ROUNDNESS",
         "key": "roundness",
         "label": "Inner roundness",
-        "desc": "",
+        "desc": "Inner corner rounding, shell wide",
         "ctl": "step",
         "src": "shell",
         "lo": 0.0,
@@ -68,7 +67,7 @@ var rows = [
         "group": "ROUNDNESS",
         "key": "frameRadius",
         "label": "Frame corner",
-        "desc": "",
+        "desc": "Corner rounding of the frame itself",
         "ctl": "step",
         "src": "shell",
         "lo": 0.0,
@@ -80,7 +79,7 @@ var rows = [
         "group": "ROUNDNESS",
         "key": "frameSmoothing",
         "label": "Edge melt",
-        "desc": "",
+        "desc": "How softly the frame melts into a popout",
         "ctl": "step",
         "src": "shell",
         "lo": 1.0,
@@ -91,7 +90,7 @@ var rows = [
         "group": "SHADOW",
         "key": "shadowStrength",
         "label": "Strength",
-        "desc": "",
+        "desc": "How dark the drop shadow under a surface sits",
         "ctl": "slid",
         "src": "shell",
         "lo": 0.0,
@@ -104,7 +103,7 @@ var rows = [
         "group": "SHADOW",
         "key": "shadowSize",
         "label": "Size",
-        "desc": "",
+        "desc": "How far the shadow spreads",
         "ctl": "step",
         "src": "shell",
         "lo": 0.0,
@@ -116,7 +115,7 @@ var rows = [
         "group": "BRAND",
         "key": "name",
         "label": "Name",
-        "desc": "",
+        "desc": "The name the shell calls this desktop",
         "ctl": "text",
         "src": "brand"
     },
@@ -125,7 +124,7 @@ var rows = [
         "group": "BRAND",
         "key": "markText",
         "label": "Text mark",
-        "desc": "",
+        "desc": "The glyph the shell uses as its mark",
         "ctl": "text",
         "src": "brand"
     },
@@ -134,7 +133,7 @@ var rows = [
         "group": "BRAND",
         "key": "markImage",
         "label": "(logo image path \u2014 no label; row of readout + Choose image + Clear)",
-        "desc": "",
+        "desc": "Use an image as the mark instead of the glyph",
         "ctl": "text",
         "src": "brand"
     },
@@ -143,7 +142,7 @@ var rows = [
         "group": "BRAND",
         "key": "markTint",
         "label": "Tint image to accent",
-        "desc": "",
+        "desc": "Tint the mark image to the accent",
         "ctl": "sw",
         "src": "brand"
     },
@@ -152,7 +151,7 @@ var rows = [
         "group": "SURFACE",
         "key": "surfaceColor",
         "label": "Colour",
-        "desc": "",
+        "desc": "The one colour the frame, bar and island share",
         "ctl": "color",
         "src": "shell"
     },
@@ -161,7 +160,7 @@ var rows = [
         "group": "SURFACE",
         "key": "frameOpacity",
         "label": "Opacity",
-        "desc": "",
+        "desc": "Frame surface opacity over the wallpaper",
         "ctl": "slid",
         "src": "shell",
         "lo": 0.2,
@@ -174,7 +173,7 @@ var rows = [
         "group": "TEXT",
         "key": "fontFamily",
         "label": "Font",
-        "desc": "",
+        "desc": "The face the shell sets its text in",
         "ctl": "pick",
         "src": "shell",
         "opts": [
@@ -211,7 +210,7 @@ var rows = [
         "group": "TEXT",
         "key": "fontScale",
         "label": "Size",
-        "desc": "",
+        "desc": "Text size across the shell",
         "ctl": "slid",
         "src": "shell",
         "lo": 0.7,
@@ -224,7 +223,7 @@ var rows = [
         "group": "WEATHER",
         "key": "weatherLocation",
         "label": "Location",
-        "desc": "",
+        "desc": "Where to read weather for. Empty reads it from your IP.",
         "ctl": "text",
         "src": "shell"
     },
@@ -233,7 +232,7 @@ var rows = [
         "group": "WEATHER",
         "key": "weatherUnit",
         "label": "Units",
-        "desc": "",
+        "desc": "Temperature units",
         "ctl": "seg",
         "src": "shell",
         "opts": [
@@ -247,7 +246,7 @@ var rows = [
         "group": "BAR",
         "key": "barEnabled",
         "label": "Enable bar",
-        "desc": "",
+        "desc": "Show the module bar on the frame",
         "ctl": "sw",
         "src": "shell"
     },
@@ -256,7 +255,7 @@ var rows = [
         "group": "BAR",
         "key": "barPosition",
         "label": "Position",
-        "desc": "",
+        "desc": "Which frame edge the bar rides",
         "ctl": "seg",
         "src": "shell",
         "opts": [
@@ -269,7 +268,7 @@ var rows = [
         "group": "BAR",
         "key": "barStyle",
         "label": "Style",
-        "desc": "",
+        "desc": "The bar's module vocabulary",
         "ctl": "pick",
         "src": "shell",
         "opts": [
@@ -290,7 +289,7 @@ var rows = [
         "group": "BAR",
         "key": "barHeight",
         "label": "Thickness",
-        "desc": "",
+        "desc": "How thick the band the bar rides is",
         "ctl": "step",
         "src": "shell",
         "lo": 18.0,
@@ -302,7 +301,7 @@ var rows = [
         "group": "CONTENT",
         "key": "barShowTitle",
         "label": "Focused window title",
-        "desc": "",
+        "desc": "Show the focused window's title",
         "ctl": "sw",
         "src": "shell"
     },
@@ -311,7 +310,7 @@ var rows = [
         "group": "CONTENT",
         "key": "barShowMedia",
         "label": "Now playing",
-        "desc": "",
+        "desc": "Show what is playing",
         "ctl": "sw",
         "src": "shell"
     },
@@ -320,7 +319,7 @@ var rows = [
         "group": "CONTENT",
         "key": "barShowStatus",
         "label": "Status glyphs (network, battery, inbox)",
-        "desc": "",
+        "desc": "Show the status glyphs",
         "ctl": "sw",
         "src": "shell"
     },
@@ -329,7 +328,7 @@ var rows = [
         "group": "CONTENT",
         "key": "barOccupiedWorkspaces",
         "label": "Only occupied workspaces",
-        "desc": "",
+        "desc": "Only show workspaces that have windows",
         "ctl": "sw",
         "src": "shell"
     },
@@ -338,7 +337,7 @@ var rows = [
         "group": "ISLAND",
         "key": "islandRadius",
         "label": "Roundness",
-        "desc": "",
+        "desc": "Corner rounding of the island",
         "ctl": "step",
         "src": "shell",
         "lo": 0.0,
@@ -349,8 +348,8 @@ var rows = [
         "tab": "bar",
         "group": "ISLAND",
         "key": "islandModules",
-        "label": "islandModules",
-        "desc": "",
+        "label": "Island modules",
+        "desc": "Which modules the bar carries. Order follows the strip.",
         "ctl": "multi",
         "src": "shell",
         "opts": [
@@ -364,41 +363,11 @@ var rows = [
         ]
     },
     {
-        "tab": "(none",
-        "group": "(none)",
-        "key": "islandEdge",
-        "label": "(no visible label) island edge",
-        "desc": "",
-        "ctl": "seg",
-        "src": "shell",
-        "opts": [
-            "top"
-        ]
-    },
-    {
-        "tab": "(none",
-        "group": "(none)",
-        "key": "islandAlong",
-        "label": "(no visible label) island position along edge",
-        "desc": "",
-        "ctl": "step",
-        "src": "shell"
-    },
-    {
-        "tab": "(none",
-        "group": "(none)",
-        "key": "islandHidden",
-        "label": "(no visible label) island hidden",
-        "desc": "",
-        "ctl": "sw",
-        "src": "shell"
-    },
-    {
         "tab": "sidebar",
         "group": "LEFT \u00b7 FEATURES",
         "key": "sidebarLeftEnabled",
         "label": "Enable left sidebar",
-        "desc": "",
+        "desc": "Show the Features sidebar on the left edge",
         "ctl": "sw",
         "src": "shell"
     },
@@ -406,8 +375,8 @@ var rows = [
         "tab": "sidebar",
         "group": "LEFT \u00b7 FEATURES",
         "key": "sidebarLeftPanes",
-        "label": "sidebarLeftPanes",
-        "desc": "",
+        "label": "Left sidebar panes",
+        "desc": "Which panes the Features sidebar carries",
         "ctl": "multi",
         "src": "shell",
         "opts": [
@@ -419,7 +388,7 @@ var rows = [
         "group": "BEHAVIOUR",
         "key": "sidebarClickless",
         "label": "Open on hover",
-        "desc": "",
+        "desc": "Open a sidebar on hover instead of a click",
         "ctl": "sw",
         "src": "shell"
     },
@@ -428,7 +397,7 @@ var rows = [
         "group": "RIGHT \u00b7 SYSTEM",
         "key": "sidebarRightEnabled",
         "label": "Enable right sidebar",
-        "desc": "",
+        "desc": "Show the System sidebar on the right edge",
         "ctl": "sw",
         "src": "shell"
     },
@@ -436,8 +405,8 @@ var rows = [
         "tab": "sidebar",
         "group": "RIGHT \u00b7 SYSTEM",
         "key": "sidebarRightPanes",
-        "label": "sidebarRightPanes",
-        "desc": "",
+        "label": "Right sidebar panes",
+        "desc": "Which panes the System sidebar carries",
         "ctl": "multi",
         "src": "shell",
         "opts": [
@@ -453,7 +422,7 @@ var rows = [
         "group": "SIZE",
         "key": "sidebarWidth",
         "label": "Width",
-        "desc": "",
+        "desc": "How wide a sidebar opens",
         "ctl": "step",
         "src": "shell",
         "lo": 240.0,
@@ -465,7 +434,7 @@ var rows = [
         "group": "SIZE",
         "key": "sidebarCornerSize",
         "label": "Corner hotspot",
-        "desc": "",
+        "desc": "How large the corner you hover to summon it is",
         "ctl": "step",
         "src": "shell",
         "lo": 16.0,
@@ -477,7 +446,7 @@ var rows = [
         "group": "STYLE",
         "key": "style",
         "label": "Style",
-        "desc": "",
+        "desc": "How the spectrum is drawn",
         "ctl": "chips",
         "src": "viz",
         "opts": [
@@ -495,7 +464,7 @@ var rows = [
         "group": "LAYOUT",
         "key": "position",
         "label": "Position",
-        "desc": "",
+        "desc": "Which screen edge the spectrum sits on",
         "ctl": "seg",
         "src": "viz",
         "opts": [
@@ -509,7 +478,7 @@ var rows = [
         "group": "LAYOUT",
         "key": "shape",
         "label": "Shape",
-        "desc": "",
+        "desc": "The shape of a single bar",
         "ctl": "seg",
         "src": "viz",
         "opts": [
@@ -522,7 +491,7 @@ var rows = [
         "group": "LAYOUT",
         "key": "mirror",
         "label": "Mirror",
-        "desc": "",
+        "desc": "Mirror the spectrum around its centre",
         "ctl": "sw",
         "src": "viz"
     },
@@ -531,7 +500,7 @@ var rows = [
         "group": "SPECTRUM",
         "key": "enabled",
         "label": "Enabled",
-        "desc": "",
+        "desc": "Paint the audio spectrum on the desktop",
         "ctl": "sw",
         "src": "viz"
     },
@@ -540,7 +509,7 @@ var rows = [
         "group": "SPECTRUM",
         "key": "bars",
         "label": "Bars",
-        "desc": "",
+        "desc": "How many bars the spectrum is cut into",
         "ctl": "step",
         "src": "viz",
         "lo": 16.0,
@@ -551,7 +520,7 @@ var rows = [
         "group": "SPECTRUM",
         "key": "segments",
         "label": "Segments",
-        "desc": "",
+        "desc": "How many segments a bar is cut into",
         "ctl": "step",
         "src": "viz",
         "lo": 4.0,
@@ -562,7 +531,7 @@ var rows = [
         "group": "SPECTRUM",
         "key": "peaks",
         "label": "Peak caps",
-        "desc": "",
+        "desc": "Hold a mark at each bar's peak",
         "ctl": "sw",
         "src": "viz"
     },
@@ -571,7 +540,7 @@ var rows = [
         "group": "SIZE",
         "key": "height",
         "label": "Height",
-        "desc": "",
+        "desc": "How tall the spectrum stands",
         "ctl": "slid",
         "src": "viz",
         "lo": 0.1,
@@ -584,7 +553,7 @@ var rows = [
         "group": "SIZE",
         "key": "thickness",
         "label": "Bar width",
-        "desc": "",
+        "desc": "How wide each bar is against its gap",
         "ctl": "slid",
         "src": "viz",
         "lo": 0.2,
@@ -597,7 +566,7 @@ var rows = [
         "group": "GLOW",
         "key": "bloom",
         "label": "Bloom",
-        "desc": "",
+        "desc": "How much the spectrum glows",
         "ctl": "slid",
         "src": "viz",
         "lo": 0.0,
@@ -610,7 +579,7 @@ var rows = [
         "group": "GLOW",
         "key": "reflection",
         "label": "Reflection",
-        "desc": "",
+        "desc": "How much of the spectrum mirrors below it",
         "ctl": "slid",
         "src": "viz",
         "lo": 0.0,
@@ -623,7 +592,7 @@ var rows = [
         "group": "FEEL",
         "key": "smoothing",
         "label": "Smoothing",
-        "desc": "",
+        "desc": "How much motion is smoothed between frames",
         "ctl": "slid",
         "src": "viz",
         "lo": 0.0,
@@ -636,7 +605,7 @@ var rows = [
         "group": "FEEL",
         "key": "gain",
         "label": "Sensitivity",
-        "desc": "",
+        "desc": "Input sensitivity",
         "ctl": "slid",
         "src": "viz",
         "lo": 0.5,
@@ -649,7 +618,7 @@ var rows = [
         "group": "MOTION",
         "key": "fps",
         "label": "Frame rate",
-        "desc": "",
+        "desc": "How often the spectrum redraws",
         "ctl": "seg",
         "src": "viz",
         "opts": [
@@ -663,7 +632,7 @@ var rows = [
         "group": "MOTION",
         "key": "adaptive",
         "label": "Adaptive quality",
-        "desc": "",
+        "desc": "Drop the frame rate when nothing is playing",
         "ctl": "sw",
         "src": "viz"
     },
@@ -672,7 +641,7 @@ var rows = [
         "group": "AT REST",
         "key": "idleWave",
         "label": "Idle wave",
-        "desc": "",
+        "desc": "Keep a slow wave moving when nothing is playing",
         "ctl": "sw",
         "src": "viz"
     }

@@ -10,7 +10,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "My rices / Browse (mode switch)",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "seg",
         "src": "shell",
         "opts": [
@@ -23,7 +23,7 @@ var rows = [
         "group": "OTHER",
         "key": "name (\u2192 also derives \"slug\" via backend slugify)",
         "label": "Name this rice (for example, My Setup)",
-        "desc": "",
+        "desc": "Titles the new rice; a slugified form becomes its id and folder name",
         "ctl": "text",
         "src": "rice.json"
     },
@@ -32,7 +32,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Save current setup",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": "shell"
     },
@@ -41,7 +41,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Restore original",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": "*.json"
     },
@@ -50,7 +50,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Save (commit the capture)",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": "rice.json"
     },
@@ -59,7 +59,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Cancel (abandon the capture)",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": "shell"
     },
@@ -68,7 +68,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Try again (reload the store catalog)",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": "shell"
     },
@@ -77,7 +77,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Rice tile (My rices grid)",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": "shell"
     },
@@ -86,7 +86,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Rice tile (Browse / store grid)",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": "shell"
     },
@@ -95,7 +95,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Apply this rice / Applied",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": "settings.lua, wallust colors.json, kitty theme)"
     },
@@ -104,7 +104,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Duplicate",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": "rice.json"
     },
@@ -113,7 +113,7 @@ var rows = [
         "group": "OTHER",
         "key": "assets.wallpaper",
         "label": "Set wallpaper",
-        "desc": "",
+        "desc": "Bundles a chosen image into the rice; it also becomes its tile preview",
         "ctl": "text",
         "src": "rice.json"
     },
@@ -122,7 +122,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "View config",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "readout",
         "src": "rice.json (read-only)"
     },
@@ -131,7 +131,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Export",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": " breakout + README)"
     },
@@ -140,7 +140,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Delete",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": " (removed)"
     },
@@ -149,7 +149,7 @@ var rows = [
         "group": "EXPORTED TO",
         "key": "",
         "label": "Show in files",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": "shell"
     },
@@ -158,7 +158,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Back (to the grid)",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
         "src": "shell"
     },
@@ -167,7 +167,7 @@ var rows = [
         "group": "ALSO SETS",
         "key": "layers",
         "label": "ALSO SETS (behavior layers carried by the rice)",
-        "desc": "",
+        "desc": "Hypr behavior bundled beyond the look; applying the rice sets these too",
         "ctl": "multi",
         "src": "hypr.json",
         "opts": [
@@ -185,7 +185,7 @@ var rows = [
         "group": "WHAT IT TOUCHES",
         "key": "",
         "label": "WHAT IT TOUCHES (files this rice writes)",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "readout",
         "src": "read from `ryoku-hub rice files <slug>` \u2192 .touches"
     },
@@ -194,7 +194,7 @@ var rows = [
         "group": "OTHER",
         "key": "",
         "label": "Changes \u2026 (summary line)",
-        "desc": "",
+        "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "readout",
         "src": "shell"
     }

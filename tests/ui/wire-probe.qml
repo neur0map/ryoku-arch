@@ -3,7 +3,7 @@ import Quickshell
 import Quickshell.Io
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
-import "schema/shell.js" as Schema
+import "schema/ShellSettingsPage.js" as Schema
 
 // wiring probe: the real FileView + JsonAdapter contract from ShellSettingsPage,
 // driven by the schema, writing to a copy of the real shell.json.

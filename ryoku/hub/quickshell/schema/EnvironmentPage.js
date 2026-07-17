@@ -9,8 +9,8 @@ var rows = [
         "tab": "",
         "group": "OTHER",
         "key": "env",
-        "label": "Environment variables (the list itself)",
-        "desc": "",
+        "label": "Variable name and value",
+        "desc": "Name and value for one variable, e.g. MOZ_ENABLE_WAYLAND = 1",
         "ctl": "list",
         "src": "settings.lua as one `hl.env(\"NAME\", \"value\")` line per entry"
     },
@@ -18,8 +18,8 @@ var rows = [
         "tab": "",
         "group": "OTHER",
         "key": "env",
-        "label": "env",
-        "desc": "",
+        "label": "Variable name and value",
+        "desc": "Name and value for one variable, e.g. MOZ_ENABLE_WAYLAND = 1",
         "ctl": "multi",
         "src": "shell",
         "opts": [

@@ -10,7 +10,7 @@ var rows = [
         "group": "ENABLE",
         "key": "enabled",
         "label": "Start Rashin with the desktop and keep the dashboard available",
-        "desc": "",
+        "desc": "Applies immediately; greyed out until ryoku-rashin is installed",
         "ctl": "sw",
         "src": "rashin.json)"
     },

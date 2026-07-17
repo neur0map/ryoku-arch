@@ -87,6 +87,7 @@ capture, store cards, wizards, scan buttons, loading and empty states. Those are
 in `inventory.json` under `nonSettingSurfaces`, per file. A page is not ported
 when its schema renders; it is ported when its surfaces come with it.
 
-Schema rows still need written descriptions. Only ShellSettingsPage has them.
-The inventory's notes are engineering observations and must not be shipped as
-user copy.
+Descriptions are written: 453 of 479, and 178 labels replaced where the old one
+was a raw config key. 26 remain, concentrated in GpuPage (11), DisplaysPage (6)
+and RashinPage (6), where the setting's purpose was not clear from the source.
+Those want eyes, not another pass: an invented description is worse than none.

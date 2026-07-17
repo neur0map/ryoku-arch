@@ -9,8 +9,8 @@ var rows = [
         "tab": "Installed",
         "group": "(none \u2014 this page uses NO SettingSection at all; every control is a bespoke inline Rectangle + TapHandler inside the per-plugin card)",
         "key": "<pluginId>.enabled",
-        "label": "Enabled (the switch is unlabelled \u2014 it sits at the right of the plugin name/description row)",
-        "desc": "",
+        "label": "Enabled",
+        "desc": "Loads the plugin into the running shell; applies live, no restart",
         "ctl": "sw",
         "src": "plugins.json"
     },
@@ -19,7 +19,7 @@ var rows = [
         "group": "(none)",
         "key": "<pluginId>.host",
         "label": "Show as",
-        "desc": "",
+        "desc": "Popouts dock to a screen edge; widgets are dragged loose on the desktop",
         "ctl": "seg",
         "src": "plugins.json",
         "opts": [
@@ -31,8 +31,8 @@ var rows = [
         "tab": "Installed",
         "group": "(none \u2014 inside the embedded PluginPlacementEditor, visible only when card.on && card.host === \"framePopout\")",
         "key": "<pluginId>.framePopout.edge",
-        "label": "Edge (chips: Top | Right | Bottom | Left)",
-        "desc": "",
+        "label": "Edge",
+        "desc": "Screen edge the popout opens from (right until first placed)",
         "ctl": "seg",
         "src": "plugins.json",
         "opts": [
@@ -46,8 +46,8 @@ var rows = [
         "tab": "Installed",
         "group": "(none \u2014 inside PluginPlacementEditor)",
         "key": "<pluginId>.framePopout.align",
-        "label": "(no label \u2014 set by dragging the \"popout\" chip along the chosen edge of the LIVE PLACEMENT stage)",
-        "desc": "",
+        "label": "Position along edge",
+        "desc": "Which end of the edge the popout docks at; the centre is always reserved",
         "ctl": "seg",
         "src": "plugins.json",
         "opts": [
@@ -59,8 +59,8 @@ var rows = [
         "tab": "Installed",
         "group": "(none \u2014 inside PluginPlacementEditor)",
         "key": "<pluginId>.framePopout.hoverW",
-        "label": "(no control anywhere on this page \u2014 carried through on every write)",
-        "desc": "",
+        "label": "Hover strip length",
+        "desc": "Length of the hover strip that opens the popout; unset saves as 320",
         "ctl": "step",
         "src": "plugins.json",
         "unit": "px"
@@ -69,8 +69,8 @@ var rows = [
         "tab": "Installed",
         "group": "(none \u2014 inside PluginPlacementEditor)",
         "key": "<pluginId>.framePopout.hoverH",
-        "label": "(no control anywhere on this page \u2014 carried through on every write)",
-        "desc": "",
+        "label": "Hover strip depth",
+        "desc": "How far the hover strip reaches in from the edge; unset saves as 16",
         "ctl": "step",
         "src": "plugins.json",
         "unit": "px"

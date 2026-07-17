@@ -9,8 +9,8 @@ var rows = [
         "tab": "",
         "group": "AUTOMATIC CHECKS",
         "key": "update_interval",
-        "label": "Automatic checks (no per-control label; the eyebrow AUTOMATIC CHECKS is the only labelling, and a live blurb below restates the choice in prose)",
-        "desc": "",
+        "label": "Automatic checks",
+        "desc": "How often the hub checks for updates by itself: off means manual only",
         "ctl": "seg",
         "src": "hub.toml), TOML table [ui], field update_interval",
         "opts": [

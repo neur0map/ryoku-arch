@@ -10,7 +10,7 @@ var rows = [
         "group": "OTHER",
         "key": "<pluginId>.framePopout.edge",
         "label": "Edge",
-        "desc": "",
+        "desc": "Screen edge the popout grows from, right when unset",
         "ctl": "seg",
         "src": "plugins.json) via `ryoku-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
         "opts": [
@@ -25,7 +25,7 @@ var rows = [
         "group": "OTHER",
         "key": "<pluginId>.framePopout.align",
         "label": "Align (drag the \"popout\" chip along the chosen edge)",
-        "desc": "",
+        "desc": "Which end of the edge, the centre is reserved for island, mixer, power",
         "ctl": "seg",
         "src": "plugins.json via `ryoku-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
         "opts": [
@@ -37,8 +37,8 @@ var rows = [
         "tab": "Installed",
         "group": "OTHER",
         "key": "<pluginId>.framePopout.hoverW",
-        "label": "(no label \u2014 hover-zone width, carried through, not editable here)",
-        "desc": "",
+        "label": "Hover zone width",
+        "desc": "Width of the strip that opens the popout on hover, 320 when unset",
         "ctl": "step",
         "src": "plugins.json via `ryoku-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
         "unit": "px"
@@ -47,8 +47,8 @@ var rows = [
         "tab": "Installed",
         "group": "OTHER",
         "key": "<pluginId>.framePopout.hoverH",
-        "label": "(no label \u2014 hover-zone thickness, carried through, not editable here)",
-        "desc": "",
+        "label": "Hover zone thickness",
+        "desc": "How far the hover strip reaches out from the edge, 16 when unset",
         "ctl": "step",
         "src": "plugins.json via `ryoku-plugins-place <id> framePopout <edge> <align> <hoverW> <hoverH>`",
         "unit": "px"

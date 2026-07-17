@@ -10,7 +10,7 @@ var rows = [
         "group": "RYOKU RENDERS ON",
         "key": "AQ_DRM_DEVICES",
         "label": "Graphics mode",
-        "desc": "",
+        "desc": "Which GPU the desktop renders on, takes effect at your next login",
         "ctl": "seg",
         "src": "gpu.lua (override path via $RYOKU_GPU_CONF; base honours $XDG_CONFIG_HOME)",
         "opts": [

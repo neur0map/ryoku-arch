@@ -9,8 +9,8 @@ var rows = [
         "tab": "",
         "group": "OTHER",
         "key": "autostart",
-        "label": "Autostart commands (the list itself)",
-        "desc": "",
+        "label": "Command",
+        "desc": "Shell command line, run verbatim at login; Save alone does not run it",
         "ctl": "list",
         "src": "settings.lua as an hl.on(\"hyprland.start\", ...) hook"
     },
@@ -18,8 +18,8 @@ var rows = [
         "tab": "",
         "group": "OTHER",
         "key": "autostart",
-        "label": "autostart",
-        "desc": "",
+        "label": "Command",
+        "desc": "Shell command line, run verbatim at login; Save alone does not run it",
         "ctl": "multi",
         "src": "shell",
         "opts": [

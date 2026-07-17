@@ -9,8 +9,8 @@ var rows = [
         "tab": "",
         "group": "OTHER",
         "key": "",
-        "label": "Lock skin (chosen by clicking a tile \u2014 there is NO visible label, no SettingSection, no ToggleRow/SliderRow/ChoiceRow/Dropdown/Segmented/ColorField/NumberField/SettingField anywhere in this file; the bento grid itself IS the control)",
-        "desc": "",
+        "label": "Lock skin",
+        "desc": "Reskins the lock and sign-in screens, asks for your password to apply",
         "ctl": "chips",
         "src": "99-ryoku.conf (contents `[Theme]\\nCurrent=ryoku\\n`). Paths overridable by env: RYOKU_SDDM_THEMES_DIR, RYOKU_SDDM_CONF, RYOKU_QYLOCK_THEMES.",
         "opts": [

@@ -10,7 +10,7 @@ var rows = [
         "group": "OTHER",
         "key": "keybinds",
         "label": "Custom shortcuts (list)",
-        "desc": "",
+        "desc": "Empties the list in one go; Revert can bring it back until you Save",
         "ctl": "list",
         "src": "settings.lua as hl.bind(...) lines on Save"
     },
@@ -19,7 +19,7 @@ var rows = [
         "group": "OTHER",
         "key": "keybinds",
         "label": "keybinds",
-        "desc": "",
+        "desc": "Empties the list in one go; Revert can bring it back until you Save",
         "ctl": "multi",
         "src": "shell",
         "opts": [
@@ -33,7 +33,7 @@ var rows = [
         "group": "OTHER",
         "key": "keybinds",
         "label": "Add shortcut",
-        "desc": "",
+        "desc": "Empties the list in one go; Revert can bring it back until you Save",
         "ctl": "action",
         "src": "hypr.json"
     },
@@ -42,7 +42,7 @@ var rows = [
         "group": "OTHER",
         "key": "keybinds",
         "label": "(row) delete",
-        "desc": "",
+        "desc": "Empties the list in one go; Revert can bring it back until you Save",
         "ctl": "action",
         "src": "hypr.json"
     },
@@ -51,7 +51,7 @@ var rows = [
         "group": "OTHER",
         "key": "keybinds",
         "label": "Clear all",
-        "desc": "",
+        "desc": "Empties the list in one go; Revert can bring it back until you Save",
         "ctl": "action",
         "src": "hypr.json"
     }

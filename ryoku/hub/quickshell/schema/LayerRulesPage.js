@@ -9,8 +9,8 @@ var rows = [
         "tab": "",
         "group": "OTHER",
         "key": "layerRules",
-        "label": "Custom layer rules (the list itself)",
-        "desc": "",
+        "label": "Custom layer rules",
+        "desc": "Blur, dim, or restyle shell surfaces per namespace; applied only on Save",
         "ctl": "list",
         "src": "settings.lua"
     },
@@ -18,8 +18,8 @@ var rows = [
         "tab": "",
         "group": "OTHER",
         "key": "layerRules[i].namespace",
-        "label": "Namespace (per-rule field 1; placeholder \"Namespace\")",
-        "desc": "",
+        "label": "Namespace",
+        "desc": "Layer-shell name to match, e.g. launcher; no match means no effect",
         "ctl": "text",
         "src": "settings.lua"
     },
@@ -27,8 +27,8 @@ var rows = [
         "tab": "",
         "group": "OTHER",
         "key": "layerRules[i].action",
-        "label": "Action (per-rule field 2)",
-        "desc": "",
+        "label": "Action",
+        "desc": "What the rule does to matched surfaces; changing it resets the value",
         "ctl": "chips",
         "src": "settings.lua",
         "opts": [
@@ -45,8 +45,8 @@ var rows = [
         "tab": "",
         "group": "OTHER",
         "key": "layerRules[i].value",
-        "label": "Value (per-rule field 3; placeholder is the action's valueHint, e.g. \"0.0 - 1.0\")",
-        "desc": "",
+        "label": "Value",
+        "desc": "Only Ignore alpha takes a value: alpha cutoff 0.0 to 1.0, seeded to 0.5",
         "ctl": "text",
         "src": "settings.lua",
         "unit": "alpha"
