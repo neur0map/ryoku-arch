@@ -45,28 +45,50 @@ surface earns its place; if it does not, remove it.
 
 ## Tokens: never hardcode a colour
 
-Every surface reads its look from a `Singletons/Theme.qml` singleton that mirrors
-the website's `app/assets/css/tokens.css`. Add a token or read one; never write a
-hex, a font name, or a radius literal in a component.
+Every surface reads its look from `Ryoku.Ui`. One module, imported by the shell's
+configs, the Hub and the apps. `import Ryoku.Ui.Singletons` and read `Tokens`;
+never write a hex, a font name, a radius or a duration in a component.
 
-- `ryoku/hub/quickshell/Singletons/Theme.qml` is the fullest reference (it names
-  the site token each value maps to).
-- `ryoku/shell/quickshell/{pill,launcher,widgets,plugins,plugins/kit}/Singletons/Theme.qml`
-  and `switcher/shell.qml` are the shell twins. They carry the wallust-matched
-  accent with the vermillion fallback; `widgets` keeps the accent fixed because a
-  desktop widget sits on the wallpaper and must read on any backdrop.
+    import Ryoku.Ui
+    import Ryoku.Ui.Singletons
 
-The core palette (the fixed fallback; wallust overrides only the accent):
+There used to be eleven `Singletons/Theme.qml` copies kept in step by hand. They
+were not in step. They had drifted into three families with the same token names
+carrying different values: `Theme.border` was a width in the Hub and a colour in
+the pill, so a file moved between them broke silently, and `border2` exists
+because the width token was evicted to make room. The `widgets` config ran two
+Theme singletons at once. Do not add a twelfth. If a value is missing from
+Tokens, add it to Tokens.
 
-|Token|Value|Use|
-|---|---|---|
-|`brand` / `sun`|`#e2342a`|the one vermillion accent; `sun` is the fixed red-sun motif|
-|`sunDeep` / `emberDeep`|`#b81f19`|pressed / hover|
-|`gold`|`#d9a441`|kintsugi seams, warnings, sparingly|
-|`bright` / `cream` / `subtle` / `dim`|`#f3ede1` / `#e6dccb` / `#c7bfae` / `#8f8770`|warm-white text ramp|
-|`bgTop` / `bgBot`|`#16110b` / `#0f0c07`|near-black canvas / recessed panels|
-|`line` / `lineStrong`|warm-white at `0.14` / `0.40` alpha|hairline dividers / card borders|
-|`shadow`|`#000000`|hard brutalist offset (never the ink colour)|
+The module lives at `ryoku/ui/`. An installed system reads it from
+`/usr/lib/qt6/qml/Ryoku/Ui`, which Qt resolves unaided. A deploy.sh checkout
+puts it under `~/.local/lib/qt6/qml`, and only the daemon injects that path
+(`ipc/daemon.go`), so `qs -c hub` from a keybind cannot see it without
+`QML_IMPORT_PATH`. `hyprland/modules/env.lua` sets it for the session. If an
+import fails in dev and works on an installed box, that is why.
+
+### What follows the wallpaper, and what does not
+
+The old text here claimed wallust overrides only the accent. It does not, and
+never did. What the shell actually does, which is the better policy:
+
+- **The accent follows the wallpaper.** `Wallust.accent` is `legible(vivid(color4),
+  elevated, 3.0)`: the wallpaper's colour, walked toward white until it clears
+  3:1 against the surface it sits on. Three of the nine Wallust copies skipped
+  that clamp, which is why the Hub used to preview an accent the shell would
+  never render.
+- **The surfaces follow the wallpaper too, inside a clamp.** `shade()` tone-maps
+  the wallpaper's background into a dark band: HSV value clamped to `[0.08,
+  0.26]`, saturation capped at 0.55, hue kept. That is what stops a neon
+  wallpaper producing an unreadable shell. The near-black canvas is derived, not
+  fixed.
+- **The 力 mark and the sun are never derived.** A sun is a sun on any wallpaper.
+- **App content carries no accent at all.** The Hub, ryowalls and ryovm are paper
+  and ink. Emphasis is inversion: a surface flips to bone and its ink flips to
+  black. The frame carries the accent; the content does not compete with it.
+
+So the rice wins inside an envelope the brand enforces. Write that down rather
+than the reverse: the clamp is the design.
 
 ## Type
 
@@ -74,36 +96,80 @@ Self-hosted, no CDN. Four families, one role each:
 
 |Role|Family|Token|
 |---|---|---|
-|Editorial headlines|**Fraunces**|`Theme.display`|
-|UI and body|**Space Grotesk**|`Theme.font` (a user's configured UI font overrides it)|
-|Labels, numerals, code|**JetBrains Mono Nerd Font**|`Theme.mono`|
-|Kanji marks (力)|**Noto Sans CJK JP**|`Theme.fontJp`|
+|Editorial headlines|**Fraunces**|`Tokens.display`|
+|UI, body, labels, numerals|**Space Grotesk**|`Tokens.ui` (a user's configured UI font overrides it)|
+|Tabular data only|**Space Mono**|`Tokens.mono`|
+|Kanji marks (力)|**Noto Sans CJK JP**|`Tokens.jp`|
 
-Mono labels are uppercase with wide tracking (letter spacing roughly `1.5` to
-`3`); that spacing is the technical, poster feel. Keep it.
+Mono labels are uppercase with wide tracking (`Tokens.trackLabel` 1.4,
+`Tokens.trackMark` 2.2); that spacing is the technical, poster feel. Keep it.
 
-## Geometry: brutalist
+Mono is not the UI face. It carries what is literally valid in a config file:
+keys, ranges, defaults, paths, ids. Everything a human reads as language is
+Space Grotesk, numerals included. Setting the whole UI in mono makes it read as
+a terminal instead of a printed instrument, which is a different product.
 
-- **Sharp corners inside surfaces.** `Theme.radius` is `0`. Cards, rows, inputs,
-  chips, and menus are square. Only true circles stay round: status dots, toggle
-  knobs, badges, the VRAM ring. The outer Hyprland window rounding is the user's
-  own knob (the frame); inside our surfaces we are sharp.
-- **Hairline borders.** `1px` (`Theme.border`), warm-white at low alpha.
-- **Hard offset shadows.** A solid `Theme.shadow` rectangle offset by
-  `Theme.shadowStep` (6px, or `shadowStepLg` 8px for larger cards), no blur,
-  `antialiasing: false`. Depth comes from the offset, not a glow.
+## Geometry
+
+- **A hair of rounding.** `Tokens.radius` is `2`. Cards, rows, inputs, chips and
+  menus take it. Only true circles stay round: status dots, toggle knobs,
+  badges, the VRAM ring. The outer Hyprland window rounding is the user's own
+  knob; inside our surfaces we are near-square.
+- **Hairline borders.** `1px` (`Tokens.border`) at `Tokens.line`. Depth is a
+  hairline, not a glow.
+- **No shadows in app surfaces.** The Hub and the apps are print: a flat
+  instrument sheet does not cast. The brutalist offset shadow is retired; an
+  overlay separates with `Tokens.paperLift` and a `lineStrong` border instead.
+  The frame's own drop shadow over the wallpaper is a different thing and is
+  outside this doc.
 
 ## The idioms: shared primitives
 
-The website's chrome idioms exist as small QML components. Reuse them; do not
-re-roll a bespoke header or divider in each surface.
+They live in `Ryoku.Ui`. Reuse them; do not re-roll a bespoke header, control or
+divider in each surface. That is how eleven Themes happened.
 
-|Idiom|Website (`base.css`)|QML component|
-|---|---|---|
-|Eyebrow: a vermillion tick, the 力 seal, then a mono uppercase label|`.eyebrow`|`hub/quickshell/Eyebrow.qml`, `shell/quickshell/pill/Eyebrow.qml`|
-|Red-sun disc: a soft radial vermillion glow behind a subject|`.sun-disc`|`hub/quickshell/SunDisc.qml`|
-|Registration mark: a printing crosshair as poster chrome|`.regmark`|`hub/quickshell/RegMark.qml`|
-|Brutalist panel: sharp face, hairline border, hard offset shadow|the card pattern|`hub/quickshell/BrutalPanel.qml`|
+|Idiom|Component|
+|---|---|
+|A setting: label, value, unit, struck default, description, control|`Cell`|
+|A named group that packs its own cells|`Section` (spans come from `Spans`, never by hand)|
+|The eight controls|`Sw` `Step` `Slid` `Seg` `Chips` `Multi` `PickBar`+`Picker` `Gallery`|
+|Save / Revert / Reset, and the dirty state|`ActionBar`|
+|The block a live preview sits in|`Preview`|
+|The matte|`Grain`, one layer, topmost|
+
+The old table here listed `Eyebrow`, `SunDisc`, `RegMark` and `BrutalPanel`. The
+Hub used `RegMark` and `BrutalPanel` zero times: the brutalist card the tokens
+described was built and never adopted, and the pages hand-rolled a hairline
+`Rectangle` instead. A documented primitive nobody reaches for is not a design
+system, it is a museum. If a new idiom is worth having, put it in `Ryoku.Ui` and
+use it somewhere in the same change.
+
+**Choosing a control is not a taste decision.** `Spans.controlFor(kind, options)`
+picks it from the option count, because the counts are known: of the Hub's enums
+79 have 1-4 options, 10 have 5-8, 23 have 10 or more, and `islandModules` is a
+set rather than a choice. Two options is a `Seg`. Ten is a `Pick`. The ten bar
+skins are a `Gallery`, because no label distinguishes "engraved bracket cells"
+from "three islands with concave dips".
+
+## A page is its surfaces
+
+A settings page is not a list of settings. Across the Hub there are 479 settings
+and 508 surfaces, and not one page has zero: the previews, the update console,
+the monitor drag-arrange, keybind capture, the bezier editor, store cards, scan
+lists, file pickers, the empty and loading states. WifiTab is one setting and
+thirty-one surfaces.
+
+So a schema is half a page. Port in this order:
+
+1. List the page's surfaces before writing anything.
+2. Build them first, as full-width blocks in the section grid. A preview or a
+   console is not a setting and does not go in a `Cell`.
+3. Let the rows flow around them.
+4. Check all four: every surface present, every key present, the adapter still
+   writing (`tests/ui/wire-probe.sh`), nothing below 4.6:1.
+
+The `ActionBar` goes in first. A page that previews live and cannot save does
+not look broken; it looks fine and then eats the edit on the way out.
 
 ## The surfaces
 
