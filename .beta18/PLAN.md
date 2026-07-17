@@ -153,3 +153,31 @@ Classified in page-classes.json:
 
 page-classes.json now records what is actually there: settings and surfaces per
 page, no verdict. The verdict was the mistake.
+
+## The apps
+
+APPS.md is the design for ryowalls and ryovm. It is a contract like DESIGN.md,
+not a sketch. The decisions worth knowing before reading it:
+
+- Both apps are one skeleton. The arbitrary `parent.width * 0.44` against `0.46`
+  becomes a 5/12 : 7/12 split of the same grid the Hub uses. Both local
+  Theme.qml forks are deleted.
+- Three components get promoted into Ryoku.Ui because both apps force them:
+  Field, IconBtn, and ScrollRail, which is ryovm's BoardScrollBar. That one was
+  the proof the app understood the system before the system existed.
+- ryowalls: browse/adjust/tune becomes BROWSE / GRADE / PALETTE. The collision
+  where TunePanel had a section headed "Adjust" while Adjust was a top-level mode
+  dies by naming the target: you grade the image, you tune the scheme.
+- ryovm: library/catalog/instant becomes LIBRARY / NEW with a channel seg, and
+  the ImportDialog modal dissolves into the ISO sheet.
+- The split-flap, the annunciator and the guard switch all stay and lose their
+  colour. State moves to the word, to lit against dark, to a blink, and to
+  inversion: an alarm tile inverts.
+- **The hanko keeps its vermillion.** This breaks the no-colour rule on purpose
+  and the amendment is written down: it is ryovm's sun, one per screen, stage
+  only, and only when it certifies. Grey per-card seals die.
+- MockDesktop gets upgraded rather than ported: it paints the user's actual bar
+  skin through Silhouette.draw(), the same source the Hub's gallery draws from.
+- Each app gets one thing it never had. ryowalls gets a pending rice diff, the
+  Hub's dirty-state grammar applied to a wallpaper, with SET as its SAVE. ryovm
+  gets a yard log, a per-machine flight recorder grown from info()/raiseFault().
