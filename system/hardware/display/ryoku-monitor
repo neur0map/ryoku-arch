@@ -46,6 +46,7 @@ applied_layout="${RYOKU_MONITORS_APPLIED:-${XDG_CONFIG_HOME:-$HOME/.config}/ryok
 # qualifies, so it never comes up empty. ladder() is the stepper-facing subset
 # the hub walks: 0.5x-3x, never shrinking the logical desktop below 640x360
 # (the dusky/GNOME floor), which caps a 720p panel at 2x.
+# shellcheck disable=SC2016  # jq program: $w/$h/$target are jq vars, not shell
 jq_scale_lib='
   def valid_scales($w; $h):
     [ range(30; 721)
