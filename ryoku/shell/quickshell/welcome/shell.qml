@@ -12,7 +12,15 @@ ShellRoot {
     FloatingWindow {
         id: win
         title: "Welcome to Ryoku"
-        minimumSize: Qt.size(980, 640)
+        // Same fit-clamp as the hub window: the rule floats this at 1180x760,
+        // which a 720p-class screen cannot hold. Hyprland clamps the rule's
+        // size into maximumSize and centres the result, so a small screen gets
+        // a window that fits; minimumSize shrinks with it.
+        readonly property int fitW: win.screen ? Math.min(1180, win.screen.width - 24) : 1180
+        readonly property int fitH: win.screen ? Math.min(760, win.screen.height - 56) : 760
+        readonly property bool cramped: win.fitW < 1180 || win.fitH < 760
+        minimumSize: Qt.size(Math.min(980, win.fitW), Math.min(640, win.fitH))
+        maximumSize: win.cramped ? Qt.size(win.fitW, win.fitH) : Qt.size(16777215, 16777215)
         onClosed: Qt.quit()
 
         Welcome {

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+- **The first-run welcome fits a 720p screen.** The window rule floats it at
+  1180x760 with a 980x640 minimum pinned in QML, so a small (or scaled-down
+  low-res) screen cut off the tour's controls. Like the Settings window, it now
+  clamps its maximum size to the screen it is on and lets Hyprland centre the
+  clamped result in the usable area; roomy screens are unchanged
+  (`quickshell/welcome/shell.qml`).
+
 ### Added
 - **Launcher: an "@" prefix tunes a live lofi radio.** `@` lists the stations
   — Lofi Girl and Chillhop Radio (YouTube 24/7 streams), SomaFM Groove Salad
