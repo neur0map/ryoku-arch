@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""Bake an image or gif into a Ryoku decor: 1-bit bone-on-transparent, dithered.
+
+The decor set (`Decor.qml`, `Placard.qml`, seeded to ~/Pictures/ryodecors) is
+public-domain art reduced to two colours -- Ryoku "bone" on a transparent
+ground -- with an ordered (Bayer 4x4) dither carrying the tone. This is the tool
+that bakes it, so a new poster or motion loop matches the set instead of landing
+in raw colour. A still bakes to a PNG; a gif bakes per-frame, keeping its timing,
+loop, and transparency.
+
+    ryodither statue.jpg              bake -> ryoku/assets/ryodecors/statue.png
+    ryodither orbit.gif              bake a motion loop, frame by frame
+    ryodither plate.png --invert     ink the dark tones (dark-on-light sources)
+    ryodither art.jpg --out /tmp     bake somewhere else to preview first
+
+By default it writes into the repo's ryoku/assets/ryodecors, so a baked decor
+ships everywhere at once: the installer seeds it, ryoku-desktop packages it to
+/usr/share/ryoku/ryodecors, and `ryoku doctor` lays it into every user's
+~/Pictures/ryodecors on update. Reference the file by bare name in a Decor or
+Placard `art:`.
+
+Sources -- public domain / CC0 art worth baking:
+  Wikimedia Commons         commons.wikimedia.org        sculpture, Muybridge plates
+  The Public Domain Review  publicdomainreview.org       phenakistoscope/zoetrope loops
+  Internet Archive          archive.org                  films, Muybridge collections
+  The Met (Open Access)     metmuseum.org                CC0 sculpture photography
+  Art Institute of Chicago  artic.edu                    CC0 art
+  Smithsonian Open Access   si.edu/openaccess            CC0 art and objects
+  Rijksmuseum (Rijksstudio) rijksmuseum.nl/rijksstudio   CC0 art
+  Getty (Open Content)      getty.edu                    public-domain art
+  NASA image and video      images.nasa.gov              earth, moon, space
+
+Requires Pillow (`pip install pillow`).
+"""
+import argparse
+import sys
+from pathlib import Path
+
+try:
+    from PIL import Image, ImageChops, ImageSequence
+except ImportError:
+    sys.exit("ryodither: needs Pillow -- `pip install pillow`")
+
+BONE = "#e8d8c9"  # Ryoku bone: the decor set's single ink colour
+# Ordered dither matrix. A pixel inks when its tone clears the tiled threshold,
+# which spreads the two levels into a stable stipple instead of a hard cutoff.
+BAYER4 = (
+    (0, 8, 2, 10),
+    (12, 4, 14, 6),
+    (3, 11, 1, 9),
+    (15, 7, 13, 5),
+)
+
+
+def repo_ryodecors():
+    # bin/art/ryodither -> parents[2] is the repo root.
+    return Path(__file__).resolve().parents[2] / "ryoku" / "assets" / "ryodecors"
+
+
+def hex_rgb(s):
+    s = s.lstrip("#")
+    if len(s) != 6:
+        raise ValueError("colour must be a 6-digit hex, e.g. #e8d8c9")
+    return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def threshold_map(size):
+    """The Bayer 4x4 threshold tiled to size, as an L image."""
+    cell = Image.new("L", (4, 4))
+    cell.putdata([int((v + 0.5) * 255 / 16) for row in BAYER4 for v in row])
+    thr = Image.new("L", size)
+    w, h = size
+    for y in range(0, h, 4):
+        for x in range(0, w, 4):
+            thr.paste(cell, (x, y))
+    return thr
+
+
+def ink_mask(frame, invert):
+    """A 1-bit mask: set where the frame's tone crosses the dither threshold."""
+    gray = frame.convert("L")
+    thr = threshold_map(gray.size)
+    # subtract clamps at 0, so the difference is positive exactly where one image
+    # beats the other -- a threshold compare without a per-pixel Python loop.
+    diff = ImageChops.subtract(thr, gray) if invert else ImageChops.subtract(gray, thr)
+    return diff.point(lambda p: 255 if p > 0 else 0, mode="1")
+
+
+def bake_still(mask, bone):
+    out = Image.new("RGBA", mask.size, (0, 0, 0, 0))
+    out.paste(Image.new("RGBA", mask.size, (*bone, 255)), (0, 0), mask)
+    return out
+
+
+def bake_gif_frame(mask, bone):
+    """A two-colour palette frame: index 0 transparent ground, index 1 bone."""
+    p = Image.new("P", mask.size, 0)
+    p.putpalette([0, 0, 0, *bone] + [0] * (256 * 3 - 6))
+    p.paste(Image.new("P", mask.size, 1), (0, 0), mask)
+    return p
+
+
+def bake(src, out_dir, stem, bone, invert):
+    im = Image.open(src)
+    animated = getattr(im, "is_animated", False)
+    dst = out_dir / (stem + (".gif" if animated else ".png"))
+    if animated:
+        frames, durations = [], []
+        for fr in ImageSequence.Iterator(im):
+            frames.append(bake_gif_frame(ink_mask(fr, invert), bone))
+            durations.append(fr.info.get("duration", 80))
+        frames[0].save(
+            dst, save_all=True, append_images=frames[1:],
+            loop=im.info.get("loop", 0), duration=durations,
+            disposal=2, transparency=0, optimize=False,
+        )
+        return dst, len(frames)
+    bake_still(ink_mask(im, invert), bone).save(dst)
+    return dst, 1
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="ryodither", description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("inputs", nargs="+", help="image or gif files to bake")
+    ap.add_argument("--out", type=Path, default=None,
+                    help="output dir (default: the repo's ryoku/assets/ryodecors)")
+    ap.add_argument("--name", default=None,
+                    help="output basename, single input only (extension is chosen for you)")
+    ap.add_argument("--bone", default=BONE, help="ink colour hex (default %s)" % BONE)
+    ap.add_argument("--invert", action="store_true",
+                    help="ink the dark tones, not the light (for dark-on-light sources)")
+    args = ap.parse_args()
+
+    if args.name and len(args.inputs) != 1:
+        ap.error("--name takes a single input")
+    try:
+        bone = hex_rgb(args.bone)
+    except ValueError as e:
+        ap.error(str(e))
+
+    out_dir = args.out or repo_ryodecors()
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    for src in args.inputs:
+        src = Path(src)
+        stem = Path(args.name).stem if args.name else src.stem
+        dst, n = bake(src, out_dir, stem, bone, args.invert)
+        print("baked %s -> %s (%s)" % (src.name, dst, "%d frames" % n if n > 1 else "still"))
+
+
+if __name__ == "__main__":
+    main()

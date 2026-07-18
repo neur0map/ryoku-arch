@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""Bake an image or gif into a Ryoku decor: smooth 2-tone bone-on-transparent.
+
+Companion to `ryodither`. Where ryodither stipples the tone with an ordered
+dither -- right for photographs and motion loops, whose tone reads through the
+grain -- ryoduo keeps a smooth gradient: it maps the source straight onto Ryoku
+"bone" and carries the tone in the alpha. Fine line-art -- a patent drawing, an
+engraving, a dimensioned blueprint -- stays crisp instead of breaking up into
+stipple. Reach for ryoduo when a dithered bake looks noisy; reach for ryodither
+when a smooth bake looks flat.
+
+    ryoduo blade.jpg                 bake -> ryoku/assets/ryodecors/blade.png
+    ryoduo mic-patent.png --invert   ink the dark lines (dark-on-light sources)
+    ryoduo art.jpg --out /tmp        bake somewhere else to preview first
+
+The tone becomes the alpha over a single bone colour, so a still is bone on a
+transparent ground and composites on any surface. Like ryodither it writes into
+the repo's ryoku/assets/ryodecors by default, so the installer, the ryoku-desktop
+package and `ryoku doctor` carry it to every ~/Pictures/ryodecors; reference the
+file by bare name in a Decor or Placard `art:`. See ryodither for the dithered
+treatment and the public-domain source list.
+
+Requires Pillow (`pip install pillow`).
+"""
+import argparse
+import sys
+from pathlib import Path
+
+try:
+    from PIL import Image, ImageOps, ImageSequence
+except ImportError:
+    sys.exit("ryoduo: needs Pillow -- `pip install pillow`")
+
+BONE = "#e8d8c9"  # Ryoku bone: the decor set's single ink colour, as in ryodither
+
+
+def repo_ryodecors():
+    # bin/art/ryoduo -> parents[2] is the repo root.
+    return Path(__file__).resolve().parents[2] / "ryoku" / "assets" / "ryodecors"
+
+
+def hex_rgb(s):
+    s = s.lstrip("#")
+    if len(s) != 6:
+        raise ValueError("colour must be a 6-digit hex, e.g. #e8d8c9")
+    return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def tone_alpha(frame, invert, crush, gamma):
+    """The frame's tone as an alpha ramp: bright inks, dark clears (or reverse).
+
+    A light-on-dark source (white line-art on black) inks straight; a dark-on-
+    light source (a scanned patent) wants --invert. A low-end crush drops the
+    near-empty ground to fully transparent so scan speckle and jpeg mush never
+    fog the bone; gamma tunes the falloff.
+    """
+    gray = ImageOps.grayscale(frame)
+    if invert:
+        gray = ImageOps.invert(gray)
+    lut = []
+    for i in range(256):
+        v = i / 255.0
+        v = max(0.0, (v - crush) / (1.0 - crush)) if crush < 1 else 0.0
+        lut.append(int(round((v ** gamma) * 255)))
+    return gray.point(lut)
+
+
+def bake_still(alpha, bone):
+    out = Image.new("RGBA", alpha.size, (*bone, 0))
+    out.putalpha(alpha)
+    return out
+
+
+def bake_gif_frame(alpha, bone):
+    """A gif frame is 1-bit transparent, so a smooth loop thresholds its alpha --
+    ryodither is the better path for a motion loop; this keeps line-art loops
+    baking at all."""
+    mask = alpha.point(lambda p: 255 if p > 96 else 0, mode="1")
+    p = Image.new("P", alpha.size, 0)
+    p.putpalette([0, 0, 0, *bone] + [0] * (256 * 3 - 6))
+    p.paste(Image.new("P", alpha.size, 1), (0, 0), mask)
+    return p
+
+
+def bake(src, out_dir, stem, bone, invert, crush, gamma):
+    im = Image.open(src)
+    animated = getattr(im, "is_animated", False)
+    dst = out_dir / (stem + (".gif" if animated else ".png"))
+    if animated:
+        frames, durations = [], []
+        for fr in ImageSequence.Iterator(im):
+            frames.append(bake_gif_frame(tone_alpha(fr, invert, crush, gamma), bone))
+            durations.append(fr.info.get("duration", 80))
+        frames[0].save(
+            dst, save_all=True, append_images=frames[1:],
+            loop=im.info.get("loop", 0), duration=durations,
+            disposal=2, transparency=0, optimize=False,
+        )
+        return dst, len(frames)
+    bake_still(tone_alpha(im, invert, crush, gamma), bone).save(dst)
+    return dst, 1
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="ryoduo", description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("inputs", nargs="+", help="image or gif files to bake")
+    ap.add_argument("--out", type=Path, default=None,
+                    help="output dir (default: the repo's ryoku/assets/ryodecors)")
+    ap.add_argument("--name", default=None,
+                    help="output basename, single input only (extension is chosen for you)")
+    ap.add_argument("--bone", default=BONE, help="ink colour hex (default %s)" % BONE)
+    ap.add_argument("--invert", action="store_true",
+                    help="ink the dark tones, not the light (for dark-on-light sources)")
+    ap.add_argument("--crush", type=float, default=0.12,
+                    help="low-tone crush to transparent, 0..1 (default 0.12)")
+    ap.add_argument("--gamma", type=float, default=1.0,
+                    help="tone falloff gamma (default 1.0)")
+    args = ap.parse_args()
+
+    if args.name and len(args.inputs) != 1:
+        ap.error("--name takes a single input")
+    try:
+        bone = hex_rgb(args.bone)
+    except ValueError as e:
+        ap.error(str(e))
+
+    out_dir = args.out or repo_ryodecors()
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    for src in args.inputs:
+        src = Path(src)
+        stem = Path(args.name).stem if args.name else src.stem
+        dst, n = bake(src, out_dir, stem, bone, args.invert, args.crush, args.gamma)
+        print("baked %s -> %s (%s)" % (src.name, dst, "%d frames" % n if n > 1 else "still"))
+
+
+if __name__ == "__main__":
+    main()

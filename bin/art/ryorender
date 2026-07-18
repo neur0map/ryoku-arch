@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+"""Draw a shaded 3D object turning on black, as a grayscale gif for ryodither.
+
+A GPU renders, so the GPU section's decor is a render: a lit surface spinning
+against black. This writes the grayscale source; ryodither bakes it into the
+decor set so it grains like the other loops.
+
+    ryorender --out /tmp/r.gif && ryodither /tmp/r.gif --name render
+
+Same flags give the same gif -- there is no randomness. Choose the object with
+--shape (knot, torus, sphere, cube, spring); --list prints them. --p and --q set
+the knot winding. Tune size and length with --width/--height/--frames.
+
+The shipped render.gif (the GPU decor) is the default:
+
+    ryorender --out /tmp/r.gif && ryodither /tmp/r.gif --name render
+
+Needs Pillow and numpy (pip install pillow numpy).
+"""
+import argparse
+import sys
+from pathlib import Path
+
+try:
+    import numpy as np
+    from PIL import Image, ImageFilter
+except ImportError:
+    sys.exit("ryorender: needs Pillow and numpy -- `pip install pillow numpy`")
+
+
+def sweep(center, nv, tube):
+    """Sweep a tube of radius `tube` around a center curve of nu points.
+
+    Returns the surface points and their outward normals, nu*nv of each. The
+    ring frame follows the curve's tangent, so the tube keeps a round section.
+    """
+    tan = np.gradient(center, axis=0)
+    tan /= np.linalg.norm(tan, axis=-1, keepdims=True) + 1e-9
+    ref = np.array([0, 0, 1.0])
+    nn = ref - np.sum(ref * tan, -1, keepdims=True) * tan
+    nn /= np.linalg.norm(nn, axis=-1, keepdims=True) + 1e-9
+    bn = np.cross(tan, nn)
+    v = np.linspace(0, 2 * np.pi, nv, endpoint=False)
+    cv, sv = np.cos(v)[None, :, None], np.sin(v)[None, :, None]
+    nrm = cv * nn[:, None, :] + sv * bn[:, None, :]
+    pts = center[:, None, :] + tube * nrm
+    return pts.reshape(-1, 3), nrm.reshape(-1, 3)
+
+
+def knot(nu=440, nv=56, p=2, q=3, tube=0.5):
+    """A (p, q) torus knot: the loop that turns in the GPU decor by default."""
+    u = np.linspace(0, 2 * np.pi, nu, endpoint=False)
+    cr = 2 + np.cos(q * u)
+    center = np.stack([cr * np.cos(p * u), cr * np.sin(p * u), np.sin(q * u)], -1)
+    return sweep(center, nv, tube)
+
+
+def torus(nu=360, nv=64, radius=2.0, tube=0.55):
+    """A plain torus (a ring)."""
+    u = np.linspace(0, 2 * np.pi, nu, endpoint=False)
+    center = np.stack([radius * np.cos(u), radius * np.sin(u), np.zeros_like(u)], -1)
+    return sweep(center, nv, tube)
+
+
+def spring(nu=520, nv=36, turns=4, radius=1.5, tube=0.34, length=3.6):
+    """A coil: a tube swept along a helix."""
+    u = np.linspace(0, turns * 2 * np.pi, nu)
+    z = np.linspace(-length / 2, length / 2, nu)
+    center = np.stack([radius * np.cos(u), radius * np.sin(u), z], -1)
+    return sweep(center, nv, tube)
+
+
+def sphere(nu=240, nv=150, radius=1.0):
+    """A UV sphere, shaded by its outward normal."""
+    phi = np.linspace(0, 2 * np.pi, nu, endpoint=False)
+    theta = np.linspace(0.02, np.pi - 0.02, nv)
+    pp, tt = np.meshgrid(phi, theta, indexing="ij")
+    nrm = np.stack([np.sin(tt) * np.cos(pp), np.sin(tt) * np.sin(pp), np.cos(tt)], -1)
+    return (radius * nrm).reshape(-1, 3), nrm.reshape(-1, 3)
+
+
+def cube(n=110, half=1.0):
+    """A cube: six face grids, each with a flat face normal."""
+    g = np.linspace(-half, half, n)
+    a, b = (x.ravel() for x in np.meshgrid(g, g, indexing="ij"))
+    o, one, z = np.full_like(a, half), np.ones_like(a), np.zeros_like(a)
+    faces = [
+        (np.stack([o, a, b], -1), np.stack([one, z, z], -1)),
+        (np.stack([-o, a, b], -1), np.stack([-one, z, z], -1)),
+        (np.stack([a, o, b], -1), np.stack([z, one, z], -1)),
+        (np.stack([a, -o, b], -1), np.stack([z, -one, z], -1)),
+        (np.stack([a, b, o], -1), np.stack([z, z, one], -1)),
+        (np.stack([a, b, -o], -1), np.stack([z, z, -one], -1)),
+    ]
+    return (np.concatenate([f[0] for f in faces]),
+            np.concatenate([f[1] for f in faces]))
+
+
+SHAPES = {"knot": knot, "torus": torus, "sphere": sphere, "cube": cube, "spring": spring}
+
+
+def rot(a, b):
+    """A yaw of a then a fixed pitch of b, as one matrix."""
+    ca, sa, cb, sb = np.cos(a), np.sin(a), np.cos(b), np.sin(b)
+    ry = np.array([[ca, 0, sa], [0, 1, 0], [-sa, 0, ca]])
+    rx = np.array([[1, 0, 0], [0, cb, -sb], [0, sb, cb]])
+    return rx @ ry
+
+
+def render(shape, width, height, n, tilt, p, q):
+    """One turn of `shape`, as n grayscale frames (a lit surface on black).
+
+    The surface is a dense point set: normal-shaded under a fixed light, back
+    faces culled, depth-cued, splatted brightest-wins and blurred to a solid so
+    the dither carries clean tone rather than double-stippling.
+    """
+    pts, nrm = knot(p=p, q=q) if shape == "knot" else SHAPES[shape]()
+    pts = pts - pts.mean(0)
+    pts = pts / (np.linalg.norm(pts, axis=1).max() + 1e-9)   # fit a unit sphere
+    light = np.array([0.35, 0.55, 0.75])
+    light /= np.linalg.norm(light)
+    frames = []
+    for i in range(n):
+        r = rot(2 * np.pi * i / n, tilt)
+        pr = pts @ r.T
+        nr = nrm @ r.T
+        front = nr[:, 2] > 0.02
+        sh = np.clip(nr @ light, 0, 1) * 0.78 + 0.30
+        z = pr[:, 2]
+        sh = np.clip(sh * (0.66 + 0.34 * (z - z.min()) / (np.ptp(z) + 1e-9)), 0, 1) ** 0.80
+        s = width * 0.42
+        x = (pr[:, 0] * s + width / 2).astype(int)
+        y = (height / 2 - pr[:, 1] * s).astype(int)
+        img = np.zeros((height, width), np.float32)
+        m = front & (x >= 0) & (x < width) & (y >= 0) & (y < height)
+        np.maximum.at(img, (y[m], x[m]), sh[m])
+        im = Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8))
+        frames.append(im.filter(ImageFilter.GaussianBlur(1.3)))
+    return frames
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="ryorender", description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("--shape", choices=sorted(SHAPES), default="knot",
+                    help="object to render (default knot)")
+    ap.add_argument("--list", action="store_true", help="list shapes and exit")
+    ap.add_argument("--out", type=Path, default=Path("render-src.gif"),
+                    help="output grayscale gif (default ./render-src.gif)")
+    ap.add_argument("--width", type=int, default=360)
+    ap.add_argument("--height", type=int, default=360)
+    ap.add_argument("--frames", type=int, default=30)
+    ap.add_argument("--duration", type=int, default=66, help="ms per frame")
+    ap.add_argument("--tilt", type=float, default=0.5, help="fixed pitch, radians")
+    ap.add_argument("--p", type=int, default=2, help="knot winding p (shape knot)")
+    ap.add_argument("--q", type=int, default=3, help="knot winding q (shape knot)")
+    a = ap.parse_args()
+
+    if a.list:
+        print("shapes: " + ", ".join(sorted(SHAPES)))
+        return
+
+    fr = render(a.shape, a.width, a.height, a.frames, a.tilt, a.p, a.q)
+    fr[0].save(a.out, save_all=True, append_images=fr[1:],
+               duration=a.duration, loop=0, disposal=2)
+    print("drew %s (%s, %dx%d, %d frames) -- bake: ryodither %s --name render"
+          % (a.out, a.shape, a.width, a.height, a.frames, a.out))
+
+
+if __name__ == "__main__":
+    main()

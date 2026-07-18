@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+"""Draw "The Needle": a needle rising over a radiant north star, as a grayscale
+still for ryoduo -- the Rashin poster art.
+
+Rashin is 羅針, the compass needle. Its poster is a tarot-card figure: a needle
+standing on a burst of rays and an eight-point star, stars scattered in the
+field, a wave at the foot. Bone line-art on black; ryoduo bakes it smooth, and a
+Placard wraps it with the title, seal and barcode. Composition follows the
+reference tarot "The Needle"; the register is Ryoku's clean engraving, not woodcut.
+
+    ryoneedle --out /tmp/n.png && ryoduo /tmp/n.png --name needle
+
+Deterministic. Needs Pillow (pip install pillow).
+"""
+import argparse
+import math
+import sys
+from pathlib import Path
+
+try:
+    from PIL import Image, ImageDraw
+except ImportError:
+    sys.exit("ryoneedle: needs Pillow -- `pip install pillow`")
+
+
+def star_poly(cx, cy, r_long, r_short, points=4, rot=0.0):
+    """An n-pointed sharp star (n long tips, n short valleys between)."""
+    verts = []
+    step = math.pi / points
+    for i in range(points * 2):
+        r = r_long if i % 2 == 0 else r_short
+        a = rot + i * step
+        verts.append((cx + r * math.sin(a), cy - r * math.cos(a)))
+    return verts
+
+
+def sparkle(d, x, y, s, val):
+    """A small four-point star (a field sparkle)."""
+    d.polygon(star_poly(x, y, s, s * 0.28, points=4), fill=val)
+
+
+def draw(W, H):
+    im = Image.new("L", (W, H), 0)
+    d = ImageDraw.Draw(im)
+    cx = W / 2
+    sy = H * 0.40                      # the star's centre
+    R = W * 0.46
+
+    # radiant rays: a sunburst behind the star, long/short alternating, faint.
+    nray = 60
+    for i in range(nray):
+        a = 2 * math.pi * i / nray
+        k = (i * 7) % 5
+        length = R * (0.70 + 0.55 * (k / 4.0))
+        r0 = R * 0.20
+        val = 70 + 18 * (k % 3)
+        d.line([cx + r0 * math.sin(a), sy - r0 * math.cos(a),
+                cx + length * math.sin(a), sy - length * math.cos(a)],
+               fill=val, width=1 if k % 2 else 2)
+
+    # the eight-point north star at the centre.
+    d.polygon(star_poly(cx, sy, R * 0.52, R * 0.15, points=8), fill=225)
+    d.polygon(star_poly(cx, sy, R * 0.52, R * 0.15, points=8), outline=255)
+
+    # scattered field sparkles (deterministic).
+    field = [(0.20, 0.16), (0.80, 0.18), (0.14, 0.30), (0.86, 0.34),
+             (0.24, 0.52), (0.78, 0.55), (0.16, 0.66), (0.84, 0.68),
+             (0.30, 0.74), (0.70, 0.76), (0.40, 0.20), (0.62, 0.24),
+             (0.10, 0.46), (0.90, 0.48)]
+    for j, (fx, fy) in enumerate(field):
+        sparkle(d, W * fx, H * fy, 5 + (j % 3) * 2, 150 + (j % 4) * 18)
+
+    # the needle: a fine shaft to a point, an oval eye near the top.
+    topY, tipY = H * 0.13, H * 0.90
+    hw = W * 0.028
+    d.polygon([(cx, tipY), (cx - hw, topY + H * 0.06), (cx + hw, topY + H * 0.06)], fill=250)
+    # eye housing + hole.
+    eh = H * 0.09
+    d.rounded_rectangle([cx - hw * 1.35, topY, cx + hw * 1.35, topY + eh],
+                        radius=hw, fill=250)
+    d.ellipse([cx - hw * 0.55, topY + eh * 0.18, cx + hw * 0.55, topY + eh * 0.80], fill=0)
+    d.line([cx, topY + eh, cx, topY + H * 0.06], fill=250, width=int(hw * 1.6))
+
+    # the wave at the foot: two sine strokes and a few low sparkles.
+    for band, (yb, val) in enumerate([(0.86, 120), (0.90, 90)]):
+        pts = []
+        for t in range(0, W + 1, 6):
+            pts.append((t, H * yb + math.sin(t / W * math.pi * 5 + band) * (H * 0.014)))
+        d.line(pts, fill=val, width=2)
+    for fx in (0.22, 0.5, 0.78):
+        sparkle(d, W * fx, H * 0.94, 4, 120)
+
+    return im
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="ryoneedle", description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("--out", type=Path, default=Path("needle-src.png"))
+    ap.add_argument("--width", type=int, default=560)
+    ap.add_argument("--height", type=int, default=880)
+    a = ap.parse_args()
+
+    out = a.out.with_suffix(".png") if a.out.suffix == ".gif" else a.out
+    draw(a.width, a.height).save(out)
+    print("drew %s (%dx%d) -- bake: ryoduo %s --name needle" % (out, a.width, a.height, out))
+
+
+if __name__ == "__main__":
+    main()

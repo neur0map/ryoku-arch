@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""Generate the tiling-layout demo loops for Appearance > Look.
+
+Three looping gifs -- dwindle, master, scrolling -- each a small monochrome
+diagram of how new windows arrange in that Hyprland layout, to sit in the hub's
+Look sheet beside the Tiling layout picker:
+
+  dwindle    each new window binary-splits the focused frame, spiralling smaller
+  master     one big master frame, every other window stacked beside it
+  scrolling  an endless horizontal strip of equal columns that pans
+
+Bone-on-transparent, ink levels straight from Tokens (ink / inkDim / inkFaint),
+so it reads as line art on the hub's dark sheet. The focused frame is the bright,
+2px one. Output: ryoku/hub/quickshell/art/tiling-<layout>.gif.
+
+Regenerate after changing the look; it is the source of those three gifs the way
+ryodither is the source of the decor set. Requires Pillow + numpy.
+"""
+import sys
+from pathlib import Path
+
+try:
+    import numpy as np
+    from PIL import Image, ImageDraw
+except ImportError:
+    sys.exit("tiling-demos: needs Pillow + numpy (`pip install pillow numpy`)")
+
+# Tokens ink ramp (ryoku/ui/Singletons/Tokens.qml), the only palette.
+INK = (205, 196, 186)     # the focused frame and every title bar
+INKDIM = (176, 169, 160)  # the other frames
+BEZEL = (122, 117, 110)   # the screen edge (inkFaint)
+
+W, H = 460, 240
+INSET = 16                # content margin inside the screen bezel
+GAP = 8                   # the tiling gap between windows
+CW, CH = W - 2 * INSET, H - 2 * INSET
+
+
+def smooth(t):
+    return t * t * (3 - 2 * t)
+
+
+def lerp_rect(r0, r1, t):
+    return tuple(a + (b - a) * t for a, b in zip(r0, r1))
+
+
+def collapsed(r):
+    # a new window wipes in from its left (split) edge, not out of thin air
+    x, y, w, h = r
+    return (x, y, 0.0, h)
+
+
+def draw_window(dr, rect, focused):
+    x, y, w, h = (round(v) for v in rect)
+    if w < 3 or h < 3:
+        return
+    col = INK if focused else INKDIM
+    bw = 2 if focused else 1
+    dr.rectangle([x, y, x + w - 1, y + h - 1], outline=col, width=bw)
+    tb = 5
+    if h > tb + 2 * bw + 2 and w > 2 * bw + 2:
+        dr.rectangle([x + bw, y + bw, x + w - 1 - bw, y + bw + tb - 1], fill=col)
+
+
+def frame(wins):
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    # windows draw onto a content-sized layer, so a column that runs past the
+    # edge (scrolling) is clipped there instead of over the bezel.
+    layer = Image.new("RGBA", (CW, CH), (0, 0, 0, 0))
+    dr = ImageDraw.Draw(layer)
+    for rect, foc in wins:
+        draw_window(dr, rect, foc)
+    img.paste(layer, (INSET, INSET), layer)
+    ImageDraw.Draw(img).rectangle(
+        [INSET - 6, INSET - 6, W - INSET + 5, H - INSET + 5], outline=BEZEL, width=1)
+    return img
+
+
+def quantize(img):
+    a = np.asarray(img)
+    idx = np.zeros(a.shape[:2], np.uint8)
+    op = a[:, :, 3] > 128
+    rgb = a[:, :, :3]
+    for i, c in enumerate((INK, INKDIM, BEZEL), start=1):
+        idx[op & np.all(rgb == np.array(c, np.uint8), axis=2)] = i
+    p = Image.fromarray(idx, "P")
+    p.putpalette([0, 0, 0, *INK, *INKDIM, *BEZEL] + [0] * (256 * 3 - 12))
+    return p
+
+
+def transition(a, b, n):
+    ids = sorted(set(a) | set(b))
+    out = []
+    for i in range(1, n + 1):
+        t = smooth(i / n)
+        wins = []
+        for wid in ids:
+            ra, rb = a.get(wid), b.get(wid)
+            if ra and rb:
+                wins.append((lerp_rect(ra[0], rb[0], t), rb[1]))
+            elif rb:
+                wins.append((lerp_rect(collapsed(rb[0]), rb[0], t), rb[1]))
+            else:
+                wins.append((lerp_rect(ra[0], collapsed(ra[0]), t), ra[1]))
+        out.append(frame(wins))
+    return out
+
+
+def hold(scene, n):
+    return [frame(list(scene.values()))] * n
+
+
+def build(scenes):
+    """Build up window by window, hold on the full layout, reset, loop."""
+    frames = hold(scenes[0], 5)
+    for i in range(len(scenes) - 1):
+        frames += transition(scenes[i], scenes[i + 1], 9)
+        frames += hold(scenes[i + 1], 14 if i == len(scenes) - 2 else 6)
+    frames += transition(scenes[-1], scenes[0], 10)
+    return frames
+
+
+def dwindle():
+    hw = (CW - GAP) / 2
+    rx = hw + GAP
+    hh = (CH - GAP) / 2
+    qw = (hw - GAP) / 2
+    return [
+        {"A": ((0, 0, CW, CH), True)},
+        {"A": ((0, 0, hw, CH), False), "B": ((rx, 0, hw, CH), True)},
+        {"A": ((0, 0, hw, CH), False), "B": ((rx, 0, hw, hh), False),
+         "C": ((rx, hh + GAP, hw, hh), True)},
+        {"A": ((0, 0, hw, CH), False), "B": ((rx, 0, hw, hh), False),
+         "C": ((rx, hh + GAP, qw, hh), False), "D": ((rx + qw + GAP, hh + GAP, qw, hh), True)},
+    ]
+
+
+def master():
+    mw = CW * 0.6 - GAP / 2
+    sx = CW * 0.6 + GAP / 2
+    sw = CW - sx
+    h2 = (CH - GAP) / 2
+    h3 = (CH - 2 * GAP) / 3
+    return [
+        {"M": ((0, 0, CW, CH), True)},
+        {"M": ((0, 0, mw, CH), True), "S1": ((sx, 0, sw, CH), False)},
+        {"M": ((0, 0, mw, CH), True), "S1": ((sx, 0, sw, h2), False),
+         "S2": ((sx, h2 + GAP, sw, h2), False)},
+        {"M": ((0, 0, mw, CH), True), "S1": ((sx, 0, sw, h3), False),
+         "S2": ((sx, h3 + GAP, sw, h3), False), "S3": ((sx, 2 * (h3 + GAP), sw, h3), False)},
+    ]
+
+
+def scrolling(nframes=48):
+    colw = CW * 0.44
+    period = colw + GAP
+    ncol = int(CW / period) + 3
+    out = []
+    for i in range(nframes):
+        pan = (i / nframes) * period
+        wins = []
+        for k in range(-1, ncol + 1):
+            x = k * period - pan
+            if x + colw <= 0 or x >= CW:
+                continue
+            foc = abs(x + colw / 2 - CW / 2) <= period / 2
+            wins.append(((x, 0, colw, CH), foc))
+        out.append(frame(wins))
+    return out
+
+
+def save_gif(path, frames, dur=60):
+    ps = [quantize(f) for f in frames]
+    ps[0].save(path, save_all=True, append_images=ps[1:], loop=0,
+               duration=dur, disposal=2, transparency=0, optimize=False)
+    return path, len(frames)
+
+
+def main():
+    out = Path(__file__).resolve().parents[2] / "ryoku" / "hub" / "quickshell" / "art"
+    out.mkdir(parents=True, exist_ok=True)
+    for name, frames in (("dwindle", build(dwindle())),
+                         ("master", build(master())),
+                         ("scrolling", scrolling())):
+        p, n = save_gif(out / ("tiling-%s.gif" % name), frames)
+        print("baked %s (%d frames)" % (p, n))
+
+
+if __name__ == "__main__":
+    main()
