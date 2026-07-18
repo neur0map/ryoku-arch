@@ -1,45 +1,49 @@
 # UI and UX
 
-The desktop wears the same visual language as the Ryoku website: **Greek-noir**.
-Classical beauty carrying warrior power, cracked and mended in gold, shot on
-black. Greek marble fused with Japanese irezumi and gold kintsugi, every subject
-anchored by a single red sun.
+The desktop is **paper and ink**: a monochrome printed instrument. Warm bone
+ink on pure-black paper, a film-grain tooth so the black reads matte, and
+inversion (a surface flipping to a bone plate) as the only emphasis. There is
+no colour in app chrome; the single accent is reserved for the frame, the 力
+mark, and art, which manufactures its own red sun. Fraunces sets the display,
+Space Grotesk carries the language, Space Mono carries the data.
 
-The canonical recipe (the idea, the exact palette, the art pipeline) lives with
-the site: `ryoku-site/docs/design-system.md`. This doc is how that language is
-applied in the QML desktop: the tokens, the type, the geometry, the shared
-primitives, the surfaces, and the motion. The UI is Quickshell (QML) in
-`ryoku/shell/quickshell/` (plus Ryoku Settings in `ryoku/hub/quickshell/`),
-driven by the `ryoku-shell` daemon.
+The one place the look is defined is `ryoku/ui/Singletons/Tokens.qml`: every
+surface reads its colour, type, geometry, and motion from there, and nothing
+hardcodes a value. This doc is how that language is applied across the QML
+desktop: the tokens, the type, the geometry, the shared primitives, the
+surfaces, and the motion. The UI is Quickshell (QML) in `ryoku/shell/quickshell/`
+(plus Ryoku Settings in `ryoku/hub/quickshell/`), driven by the `ryoku-shell`
+daemon.
 
 ## Design language
 
-A near-black canvas, warm-white type, one vermillion accent, gold used only as
-kintsugi. Restraint is the point: flat surfaces, generous spacing, few accents. A
-surface earns its place; if it does not, remove it.
+Bone on black, one contrast-solved ink ramp, no colour in the content. Restraint
+is the point: flat surfaces, hairline depth, generous spacing. A surface earns
+its place; if it does not, remove it.
 
-- **Near-black canvas, warm-white type.** Backgrounds are the warm near-black of
-  the website's `--paper` (`#100d08` and its neighbours `#16110b` / `#0f0c07`).
-  Text is a warm-white ramp, never pure `#fff`: bright `#f3ede1`, cream `#e6dccb`,
-  subtle `#c7bfae`, dim `#8f8770`.
-- **One accent, and it follows the wallpaper.** This is the shell's single
-  deviation from the fixed-vermillion website. When Ryoku Settings has *Match
-  wallpaper* on, the accent is the `wallust` colour pulled from the current
-  wallpaper; when off, it falls back to the brand vermillion `#e2342a`
-  (deep `#b81f19`). Use the accent sparingly and deliberately: the active
-  section, a focused field, numerals, the 力 mark. Never for body text or large
-  fills.
-- **The red sun stays fixed.** The red-sun disc motif and the day/night scene
-  colours (the launcher's solar arc, the sun and moon) are always the fixed
-  vermillion and their own scene palette, deliberately independent of the
-  wallust accent, so a sun is always a sun on any wallpaper.
-- **Gold is kintsugi only.** `#d9a441`, used rarely: a seam, a warning. Never a
-  second accent hue.
-- **Depth from hairlines and hard shadows, not gradients or blur.** Panels are a
-  flat surface with a `1px` warm-white hairline border and, where they need to
-  lift, a hard offset shadow: a solid black rectangle pushed down and right, no
-  blur. The soft blurred shadow survives only where it is genuinely a drop
-  shadow (a tray, a wallpaper tile).
+- **Pure-black paper, warm bone ink.** The paper is `#000000` carrying a film
+  grain at ±8 levels: the grain is what makes it read matte, not a lifted
+  black. The ink is a warm bone in four contrast-solved tiers, never pure white:
+  `#cdc4ba` (12:1, values and titles), `#b0a9a0` (9:1, nav and body), `#958f87`
+  (6.6:1, descriptions), `#7a756e` (4.6:1, tags and struck defaults). Nothing
+  sits below 4.5:1, so any text is legible at any tier.
+- **Emphasis is inversion, not colour.** App content (the Hub, ryowalls, ryovm)
+  carries no accent at all. To stress a surface it flips to a bone plate with
+  black ink; there is no second value. Even a destructive confirm is a bone
+  plate and an unambiguous word, not a red one.
+- **The accent lives on the frame, not the content.** The shell frame carries
+  one accent: with *Match wallpaper* on it is the `wallust` colour walked toward
+  legibility, and off it falls back to the brand sun `#e2342a` (deep `#b81f19`).
+  The content never competes with it.
+- **Colour is data, and the red sun is brand.** The only colour inside a surface
+  is data doing its job: a palette swatch being its own colour, or art
+  manufacturing its own sun. The red-sun disc and the day/night scene colours
+  (the launcher's solar arc, the sun and moon) are always the fixed sun on any
+  wallpaper, never derived.
+- **Depth is a hairline, not a shadow.** Surfaces are flat with a `1px` bone
+  hairline; a shadow appears only where something genuinely floats over
+  something else (a popout, a drawer). The Hub and apps are print and do not
+  cast.
 - **力 is the brand mark.** The kanji seal is the one fixed brand constant. Use
   it as a mark (the masthead, an eyebrow lead), not as decoration.
 
@@ -66,6 +70,14 @@ puts it under `~/.local/lib/qt6/qml`, and only the daemon injects that path
 (`ipc/daemon.go`), so `qs -c hub` from a keybind cannot see it without
 `QML_IMPORT_PATH`. `hyprland/modules/env.lua` sets it for the session. If an
 import fails in dev and works on an installed box, that is why.
+
+The one sanctioned exception is **Rashin** (`hub/pages/RashinPage.qml`). It fronts
+the Rashin/Hermes dashboard (`127.0.0.1:3600`), so it deliberately wears that
+product's identity instead of the Hub's: the warm poster palette and Archivo Black
+type mirrored from `ryoku/rashin/backend/web/css/base.css`, kept in one local
+palette object at the top of the page plus a bundled `fonts/archivo-black.ttf`. It
+is a page-scoped brand takeover, not drift; keep it in step with that `base.css`,
+and do not copy the pattern into another page.
 
 ### What follows the wallpaper, and what does not
 
@@ -136,6 +148,13 @@ divider in each surface. That is how eleven Themes happened.
 |Save / Revert / Reset, and the dirty state|`ActionBar`|
 |The block a live preview sits in|`Preview`|
 |The matte|`Grain`, one layer, topmost|
+|The poster ornament: registration backdrop, corner ticks, a scannable barcode, line motifs, the empty-state plate|`Reg` `Ticks` `Barcode` `Motif` `Empty`|
+|The one tab bar (bone-invert plates, the `//` lead)|`Tabs`|
+|Chrome marginalia (a running-head strip) and its 1-bit pixel dingbats|`Marginalia` + `Pixel`|
+|A faint blurred background typographic watermark (the section kanji, behind the content)|`Watermark`|
+|A live keyboard diagram that lights the layout legends and remapped keys|`KeyboardMap`|
+|A procedural 1-bit dither field (fractal noise through a Bayer matrix)|`DitherField`|
+|A decorative poster filling a section's dead grid slot (noir image/gif, JP title, barcode, seal)|`Decor`|
 
 The old table here listed `Eyebrow`, `SunDisc`, `RegMark` and `BrutalPanel`. The
 Hub used `RegMark` and `BrutalPanel` zero times: the brutalist card the tokens
@@ -143,6 +162,24 @@ described was built and never adopted, and the pages hand-rolled a hairline
 `Rectangle` instead. A documented primitive nobody reaches for is not a design
 system, it is a museum. If a new idiom is worth having, put it in `Ryoku.Ui` and
 use it somewhere in the same change.
+
+**The poster layer is dead-zone only.** The ornament above (`Reg` behind
+everything, `Ticks` on framed specimens, `Marginalia` in the margins, the pixel
+dingbats) dresses the sheet like a printed poster, but it lives strictly in the
+chrome margins a page leaves empty (the rail foot, the action bar's centre, an
+empty head margin) and never in the content or over a control. It is ink only;
+the one accent stays on state. The full contract, including how the torii dither
+art and the pixel-glyph vocabulary are made, is `.beta18/DESIGN.md` §10 and §12.
+
+**The one poster that enters the content grid is `Decor`.** It takes an
+otherwise-empty grid cell -- a section's leftover half-row, or a full-width plate
+where a section ends flush -- so it *fills* dead space rather than crowding it. It
+still holds no control and never overlaps one; unlike the ink-only ornament it
+may carry a real image or gif (baked to 1-bit noir) and animate, because it is
+art in a dead cell, not chrome over a surface. Right-click it to open an editor: it frames the image like the launcher's hero
+(cover + a 0..1 focal point you drag, plus zoom), with a gallery (the baked set or
+a custom file) and Save / Cancel. The choice and framing
+persist per box. See `.beta18/DESIGN.md` §12.
 
 **Choosing a control is not a taste decision.** `Spans.controlFor(kind, options)`
 picks it from the option count, because the counts are known: of the Hub's enums
@@ -214,7 +251,7 @@ Each surface is its own directory under `quickshell/`, each component its own
   `qs -c hub`). Its `PageHeader`, `NavRail`, and the primitives above set the
   pattern every page follows.
 - **welcome** the first-run guided tour, shown once on the first login: a floating
-  window (`qs -c welcome`) over generated Greek-noir threshold art that walks a new
+  window (`qs -c welcome`) over generated threshold art that walks a new
   user through the core keybinds, names each surface and how to summon it, and
   offers a few live quick settings (wallpaper, bar position and skin, frame and window roundness). The Hyprland
   autostart launches it once, gated on a `~/.local/state/ryoku/welcome-seen` flag;
@@ -268,6 +305,14 @@ blends seamlessly, and committed as a static asset (the running target has no
 generation dependency). The full recipe (prompt suffix, post-processing) is in
 `ryoku-site/docs/design-system.md`. One desktop constraint: Quickshell's Qt build
 has no webp plugin, so shell/Hub art ships as **PNG**, not webp.
+
+App surfaces (the Hub) use two grades, both dev-time `fal-ai/nano-banana-pro`
+then Pillow, both committed as PNG. A **portrait** (the Profile/Credits portrait
+plates) takes the black→bone duotone and keeps the one red sun. A **texture**
+(the at-rest ledger's torii, any decorative field) takes a **1-bit dither**:
+grayscale, low end crushed to pure `#000`, downscaled nearest-neighbour so the
+dither stays crisp rather than blurring to grey. It carries no colour and sits
+at ink parity behind its label. The full contract is `.beta18/DESIGN.md` §10.
 
 ## Research
 

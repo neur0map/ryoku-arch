@@ -77,8 +77,10 @@ truth for the live desktop.
   weave). The Hub's `RashinPage.qml` is the control surface (enable, one-click
   Hermes setup, open dashboard); built by the shell's `deploy.sh`. See
   `docs/rashin.md` and `docs/rashin-terminal.md`.
-- `assets/` `brand/` the 力 logo and icons, and `wallpapers/` the shipped
-  wallpaper set (installs to `~/Pictures/Wallpapers`).
+- `assets/` `brand/` the 力 logo and icons, `wallpapers/` the shipped wallpaper
+  set (installs to `~/Pictures/Wallpapers`), and `ryodecors/` the decor art the
+  `Decor`/`Placard` components render (installs to `~/Pictures/ryodecors`, kept
+  current by `ryoku doctor`; bake more with `bin/art/ryodither`).
 
 ## `system/` the machine
 
@@ -164,8 +166,10 @@ raw.githubusercontent.com serves them with no release infrastructure.
 ## Tooling
 
 - `bin/` repo tooling: the release version helpers (`ryoku-release-version`,
-  `ryoku-release-bump`) and the CI/hook checks (`ryoku-dev-scan-slop`,
-  `ryoku-dev-audit-shell-binds`).
+  `ryoku-release-bump`), the CI/hook checks (`ryoku-dev-scan-slop`,
+  `ryoku-dev-audit-shell-binds`), and `art/` for art authoring (`ryodither` bakes
+  an image or gif into a 1-bit bone-on-transparent decor; `tiling-demos`
+  generates the Appearance tiling-layout preview loops).
 - `tests/` standalone CI check scripts (install chroot-safety, shell tool
   availability).
 - `.github/` the workflows and issue/PR templates; `.githooks/` the commit gates.

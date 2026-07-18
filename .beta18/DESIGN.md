@@ -1,14 +1,12 @@
 # RYOKU UI, DESIGN CONTRACT (beta18)
 
-Paper and ink. The Greek-noir identity, classical beauty carrying warrior
-power, cracked and mended in gold, shot on black, rendered as a monochrome
-instrument: black paper with grain, warm bone ink, inversion for emphasis, one
-red sun in the art and nowhere else.
+Paper and ink: a monochrome printed instrument. Black paper with grain, warm
+bone ink, inversion for emphasis, one red sun in the art and nowhere else.
 
 This document is the implementation contract for **app-class surfaces**: the
 Hub (Ryoku Settings), the welcome tour, dialogs, and any future settings-grade
-window. It supersedes the warm-dark palette in `docs/ui-ux.md` for these
-surfaces. It does **not** govern the shell's spatial chrome, the frame, the
+window. It is the detailed contract for these surfaces; `docs/ui-ux.md` is the
+desktop-wide overview. It does **not** govern the shell's spatial chrome, the frame, the
 bar, the popouts keep their own motion (`pill/Singletons/Motion.qml` springs)
 and carry the accent. The two systems meet at the Hyprland frame: the frame is
 vermillion `#e2342a` (or the wallust colour when the user's rice wins), and
@@ -351,8 +349,15 @@ casts a shadow and never raises.
 
 ## 8. Page anatomy
 
-Five fixed regions. Left to right, top to bottom: rail, head, sections,
-side (preview + state + diff), action bar.
+Five regions. Left to right, top to bottom: rail, head, sections, side
+(state + diff), action bar. Only the rail is on every page. A page is one of
+three layout classes, decided by its **section** and never by the loaded page
+(so the chrome never reflows mid-swap): a **full-bleed** page owns the whole
+content region and draws its own head and action bar; a **framed** page keeps
+the rail, its own head, and the shared action bar; the two **ledger** pages
+(Shell, Appearance) additionally get the pinned side column. The classes are
+`framedSet` / `ledgerSet` in `Hub.qml`, and the page content crossfades
+through two loaders on `swap`, so a section change never blanks to bare paper.
 
 **Rail**: 268 wide, 1px `line` on its right. Contents: the brand block
 (力 at 22, `RYOKU ARCH` at 14 caps ls 2.4, descriptor at 11 `inkMuted`); the
@@ -375,23 +380,34 @@ ink dot, the section name at section/11 caps, and a `lineSoft` leader
 filling the line. Below it, a Flow packs the section's cells; spans come
 from `spanOf()`. Scrollbar is a 3px `line` rectangle.
 
-**Side**: 430 wide, pinned; it never scrolls with the sections, because it
-is the feedback loop for whatever control the user is turning.
+A section head is normally ink. The one exception: a single **featured** section
+on a page -- a showcase surface, not a settings group -- may set `titleColor` to
+the deep red `sunDeep` to mark it as special, used once per page. Input's live
+KEYBOARD MAP (`Ryoku.Ui` `KeyboardMap`) is the first: it draws the keyboard,
+shows the layout's legends (AZERTY, QWERTZ, Dvorak, Colemak, else QWERTY), and
+lights every remapped key to bone (Caps Lock's new job, a swapped Alt/Super, the
+Compose key, the layout-switch chord). It is pinned under the head in a compact mode (no number row, no readout), not left in the scroll, so it stays in view while you edit -- beside a `Decor` poster (below) that fills the space the small keyboard leaves.
 
-- *Preview* (300 tall, hairline frame, `LIVE PREVIEW · PINNED` micro label):
-  a live line-diagram of the desktop, frame, bar skin, module set, edges,
-  opacity, drawn in ink strokes, never a bitmap screenshot. Every relevant
-  key repaints it immediately.
-- *State card* (88 tall): the dirty count as a 36 Light numeral +
-  `CHANGES` micro label, a divider, and one sentence of state. Clean: hairline,
-  "Everything matches what is on disk." Dirty: **the card inverts to bone**: this is the settings page's single editorial plate, and reads
-  "Previewing live. Nothing is written until you save."
-- *Pending write* (remaining height): the diff, grouped by target file. File
+**Side**: 360 wide, pinned to the ledger pages only; it never scrolls with the
+sections. It is the **write ledger**, not a preview: the earlier pinned
+wireframe of the desktop was cut, because the edit already shows live on the
+real desktop and a mock of it only duplicated that and got in the way. Two
+parts:
+
+- *State card* (72 tall): the dirty count as a 36 Light numeral + `CHANGES`
+  micro label, a divider, and one sentence of state. Clean: hairline,
+  "Everything matches what is on disk." Dirty: **the card inverts to bone**,
+  the settings page's single editorial plate, reading "Previewing live.
+  Nothing is written until you save."
+- *Pending write* (remaining height): the diff grouped by target file. File
   headings: 3px dot + filename in mono 10 + change count. Rows: the key in
   data/12 mono `inkDim`, then `was` struck `inkFaint` → `now` in `ink`, each
-  rendered **in the file's own literal syntax** (`true`, `"TOP"`,
-  `["workspaces", "clock"]`). `lineSoft` separators. Empty state:
-  "nothing to write" in mono, centred.
+  in the file's own literal syntax (`true`, `"TOP"`, `["workspaces",
+  "clock"]`). `lineSoft` separators. At rest, with nothing to write, the panel
+  shows a framed **specimen** rather than a bare line of mono: the dithered
+  torii under a solid `空 · AT REST` label bar, the brand set vertically as
+  リョク (art per §10). The specimen and the diff crossfade on the first edit,
+  never hard-cut.
 
 **Action bar**: 60 tall, full width, 1px `line` on top. Left: the status -
 a 6px ink dot (pulsing 600/600 only while dirty) and the state line in
@@ -572,6 +588,28 @@ emblems (About, fastfetch), **16:9** for the welcome band. To generate for
 beta18: a 3:4 Three Graces replacement, a 16:9 welcome threshold, and, only
 if the bust regrade disappoints, a 1:1 sentinel bust.
 
+**The dither art.** Beyond the marble duotone there is a second, grittier
+grade, for the decorative fields rather than the portraits: the at-rest ledger
+specimen and any framed ornament that is texture, not figure. It is 1-bit, not
+duotone: a dithered black-and-white that reads as risograph or newsprint, never
+a photograph. `art/dither-torii.png` (a torii in rain) is the first of these.
+
+- *Generation* (fal.ai, dev-time, `fal-ai/nano-banana-pro`): the same
+  `[SUBJECT] + [COMPOSITION] + [STYLE]` grammar, with the style block:
+  `gritty 1-bit dithered black-and-white, heavy halftone / error-diffusion
+  texture, high contrast, pure-black background, no text, no watermark`.
+- *Post-process* (Pillow, dev-time): convert to grayscale; crush the low end
+  to pure `#000000` (map anything below ~44 to 0) so the plate melts into the
+  paper with no seam; **downscale nearest-neighbour, never bilinear** -- the
+  dither pattern is the point, and any smoothing turns it to grey mush; export
+  PNG. In use it sits behind its solid label bar at `opacity 0.5`, at ink
+  parity, so the caption on it always reads.
+
+The rule that picks the grade: a **portrait** (a statue, a figure, the
+showcase plates) takes the §10 duotone and keeps the red sun; a **texture**
+(a backdrop field, an at-rest specimen) takes the 1-bit dither and carries no
+colour at all.
+
 ---
 
 ## 11. The rules
@@ -580,15 +618,19 @@ A reviewer checks any diff against this list. Violation = rejection.
 
 1. No hex, font family, radius, duration, or spacing literal outside
    `Theme.qml`: components read tokens.
-2. No colour on an app surface except the art's sun and literal colour
-   swatches. No red states, no gold chrome.
+2. No colour on an app surface except the art's sun, literal colour swatches,
+   and one deliberate landmark: a featured/showcase section head may carry the
+   deep red `sunDeep` (`Section.titleColor`), once per page. No red states
+   otherwise, no gold chrome.
 3. No text dimmer than `inkFaint`; nothing the user must read below 12px;
    bone surfaces carry at most two ink levels.
 4. Inversion only per the bone-stock rule (§1); at most one editorial bone
    plate per screen.
 5. Radius 2; circles only for dots; hairlines 1px; 2px only for state.
-6. No shadows, gradients, blur, or translucency on app surfaces; overlays
-   are `paperRaised` + `lineStrong`.
+6. No shadows, gradients, or translucency on app surfaces; overlays are
+   `paperRaised` + `lineStrong`. The one blur exception is a `Watermark`: a
+   faint background typographic haze, far behind the content, is background art,
+   not a surface, so it may blur and be translucent (§12).
 7. Mono only for file-truth strings; presentation numerals are Grotesk
    `tnum`. Caps Grotesk is tracked; mixed case and mono never are.
 8. Three motion tokens only; nothing over 210ms; no springs; no entrance
@@ -597,8 +639,153 @@ A reviewer checks any diff against this list. Violation = rejection.
    hand-sized cell is a bug.
 10. Every changed value shows its struck default and the 2px bar, and
     appears in the pending-write diff in the target file's own syntax.
-11. The preview is pinned and never scrolls; nothing writes to disk except
+11. The side ledger is pinned and never scrolls; nothing writes to disk except
     SAVE.
 12. Grain is one full-window layer at 5.5%, topmost; art is graded through
     §10 before it ships, no raw generations, no runtime generation, PNG
     only.
+13. Decoration lives only in the chrome dead zones (the rail foot, the action
+    bar's centre, an empty head margin), never in the content and never over a
+    control. It is ink only; the accent stays on state (§1). See §12.
+14. Pixel glyphs come from the brand vocabulary -- a Greek key, a torii, a
+    wave, a column, an asanoha (§12) -- never arcade sprites.
+15. A section change crossfades the page through two loaders and never blanks
+    to bare paper; the layout class (full-bleed / framed / ledger) comes from
+    the section, never the loading page (§8).
+
+---
+
+## 12. The poster layer
+
+The instrument sheet is dressed like a printed poster: registration marks, a
+barcode, corner ticks, numbered plates, katakana glosses, pixel dingbats. This
+is the layer that makes the paper read as an instrument before a control lands
+on it. The reference is the acid-grotesk techno-poster sheet
+(`.beta18/art/ref-acid-grotesk.png`), not a UI kit. It is entirely **ink**,
+lives entirely in the **dead zones**, and never touches a control.
+
+Two boundaries keep it from becoming clutter:
+
+- **Dead zones only.** Ornament goes in the chrome margins a page leaves empty:
+  the rail foot, the action bar's centre, an empty head margin, an at-rest
+  ledger panel, an empty state. It never lands in the content, over a cell, or
+  on a subtab/segment/button. If the margin already holds a control, the
+  ornament is skipped for that page, not squeezed in beside it.
+- **Ink, never accent.** The poster layer is `inkFaint` / `line`. The one acid
+  drop stays on state (the active nav thumb, the dirty dot). Two accents on a
+  screen is one too many.
+
+### The ornament primitives
+
+All in `Ryoku.Ui`, all static (no animation), all ink:
+
+| Component | What it is |
+|---|---|
+| `Reg` | The registration backdrop: a faint dot grid with `+` marks on a sparse beat and print-register crosses in the corners. One static `Canvas` behind all content. It is what makes the paper an instrument sheet. |
+| `Ticks` | Four HUD corner brackets registering a framed block's corners. Goes on a framed thing (a specimen, the state plate), never on every cell. |
+| `Barcode` | A real, scannable **Code 39** plate (`tests/ui/barcode.sh` reads it back with zbarimg). Give it room: a clipped barcode drops its stop bars and silently stops scanning. Used for the rail-foot totem (`RYOKU HUB`) and the Profile edition strip. |
+| `Motif` | Line ornaments in ink: `rings`, `steps`, `burst`, `dither`. They dress a genuinely empty zone; they never sit behind live content. |
+| `Empty` | The composed empty-state plate: `空` in a ring `Motif` over a `// EMPTY_` caption. An empty zone is dressed, never a bare line of mono in a void. |
+| `Tabs` | The one tab bar. Selection is typography, not a coloured bar: the active plate inverts to bone and takes the sheet's `//` lead (`001 // ABOUT`). It replaces every hand-rolled tab strip. |
+
+### Marginalia
+
+`Marginalia` is the running head of the sheet: the poster's masthead row
+distilled to a thin strip that fills a dead margin. Left to right: a pixel
+dingbat, a katakana gloss, a hairline-boxed numbered index plate (`003 //
+PALETTE`), a second dingbat, a chevron run. Every field is optional and it
+self-sizes, so it right-aligns into whatever dead width a page leaves. Ink only.
+
+It runs app-wide through the shared chrome, so most pages get it for free:
+
+- **Rail foot** (`Hub.qml`): an edition register (`BETA // 18`) above the
+  `RYOKU HUB` barcode -- on every page, since the rail is the one always-present
+  chrome.
+- **Action bar centre** (`ActionBar.qml`): a running register (`設定`) between
+  the status and the verbs -- on every framed page.
+- **A full-bleed page's head margin and its own bar centre**: each page sets its
+  section's kana gloss and group index (`操作 · 02 // SYSTEM`) and varies the
+  glyph pairing for texture -- only where those margins are genuinely empty.
+
+### Pixel
+
+`Pixel` draws a small 1-bit glyph on an 8×8 grid, the poster's dingbats. The
+vocabulary is the brand's own, Greek and Japanese, **never arcade-alien**:
+
+| Kind | Motif |
+|---|---|
+| `meander` | the Greek key / fret |
+| `torii` | the gate |
+| `wave` | seigaiha wave arcs |
+| `column` | a fluted Doric column |
+| `asanoha` | the hemp-leaf star |
+| `star` | a plain 4-point register star |
+
+To add a glyph, add an 8-row grid of `0`/`1` strings to the `grids` map (a `1`
+is an ink cell). Keep it legible at 16px, the marginalia size, and on-brand: if
+it reads as a space invader, it is wrong.
+
+### Background watermark
+
+`Watermark` sets a page's section kanji (入力 for Input, 描画 for GPU) huge and
+faint behind the whole page, bled off the lower-right, so the page has a face
+without a photo. It is the one place a blur and translucency are allowed on an
+app surface, because it is **background art, not a surface**: strength ~0.05,
+softened by a light `MultiEffect` blur so the giant glyph reads as haze, never
+as words to read. It sits behind the head and the scroll (the content is on top
+at full ink, so legibility never drops), and it fills the dead lower margin that
+settings alone leave empty. Static, so the blur layer captures once. Give each
+section its own kanji; keep the strength a whisper -- if you can read it as
+text, it is too strong.
+
+### Decorative filler
+
+`Decor` is the poster made a first-class cell. Where a section's grid leaves a
+dead slot -- a lone control on a half-row, or the flush end of a section -- a
+`Decor` fills it with a noir mini-poster instead of empty black: a real image or
+gif behind a big Japanese title, a vertical tategaki line, a fine-print caption,
+a scannable `Barcode` and a kanji seal. It holds no control and means nothing; it
+exists to give a section a face and to stop a ragged row reading as a mistake.
+
+The art is real, not drawn in code: a small public-domain set (a Muybridge or
+phenakistoscope motion loop, a marble statue, the moon, Newton's cradle, a
+rotating earth) baked at build time to 1-bit bone-on-transparent through an
+ordered (Bayer) dither, so a photograph reads as the same halftone sheet as the
+rest of the poster layer. With no image, `Decor` falls back to `DitherField`, a
+fractal-noise field dithered live in a Canvas. Right-click the art to open its editor: frame it the way the App Launcher frames its hero: the image is sized to cover the
+panel and placed by a 0..1 focal point you drag, with a zoom (scroll, pinch, or
+the -/+ buttons; below 100% reveals more of the image, above crops in). Pick from
+the gallery underneath (the baked set or a custom file, desaturated to noir) and
+Save (or Enter; Cancel/Esc discards). The choice and
+framing persist per box through `DecorStore` (`~/.config/ryoku/decor.json`), so a
+box you frame stays framed across a reopen; gifs autoplay. Used on Input (a
+poster per section) and Connections (a shared head hero).
+
+`Decor` earns two exceptions to the sheet's rules, because it is art in a dead
+cell and never chrome over a surface: its source may be a **gif and animate**
+(the one perpetual motion allowed, and only here), and a colour source is
+auto-**noir** (desaturated) so anything dropped in still fits. It never sits over
+a control and never carries the acid accent.
+
+### Putting it together
+
+A page is built in four passes, outermost to innermost:
+
+1. **Chrome.** The shell draws the rail (always); for a framed page it also
+   draws the head, the side ledger (ledger pages only) and the action bar. A
+   full-bleed page draws its own head and bar. The layout class is the
+   section's, from `framedSet` / `ledgerSet` -- decided there, never from the
+   loaded page, so the chrome holds still across a crossfade.
+2. **Content.** List the surfaces first, build them as full-width blocks, then
+   let the cells flow around them (§7, §8). Cells take spans from `Spans`; a
+   section packs them into flush rows (`Spans.pack`) so no row ends ragged.
+3. **Decoration.** Drop `Marginalia` into the dead margins the content left
+   empty (head-right, bar-centre); the rail foot and framed action bar already
+   carry theirs. Skip any margin a control occupies. `Reg` is already behind
+   everything; `Ticks` go on framed specimens; `Empty` dresses an empty state.
+4. **Motion.** Nothing enters (§5). The page crossfades on `swap`; the nav
+   thumb slides on `move`; every recolour is `snap`; the at-rest specimen and
+   the diff crossfade on the first edit.
+
+The test for any ornament: remove it and the page must still be complete and
+legible. Decoration is the sheet's texture, never its content.

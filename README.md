@@ -50,7 +50,9 @@ to be extended: the desktop is composed of small, independent surfaces, and a
 plugin system is on the way, so the shell grows with what you actually use
 instead of bloating by default. The beauty is the shell itself, one continuous
 and deliberate surface where the bar, panels, launcher, lockscreen, and session
-controls move as a single thing. 力と美のために: for the sake of power and beauty.
+controls move as a single thing: paper and ink, warm bone type on pure black,
+with the frame retinting live from your wallpaper. 力と美のために: for the sake
+of power and beauty.
 
 Underneath, Ryoku is a hand-built Arch distribution rather than a config dump.
 The desktop, the installer, and the system definition all live in this
