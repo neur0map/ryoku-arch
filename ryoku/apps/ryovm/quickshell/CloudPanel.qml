@@ -46,7 +46,7 @@ Item {
     Column {
         anchors.centerIn: parent
         spacing: Tokens.s3
-        visible: pane.os === null && !Vm.downloading
+        visible: pane.os === null
         Mark { anchors.horizontalCenter: parent.horizontalCenter; size: 96 }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -60,24 +60,22 @@ Item {
         }
     }
 
-    // building: the shared progress spec.
-    Progress {
-        anchors.centerIn: parent
-        width: parent.width - 48
-        visible: Vm.downloading
-        heading: Vm.dlName
-        phase: ({ "resolve": "Fetching the cloud image", "download": "Downloading the image", "config": "Baking the burn account" })[Vm.dlPhase] || "Working"
-        progress: Vm.dlProgress
-        bps: Vm.dlBps
-        indeterminate: Vm.dlIndeterminate
-        log: Vm.dlLog
-        onCancelled: Vm.cancelCreate()
+    // active downloads: the shared stack, so several instant builds run at once.
+    DownloadStack {
+        id: dlStack
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
     }
 
     // chosen OS: the create sheet.
     Item {
-        anchors.fill: parent
-        visible: pane.os !== null && !Vm.downloading
+        anchors.top: dlStack.visible ? dlStack.bottom : parent.top
+        anchors.topMargin: dlStack.visible ? Tokens.s4 : 0
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        visible: pane.os !== null
 
         // hero: brand mark, name, the burn-account line (mono, file truth).
         Rectangle {
@@ -222,7 +220,7 @@ Item {
                 primary: true
                 text: pane.disposableRun ? "CREATE · BURN" : "CREATE MACHINE"
                 armed: pane.os !== null && Vm.caps.quickemu === true
-                onAct: Vm.instant(pane.os.os, "", pane.disposableRun, pane.pickedIds.join(","), Vm.settings.extraPkgs || "")
+                onAct: { Vm.instant(pane.os.os, "", pane.disposableRun, pane.pickedIds.join(","), Vm.settings.extraPkgs || ""); pane.os = null; }
             }
         }
     }

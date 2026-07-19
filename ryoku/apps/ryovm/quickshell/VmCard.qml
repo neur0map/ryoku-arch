@@ -89,7 +89,7 @@ Item {
             text: card.running ? "RUN" : "OFF"
             pad: 3
             cellW: 13; cellH: 20; fontPx: 11
-            ink: card.running ? Tokens.ink : Tokens.inkDim
+            ink: card.running ? Tokens.sun : Tokens.inkDim
         }
 
         // the gallery grammar's corner dot on the selected row.

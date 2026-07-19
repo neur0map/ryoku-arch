@@ -17,10 +17,11 @@ Item {
     opacity: open ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: Tokens.swap; easing.type: Tokens.ease } }
 
+    // scrim: only an outside click (or the ✕) dismisses the panel
     Rectangle {
         anchors.fill: parent
         color: Qt.rgba(0, 0, 0, 0.55)
-        TapHandler { onTapped: sp.closed() }
+        MouseArea { anchors.fill: parent; onClicked: sp.closed() }
     }
 
     Rectangle {
@@ -31,7 +32,7 @@ Item {
         color: Tokens.paperLift
         border.width: Tokens.border
         border.color: Tokens.lineStrong
-        TapHandler {}
+        MouseArea { anchors.fill: parent }   // a click inside the panel never dismisses it
 
         Column {
             id: col

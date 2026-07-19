@@ -125,7 +125,7 @@ Item {
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 10
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "RYOVM · PASS"
+            text: "RYOPORT · PASS"
             color: Tokens.inkFaint
             font.family: Tokens.mono
             font.pixelSize: 9

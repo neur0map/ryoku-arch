@@ -305,7 +305,9 @@ cmd_create() {
 				local rc=0; wait "$child" || rc=$?; child=""
 				[ "$rc" -eq 0 ] || { rm -rf "$stage"; emit '{"phase":"error","message":"download failed"}'; exit 1; }
 				emit '{"phase":"config"}'
-				quickget --create-config "$name" "$stage/$base" >/dev/null 2>&1 || { rm -rf "$stage"; emit '{"phase":"error","message":"could not write the VM config"}'; exit 1; }
+				quickget --create-config "$name" "$stage/$base" >/dev/null 2>&1 & child=$!
+				local crc=0; wait "$child" || crc=$?; child=""
+				[ "$crc" -eq 0 ] || { rm -rf "$stage"; emit '{"phase":"error","message":"could not write the VM config"}'; exit 1; }
 				rm -rf "$stage"
 				grep -q '^ryovm_os=' "$vms_dir/$name.conf" 2>/dev/null || echo "ryovm_os=\"$os\"" >>"$vms_dir/$name.conf"
 				emit "{\"phase\":\"done\",\"name\":\"$name\"}"
@@ -324,7 +326,7 @@ cmd_create() {
 	setsid quickget "$os" "$release" ${edition:+"$edition"} >"$logf" 2>&1 & child=$!
 	tail --pid="$child" -n +1 -f "$logf" 2>/dev/null | while IFS= read -r line; do
 		[ -n "$line" ] && emit "$(jq -cn --arg l "$line" '{phase:"log",line:$l}')"
-	done
+	done || true
 	local rc=0; wait "$child" 2>/dev/null || rc=$?; child=""
 	local lastline; lastline="$(tail -n1 "$logf" 2>/dev/null | tr -d '\r' || true)"
 	rm -f "$logf"
@@ -336,7 +338,40 @@ cmd_create() {
 		grep -q '^ryovm_os=' "$c" || echo "ryovm_os=\"$os\"" >>"$c"
 		made="$(basename "$c" .conf)"
 	done
+	local g="" mi=""
+	# a made config whose ISO never landed is a blocked or failed download
+	# (Microsoft IP-gates Windows); clear the shell and report the real cause,
+	# whatever quickget's exit code claimed, so the yard never lists a dead machine.
+	if [ -n "$made" ]; then
+		g="$(conf_get "$vms_dir/$made.conf" guest_os)"
+		mi="$(conf_get "$vms_dir/$made.conf" iso)"
+		case "$mi" in ""|/*) : ;; *) mi="$vms_dir/$mi" ;; esac
+		if [ -n "$mi" ] && [ ! -f "$mi" ]; then
+			# never rm a dir that holds a real disk; a blocked download has none.
+			ls "${vms_dir:?}/${made:?}/"*.qcow2 >/dev/null 2>&1 || rm -rf "${vms_dir:?}/${made:?}"
+			rm -f "${vms_dir:?}/${made:?}.conf"
+			case "$g" in
+				windows|windows-server)
+					emit '{"phase":"error","message":"Windows downloads are blocked by Microsoft on this network.\nDownload the ISO from microsoft.com/software-download in a browser, then use Load ISO: drivers, TPM and Secure Boot are configured for you."}' ;;
+				*)
+					emit '{"phase":"error","message":"The install media did not download.\nTry again, or build from a local ISO with Load ISO."}' ;;
+			esac
+			exit 1
+		fi
+	fi
 	if [ "$rc" -eq 0 ] && [ -n "$made" ]; then
+		# quickget's per-VM virtio-win pull lands an anti-bot HTML stub; point the
+		# machine at the shared, validated driver CD instead (fetched on demand by
+		# `virtio`) so Windows setup finds the disk once the drivers land.
+		case "$g" in
+			windows|windows-server)
+				rm -f "$vms_dir/$made/virtio-win.iso" 2>/dev/null
+				if grep -qE '^fixed_iso=' "$vms_dir/$made.conf"; then
+					sed -i -E "s|^fixed_iso=.*|fixed_iso=\"$(virtioWin)\"|" "$vms_dir/$made.conf"
+				else
+					echo "fixed_iso=\"$(virtioWin)\"" >>"$vms_dir/$made.conf"
+				fi ;;
+		esac
 		emit "{\"phase\":\"done\",\"name\":\"$made\"}"
 	else
 		emit "$(jq -cn --arg m "download failed${lastline:+: $lastline}" '{phase:"error",message:$m}')"
@@ -360,7 +395,73 @@ cmd_import() {
 		# (windows/macos/android all have brand icons; linux falls back to a glyph).
 		echo "ryovm_os=\"${os:-$guest}\""
 	} >"$conf"
+	# Windows ships no in-box virtio driver, so a plain ISO install finds no disk
+	# without the driver CD; point it at the shared VirtIO CD (fetched on demand
+	# by `virtio`). 11 also wants a TPM to pass setup; Secure Boot stays off since
+	# Arch's edk2 has no MS-key vars, so on would reject the signed loader.
+	case "$guest" in
+		windows|windows-server)
+			echo 'tpm="on"' >>"$conf"
+			echo 'secureboot="off"' >>"$conf"
+			echo "fixed_iso=\"$(virtioWin)\"" >>"$conf"
+			;;
+	esac
 	echo "Created $conf"
+}
+
+# ---- virtio-win (Windows storage/network drivers) --------------------------
+# Windows carries no virtio driver, so its installer needs the virtio-win CD to
+# see a virtio disk or NIC. quickget pulls it per-VM from fedorapeople, which now
+# sits behind an anti-bot wall that returns an HTML page in place of the ISO: a
+# stub CD, and the installer finds no disk. We keep one validated copy in the
+# image cache, shared by every Windows machine, from a mirror that serves bytes.
+virtioWin() { printf '%s' "$(imagesDir)/virtio-win.iso"; }
+
+# a real ISO9660 image carries "CD001" at 0x8001; an HTML stub or a truncated
+# download does not. The size floor rejects a partial that happens to align.
+valid_iso() {
+	[ -f "$1" ] && [ "$(stat -c%s "$1" 2>/dev/null || echo 0)" -ge 52428800 ] \
+		&& dd if="$1" bs=1 skip=32769 count=5 2>/dev/null | grep -q CD001
+}
+
+# fetch the driver CD into the cache once, validating the bytes; a mirror that
+# serves them first, the fedorapeople origin as a last resort.
+ensure_virtio_win() {
+	local dst; dst="$(virtioWin)"
+	valid_iso "$dst" && return 0
+	mkdir -p "$(dirname "$dst")"
+	local tmp="$dst.part" u
+	for u in \
+		"https://fedora-virt.repo.nfrance.com/virtio-win/direct-downloads/stable-virtio/virtio-win.iso" \
+		"https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
+	do
+		rm -f "$tmp"
+		if have ryovm-fetch; then ryovm-fetch "$u" "$tmp" 2>/dev/null
+		else curl -fsSL -A "Mozilla/5.0" --retry 2 -o "$tmp" "$u" 2>/dev/null; fi
+		valid_iso "$tmp" && { mv -f "$tmp" "$dst"; return 0; }
+	done
+	rm -f "$tmp"; return 1
+}
+
+# ryovm virtio          : ensure the shared driver CD exists and is real
+# ryovm virtio <name>   : also point that VM's fixed_iso at it, replacing a stub
+#                         a failed quickget download may have left in the VM dir.
+cmd_virtio() {
+	emit '{"phase":"download","name":"virtio-win"}'
+	ensure_virtio_win || { emit '{"phase":"error","message":"could not fetch the VirtIO driver CD"}'; exit 1; }
+	local vw; vw="$(virtioWin)"
+	local name="${1:-}"
+	if [ -n "$name" ]; then
+		local conf; conf="$(conf_path "$name")"
+		vm_paths "$conf"
+		rm -f "$vm_subdir/virtio-win.iso" 2>/dev/null
+		if grep -qE '^fixed_iso=' "$conf"; then
+			sed -i -E "s|^fixed_iso=.*|fixed_iso=\"$vw\"|" "$conf"
+		else
+			echo "fixed_iso=\"$vw\"" >>"$conf"
+		fi
+	fi
+	emit "$(jq -cn --arg p "$vw" '{phase:"done",iso:$p}')"
 }
 
 # ---- instant (a prebuilt cloud image, no installer) ------------------------
@@ -632,8 +733,8 @@ cmd_instant() {
 	# cache the base image once, shared by every instant/spawn off this OS.
 	mkdir -p "$(imagesDir)"
 	local base; base="$(imagesDir)/$os-cloud.qcow2"
-	local child=""
-	trap 'set +e; [ -n "$child" ] && kill -TERM "$child" 2>/dev/null; wait "$child" 2>/dev/null; emit "{\"phase\":\"cancelled\"}"; exit 130' TERM INT
+	local child="" sub=""
+	trap 'set +e; [ -n "$child" ] && kill -TERM "$child" 2>/dev/null; wait "$child" 2>/dev/null; rm -f "$base.part"; [ -n "$sub" ] && rm -rf "$sub"; emit "{\"phase\":\"cancelled\"}"; exit 130' TERM INT
 	if [ ! -s "$base" ]; then
 		emit "{\"phase\":\"download\",\"name\":\"$name\"}"
 		if have ryovm-fetch; then
@@ -647,7 +748,7 @@ cmd_instant() {
 	fi
 
 	emit '{"phase":"config"}'
-	local sub="$vms_dir/$name"; mkdir -p "$sub"
+	sub="$vms_dir/$name"; mkdir -p "$sub"
 	# a thin copy-on-write overlay over the read-only cached base, grown to a
 	# usable size (cloud-init's growpart expands the rootfs on first boot).
 	qemu-img create -f qcow2 -F qcow2 -b "$base" "$sub/disk.qcow2" 32G >/dev/null 2>&1 \
@@ -704,7 +805,11 @@ cmd_template() {
 	# flatten the distro-base + this VM's deltas into one standalone qcow2, then
 	# freeze it read-only: every spawn overlays this file, and a mutable base
 	# would corrupt its children the moment the source booted again.
-	qemu-img convert -O qcow2 "$vm_disk" "$out.part" || die "could not build the template"
+	local child=""
+	trap 'set +e; [ -n "$child" ] && kill -TERM "$child" 2>/dev/null; wait "$child" 2>/dev/null; rm -f "$out.part"; exit 130' TERM INT
+	qemu-img convert -O qcow2 "$vm_disk" "$out.part" & child=$!
+	wait "$child" || { child=""; rm -f "$out.part"; trap - TERM INT; die "could not build the template"; }
+	child=""; trap - TERM INT
 	mv "$out.part" "$out"; chmod 0444 "$out"
 	jq -cn --arg os "$(conf_get "$conf" ryovm_os)" --arg tools "$(conf_get "$conf" ryovm_tools)" \
 		--arg base "$out" '{os:$os,tools:$tools,base:$base}' >"$(templatesDir)/$tpl.json"
@@ -787,6 +892,26 @@ cmd_launch() {
 	esac
 	vm_paths "$conf"
 	vm_running "$vm_pid" && die "$vm_name is already running"
+	# an uninstalled machine boots from its ISO; if that download never finished,
+	# quickemu aborts with a raw qemu "Could not open" line. Say it plainly.
+	local isoref diskref
+	isoref="$(conf_get "$conf" iso)"; diskref="$(conf_get "$conf" disk_img)"
+	if [ -n "$isoref" ]; then
+		case "$isoref" in /*) : ;; *) isoref="$vms_dir/$isoref" ;; esac
+		case "$diskref" in ""|/*) : ;; *) diskref="$vms_dir/$diskref" ;; esac
+		{ [ -f "$isoref" ] || { [ -n "$diskref" ] && [ -f "$diskref" ]; }; } \
+			|| die "$vm_name has no install media: its ISO never finished downloading. Re-create the machine, or import an ISO from disk."
+	fi
+	# quickemu sources the conf after parsing --display, so the conf's display=
+	# overrides the flag; sync the requested mode into the conf first, else a
+	# headless or spice launch silently opens the conf's window instead.
+	if ! grep -qxE "display=\"$display\"" "$conf"; then
+		if grep -qE '^display=' "$conf"; then
+			sed -i -E "s|^display=.*|display=\"$display\"|" "$conf"
+		else
+			printf 'display="%s"\n' "$display" >>"$conf"
+		fi
+	fi
 	cd "$vms_dir"
 	local log="$vm_subdir/$vm_name.launch.log"
 	mkdir -p "$vm_subdir"
@@ -884,12 +1009,16 @@ cmd_config() {
 	esac
 	vm_paths "$conf"
 	vm_running "$vm_pid" && die "stop $vm_name before changing its configuration"
-	if grep -qE "^$key=" "$conf"; then
+	if [ "$val" = "auto" ] || [ -z "$val" ]; then
+		sed -i -E "/^$key=/d" "$conf"
+		echo "cleared $key on $vm_name"
+	elif grep -qE "^$key=" "$conf"; then
 		sed -i -E "s|^$key=.*|$key=\"$val\"|" "$conf"
+		echo "set $key=$val on $vm_name"
 	else
 		echo "$key=\"$val\"" >>"$conf"
+		echo "set $key=$val on $vm_name"
 	fi
-	echo "set $key=$val on $vm_name"
 }
 
 # ---- snapshot --------------------------------------------------------------
@@ -1113,6 +1242,54 @@ cmd_usb() {
 	esac
 }
 
+# ---- portfwd: host->guest port forwards (quickemu's port_forwards array) ----
+# user-mode net, applied at launch; stop-required, parsed not sourced (like usb).
+cmd_portfwd() {
+	local sub="${1:?portfwd needs list|add|remove}"; shift
+	local conf; conf="$(conf_path "${1:?portfwd needs a VM name}")"; shift || true
+	local line fwds=() tok
+	line="$(sed -n -E 's/^port_forwards=\((.*)\)/\1/p' "$conf")"
+	if [ -n "$line" ]; then
+		while IFS= read -r tok; do
+			tok="${tok//\"/}"
+			[ -n "$tok" ] && fwds+=("$tok")
+		done < <(printf '%s' "$line" | grep -oE '"[^"]*"')
+	fi
+	case "$sub" in
+		list)
+			local first=1 f h g
+			printf '['
+			for f in "${fwds[@]}"; do
+				h="${f%%:*}"; g="${f##*:}"
+				[ $first -eq 1 ] && first=0 || printf ','
+				jq -cn --arg host "$h" --arg guest "$g" '{host:$host,guest:$guest}'
+			done
+			printf ']\n' ;;
+		add|remove)
+			local spec="${1:?portfwd $sub needs <hostport:guestport>}"
+			vm_paths "$conf"
+			vm_running "$vm_pid" && die "stop $vm_name before changing port forwards"
+			local out=() f
+			if [ "$sub" = add ]; then
+				[[ "$spec" =~ ^[0-9]+:[0-9]+$ ]] || die "bad forward '$spec' (want hostport:guestport)"
+				local hp="${spec%%:*}" gp="${spec##*:}"
+				{ [ "$hp" -ge 1 ] && [ "$hp" -le 65535 ] && [ "$gp" -ge 1 ] && [ "$gp" -le 65535 ]; } || die "port out of range in '$spec'"
+				for f in "${fwds[@]}"; do [ "${f%%:*}" != "$hp" ] && out+=("$f"); done
+				out+=("$spec")
+			else
+				for f in "${fwds[@]}"; do [ "$f" != "$spec" ] && out+=("$f"); done
+			fi
+			sed -i -E '/^port_forwards=/d' "$conf"
+			if [ "${#out[@]}" -gt 0 ]; then
+				local newline="port_forwards=(" q
+				for q in "${out[@]}"; do newline+="\"$q\" "; done
+				printf '%s)\n' "${newline% }" >>"$conf"
+			fi
+			echo "port forwards updated for $vm_name" ;;
+		*) die "unknown portfwd subcommand: $sub" ;;
+	esac
+}
+
 # ---- folder ----------------------------------------------------------------
 cmd_folder() {
 	if [ -n "${1:-}" ]; then
@@ -1216,6 +1393,27 @@ cmd_paths() {
 		  source:"github.com/quickemu-project"}'
 }
 
+# ---- mon: live control of a running VM ------------------------------------
+# Talks to the sockets quickemu already opens (HMP monitor + optional guest
+# agent) via the ryovm-mon helper. Additive and read-mostly; the engine only
+# resolves the paths. A stopped VM reports running:false, never an error.
+cmd_mon() {
+	local conf; conf="$(conf_path "$1")"
+	vm_paths "$conf"
+	local sub="${2:-stats}" arg="${3:-}"
+	command -v ryovm-mon >/dev/null 2>&1 || die "ryovm-mon is not installed"
+	local mon="$vm_subdir/$vm_name-monitor.socket"
+	local agent="$vm_subdir/$vm_name-agent.sock"; [ -S "$agent" ] || agent="-"
+	local pid="$vm_pid"; [ -r "$pid" ] || pid="-"
+	case "$sub" in
+		stats)   ryovm-mon stats "$mon" "$agent" "$pid" ;;
+		power)   [ -n "$arg" ] || die "power needs pause|resume|reset|shutdown"; ryovm-mon power "$mon" "$arg" ;;
+		balloon) [ -n "$arg" ] || die "balloon needs a size in MB"; ryovm-mon balloon "$mon" "$arg" ;;
+		pin)     ryovm-mon pin "$mon" "$vm_pid" "${arg:-auto}" ;;
+		*)       die "mon: unknown subcommand '$sub'" ;;
+	esac
+}
+
 cmd="${1:-}"; shift || true
 case "$cmd" in
 	caps)     cmd_caps "$@" ;;
@@ -1230,6 +1428,7 @@ case "$cmd" in
 	templates) cmd_templates "$@" ;;
 	spawn)    cmd_spawn "$@" ;;
 	import)   cmd_import "$@" ;;
+	virtio)   cmd_virtio "$@" ;;
 	launch)   cmd_launch "$@" ;;
 	console)  cmd_console "$@" ;;
 	stop)     cmd_stop "$@" ;;
@@ -1240,11 +1439,13 @@ case "$cmd" in
 	seal)     cmd_seal "$@" ;;
 	restore-seal) cmd_restore_seal "$@" ;;
 	usb)      cmd_usb "$@" ;;
+	portfwd)  cmd_portfwd "$@" ;;
 	ssh)      cmd_ssh "$@" ;;
 	delete)   cmd_delete "$@" ;;
 	folder)   cmd_folder "$@" ;;
 	icon)     cmd_icon "$@" ;;
 	prefetch) cmd_prefetch "$@" ;;
 	paths)    cmd_paths "$@" ;;
-	*) die "usage: ryovm caps|setup|catalog|cloud-catalog|list|get|create|instant|template|templates|spawn|import|launch|console|stop|config|rename|resize|snapshot|seal|restore-seal|usb|ssh|delete|folder|icon|prefetch|paths" 2 ;;
+	mon)      cmd_mon "$@" ;;
+	*) die "usage: ryovm caps|setup|catalog|cloud-catalog|list|get|create|instant|template|templates|spawn|import|launch|console|stop|config|rename|resize|snapshot|seal|restore-seal|usb|portfwd|ssh|delete|folder|icon|prefetch|paths|mon" 2 ;;
 esac

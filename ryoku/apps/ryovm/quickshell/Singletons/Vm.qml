@@ -71,7 +71,7 @@ Singleton {
     // 4.5s. Session-scoped, capped at 200, tagged with the machine in focus so
     // the detail sheet can show one machine's history.
     property var events: []
-    function _log(kind, text, detail) {
+    function _log(kind, text, detail, focus) {
         var s = ("" + text).trim();
         if (s.length === 0)
             return;
@@ -79,32 +79,34 @@ Singleton {
         function p(n) { return (n < 10 ? "0" : "") + n; }
         var stamp = p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
         var e = events.slice();
-        e.push({ time: stamp, vm: selectedName, kind: kind, text: s, detail: detail || "" });
+        e.push({ time: stamp, at: d.getTime(), vm: (focus && focus.length > 0) ? focus : selectedName, kind: kind, text: s, detail: detail || "" });
         if (e.length > 200)
             e = e.slice(e.length - 200);
         events = e;
     }
 
-    function raiseFault(text) {
+    function raiseFault(text, focus) {
         var t = ("" + text).trim();
         if (t.length === 0)
             return;
         fault = t.split("\n")[0];
         faultDetail = t;
         status = "";
-        _log("fault", fault, faultDetail);
+        _log("fault", fault, faultDetail, focus);
     }
     function clearFault() { fault = ""; faultDetail = ""; }
-    function info(msg) { status = msg; _log("info", msg, ""); }
+    function info(msg, focus) { status = msg; _log("info", msg, "", focus); }
 
-    // ---- in-app download (the fast Go fetcher, streamed live) ---------------
-    property bool downloading
-    property string dlName               // VM being built
-    property string dlPhase              // resolve | download | config
-    property real dlProgress             // 0..1 (0 when indeterminate)
-    property real dlBps                  // bytes/sec, for a live rate
-    property bool dlIndeterminate        // fallback (quickget) path: no byte total
-    property string dlLog                // last fallback log line
+    // ---- in-app downloads (parallel; the fast Go fetcher, streamed live) -----
+    // each build is a row in dlJobs run by its own process (the Instantiator
+    // below), so several machines download at once; downloading/dlName stay as
+    // rolled-up reads for callers that still want a single glance.
+    property int maxParallel: 4
+    readonly property bool downloading: dlJobs.count > 0
+    readonly property int dlCount: dlJobs.count
+    readonly property string dlName: dlJobs.count > 0 ? dlJobs.get(0).name : ""
+    property var dlJobs: dlJobsModel
+    ListModel { id: dlJobsModel }
 
     // ---- settings (persisted to ~/.config/ryoku/ryovm.json) -----------------
     readonly property var settings: cfg
@@ -150,6 +152,7 @@ Singleton {
             getProc.command = ["ryovm", "get", name];
             getProc.running = true;
             root.loadUsb(name);
+            root.loadPortfwd(name);
         }
     }
     function reselect() { if (selectedName.length > 0) select(selectedName); }
@@ -235,6 +238,22 @@ Singleton {
         usbSetProc.command = ["ryovm", "usb", "set", name, id, on ? "on" : "off"];
         usbSetProc.running = true;
     }
+
+    // host->guest port forwards (port_forwards in its conf), for local VMs.
+    property var portfwds: []
+    function loadPortfwd(name) {
+        if (!name || name.length === 0) { portfwds = []; return; }
+        portfwdProc.command = ["ryovm", "portfwd", "list", name];
+        portfwdProc.running = true;
+    }
+    function addPortfwd(name, spec) {
+        portfwdProc2.command = ["ryovm", "portfwd", "add", name, spec];
+        portfwdProc2.running = true;
+    }
+    function removePortfwd(name, spec) {
+        portfwdProc2.command = ["ryovm", "portfwd", "remove", name, spec];
+        portfwdProc2.running = true;
+    }
     // rename repoints the conf, dir and relative paths, then reselects the new
     // name once the reloaded list carries it (via pendingSelect).
     function renameVm(name, next) {
@@ -262,6 +281,23 @@ Singleton {
         runProc.exec(["ryovm", "delete", name, "--disk-only"]);
     }
 
+    // ---- live control of a running VM (via the `ryovm mon` verb) -----------
+    // Pause, resume, reset, reballoon and pin a running machine live, and read
+    // its host-side cost and guest IP, through the sockets quickemu already
+    // opens. monStats is the last reading of the selected machine.
+    property var monStats: ({})
+    property bool monWatch: false        // set true only while the machine stage is on screen
+    readonly property bool monRunning: selected ? selected.running === true : false
+    onSelectedNameChanged: monStats = ({})
+    function monRefresh() {
+        if (!monRunning || selectedName.length === 0) { monStats = ({}); return; }
+        monProc.command = ["ryovm", "mon", selectedName, "stats"];
+        monProc.running = true;
+    }
+    function power(name, action) { monActProc.command = ["ryovm", "mon", name, "power", action]; monActProc.running = true; }
+    function balloon(name, mb) { monActProc.command = ["ryovm", "mon", name, "balloon", "" + Math.round(mb)]; monActProc.running = true; }
+    function pin(name, mode) { monActProc.command = ["ryovm", "mon", name, "pin", mode || "auto"]; monActProc.running = true; }
+
     // ---- catalogue ----------------------------------------------------------
     function loadCatalog(force) {
         if (osList.length > 0 && !force)
@@ -281,73 +317,81 @@ Singleton {
         cloudLoading = true;
         cloudProc.running = true;
     }
-    // instant reuses the create streaming pipeline (same download/config/done
-    // JSON), so the download bar and "created" hand-off work unchanged.
+    // instant reuses the same streaming pipeline as create (download/config/done
+    // JSON); it just queues as one more parallel build with a disposable flag.
     function instant(os, name, disposable, tools, pkgs) {
-        if (downloading) return;
-        downloading = true;
-        dlName = name && name.length > 0 ? name : os + "-instant";
-        dlPhase = "resolve"; dlProgress = 0; dlBps = 0; dlIndeterminate = true; dlLog = "";
-        status = "Building " + dlName;
-        var cmd = ["ryovm", "instant", os];
-        if (name && name.length > 0) cmd.push(name);
-        if (disposable === true) cmd.push("--disposable");
-        if (tools && tools.length > 0) cmd.push("--tools=" + tools);
-        if (pkgs && pkgs.length > 0) cmd.push("--pkgs=" + pkgs);
-        createProc.command = cmd;
-        createProc.running = true;
+        var nm = name && name.length > 0 ? name : os + "-instant";
+        if (_building(nm)) return;
+        if (dlJobs.count >= maxParallel) { info("Up to " + maxParallel + " downloads at once"); return; }
+        dlJobs.append({ key: nm + "#" + Date.now(), name: nm, cmdName: nm, kind: "instant",
+            os: os, release: "", edition: "", disposable: disposable === true,
+            tools: tools || "", pkgs: pkgs || "", phase: "resolve", progress: 0, bps: 0,
+            indet: true, log: "", cancel: false });
+        status = "Building " + nm;
     }
 
     // create downloads the image in-app with a live bar (the Go fetcher streams
-    // JSON), so progress shows in the window and Cancel actually stops it -- no
-    // detached terminal that can't report being closed.
+    // progress), so several can run at once and none needs a detached terminal.
     function createVm(os, release, edition) {
-        if (downloading)
-            return;
-        downloading = true;
-        dlName = os + "-" + release + (edition ? "-" + edition : "");
-        dlPhase = "resolve";
-        dlProgress = 0;
-        dlBps = 0;
-        dlIndeterminate = false;
-        dlLog = "";
+        var nm = os + "-" + release + (edition ? "-" + edition : "");
+        if (_building(nm)) return;
+        if (dlJobs.count >= maxParallel) { info("Up to " + maxParallel + " downloads at once"); return; }
+        dlJobs.append({ key: nm + "#" + Date.now(), name: nm, cmdName: nm, kind: "create",
+            os: os, release: release, edition: edition || "", disposable: false,
+            tools: "", pkgs: "", phase: "resolve", progress: 0, bps: 0,
+            indet: false, log: "", cancel: false });
         status = "Downloading " + os;
-        createProc.command = ["ryovm", "create", os, release].concat(edition ? [edition] : []);
-        createProc.running = true;
     }
-    // setting running=false sends SIGTERM, which the engine traps to kill the
-    // fetcher and wipe the half-image, then reports phase:cancelled.
-    function cancelCreate() { if (downloading) createProc.running = false; }
-    function _onCreateLine(line) {
+    function _building(name) {
+        for (var i = 0; i < dlJobs.count; i++) if (dlJobs.get(i).name === name) return true;
+        return false;
+    }
+    function _jobIdx(key) {
+        for (var i = 0; i < dlJobs.count; i++) if (dlJobs.get(i).key === key) return i;
+        return -1;
+    }
+    // cancelling a build flips its row's cancel flag; the row's process watches
+    // it and SIGTERMs, which the engine traps to wipe the half-image. cancelCreate
+    // stops every build (the quit guard's blunt lever).
+    function cancelJob(key) { var i = _jobIdx(key); if (i >= 0) dlJobs.setProperty(i, "cancel", true); }
+    function cancelCreate() { for (var i = 0; i < dlJobs.count; i++) dlJobs.setProperty(i, "cancel", true); }
+    function _onJobLine(key, line) {
+        var i = _jobIdx(key);
+        if (i < 0) return;
         var s = ("" + line).trim();
-        if (s.length === 0)
-            return;
+        if (s.length === 0) return;
         var o;
         try { o = JSON.parse(s); } catch (e) { return; }
-        if (o.event !== undefined) {              // a ryovm-fetch progress object
-            if (o.total > 0) { dlProgress = Math.max(0, Math.min(1, o.recv / o.total)); dlIndeterminate = false; }
-            if (o.bps !== undefined) dlBps = o.bps;
+        if (o.event !== undefined) {
+            if (o.total > 0) { dlJobs.setProperty(i, "progress", Math.max(0, Math.min(1, o.recv / o.total))); dlJobs.setProperty(i, "indet", false); }
+            if (o.bps !== undefined) dlJobs.setProperty(i, "bps", o.bps);
             return;
         }
         switch (o.phase) {
-        case "resolve": dlPhase = "resolve"; break;
-        case "config": dlPhase = "config"; dlProgress = 1; break;
+        case "resolve": dlJobs.setProperty(i, "phase", "resolve"); break;
+        case "config": dlJobs.setProperty(i, "phase", "config"); dlJobs.setProperty(i, "progress", 1); break;
         case "download":
-            dlPhase = "download";
-            if (o.name) dlName = o.name;
-            if (o.fallback === true) dlIndeterminate = true;
+            dlJobs.setProperty(i, "phase", "download");
+            if (o.name) dlJobs.setProperty(i, "name", o.name);
+            if (o.fallback === true) dlJobs.setProperty(i, "indet", true);
             break;
-        case "log": dlLog = o.line || ""; break;
+        case "log": dlJobs.setProperty(i, "log", o.line || ""); break;
         case "done":
-            status = (o.name || dlName) + " is ready";
-            if (o.name) {
-                selectedName = o.name;
-                root.created(o.name);
-            }
+            status = (o.name || dlJobs.get(i).name) + " is ready";
+            if (o.name) { selectedName = o.name; root.created(o.name); }
             break;
         case "cancelled": status = "Download cancelled"; break;
         case "error": root.raiseFault(o.message || "Download failed"); break;
         }
+    }
+    function _onJobExit(key, code, err, sawTerminal) {
+        if (code !== 0 && !sawTerminal)
+            root.raiseFault("create failed (exit " + code + ")" + (err.trim().length > 0 ? "\n" + err.trim() : ""));
+        Qt.callLater(function () {
+            var i = root._jobIdx(key);
+            if (i >= 0) dlJobs.remove(i);
+            root.refresh();
+        });
     }
     // a finished create announces itself so the app can bring the new machine
     // on screen instead of stranding the user in the catalogue.
@@ -358,6 +402,21 @@ Singleton {
         busy = true;
         status = "Creating " + name;
         runProc.exec(["ryovm", "import", name, iso, guest || "linux", os || guest || "linux"]);
+        // Windows has no in-box virtio driver: pull the shared driver CD now (a
+        // visible download) so it's cached before the machine first boots.
+        if (guest === "windows" || guest === "windows-server")
+            fetchDrivers();
+    }
+
+    // fetch the shared VirtIO driver CD into the image cache, shown as one more
+    // row in the build stack. Skipped when a fetch is already queued.
+    function fetchDrivers() {
+        if (dlJobs.count >= maxParallel) return;
+        for (var i = 0; i < dlJobs.count; i++)
+            if (dlJobs.get(i).kind === "virtio") return;
+        dlJobs.append({ key: "virtio#" + Date.now(), name: "VirtIO drivers", cmdName: "virtio", kind: "virtio",
+            os: "", release: "", edition: "", disposable: false, tools: "", pkgs: "",
+            phase: "download", progress: 0, bps: 0, indet: true, log: "", cancel: false });
     }
 
     function _group(rows) {
@@ -508,28 +567,42 @@ Singleton {
     // updating the live bar; on exit, drops the download UI and reloads. A
     // create that dies without ever emitting an error phase (a crashed engine)
     // still surfaces its stderr instead of the pane just vanishing.
-    Process {
-        id: createProc
-        property string errText: ""
-        property bool sawTerminalPhase: false
-        stdout: SplitParser {
-            splitMarker: "\n"
-            onRead: (line) => {
-                var s = ("" + line);
-                if (s.indexOf('"done"') >= 0 || s.indexOf('"error"') >= 0 || s.indexOf('"cancelled"') >= 0)
-                    createProc.sawTerminalPhase = true;
-                root._onCreateLine(line);
+    Instantiator {
+        model: dlJobs
+        delegate: Process {
+            id: jobProc
+            readonly property string jobKey: model.key
+            property bool cancelled: model.cancel
+            property bool sawTerminal: false
+            property string errText: ""
+            onCancelledChanged: if (cancelled) running = false
+            Component.onCompleted: {
+                var c;
+                if (model.kind === "instant") {
+                    c = ["ryovm", "instant", model.os];
+                    if (model.cmdName.length > 0 && model.cmdName !== model.os + "-instant") c.push(model.cmdName);
+                    if (model.disposable) c.push("--disposable");
+                    if (model.tools.length > 0) c.push("--tools=" + model.tools);
+                    if (model.pkgs.length > 0) c.push("--pkgs=" + model.pkgs);
+                } else if (model.kind === "virtio") {
+                    c = ["ryovm", "virtio"];
+                } else {
+                    c = ["ryovm", "create", model.os, model.release];
+                    if (model.edition.length > 0) c.push(model.edition);
+                }
+                jobProc.command = c;
+                jobProc.running = true;
             }
-        }
-        stderr: StdioCollector { onStreamFinished: createProc.errText = this.text }
-        onStarted: { errText = ""; sawTerminalPhase = false; }
-        onExited: (code) => {
-            root.downloading = false;
-            root.dlPhase = "";
-            if (code !== 0 && !createProc.sawTerminalPhase)
-                root.raiseFault("create failed (exit " + code + ")"
-                    + (createProc.errText.trim().length > 0 ? "\n" + createProc.errText.trim() : ""));
-            root.refresh();
+            stdout: SplitParser {
+                onRead: (line) => {
+                    var s = ("" + line);
+                    if (s.indexOf('"done"') >= 0 || s.indexOf('"error"') >= 0 || s.indexOf('"cancelled"') >= 0)
+                        jobProc.sawTerminal = true;
+                    root._onJobLine(jobProc.jobKey, line);
+                }
+            }
+            stderr: StdioCollector { onStreamFinished: jobProc.errText = this.text }
+            onExited: (code) => root._onJobExit(jobProc.jobKey, code, jobProc.errText, jobProc.sawTerminal)
         }
     }
     // shared lifecycle runner: any verb that mutates, then reloads the library.
@@ -563,12 +636,12 @@ Singleton {
         stdout: StdioCollector { onStreamFinished: runProc.outText = this.text }
         onExited: (code) => {
             if (code !== 0 && runProc.errText.trim().length > 0) {
-                root.raiseFault(runProc.errText.trim());
+                root.raiseFault(runProc.errText.trim(), runProc.command.length > 2 ? runProc.command[2] : "");
             } else if (code === 0) {
                 root.clearFault();
                 // the engine speaks in one-line receipts; show them.
                 if (runProc.outText.trim().length > 0)
-                    root.info(runProc.outText.trim().split("\n")[0]);
+                    root.info(runProc.outText.trim().split("\n")[0], runProc.command.length > 2 ? runProc.command[2] : "");
             }
             if (runProc.queue.length > 0) {
                 var next = runProc.queue.shift();
@@ -611,6 +684,28 @@ Singleton {
             if (code !== 0 && usbSetProc.errText.trim().length > 0)
                 root.raiseFault(usbSetProc.errText.trim());
             root.loadUsb(root.selectedName);
+        }
+    }
+    Process {
+        id: portfwdProc
+        property string last: ""
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (this.text === portfwdProc.last && root.portfwds.length > 0)
+                    return;
+                portfwdProc.last = this.text;
+                try { root.portfwds = JSON.parse(this.text); } catch (e) { root.portfwds = []; }
+            }
+        }
+    }
+    Process {
+        id: portfwdProc2
+        property string errText: ""
+        stderr: StdioCollector { onStreamFinished: portfwdProc2.errText = this.text }
+        onExited: (code) => {
+            if (code !== 0 && portfwdProc2.errText.trim().length > 0)
+                root.raiseFault(portfwdProc2.errText.trim());
+            root.loadPortfwd(root.selectedName);
         }
     }
     Process {
@@ -687,6 +782,25 @@ Singleton {
             }
         }
     }
+    Process {
+        id: monProc
+        stdout: StdioCollector {
+            onStreamFinished: { try { root.monStats = JSON.parse(this.text); } catch (e) { root.monStats = ({}); } }
+        }
+        onExited: (code) => { if (code !== 0) root.monStats = ({}); }
+    }
+    Process { id: monActProc; onExited: root.monRefresh() }
+    // a running machine's live readout, faster than the 5s library poll but only
+    // while a running VM is on the machine stage, so an idle or hidden yard costs
+    // nothing.
+    Timer {
+        interval: 2500
+        repeat: true
+        running: root.monRunning && root.monWatch
+        triggeredOnStart: true
+        onTriggered: root.monRefresh()
+    }
+
     // keep Launch/Stop in step while the window is open. caps ride along (five
     // `command -v` checks) so installing the engine lights the app up within 5s
     // instead of after a restart.

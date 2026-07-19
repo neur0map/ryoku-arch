@@ -3,14 +3,89 @@
 ## Unreleased
 
 ### Changed
+- `ryovm/`: **a new connection defaults its login to `root`, not you.** A blank
+  user on a remote host silently resolves to your local username, which almost
+  never matches a VPS and reads as a dead box on first probe. The add form now
+  seeds `root` (the common VPS default, still editable); editing a host keeps its
+  own user (`AddRemote.qml`).
+- `ryovm/`: **a running machine reads red, and the stage claims the freed corner.**
+  The RUN drum on a live machine now flips in the sun accent (the yard's one
+  earned colour, spent on state), the fleet filter is trimmed to its content, and
+  the machine stage rises into the space the departure board left behind, so the
+  detail plate starts at the toolbar line instead of below the list
+  (`VmCard.qml`, `FleetTile.qml`, `Machines.qml`).
+- `ryovm/`: **the page heads are quieter and the machine stage sits higher.** The
+  Fraunces page title dropped from display to headline size, and the Machines
+  head lost its split-flap `NN MACHINES / NN RUNNING` board, which competed with
+  the title and only echoed the fleet vitals already on the Dashboard. The
+  reclaimed height lifts the detail stage so a stopped machine's RESOURCES no
+  longer clip below the fold (`PageHead.qml`, `Machines.qml`).
 - **`ryowalls` and `ryovm` get distinct app icons.** New flat marks on Ryoku's
   dark tile in the brand orange (a framed mountain-and-sun for the wallpaper
   gallery, cascading screens for the virtual machines), replacing the old
   `logo.svg` and matching the Ryo Motion aperture as one cohesive set. They ship
   via `ryoku-desktop` as the scalable hicolor app icon, so `ryoku update`
   delivers them (`ryowalls/quickshell/logo.svg`, `ryovm/quickshell/logo.svg`).
+- `ryovm/`: **the dashboard's LAUNCH button is sized for a tile.** The fleet
+  tiles used the full control padding, so the primary verb dominated each card.
+  A `compact` variant on the shared `Btn` (tighter padding, smaller label) makes
+  LAUNCH read as a tile action, not the loudest thing on the plate
+  (`ui/Btn.qml`, `FleetTile.qml`).
 
 ### Fixed
+- `ryovm/`: **a saved password now works for health probes and connect, not just
+  in theory.** A keyless host with a saved password read as a dead box: the probe
+  ran under `BatchMode`, which blocks password auth, and the CONNECT button went
+  through the ssh kitten, which ignores `SSH_ASKPASS` and silently prompted. The
+  probe now drops `BatchMode` for a saved-password host and answers from the
+  keyring via askpass (one prompt, key first); connect routes a saved-password
+  host through plain ssh so askpass fills it, keeping the kitten for keyed hosts.
+  Verified live: `probe` returns a full reading and CONNECT lands on a root shell,
+  no prompt (`remote/ryossh.go`).
+- `ryovm/`: **the connection sheet fits any window and only closes on purpose.**
+  The add/edit form outgrew short windows: its head and the SAVE row fell off
+  the top and bottom with no way to scroll, and a click on any field inside
+  dismissed the whole thing. The fields now scroll between a pinned head and a
+  pinned CANCEL/SAVE row, the card is capped to the window height, and only an
+  outside click or Esc closes it. The settings panel gets the same click-safety
+  (`AddRemote.qml`, `SettingsPanel.qml`).
+- `ryovm/`: **the create sheet no longer overprints the channel switch.** The
+  machine stage's rise into the freed corner also lifted the NEW lane's create
+  sheet, so a running build's download row landed on top of the
+  CATALOG/INSTANT/ISO switch and its refresh. The rise now applies only in the
+  LIBRARY lane, where that corner is empty (`Machines.qml`).
+- `ryovm/`: **a catalogue build that can't fetch its media fails out loud, not
+  into a dead machine.** Microsoft IP-gates the Windows ISO, so `quickget`
+  finished with a config but no ISO; worse, its log stream ran through a pipe
+  that, under `set -e`, aborted the whole create before any result was reported,
+  leaving a machine that only errored at launch with a raw qemu line. The
+  streamed log can no longer sink the create, and a build whose ISO never landed
+  now clears itself and says why: for Windows, that Microsoft blocks the download
+  and to build from a browser-fetched ISO via Load ISO (drivers and TPM already
+  wired). Launching a machine with missing media says so plainly too (`bin/ryovm`).
+- `ryovm/`: **HEADLESS and SPICE launches honour the mode you pick.** quickemu
+  sources a machine's `.conf` after its own `--display` flag, so the conf's saved
+  display always won and a machine set to a GTK window would open one even when
+  launched headless. The engine now writes the chosen mode into the conf before
+  handing off, so `launch <vm> headless` truly runs windowless (`bin/ryovm`).
+- `ryovm/`: **cores and memory can go back to AUTO.** Pinning a VM's CPU or RAM
+  to a number left no way back to quickemu's auto-tuning short of editing the
+  conf; the steppers only counted up and down. Each now grows an `AUTO` button
+  once pinned, and the engine's `config` verb clears the key (rather than writing
+  a non-numeric value quickemu would choke on) so the guest auto-tunes again
+  (`VmDetail.qml`, `bin/ryovm`).
+- `ryowalls/`: **the source drawer is legible.** The provider catalogue rendered
+  as `paperLift` on a 55% scrim with only a hairline border and no elevation, so
+  it dissolved into the grid behind it. It now sits on a deeper scrim with the
+  shadow the design system reserves for things that genuinely float. Its opener,
+  a faint `N ▾` glyph lost beside the title, is now a bordered `SOURCE ▾` chip
+  that reads as a real control (`SourcePicker.qml`, `App.qml`).
+- **`Field` never took focus.** The shared field's `focus()` helper was shadowed
+  by `Item`'s built-in `focus` property, so `Field.focus()` threw a `TypeError`
+  everywhere it was called (the `ryowalls`/`ryovm` search shortcuts, the hub's
+  Ctrl+K, the source filter) and no field ever focused. Renamed to `grabFocus()`
+  and fixed every call site (`ui/Field.qml`, `apps/{ryowalls,ryovm}`,
+  `hub/quickshell/Hub.qml`).
 - `ryovm/`: **instant machines now hand over a shell only once the tools are
   actually there.** The connect flow waited for `sshd` to answer, but a cloud
   image installs its toolset in cloud-init's *final* stage, which runs 20s
@@ -26,8 +101,130 @@
   bakes `bash-completion` (and `bash` itself on Alpine, whose login shell is
   ash); a template spawn inherits it from its base and keeps its refresh seed
   empty so it still boots in seconds (`bin/ryovm`).
+- `ryovm/`: **the machine detail's hardware knobs show their labels.** In the
+  narrow detail column the CPU-cores, memory, and disk-size cells sized to a
+  third of the pane, which left the text column at zero width once the stepper
+  took its share, so each showed only a stray word (`How`, `RAM`) with no label
+  or value. The paired cells now take half the column and the disk cell its full
+  row, so `CPU CORES / AUTO`, `MEMORY / AUTO GB`, and `DISK SIZE` read as
+  intended (`VmDetail.qml`).
+- `ryovm/`: **a berth's health readout is no longer cramped.** The Remotes list
+  held two-thirds of the page, so the detail column fell to a third and elided
+  even a short host name (`localh…`) while the middle sat empty. The split now
+  matches Machines, giving the host name, the probe grid, and the tunnels room,
+  and the list tiles stop clipping their address (`RemotesPage.qml`).
 
 ### Added
+- `ryovm/`: **a remote's password, saved in the login keyring, never a file.**
+  The connection sheet gains a PASSWORD field; the secret goes to the Secret
+  Service (`secret-tool`), never the sidecar, the ssh_config, or a command line.
+  On connect ssh pulls it through an askpass helper that reads the keyring on
+  demand, so a password host opens without a prompt, and COPY KEY can use it to
+  deploy a key in one step (`remote/ryossh.go`, `AddRemote.qml`,
+  `Singletons/Remotes.qml`, `RemoteDetail.qml`, `ui/Field.qml`).
+- `ryovm/`: **kitty connections run through the ssh kitten.** A launched session
+  gets real terminfo, shell integration, and OSC-52 clipboard, so copy and paste
+  reach the remote instead of a bare, key-mangled `ssh` (`remote/ryossh.go`).
+- `ryovm/`: **Windows installs cleanly from an ISO, drivers and all.** Windows
+  ships no in-box VirtIO driver, so its installer saw no disk, and the driver CD
+  quickget pulls per-VM now comes back as an anti-bot HTML stub from
+  fedorapeople, so even that was broken. Building a machine from a Windows ISO
+  now enables a TPM (so 11 passes setup), attaches one shared, validated
+  virtio-win CD fetched from a mirror that serves the bytes (cached in
+  `.images/`, reused by every Windows machine), and leaves Secure Boot off since
+  Arch's edk2 has no MS-key firmware to verify the loader. A `virtio` verb keeps
+  the driver CD current and repairs a machine whose stub download failed; the
+  ISO sheet spells out what's handled and points at Microsoft for the media
+  (`bin/ryovm`, `Singletons/Vm.qml`, `IsoPanel.qml`).
+- `ryovm/`: **build several machines at once.** The create flow was single-file:
+  one download locked out the rest until it finished. Downloads are now a jobs
+  model, each build its own streamed process, shown as a compact stack (name,
+  live percent and rate, its own cancel) that coexists with the picker, so you
+  queue the next OS while the first pulls (up to four; the engine's per-name
+  staging keeps them from colliding). The footer counts the fleet in flight and
+  offers CANCEL ALL (`Singletons/Vm.qml`, `DownloadStack.qml`, `CreatePanel.qml`,
+  `CloudPanel.qml`, `Machines.qml`).
+- `ryovm/`: **the VM manager becomes Ryoport, a hub for machines you command.**
+  The single-lane quickemu app is reworked into a three-plate hub behind a
+  Hub-style nav rail (harbour masthead, kanji seals, foot barcode): a
+  **Dashboard** fleet overview (a dossier plate in the Profile register: a
+  bone-engraved lighthouse hero (a new `lighthouse` ryodecor, generated with fal
+  and baked bone-on-black through `ryoduo`), monumental Fraunces, live fleet vitals, and at-a-glance
+  machine and remote tiles you act on in one tap), the **Machines** yard (the
+  whole prior quickemu manager, moved intact), and a new **Remotes** fleet. The
+  app is rebranded Ryoport (港, the harbour: a network *port* too) in the
+  masthead and `.desktop`; the `qs -c ryovm` config id and the `ryovm` VM engine
+  keep their names, so nothing in packaging, the keybind, or user data has to
+  migrate. Ctrl+1/2/3 switch plates, Ctrl+N opens a new connection
+  (`App.qml`, `Rail.qml`, `PageHead.qml`, `Dashboard.qml`, `Machines.qml`,
+  `FleetTile.qml`, `shell.qml`, `ryovm.desktop`).
+- `ryovm/`: **Remotes: an SSH/VPS console with live health, the PuTTY a hub
+  should have.** A new `ryossh` Go engine reads `~/.ssh/config` (and a ryoport
+  include it owns, so hosts also work from a bare `ssh <alias>`, no lock-in),
+  reports per-host reachability + latency, runs a one-shot agentless health
+  probe (uptime, load, memory, disk, failed units, watched services) over a
+  reused ControlMaster and fed to a remote `sh -s` on stdin, so a fish/csh login
+  shell can't mangle the POSIX script, opens an interactive terminal in a tap,
+  and carries the
+  key toolkit (`ssh-add`/`keygen`/`copy-id`). The page lists hosts as ink-metered
+  tiles (state by word and a dot, never colour), a berth reads the full probe and
+  browses the host's files over SFTP in the file manager, and an add/edit sheet
+  writes the host back (fields validated so a stray space or newline can't corrupt
+  or inject into ssh_config), and a ProxyJump field reaches hosts behind a
+  bastion; a per-host watch list adds `systemctl is-active` checks to the probe,
+  and the berth reads each watched service's state. Timed probes pause when the page is
+  off screen (`remote/ryossh.go`, `Singletons/Remotes.qml`, `RemotesPage.qml`,
+  `RemoteTile.qml`, `RemoteDetail.qml`, `AddRemote.qml`).
+- `ryovm/`: **per-host app shortcuts with a live HTTP monitor.** A berth carries
+  a list of web services (Grafana, a Proxmox UI, anything with a URL); each is a
+  tile that opens in the browser and, on a timed `ryossh appcheck`, shows a live
+  up/warn/down dot and its round-trip in milliseconds. Glance's monitor and
+  bookmarks fused and scoped to one host: a GET (self-signed TLS tolerated, body
+  never read) reads up on a sub-400 answer, warn on a 4xx/5xx, down when nothing
+  answers. Entered in the connection sheet as `name=url` pairs
+  (`remote/ryossh.go` appcheck verbs, `Singletons/Remotes.qml`,
+  `RemoteDetail.qml`, `AddRemote.qml`).
+- `ryovm/`: **Proxmox clusters, controlled from the hub.** Give a host a Proxmox
+  API URL and token and its berth grows a GUESTS section: every VM and container
+  across the cluster from one `/cluster/resources` call (the token in the header,
+  self-signed certs accepted), each with a live state, memory, owning node, and a
+  one-tap start/stop that Proxmox routes to the right node. A starting or
+  stopping guest holds a pending state until the cluster confirms the new status,
+  so a slow graceful shutdown still reads as working, not as a dead button
+  (`remote/ryossh.go` pve verbs + `ryossh_test.go`, `Singletons/Remotes.qml`,
+  `RemoteDetail.qml`, `AddRemote.qml`).
+- `ryovm/`: **live control of a running machine.** A new `ryovm-mon` helper talks
+  to the HMP monitor and guest-agent sockets quickemu already opens (no QEMU flag
+  injection, no engine change), so the machine stage gains a POWER section:
+  pause/resume, a two-tap hard reset, a live memory balloon, vCPU pinning to host cores, and a
+  live readout of host CPU/RAM cost, the guest's real IP, and topology. Verified
+  live against a running Arch guest (`mon/ryovm-mon.go`, `bin/ryovm` `mon` verb,
+  `Singletons/Vm.qml`, `VmDetail.qml`). The machine's PORTS section forwards a
+  host port to a guest port (quickemu's native `port_forwards`), reachable at
+  `localhost` (`bin/ryovm` `portfwd` verb). Static disk `cache`/`aio` and virtiofs
+  shared-folder tuning are noted as a follow-up.
+- `ryovm/`: **harbour conveniences.** The Dashboard grows an `// ACTIVITY_` feed
+  merging machine and remote events newest-first; Remotes is keyboard-first
+  (arrows walk the tiles with a selected-plate highlight, Enter drops into a
+  session, `/` jumps to the filter) like a real terminal client. A berth also
+  raises **SSH tunnels**: local (-L), remote (-R) and dynamic SOCKS (-D)
+  forwards run as tracked `ssh -N` processes (strict spec validation, self-healing
+  state, no orphans) shown live with one-tap close, and **one-tap ops** that
+  open htop, a live journal, disk usage or listening ports on the host in a held
+  terminal. The Dashboard reads at a glance at any fleet size and stays live: each
+  section caps to a preview (active machines and ailing remotes first) with a
+  `+N more` plate to its full page, and the health probes run whenever the
+  dashboard or the fleet page is on screen (`Dashboard.qml`, `MoreTile.qml`,
+  `RemotesPage.qml`, `RemoteTile.qml`, `RemoteDetail.qml`, `remote/ryossh.go`,
+  `Singletons/{Vm,Remotes}.qml`).
+- `ryowalls/`: **the empty spaces wear the house decor.** The head's dead right
+  band is now a masthead specimen (a live bone-dithered `wave` under 壁紙 / 画廊,
+  a 壁を選ぶ tategaki, a barcode and 壁 seal, right-click to reframe); the empty
+  preview shows a 壁紙 / プレビュー earth plate instead of a bare Torii; and the
+  empty, loading, and error browse grid becomes a 無 statue `Placard`, and the
+  GRADE lane's no-pick column a 調色 statue `Placard`, each with the state woven
+  into its caption. The same `Decor`/`Placard` grammar the hub uses for its own
+  dead slots (`ryowalls/quickshell/{App,PreviewStack,WallGrid,GradeSheet}.qml`).
 - `ryovm/`: **SSH sessions no longer break on the terminal type.** Opening SSH
   from kitty (or foot, WezTerm, …) advertised a `TERM` a minimal guest has no
   terminfo for, `clear`, `less`, `vim` died with `'xterm-kitty': unknown

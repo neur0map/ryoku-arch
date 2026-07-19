@@ -132,6 +132,15 @@ Item {
                     current: pane.guest.toUpperCase()
                     onChose: (k) => pane.guest = k.toLowerCase()
                 }
+                Text {
+                    width: parent.width
+                    visible: pane.guest === "windows"
+                    wrapMode: Text.WordWrap
+                    text: "Windows enables a TPM and fetches the VirtIO driver CD, attached so setup sees the disk. Secure Boot stays off (Arch ships no MS-key firmware). Grab the ISO from microsoft.com/software-download."
+                    color: Tokens.inkMuted
+                    font.family: Tokens.ui
+                    font.pixelSize: 11
+                }
             }
         }
     }

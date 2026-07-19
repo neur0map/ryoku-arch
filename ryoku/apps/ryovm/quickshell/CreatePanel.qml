@@ -46,35 +46,34 @@ Item {
     Column {
         anchors.centerIn: parent
         spacing: Tokens.s3
-        visible: pane.os === null && !Vm.downloading
+        visible: pane.os === null
         Mark { anchors.horizontalCenter: parent.horizontalCenter; size: 96 }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
-            text: "Pick an OS to build a new machine"
+            text: Vm.dlCount > 0 ? "Pick another OS to build alongside" : "Pick an OS to build a new machine"
             color: Tokens.inkMuted
             font.family: Tokens.ui
             font.pixelSize: 12
         }
     }
 
-    // downloading: the shared progress spec, phase word in caps, Cancel.
-    Progress {
-        anchors.centerIn: parent
-        width: parent.width - 48
-        visible: Vm.downloading
-        heading: Vm.dlName
-        phase: ({ "resolve": "Finding the fastest mirror", "download": "Downloading", "config": "Preparing the machine" })[Vm.dlPhase] || "Working"
-        progress: Vm.dlProgress
-        bps: Vm.dlBps
-        indeterminate: Vm.dlIndeterminate
-        log: Vm.dlLog
-        onCancelled: Vm.cancelCreate()
+    // active downloads: a compact stack (see DownloadStack), so several builds
+    // run at once while the picker below stays ready for the next.
+    DownloadStack {
+        id: dlStack
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
     }
 
     Item {
-        anchors.fill: parent
-        visible: pane.os !== null && !Vm.downloading
+        anchors.top: dlStack.visible ? dlStack.bottom : parent.top
+        anchors.topMargin: dlStack.visible ? Tokens.s4 : 0
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        visible: pane.os !== null
 
         // the OS hero: brand mark and name on a flat framed plate.
         Rectangle {
@@ -186,7 +185,7 @@ Item {
                 primary: true
                 text: "CREATE MACHINE"
                 armed: pane.release.length > 0
-                onAct: Vm.createVm(pane.os.os, pane.release, pane.edition)
+                onAct: { Vm.createVm(pane.os.os, pane.release, pane.edition); Vm.selectedOs = null; }
             }
         }
     }

@@ -368,6 +368,158 @@ Item {
                     }
                 }
 
+                // ── POWER (running, live control) ────────────────────────────
+                Column {
+                    width: parent.width
+                    spacing: Tokens.s3
+                    visible: pane.running
+                    Head { text: "POWER" }
+                    Rectangle {
+                        width: parent.width
+                        color: "transparent"
+                        radius: Tokens.radius
+                        border.width: Tokens.border
+                        border.color: Tokens.line
+                        antialiasing: false
+                        implicitHeight: powerBody.implicitHeight + 2 * Tokens.s4
+
+                        readonly property var mon: Vm.monStats
+                        readonly property bool live: mon && mon.running === true
+                        property real balloonMB: 0
+                        property bool balloonDragging: false
+                        Connections {
+                            target: Vm
+                            function onMonStatsChanged() {
+                                if (!powerBody.parent.balloonDragging && Vm.monStats.balloonMB > 0)
+                                    powerBody.parent.balloonMB = Vm.monStats.balloonMB;
+                            }
+                        }
+
+                        Column {
+                            id: powerBody
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: Tokens.s4
+                            spacing: Tokens.s4
+
+                            // live readout: host cost, guest reach, topology.
+                            Row {
+                                width: parent.width
+                                Repeater {
+                                    model: [
+                                        { k: "HOST CPU", v: powerBody.parent.live ? Math.round(powerBody.parent.mon.hostCpuPct) + "%" : "—" },
+                                        { k: "HOST RAM", v: powerBody.parent.live && powerBody.parent.mon.hostRssMB > 0 ? Vm.human(powerBody.parent.mon.hostRssMB * 1024 * 1024) : "—" },
+                                        { k: "GUEST IP", v: powerBody.parent.live && powerBody.parent.mon.guestIp ? powerBody.parent.mon.guestIp : "—" },
+                                        { k: "VCPUS", v: powerBody.parent.live && powerBody.parent.mon.vcpus > 0 ? String(powerBody.parent.mon.vcpus) : "—" }
+                                    ]
+                                    Column {
+                                        required property var modelData
+                                        width: powerBody.width / 4
+                                        spacing: 3
+                                        Text {
+                                            text: modelData.k; color: Tokens.inkMuted
+                                            font.family: Tokens.mono; font.pixelSize: 9; font.letterSpacing: 1.3
+                                        }
+                                        Text {
+                                            width: parent.width - Tokens.s3
+                                            elide: Text.ElideRight
+                                            text: modelData.v; color: Tokens.ink
+                                            font.family: modelData.k === "GUEST IP" ? Tokens.mono : Tokens.ui
+                                            font.pixelSize: modelData.k === "GUEST IP" ? 14 : 20
+                                            font.weight: Font.Light
+                                        }
+                                    }
+                                }
+                            }
+
+                            // verbs: pause/resume toggles on the reported status.
+                            Row {
+                                spacing: Tokens.s3
+                                readonly property bool paused: powerBody.parent.live && powerBody.parent.mon.status === "paused"
+                                Btn {
+                                    text: parent.paused ? "RESUME" : "PAUSE"
+                                    onAct: Vm.power(pane.name, parent.paused ? "resume" : "pause")
+                                }
+                                ConfirmBtn {
+                                    idleText: "RESET"
+                                    confirmText: "HARD RESET?"
+                                    onConfirmed: Vm.power(pane.name, "reset")
+                                }
+                            }
+
+                            // live memory: reballoon the guest without a reboot.
+                            Column {
+                                width: parent.width
+                                spacing: Tokens.s2
+                                visible: powerBody.parent.live && powerBody.parent.balloonMB > 0
+                                Row {
+                                    width: parent.width
+                                    Text {
+                                        text: "LIVE MEMORY"; color: Tokens.inkMuted
+                                        font.family: Tokens.mono; font.pixelSize: 9; font.letterSpacing: 1.3
+                                    }
+                                    Item { width: parent.width - 220; height: 1 }
+                                    Text {
+                                        text: Vm.human(powerBody.parent.balloonMB * 1024 * 1024) + " / " + Vm.human(pane.ramNum * 1024 * 1024 * 1024)
+                                        color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: 11
+                                    }
+                                }
+                                Slid {
+                                    width: parent.width
+                                    from: 256
+                                    to: pane.ramNum * 1024
+                                    value: powerBody.parent.balloonMB
+                                    onModified: (v) => {
+                                        powerBody.parent.balloonDragging = true;
+                                        powerBody.parent.balloonMB = v;
+                                        balloonCommit.restart();
+                                    }
+                                }
+                                Timer {
+                                    id: balloonCommit
+                                    interval: 300
+                                    onTriggered: { Vm.balloon(pane.name, powerBody.parent.balloonMB); powerBody.parent.balloonDragging = false; }
+                                }
+                            }
+
+                            // pinning: nail each vCPU to a host core for steady latency.
+                            Row {
+                                width: parent.width
+                                spacing: Tokens.s3
+                                Sw {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    on: powerBody.parent.live && powerBody.parent.mon.pinned === true
+                                    onToggled: (v) => Vm.pin(pane.name, v ? "auto" : "off")
+                                }
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - 70
+                                    spacing: 1
+                                    Text {
+                                        text: "PIN VCPUS"; color: Tokens.ink
+                                        font.family: Tokens.ui; font.pixelSize: 11; font.weight: Font.Medium; font.letterSpacing: 1.4
+                                    }
+                                    Text {
+                                        width: parent.width
+                                        wrapMode: Text.WordWrap
+                                        text: "Nail each vCPU to its own host core: steadier latency for games and real-time work."
+                                        color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: 11
+                                    }
+                                }
+                            }
+
+                            Text {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                visible: !powerBody.parent.live
+                                text: "Waiting for the machine's live monitor. If it never arrives, the ryovm-mon helper may not be installed."
+                                color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: 11
+                            }
+                        }
+                    }
+                }
+
                 // ── IDENTITY ────────────────────────────────────────────────
                 Column {
                     width: parent.width
@@ -418,34 +570,58 @@ Item {
                             width: parent.width
                             spacing: Tokens.s2
                             Cell {
-                                width: pane.span(Spans.of("step"))
+                                width: pane.span(6)
                                 controlWidth: Spans.inlineWidth("step", 0, width)
                                 label: "CPU cores"
                                 value: pane.vm && pane.vm.cores !== "auto" ? String(pane.coresNum) : "AUTO"
                                 def: "AUTO"
                                 desc: "How many host cores the guest gets."
-                                Step {
+                                Column {
                                     anchors.right: parent.right
                                     anchors.verticalCenter: parent.verticalCenter
-                                    value: pane.coresNum
-                                    from: 1; to: 32
-                                    onModified: (v) => { if (!pane.running) Vm.setConfig(pane.name, "cpu_cores", Math.round(v)); }
+                                    spacing: Tokens.s1
+                                    Step {
+                                        anchors.right: parent.right
+                                        value: pane.coresNum
+                                        from: 1; to: 32
+                                        onModified: (v) => { if (!pane.running) Vm.setConfig(pane.name, "cpu_cores", Math.round(v)); }
+                                    }
+                                    Btn {
+                                        anchors.right: parent.right
+                                        visible: pane.vm && pane.vm.cores !== "auto"
+                                        compact: true
+                                        text: "AUTO"
+                                        armed: !pane.running
+                                        onAct: Vm.setConfig(pane.name, "cpu_cores", "auto")
+                                    }
                                 }
                             }
                             Cell {
-                                width: pane.span(Spans.of("step"))
+                                width: pane.span(6)
                                 controlWidth: Spans.inlineWidth("step", 0, width)
                                 label: "Memory"
                                 unit: "GB"
                                 value: pane.vm && pane.vm.ram !== "auto" ? String(pane.ramNum) : "AUTO"
                                 def: "AUTO"
                                 desc: "RAM handed to the guest."
-                                Step {
+                                Column {
                                     anchors.right: parent.right
                                     anchors.verticalCenter: parent.verticalCenter
-                                    value: pane.ramNum
-                                    from: 1; to: 128
-                                    onModified: (v) => { if (!pane.running) Vm.setConfig(pane.name, "ram", Math.round(v) + "G"); }
+                                    spacing: Tokens.s1
+                                    Step {
+                                        anchors.right: parent.right
+                                        value: pane.ramNum
+                                        from: 1; to: 128
+                                        onModified: (v) => { if (!pane.running) Vm.setConfig(pane.name, "ram", Math.round(v) + "G"); }
+                                    }
+                                    Btn {
+                                        anchors.right: parent.right
+                                        visible: pane.vm && pane.vm.ram !== "auto"
+                                        compact: true
+                                        text: "AUTO"
+                                        armed: !pane.running
+                                        onAct: Vm.setConfig(pane.name, "ram", "auto")
+                                    }
                                 }
                             }
                         }
@@ -472,7 +648,7 @@ Item {
                             width: parent.width
                             spacing: Tokens.s3
                             Item {
-                                width: Math.min(parent.width - growBtn.width - Tokens.s3, pane.span(Spans.of("step")))
+                                width: parent.width - growBtn.width - Tokens.s3
                                 height: Tokens.cellH
                                 opacity: pane.running ? 0.35 : 1
                                 Cell {
@@ -615,6 +791,95 @@ Item {
                                 font.family: Tokens.mono
                                 font.pixelSize: 11
                             }
+                        }
+                    }
+                }
+
+                // ── PORTS ────────────────────────────────────────────────────
+                Column {
+                    width: parent.width
+                    spacing: Tokens.s3
+                    Head { text: "PORTS" }
+                    Note {
+                        text: pane.running
+                            ? "Stop the machine to change forwards: they bind at the next launch."
+                            : "Forward a host port to a guest port, reachable at localhost."
+                    }
+                    Text {
+                        visible: Vm.portfwds.length === 0
+                        text: "No port forwards yet."
+                        color: Tokens.inkFaint
+                        font.family: Tokens.ui
+                        font.pixelSize: 12
+                    }
+                    Repeater {
+                        model: Vm.portfwds
+                        delegate: Rectangle {
+                            id: fwdRow
+                            required property var modelData
+                            width: parent ? parent.width : 0
+                            height: 36
+                            radius: Tokens.radius
+                            color: "transparent"
+                            border.width: Tokens.border
+                            border.color: Tokens.lineSoft
+                            antialiasing: false
+                            Text {
+                                anchors.left: parent.left
+                                anchors.leftMargin: Tokens.s3
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "localhost:" + fwdRow.modelData.host + "   \u2192   :" + fwdRow.modelData.guest
+                                color: Tokens.ink
+                                font.family: Tokens.mono
+                                font.pixelSize: 12
+                            }
+                            Text {
+                                anchors.right: parent.right
+                                anchors.rightMargin: Tokens.s3
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "\u2715"
+                                visible: !pane.running
+                                color: fwdKillH.hovered ? Tokens.ink : Tokens.inkFaint
+                                font.family: Tokens.mono; font.pixelSize: 12
+                                HoverHandler { id: fwdKillH; cursorShape: Qt.PointingHandCursor }
+                                TapHandler { onTapped: if (!Vm.busy) Vm.removePortfwd(pane.name, fwdRow.modelData.host + ":" + fwdRow.modelData.guest) }
+                            }
+                        }
+                    }
+                    Item {
+                        width: parent.width
+                        height: 30
+                        visible: !pane.running
+                        Btn {
+                            id: addFwd
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "ADD"
+                            primary: true
+                            armed: fwdHost.text.trim().length > 0 && fwdGuest.text.trim().length > 0
+                            onAct: {
+                                Vm.addPortfwd(pane.name, fwdHost.text.trim() + ":" + fwdGuest.text.trim());
+                                fwdHost.clear(); fwdGuest.clear();
+                            }
+                        }
+                        Field {
+                            id: fwdHost
+                            anchors.left: parent.left
+                            anchors.right: parent.horizontalCenter
+                            anchors.rightMargin: Tokens.s2
+                            anchors.verticalCenter: parent.verticalCenter
+                            tabular: true
+                            placeholder: "host port"
+                        }
+                        Field {
+                            id: fwdGuest
+                            anchors.left: parent.horizontalCenter
+                            anchors.right: addFwd.left
+                            anchors.rightMargin: Tokens.s3
+                            anchors.verticalCenter: parent.verticalCenter
+                            tabular: true
+                            placeholder: "guest port"
+                            onAccepted: if (addFwd.armed) addFwd.act()
                         }
                     }
                 }
@@ -918,7 +1183,7 @@ Item {
                         anchors.centerIn: parent
                         spacing: 26
                         Text {
-                            text: "RYOKU RYOVM · TYPE V-01"
+                            text: "RYOKU RYOPORT · TYPE V-01"
                             color: Tokens.inkMuted
                             font.family: Tokens.mono
                             font.pixelSize: 10
