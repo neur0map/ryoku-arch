@@ -8,6 +8,7 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Services.Mpris
 import "Singletons"
+import Ryoku.Ui
 
 // The standalone Ryoku command palette: one centered layer-shell overlay, resident
 // and hidden at rest, shown on `ryoku-shell launcher`. Toggled over a command
@@ -244,6 +245,9 @@ ShellRoot {
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
             anchors { top: true; bottom: true; left: true; right: true }
+
+            // Ryoku brand grain over the palette, matching the desktop.
+            Grain { anchors.fill: parent; z: 10000; opacity: 0.09 }
 
             // a brief grace so the close morph can play before the window drops.
             Timer { id: closing; interval: Motion.window; repeat: false }

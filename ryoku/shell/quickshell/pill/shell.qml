@@ -14,6 +14,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import Ryoku.Blobs
+import Ryoku.Ui
 import "Singletons"
 import "popouts"
 
@@ -652,6 +653,13 @@ ShellRoot {
                 visible: !overlay.monFullscreen
 
                 Keys.onEscapePressed: if (overlay.kbPopout) root.popout = "";
+
+                // Ryoku brand grain: one fine matte over the whole overlay -- the
+                // frame, the bar, every popout, and (through the transparent body)
+                // the apps behind it. Topmost so it reads on every surface; an
+                // Image carries no input, so clicks still reach the chrome and the
+                // windows below. Hidden on fullscreen with the rest of the scope.
+                Grain { anchors.fill: parent; z: 10000; opacity: 0.09 }
 
                 // frame and pill share one blob field, so the pill reads
                 // as the frame swelling open at top-centre, not a bar on top.

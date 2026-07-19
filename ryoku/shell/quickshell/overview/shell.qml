@@ -8,6 +8,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "Singletons"
+import Ryoku.Ui
 
 /**
  * Ryoku workspace overview: a full-screen expo the shell daemon keeps resident
@@ -93,6 +94,9 @@ ShellRoot {
             // Only the focused monitor grabs the keyboard, so keys never double-fire.
             WlrLayershell.keyboardFocus: (shown && isFocused) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             anchors { top: true; bottom: true; left: true; right: true }
+
+            // Ryoku brand grain over the expo, matching the desktop.
+            Grain { anchors.fill: parent; z: 10000; opacity: 0.09 }
 
             // Hold the layer mapped through the outro, then unmap once it settles.
             Timer { id: closing; interval: Motion.window; repeat: false }
