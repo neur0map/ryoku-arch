@@ -558,12 +558,55 @@ func (d *daemon) paintWorker() {
 			}
 		}
 		_ = exec.Command("wallust", append([]string{"run", src}, tuneArgs()...)...).Run()
+		// matugen fans the freshly extracted palette across the rest of the app
+		// suite (GTK, Qt, btop) so a wallpaper change retints them too.
+		renderApps()
 		_ = exec.Command("hyprctl", "reload", "config-only").Run()
 		select {
 		case d.ledsSig <- struct{}{}:
 		default:
 		}
 	}
+}
+
+// renderApps templates the external app configs (kitty, Hyprland, GTK, Qt, btop)
+// from the freshly extracted ~/.cache/wallust/colors.json through matugen, the
+// same engine the fixed schemes drive, so follow-the-wallpaper mode retints the
+// whole suite and not just the shell, kitty, and borders.
+func renderApps() {
+	cache := os.Getenv("XDG_CACHE_HOME")
+	if cache == "" {
+		cache = filepath.Join(os.Getenv("HOME"), ".cache")
+	}
+	b, err := os.ReadFile(filepath.Join(cache, "wallust", "colors.json"))
+	if err != nil {
+		return
+	}
+	var pal map[string]string
+	if json.Unmarshal(b, &pal) != nil {
+		return
+	}
+	cols := map[string]any{}
+	for k, v := range pal {
+		cols[k] = map[string]any{"default": map[string]any{"hex": v}}
+		cols[k+"_argb"] = map[string]any{"default": map[string]any{"hex": "#ff" + strings.TrimPrefix(v, "#")}}
+	}
+	cols["cursor"] = map[string]any{"default": map[string]any{"hex": pal["foreground"]}}
+	carrier, err := json.Marshal(map[string]any{"colors": cols})
+	if err != nil {
+		return
+	}
+	dir := filepath.Join(cache, "ryoku")
+	_ = os.MkdirAll(dir, 0o755)
+	cpath := filepath.Join(dir, "matugen-carrier.json")
+	if os.WriteFile(cpath, carrier, 0o644) != nil {
+		return
+	}
+	cfgBase := os.Getenv("XDG_CONFIG_HOME")
+	if cfgBase == "" {
+		cfgBase = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	_ = exec.Command("matugen", "-c", filepath.Join(cfgBase, "matugen", "config.toml"), "json", cpath).Run()
 }
 
 // themePaletteLocked: does a Ryoku Settings theme own the colours (so a wallpaper
