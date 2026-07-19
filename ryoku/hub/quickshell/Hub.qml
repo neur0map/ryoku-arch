@@ -6,6 +6,26 @@ import Quickshell.Io
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
 import "schema/ShellSettingsPage.js" as ShellSchema
+import "schema/AppearancePage.js" as AppearanceSchema
+import "schema/InputPage.js" as InputSchema
+import "schema/KeybindsPage.js" as KeybindsSchema
+import "schema/DisplaysPage.js" as DisplaysSchema
+import "schema/GpuPage.js" as GpuSchema
+import "schema/RecordingPage.js" as RecordingSchema
+import "schema/DictationPage.js" as DictationSchema
+import "schema/LauncherPage.js" as LauncherSchema
+import "schema/FastfetchPage.js" as FastfetchSchema
+import "schema/WidgetsPage.js" as WidgetsSchema
+import "schema/LockscreenPage.js" as LockscreenSchema
+import "schema/AnimationsPage.js" as AnimationsSchema
+import "schema/AddonsPage.js" as AddonsSchema
+import "schema/WindowRulesPage.js" as WindowRulesSchema
+import "schema/AppOverridesPage.js" as AppOverridesSchema
+import "schema/LayerRulesPage.js" as LayerRulesSchema
+import "schema/AutostartPage.js" as AutostartSchema
+import "schema/EnvironmentPage.js" as EnvironmentSchema
+import "schema/PerformancePage.js" as PerformanceSchema
+import "schema/UpdatesPage.js" as UpdatesSchema
 
 // Ryoku Settings, assembled. The rail owns navigation and global search; the
 // head, cells and tabs are drawn once by SchemaPage from a page's schema; the
@@ -70,6 +90,89 @@ Rectangle {
         "autostart": "自動", "environment": "環境", "performance": "性能", "rashin": "羅針",
         "updates": "更新", "credits": "謝辞"
     })
+
+    // ── global search ────────────────────────────────────────────────────
+    // The rail search matches page titles AND every option (label, hint, key)
+    // inside every schema page, so "grain" finds the Shell grain slider from
+    // anywhere. Ranking is fuzzy: exact word > substring > subsequence.
+    readonly property var searchIndex: {
+        var srcs = {
+            "shell": ShellSchema.rows, "appearance": AppearanceSchema.rows,
+            "input": InputSchema.rows, "keybinds": KeybindsSchema.rows,
+            "displays": DisplaysSchema.rows, "gpu": GpuSchema.rows,
+            "recording": RecordingSchema.rows, "dictation": DictationSchema.rows,
+            "launcher": LauncherSchema.rows, "fastfetch": FastfetchSchema.rows,
+            "widgets": WidgetsSchema.rows, "lockscreen": LockscreenSchema.rows,
+            "animations": AnimationsSchema.rows, "addons": AddonsSchema.rows,
+            "windowrules": WindowRulesSchema.rows, "appoverrides": AppOverridesSchema.rows,
+            "layerrules": LayerRulesSchema.rows, "autostart": AutostartSchema.rows,
+            "environment": EnvironmentSchema.rows, "performance": PerformanceSchema.rows,
+            "updates": UpdatesSchema.rows
+        };
+        var nameOf = {}, out = [];
+        for (var gi = 0; gi < groups.length; gi++)
+            for (var ii = 0; ii < groups[gi].items.length; ii++) {
+                var it = groups[gi].items[ii];
+                nameOf[it.key] = it.name;
+                out.push({ section: it.key, sectionName: it.name, group: "", label: it.name, desc: "", key: "", isPage: true });
+            }
+        for (var k in srcs) {
+            var rows = srcs[k] || [];
+            for (var ri = 0; ri < rows.length; ri++) {
+                var r = rows[ri];
+                if (!r || !r.label) continue;
+                out.push({ section: k, sectionName: nameOf[k] || k, group: r.group || "", label: r.label, desc: r.desc || "", key: r.key || "", isPage: false });
+            }
+        }
+        return out;
+    }
+    function wordScore(w, text) {
+        var tws = text.split(/[^a-z0-9]+/);
+        var best = 0;
+        for (var i = 0; i < tws.length; i++) {
+            var tw = tws[i];
+            if (tw === "") continue;
+            var idx = tw.indexOf(w);
+            if (idx === 0) { if (best < 1200) best = 1200; continue; }
+            if (idx > 0) { var ss = 1000 - Math.min(idx, 50); if (ss > best) best = ss; continue; }
+            if (w.length > tw.length) continue;
+            var ti = 0, sc = 0, streak = 0, ok = true;
+            for (var ci = 0; ci < w.length; ci++) {
+                var f = tw.indexOf(w.charAt(ci), ti);
+                if (f < 0) { ok = false; break; }
+                streak = (f === ti) ? streak + 1 : 0;
+                sc += 2 + streak * 3;
+                ti = f + 1;
+            }
+            if (ok && sc > best) best = sc;
+        }
+        return best;
+    }
+    function searchScore(q, text) {
+        var words = q.split(/\s+/), total = 0;
+        for (var wi = 0; wi < words.length; wi++) {
+            if (!words[wi]) continue;
+            var s = wordScore(words[wi], text);
+            if (s <= 0) return 0;
+            total += s;
+        }
+        return total;
+    }
+    readonly property var searchResults: {
+        var q = query.toLowerCase().trim();
+        if (q === "") return [];
+        var scored = [];
+        for (var i = 0; i < searchIndex.length; i++) {
+            var e = searchIndex[i];
+            var hay = (e.label + " " + e.desc + " " + e.sectionName + " " + e.group).toLowerCase();
+            var s = searchScore(q, hay);
+            if (s > 0) scored.push({ e: e, s: s + (e.isPage ? 300 : 0) });
+        }
+        scored.sort(function (a, b) { return b.s - a.s; });
+        var out = [];
+        for (var j = 0; j < Math.min(scored.length, 60); j++) out.push(scored[j].e);
+        return out;
+    }
 
     // Layout class per section, kept as sets so the chrome is derived from the
     // section and never from the mid-load item: that is what stops the rail,
@@ -558,7 +661,7 @@ Rectangle {
                 spacing: 0
 
                 Repeater {
-                    model: hub.groups
+                    model: hub.query === "" ? hub.groups : []
                     Column {
                         id: grp
                         required property var modelData
@@ -658,6 +761,59 @@ Rectangle {
                                 }
                                 HoverHandler { id: nh; cursorShape: Qt.PointingHandCursor }
                                 TapHandler { onTapped: { hub.query = ""; searchField.clear(); hub.section = navItem.modelData.key } }
+                            }
+                        }
+                    }
+                }
+                // search results: when searching, the rail becomes a fuzzy-ranked
+                // list of hits across every page's title and options. Clicking an
+                // option jumps to its page and filters to it; a page hit just goes.
+                Repeater {
+                    model: hub.query !== "" ? hub.searchResults : []
+                    Item {
+                        id: resItem
+                        required property var modelData
+                        width: nav.width
+                        height: 46
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.topMargin: 1; anchors.bottomMargin: 1
+                            radius: Tokens.radius
+                            color: rh.hovered ? Tokens.tint10 : "transparent"
+                            Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                        }
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            x: Tokens.s3
+                            width: parent.width - Tokens.s3 * 2 - 24
+                            spacing: 1
+                            Text {
+                                text: resItem.modelData.label
+                                color: Tokens.inkDim
+                                font.family: Tokens.ui; font.pixelSize: 13
+                                width: parent.width; elide: Text.ElideRight
+                            }
+                            Text {
+                                text: resItem.modelData.isPage
+                                    ? "Page"
+                                    : (resItem.modelData.sectionName + (resItem.modelData.group ? "  ›  " + resItem.modelData.group : ""))
+                                color: Tokens.inkFaint
+                                font.family: Tokens.mono; font.pixelSize: 9
+                                width: parent.width; elide: Text.ElideRight
+                            }
+                        }
+                        Text {
+                            anchors { right: parent.right; rightMargin: Tokens.s3; verticalCenter: parent.verticalCenter }
+                            text: hub.jpName[resItem.modelData.section] || ""
+                            color: Tokens.inkFaint
+                            font.family: Tokens.jp; font.pixelSize: 12
+                        }
+                        HoverHandler { id: rh; cursorShape: Qt.PointingHandCursor }
+                        TapHandler {
+                            onTapped: {
+                                hub.section = resItem.modelData.section;
+                                if (resItem.modelData.isPage) { hub.query = ""; searchField.clear(); }
+                                else { hub.query = resItem.modelData.label; searchField.text = resItem.modelData.label; }
                             }
                         }
                     }
