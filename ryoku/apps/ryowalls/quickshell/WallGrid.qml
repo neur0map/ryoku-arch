@@ -48,27 +48,24 @@ Item {
         }
     }
 
-    // empty / loading / error state: the mark at 96, then one sentence.
-    Column {
-        anchors.centerIn: parent
-        spacing: Tokens.s4
+    // empty / loading / error state: a vertical specimen poster, the state woven
+    // into its title and caption, so a dead grid still has a face (like the hub's
+    // dead-slot placards) instead of a lone mark.
+    Placard {
+        anchors.fill: parent
         visible: Wallhaven.results.length === 0
-        Torii {
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: 96; height: 96
-            ink: Tokens.inkFaint
-            // the loading mark holds solid; no spin, per reduced-motion discipline.
-            opacity: Wallhaven.searching ? 0.5 : 1
-            Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
-        }
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: Wallhaven.searching ? "Loading wallpapers"
-                : (Wallhaven.error.length > 0 ? Wallhaven.error
-                : (Wallhaven.source === "live" ? "No live wallpapers yet" : "No wallpapers"))
-            color: Tokens.inkMuted
-            font.family: Tokens.ui
-            font.pixelSize: 12
-        }
+        opacity: Wallhaven.searching ? 0.75 : 1
+        Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
+        code: "WALL-02"
+        title: Wallhaven.searching ? "検索" : (Wallhaven.error.length > 0 ? "圏外" : "無")
+        sub: Wallhaven.searching ? "SEARCHING" : (Wallhaven.error.length > 0 ? "NO SIGNAL" : "NO WALLPAPERS")
+        quote: Wallhaven.searching ? "Fetching the latest wallpapers."
+            : (Wallhaven.error.length > 0 ? Wallhaven.error
+            : (Wallhaven.source === "live" ? "No live wallpapers yet — add an MP4 to begin."
+            : "Nothing here yet. Search above, or switch the source."))
+        tate: "壁を探す"
+        seal: "壁"
+        art: "aurelius.png"
+        seed: 3
     }
 }

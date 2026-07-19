@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
 import "Singletons"
@@ -23,7 +24,7 @@ Item {
     Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
 
     onOpenChanged: {
-        if (open) { picker.filter = ""; filterField.clear(); filterField.focus(); }
+        if (open) { picker.filter = ""; filterField.clear(); filterField.grabFocus(); }
     }
 
     function allRows() {
@@ -51,14 +52,29 @@ Item {
         picker.dismissed();
     }
 
-    // scrim: the one translucency exception, black 55%.
+    // scrim: the one translucency exception. Kept deep so the floating card
+    // separates cleanly from the busy grid behind it instead of dissolving in.
     Rectangle {
         anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.55)
+        color: Qt.rgba(0, 0, 0, 0.78)
         TapHandler { onTapped: picker.dismissed() }
     }
 
+    // a drawer genuinely floats over the page, so it earns a shadow (the one
+    // depth the ink-on-paper rule allows), lifting the card clear of the grid.
+    MultiEffect {
+        source: card
+        anchors.fill: card
+        shadowEnabled: true
+        shadowColor: Qt.rgba(0, 0, 0, 0.7)
+        shadowBlur: 1.0
+        shadowVerticalOffset: 10
+        blurMax: 48
+        autoPaddingEnabled: true
+    }
+
     Rectangle {
+        id: card
         width: 360
         height: 440
         anchors.horizontalCenter: parent.horizontalCenter

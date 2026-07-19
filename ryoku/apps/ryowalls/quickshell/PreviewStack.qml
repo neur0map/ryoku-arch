@@ -46,6 +46,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: strip.top
         anchors.bottomMargin: Tokens.s3
+        visible: Wallhaven.selected !== null || stack.busyNow
         label: stack.busyNow ? stack.opWord() : "LIVE PREVIEW"
         tag: stack.resTag
 
@@ -53,23 +54,26 @@ Item {
             anchors.fill: parent
             visible: Wallhaven.selected !== null
         }
-        Column {
-            anchors.centerIn: parent
-            spacing: Tokens.s3
-            visible: Wallhaven.selected === null
-            Torii {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 96; height: 96
-                ink: Tokens.inkFaint
-            }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "Pick a wallpaper to preview your rice"
-                color: Tokens.inkMuted
-                font.family: Tokens.ui
-                font.pixelSize: 12
-            }
-        }
+    }
+
+    // idle state: with no pick, a decor poster gives the app a face on open
+    // rather than a lone mark. Right-click to reframe / swap the specimen, the
+    // same as the hub's dead-slot posters; the framing persists per box.
+    Decor {
+        anchors.top: prev.top
+        anchors.left: prev.left
+        anchors.right: prev.right
+        anchors.bottom: prev.bottom
+        visible: Wallhaven.selected === null && !stack.busyNow
+        boxId: "ryowalls.preview"
+        code: "WALL-01"
+        title: "壁紙"
+        sub: "プレビュー"
+        tate: "壁を選べ"
+        caption: "Pick a wallpaper — the live rice preview lands right here."
+        seal: "壁"
+        images: ["earth.gif", "disc.gif", "wave.gif", "cradle.gif", "spring.gif", "sphere.gif", "torus.gif", "moon.png"]
+        seed: 0
     }
 
     // 2. the candidate strip: the 16 extracted colours, contiguous, 22 tall.

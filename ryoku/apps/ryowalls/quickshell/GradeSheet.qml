@@ -64,16 +64,6 @@ Item {
             width: flick.width
             spacing: Tokens.s5
 
-            Text {
-                width: parent.width
-                visible: !Wallhaven.selected
-                wrapMode: Text.WordWrap
-                text: "Pick a wallpaper to grade its look."
-                color: Tokens.inkMuted
-                font.family: Tokens.ui
-                font.pixelSize: 12
-            }
-
             // ── LOOK: one tap grade ───────────────────────────────────────────
             SheetSection {
                 id: lookSec
@@ -388,5 +378,21 @@ Item {
 
             Item { width: 1; height: Tokens.s2 }
         }
+    }
+
+    // no-pick state: the whole left column is dead until you choose a wallpaper,
+    // so it gets a specimen poster (like the browse grid) rather than one line of
+    // grey text. The instruction lives in the caption.
+    Placard {
+        anchors.fill: parent
+        visible: !Wallhaven.selected
+        code: "GRADE-00"
+        title: "調色"
+        sub: "NO PICK"
+        quote: "Pick a wallpaper to grade — look, colour, vignette, and Enhance."
+        tate: "色を練る"
+        seal: "調"
+        art: "laocoon.png"
+        seed: 5
     }
 }

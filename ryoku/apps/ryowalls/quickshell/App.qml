@@ -149,8 +149,8 @@ Rectangle {
     Keys.onPressed: (e) => {
         if (e.key === Qt.Key_Escape) { app.peel(); e.accepted = true; return; }
         if (e.key === Qt.Key_Q && (e.modifiers & Qt.ControlModifier)) { app.tryQuit(); e.accepted = true; return; }
-        if (e.key === Qt.Key_K && (e.modifiers & Qt.ControlModifier)) { search.focus(); e.accepted = true; return; }
-        if (e.key === Qt.Key_Slash) { search.focus(); e.accepted = true; return; }
+        if (e.key === Qt.Key_K && (e.modifiers & Qt.ControlModifier)) { search.grabFocus(); e.accepted = true; return; }
+        if (e.key === Qt.Key_Slash) { search.grabFocus(); e.accepted = true; return; }
         if (app.lane === "browse") {
             if (e.key === Qt.Key_Left) { app.walk(-1); e.accepted = true; }
             else if (e.key === Qt.Key_Right) { app.walk(1); e.accepted = true; }
@@ -172,13 +172,12 @@ Rectangle {
         anchors.leftMargin: Tokens.s6
         anchors.rightMargin: Tokens.s6
         anchors.topMargin: Tokens.s5
-        height: headCol.implicitHeight
+        height: 132
 
         Column {
             id: headCol
             anchors.left: parent.left
-            anchors.right: winBtns.left
-            anchors.rightMargin: Tokens.s4
+            anchors.verticalCenter: parent.verticalCenter
             spacing: Tokens.s2
 
             // eyebrow: 16x1 rule, 力, app mark in micro caps.
@@ -195,9 +194,49 @@ Rectangle {
                     font.letterSpacing: Tokens.trackMark
                     anchors.verticalCenter: parent.verticalCenter
                 }
+                // the source switcher, up in the identity band: a bordered chip,
+                // so it reads as a real control, not a glyph lost beside the title.
+                Item { width: Tokens.s4; height: 1 }
+                Rectangle {
+                    id: srcChip
+                    anchors.verticalCenter: parent.verticalCenter
+                    implicitWidth: srcInner.width + Tokens.s3 * 2
+                    implicitHeight: srcInner.implicitHeight + Tokens.s2
+                    radius: Tokens.radius
+                    color: openHover.hovered ? Tokens.tint10 : Tokens.tint5
+                    border.width: Tokens.border
+                    border.color: openHover.hovered ? Tokens.ink : Tokens.lineStrong
+                    Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                    Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
+                    Row {
+                        id: srcInner
+                        anchors.centerIn: parent
+                        spacing: Tokens.s2
+                        Text {
+                            text: "SOURCE"
+                            color: openHover.hovered ? Tokens.ink : Tokens.inkDim
+                            font.family: Tokens.ui
+                            font.pixelSize: 9
+                            font.weight: Font.Medium
+                            font.letterSpacing: Tokens.trackLabel
+                            anchors.verticalCenter: parent.verticalCenter
+                            Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                        }
+                        Text {
+                            text: app.sourceCount + " ▾"
+                            color: openHover.hovered ? Tokens.ink : Tokens.inkMuted
+                            font.family: Tokens.mono
+                            font.pixelSize: 11
+                            anchors.verticalCenter: parent.verticalCenter
+                            Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                        }
+                    }
+                    HoverHandler { id: openHover; cursorShape: Qt.PointingHandCursor }
+                    TapHandler { onTapped: app.sourceOpen = true }
+                }
             }
 
-            // the serif names the source; the count + caret opens the picker.
+            // the page title — the current source, set in the serif.
             Row {
                 spacing: Tokens.s3
                 Text {
@@ -208,16 +247,6 @@ Rectangle {
                     font.pixelSize: Tokens.fTitle
                     anchors.verticalCenter: parent.verticalCenter
                 }
-                Text {
-                    text: app.sourceCount + " ▾"
-                    color: openHover.hovered ? Tokens.ink : Tokens.inkFaint
-                    font.family: Tokens.mono
-                    font.pixelSize: 12
-                    anchors.verticalCenter: parent.verticalCenter
-                    Behavior on color { ColorAnimation { duration: Tokens.snap } }
-                }
-                HoverHandler { id: openHover; cursorShape: Qt.PointingHandCursor }
-                TapHandler { onTapped: app.sourceOpen = true }
             }
 
             Text {
@@ -226,6 +255,28 @@ Rectangle {
                 font.family: Tokens.ui
                 font.pixelSize: 12
             }
+        }
+
+        // the head's dead right band: a decorative masthead strip in the hub's
+        // noir register (a living specimen + editorial type), giving the top of
+        // the window a face. Pure decoration; right-click to reframe / swap.
+        Decor {
+            id: masthead
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.left: headCol.right
+            anchors.leftMargin: Tokens.s7
+            anchors.right: winBtns.left
+            anchors.rightMargin: Tokens.s5
+            boxId: "ryowalls.masthead"
+            code: "RYOKU · WALLS"
+            title: "壁紙"
+            sub: "画廊"
+            tate: "壁を選ぶ"
+            caption: "Every wall this machine can wear — preview the whole rice, then commit."
+            seal: "壁"
+            images: ["wave.gif", "compass.gif", "disc.gif", "torus.gif", "render.gif", "sphere.gif", "cube.gif"]
+            seed: 0
         }
 
         Row {
