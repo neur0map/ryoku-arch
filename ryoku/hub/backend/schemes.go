@@ -187,3 +187,43 @@ func mustJSON(v any) []byte {
 	}
 	return b
 }
+
+// applyRyokuTheme resets the desktop to the Ryoku signature in one move: the
+// stele bar, square corners everywhere, Space Grotesk type across the shell and
+// apps, and the grainy-mono palette. Wired to the "Ryoku theme" button on the
+// Appearance and Rices pages so a drifted look returns in one click.
+func applyRyokuTheme() error {
+	// the signature look in shell.json, merged so the user's sizing, weather,
+	// sidebar panes and other choices survive.
+	mergeShellJSON(map[string]any{
+		"barStyle":          "stele",
+		"roundness":         0,
+		"islandRadius":      0,
+		"frameRadius":       0,
+		"osdRadius":         0,
+		"sidebarCornerSize": 0,
+		"fontFamily":        "Space Grotesk",
+	})
+	// square window corners: pin the appearance override the daemon reads.
+	o := loadOverrides()
+	o.Appearance.Rounding = 0
+	_ = saveOverrides(o)
+	// GTK type now; the Hyprland autostart pins it on the next login.
+	_ = exec.Command("gsettings", "set", "org.gnome.desktop.interface", "font-name", "Space Grotesk 11").Run()
+	// grainy-mono palette + regen the border lua, reload hypr and kitty.
+	return applyScheme("mono")
+}
+
+// mergeShellJSON overlays keys onto ~/.config/ryoku/shell.json, preserving every
+// key the shell already holds. The shell hot-reloads on write.
+func mergeShellJSON(keys map[string]any) {
+	p := filepath.Join(configHome(), "ryoku", "shell.json")
+	m := map[string]any{}
+	if b, err := os.ReadFile(p); err == nil {
+		_ = json.Unmarshal(b, &m)
+	}
+	for k, v := range keys {
+		m[k] = v
+	}
+	_ = atomicWrite(p, mustJSON(m), 0o644)
+}

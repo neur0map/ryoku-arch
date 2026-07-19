@@ -125,7 +125,7 @@ Singleton {
 
         JsonAdapter {
             id: adapter
-            property real frameRadius: 9
+            property real frameRadius: 0
             property real frameBorder: 59
             property bool frameEnabled: true
             property real frameSmoothing: 8
@@ -133,11 +133,11 @@ Singleton {
             property real shadowStrength: 0.63
             property real shadowSize: 12
             property color surfaceColor: "#0f1115"
-            property real osdRadius: 28
+            property real osdRadius: 0
             property real osdOpacity: 1
             property bool barEnabled: true
             property string barPosition: "top"
-            property string barStyle: "noctalia"
+            property string barStyle: "stele"
             property real barHeight: 30
             property bool barShowTitle: true
             property bool barShowMedia: true
@@ -147,8 +147,8 @@ Singleton {
             property real islandAlong: -1
             property bool islandHidden: false
             property var islandModules: ["workspaces", "clock", "date", "media"]
-            property real islandRadius: 17
-            property string fontFamily: "JetBrainsMono Nerd Font"
+            property real islandRadius: 0
+            property string fontFamily: "Space Grotesk"
             property real fontScale: 1.3
             property bool sidebarLeftEnabled: true
             property bool sidebarRightEnabled: true
@@ -156,8 +156,8 @@ Singleton {
             property var sidebarRightPanes: ["notifications", "calendar", "media", "weather", "recording"]
             property bool sidebarClickless: true
             property real sidebarWidth: 340
-            property real sidebarCornerSize: 34
-            property real roundness: 10
+            property real sidebarCornerSize: 0
+            property real roundness: 0
             property string weatherLocation: ""
             property string weatherUnit: "auto"
         }

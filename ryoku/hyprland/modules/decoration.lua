@@ -39,7 +39,7 @@ hl.config({
     ["col.inactive_border"] = inactive,
   },
   decoration = {
-    rounding         = 2,
+    rounding         = 0,
     rounding_power   = 4,
     active_opacity   = 1,
     inactive_opacity = 0.94,

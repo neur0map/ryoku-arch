@@ -319,7 +319,7 @@ type Overrides struct {
 func defaultOverrides() Overrides {
 	return Overrides{
 		Appearance: Appearance{
-			GapsIn: 12, GapsOut: 18, BorderSize: 2, Rounding: 2, RoundingPower: 4,
+			GapsIn: 12, GapsOut: 18, BorderSize: 2, Rounding: 0, RoundingPower: 4,
 			ActiveOpacity: 1, InactiveOpacity: 0.94,
 			DimInactive: false, DimStrength: 0.5,
 			BlurEnabled: true, BlurSize: 4, BlurPasses: 1,
@@ -584,6 +584,8 @@ func runHypr(args []string) error {
 			return printJSON(map[string]string{"scheme": currentScheme()})
 		}
 		return applyScheme(args[1])
+	case "ryoku-theme":
+		return applyRyokuTheme()
 	default:
 		return fmt.Errorf("unknown hypr subcommand: %s", args[0])
 	}

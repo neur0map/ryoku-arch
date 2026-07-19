@@ -76,7 +76,7 @@ func TestGenLuaEmitsNewLeaves(t *testing.T) {
 func TestLoadOverridesOldStoreKeepsNewDefaults(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
-	old := `{"appearance":{"gapsIn":12,"gapsOut":18,"borderSize":2,"rounding":2,` +
+	old := `{"appearance":{"gapsIn":12,"gapsOut":18,"borderSize":2,"rounding":0,` +
 		`"activeOpacity":1,"inactiveOpacity":0.94,"blurEnabled":true,"blurSize":4,` +
 		`"blurPasses":1,"shadowEnabled":true,"shadowRange":45,"animations":true,` +
 		`"layout":"dwindle","activeBorder":"#e0563b","inactiveBorder":"#313a4d"},` +
@@ -245,7 +245,7 @@ func TestParseOverridesPartialKeepsDefaults(t *testing.T) {
 func TestLiveLuaIsFullAndParses(t *testing.T) {
 	lua := liveLua(defaultOverrides())
 	for _, want := range []string{
-		"gaps_in = 12", "rounding = 2", "rounding_power = 4.0", "active_opacity = 1.0",
+		"gaps_in = 12", "rounding = 0", "rounding_power = 4.0", "active_opacity = 1.0",
 		"dim_inactive = false", "vibrancy = 0.17", "render_power = 4",
 		"glow = { enabled = false", "resize_on_border = true", "snap = { enabled = false }",
 		"kb_layout = \"us\"", "follow_mouse = 2", "left_handed = false",
