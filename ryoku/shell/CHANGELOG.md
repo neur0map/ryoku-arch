@@ -3,6 +3,31 @@
 ## Unreleased
 
 ### Fixed
+- **The App Launcher's backdrop blur no longer flashes a frame of frost on open
+  at the lowest setting.** With blur set to 0, opening the palette still flashed
+  frost for ~one frame: the launcher's layer is frosted by a compositor layer
+  rule the instant it maps (using the global blur), and the launcher only forced
+  that off a beat later (an async probe, then an eval), so the desktop behind the
+  palette blurred briefly before clearing. At 0 the launcher now takes a
+  `launcher-noblur` layer namespace the blur rule does not match, so its backdrop
+  is never frosted (nothing to flash) and the global blur is left untouched (the
+  workspace overview still needs it); blur > 0 keeps the `launcher` namespace and
+  the forced strength. The blur layer rule is scoped to the exact `launcher`
+  namespace and a separate no-anim rule covers both. Also reset the global blur
+  that the old force/restore had drifted to disabled, which had quietly dropped
+  the overview's frost. Verified live by burst-capturing the open at blur 0 with
+  global blur forced on: the first frame is sharp, where it was fully blurred
+  before (`quickshell/launcher/shell.qml`, `hyprland/modules/decoration.lua`).
+- **The App Launcher's backdrop blur no longer flickers on close.** The
+  write-ordering fix stopped the blur stranding on, but the restore still fired
+  the instant the palette began closing, while its window stays mapped and fading
+  over the desktop for the whole close morph (Motion.window): the global blur was
+  torn down at the first frame of the close, snapping the wallpaper sharp behind
+  the still-visible palette. The restore now waits out the morph, so the frost
+  holds for the palette's entire exit and drops only once it has unmapped; a
+  re-open cancels the pending restore, so a rapid toggle keeps the frost without a
+  blink. Verified live by tracing `decoration:blur` against the launcher layer's
+  mapped state across a close (`quickshell/launcher/shell.qml`).
 - **The first-run welcome fits a 720p screen.** The window rule floats it at
   1180x760 with a 980x640 minimum pinned in QML, so a small (or scaled-down
   low-res) screen cut off the tour's controls. Like the Settings window, it now

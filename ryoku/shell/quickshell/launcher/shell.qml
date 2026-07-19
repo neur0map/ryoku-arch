@@ -25,10 +25,16 @@ ShellRoot {
     // the daemon just records the state.
     onOpenChanged: {
         Quickshell.execDetached(["ryoku-shell", "state", "launcher", open ? "1" : "0"]);
-        if (open)
+        if (open) {
+            blurRestoreDelay.stop();
             root.applyBackdropBlur();
-        else
-            root.restoreBackdropBlur();
+        } else {
+            // Hold the frost through the close morph. Restoring the global blur
+            // now, while the palette is still mapped and fading over the desktop
+            // for Motion.window, snaps the wallpaper sharp behind it -- the close
+            // flicker. Defer the restore until the palette has finished leaving.
+            blurRestoreDelay.restart();
+        }
     }
 
     // --- backdrop blur -----------------------------------------------------
@@ -38,6 +44,13 @@ ShellRoot {
     // the baseline on open, drives it to that strength, and restores the exact
     // baseline on hide -- frosting even when blur is off globally. The low-power
     // switch (weak GPUs) suppresses it. Runtime config goes through `hyprctl eval`.
+    //
+    // At bgBlur = 0 the window instead takes the "launcher-noblur" namespace,
+    // which the compositor's launcher blur rule does not match, so the backdrop
+    // is never frosted -- and never flashes the global baseline in for the frame
+    // between the layer mapping and the force landing. The global blur is left
+    // untouched (the overview still needs it). bgBlur > 0 uses the "launcher"
+    // namespace and the force/restore path below.
     //
     // All writes serialize through blurWriter: the force (open) and restore
     // (close) were independent fire-and-forget evals with no ordering guarantee,
@@ -65,6 +78,16 @@ ShellRoot {
             running = true;
         }
     }
+
+    // Deferred restore: fires once the close morph (Motion.window) has played
+    // out, so the frost holds for the palette's whole exit instead of being torn
+    // down at the first frame of the close (the flicker). Re-opening cancels it,
+    // and the still-forced blur simply stays.
+    Timer {
+        id: blurRestoreDelay
+        interval: Motion.window
+        onTriggered: root.restoreBackdropBlur()
+    }
     function evalBlur(enabled, size) {
         var cmd = "hl.config({ decoration = { blur = { enabled = " + (enabled ? "true" : "false")
             + ", size = " + Math.max(1, size) + " } } })";
@@ -83,6 +106,11 @@ ShellRoot {
     }
     function applyBackdropBlur() {
         if (Performance.blurDisabled || root.blurForced)
+            return;
+        // bgBlur = 0: no frost. The "launcher-noblur" namespace isn't matched by
+        // the blur rule, so there is nothing to force off (and nothing to flash);
+        // leave the global blur alone rather than driving it off and back.
+        if ((LauncherConfig.bgBlur | 0) <= 0)
             return;
         // Read the true baseline only once the writer has fully drained (the
         // compositor now reflects the real blur); while a restore is still in
@@ -236,7 +264,7 @@ ShellRoot {
             visible: shown || closing.running
             color: "transparent"
             exclusionMode: ExclusionMode.Ignore
-            WlrLayershell.namespace: "launcher"
+            WlrLayershell.namespace: (LauncherConfig.bgBlur | 0) > 0 ? "launcher" : "launcher-noblur"
             WlrLayershell.layer: WlrLayer.Overlay
             // hold the grab until the window unmaps (end of the close morph).
             // dropping it while still mapped strands the keyboard on the dead
