@@ -143,9 +143,7 @@ fi
 # the per-machine display/GPU seeds are left alone.
 say "clearing user overrides and Hub settings (recovery restores pure defaults)"
 RCFG="${XDG_CONFIG_HOME:-$HOME/.config}"
-RSTATE="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku"
 rm -rf "$RCFG/ryoku/user_edits"
-rm -f "$RSTATE/user-edits-forks"
 rm -f "$RCFG/hypr/settings.lua" "$RCFG/hypr/rebinds.lua" "$RCFG/hypr/user.lua" "$RCFG/hypr/monitors_user.lua"
 for _s in shell theme launcher widgets visualizer decor brand hypr plugins; do
   rm -f "$RCFG/ryoku/$_s.json"

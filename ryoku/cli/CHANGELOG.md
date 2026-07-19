@@ -6,20 +6,15 @@
 - **`materialize` overlays `~/.config/ryoku/user_edits` after the base.** A
   regular file in the overlay wins at its mirrored `~/.config` path; the base is
   laid in full first, so fixes and new files still land, and an empty overlay is a
-  no-op. A fork (an overlay file shadowing a shipped base file) is recorded with
-  the base hash at fork time (`internal/updater/materialize.go`,
-  `internal/sys/fsops.go`, `internal/sys/useredits.go`,
-  `TestMaterializeUserEditsOverlay`).
+  no-op. Symlinks and `.md` notes are skipped (`internal/updater/materialize.go`,
+  `internal/sys/useredits.go`, `TestMaterializeUserEditsOverlay`).
 - **`ryoku reset [path]`.** Drops a `user_edits` override (or, with no path and a
   confirm, the whole overlay) and re-lays the base, so a customization returns to
   the Ryoku default (`internal/updater/reset.go`).
-- **`doctor` converges the overlay.** `user edits overlay` adopts a machine's
-  legacy loose files (`hypr/user.lua`, `hypr/settings.lua`, `kitty/user.conf`)
-  into it, `user edits store mirror` surfaces the Hub's stores there as symlinks,
-  and `forked file drift` reports once when an upstream fix lands on a forked
-  file (`internal/doctor/reconcile_useredits.go`, covered by
-  `TestReconcileUserEditsAdopt`, `TestReconcileUserEditsMirror`,
-  `TestReconcileForkDrift`).
+- **`doctor` sets up the overlay.** `user edits overlay` seeds a how-to
+  `README.md` and adopts a machine's legacy loose files (`hypr/user.lua`,
+  `hypr/monitors_user.lua`, `kitty/user.conf`) into it
+  (`internal/doctor/reconcile_useredits.go`, `TestReconcileUserEditsAdopt`).
 - **`doctor` seeds the decor art into `~/Pictures/ryodecors`.** The `Decor` and
   `Placard` components render their baked art from that folder (beside
   `Wallpapers` and `livewalls`); the installer seeds a fresh box, and this

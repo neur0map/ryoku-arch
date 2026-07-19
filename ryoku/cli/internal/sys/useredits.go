@@ -1,54 +1,41 @@
 package sys
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 )
 
-// The fork ledger records, per path the user has forked (taken over a whole base
-// file), the base hash at the moment they took it over. materialize writes it;
-// doctor reads it to report an upstream fix that has since landed on a file the
-// user now owns. Lines are "rel<TAB>basehash", beside the materialize manifest
-// under ~/.local/state/ryoku.
-func ForkLedgerPath() string { return filepath.Join(StateDir(), "user-edits-forks") }
-
-func ReadForkLedger() map[string]string {
-	m := map[string]string{}
-	b, err := os.ReadFile(ForkLedgerPath())
-	if err != nil {
-		return m
+// UserEditFiles lists the layable files in the overlay: regular files under
+// UserEditsDir, slash-relative and sorted, skipping symlinks, .md notes (the
+// guide and anything a user keeps beside their edits), and the overlay's own
+// nested path. The overlay lays these over ~/.config; doctor reads the same set
+// to spot forks; reset walks it to clear everything. Absent overlay -> no files.
+func UserEditFiles() ([]string, error) {
+	root := UserEditsDir()
+	if _, err := os.Stat(root); err != nil {
+		return nil, nil
 	}
-	for _, line := range strings.Split(string(b), "\n") {
-		if line = strings.TrimSpace(line); line == "" {
-			continue
+	var rels []string
+	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
 		}
-		if i := strings.IndexByte(line, '\t'); i > 0 {
-			m[line[:i]] = line[i+1:]
+		if d.IsDir() || d.Type()&os.ModeSymlink != 0 || strings.HasSuffix(d.Name(), ".md") {
+			return nil
 		}
-	}
-	return m
-}
-
-func WriteForkLedger(m map[string]string) error {
-	path := ForkLedgerPath()
-	if len(m) == 0 {
-		_ = os.Remove(path)
-		return nil
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	rels := make([]string, 0, len(m))
-	for rel := range m {
+		rel, err := filepath.Rel(root, p)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
+		if strings.HasPrefix(rel, "ryoku/user_edits/") {
+			return nil // never mirror the overlay tree into itself
+		}
 		rels = append(rels, rel)
-	}
+		return nil
+	})
 	sort.Strings(rels)
-	var b strings.Builder
-	for _, rel := range rels {
-		fmt.Fprintf(&b, "%s\t%s\n", rel, m[rel])
-	}
-	return os.WriteFile(path, []byte(b.String()), 0o644)
+	return rels, err
 }

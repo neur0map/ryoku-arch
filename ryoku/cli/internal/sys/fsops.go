@@ -1,8 +1,6 @@
 package sys
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"io"
 	"os"
 	"os/exec"
@@ -59,22 +57,6 @@ func CopyFile(src, dst string) error {
 		return err
 	}
 	return os.Rename(tmp, dst)
-}
-
-// FileHash is the hex SHA-256 of a file's contents, or "" when it cannot be
-// read. Records what the base version of a forked file looked like when the user
-// took it over, so doctor can tell when an upstream fix has since touched it.
-func FileHash(path string) string {
-	f, err := os.Open(path)
-	if err != nil {
-		return ""
-	}
-	defer f.Close()
-	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return ""
-	}
-	return hex.EncodeToString(h.Sum(nil))
 }
 
 // HyprLive reports whether a Hyprland session is reachable for hyprctl.

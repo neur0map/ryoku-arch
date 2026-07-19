@@ -111,8 +111,8 @@ files the package never shipped your own overrides like `hypr/user.lua`,
 After the base is laid, materialize overlays your edits: every file under
 `~/.config/ryoku/user_edits` (mirroring `~/.config`) is copied on top, so a file
 there wins at its mirrored path. The overlay is sparse, so a new base file still
-lands; a whole-file fork shadows its base copy, and `ryoku doctor` reports when
-an upstream fix later touches it. See `docs/updates.md`.
+lands; a whole-file fork shadows its base copy (visible in the overlay, `ryoku
+reset` hands it back). See `docs/updates.md`.
 
 Per-machine generated drop-ins (`hypr/monitors.lua` written by `ryoku-monitor`,
 `hypr/gpu.lua` by `ryoku-gpu`) are seeded only when absent and never clobbered or

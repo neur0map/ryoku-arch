@@ -42,7 +42,7 @@ func Reset(args []string) error {
 			fmt.Println("cancelled")
 			return nil
 		}
-		rels, err := walkRelFiles(edits)
+		rels, err := sys.UserEditFiles()
 		if err != nil {
 			return err
 		}
@@ -58,7 +58,6 @@ func Reset(args []string) error {
 		baseOK = true
 	}
 
-	ledger := sys.ReadForkLedger()
 	removed := 0
 	for _, rel := range targets {
 		p := filepath.Join(edits, rel)
@@ -75,17 +74,19 @@ func Reset(args []string) error {
 		if baseOK {
 			_ = os.Remove(filepath.Join(sys.ConfigHome(), rel))
 		}
-		delete(ledger, rel)
 		removed++
 		fmt.Printf("  reset %s\n", rel)
 	}
-	_ = sys.WriteForkLedger(ledger)
 	if removed == 0 {
 		return nil
 	}
 
 	if baseOK {
-		return Materialize()
+		if err := Materialize(); err != nil {
+			return err
+		}
+		fmt.Println("reverted; run `ryoku reload` to apply it to the running session")
+		return nil
 	}
 	fmt.Println("run `ryoku deploy` (dev) or `ryoku materialize` to re-lay the base")
 	return nil

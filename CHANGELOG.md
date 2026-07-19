@@ -11,8 +11,8 @@ for finer detail.
   every `ryoku materialize`/deploy, so a file there wins while the base (the
   restore point) still delivers every fix and addition underneath. Overriding by
   overlay (a last-loaded `user.lua`/`settings.lua`/`user.conf`) keeps upstream
-  fixes flowing; forking a whole file opts out for that one file, and `ryoku
-  doctor` reports the drift. `ryoku reset [path]` reverts an override; `ryoku
+  fixes flowing; forking a whole file opts out for that one file. `ryoku reset
+  [path]` reverts an override; `ryoku
   recovery` wipes the overlay and the Hub's stores back to shipped defaults.
   Ryoku Settings writes its output into the overlay too, and a seeded `README.md`
   plus clearer file headers explain to hand-editors what edits what. See

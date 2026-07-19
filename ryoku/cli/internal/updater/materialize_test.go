@@ -149,29 +149,14 @@ func TestMaterializeUserEditsOverlay(t *testing.T) {
 	wantFile(t, filepath.Join(dest, "hypr/user.lua"), "my overlay")                 // addition lands
 	wantFile(t, filepath.Join(dest, "hypr/modules/window_rules.lua"), "base rules") // untouched = base
 
-	// the ledger remembers the base hash of the shadowed file; a pure addition
-	// (no base file) is not a fork and stays out of it.
-	led := sys.ReadForkLedger()
-	if led["hypr/modules/binds.lua"] == "" {
-		t.Errorf("fork ledger missing binds.lua: %v", led)
-	}
-	if _, ok := led["hypr/user.lua"]; ok {
-		t.Errorf("pure addition wrongly recorded as a fork: %v", led)
-	}
-	ancestor := led["hypr/modules/binds.lua"]
-
-	// a later base changes the forked file: the fork still wins and the ledger
-	// keeps the original ancestor, so doctor can see base moved under the fork.
+	// a later base changes the forked file: the fork still wins (the user owns it).
 	writeFile(t, filepath.Join(base, "hypr/modules/binds.lua"), "-- base binds v2 (a fix)\n")
 	if err := Materialize(); err != nil {
 		t.Fatalf("re-materialize: %v", err)
 	}
 	wantFile(t, filepath.Join(dest, "hypr/modules/binds.lua"), "my binds")
-	if got := sys.ReadForkLedger()["hypr/modules/binds.lua"]; got != ancestor {
-		t.Errorf("ancestor moved: got %q want %q", got, ancestor)
-	}
 
-	// dropping the fork reverts live to base and clears the ledger entry.
+	// dropping the fork reverts live to base on the next materialize.
 	if err := os.Remove(filepath.Join(edits, "hypr/modules/binds.lua")); err != nil {
 		t.Fatal(err)
 	}
@@ -179,9 +164,6 @@ func TestMaterializeUserEditsOverlay(t *testing.T) {
 		t.Fatalf("revert materialize: %v", err)
 	}
 	wantFile(t, filepath.Join(dest, "hypr/modules/binds.lua"), "base binds v2")
-	if _, ok := sys.ReadForkLedger()["hypr/modules/binds.lua"]; ok {
-		t.Errorf("ledger kept a removed fork: %v", sys.ReadForkLedger())
-	}
 }
 
 func wantFile(t *testing.T, path, want string) {

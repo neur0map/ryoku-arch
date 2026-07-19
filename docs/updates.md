@@ -65,14 +65,15 @@ Two ways to override, neither of which blocks a fix:
   `user.conf`. The base loads underneath, so a new upstream keybind still arrives
   while your file wins on what it sets.
 - **Fork (opt-in).** A whole copy of a shipped file shadows the base one. You own
-  it now, so an upstream fix to that file will not reach you automatically:
-  `ryoku doctor` reports the drift and `ryoku reset <path>` takes the new base.
+  it now, so an upstream fix to that file will not reach you automatically. Your
+  forks are the files you see in the overlay; `ryoku reset <path>` takes the new
+  base.
 
-Ryoku Settings writes into the overlay too: its generated `hypr/settings.lua` and
-`hypr/rebinds.lua` are authored under `user_edits` and reflected live, and its
-structured stores are surfaced there as symlinks. `ryoku reset` drops an
-override; `ryoku recovery` is the last resort, wiping the overlay and the stores
-back to shipped defaults.
+Ryoku Settings writes its generated `hypr/settings.lua` and `hypr/rebinds.lua`
+into the overlay (authored under `user_edits`, reflected live). Its other state
+(bar, colours, launcher) it keeps under `~/.config/ryoku`, GUI-managed and
+update-safe. `ryoku reset` drops an override; `ryoku recovery` is the last
+resort, wiping the overlay and that state back to shipped defaults.
 
 ## doctor: converging what materialize can't
 
@@ -82,10 +83,9 @@ can't state declaratively (disk, boot, session, and the user-owned
 migration ledger: each is idempotent and safe on every update, and is retired
 once every supported install has run it. `reconcileShellConfig` migrates a stale
 `shell.json` (drops retired keys, revives the bar, clamps geometry).
-`reconcileUserEditsAdopt` moves a machine's legacy loose files (`hypr/user.lua`,
-`hypr/settings.lua`, `kitty/user.conf`) into the overlay; a store-mirror and a
-fork-drift reconciler keep it coherent. All idempotent, all retired once every
-install has run them.
+`reconcileUserEditsAdopt` seeds the how-to guide and moves a machine's legacy
+loose files (`hypr/user.lua`, `hypr/monitors_user.lua`, `kitty/user.conf`) into
+the overlay. Idempotent.
 
 ## Publishing: how a commit becomes a user update
 
