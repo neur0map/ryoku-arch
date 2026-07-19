@@ -11,6 +11,18 @@
   (`quickshell/welcome/shell.qml`).
 
 ### Added
+- **matugen fans the palette across the whole app suite.** A scheme apply (or a
+  wallpaper change in follow mode) now renders GTK (libadwaita), Qt (qt6ct), and
+  btop from the same colours as kitty and the Hyprland borders, through matugen
+  as the shared templating engine. The control plane authors `colors.json` for
+  the fixed schemes and wallust still extracts it when following the wallpaper;
+  matugen then templates every external app from that one palette, so the
+  grainy-mono default and any rice reach past the shell into the apps. GTK apps
+  get a colour-scheme nudge to re-read. New `matugen/config.toml` and
+  `matugen/templates/` (kitty, hypr, GTK, Qt, btop), shipped as a hard `matugen`
+  depend beside wallust; btop gains a shipped `apps/btop/btop.conf` and
+  `qt6ct.conf` points at the generated scheme (`ipc/wallpaper.go`,
+  `../hub/backend/schemes.go`).
 - **Launcher: an "@" prefix tunes a live lofi radio.** `@` lists the stations
   — Lofi Girl and Chillhop Radio (YouTube 24/7 streams), SomaFM Groove Salad
   and Fluid (plain Icecast) — `@lofi` puts Lofi Girl on air, `@stop` (or the
