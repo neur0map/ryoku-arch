@@ -210,6 +210,9 @@ func applyRyokuTheme() error {
 	_ = saveOverrides(o)
 	// GTK type now; the Hyprland autostart pins it on the next login.
 	_ = exec.Command("gsettings", "set", "org.gnome.desktop.interface", "font-name", "Space Grotesk 11").Run()
+	// clear any active-rice marker: the signature is a fresh look, not a rice,
+	// so the Rices page must not keep showing the last rice as applied.
+	setActiveRice("")
 	// grainy-mono palette + regen the border lua, reload hypr and kitty.
 	return applyScheme("mono")
 }

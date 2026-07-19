@@ -122,7 +122,7 @@ Rectangle {
 
     readonly property var defs: ({
         "frameRadius": 9, "roundness": 10, "frameBorder": 59, "frameEnabled": true,
-        "frameSmoothing": 8, "frameOpacity": 1, "shadowStrength": 0.63, "shadowSize": 12,
+        "frameSmoothing": 8, "frameOpacity": 1, "grainStrength": 0.09, "shadowStrength": 0.63, "shadowSize": 12,
         "surfaceColor": "#0f1115", "osdRadius": 28, "osdOpacity": 1,
         "barEnabled": true, "barPosition": "top", "barStyle": "noctalia", "barHeight": 30,
         "barShowTitle": true, "barShowMedia": true, "barShowStatus": true,
@@ -253,6 +253,7 @@ Rectangle {
             property bool frameEnabled: true
             property real frameSmoothing: 8
             property real frameOpacity: 1
+            property real grainStrength: 0.09
             property real shadowStrength: 0.63
             property real shadowSize: 12
             property string surfaceColor: "#0f1115"

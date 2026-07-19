@@ -45,6 +45,6 @@ Item {
     }
     function seat(x) {
         var f = Math.max(0, Math.min(1, x / width));
-        modified(Math.round(from + f * (to - from)));
+        modified(Math.round((from + f * (to - from)) * 100) / 100);
     }
 }
