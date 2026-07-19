@@ -9,25 +9,26 @@ import (
 // comment vs derived description, a string-literal media key, a mouse bind,
 // and the 1..0 workspace loop.
 const sampleBinds = `local mod = "SUPER"
+local function K(k) return k end
 
 -- Windows
-hl.bind(mod .. " + Q",         hl.dsp.window.close())                           -- close active window
-hl.bind(mod .. " + SHIFT + A", hl.dsp.window.float({ action = "disable" }))     -- restore: tile it back to normal
+hl.bind(K(mod .. " + Q"),         hl.dsp.window.close())                           -- close active window
+hl.bind(K(mod .. " + SHIFT + A"), hl.dsp.window.float({ action = "disable" }))     -- restore: tile it back to normal
 
 -- Apps
-hl.bind(mod .. " + Return",    hl.dsp.exec_cmd("kitty"))
-hl.bind(mod .. " + N",         hl.dsp.exec_cmd("kitty -e nvim"))                -- neovim
+hl.bind(K(mod .. " + Return"),    hl.dsp.exec_cmd("kitty"))
+hl.bind(K(mod .. " + N"),         hl.dsp.exec_cmd("kitty -e nvim"))                -- neovim
 
 -- Switch workspaces
-hl.bind(mod .. " + Left",       hl.dsp.focus({ workspace = "r-1" }))
+hl.bind(K(mod .. " + Left"),       hl.dsp.focus({ workspace = "r-1" }))
 for i = 1, 10 do
     local key = i % 10 -- 10 maps to the 0 key
-    hl.bind(mod .. " + " .. key,          hl.dsp.focus({ workspace = i }))
-    hl.bind(mod .. " + SHIFT + " .. key,  hl.dsp.window.move({ workspace = i }))
+    hl.bind(K(mod .. " + " .. key),          hl.dsp.focus({ workspace = i }))
+    hl.bind(K(mod .. " + SHIFT + " .. key),  hl.dsp.window.move({ workspace = i }))
 end
 
 -- Media and volume keys
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+hl.bind(K("XF86AudioRaiseVolume"), hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
 `
 
 func find(l legend, cat string) *category {
@@ -133,5 +134,41 @@ hl.bind(mod .. " + A", function() hl.dispatch(hl.dsp.window.float({ action = "to
 	}
 	if w.Binds[0].Desc != "Float + centre the window" {
 		t.Errorf("desc = %q, want comment-derived description", w.Binds[0].Desc)
+	}
+}
+
+// K() (the rebind helper) is unwrapped so the raw combo -- the rebind id K() keys
+// on at runtime -- is captured, and a single literal chord is rebindable while the
+// workspace-loop range and pointer binds are not.
+func TestComboAndRebindable(t *testing.T) {
+	l := parseBinds(sampleBinds)
+	w := find(l, "Windows")
+	if w == nil || len(w.Binds) < 1 {
+		t.Fatal("Windows category missing")
+	}
+	if w.Binds[0].Combo != "SUPER + Q" {
+		t.Errorf("combo = %q, want SUPER + Q", w.Binds[0].Combo)
+	}
+	if !w.Binds[0].Rebindable {
+		t.Error("SUPER + Q should be rebindable")
+	}
+	ws := find(l, "Switch workspaces")
+	loop := ws.Binds[len(ws.Binds)-1]
+	if loop.Rebindable {
+		t.Errorf("loop bind %q should not be rebindable", loop.Combo)
+	}
+	m := find(l, "Media and volume keys")
+	if m.Binds[0].Combo != "XF86AudioRaiseVolume" || !m.Binds[0].Rebindable {
+		t.Errorf("media combo=%q rebindable=%v", m.Binds[0].Combo, m.Binds[0].Rebindable)
+	}
+	mouse := parseBinds("-- M\nhl.bind(K(mod .. \" + mouse:272\"), hl.dsp.window.drag(), { mouse = true })\n")
+	if mouse.Categories[0].Binds[0].Rebindable {
+		t.Error("mouse bind should not be rebindable")
+	}
+}
+
+func TestDescribeRyokuApp(t *testing.T) {
+	if got := describeExec("ryoku-app browser"); got != "browser" {
+		t.Errorf("describeExec ryoku-app = %q, want browser", got)
 	}
 }

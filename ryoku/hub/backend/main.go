@@ -29,6 +29,12 @@ func main() {
 		}
 		os.Stdout.Write(b)
 		fmt.Println()
+	case "apps":
+		if err := printApps(); err != nil {
+			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
+			os.Exit(1)
+		}
+		fmt.Println()
 	case "config":
 		if err := runConfig(args[1:]); err != nil {
 			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
@@ -66,6 +72,11 @@ func main() {
 		}
 	case "fastfetch":
 		if err := runFastfetch(args[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
+			os.Exit(1)
+		}
+	case "profile":
+		if err := runProfile(args[1:]); err != nil {
 			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
 			os.Exit(1)
 		}

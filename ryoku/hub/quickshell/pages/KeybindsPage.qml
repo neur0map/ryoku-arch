@@ -76,7 +76,7 @@ Item {
         for (var c = 0; c < pg.categories.length; c++) {
             var binds = pg.categories[c].binds || [];
             for (var b = 0; b < binds.length; b++) {
-                var k = pg.normKeys((binds[b].keys || []).join(" + "));
+                var k = pg.normKeys(pg.effectiveCombo(binds[b].combo || ""));
                 if (k.length)
                     set[k] = true;
             }
@@ -104,6 +104,14 @@ Item {
         for (var i = 0; i < pg.customRows.length; i++)
             if (pg.rowConflict(i) !== "")
                 n++;
+        for (var c = 0; c < pg.categories.length; c++) {
+            var binds = pg.categories[c].binds || [];
+            for (var b = 0; b < binds.length; b++) {
+                var combo = binds[b].combo || "";
+                if (pg.isRebound(combo) && pg.comboConflict(combo))
+                    n++;
+            }
+        }
         return n;
     }
 
@@ -188,6 +196,10 @@ Item {
     // here instead of closing the Hub. recordRow is the row being recorded
     // (-1 = idle); the overlay below drives it.
     property int recordRow: -1
+    // recordCombo holds a shipped bind's default combo while it is being rebound
+    // (recordRow stays -1); either one active means the recorder overlay is up.
+    property string recordCombo: ""
+    readonly property bool recording: pg.recordRow >= 0 || pg.recordCombo.length > 0
 
     function enterRecordSubmap() { Quickshell.execDetached(["hyprctl", "dispatch", "hl.dsp.submap(\"record\")"]); }
     function exitRecordSubmap() { Quickshell.execDetached(["hyprctl", "dispatch", "hl.dsp.submap(\"reset\")"]); }
@@ -195,17 +207,33 @@ Item {
     function startRecord(i) {
         if (!pg.hubReady || i < 0)
             return;
+        pg.recordCombo = "";
         pg.recordRow = i;
         pg.enterRecordSubmap();
         recordTimeout.restart();
     }
-    // commit true writes the captured chord to the row; false just cancels.
+    // record a new chord for a shipped bind, keyed by its default combo.
+    function startRecordShipped(combo) {
+        if (!pg.hubReady || !combo)
+            return;
+        pg.recordRow = -1;
+        pg.recordCombo = combo;
+        pg.enterRecordSubmap();
+        recordTimeout.restart();
+    }
+    // commit true writes the captured chord to the custom row or the rebind; false cancels.
     function stopRecord(commit, chord) {
         recordTimeout.stop();
         pg.exitRecordSubmap();
         var i = pg.recordRow;
+        var combo = pg.recordCombo;
         pg.recordRow = -1;
-        if (commit && chord && i >= 0)
+        pg.recordCombo = "";
+        if (!commit || !chord)
+            return;
+        if (combo.length > 0)
+            pg.setRebind(combo, chord);
+        else if (i >= 0)
             pg.patch(i, "keys", chord);
     }
 
@@ -222,7 +250,7 @@ Item {
     Connections {
         target: Hyprland
         function onRawEvent(event) {
-            if (pg.recordRow >= 0 && event.name === "submap" && (event.data === "" || event.data === "reset"))
+            if (pg.recording && event.name === "submap" && (event.data === "" || event.data === "reset"))
                 pg.stopRecord(false, "");
         }
     }
@@ -295,6 +323,103 @@ Item {
         return "";
     }
 
+    // ── shipped-bind rebinds ────────────────────────────────────────────────
+    // A rebind remaps a shipped chord to a user-chosen one, held as
+    // { "SUPER + Q": "SUPER + X" } in the draft and rendered to rebinds.lua, which
+    // binds.lua's K() consults. The shipped default combo is the stable id.
+    readonly property var rebinds: pg.hubReady ? (pg.hub.hyprVal("keybindRebinds") || ({})) : ({})
+    function effectiveCombo(defCombo) {
+        var r = pg.rebinds[defCombo];
+        return (r && r.length) ? r : defCombo;
+    }
+    function isRebound(defCombo) {
+        var r = pg.rebinds[defCombo];
+        return r !== undefined && r !== null && r.length > 0 && r !== defCombo;
+    }
+    function hasRebinds() {
+        for (var k in pg.rebinds)
+            if (pg.rebinds[k] && pg.rebinds[k] !== k)
+                return true;
+        return false;
+    }
+    function setRebind(defCombo, chord) {
+        if (!pg.hubReady)
+            return;
+        var cur = pg.hub.hyprVal("keybindRebinds") || {};
+        var m = {};
+        for (var k in cur)
+            m[k] = cur[k];
+        if (!chord || chord === defCombo)
+            delete m[defCombo];
+        else
+            m[defCombo] = chord;
+        pg.hub.hyprEdit("keybindRebinds", m);
+    }
+    function clearRebind(defCombo) { pg.setRebind(defCombo, ""); }
+    function clearRebinds() {
+        if (pg.hubReady)
+            pg.hub.hyprEdit("keybindRebinds", ({}));
+    }
+
+    // norm -> how many shipped (effective) + custom binds hold it; >1 is a clash.
+    readonly property var effectiveCounts: {
+        var m = {};
+        for (var c = 0; c < pg.categories.length; c++) {
+            var binds = pg.categories[c].binds || [];
+            for (var b = 0; b < binds.length; b++) {
+                var n = pg.normKeys(pg.effectiveCombo(binds[b].combo || ""));
+                if (n.length)
+                    m[n] = (m[n] || 0) + 1;
+            }
+        }
+        for (var i = 0; i < pg.customRows.length; i++) {
+            var cn = pg.normKeys(pg.customRows[i].keys);
+            if (cn.length)
+                m[cn] = (m[cn] || 0) + 1;
+        }
+        return m;
+    }
+    function comboConflict(defCombo) {
+        var n = pg.normKeys(pg.effectiveCombo(defCombo));
+        return n.length > 0 && pg.effectiveCounts[n] > 1;
+    }
+    // the other bind an effective combo clashes with, by description.
+    function conflictNameFor(defCombo) {
+        var n = pg.normKeys(pg.effectiveCombo(defCombo));
+        for (var c = 0; c < pg.categories.length; c++) {
+            var binds = pg.categories[c].binds || [];
+            for (var b = 0; b < binds.length; b++) {
+                if ((binds[b].combo || "") === defCombo)
+                    continue;
+                if (pg.normKeys(pg.effectiveCombo(binds[b].combo || "")) === n)
+                    return binds[b].desc || "another shortcut";
+            }
+        }
+        for (var i = 0; i < pg.customRows.length; i++)
+            if (pg.normKeys(pg.customRows[i].keys) === n)
+                return "a custom bind";
+        return "another shortcut";
+    }
+
+    // display tokens for a raw combo, matching the legend keycaps. mirrors the
+    // backend's prettyKey for the chords the recorder can produce, so a rebound
+    // row reads like the shipped ones.
+    readonly property var capNames: ({
+        "SUPER": "Super", "SHIFT": "Shift", "ALT": "Alt", "CTRL": "Ctrl",
+        "Return": "Enter", "comma": ",", "period": ".", "grave": "\u0060",
+        "Left": "\u2190", "Right": "\u2192", "Up": "\u2191", "Down": "\u2193"
+    })
+    function comboToCaps(raw) {
+        var parts = ("" + raw).split("+");
+        var out = [];
+        for (var i = 0; i < parts.length; i++) {
+            var t = parts[i].trim();
+            if (t.length)
+                out.push(pg.capNames[t] || t);
+        }
+        return out;
+    }
+
     // ── head: eyebrow, Fraunces title, blurb (matches every settings page) ──
     Column {
         id: head
@@ -324,7 +449,7 @@ Item {
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Every desktop shortcut, read live from what Hyprland actually has bound, plus the custom binds you layer on top. Custom shortcuts show in the legend and are checked against the shipped ones for conflicts."
+            text: "Every desktop shortcut, read live from what Hyprland actually has bound. Rebind any of them with the record button on its row, or layer your own on the Custom tab. Overlaps are flagged as you go."
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -356,7 +481,7 @@ Item {
         id: loader
         anchors {
             left: parent.left; right: parent.right
-            top: tabs.bottom; bottom: parent.bottom
+            top: tabs.bottom; bottom: bar.top
             leftMargin: Tokens.s6; rightMargin: Tokens.s6
             topMargin: Tokens.s4; bottomMargin: Tokens.s6
         }
@@ -437,6 +562,10 @@ Item {
                                 id: bindWrap
                                 required property var modelData
                                 required property int index
+                                readonly property string combo: bindWrap.modelData.combo || ""
+                                readonly property bool rebound: pg.isRebound(bindWrap.combo)
+                                readonly property bool clash: bindWrap.rebound && pg.comboConflict(bindWrap.combo)
+                                readonly property var effKeys: bindWrap.rebound ? pg.comboToCaps(pg.effectiveCombo(bindWrap.combo)) : (bindWrap.modelData.keys || [])
                                 width: grp.width
 
                                 // row separators inside the group.
@@ -445,14 +574,14 @@ Item {
                                     width: parent.width; height: 1; color: Tokens.lineSoft
                                 }
 
-                                // one legend line: description left, keycaps right.
+                                // one legend line: description left, keycaps + rebind right.
                                 Item {
                                     width: parent.width
                                     height: 44
 
                                     Text {
                                         anchors.left: parent.left
-                                        anchors.right: caps.left; anchors.rightMargin: Tokens.s4
+                                        anchors.right: rightCluster.left; anchors.rightMargin: Tokens.s4
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: bindWrap.modelData.desc || ""
                                         color: Tokens.inkDim
@@ -461,48 +590,80 @@ Item {
                                     }
 
                                     Row {
-                                        id: caps
+                                        id: rightCluster
                                         anchors.right: parent.right
                                         anchors.verticalCenter: parent.verticalCenter
-                                        spacing: Tokens.s1
+                                        spacing: Tokens.s2
 
-                                        Repeater {
-                                            model: bindWrap.modelData.keys || []
+                                        Row {
+                                            id: caps
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            spacing: Tokens.s1
 
-                                            delegate: Row {
-                                                id: capWrap
-                                                required property var modelData
-                                                required property int index
-                                                spacing: Tokens.s1
+                                            Repeater {
+                                                model: bindWrap.effKeys
 
-                                                Text {
-                                                    visible: capWrap.index > 0
-                                                    height: 22
-                                                    verticalAlignment: Text.AlignVCenter
-                                                    text: "+"
-                                                    color: Tokens.inkFaint
-                                                    font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
-                                                }
-                                                // keycap: hairline rect, mono, inkFaint (file-truth chrome).
-                                                Rectangle {
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    implicitHeight: 22
-                                                    implicitWidth: Math.max(22, capLabel.implicitWidth + 14)
-                                                    radius: Tokens.radius
-                                                    color: "transparent"
-                                                    border.width: Tokens.border
-                                                    border.color: Tokens.line
+                                                delegate: Row {
+                                                    id: capWrap
+                                                    required property var modelData
+                                                    required property int index
+                                                    spacing: Tokens.s1
+
                                                     Text {
-                                                        id: capLabel
-                                                        anchors.centerIn: parent
-                                                        text: capWrap.modelData
+                                                        visible: capWrap.index > 0
+                                                        height: 22
+                                                        verticalAlignment: Text.AlignVCenter
+                                                        text: "+"
                                                         color: Tokens.inkFaint
-                                                        font.family: Tokens.mono; font.pixelSize: Tokens.fMicro
+                                                        font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
+                                                    }
+                                                    // keycap: hairline rect, mono. ink border when the combo clashes.
+                                                    Rectangle {
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        implicitHeight: 22
+                                                        implicitWidth: Math.max(22, capLabel.implicitWidth + 14)
+                                                        radius: Tokens.radius
+                                                        color: "transparent"
+                                                        border.width: Tokens.border
+                                                        border.color: bindWrap.clash ? Tokens.ink : (bindWrap.rebound ? Tokens.lineStrong : Tokens.line)
+                                                        Text {
+                                                            id: capLabel
+                                                            anchors.centerIn: parent
+                                                            text: capWrap.modelData
+                                                            color: bindWrap.rebound ? Tokens.inkDim : Tokens.inkFaint
+                                                            font.family: Tokens.mono; font.pixelSize: Tokens.fMicro
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
+
+                                        // reset a rebound shortcut to its shipped default.
+                                        IconBtn {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            visible: bindWrap.rebound
+                                            glyph: "\u21ba"
+                                            onAct: pg.clearRebind(bindWrap.combo)
+                                        }
+                                        // record a new chord for this shortcut.
+                                        IconBtn {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            visible: bindWrap.modelData.rebindable === true && pg.hubReady
+                                            glyph: "\u25cf"
+                                            onAct: pg.startRecordShipped(bindWrap.combo)
+                                        }
                                     }
+                                }
+
+                                // conflict note: names what the rebound chord clashes with. Ink only.
+                                Text {
+                                    visible: bindWrap.clash
+                                    width: parent.width
+                                    leftPadding: Tokens.s2
+                                    bottomPadding: Tokens.s2
+                                    text: "Clashes with " + pg.conflictNameFor(bindWrap.combo)
+                                    color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                    elide: Text.ElideRight
                                 }
                             }
                         }
@@ -600,7 +761,7 @@ Item {
                 id: flick
                 anchors {
                     left: parent.left; right: parent.right
-                    top: sect.bottom; bottom: bar.top
+                    top: sect.bottom; bottom: parent.bottom
                     topMargin: Tokens.s4; bottomMargin: Tokens.s3
                 }
                 contentWidth: width
@@ -761,92 +922,6 @@ Item {
                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
             }
 
-            // ── action bar: status + Clear all / Revert / Save ──
-            // this page is full-bleed, so the shell's global action bar is
-            // hidden; this bar is the only way to persist the shared store.
-            Rectangle {
-                id: bar
-                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                height: 60
-                color: "transparent"
-                // hairline lid, like the shell's action bar (DESIGN.md section 8).
-                Rectangle {
-                    anchors { left: parent.left; right: parent.right; top: parent.top }
-                    height: 1; color: Tokens.line
-                }
-
-                Row {
-                    anchors.left: parent.left
-                    anchors.leftMargin: Tokens.s2
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Tokens.s3
-
-                    // status dot: filled ink while dirty or in conflict; a heartbeat
-                    // pulse (the one perpetual animation) only while dirty.
-                    Rectangle {
-                        id: dot
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 6; height: 6; radius: 3
-                        antialiasing: false
-                        readonly property bool lit: pg.conflictCount > 0 || pg.dirtyCount > 0
-                        color: lit ? Tokens.ink : "transparent"
-                        border.width: lit ? 0 : Tokens.border
-                        border.color: Tokens.inkFaint
-
-                        SequentialAnimation on opacity {
-                            running: pg.dirtyCount > 0
-                            loops: Animation.Infinite
-                            NumberAnimation { to: 0.3; duration: 600; easing.type: Easing.InOutSine }
-                            NumberAnimation { to: 1.0; duration: 600; easing.type: Easing.InOutSine }
-                            onStopped: dot.opacity = 1
-                        }
-                    }
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: pg.conflictCount > 0
-                            ? (pg.conflictCount + " conflict with a shipped or duplicate combo")
-                            : (pg.dirtyCount > 0 ? "Unsaved shortcuts" : "Saved")
-                        color: (pg.conflictCount > 0 || pg.dirtyCount > 0) ? Tokens.ink : Tokens.inkMuted
-                        font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
-                        font.weight: Font.Medium
-                    }
-                }
-
-                Row {
-                    anchors.right: parent.right
-                    anchors.rightMargin: Tokens.s2
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Tokens.s3
-
-                    Btn {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "RESTORE DEFAULTS"
-                        armed: pg.customRows.length > 0
-                        onAct: pg.clearAll()
-                    }
-                    Btn {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "REVERT"
-                        armed: pg.dirtyCount > 0
-                        onAct: pg.revertAll()
-                    }
-                    Btn {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "SAVE"
-                        primary: true
-                        armed: pg.dirtyCount > 0
-                        onAct: pg.saveAll()
-                    }
-                }
-
-                // marginalia dressing the empty bar centre between status and actions -- a dead margin. Ink only.
-                Marginalia {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    kana: "操作"
-                    glyph: "meander"; glyph2: "torii"
-                }
-            }
 
             // ── the action catalogue overlay (Picker), shared across rows ──
             MouseArea {
@@ -881,74 +956,156 @@ Item {
                 }
             }
 
-            // ── chord recorder overlay ──────────────────────────────────────
-            // shown while a row records. The capture Item holds keyboard focus so
-            // the combo the record submap lets through arrives here as a plain
-            // KeyEvent; chordFrom turns it into the string Hyprland binds on.
-            MouseArea {
-                id: recScrim
-                anchors.fill: parent
-                visible: pg.recordRow >= 0
-                z: 200
-                onClicked: pg.stopRecord(false, "")
-                onVisibleChanged: if (visible) capture.forceActiveFocus()
+        }
+    }
 
-                Item {
-                    id: capture
-                    anchors.fill: parent
-                    focus: true
-                    Keys.onPressed: (event) => {
-                        event.accepted = true;
-                        if (event.isAutoRepeat)
-                            return;
-                        if (event.key === Qt.Key_Escape) {
-                            pg.stopRecord(false, "");
-                            return;
-                        }
-                        var chord = pg.chordFrom(event);
-                        if (chord !== "")
-                            pg.stopRecord(true, chord);
-                    }
-                }
+    // ── action bar: status + reset / revert / save, shared by both tabs ──
+    // full-bleed page, so the shell's global bar is hidden; this persists the
+    // shared store. Page-level so a rebind recorded on the Shortcuts tab saves
+    // from the same bar as a custom bind on the Custom tab.
+    Rectangle {
+        id: bar
+        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+        anchors.leftMargin: Tokens.s6; anchors.rightMargin: Tokens.s6; anchors.bottomMargin: Tokens.s5
+        height: 60
+        color: "transparent"
+        Rectangle {
+            anchors { left: parent.left; right: parent.right; top: parent.top }
+            height: 1; color: Tokens.line
+        }
 
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: 340; height: 156
-                    radius: Tokens.radius
-                    color: Tokens.paper
-                    border.width: Tokens.border
-                    border.color: Tokens.lineStrong
+        Row {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Tokens.s3
 
-                    Column {
-                        anchors.centerIn: parent
-                        width: parent.width - Tokens.s4 * 2
-                        spacing: Tokens.s3
-
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "PRESS YOUR SHORTCUT"
-                            color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
-                            font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
-                        }
-                        Text {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            wrapMode: Text.WordWrap
-                            text: "Hold your modifiers and tap the key. Esc cancels."
-                            color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
-                        }
-                        Btn {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "CANCEL"
-                            armed: true
-                            onAct: pg.stopRecord(false, "")
-                        }
-                    }
-
-                    // absorb clicks inside the card so the scrim does not dismiss.
-                    MouseArea { anchors.fill: parent; z: -1 }
+            Rectangle {
+                id: dot
+                anchors.verticalCenter: parent.verticalCenter
+                width: 6; height: 6; radius: 3
+                antialiasing: false
+                readonly property bool lit: pg.conflictCount > 0 || pg.dirtyCount > 0
+                color: lit ? Tokens.ink : "transparent"
+                border.width: lit ? 0 : Tokens.border
+                border.color: Tokens.inkFaint
+                SequentialAnimation on opacity {
+                    running: pg.dirtyCount > 0
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.3; duration: 600; easing.type: Easing.InOutSine }
+                    NumberAnimation { to: 1.0; duration: 600; easing.type: Easing.InOutSine }
+                    onStopped: dot.opacity = 1
                 }
             }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: pg.conflictCount > 0
+                    ? (pg.conflictCount + (pg.conflictCount === 1 ? " conflicting shortcut" : " conflicting shortcuts"))
+                    : (pg.dirtyCount > 0 ? "Unsaved changes" : "Saved")
+                color: (pg.conflictCount > 0 || pg.dirtyCount > 0) ? Tokens.ink : Tokens.inkMuted
+                font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                font.weight: Font.Medium
+            }
+        }
+
+        Row {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Tokens.s3
+
+            // tab-aware reset: clears rebinds on Shortcuts, custom binds on Custom.
+            Btn {
+                anchors.verticalCenter: parent.verticalCenter
+                text: pg.tab === "all" ? "RESET REBINDS" : "RESTORE DEFAULTS"
+                armed: pg.tab === "all" ? pg.hasRebinds() : pg.customRows.length > 0
+                onAct: pg.tab === "all" ? pg.clearRebinds() : pg.clearAll()
+            }
+            Btn {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "REVERT"
+                armed: pg.dirtyCount > 0
+                onAct: pg.revertAll()
+            }
+            Btn {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "SAVE"
+                primary: true
+                armed: pg.dirtyCount > 0
+                onAct: pg.saveAll()
+            }
+        }
+
+        Marginalia {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+            kana: "操作"
+            glyph: "meander"; glyph2: "torii"
+        }
+    }
+
+    // ── chord recorder overlay (page-level: serves both tabs) ──
+    // the capture Item holds focus so the combo the record submap lets through
+    // arrives as a plain KeyEvent; chordFrom turns it into Hyprland's string.
+    MouseArea {
+        id: recScrim
+        anchors.fill: parent
+        visible: pg.recording
+        z: 200
+        onClicked: pg.stopRecord(false, "")
+        onVisibleChanged: if (visible) capture.forceActiveFocus()
+
+        Item {
+            id: capture
+            anchors.fill: parent
+            focus: true
+            Keys.onPressed: (event) => {
+                event.accepted = true;
+                if (event.isAutoRepeat)
+                    return;
+                if (event.key === Qt.Key_Escape) {
+                    pg.stopRecord(false, "");
+                    return;
+                }
+                var chord = pg.chordFrom(event);
+                if (chord !== "")
+                    pg.stopRecord(true, chord);
+            }
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: 340; height: 156
+            radius: Tokens.radius
+            color: Tokens.paper
+            border.width: Tokens.border
+            border.color: Tokens.lineStrong
+
+            Column {
+                anchors.centerIn: parent
+                width: parent.width - Tokens.s4 * 2
+                spacing: Tokens.s3
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "PRESS YOUR SHORTCUT"
+                    color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
+                    font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
+                }
+                Text {
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    text: "Hold your modifiers and tap the key. Esc cancels."
+                    color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                }
+                Btn {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "CANCEL"
+                    armed: true
+                    onAct: pg.stopRecord(false, "")
+                }
+            }
+
+            MouseArea { anchors.fill: parent; z: -1 }
         }
     }
 }

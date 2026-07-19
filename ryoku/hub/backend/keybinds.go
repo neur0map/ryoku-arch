@@ -12,8 +12,10 @@ import (
 // truth; no second hand-maintained list to drift.
 
 type bind struct {
-	Keys []string `json:"keys"`
-	Desc string   `json:"desc"`
+	Keys       []string `json:"keys"`
+	Combo      string   `json:"combo"`
+	Desc       string   `json:"desc"`
+	Rebindable bool     `json:"rebindable"`
 }
 
 type category struct {
@@ -97,9 +99,12 @@ func parseBinds(src string) legend {
 		if inLoop {
 			loopVar = "1\u20260" // 1…0
 		}
+		keys, combo := resolveKeys(m[1], loopVar)
 		add(bind{
-			Keys: resolveKeys(m[1], loopVar),
-			Desc: describe(comment, m[2]),
+			Keys:       keys,
+			Combo:      combo,
+			Desc:       describe(comment, m[2]),
+			Rebindable: rebindable(combo),
 		})
 	}
 
@@ -109,13 +114,19 @@ func parseBinds(src string) legend {
 	return legend{Categories: cats}
 }
 
-// resolveKeys: first hl.bind arg -> display tokens. either a quoted key literal
-// ("XF86AudioRaiseVolume") or a Lua concat (mod .. " + SHIFT + A"); inside the
-// workspace loop the `key`/`i` identifier becomes the 1…0 range.
-func resolveKeys(arg, loopVar string) []string {
+// resolveKeys: first hl.bind arg -> (display tokens, raw combo). the arg may be
+// wrapped in the K() rebind helper (K(mod .. " + Q")); unwrap it first. then it
+// is either a quoted key literal ("XF86AudioRaiseVolume") or a Lua concat
+// (mod .. " + SHIFT + A"); inside the workspace loop the key/i identifier becomes
+// the 1…0 range. the raw combo is what K() keys on at runtime, i.e. the rebind id.
+func resolveKeys(arg, loopVar string) ([]string, string) {
 	arg = strings.TrimSpace(arg)
+	if strings.HasPrefix(arg, "K(") && strings.HasSuffix(arg, ")") {
+		arg = strings.TrimSpace(arg[2 : len(arg)-1])
+	}
 	if strings.HasPrefix(arg, "\"") {
-		return splitCombo(unquote(arg))
+		s := unquote(arg)
+		return splitCombo(s), s
 	}
 	var sb strings.Builder
 	for _, p := range strings.Split(arg, "..") {
@@ -131,7 +142,14 @@ func resolveKeys(arg, loopVar string) []string {
 			sb.WriteString(p)
 		}
 	}
-	return splitCombo(sb.String())
+	raw := sb.String()
+	return splitCombo(raw), raw
+}
+
+// rebindable: only a single literal combo can be recorded over. the workspace
+// loop (its combo carries the 1…0 range) and the pointer binds cannot.
+func rebindable(combo string) bool {
+	return combo != "" && !strings.Contains(combo, "\u2026") && !strings.Contains(combo, "mouse")
 }
 
 func splitCombo(s string) []string {
@@ -225,6 +243,9 @@ func describeDispatcher(d string) string {
 }
 
 func describeExec(cmd string) string {
+	if strings.HasPrefix(cmd, "ryoku-app ") {
+		return strings.TrimPrefix(cmd, "ryoku-app ")
+	}
 	switch {
 	case cmd == "kitty":
 		return "terminal"

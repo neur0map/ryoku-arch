@@ -316,6 +316,8 @@ package() {
   for s in "$_repo"/ryoku/hyprland/scripts/ryoku-cmd-*; do
     install -Dm755 "$s" "$pkgdir/usr/bin/${s##*/}"
   done
+  # the app-role resolver the keybinds launch by bare name (SUPER+B -> browser, ...)
+  install -Dm755 "$_repo/ryoku/hyprland/scripts/ryoku-app" "$pkgdir/usr/bin/ryoku-app"
   for s in "$_repo"/system/hardware/*/ryoku-*; do
     install -Dm755 "$s" "$pkgdir/usr/bin/${s##*/}"
   done
