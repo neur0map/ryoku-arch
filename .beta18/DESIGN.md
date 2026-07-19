@@ -503,6 +503,14 @@ default flex instead of a fastfetch screenshot.
 **Privacy rule, unchanged:** no IPs, no MACs, no real names. Username,
 hostname, hardware, uptime, packages, safe to post by construction.
 
+**Customization (post-beta18).** The plate is user-customizable without leaving
+the page: an in-place `EDIT` toggle (replacing the old `EXPORT PLATE` head
+action, which moves into the edit panel) shows/hides each block, swaps the hero
+for a gallery pick or your own image auto-dithered to 1-bit bone (live, via
+`Ryoku.Ui/DitherImage`), edits the text, and exports a PNG or shares a
+self-contained `.ryoprofile`. Zero-config renders exactly the stock plate. See
+`docs/profile.md`.
+
 ### Credits, kansha
 
 Gratitude as a poster: the Three Graces for the people the project stands on.

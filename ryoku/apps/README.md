@@ -35,14 +35,16 @@ its `<name>.desktop` plus `quickshell/logo.svg` register it in the launcher.
 
 - `ryowalls/` Wallpaper browser: search wallhaven, preview the rice, set it.
   Engine: the `ryowalls` script. Summon with Super+Shift+W.
-- `ryovm/` Virtual-machine manager built on quickemu/quickget: a Library of your
-  machines and a Catalog of ~700 downloadable systems (Windows, macOS, Linux, the
-  BSDs, Android x86). Builds in app with a live progress bar (the `ryovm-fetch` Go
-  helper, under `fetch/`) or from any local ISO; per-VM cores/memory, snapshots,
-  and Window / SPICE / Headless display. Engine: the `ryovm` script. Summon with
-  Super+Shift+V. The GPU-passthrough gaming VM (a single, dedicated VM that owns
-  the discrete GPU) is configured and launched from Ryoku Settings > GPU, not from
-  here.
+- `ryovm/` **Ryoport**, the machine hub: one console for local virtual machines,
+  remote VPS, and SSH connections. Three plates behind a nav rail (Super+Shift+V,
+  still `qs -c ryovm`): a **Dashboard** fleet overview, a **Machines** yard built
+  on quickemu/quickget (a Library of your machines and a Catalog of ~700
+  downloadable systems, in-app downloads via the `ryovm-fetch` Go helper, per-VM
+  cores/memory, snapshots, Window / SPICE / Headless, and live pause/balloon/pin
+  through the `ryovm-mon` helper), and a **Remotes** fleet that reads `~/.ssh/config`,
+  shows live reachability and agentless health probes, and connects in a tap
+  (the `ryossh` Go helper). Engines: `ryovm` (VMs) and `ryossh` (remotes). The
+  GPU-passthrough gaming VM is still configured from Ryoku Settings > GPU, not here.
 
 ## Install paths
 
