@@ -213,14 +213,19 @@ func applyRyokuTheme() error {
 	// clear any active-rice marker: the signature is a fresh look, not a rice,
 	// so the Rices page must not keep showing the last rice as applied.
 	setActiveRice("")
+	// the Ryoku mark: the 力 glyph, no custom logo, tinted to the accent, so the
+	// signature brand reads as Ryoku (the desktop name is left as the user set it).
+	mergeBrandJSON(map[string]any{"markText": "力", "markImage": "", "markTint": true})
 	// grainy-mono palette + regen the border lua, reload hypr and kitty.
 	return applyScheme("mono")
 }
 
-// mergeShellJSON overlays keys onto ~/.config/ryoku/shell.json, preserving every
-// key the shell already holds. The shell hot-reloads on write.
-func mergeShellJSON(keys map[string]any) {
-	p := filepath.Join(configHome(), "ryoku", "shell.json")
+// mergeShellJSON overlays keys onto shell.json, mergeBrandJSON onto brand.json;
+// both preserve every key already present, and the shell hot-reloads on write.
+func mergeShellJSON(keys map[string]any) { mergeStore("shell.json", keys) }
+func mergeBrandJSON(keys map[string]any) { mergeStore("brand.json", keys) }
+func mergeStore(name string, keys map[string]any) {
+	p := filepath.Join(configHome(), "ryoku", name)
 	m := map[string]any{}
 	if b, err := os.ReadFile(p); err == nil {
 		_ = json.Unmarshal(b, &m)
