@@ -85,6 +85,21 @@ hl.window_rule({
 })
 
 hl.window_rule({
+    name   = "float-ryoport-ssh",
+    match  = { class = "ryoport-ssh" },
+    float  = true,
+    size   = { 900, 560 },
+    center = true,
+})
+
+hl.window_rule({
+    name   = "float-ryoport-console",
+    match  = { class = "spicy" },
+    float  = true,
+    center = true,
+})
+
+hl.window_rule({
     name   = "float-ryoku-extras",
     match  = { class = "ryoku-extras" },
     float  = true,
