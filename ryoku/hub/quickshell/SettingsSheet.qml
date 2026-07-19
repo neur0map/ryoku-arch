@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Controls
+import Quickshell
+import Quickshell.Io
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
 
@@ -8,7 +10,8 @@ import Ryoku.Ui.Singletons
 // edit to the schema and nothing else.
 //
 // The draft object holds live values and is the page's own; this only reads it
-// and reports edits back. Nothing here writes a file.
+// and reports edits back. The one file it writes is the weather resolver cache
+// (the picked place's coords the weather widgets read), on a location pick.
 Item {
     id: sheet
 
@@ -108,13 +111,13 @@ Item {
                             width: sect.span(sect.packed[index] || 4)
                             height: neededHeight
                             block: Spans.isBlock(r.ctl) || (r.ctl === "seg" && cell.optCount >= 3)
-                            footH: (r.ctl === "pick" || r.ctl === "text") ? 34 : 0
+                            footH: (r.ctl === "pick" || r.ctl === "text" || r.ctl === "image" || r.ctl === "location") ? 34 : 0
                             controlWidth: Spans.inlineWidth(r.ctl, optCount, width)
 
                             label: r.label
                             desc: r.desc || ""
                             unit: r.pct ? "%" : (r.unit || "")
-                            value: (r.ctl === "text" || r.ctl === "seg") ? "" : sheet.shown(r)
+                            value: (r.ctl === "text" || r.ctl === "seg" || r.ctl === "image" || r.ctl === "location") ? "" : sheet.shown(r)
                             def: sheet.shownDef(r)
                             changed: sheet.isChanged(r)
                             source: r.src + ".json"
@@ -131,6 +134,8 @@ Item {
                                     case "multi": return multiC;
                                     case "pick": return pickC;
                                     case "gallery": return galleryC;
+                                    case "image": return imageC;
+                                    case "location": return locationC;
                                     default: return textC;
                                     }
                                 }
@@ -247,6 +252,199 @@ Item {
                                     }
                                 }
                             }
+                            // an image mark: a live thumbnail of the current
+                            // file plus Choose (opens the shared file picker,
+                            // hosted by the page) and Clear (falls back to the
+                            // text glyph). far friendlier than typing a path.
+                            Component {
+                                id: imageC
+                                Row {
+                                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                                    height: 30
+                                    spacing: Tokens.s2
+                                    Rectangle {
+                                        id: imgThumb
+                                        width: 46; height: 28
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        radius: Tokens.radius
+                                        color: "transparent"
+                                        border.width: Tokens.border
+                                        border.color: Tokens.line
+                                        clip: true
+                                        readonly property string src: String(sheet.val(cell.r))
+                                        Image {
+                                            anchors.fill: parent
+                                            anchors.margins: 1
+                                            visible: imgThumb.src !== ""
+                                            source: imgThumb.src === "" ? "" : (imgThumb.src.indexOf("://") >= 0 ? imgThumb.src : "file://" + imgThumb.src)
+                                            fillMode: Image.PreserveAspectCrop
+                                            asynchronous: true
+                                            sourceSize.width: 140
+                                        }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            visible: imgThumb.src === ""
+                                            text: "力"
+                                            color: Tokens.inkFaint
+                                            font.family: Tokens.jp
+                                            font.pixelSize: 13
+                                        }
+                                    }
+                                    Btn {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "CHOOSE…"
+                                        onAct: sheet.imagePick(cell.r)
+                                    }
+                                    Btn {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: String(sheet.val(cell.r)) !== ""
+                                        text: "CLEAR"
+                                        onAct: sheet.edited(cell.r.key, "")
+                                    }
+                                }
+                            }
+                            // a location field with live autocomplete: as you
+                            // type, Open-Meteo's keyless geocoder (the same one
+                            // the weather widgets resolve with) suggests real
+                            // places; picking one stores the name and records
+                            // the resolver cache so all three weather surfaces
+                            // land on exactly that place (Paris FR vs Paris TX).
+                            // typing freely still works; empty locates by IP.
+                            Component {
+                                id: locationC
+                                Item {
+                                    id: locRoot
+                                    anchors.fill: parent
+                                    readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku"
+
+                                    Rectangle {
+                                        id: locField
+                                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                                        height: 30
+                                        color: "transparent"
+                                        radius: Tokens.radius
+                                        border.width: lti.activeFocus ? 2 : Tokens.border
+                                        border.color: lti.activeFocus ? Tokens.ink : Tokens.line
+                                        TextInput {
+                                            id: lti
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 8
+                                            anchors.rightMargin: 8
+                                            verticalAlignment: Text.AlignVCenter
+                                            clip: true
+                                            autoScroll: activeFocus
+                                            color: Tokens.ink
+                                            font.family: Tokens.ui
+                                            font.pixelSize: 12
+                                            selectByMouse: true
+                                            text: String(sheet.val(cell.r))
+                                            onTextEdited: debounce.restart()
+                                            onEditingFinished: sheet.edited(cell.r.key, text)
+                                        }
+                                        Text {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: 8
+                                            visible: lti.text === "" && !lti.activeFocus
+                                            text: "Empty locates by IP"
+                                            color: Tokens.inkFaint
+                                            font.family: Tokens.ui
+                                            font.pixelSize: 12
+                                        }
+                                    }
+
+                                    Timer {
+                                        id: debounce
+                                        interval: 300
+                                        onTriggered: {
+                                            var q = lti.text.trim();
+                                            if (q.length < 2) { locPop.close(); return; }
+                                            geo.command = ["curl", "-s", "--max-time", "6",
+                                                "https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&format=json&name=" + encodeURIComponent(q)];
+                                            geo.running = false;
+                                            geo.running = true;
+                                        }
+                                    }
+
+                                    Process {
+                                        id: geo
+                                        stdout: StdioCollector {
+                                            onStreamFinished: {
+                                                var out = [];
+                                                try {
+                                                    var j = JSON.parse(this.text);
+                                                    if (j && Array.isArray(j.results)) {
+                                                        for (var i = 0; i < j.results.length; i++) {
+                                                            var r = j.results[i];
+                                                            if (typeof r.latitude === "number" && typeof r.longitude === "number")
+                                                                out.push({ name: r.name || "", admin1: r.admin1 || "", country: r.country || "", lat: r.latitude, lon: r.longitude });
+                                                        }
+                                                    }
+                                                } catch (e) {}
+                                                locList.model = out;
+                                                if (out.length > 0 && lti.activeFocus) locPop.open(); else locPop.close();
+                                            }
+                                        }
+                                    }
+
+                                    FileView {
+                                        id: locCache
+                                        path: locRoot.stateDir + "/weather-loc.json"
+                                        blockLoading: true
+                                        printErrors: false
+                                    }
+
+                                    Popup {
+                                        id: locPop
+                                        parent: locField
+                                        y: -locPop.height - 2
+                                        width: locField.width
+                                        padding: 1
+                                        focus: false
+                                        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                                        implicitHeight: Math.min(locList.count, 6) * 28 + 2
+                                        background: Rectangle {
+                                            color: Tokens.paperLift
+                                            radius: Tokens.radius
+                                            border.width: Tokens.border
+                                            border.color: Tokens.lineStrong
+                                        }
+                                        contentItem: ListView {
+                                            id: locList
+                                            clip: true
+                                            model: []
+                                            delegate: Rectangle {
+                                                id: lrow
+                                                required property var modelData
+                                                width: ListView.view.width
+                                                height: 28
+                                                color: lhov.hovered ? Tokens.tint10 : "transparent"
+                                                Text {
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    anchors.left: parent.left
+                                                    anchors.right: parent.right
+                                                    anchors.leftMargin: 8
+                                                    anchors.rightMargin: 8
+                                                    elide: Text.ElideRight
+                                                    text: lrow.modelData.name + (lrow.modelData.admin1 ? "  ·  " + lrow.modelData.admin1 : "") + (lrow.modelData.country ? "  ·  " + lrow.modelData.country : "")
+                                                    color: Tokens.ink
+                                                    font.family: Tokens.ui
+                                                    font.pixelSize: 12
+                                                }
+                                                HoverHandler { id: lhov; cursorShape: Qt.PointingHandCursor }
+                                                TapHandler {
+                                                    onTapped: {
+                                                        lti.text = lrow.modelData.name;
+                                                        sheet.edited(cell.r.key, lrow.modelData.name);
+                                                        locCache.setText(JSON.stringify({ query: lrow.modelData.name, city: lrow.modelData.name, lat: lrow.modelData.lat, lon: lrow.modelData.lon }));
+                                                        locPop.close();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -256,6 +454,9 @@ Item {
 
     signal pickRequested(var row)
     function openPick(r) { pickRequested(r) }
+
+    signal imagePickRequested(var row)
+    function imagePick(r) { imagePickRequested(r) }
 
     Column {
         anchors.centerIn: parent

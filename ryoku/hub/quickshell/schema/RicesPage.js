@@ -49,6 +49,24 @@ var rows = [
         "tab": "My",
         "group": "OTHER",
         "key": "",
+        "label": "Import (a shared rice folder)",
+        "desc": "Installs an exported rice folder as a local rice; the slug is de-duped",
+        "ctl": "action",
+        "src": "rice.json (copied under ~/.config/ryoku/rices)"
+    },
+    {
+        "tab": "My",
+        "group": "OTHER",
+        "key": "",
+        "label": "Save coverage (preflight readout)",
+        "desc": "What a save carries right now: wallpaper kind, decors, widgets, layers",
+        "ctl": "readout",
+        "src": "ryoku-hub rice preflight (read-only)"
+    },
+    {
+        "tab": "My",
+        "group": "OTHER",
+        "key": "",
         "label": "Save (commit the capture)",
         "desc": "Sums up what applying alters: windows, bar, colours, wallpaper, cursor",
         "ctl": "action",
@@ -166,10 +184,10 @@ var rows = [
         "tab": "",
         "group": "ALSO SETS",
         "key": "layers",
-        "label": "ALSO SETS (behavior layers carried by the rice)",
-        "desc": "Hypr behavior bundled beyond the look; applying the rice sets these too",
+        "label": "ALSO SETS \u00b7 TAP TO EXCLUDE (behavior toggles)",
+        "desc": "Behaviour bundled beyond the look; every chip applies unless tapped off",
         "ctl": "multi",
-        "src": "hypr.json",
+        "src": "hypr.json (brand \u2192 brand.json)",
         "opts": [
             "input",
             "windowRules",
@@ -177,7 +195,8 @@ var rows = [
             "appOverrides",
             "keybinds",
             "autostart",
-            "env"
+            "env",
+            "brand"
         ]
     },
     {

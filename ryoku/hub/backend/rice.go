@@ -873,7 +873,12 @@ func riceTouches(r Rice, dir string) []riceTouch {
 	}
 	for _, lr := range layerRows {
 		if _, ok := r.Layers[lr.key]; ok {
-			touches = append(touches, riceTouch{homeRel(filepath.Join(cfg, "hypr.json")), "config", lr.icon, lr.label, true})
+			// every hypr layer lands in hypr.json; brand routes to its own store.
+			store := "hypr.json"
+			if lr.key == "brand" {
+				store = "brand.json"
+			}
+			touches = append(touches, riceTouch{homeRel(filepath.Join(cfg, store)), "config", lr.icon, lr.label, true})
 		}
 	}
 	return touches

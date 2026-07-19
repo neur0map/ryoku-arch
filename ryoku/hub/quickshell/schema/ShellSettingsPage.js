@@ -218,8 +218,8 @@ var rows = [
         "group": "BRAND",
         "key": "markImage",
         "label": "Logo image",
-        "desc": "Use an image as the mark instead of the glyph",
-        "ctl": "text",
+        "desc": "Pick an image to use as the mark instead of the glyph",
+        "ctl": "image",
         "src": "brand"
     },
     {
@@ -236,8 +236,8 @@ var rows = [
         "group": "WEATHER",
         "key": "weatherLocation",
         "label": "Location",
-        "desc": "Where to read weather for. Empty reads it from your IP.",
-        "ctl": "text",
+        "desc": "Search a city; empty reads it from your IP",
+        "ctl": "location",
         "src": "shell"
     },
     {

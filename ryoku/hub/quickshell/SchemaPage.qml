@@ -24,6 +24,7 @@ Item {
     property string query: ""
     property alias tab: sheet.tab
     default property alias extras: extraSlot.data
+    property var pendingImageRow: null
 
     signal edited(string key, var value)
     signal pickRequested(var row)
@@ -128,5 +129,19 @@ Item {
         tab: page.tabs.length ? page.tabs[0] : ""
         onEdited: (k, v) => page.edited(k, v)
         onPickRequested: (r) => page.pickRequested(r)
+        onImagePickRequested: (r) => { page.pendingImageRow = r; imgPick.open(); }
+    }
+
+    // the image-mark picker: an `image` control asks for it (SettingsSheet emits
+    // imagePickRequested); the chosen path lands on the row's key like any edit.
+    // full-page overlay so it covers the tabs, not just the sheet.
+    PickFile {
+        id: imgPick
+        title: "Choose an image"
+        onPicked: (p) => {
+            if (page.pendingImageRow) page.edited(page.pendingImageRow.key, ("" + p).replace("file://", ""));
+            imgPick.active = false;
+        }
+        onCanceled: imgPick.active = false
     }
 }

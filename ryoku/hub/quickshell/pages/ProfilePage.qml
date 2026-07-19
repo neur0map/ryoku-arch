@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import QtQuick.Dialogs
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
 import "../Singletons"
@@ -21,6 +22,10 @@ Item {
 
     property var hub
     readonly property bool fullBleed: true
+    property bool editing: false
+    property bool heroEditing: false
+    property bool grabbing: false
+    property int fieldsArmed: 0 // inline text fields currently being edited
 
     Component.onCompleted: LiveStats.active = true
     Component.onDestruction: LiveStats.active = false
@@ -97,6 +102,156 @@ Item {
 
     readonly property var paletteModel: SysInfo.sysPalette.length > 0 ? SysInfo.sysPalette.split(",") : Wallust.ramp
     readonly property string barcodeText: "RYOKU-" + SysInfo.codename.toUpperCase() + "-" + (pg.installDate.length > 0 ? pg.installDate : "UNKNOWN")
+
+    // customization: read from ProfileStore with the plate's built-in default, so
+    // an absent/empty profile.json renders exactly the stock marble plate.
+    function f(path, def) { return ProfileStore.get(path, def); }
+
+    // ── edit-mode helpers ────────────────────────────────────────────────────
+    // A block reads on unless profile.json turns it off. In EDIT mode an off
+    // block stays rendered but ghosted (a bring-it-back affordance); at rest it
+    // vanishes.
+    function blockOn(id) { return pg.f("blocks." + id, true); }
+    function blockVisible(id) { return pg.blockOn(id) || pg.editing; }
+    function blockOpacity(id) { return pg.blockOn(id) ? 1.0 : 0.28; }
+    function toggleBlock(id) {
+        var p = { "blocks": {} };
+        p.blocks[id] = !pg.blockOn(id);
+        ProfileStore.put(p);
+    }
+    readonly property bool heroLeft: pg.f("heroSide", "right") === "left"
+    // the hero sits right by default (dossier left); heroSide flips both.
+    readonly property int heroDir: pg.heroLeft ? -1 : 1
+
+    // A small corner eye-toggle for a block, shown only in EDIT mode.
+    component EyeChip: Rectangle {
+        id: chip
+        property string block: ""
+        readonly property bool on: pg.blockOn(chip.block)
+        visible: pg.editing
+        z: 50
+        width: crow.width + Tokens.s3 * 2
+        height: 26
+        radius: Tokens.radius
+        color: chip.on ? Tokens.bone : Qt.rgba(Tokens.paper.r, Tokens.paper.g, Tokens.paper.b, 0.9)
+        border.width: Tokens.border
+        border.color: chip.on ? Tokens.bone : Tokens.lineStrong
+        Row {
+            id: crow
+            anchors.centerIn: parent
+            spacing: Tokens.s1
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: chip.on ? "\u25c9" : "\u25cb"
+                color: chip.on ? Tokens.inkOnBone : Tokens.inkDim
+                font.pixelSize: 11
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: chip.block.toUpperCase()
+                color: chip.on ? Tokens.inkOnBone : Tokens.inkDim
+                font.family: Tokens.ui
+                font.pixelSize: 8
+                font.letterSpacing: 0.5
+            }
+        }
+        HoverHandler { cursorShape: Qt.PointingHandCursor }
+        MouseArea {
+            anchors.fill: parent
+            anchors.margins: -9
+            onClicked: pg.toggleBlock(chip.block)
+        }
+    }
+
+    // Click-to-edit text: shows a styled label at rest, an outlined hit box in
+    // EDIT mode, and a clean horizontal field (upright + readable, whatever the
+    // label's transform) while editing. Commits to `field` on Enter / focus loss.
+    component InlineText: Item {
+        id: ie
+        property string field: ""
+        property string value: ""
+        property alias font: disp.font
+        property color color: Tokens.ink
+        property int hAlign: Text.AlignLeft
+        property int fontSizeMode: Text.FixedSize
+        property int minimumPixelSize: 8
+        property bool armed: false
+        implicitWidth: disp.implicitWidth
+        implicitHeight: disp.implicitHeight
+
+        onArmedChanged: {
+            pg.fieldsArmed += ie.armed ? 1 : -1;
+            if (ie.armed) {
+                inp.text = ie.value;
+                inp.forceActiveFocus();
+                inp.selectAll();
+            }
+        }
+        Connections {
+            target: pg
+            function onEditingChanged() { if (!pg.editing && ie.armed) ie.commit(); }
+        }
+
+        function commit() {
+            if (!ie.armed)
+                return;
+            ie.armed = false;
+            if (inp.text === ie.value)
+                return;
+            var parts = ie.field.split(".");
+            var patch = {};
+            patch[parts[0]] = {};
+            patch[parts[0]][parts[1]] = inp.text;
+            ProfileStore.put(patch);
+        }
+
+        // the styled label, at rest and in EDIT mode until armed.
+        Text {
+            id: disp
+            anchors.fill: parent
+            text: ie.value
+            color: ie.color
+            horizontalAlignment: ie.hAlign
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+            fontSizeMode: ie.fontSizeMode
+            minimumPixelSize: ie.minimumPixelSize
+            visible: !ie.armed
+        }
+        // an outlined hit box, so the label reads as editable in EDIT mode.
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -3
+            visible: pg.editing && !ie.armed
+            radius: 2
+            color: click.containsMouse ? Qt.rgba(Tokens.ink.r, Tokens.ink.g, Tokens.ink.b, 0.06) : "transparent"
+            border.width: Tokens.border
+            border.color: click.containsMouse ? Tokens.lineStrong : Tokens.line
+        }
+        // the in-place editor: same font, size, and position as the label.
+        TextInput {
+            id: inp
+            anchors.fill: parent
+            visible: ie.armed
+            enabled: ie.armed
+            font: disp.font
+            color: ie.color
+            horizontalAlignment: ie.hAlign
+            verticalAlignment: TextInput.AlignVCenter
+            clip: true
+            onAccepted: ie.commit()
+            onActiveFocusChanged: if (!activeFocus) ie.commit()
+            Keys.onEscapePressed: event => { inp.text = ie.value; ie.armed = false; event.accepted = true; }
+        }
+        MouseArea {
+            id: click
+            anchors.fill: parent
+            enabled: pg.editing && !ie.armed
+            hoverEnabled: pg.editing
+            cursorShape: Qt.IBeamCursor
+            onClicked: ie.armed = true
+        }
+    }
 
     // ── reusable pieces ─────────────────────────────────────────────────────
 
@@ -217,19 +372,30 @@ Item {
 
     // A monumental face-kanji breathing behind the void (the Profile's own 横顔).
     Text {
+        visible: pg.blockVisible("watermark")
+        opacity: pg.blockOpacity("watermark")
         anchors.verticalCenter: parent.verticalCenter
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.horizontalCenterOffset: -170
-        text: "顔"
+        text: pg.f("text.watermarkGlyph", "顔")
         color: Qt.rgba(Tokens.ink.r, Tokens.ink.g, Tokens.ink.b, 0.055)
         font.family: Tokens.jp
         font.pixelSize: 540
+    }
+    EyeChip {
+        block: "watermark"
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.horizontalCenterOffset: -170
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenterOffset: -300
     }
 
     // Kinetic epithets: big ghosted words -- power, beauty, demise, void -- warping
     // through a 1-bit dither dissolve, the bust eating their right edge.
     Item {
         id: kinetic
+        visible: pg.blockVisible("epithets")
+        opacity: pg.blockOpacity("epithets")
         anchors.left: parent.left
         anchors.leftMargin: 100
         anchors.top: parent.top
@@ -237,8 +403,14 @@ Item {
         width: 800
         height: 180
 
+        EyeChip {
+            block: "epithets"
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
         // The arc: ascent to ruin -- power, beauty, grace, then the fall.
-        readonly property var words: ["POWER", "BEAUTY", "GRACE", "RUIN", "DEMISE", "VOID"]
+        readonly property var words: pg.f("text.epithets", ["POWER", "BEAUTY", "GRACE", "RUIN", "DEMISE", "VOID"])
         property int idx: 0
         property real mix: 0
         // The box is wide enough to hold the longest word at full size, so all
@@ -313,11 +485,13 @@ Item {
     // marble already walked: power, beauty, ruin, emptiness.
     Column {
         id: verse
+        visible: pg.blockVisible("epithets")
+        opacity: pg.blockOpacity("epithets")
         x: 1030
         y: 400
         spacing: Tokens.s3
         Repeater {
-            model: ["力", "美", "滅", "虚"]
+            model: pg.f("text.verse", ["力", "美", "滅", "虚"])
             delegate: Text {
                 required property var modelData
                 text: modelData
@@ -330,17 +504,65 @@ Item {
 
     // The hero: the cracked bust, bone xerox, bleeding on black. Faces left,
     // into the dossier; the curls bleed off the right.
-    Image {
+    Item {
         id: hero
-        source: Qt.resolvedUrl("../art/profile-hero.png")
+        readonly property string kind: pg.f("hero.kind", "default")
+        readonly property string src: pg.f("hero.source", "")
         height: parent.height + 96
         width: height * 900 / 1157
-        fillMode: Image.PreserveAspectFit
-        smooth: false
-        asynchronous: true
         anchors.verticalCenter: parent.verticalCenter
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.horizontalCenterOffset: 240
+        anchors.horizontalCenterOffset: 240 * pg.heroDir
+        // default marble + gallery art are already 1-bit bone, shown raw.
+        Image {
+            anchors.fill: parent
+            visible: hero.kind !== "custom"
+            source: (hero.kind === "gallery" && hero.src.length > 0) ? (Ryodecors.dir + hero.src) : Qt.resolvedUrl("../art/profile-hero.png")
+            fillMode: Image.PreserveAspectFit
+            smooth: false
+            asynchronous: true
+        }
+        // a custom image runs the live dither, framed by focal point + zoom.
+        Item {
+            anchors.fill: parent
+            clip: true
+            visible: hero.kind === "custom"
+            DitherImage {
+                width: hero.width * pg.f("hero.zoom", 1.0)
+                height: hero.height * pg.f("hero.zoom", 1.0)
+                x: (hero.width - width) * pg.f("hero.focalX", 0.5)
+                y: (hero.height - height) * pg.f("hero.focalY", 0.4)
+                source: hero.src.length > 0 ? ("file://" + (Quickshell.env("HOME") || "") + "/.config/ryoku/profile/" + hero.src) : ""
+                dotScale: pg.f("hero.dither", 1.0)
+                invert: pg.f("hero.invert", false)
+                fillMode: Image.PreserveAspectCrop
+            }
+        }
+        // in EDIT mode the hero carries an affordance opening the hero editor.
+        Rectangle {
+            visible: pg.editing
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: parent.height * 0.2
+            width: heroLabel.width + Tokens.s4 * 2
+            height: 34
+            radius: Tokens.radius
+            color: Qt.rgba(Tokens.paper.r, Tokens.paper.g, Tokens.paper.b, 0.92)
+            border.width: Tokens.border
+            border.color: Tokens.lineStrong
+            z: 40
+            Text {
+                id: heroLabel
+                anchors.centerIn: parent
+                text: "EDIT HERO"
+                color: Tokens.ink
+                font.family: Tokens.ui
+                font.pixelSize: 10
+                font.letterSpacing: 0.6
+            }
+            HoverHandler { cursorShape: Qt.PointingHandCursor }
+            TapHandler { onTapped: pg.heroEditing = true }
+        }
     }
 
     // A slow scan drifting down the bust -- the specimen under the lens.
@@ -385,35 +607,43 @@ Item {
 
     // Marginalia spine.
     Item {
-        anchors.left: parent.left
+        visible: pg.blockVisible("marginalia")
+        opacity: pg.blockOpacity("marginalia")
+        anchors.left: pg.heroLeft ? undefined : parent.left
+        anchors.right: pg.heroLeft ? parent.right : undefined
         anchors.leftMargin: Tokens.s4
+        anchors.rightMargin: Tokens.s4
         anchors.verticalCenter: parent.verticalCenter
         width: 1
         height: 1
         Text {
             anchors.centerIn: parent
             rotation: -90
-            text: "RYOKU · " + pg.fv(SysInfo.codename) + " · KERNEL " + pg.fv(SysInfo.sysKernel) + " · SHOT ON BLACK"
+            text: pg.f("text.marginalia", "RYOKU · " + pg.fv(SysInfo.codename) + " · KERNEL " + pg.fv(SysInfo.sysKernel) + " · SHOT ON BLACK")
             color: Tokens.inkFaint
             font.family: Tokens.mono
             font.pixelSize: Tokens.fTiny
             font.letterSpacing: Tokens.trackMark
         }
     }
+    EyeChip {
+        block: "marginalia"
+        anchors.left: pg.heroLeft ? undefined : parent.left
+        anchors.right: pg.heroLeft ? parent.right : undefined
+        anchors.leftMargin: Tokens.s2
+        anchors.rightMargin: Tokens.s2
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Tokens.s6 * 2
+    }
 
     Btn {
-        id: exportBtn
-        text: "EXPORT PLATE"
+        id: editBtn
+        text: pg.editing ? "DONE" : "EDIT"
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.rightMargin: Tokens.s6
         anchors.topMargin: Tokens.s6
-        onAct: {
-            const path = Quickshell.env("HOME") + "/Pictures/ryoku-dossier-" + Qt.formatDate(new Date(), "yyyyMMdd") + ".png";
-            pg.grabToImage(function (res) {
-                res.saveToFile(path);
-            }, Qt.size(pg.width * 2, pg.height * 2));
-        }
+        onAct: pg.editing = !pg.editing
     }
 
     // ── LEFT: the identity + dossier small-print ──────────────────────────────
@@ -453,13 +683,17 @@ Item {
                     font.capitalization: Font.AllUppercase
                 }
             }
-            Text {
-                width: parent.width
-                text: pg.fv(SysInfo.sysUser)
+            InlineText {
+                // the headline runs wide, over the empty space left of the hero,
+                // so long names shrink to fit on one line instead of truncating.
+                width: 560
+                field: "text.name"
+                value: pg.f("text.name", pg.fv(SysInfo.sysUser))
                 color: Tokens.ink
                 font.family: Tokens.display
                 font.pixelSize: 104
-                elide: Text.ElideRight
+                fontSizeMode: Text.HorizontalFit
+                minimumPixelSize: 30
             }
             Text {
                 text: "@" + pg.fv(SysInfo.sysHost) + "   ·   " + pg.clockTime
@@ -467,19 +701,19 @@ Item {
                 font.family: Tokens.mono
                 font.pixelSize: Tokens.fSmall
             }
-            Text {
+            InlineText {
                 width: parent.width
-                topPadding: Tokens.s1
-                text: "A live specimen — cracked, shot on black."
+                field: "text.tagline"
+                value: pg.f("text.tagline", "A live specimen — cracked, shot on black.")
                 color: Tokens.inkDim
                 font.family: Tokens.display
                 font.italic: true
                 font.pixelSize: Tokens.fRow
-                elide: Text.ElideRight
             }
         }
 
-        // Dossier small-print, anchored to the foot.
+        // Dossier small-print, anchored to the foot. Each block is wrapped so its
+        // eye chip (in the gutter) can anchor to a real parent.
         Column {
             id: foot
             anchors.left: parent.left
@@ -487,83 +721,115 @@ Item {
             anchors.bottom: parent.bottom
             spacing: Tokens.s3
 
-            Column {
+            Item {
                 width: parent.width
-                spacing: 0
-                SpecRow {
-                    k: "Resolution"
-                    v: pg.fv(SysInfo.sysResolution) + (SysInfo.sysRefresh && SysInfo.sysRefresh.length > 0 ? " @ " + SysInfo.sysRefresh : "")
-                }
-                SpecRow {
-                    k: "Compositor"
-                    v: SysInfo.sysWM + (SysInfo.sysHyprVer && SysInfo.sysHyprVer !== "-" ? " v" + SysInfo.sysHyprVer : "")
-                }
-                SpecRow {
-                    k: "Uptime"
-                    v: pg.fv(SysInfo.sysUptime)
-                }
-            }
-
-            Column {
-                width: parent.width
-                spacing: Tokens.s2
-                Wave {
+                height: specsBlk.height
+                visible: pg.blockVisible("specs")
+                Column {
+                    id: specsBlk
                     width: parent.width
-                    frac: {
-                        const total = Math.max(1, parseInt(SysInfo.sysPackages) || 1);
-                        const mine = (parseInt(SysInfo.sysPkgExplicit) || 0) + (parseInt(SysInfo.sysPkgAur) || 0);
-                        return Math.max(0, Math.min(1, mine / total));
+                    opacity: pg.blockOpacity("specs")
+                    spacing: 0
+                    SpecRow {
+                        k: "Resolution"
+                        v: pg.fv(SysInfo.sysResolution) + (SysInfo.sysRefresh && SysInfo.sysRefresh.length > 0 ? " @ " + SysInfo.sysRefresh : "")
+                    }
+                    SpecRow {
+                        k: "Compositor"
+                        v: SysInfo.sysWM + (SysInfo.sysHyprVer && SysInfo.sysHyprVer !== "-" ? " v" + SysInfo.sysHyprVer : "")
+                    }
+                    SpecRow {
+                        k: "Uptime"
+                        v: pg.fv(SysInfo.sysUptime)
                     }
                 }
-                Text {
-                    text: SysInfo.sysPkgExplicit + " EXPLICIT · " + SysInfo.sysPkgAur + " AUR · " + SysInfo.sysPackages + " TOTAL"
-                    color: Tokens.inkMuted
-                    font.family: Tokens.mono
-                    font.pixelSize: 10
-                }
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 18
-                radius: Tokens.radius
-                color: "transparent"
-                border.width: Tokens.border
-                border.color: Tokens.line
-                clip: true
-                Row {
-                    anchors.fill: parent
-                    anchors.margins: Tokens.border
-                    Repeater {
-                        model: pg.paletteModel
-                        Rectangle {
-                            required property var modelData
-                            width: parent.width / Math.max(1, pg.paletteModel.length)
-                            height: parent.height
-                            color: modelData
-                        }
-                    }
-                }
+                EyeChip { block: "specs"; anchors.left: parent.right; anchors.leftMargin: Tokens.s3; anchors.verticalCenter: parent.verticalCenter }
             }
 
             Item {
                 width: parent.width
-                height: bc.implicitHeight
-                Barcode {
-                    id: bc
-                    anchors.left: parent.left
-                    anchors.bottom: parent.bottom
-                    text: pg.barcodeText
-                    unit: Math.max(1, Math.min(2, (foot.width * 0.62) / (Math.max(1, bc.text.length + 2) * 16)))
+                height: pkgBlk.height
+                visible: pg.blockVisible("packages")
+                Column {
+                    id: pkgBlk
+                    width: parent.width
+                    opacity: pg.blockOpacity("packages")
+                    spacing: Tokens.s2
+                    Wave {
+                        width: parent.width
+                        frac: {
+                            const total = Math.max(1, parseInt(SysInfo.sysPackages) || 1);
+                            const mine = (parseInt(SysInfo.sysPkgExplicit) || 0) + (parseInt(SysInfo.sysPkgAur) || 0);
+                            return Math.max(0, Math.min(1, mine / total));
+                        }
+                    }
+                    Text {
+                        text: SysInfo.sysPkgExplicit + " EXPLICIT · " + SysInfo.sysPkgAur + " AUR · " + SysInfo.sysPackages + " TOTAL"
+                        color: Tokens.inkMuted
+                        font.family: Tokens.mono
+                        font.pixelSize: 10
+                    }
                 }
-                Text {
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    text: "No. " + pg.editionNo()
-                    color: Tokens.inkDim
-                    font.family: Tokens.mono
-                    font.pixelSize: Tokens.fMicro
+                EyeChip { block: "packages"; anchors.left: parent.right; anchors.leftMargin: Tokens.s3; anchors.verticalCenter: parent.verticalCenter }
+            }
+
+            Item {
+                width: parent.width
+                height: palBlk.height
+                visible: pg.blockVisible("palette")
+                Rectangle {
+                    id: palBlk
+                    width: parent.width
+                    opacity: pg.blockOpacity("palette")
+                    height: 18
+                    radius: Tokens.radius
+                    color: "transparent"
+                    border.width: Tokens.border
+                    border.color: Tokens.line
+                    clip: true
+                    Row {
+                        anchors.fill: parent
+                        anchors.margins: Tokens.border
+                        Repeater {
+                            model: pg.paletteModel
+                            Rectangle {
+                                required property var modelData
+                                width: parent.width / Math.max(1, pg.paletteModel.length)
+                                height: parent.height
+                                color: modelData
+                            }
+                        }
+                    }
                 }
+                EyeChip { block: "palette"; anchors.left: parent.right; anchors.leftMargin: Tokens.s3; anchors.verticalCenter: parent.verticalCenter }
+            }
+
+            Item {
+                width: parent.width
+                height: barBlk.height
+                visible: pg.blockVisible("barcode")
+                Item {
+                    id: barBlk
+                    width: parent.width
+                    opacity: pg.blockOpacity("barcode")
+                    height: bc.implicitHeight
+                    Barcode {
+                        id: bc
+                        anchors.left: parent.left
+                        anchors.bottom: parent.bottom
+                        text: pg.barcodeText
+                        unit: Math.max(1, Math.min(2, (foot.width * 0.62) / (Math.max(1, bc.text.length + 2) * 16)))
+                    }
+                    Text {
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        text: "No. " + pg.editionNo()
+                        color: Tokens.inkDim
+                        font.family: Tokens.mono
+                        font.pixelSize: Tokens.fMicro
+                    }
+                }
+                EyeChip { block: "barcode"; anchors.left: parent.right; anchors.leftMargin: Tokens.s3; anchors.verticalCenter: parent.verticalCenter }
             }
         }
     }
@@ -571,7 +837,16 @@ Item {
     // ── the live scan: vitals as line-and-stat callouts pinned to the face ────
     Item {
         id: telem
+        visible: pg.blockVisible("telemetry")
+        opacity: pg.blockOpacity("telemetry")
         anchors.fill: parent
+        EyeChip {
+            block: "telemetry"
+            anchors.left: parent.left
+            anchors.leftMargin: Tokens.s6 + Tokens.s5
+            anchors.top: parent.top
+            anchors.topMargin: 296
+        }
         readonly property real fL: hero.x
         readonly property real fT: hero.y
         readonly property real fW: hero.width
@@ -653,7 +928,7 @@ Item {
         }
 
         Repeater {
-            model: telem.pins
+            model: telem.pins.filter(function (p) { return pg.f("vitals", ["core", "gpu", "mem", "net", "frac"]).indexOf(p.k) >= 0; })
             delegate: Callout {
                 required property var modelData
                 x: modelData.x
@@ -668,12 +943,20 @@ Item {
     // The live signal: a damped-wave gif, proof the machine is transmitting.
     Item {
         id: signal
+        visible: pg.blockVisible("signal")
+        opacity: pg.blockOpacity("signal")
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: Tokens.s6
         anchors.bottomMargin: Tokens.s6
         width: 240
         height: 58
+        EyeChip {
+            block: "signal"
+            anchors.right: parent.right
+            anchors.bottom: parent.top
+            anchors.bottomMargin: Tokens.s2
+        }
         Text {
             anchors.left: parent.left
             anchors.top: parent.top
@@ -702,6 +985,78 @@ Item {
             playing: true
             speed: 0.7
             opacity: 0.85
+        }
+    }
+    // ── EDIT overlays: the edit panel, the hero editor, share dialogs ─────────
+    function exportImage() {
+        pg.grabbing = true;
+        grabTimer.start();
+    }
+    Timer {
+        id: grabTimer
+        interval: 60
+        onTriggered: {
+            const path = (Quickshell.env("HOME") || "") + "/Pictures/ryoku-profile-" + Qt.formatDate(new Date(), "yyyyMMdd") + ".png";
+            pg.grabToImage(function (res) { res.saveToFile(path); pg.grabbing = false; }, Qt.size(pg.width * 2, pg.height * 2));
+        }
+    }
+    Process { id: profileProc }
+    FileDialog {
+        id: exportDlg
+        fileMode: FileDialog.SaveFile
+        currentFile: "file://" + (Quickshell.env("HOME") || "") + "/ryoku-" + pg.fv(SysInfo.sysUser) + ".ryoprofile"
+        onAccepted: {
+            profileProc.command = ["ryoku-hub", "profile", "export", String(selectedFile).replace(/^file:\/\//, "")];
+            profileProc.running = true;
+        }
+    }
+    FileDialog {
+        id: importDlg
+        nameFilters: ["Ryoku profile (*.ryoprofile)", "All files (*)"]
+        onAccepted: {
+            profileProc.command = ["ryoku-hub", "profile", "import", String(selectedFile).replace(/^file:\/\//, "")];
+            profileProc.running = true;
+        }
+    }
+    // sibling overlays are loaded by URL (the robust form that resolves both in
+    // the shell and standalone), lazily instantiated only while their mode is on.
+    Loader {
+        id: editLoader
+        active: pg.editing
+        visible: pg.editing && !pg.heroEditing && !pg.grabbing
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Tokens.s6
+        source: Qt.resolvedUrl("ProfileToolbar.qml")
+        Connections {
+            target: editLoader.item
+            function onExportImage() { pg.exportImage(); }
+            function onExportProfile() { exportDlg.open(); }
+            function onImportProfile() { importDlg.open(); }
+            function onResetAll() { ProfileStore.reset(); }
+            function onDone() { pg.editing = false; }
+        }
+    }
+    Shortcut {
+        sequence: "Escape"
+        enabled: pg.editing && pg.fieldsArmed === 0
+        onActivated: {
+            if (pg.heroEditing)
+                pg.heroEditing = false;
+            else
+                pg.editing = false;
+        }
+    }
+    Loader {
+        id: heroLoader
+        active: pg.heroEditing
+        visible: pg.heroEditing
+        anchors.fill: parent
+        anchors.margins: Tokens.s7
+        source: Qt.resolvedUrl("HeroEditor.qml")
+        Connections {
+            target: heroLoader.item
+            function onDone() { pg.heroEditing = false; }
         }
     }
 }
