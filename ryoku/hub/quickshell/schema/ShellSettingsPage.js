@@ -74,6 +74,19 @@ var rows = [
     },
     {
         "tab": "global",
+        "group": "SURFACE",
+        "key": "grainStrength",
+        "label": "Grain",
+        "desc": "Film-grain matte over the shell and the apps behind it; 0 turns it off",
+        "ctl": "slid",
+        "src": "shell",
+        "lo": 0.0,
+        "hi": 0.2,
+        "unit": "%",
+        "pct": true
+    },
+    {
+        "tab": "global",
         "group": "ROUNDNESS",
         "key": "roundness",
         "label": "Inner roundness",
