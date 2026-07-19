@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
+import Quickshell
+import Quickshell.Hyprland
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
 
@@ -176,6 +178,121 @@ Item {
     function revertAll() {
         if (pg.hubReady)
             pg.hub.revert();
+    }
+
+    // ── chord recorder ──────────────────────────────────────────────────────
+    // The star of this page: instead of typing "SUPER + J", the user clicks
+    // record and presses the combo. Capture is safe because the Hub first enters
+    // a do-nothing Hyprland submap (modules/record.lua): in a submap only its
+    // own binds fire, so a live chord like SUPER + Q passes through to be read
+    // here instead of closing the Hub. recordRow is the row being recorded
+    // (-1 = idle); the overlay below drives it.
+    property int recordRow: -1
+
+    function enterRecordSubmap() { Quickshell.execDetached(["hyprctl", "dispatch", "hl.dsp.submap(\"record\")"]); }
+    function exitRecordSubmap() { Quickshell.execDetached(["hyprctl", "dispatch", "hl.dsp.submap(\"reset\")"]); }
+
+    function startRecord(i) {
+        if (!pg.hubReady || i < 0)
+            return;
+        pg.recordRow = i;
+        pg.enterRecordSubmap();
+        recordTimeout.restart();
+    }
+    // commit true writes the captured chord to the row; false just cancels.
+    function stopRecord(commit, chord) {
+        recordTimeout.stop();
+        pg.exitRecordSubmap();
+        var i = pg.recordRow;
+        pg.recordRow = -1;
+        if (commit && chord && i >= 0)
+            pg.patch(i, "keys", chord);
+    }
+
+    // never leave the keyboard stranded in the record submap: a hard ceiling
+    // exits it even if every other path fails.
+    Timer {
+        id: recordTimeout
+        interval: 15000
+        onTriggered: pg.stopRecord(false, "")
+    }
+
+    // the submap's Escape binding (or any external reset) fires this; if we were
+    // still recording, treat it as a cancel so the overlay closes cleanly.
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (pg.recordRow >= 0 && event.name === "submap" && (event.data === "" || event.data === "reset"))
+                pg.stopRecord(false, "");
+        }
+    }
+
+    // Qt key code -> the token Hyprland binds on. Covers letters, digits, the
+    // function row, navigation, and the common punctuation; anything unmapped
+    // returns "" so the recorder keeps waiting (and the field stays typeable for
+    // the exotic rest).
+    function qtKeyName(k) {
+        if (k >= Qt.Key_A && k <= Qt.Key_Z)
+            return String.fromCharCode(k);
+        if (k >= Qt.Key_0 && k <= Qt.Key_9)
+            return String.fromCharCode(k);
+        if (k >= Qt.Key_F1 && k <= Qt.Key_F12)
+            return "F" + (k - Qt.Key_F1 + 1);
+        switch (k) {
+        case Qt.Key_Return: case Qt.Key_Enter: return "Return";
+        case Qt.Key_Space: return "Space";
+        case Qt.Key_Tab: return "Tab";
+        case Qt.Key_Left: return "Left";
+        case Qt.Key_Right: return "Right";
+        case Qt.Key_Up: return "Up";
+        case Qt.Key_Down: return "Down";
+        case Qt.Key_Backspace: return "BackSpace";
+        case Qt.Key_Delete: return "Delete";
+        case Qt.Key_Home: return "Home";
+        case Qt.Key_End: return "End";
+        case Qt.Key_PageUp: return "Prior";
+        case Qt.Key_PageDown: return "Next";
+        case Qt.Key_Insert: return "Insert";
+        case Qt.Key_Print: return "Print";
+        case Qt.Key_Minus: return "minus";
+        case Qt.Key_Equal: return "equal";
+        case Qt.Key_Comma: return "comma";
+        case Qt.Key_Period: return "period";
+        case Qt.Key_Slash: return "slash";
+        case Qt.Key_Backslash: return "backslash";
+        case Qt.Key_Semicolon: return "semicolon";
+        case Qt.Key_Apostrophe: return "apostrophe";
+        case Qt.Key_BracketLeft: return "bracketleft";
+        case Qt.Key_BracketRight: return "bracketright";
+        case Qt.Key_QuoteLeft: return "grave";
+        }
+        return "";
+    }
+    // build the Hyprland combo from a KeyEvent: held modifiers + the main key,
+    // in the order binds.lua writes them. "" until a non-modifier key lands.
+    function chordFrom(event) {
+        var name = pg.qtKeyName(event.key);
+        if (name === "")
+            return "";
+        var mods = [];
+        if (event.modifiers & Qt.MetaModifier) mods.push("SUPER");
+        if (event.modifiers & Qt.ControlModifier) mods.push("CTRL");
+        if (event.modifiers & Qt.AltModifier) mods.push("ALT");
+        if (event.modifiers & Qt.ShiftModifier) mods.push("SHIFT");
+        mods.push(name);
+        return mods.join(" + ");
+    }
+    // the shipped bind a normalised chord shadows, by description, for the
+    // conflict badge. "" when nothing shipped matches.
+    function shippedDescFor(norm) {
+        for (var c = 0; c < pg.categories.length; c++) {
+            var binds = pg.categories[c].binds || [];
+            for (var b = 0; b < binds.length; b++) {
+                if (pg.normKeys((binds[b].keys || []).join(" + ")) === norm)
+                    return binds[b].desc || "a shipped shortcut";
+            }
+        }
+        return "";
     }
 
     // ── head: eyebrow, Fraunces title, blurb (matches every settings page) ──
@@ -420,7 +537,7 @@ Item {
                 id: intro
                 anchors { left: parent.left; right: parent.right; top: parent.top }
                 wrapMode: Text.WordWrap
-                text: "Custom shortcuts layered over the ones Ryoku ships and kept in the Hub, so they show in the Shortcuts legend and get conflict-checked. Add binds here, not by hand in ~/.config/hypr/user.lua: binds written there never appear in the legend and are not checked for conflicts. Write the combo the way Hyprland does, e.g. SUPER + J or SUPER + SHIFT + Return."
+                text: "Custom shortcuts layered over the ones Ryoku ships and kept in the Hub, so they show in the Shortcuts legend and get conflict-checked. Click record and press the combo -- even SUPER + Q is captured safely -- or type it the way Hyprland writes it, e.g. SUPER + J. Binds hand-written in ~/.config/hypr/user.lua never appear here and are not conflict-checked."
                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 lineHeight: 1.3
             }
@@ -463,7 +580,10 @@ Item {
                     IconBtn {
                         anchors.verticalCenter: parent.verticalCenter
                         glyph: "+"
-                        onAct: pg.addRow()
+                        armed: pg.hubReady
+                        // add a row and drop straight into recording it: the
+                        // one-click path to a brand-new shortcut.
+                        onAct: { pg.addRow(); Qt.callLater(function() { pg.startRecord(pg.customRows.length - 1); }); }
                     }
                 }
 
@@ -506,6 +626,7 @@ Item {
                             readonly property real gap: Tokens.s2
                             readonly property real removeW: 26
                             readonly property real keysW: 200
+                            readonly property real recW: 26
                             readonly property string act: rowRect.modelData.action || "exec"
                             readonly property bool needsValue: act === "exec"
                             readonly property string conflict: pg.rowConflict(rowRect.index)
@@ -538,7 +659,7 @@ Item {
                                     id: keysF
                                     anchors.left: parent.left
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: rowRect.keysW
+                                    width: rowRect.keysW - rowRect.recW - rowRect.gap
                                     tabular: true
                                     placeholder: "SUPER + J"
                                     text: rowRect.modelData.keys || ""
@@ -546,6 +667,20 @@ Item {
                                         if (v !== (rowRect.modelData.keys || ""))
                                             pg.patch(rowRect.index, "keys", v);
                                     }
+                                }
+
+                                // record: capture the combo by pressing it. Safe
+                                // because startRecord enters the record submap
+                                // first, so the live chord reaches the field, not
+                                // Hyprland.
+                                IconBtn {
+                                    id: recBtn
+                                    anchors.left: keysF.right
+                                    anchors.leftMargin: rowRect.gap
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    glyph: "\u25CF"
+                                    armed: pg.hubReady
+                                    onAct: pg.startRecord(rowRect.index)
                                 }
 
                                 IconBtn {
@@ -588,7 +723,7 @@ Item {
                                 // the action catalogue foot bar.
                                 PickBar {
                                     id: actionBar
-                                    anchors.left: keysF.right
+                                    anchors.left: recBtn.right
                                     anchors.leftMargin: rowRect.gap
                                     anchors.right: cmdBox.left
                                     anchors.rightMargin: rowRect.needsValue ? rowRect.gap : 0
@@ -599,14 +734,18 @@ Item {
                                 }
                             }
 
-                            // conflict note: the word, in ink, no colour.
+                            // conflict note: names what it clashes with, in ink,
+                            // no colour (DESIGN.md section 1).
                             Text {
                                 visible: rowRect.conflict !== ""
                                 anchors.left: parent.left; anchors.leftMargin: Tokens.s3
                                 anchors.bottom: parent.bottom; anchors.bottomMargin: Tokens.s2
-                                text: rowRect.conflict === "shipped"
-                                    ? "Shadows a shipped bind"
-                                    : "Duplicate of another custom bind"
+                                text: {
+                                    if (rowRect.conflict === "duplicate")
+                                        return "Duplicate of another custom bind";
+                                    var d = pg.shippedDescFor(pg.normKeys(rowRect.modelData.keys || ""));
+                                    return d ? ("Shadows shipped: " + d) : "Shadows a shipped bind";
+                                }
                                 color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                             }
                         }
@@ -681,7 +820,7 @@ Item {
 
                     Btn {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "CLEAR ALL"
+                        text: "RESTORE DEFAULTS"
                         armed: pg.customRows.length > 0
                         onAct: pg.clearAll()
                     }
@@ -738,6 +877,75 @@ Item {
 
                     // absorb clicks inside the card so the scrim does not treat a
                     // header/padding tap as an outside dismiss.
+                    MouseArea { anchors.fill: parent; z: -1 }
+                }
+            }
+
+            // ── chord recorder overlay ──────────────────────────────────────
+            // shown while a row records. The capture Item holds keyboard focus so
+            // the combo the record submap lets through arrives here as a plain
+            // KeyEvent; chordFrom turns it into the string Hyprland binds on.
+            MouseArea {
+                id: recScrim
+                anchors.fill: parent
+                visible: pg.recordRow >= 0
+                z: 200
+                onClicked: pg.stopRecord(false, "")
+                onVisibleChanged: if (visible) capture.forceActiveFocus()
+
+                Item {
+                    id: capture
+                    anchors.fill: parent
+                    focus: true
+                    Keys.onPressed: (event) => {
+                        event.accepted = true;
+                        if (event.isAutoRepeat)
+                            return;
+                        if (event.key === Qt.Key_Escape) {
+                            pg.stopRecord(false, "");
+                            return;
+                        }
+                        var chord = pg.chordFrom(event);
+                        if (chord !== "")
+                            pg.stopRecord(true, chord);
+                    }
+                }
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 340; height: 156
+                    radius: Tokens.radius
+                    color: Tokens.paper
+                    border.width: Tokens.border
+                    border.color: Tokens.lineStrong
+
+                    Column {
+                        anchors.centerIn: parent
+                        width: parent.width - Tokens.s4 * 2
+                        spacing: Tokens.s3
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "PRESS YOUR SHORTCUT"
+                            color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
+                            font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
+                        }
+                        Text {
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.WordWrap
+                            text: "Hold your modifiers and tap the key. Esc cancels."
+                            color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                        }
+                        Btn {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "CANCEL"
+                            armed: true
+                            onAct: pg.stopRecord(false, "")
+                        }
+                    }
+
+                    // absorb clicks inside the card so the scrim does not dismiss.
                     MouseArea { anchors.fill: parent; z: -1 }
                 }
             }
