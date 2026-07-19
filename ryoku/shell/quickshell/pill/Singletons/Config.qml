@@ -84,6 +84,10 @@ Singleton {
     // melt. 0 restores the old brutalist sharp corners.
     property alias roundness: adapter.roundness
 
+    // grainStrength = opacity of the brand grain matte the shell overlay rides
+    // (and, through its transparent body, the apps behind it). 0 turns it off.
+    property alias grainStrength: adapter.grainStrength
+
     // typography: UI font family (Theme.font reads this) + a scale that grows
     // or shrinks the whole shell (the bar text and the surfaces around it),
     // keeping the readout legible without overflow.
@@ -158,6 +162,7 @@ Singleton {
             property real sidebarWidth: 340
             property real sidebarCornerSize: 0
             property real roundness: 0
+            property real grainStrength: 0.09
             property string weatherLocation: ""
             property string weatherUnit: "auto"
         }

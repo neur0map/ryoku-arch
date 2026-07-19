@@ -247,7 +247,7 @@ ShellRoot {
             anchors { top: true; bottom: true; left: true; right: true }
 
             // Ryoku brand grain over the palette, matching the desktop.
-            Grain { anchors.fill: parent; z: 10000; opacity: 0.09 }
+            Grain { anchors.fill: parent; z: 10000; opacity: Config.grainStrength }
 
             // a brief grace so the close morph can play before the window drops.
             Timer { id: closing; interval: Motion.window; repeat: false }

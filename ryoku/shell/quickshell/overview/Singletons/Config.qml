@@ -11,6 +11,7 @@ Singleton {
     property alias matchWallpaper: themeAdapter.followWallpaper
     property alias fontFamily:     adapter.fontFamily
     property alias fontScale:      adapter.fontScale
+    property alias grainStrength:  adapter.grainStrength
 
     // brand: the desktop's mark + name, user-overridable from Ryoku Settings ->
     // Shell -> Global. a small cross-cutting identity master (like theme.json).
@@ -50,6 +51,7 @@ Singleton {
             id: adapter
             property string fontFamily: "Space Grotesk"
             property real fontScale: 1.0
+            property real grainStrength: 0.09
         }
     }
 

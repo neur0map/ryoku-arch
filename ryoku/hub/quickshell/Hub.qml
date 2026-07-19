@@ -1024,7 +1024,4 @@ Rectangle {
             onDismissed: picker.close()
         }
     }
-
-    // grain sits over everything, overlays included.
-    Grain { anchors.fill: parent; z: 1000 }
 }
