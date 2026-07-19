@@ -9,6 +9,8 @@
 /ryoku/cli/ryoku
 /ryoku/cli/ryoku-cli
 /ryoku/apps/ryovm/fetch/ryovm-fetch
+/ryoku/apps/ryovm/remote/ryossh
+/ryoku/apps/ryovm/mon/ryovm-mon
 /ryoku/shell/plugin/build/
 /ryoku/shell/plugin/dist/
 /release/repo/out/
