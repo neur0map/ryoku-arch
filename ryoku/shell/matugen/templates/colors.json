@@ -1,0 +1,20 @@
+{
+  "background": "{{colors.background.default.hex}}",
+  "foreground": "{{colors.foreground.default.hex}}",
+  "color0": "{{colors.color0.default.hex}}",
+  "color1": "{{colors.color1.default.hex}}",
+  "color2": "{{colors.color2.default.hex}}",
+  "color3": "{{colors.color3.default.hex}}",
+  "color4": "{{colors.color4.default.hex}}",
+  "color5": "{{colors.color5.default.hex}}",
+  "color6": "{{colors.color6.default.hex}}",
+  "color7": "{{colors.color7.default.hex}}",
+  "color8": "{{colors.color8.default.hex}}",
+  "color9": "{{colors.color9.default.hex}}",
+  "color10": "{{colors.color10.default.hex}}",
+  "color11": "{{colors.color11.default.hex}}",
+  "color12": "{{colors.color12.default.hex}}",
+  "color13": "{{colors.color13.default.hex}}",
+  "color14": "{{colors.color14.default.hex}}",
+  "color15": "{{colors.color15.default.hex}}"
+}

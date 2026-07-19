@@ -1,0 +1,13 @@
+[config]
+
+[templates.colors]
+input_path = "~/.config/matugen/templates/colors.json"
+output_path = "~/.cache/wallust/colors.json"
+
+[templates.kitty]
+input_path = "~/.config/matugen/templates/kitty-colors.conf"
+output_path = "~/.config/kitty/current-theme.conf"
+
+[templates.hypr]
+input_path = "~/.config/matugen/templates/hypr-colors.lua"
+output_path = "~/.cache/wallust/hypr-colors.lua"

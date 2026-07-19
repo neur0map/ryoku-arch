@@ -98,6 +98,10 @@ depends=(
   # pinned Codeberg-archive checksum drifts and breaks the build -- so it resolves
   # as a hard depend and reaches every box on `ryoku update`.
   'wallust'
+  # matugen. material-you / base16 templating engine from the official extra
+  # repo. templates the palette into colors.json, kitty, and Hyprland the same
+  # way wallust does, so the shell can drive either generator.
+  'matugen'
   # animated wallpaper daemon the shell drives (`awww img` / `awww-daemon`).
   # ships from [ryoku], not the AUR, so a fresh install and `ryoku update` always
   # carry it: an AUR-only optdepend left boxes with no wallpaper daemon out of the
@@ -247,6 +251,10 @@ package() {
   # wallust palette gen (templates feed kitty, Hyprland, shell colors).
   install -d "$cfg/wallust"
   cp -a "$_repo/ryoku/shell/wallust/." "$cfg/wallust/"
+
+  # matugen templates (colors.json + kitty + Hyprland from a palette).
+  install -d "$cfg/matugen"
+  cp -a "$_repo/ryoku/shell/matugen/." "$cfg/matugen/"
 
   # per-app configs
   install -Dm644 "$_repo/ryoku/apps/fish/config.fish"       "$cfg/fish/config.fish"
