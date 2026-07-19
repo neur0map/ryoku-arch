@@ -527,7 +527,10 @@ Rectangle {
             var oa = pa && typeof pa === "object" && !Array.isArray(pa);
             var ob = pb && typeof pb === "object" && !Array.isArray(pb);
             if (oa && ob) hub.walkHypr(p, pa, pb, out);
-            else if (pa !== undefined && pb !== undefined && JSON.stringify(pa) !== JSON.stringify(pb)) out.push({ key: p, was: JSON.stringify(pa), now: JSON.stringify(pb) });
+            // a key on only one side (added or removed) is a change too, not only
+            // a modified value, so first-time sets of omitempty maps (apps,
+            // keybindRebinds) mark the store dirty and light Save.
+            else if (JSON.stringify(pa) !== JSON.stringify(pb)) out.push({ key: p, was: pa === undefined ? "(unset)" : JSON.stringify(pa), now: pb === undefined ? "(unset)" : JSON.stringify(pb) });
         }
     }
 
