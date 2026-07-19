@@ -431,7 +431,7 @@ Rectangle {
     Keys.onEscapePressed: hub.requestQuit()
     Keys.onPressed: (e) => {
         if (e.key === Qt.Key_K && (e.modifiers & Qt.ControlModifier)) {
-            searchField.focus();
+            searchField.grabFocus();
             e.accepted = true;
         }
     }
@@ -1025,4 +1025,8 @@ Rectangle {
             onDismissed: picker.close()
         }
     }
+
+    // this app's own grain, topmost. The shell's global overlay cuts a hole
+    // where the Hub window sits, so this is the only grain it carries.
+    Grain { anchors.fill: parent; z: 10000 }
 }

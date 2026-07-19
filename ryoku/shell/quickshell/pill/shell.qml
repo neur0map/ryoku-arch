@@ -9,6 +9,7 @@
 //@ pragma DefaultEnv QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
 
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -659,7 +660,57 @@ ShellRoot {
                 // the apps behind it. Topmost so it reads on every surface; an
                 // Image carries no input, so clicks still reach the chrome and the
                 // windows below. Hidden on fullscreen with the rest of the scope.
-                Grain { anchors.fill: parent; z: 10000; opacity: Config.grainStrength }
+                Item {
+                    id: grainLayer
+                    anchors.fill: parent
+                    z: 10000
+                    readonly property var monObj: {
+                        var ms = Hyprland.monitors.values;
+                        for (var i = 0; i < ms.length; i++)
+                            if (ms[i] && ms[i].name === overlay.modelData.name)
+                                return ms[i].lastIpcObject;
+                        return null;
+                    }
+                    readonly property real monX: (monObj && typeof monObj.x === "number") ? monObj.x : 0
+                    readonly property real monY: (monObj && typeof monObj.y === "number") ? monObj.y : 0
+                    // the ryoku apps carry their own grain; cut their windows out
+                    // of this overlay so they are never doubled (matched by title).
+                    readonly property var holes: {
+                        var out = [];
+                        var tl = Hyprland.toplevels.values;
+                        for (var i = 0; i < tl.length; i++) {
+                            var o = tl[i] && tl[i].lastIpcObject;
+                            if (!o || !o.at || !o.size || o.mapped === false) continue;
+                            if (["ryovm", "ryowalls", "Ryoku Settings"].indexOf(o.title) < 0) continue;
+                            out.push({ hx: o.at[0] - grainLayer.monX, hy: o.at[1] - grainLayer.monY, hw: o.size[0], hh: o.size[1] });
+                        }
+                        return out;
+                    }
+                    Grain { id: grainSrc; anchors.fill: parent; opacity: 1; visible: false }
+                    Item {
+                        id: grainMask
+                        anchors.fill: parent
+                        visible: false
+                        layer.enabled: true
+                        Repeater {
+                            model: grainLayer.holes
+                            Rectangle {
+                                x: modelData.hx; y: modelData.hy
+                                width: modelData.hw; height: modelData.hh
+                                color: "white"
+                            }
+                        }
+                    }
+                    MultiEffect {
+                        anchors.fill: parent
+                        source: grainSrc
+                        opacity: Config.grainStrength
+                        maskEnabled: grainLayer.holes.length > 0
+                        maskSource: grainMask
+                        maskThresholdMin: 0.5
+                        maskInverted: true
+                    }
+                }
 
                 // frame and pill share one blob field, so the pill reads
                 // as the frame swelling open at top-centre, not a bar on top.
