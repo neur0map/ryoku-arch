@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-//go:embed schemes/light.json schemes/dark.json
+//go:embed schemes/light.json schemes/dark.json schemes/mono.json
 var schemesFS embed.FS
 
 // loadScheme returns a curated fixed palette (light or dark) baked into the
@@ -39,7 +39,7 @@ func writePalette(pal map[string]string) {
 // a theme owns its own fixed palette.
 func currentScheme() string {
 	st := loadThemeState()
-	if st.Scheme == "light" || st.Scheme == "dark" {
+	if st.Scheme == "light" || st.Scheme == "dark" || st.Scheme == "mono" {
 		return st.Scheme
 	}
 	if st.FollowWallpaper {
@@ -64,7 +64,7 @@ func applyScheme(mode string) error {
 		}
 		// the daemon derives (honouring the per-image tune); no re-animation.
 		_ = exec.Command("ryoku-shell", "wallpaper", "repaint").Run()
-	case "light", "dark":
+	case "light", "dark", "mono":
 		pal, err := loadScheme(mode)
 		if err != nil {
 			return err
@@ -79,7 +79,7 @@ func applyScheme(mode string) error {
 		}
 		writePalette(pal)
 	default:
-		return fmt.Errorf("unknown scheme %q (want follow|light|dark)", mode)
+		return fmt.Errorf("unknown scheme %q (want follow|light|dark|mono)", mode)
 	}
 	hyprReload()
 	_ = exec.Command("pkill", "-USR1", "-x", "kitty").Run()
@@ -102,10 +102,10 @@ func themeStatePath() string {
 	return filepath.Join(base, "ryoku", "theme.json")
 }
 
-// loadThemeState defaults FollowWallpaper=true on a missing/blank file (the
-// shipped behaviour: colours track the wallpaper).
+// loadThemeState defaults to the shipped grainy-mono preset on a missing or
+// blank file; an existing file (a user who picked follow or a scheme) wins.
 func loadThemeState() themeState {
-	s := themeState{FollowWallpaper: true}
+	s := themeState{FollowWallpaper: false, Scheme: "mono"}
 	if b, err := os.ReadFile(themeStatePath()); err == nil {
 		_ = json.Unmarshal(b, &s)
 	}

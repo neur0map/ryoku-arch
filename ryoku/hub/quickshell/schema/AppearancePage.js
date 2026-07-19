@@ -987,11 +987,12 @@ var rows = [
         "group": "THEME PALETTE",
         "key": "scheme (+ followWallpaper)",
         "label": "Colours",
-        "desc": "Follow retints from each wallpaper, Light or Dark locks a palette",
+        "desc": "Mono is the Ryoku default; Follow retints per wallpaper, Light or Dark lock a palette",
         "ctl": "seg",
         "src": "current-theme.conf, regen of settings.lua, hyprctl reload, pkill -USR1 kitty",
         "opts": [
             "follow",
+            "mono",
             "light",
             "dark",
             "custom"
