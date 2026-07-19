@@ -59,7 +59,7 @@ Rectangle {
         { name: "OVERVIEW", items: [ { key: "profile", name: "Profile" } ] },
         { name: "SYSTEM", items: [
             { key: "displays", name: "Displays" }, { key: "input", name: "Input" },
-            { key: "keybinds", name: "Keybinds" }, { key: "defaultapps", name: "Default Apps" }, { key: "connections", name: "Connections" },
+            { key: "keybinds", name: "Keybinds" }, { key: "connections", name: "Connections" },
             { key: "gpu", name: "GPU" }, { key: "recording", name: "Recording" },
             { key: "dictation", name: "Dictation" } ] },
         { name: "DESKTOP", items: [
@@ -82,7 +82,7 @@ Rectangle {
     // is the texture, and every gloss is the real word, never decoration:
     // 外観 = appearance, 接続 = connections, 描画 = rendering (GPU), and so on.
     readonly property var jpName: ({
-        "profile": "横顔", "displays": "画面", "input": "入力", "keybinds": "操作", "defaultapps": "既定",
+        "profile": "横顔", "displays": "画面", "input": "入力", "keybinds": "操作",
         "connections": "接続", "gpu": "描画", "recording": "録画", "dictation": "音声",
         "appearance": "外観", "shell": "外殻", "launcher": "起動", "fastfetch": "情報",
         "widgets": "部品", "lockscreen": "施錠", "animations": "動き", "store": "商店",
@@ -212,7 +212,7 @@ Rectangle {
         return false;
     }
     function pageFile(s) {
-        var map = { "profile": "ProfilePage", "shell": "ShellPage", "environment": "EnvironmentPage", "autostart": "AutostartPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "appearance": "AppearancePage", "input": "InputPage", "keybinds": "KeybindsPage", "defaultapps": "DefaultAppsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "rashin": "RashinPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "store": "StorePage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
+        var map = { "profile": "ProfilePage", "shell": "ShellPage", "environment": "EnvironmentPage", "autostart": "AutostartPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "appearance": "AppearancePage", "input": "InputPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "rashin": "RashinPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "store": "StorePage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
         return map[s] ? Qt.resolvedUrl("pages/" + map[s] + ".qml") : "";
     }
     function openPick(r) { picker.openFor(r); }

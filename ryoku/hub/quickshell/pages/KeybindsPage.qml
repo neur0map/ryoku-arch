@@ -32,8 +32,9 @@ Item {
     readonly property bool ready: pg.hubReady ? pg.hub.hyprLoaded === true : false
     readonly property int dirtyCount: pg.hubReady ? (pg.hub.dirty || 0) : 0
 
-    // "all" = the shipped legend, "custom" = the editor. Transient, not persisted.
-    property string tab: "all"
+    // "apps" = app-role launchers, "system" = the shipped legend, "custom" = the
+    // editor. Transient, not persisted.
+    property string tab: "apps"
 
     // the shipped legend, parsed live from binds.lua by the backend. Owned here
     // (a self-contained page fetches its own backend), forwarded to both the
@@ -52,6 +53,122 @@ Item {
                 } catch (e) { console.log("keybinds: legend parse failed: " + e); }
             }
         }
+    }
+
+    // ── app roles (Default Apps, merged into this page) ─────────────────────
+    // the swappable launcher roles + candidates + each role's shipped combo,
+    // from `ryoku-hub apps` (installed candidates flagged). Shown on the Apps
+    // tab, where the key rebinds too; the choice is stored in the store's "apps".
+    property var roles: []
+    Process {
+        id: appsGet
+        command: ["ryoku-hub", "apps"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    pg.roles = JSON.parse(this.text) || [];
+                } catch (e) { console.log("keybinds: apps parse failed: " + e); }
+            }
+        }
+    }
+    // role -> chosen command (draft); empty/absent uses the shipped fallback.
+    readonly property var chosen: pg.hubReady ? (pg.hub.hyprVal("apps") || ({})) : ({})
+    function effOf(role, fallback) {
+        var v = pg.chosen[role];
+        return (v && ("" + v).length) ? ("" + v) : fallback;
+    }
+    function setApp(role, cmd) {
+        if (!pg.hubReady)
+            return;
+        var cur = pg.hub.hyprVal("apps") || {};
+        var m = {};
+        for (var k in cur)
+            m[k] = cur[k];
+        cmd = ("" + (cmd || "")).trim();
+        if (!cmd)
+            delete m[role];
+        else
+            m[role] = cmd;
+        pg.hub.hyprEdit("apps", m);
+    }
+    function clearApps() { if (pg.hubReady) pg.hub.hyprEdit("apps", ({})); }
+    function hasApps() { return Object.keys(pg.chosen).length > 0; }
+
+    // shipped combos that launch an app role, so the System tab drops them
+    // (they live on the Apps tab, where the key rebinds beside the app).
+    readonly property var roleComboSet: {
+        var s = {};
+        for (var i = 0; i < pg.roles.length; i++) {
+            var c = pg.roles[i].combo || "";
+            if (c.length)
+                s[c] = true;
+        }
+        return s;
+    }
+    // the legend minus the app-role binds: everything that is a system action.
+    readonly property var systemCategories: {
+        var out = [];
+        for (var c = 0; c < pg.categories.length; c++) {
+            var cat = pg.categories[c];
+            var kept = [];
+            var binds = cat.binds || [];
+            for (var b = 0; b < binds.length; b++)
+                if (!pg.roleComboSet[binds[b].combo || ""])
+                    kept.push(binds[b]);
+            if (kept.length)
+                out.push({ name: cat.name, binds: kept });
+        }
+        return out;
+    }
+
+    // ── the app catalogue + picker overlay (shared: roles + custom binds) ────
+    // every installed application as { name, cmd } for the filterable picker; the
+    // command is the parsed Exec, runnable as a keybind or a ryoku-app role.
+    readonly property var appCatalog: {
+        var out = [];
+        var src = (typeof DesktopEntries !== "undefined" && DesktopEntries.applications)
+            ? DesktopEntries.applications.values : [];
+        for (var i = 0; i < src.length; i++) {
+            var e = src[i];
+            if (!e || e.noDisplay)
+                continue;
+            var cmd = ("" + ((e.command || []).join(" "))).trim();
+            if (!cmd)
+                continue;
+            out.push({ name: e.name || cmd, cmd: cmd });
+        }
+        out.sort(function (a, b) { return a.name.toLowerCase().localeCompare(b.name.toLowerCase()); });
+        return out;
+    }
+    // the picker targets an app role (by name) or a custom row (by index).
+    property string appPickRole: ""
+    property int appPickCustomRow: -1
+    readonly property bool appPicking: pg.appPickRole.length > 0 || pg.appPickCustomRow >= 0
+    function openAppPickerRole(role) { pg.appPickCustomRow = -1; pg.appPickRole = role; }
+    function openAppPickerCustom(i) { pg.appPickRole = ""; pg.appPickCustomRow = i; }
+    function closeAppPicker() { pg.appPickRole = ""; pg.appPickCustomRow = -1; }
+    function appPickCurrent() {
+        if (pg.appPickRole.length > 0)
+            return pg.chosen[pg.appPickRole] || "";
+        if (pg.appPickCustomRow >= 0)
+            return (pg.customRows[pg.appPickCustomRow] || ({})).value || "";
+        return "";
+    }
+    function appPickTitle() {
+        if (pg.appPickCustomRow >= 0)
+            return "Command";
+        for (var i = 0; i < pg.roles.length; i++)
+            if (pg.roles[i].role === pg.appPickRole)
+                return pg.roles[i].label;
+        return "App";
+    }
+    function applyAppPick(cmd) {
+        if (pg.appPickRole.length > 0)
+            pg.setApp(pg.appPickRole, cmd);
+        else if (pg.appPickCustomRow >= 0)
+            pg.patch(pg.appPickCustomRow, "value", cmd);
+        pg.closeAppPicker();
     }
 
     // ── conflict detection (ported verbatim from KeybindsEditor) ────────────
@@ -449,7 +566,7 @@ Item {
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Every desktop shortcut, read live from what Hyprland actually has bound. Rebind any of them with the record button on its row, or layer your own on the Custom tab. Overlaps are flagged as you go."
+            text: "Every desktop shortcut in one place. Apps sets what the launcher keys open (browser, terminal, editor, files, notes) and rebinds those keys; System rebinds the built-in shortcuts; Custom layers your own. Overlaps are flagged as you go."
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -471,9 +588,9 @@ Item {
         anchors.leftMargin: Tokens.s6
         anchors.top: head.bottom
         anchors.topMargin: Tokens.s5
-        options: ["Shortcuts", "Custom"]
-        current: pg.tab === "all" ? "Shortcuts" : "Custom"
-        onChose: (label) => pg.tab = (label === "Shortcuts" ? "all" : "custom")
+        options: ["Apps", "System", "Custom"]
+        current: pg.tab === "apps" ? "Apps" : (pg.tab === "system" ? "System" : "Custom")
+        onChose: (label) => pg.tab = (label === "Apps" ? "apps" : (label === "System" ? "system" : "custom"))
     }
 
     // ── the tab body: a Loader swaps the whole subtree, fading the new one in ──
@@ -485,7 +602,7 @@ Item {
             leftMargin: Tokens.s6; rightMargin: Tokens.s6
             topMargin: Tokens.s4; bottomMargin: Tokens.s6
         }
-        sourceComponent: pg.tab === "all" ? legendComp : customComp
+        sourceComponent: pg.tab === "apps" ? appsComp : (pg.tab === "system" ? systemComp : customComp)
         onLoaded: {
             if (!item)
                 return;
@@ -500,9 +617,185 @@ Item {
         duration: Tokens.swap; easing.type: Tokens.ease
     }
 
+    // ── the app-role launchers (Apps): pick the app + rebind its key ─────────
+    Component {
+        id: appsComp
+
+        Flickable {
+            id: appsFlick
+            contentWidth: width
+            contentHeight: appsCol.height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: ScrollRail { policy: ScrollBar.AsNeeded }
+
+            Column {
+                id: appsCol
+                width: appsFlick.width - Tokens.s3
+                spacing: Tokens.s5
+
+                Text {
+                    width: appsCol.width
+                    wrapMode: Text.WordWrap
+                    text: "Pick what each launcher key opens, and rebind the key itself. The key runs the app through ryoku-app, so a swap takes effect on the next press -- no reload."
+                    color: Tokens.inkMuted; font.family: Tokens.ui
+                    font.pixelSize: Tokens.fSmall; lineHeight: 1.3
+                }
+
+                Repeater {
+                    model: pg.roles
+
+                    delegate: Column {
+                        id: roleCard
+                        required property var modelData
+                        width: appsCol.width
+                        spacing: Tokens.s2
+                        readonly property string role: roleCard.modelData.role
+                        readonly property string fallback: roleCard.modelData.fallback || ""
+                        readonly property string combo: roleCard.modelData.combo || ""
+                        readonly property string eff: pg.effOf(roleCard.role, roleCard.fallback)
+                        readonly property bool rebound: pg.isRebound(roleCard.combo)
+                        readonly property bool clash: roleCard.rebound && pg.comboConflict(roleCard.combo)
+                        readonly property var effKeys: pg.comboToCaps(pg.effectiveCombo(roleCard.combo))
+
+                        // line 1: role label + current command, then the key + rebind cluster.
+                        Item {
+                            width: parent.width
+                            height: 24
+                            Row {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: Tokens.s2
+                                Text {
+                                    text: roleCard.modelData.label
+                                    color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
+                                    font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
+                                    font.capitalization: Font.AllUppercase
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: Math.min(implicitWidth, roleCard.width * 0.32)
+                                    text: roleCard.eff !== "" ? roleCard.eff : "not set"
+                                    color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
+                                    elide: Text.ElideRight
+                                }
+                            }
+
+                            Row {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: Tokens.s2
+                                visible: roleCard.combo.length > 0
+
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Tokens.s1
+                                    Repeater {
+                                        model: roleCard.effKeys
+                                        delegate: Row {
+                                            id: capW
+                                            required property var modelData
+                                            required property int index
+                                            spacing: Tokens.s1
+                                            Text {
+                                                visible: capW.index > 0
+                                                height: 22; verticalAlignment: Text.AlignVCenter
+                                                text: "+"; color: Tokens.inkFaint
+                                                font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
+                                            }
+                                            Rectangle {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                implicitHeight: 22
+                                                implicitWidth: Math.max(22, cl.implicitWidth + 14)
+                                                radius: Tokens.radius; color: "transparent"
+                                                border.width: Tokens.border
+                                                border.color: roleCard.clash ? Tokens.ink : (roleCard.rebound ? Tokens.lineStrong : Tokens.line)
+                                                Text {
+                                                    id: cl
+                                                    anchors.centerIn: parent
+                                                    text: capW.modelData
+                                                    color: roleCard.rebound ? Tokens.inkDim : Tokens.inkFaint
+                                                    font.family: Tokens.mono; font.pixelSize: Tokens.fMicro
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                IconBtn {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    visible: roleCard.rebound
+                                    glyph: "\u21ba"
+                                    onAct: pg.clearRebind(roleCard.combo)
+                                }
+                                IconBtn {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    visible: pg.hubReady
+                                    glyph: "\u25cf"
+                                    onAct: pg.startRecordShipped(roleCard.combo)
+                                }
+                            }
+                        }
+
+                        // line 2: installed candidate chips + Browse (the app catalogue).
+                        Flow {
+                            width: parent.width
+                            spacing: Tokens.s2
+
+                            Repeater {
+                                model: roleCard.modelData.candidates || []
+                                delegate: Rectangle {
+                                    id: chip
+                                    required property var modelData
+                                    visible: chip.modelData.installed === true
+                                    readonly property bool sel: roleCard.eff === chip.modelData.cmd
+                                    implicitWidth: chLbl.implicitWidth + Tokens.s4
+                                    implicitHeight: 28
+                                    radius: Tokens.radius
+                                    color: chip.sel ? Tokens.ink : (chHov.hovered ? Tokens.tint10 : "transparent")
+                                    border.width: Tokens.border
+                                    border.color: chip.sel ? Tokens.ink : (chHov.hovered ? Tokens.lineStrong : Tokens.line)
+                                    Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                                    Text {
+                                        id: chLbl
+                                        anchors.centerIn: parent
+                                        text: chip.modelData.label
+                                        color: chip.sel ? Tokens.paper : Tokens.inkDim
+                                        font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                    }
+                                    HoverHandler { id: chHov; cursorShape: Qt.PointingHandCursor }
+                                    TapHandler { onTapped: pg.setApp(roleCard.role, chip.modelData.cmd) }
+                                }
+                            }
+
+                            Rectangle {
+                                implicitWidth: brLbl.implicitWidth + Tokens.s4
+                                implicitHeight: 28
+                                radius: Tokens.radius
+                                color: brHov.hovered ? Tokens.tint10 : "transparent"
+                                border.width: Tokens.border
+                                border.color: brHov.hovered ? Tokens.lineStrong : Tokens.line
+                                Text {
+                                    id: brLbl
+                                    anchors.centerIn: parent
+                                    text: "Browse\u2026"
+                                    color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                }
+                                HoverHandler { id: brHov; cursorShape: Qt.PointingHandCursor }
+                                TapHandler { onTapped: pg.openAppPickerRole(roleCard.role) }
+                            }
+                        }
+
+                        Rectangle { width: parent.width; height: 1; color: Tokens.lineSoft }
+                    }
+                }
+            }
+        }
+    }
+
     // ── the shipped-bind legend (read-only) ─────────────────────────────────
     Component {
-        id: legendComp
+        id: systemComp
 
         Flickable {
             id: legend
@@ -518,7 +811,7 @@ Item {
                 spacing: Tokens.s5
 
                 Repeater {
-                    model: pg.categories
+                    model: pg.systemCategories
 
                     delegate: Column {
                         id: grp
@@ -863,13 +1156,27 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     height: rowRect.lineH
                                     width: rowRect.needsValue
-                                        ? Math.max(140, Math.round((parent.width - rowRect.keysW - rowRect.removeW - rowRect.gap * 3) * 0.5))
+                                        ? Math.max(180, Math.round((parent.width - rowRect.keysW - rowRect.removeW - rowRect.gap * 3) * 0.5))
                                         : 0
 
+                                    // pick an app from the catalogue, or type the command.
+                                    IconBtn {
+                                        id: cmdPick
+                                        anchors.right: parent.right
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: rowRect.needsValue
+                                        glyph: "\u2026"
+                                        armed: pg.hubReady
+                                        onAct: pg.openAppPickerCustom(rowRect.index)
+                                    }
                                     // command is a shell string, so mono.
                                     Field {
                                         id: cmdF
-                                        anchors.fill: parent
+                                        anchors.left: parent.left
+                                        anchors.right: cmdPick.left
+                                        anchors.rightMargin: rowRect.gap
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        height: parent.height
                                         visible: rowRect.needsValue
                                         tabular: true
                                         placeholder: "command to run"
@@ -1015,9 +1322,9 @@ Item {
             // tab-aware reset: clears rebinds on Shortcuts, custom binds on Custom.
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: pg.tab === "all" ? "RESET REBINDS" : "RESTORE DEFAULTS"
-                armed: pg.tab === "all" ? pg.hasRebinds() : pg.customRows.length > 0
-                onAct: pg.tab === "all" ? pg.clearRebinds() : pg.clearAll()
+                text: pg.tab === "apps" ? "RESET APPS" : (pg.tab === "system" ? "RESET REBINDS" : "RESTORE DEFAULTS")
+                armed: pg.tab === "apps" ? pg.hasApps() : (pg.tab === "system" ? pg.hasRebinds() : pg.customRows.length > 0)
+                onAct: pg.tab === "apps" ? pg.clearApps() : (pg.tab === "system" ? pg.clearRebinds() : pg.clearAll())
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
@@ -1039,6 +1346,30 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             kana: "操作"
             glyph: "meander"; glyph2: "torii"
+        }
+    }
+
+    // ── the app catalogue picker (shared: Apps roles + custom Run binds) ─────
+    MouseArea {
+        id: appScrim
+        anchors.fill: parent
+        visible: pg.appPicking
+        z: 150
+        onClicked: pg.closeAppPicker()
+
+        AppPicker {
+            id: appPicker
+            anchors.centerIn: parent
+            title: pg.appPickTitle()
+            apps: pg.appCatalog
+            current: pg.appPickCurrent()
+            onPicked: (cmd) => pg.applyAppPick(cmd)
+            onDismissed: pg.closeAppPicker()
+            Connections {
+                target: pg
+                function onAppPickingChanged() { if (pg.appPicking) appPicker.open(); }
+            }
+            MouseArea { anchors.fill: parent; z: -1 }
         }
     }
 

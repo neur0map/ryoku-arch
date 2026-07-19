@@ -23,6 +23,7 @@ type appRole struct {
 	Role       string         `json:"role"`
 	Label      string         `json:"label"`
 	Fallback   string         `json:"fallback"` // the shipped default when unset
+	Combo      string         `json:"combo,omitempty"` // shipped combo bound to `ryoku-app <role>`
 	Candidates []appCandidate `json:"candidates"`
 }
 
@@ -72,13 +73,43 @@ func binOf(cmd string) string {
 
 func appRoles() []appRole {
 	out := make([]appRole, 0, len(appRoleDefs))
+	combos := roleCombos()
 	for _, d := range appRoleDefs {
-		r := appRole{Role: d.Role, Label: d.Label, Fallback: d.Fallback}
+		r := appRole{Role: d.Role, Label: d.Label, Fallback: d.Fallback, Combo: combos[d.Role]}
 		for _, c := range d.Cands {
 			_, err := exec.LookPath(binOf(c[1]))
 			r.Candidates = append(r.Candidates, appCandidate{Label: c[0], Cmd: c[1], Installed: err == nil})
 		}
 		out = append(out, r)
+	}
+	return out
+}
+
+// roleCombos maps each app role to the shipped combo its `ryoku-app <role>`
+// launch is bound to in binds.lua, so the Keybinds page can show and rebind the
+// key beside the app. A role with no shipped bind is absent.
+func roleCombos() map[string]string {
+	out := map[string]string{}
+	src, err := os.ReadFile(bindsPath())
+	if err != nil {
+		return out
+	}
+	for _, line := range strings.Split(string(src), "\n") {
+		if !strings.Contains(line, "hl.bind(") {
+			continue
+		}
+		m := reBind.FindStringSubmatch(line)
+		if m == nil {
+			continue
+		}
+		em := reExec.FindStringSubmatch(m[2])
+		if em == nil || !strings.HasPrefix(strings.TrimSpace(em[1]), "ryoku-app ") {
+			continue
+		}
+		role := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(em[1]), "ryoku-app "))
+		if _, combo := resolveKeys(m[1], ""); combo != "" {
+			out[role] = combo
+		}
 	}
 	return out
 }

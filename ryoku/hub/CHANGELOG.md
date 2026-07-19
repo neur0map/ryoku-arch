@@ -2,6 +2,90 @@
 
 ## Unreleased
 
+### Changed
+- **One Keybinds page for every shortcut: Apps, System, Custom.** Default Apps is
+  folded in. **Apps** picks what each launcher key opens (browser, terminal,
+  editor, files, notes) -- installed apps as chips, a filterable catalogue of
+  every installed app (an executable cheatsheet), or any typed command -- and
+  rebinds that key right beside it. **System** rebinds the built-in shortcuts
+  (Close, Fullscreen, focus, workspaces). **Custom** layers your own, now with the
+  same app picker on Run-command rows so you never need to know an executable
+  name. App choices launch through the `ryoku-app` resolver (applied on the next
+  press, no reload; $BROWSER/$TERMINAL exported for the CLI and xdg-open). A key
+  change is a pure remap through the generated `rebinds.lua` that binds.lua's K()
+  consults, so shipped and custom binds never double-fire and overlaps are named
+  as you go; rebinds reset per row or all at once. Adds a shared filterable
+  `AppPicker`; removes the standalone Default Apps page and its nav entry
+  (`pages/KeybindsPage.qml`, `ui/AppPicker.qml`, `Hub.qml`, `backend/apps.go`,
+  `backend/keybinds.go`, `hyprland/scripts/ryoku-app`, `hyprland/modules/binds.lua`).
+- **Keybinds you can record by pressing them, with named conflicts.** The custom
+  editor no longer makes you type "SUPER + J" by hand: every row has a record
+  button (and the section's + records a brand-new bind in one click) that
+  captures the next combo you press. Even shipped chords like SUPER + Q are
+  caught safely, because recording first enters a do-nothing Hyprland submap
+  where only its own binds fire, so the combo reaches the Hub instead of closing
+  it (Esc, a timeout, or a click outside cancels). A captured bind that shadows a
+  shipped one now names it ("Shadows shipped: Close active window") instead of a
+  bare "shipped", and Clear all became Restore defaults. Adds the submap module
+  `hyprland/modules/record.lua` (`pages/KeybindsPage.qml`, `hyprland/hyprland.lua`).
+- **The Shell page's Desktop tab picks images and locations instead of typing
+  paths and city guesses.** The brand Logo image was a raw path field; it is now
+  an image control: a live thumbnail of the current mark, a Choose button that
+  opens a file browser, and Clear (falls back to the text glyph). The weather
+  Location was a free-text guess Open-Meteo might or might not geocode; it is now
+  a live-autocomplete field: as you type, the same keyless Open-Meteo geocoder
+  the weather widgets resolve with suggests real places as "City / Region /
+  Country", and picking one disambiguates (Tokyo, Japan vs Tokyo Hill, Texas)
+  and records the resolver cache (`~/.local/state/ryoku/weather-loc.json`) so the
+  pill, launcher and desktop widget all land on exactly that place instead of
+  re-geocoding. Typing freely still works; empty still locates by IP. Two
+  reusable schema control types back this (`image` and `location` in
+  `SettingsSheet.qml`), usable by any page (`schema/ShellSettingsPage.js`,
+  `SchemaPage.qml`).
+- **The file/image picker is one shared component now.** The monochrome
+  image/folder browser was copied per page; it is promoted to `Ryoku.Ui.PickFile`
+  and the Appearance page (border image, rice wallpaper, rice export/import) uses
+  the shared one, so the Desktop tab's image picker and every existing picker are
+  the same widget (`ryoku/ui/PickFile.qml`, `pages/AppearancePage.qml`).
+- **Rices capture the whole desktop now, and their previews tell the truth.**
+  A rice snapshots three more look stores -- desktop widgets (clock and
+  calendar), the audio visualiser, and the desktop decors, whose pictures are
+  bundled into the rice (`rice://` assets) and land under
+  `~/.config/ryoku/rice-assets/<slug>/` on apply, so a shared decor never
+  points at a file that exists only on the author's disk. The launcher look
+  gained its card knobs (`bgBlur`, `radius`, greeting and weather toggles),
+  the shell look carries `frameEnabled`, and the brand (name + mark, with the
+  mark image bundled) travels as a new opt-in layer routed to `brand.json`.
+  Every save now writes `preview.png` from the wallpaper as it stands at that
+  moment: a still is scaled down, a live (video) wall contributes the frame
+  the palette is tuned to (the wallust offset), so the tile and detail show
+  the wall of when it was saved -- an mp4 is never handed to an `<Image>`
+  again (a live-wall rice previously drew a broken tile). Live walls are
+  captured as the actual clip, badge `LIVE` on the tile and detail, and apply
+  routes them into `~/Pictures/livewalls/` so Super+W keeps cycling them.
+  `.previous`/`.baseline` snapshots grew to all eight stores, so Restore
+  original reverts widgets, visualiser, decors and brand too
+  (`backend/rice.go`, `pages/AppearancePage.qml`, `schema/RicesPage.js`).
+- **Applying a rice is a choice, not a package deal.** ALSO SETS is now a row
+  of toggles (KDE's global-theme partial apply): every behaviour bundle the
+  rice carries -- keybinds, input, window rules, layer rules, per-app
+  overrides, autostart, environment, brand -- applies by default and taps off
+  individually, so a recipient can take the look and leave the keybinds
+  (`pages/AppearancePage.qml`).
+
+### Added
+- **The capture card shows its coverage before you name the rice.** A
+  `ryoku-hub rice preflight` readout lists what the save will carry: the
+  wallpaper kind (live video or still), the decor count, widgets and
+  visualiser, the colour mode, and the non-empty behaviour layers -- so
+  "everything travels" is visible, not asserted (`backend/rice.go`,
+  `pages/AppearancePage.qml`).
+- **Import closes the sharing loop.** `ryoku-hub rice import <folder>` (and
+  the IMPORT button beside Save) installs an exported rice folder as a local
+  rice, de-duping the slug and skipping the export's reading matter, so a
+  rice folder someone sends you is one pick away from applying
+  (`backend/rice.go`, `pages/AppearancePage.qml`).
+
 ### Fixed
 - **The Fastfetch preview shows the emblem at its real size, and an Auto fit
   sizes it undistorted.** The readout preview drew the emblem as a fixed 84x84
