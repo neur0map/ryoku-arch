@@ -122,6 +122,9 @@ func Materialize() error {
 	if err := writeManifest(state, managed); err != nil {
 		return fmt.Errorf("record manifest: %w", err)
 	}
+	if err := overlayUserEdits(dest); err != nil {
+		return err
+	}
 	fmt.Printf("materialized %d files -> %s\n", len(managed), dest)
 	return nil
 }
@@ -181,4 +184,72 @@ func writeManifest(path string, rels []string) error {
 		return err
 	}
 	return os.WriteFile(path, []byte(strings.Join(rels, "\n")+"\n"), 0o644)
+}
+
+// overlayUserEdits lays the user's override tree over the freshly materialized
+// base: a regular file under ~/.config/ryoku/user_edits wins at the mirrored
+// ~/.config path. Runs last, after the prune and the quickshell converge, so a
+// fork is the final word and nothing sweeps it, while every base fix was still
+// laid underneath first. Symlinks (the store discovery pointers) and the
+// user_edits subtree itself are skipped.
+func overlayUserEdits(dest string) error {
+	root := sys.UserEditsDir()
+	if info, err := os.Stat(root); err != nil || !info.IsDir() {
+		return nil // no overlay: pure base, exactly as before this existed
+	}
+	base := sys.BaseConfigDir()
+	rels, err := walkRelFiles(root)
+	if err != nil {
+		return fmt.Errorf("scan %s: %w", root, err)
+	}
+	forks := sys.ReadForkLedger()
+	present := make(map[string]bool, len(rels))
+	for _, rel := range rels {
+		if strings.HasPrefix(rel, "ryoku/user_edits/") {
+			continue // never mirror the overlay tree into itself
+		}
+		if err := sys.CopyFile(filepath.Join(root, rel), filepath.Join(dest, rel)); err != nil {
+			return fmt.Errorf("overlay %s: %w", rel, err)
+		}
+		present[rel] = true
+		// a fork shadows a shipped base file: remember base's hash the first time
+		// we see the fork and never overwrite it, so a later base change reads as
+		// drift instead of being silently adopted as the new ancestor.
+		if _, seen := forks[rel]; !seen {
+			if h := sys.FileHash(filepath.Join(base, rel)); h != "" {
+				forks[rel] = h
+			}
+		}
+	}
+	// a fork the user removed drops out of the ledger; step 1 already restored the
+	// base file to live, so the override is gone with no extra prune.
+	for rel := range forks {
+		if !present[rel] {
+			delete(forks, rel)
+		}
+	}
+	return sys.WriteForkLedger(forks)
+}
+
+// walkRelFiles: regular files under root, slash-relative and sorted, symlinks
+// skipped. Used for the user overlay, where a symlink is a store discovery
+// pointer back into ~/.config, not a file to lay.
+func walkRelFiles(root string) ([]string, error) {
+	var rels []string
+	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || d.Type()&os.ModeSymlink != 0 {
+			return nil
+		}
+		rel, err := filepath.Rel(root, p)
+		if err != nil {
+			return err
+		}
+		rels = append(rels, filepath.ToSlash(rel))
+		return nil
+	})
+	sort.Strings(rels)
+	return rels, err
 }

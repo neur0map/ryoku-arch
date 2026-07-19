@@ -8,6 +8,7 @@
 //	ryoku snapshots         list snapper snapshots
 //	ryoku status            version, commits behind the channel, snapshot count
 //	ryoku materialize       lay the base configs into ~/.config (override-safe)
+//	ryoku reset [path]      drop a user_edits override, back to the Ryoku default
 //	ryoku reload            restart the shell + reload Hyprland
 //	ryoku deploy            DEV ONLY: build + materialize from a checkout
 //	ryoku recovery          last resort: reset to main + redeploy (overwrites configs)
@@ -38,6 +39,8 @@ func main() {
 		err = updater.Update(os.Args[2:])
 	case "materialize":
 		err = updater.Materialize()
+	case "reset":
+		err = updater.Reset(os.Args[2:])
 	case "rollback":
 		err = updater.Rollback(os.Args[2:])
 	case "snapshots":
@@ -73,6 +76,7 @@ func usage() {
   status         version, commits behind the channel, snapshot count
   version        print the running version (--branch = channel · sha)
   materialize    lay the base configs into ~/.config (keeps your overrides)
+  reset [path]   drop a user_edits override (no path: all, -y skips confirm)
   reload         restart the shell and reload Hyprland
   deploy         DEV ONLY: deploy from a repo checkout (RYOKU_REPO)
   recovery       last resort: reset to main and redeploy (overwrites configs)

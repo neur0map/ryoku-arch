@@ -37,12 +37,42 @@ mirrored by `ryoku/shell/deploy.sh` on a dev box) into `~/.config`:
   `hypr/monitors.lua`, `hypr/gpu.lua`, `hypr/keyboard.lua`,
   `fastfetch/config.jsonc`, `kitty/current-theme.conf`) is copied only when
   absent, never clobbered: per-machine or user-owned state an update must keep.
-- User files the package never ships (`hypr/user.lua`, `kitty/user.conf`, ...)
-  are left alone.
+- The user overlay (`~/.config/ryoku/user_edits`, mirroring `~/.config`) is laid
+  on top last, so a file there wins at its mirrored path; see below. Anything the
+  package never ships (`hypr/user.lua`, `kitty/user.conf`, a forked module) is
+  left alone regardless.
 
 So the QML and the `Config.qml` defaults reach users on every update. A **new**
 `shell.json` key is safe: the user's file lacks it, and the shell reads the new
 `Config.qml` default.
+
+## user_edits: your edits, kept apart
+
+Ryoku-owned config and user edits live in separate trees, so an update refreshes
+the base freely while your edits stand. The base is the restore point; the
+overlay is yours.
+
+- **base** `/usr/share/ryoku/config` (the checkout on a dev box): pristine,
+  re-laid in full on every update, so every fix and addition lands first.
+- **user_edits** `~/.config/ryoku/user_edits`, mirroring `~/.config`, sparse:
+  only what you changed. `materialize` overlays it last, so a file here wins at
+  its mirrored path. Empty means pure base and the overlay is a no-op.
+
+Two ways to override, neither of which blocks a fix:
+
+- **Overlay (default).** The tool's own last-wins include: Hyprland loads the
+  base modules, then `settings.lua` and `user.lua` last; kitty `globinclude`s
+  `user.conf`. The base loads underneath, so a new upstream keybind still arrives
+  while your file wins on what it sets.
+- **Fork (opt-in).** A whole copy of a shipped file shadows the base one. You own
+  it now, so an upstream fix to that file will not reach you automatically:
+  `ryoku doctor` reports the drift and `ryoku reset <path>` takes the new base.
+
+Ryoku Settings writes into the overlay too: its generated `hypr/settings.lua` and
+`hypr/rebinds.lua` are authored under `user_edits` and reflected live, and its
+structured stores are surfaced there as symlinks. `ryoku reset` drops an
+override; `ryoku recovery` is the last resort, wiping the overlay and the stores
+back to shipped defaults.
 
 ## doctor: converging what materialize can't
 
@@ -52,6 +82,10 @@ can't state declaratively (disk, boot, session, and the user-owned
 migration ledger: each is idempotent and safe on every update, and is retired
 once every supported install has run it. `reconcileShellConfig` migrates a stale
 `shell.json` (drops retired keys, revives the bar, clamps geometry).
+`reconcileUserEditsAdopt` moves a machine's legacy loose files (`hypr/user.lua`,
+`hypr/settings.lua`, `kitty/user.conf`) into the overlay; a store-mirror and a
+fork-drift reconciler keep it coherent. All idempotent, all retired once every
+install has run them.
 
 ## Publishing: how a commit becomes a user update
 
@@ -71,6 +105,10 @@ version (`core.r<commit-count>.g<sha>`) that `pacman -Syu` upgrades to.
 - **A removed or renamed `shell.json` key, or a changed default that must reach
   existing users, needs a `doctor` reconciler** (materialize never edits a user's
   `shell.json`). An additive key needs nothing.
+- **A user override belongs in `~/.config/ryoku/user_edits`, never in a shipped
+  path.** The base still ships every file (the delivery check stays green) and
+  the overlay wins on top. A whole-file fork opts out of upstream fixes for that
+  one file, so prefer an overlay for anything additive.
 - **A change reaches users only after `main` fast-forwards.** Keep the gap small;
   the delivery check reports it on every push.
 

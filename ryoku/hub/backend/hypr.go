@@ -390,8 +390,16 @@ func hyprConfigDir() string {
 	return filepath.Join(base, "hypr")
 }
 
-func generatedLuaPath() string {
-	return filepath.Join(hyprConfigDir(), "settings.lua")
+// userEditsHyprDir is the hypr slice of the user overlay tree,
+// ~/.config/ryoku/user_edits/hypr. The Hub authors its generated Lua here so it
+// survives an update as a user edit; writeOverlayLua reflects the same bytes into
+// the live ~/.config/hypr so the running session reloads at once.
+func userEditsHyprDir() string {
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		base = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	return filepath.Join(base, "ryoku", "user_edits", "hypr")
 }
 
 // loadOverrides: read the store, overlay on the defaults. a partial or older
@@ -618,13 +626,21 @@ func hyprReload() {
 	_ = exec.Command("hyprctl", "reload").Run()
 }
 
-// writeGeneratedLua renders settings.lua from the overrides (diffed against the
-// shipped defaults) and writes it atomically.
-func writeGeneratedLua(o Overrides) error {
-	return atomicWrite(generatedLuaPath(), []byte(genLua(o, loadThemeState().FollowWallpaper)), 0o644)
+// writeOverlayLua authors a generated overlay file in the user_edits tree (the
+// source of truth, kept across updates) and reflects the same bytes into the live
+// hypr dir so a reload picks them up immediately, without a full materialize.
+func writeOverlayLua(name string, body []byte) error {
+	if err := atomicWrite(filepath.Join(userEditsHyprDir(), name), body, 0o644); err != nil {
+		return err
+	}
+	return atomicWrite(filepath.Join(hyprConfigDir(), name), body, 0o644)
 }
 
-func rebindsLuaPath() string { return filepath.Join(hyprConfigDir(), "rebinds.lua") }
+// writeGeneratedLua renders settings.lua from the overrides (diffed against the
+// shipped defaults) into the user overlay, reflected live.
+func writeGeneratedLua(o Overrides) error {
+	return writeOverlayLua("settings.lua", []byte(genLua(o, loadThemeState().FollowWallpaper)))
+}
 
 // writeRebindsLua renders the key-rebind table binds.lua's K() consults, one
 // [default chord] = chosen chord entry per rebind. Always written (return {} when
@@ -646,7 +662,7 @@ func writeRebindsLua(o Overrides) error {
 		fmt.Fprintf(&b, "\t[%s] = %s,\n", luaStr(from), luaStr(to))
 	}
 	b.WriteString("}\n")
-	return atomicWrite(rebindsLuaPath(), []byte(b.String()), 0o644)
+	return writeOverlayLua("rebinds.lua", []byte(b.String()))
 }
 
 // genApps exports env vars for the chosen browser and terminal so the CLI and

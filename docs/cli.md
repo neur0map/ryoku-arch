@@ -33,6 +33,7 @@ few commands belong to only one world; that is called out per command below.
 |`snapshots`|List snapper snapshots|both|you|
 |`reload`|Restart the shell and reload Hyprland|both|you|
 |`materialize`|Lay the base configs into `~/.config`|packaged install|the updater/installer|
+|`reset [path]`|Drop a `user_edits` override, back to the Ryoku default|both|you|
 |`deploy`|Build and lay the desktop from a checkout|dev checkout|a maintainer|
 |`recovery`|Last resort: reset to main and redeploy|both|you, when broken|
 |`doctor`|Run idempotent reconcilers for stateful drift|both|you, the updater|
@@ -87,6 +88,15 @@ List the snapper snapshots (`sudo snapper list`). Requires snapper.
 Restart the shell and reload Hyprland, by handing off to `ryoku-shell reload`.
 Use it after changing config that is already in place.
 
+### `ryoku reset [path]`
+
+Drop a user override and go back to the Ryoku default. With a path (relative to
+`~/.config`, e.g. `hypr/modules/binds.lua`) it resets that file; with none, and
+after a confirm (`-y` skips it), the whole `user_edits` overlay. It removes only
+overlay files, not Ryoku Settings' stores. On a packaged box it re-lays the base
+at once; on a dev checkout it drops the override and leaves the re-lay to
+`ryoku deploy`.
+
 ## Production internals
 
 ### `ryoku materialize`
@@ -97,6 +107,12 @@ previous Ryoku copy), prunes files a past release shipped but this one dropped
 (tracked by a manifest at `~/.local/state/ryoku/materialized`), and never touches
 files the package never shipped your own overrides like `hypr/user.lua`,
 `hypr/monitors_user.lua`, `kitty/user.conf`, `fish/user.fish` are left alone.
+
+After the base is laid, materialize overlays your edits: every file under
+`~/.config/ryoku/user_edits` (mirroring `~/.config`) is copied on top, so a file
+there wins at its mirrored path. The overlay is sparse, so a new base file still
+lands; a whole-file fork shadows its base copy, and `ryoku doctor` reports when
+an upstream fix later touches it. See `docs/updates.md`.
 
 Per-machine generated drop-ins (`hypr/monitors.lua` written by `ryoku-monitor`,
 `hypr/gpu.lua` by `ryoku-gpu`) are seeded only when absent and never clobbered or

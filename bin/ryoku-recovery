@@ -37,7 +37,8 @@ usage() {
   cat <<EOF
 ryoku-recovery: last-resort restore of the Ryoku desktop from origin/$CHANNEL.
 Resets a clean checkout to the latest commit, reinstalls the base packages, and
-rebuilds + redeploys the desktop, OVERWRITING your Ryoku configs in ~/.config.
+rebuilds + redeploys the desktop, and CLEARS your user_edits overlay and Hub
+settings, OVERWRITING your Ryoku configs in ~/.config with the shipped defaults.
 
   ryoku recovery [--yes] [--no-packages]
   curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/bin/ryoku-recovery | bash
@@ -80,7 +81,7 @@ need go
 
 if [[ $ASSUME_YES != 1 ]]; then
   [[ -r /dev/tty ]] || die "non-interactive shell; re-run with --yes once you are sure"
-  warn "this resets Ryoku to origin/$CHANNEL and OVERWRITES your Ryoku configs in ~/.config."
+  warn "this resets Ryoku to origin/$CHANNEL, CLEARS your user_edits overlay and Hub settings, and OVERWRITES your configs in ~/.config with shipped defaults."
   printf 'type "recover" to continue: ' >/dev/tty
   ans=""
   read -r ans </dev/tty || true
@@ -133,6 +134,22 @@ if [[ $DO_PACKAGES == 1 ]]; then
     warn "skipping packages (pacman or base.packages not found)"
   fi
 fi
+
+# Factory reset: drop the user overlay, the fork ledger, the generated Hyprland
+# overlays, and the Hub's stored settings, so the redeploy below lays pure Ryoku
+# defaults with nothing layered back on (deploy.sh re-applies user_edits and
+# preserves unshipped live files otherwise). This is the point of recovery, and
+# why it is the last resort: your customizations go. Saved looks under rices/ and
+# the per-machine display/GPU seeds are left alone.
+say "clearing user overrides and Hub settings (recovery restores pure defaults)"
+RCFG="${XDG_CONFIG_HOME:-$HOME/.config}"
+RSTATE="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku"
+rm -rf "$RCFG/ryoku/user_edits"
+rm -f "$RSTATE/user-edits-forks"
+rm -f "$RCFG/hypr/settings.lua" "$RCFG/hypr/rebinds.lua" "$RCFG/hypr/user.lua" "$RCFG/hypr/monitors_user.lua"
+for _s in shell theme launcher widgets visualizer decor brand hypr plugins; do
+  rm -f "$RCFG/ryoku/$_s.json"
+done
 
 deploy="$RECOVERY_DIR/ryoku/shell/deploy.sh"
 [[ -x $deploy ]] || die "recovery checkout is missing $deploy"

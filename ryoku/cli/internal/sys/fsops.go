@@ -1,6 +1,8 @@
 package sys
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"os"
 	"os/exec"
@@ -15,6 +17,16 @@ func BaseConfigDir() string {
 		return v
 	}
 	return "/usr/share/ryoku/config"
+}
+
+// UserEditsDir is the user's override tree, ~/.config/ryoku/user_edits, mirroring
+// ~/.config. A regular file here wins over the Ryoku-owned base materialize lays
+// (a fork); the tool's native last-wins include (settings.lua, user.lua,
+// kitty user.conf) layers the rest on top so base fixes still land. Sparse by
+// design: absent or empty means the machine runs pure base and the overlay is a
+// no-op, so an update behaves exactly as it did before this existed.
+func UserEditsDir() string {
+	return filepath.Join(ConfigHome(), "ryoku", "user_edits")
 }
 
 // CopyFile copies src to dst, preserving src's permission bits, via a temp file
@@ -47,6 +59,22 @@ func CopyFile(src, dst string) error {
 		return err
 	}
 	return os.Rename(tmp, dst)
+}
+
+// FileHash is the hex SHA-256 of a file's contents, or "" when it cannot be
+// read. Records what the base version of a forked file looked like when the user
+// took it over, so doctor can tell when an upstream fix has since touched it.
+func FileHash(path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return ""
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // HyprLive reports whether a Hyprland session is reachable for hyprctl.

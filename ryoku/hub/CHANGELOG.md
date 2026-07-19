@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Changed
+- **Ryoku Settings writes its generated Hyprland Lua into the `user_edits`
+  overlay.** `settings.lua` and `rebinds.lua` are authored under
+  `~/.config/ryoku/user_edits/hypr` (the source that survives updates) and
+  reflected into the live `~/.config/hypr`, so a Save still hot-reloads at once
+  (`backend/hypr.go`).
 - **One Keybinds page for every shortcut: Apps, System, Custom.** Default Apps is
   folded in. **Apps** picks what each launcher key opens (browser, terminal,
   editor, files, notes) -- installed apps as chips, a filterable catalogue of

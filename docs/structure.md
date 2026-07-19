@@ -60,7 +60,7 @@ truth for the live desktop.
   `docs/cli.md`.
 - `hub/` Ryoku Settings, the central control-center GUI (`Super + ,`): `backend/`
   (`ryoku-hub`, the Go data plane that reads the keybind legend from the live
-  Hyprland config, generates the `settings.lua` override from a JSON document, and
+  Hyprland config, generates the `settings.lua` overlay (in `user_edits`) from JSON, and
   persists hub state as TOML) and `quickshell/` (the native Qt6/QML app, a
   `FloatingWindow` with a grouped nav rail and global fuzzy search, with live
   editors for displays, appearance, lockscreen, animations, input, keybinds, window and layer

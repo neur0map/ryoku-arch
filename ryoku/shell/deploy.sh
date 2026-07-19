@@ -24,6 +24,27 @@ cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
 bindir="$HOME/.local/bin"
 say() { printf '  %s\n' "$*"; }
 
+# Lay the user's overrides over the freshly-deployed base: a regular file under
+# ~/.config/ryoku/user_edits wins at the mirrored ~/.config path (a fork), the
+# one-way overlay `ryoku materialize` also applies on an installed box. Symlinks
+# (the store discovery pointers) and the overlay tree itself are skipped. Absent
+# by default, so a box with no user edits sees no change.
+overlay_user_edits() {
+  local root="$cfg/ryoku/user_edits"
+  [[ -d $root ]] || return 0
+  local src rel dst n=0
+  while IFS= read -r -d '' src; do
+    rel="${src#"$root"/}"
+    [[ $rel == ryoku/user_edits/* ]] && continue
+    dst="$cfg/$rel"
+    mkdir -p "${dst%/*}"
+    cp -f "$src" "$dst"
+    ((++n))
+  done < <(find "$root" -type f -print0)
+  (( n > 0 )) && say "overlaid $n user edit(s)"
+  return 0
+}
+
 restart_shell() {
   local shell=$bindir/ryoku-shell
   local log="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell.log"
@@ -313,6 +334,9 @@ else
   rm -f "$_iconroot/icon-theme.cache" 2>/dev/null || true
 fi
 command -v systemctl >/dev/null 2>&1 && systemctl --user daemon-reload 2>/dev/null || true
+
+# User overrides win over the base just laid, for hypr and every other surface.
+overlay_user_edits
 
 if (( hypr_live && reload )); then
   # Apply now in one clean reload (this also restores auto-reload), then restart

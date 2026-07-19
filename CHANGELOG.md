@@ -6,6 +6,15 @@ for finer detail.
 ## Unreleased
 
 ### Added
+- **User edits live in a `user_edits` overlay, separate from Ryoku-owned config.**
+  `~/.config/ryoku/user_edits` mirrors `~/.config` and is laid over the base on
+  every `ryoku materialize`/deploy, so a file there wins while the base (the
+  restore point) still delivers every fix and addition underneath. Overriding by
+  overlay (a last-loaded `user.lua`/`settings.lua`/`user.conf`) keeps upstream
+  fixes flowing; forking a whole file opts out for that one file, and `ryoku
+  doctor` reports the drift. `ryoku reset [path]` reverts an override; `ryoku
+  recovery` wipes the overlay and the Hub's stores back to shipped defaults.
+  Ryoku Settings writes its output into the overlay too. See `docs/updates.md`.
 - Update-delivery guard: `bin/ryoku-dev-verify-delivery` fails a commit when a
   `ryoku/apps` config reaches no user (shipped by no package, installer, or
   deploy path) and reports how far `main` lags `unstable-dev`. Wired into

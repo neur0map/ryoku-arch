@@ -54,7 +54,9 @@ These are not negotiable. Most are enforced by the git hooks in `.githooks/`.
 8. **Every change must reach users.** A dev box runs the checkout; users run
    packages, and `ryoku update` delivers them through `materialize` (the config)
    and `doctor` (drift). A user-facing config must be shipped by a package or
-   seeded by the installer, a removed or renamed `shell.json` key needs a doctor
+   seeded by the installer; user edits live in the `user_edits` overlay
+   (`~/.config/ryoku/user_edits`), never in shipped files, and survive updates. A
+   removed or renamed `shell.json` key needs a doctor
    reconciler, and work reaches users only once `main` fast-forwards. See
    `docs/updates.md`; `ryoku-dev-verify-delivery` enforces it.
 
