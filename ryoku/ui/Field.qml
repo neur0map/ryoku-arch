@@ -11,9 +11,11 @@ Rectangle {
     property string placeholder: ""
     property bool tabular: false      // mono for what a config file would hold
     property bool toolbar: false      // 36 in a toolbar, 30 in a sheet
+    property bool secret: false       // masked, for a password
     readonly property bool focused: input.activeFocus
     signal committed(string value)
     signal edited(string value)
+    signal accepted()
 
     implicitHeight: toolbar ? 36 : 30
     radius: Tokens.radius
@@ -23,7 +25,7 @@ Rectangle {
     Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
 
     function clear() { input.text = "" }
-    function focus() { input.forceActiveFocus() }
+    function grabFocus() { input.forceActiveFocus() }
 
     HoverHandler { id: hh; cursorShape: Qt.IBeamCursor }
 
@@ -37,9 +39,12 @@ Rectangle {
         font.family: field.tabular ? Tokens.mono : Tokens.ui
         font.pixelSize: field.tabular ? 11 : 12
         selectByMouse: true
+        echoMode: field.secret ? TextInput.Password : TextInput.Normal
+        passwordCharacter: "\u2022"
         clip: true
         onTextEdited: field.edited(text)
         onEditingFinished: field.committed(text)
+        onAccepted: field.accepted()
         Keys.onEscapePressed: { text = ""; field.edited("") }
 
         Text {

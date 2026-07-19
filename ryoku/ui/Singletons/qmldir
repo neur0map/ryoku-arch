@@ -3,3 +3,4 @@ singleton Spans Spans.qml
 singleton Silhouette Silhouette.qml
 singleton DecorStore DecorStore.qml
 singleton Ryodecors Ryodecors.qml
+singleton ProfileStore ProfileStore.qml

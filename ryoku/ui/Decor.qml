@@ -39,7 +39,7 @@ Item {
     // Ryodecors.dir); an empty list falls back to the procedural DitherField.
     property var images: dec.defaultArt
     readonly property var defaultArt: [
-        "laocoon.png", "david.png", "aurelius.png", "moon.png",
+        "laocoon.png", "david.png", "aurelius.png", "moon.png", "lighthouse.png",
         "horse.gif", "disc.gif", "earth.gif", "cradle.gif", "wave.gif",
         "render.gif", "torus.gif", "sphere.gif", "cube.gif", "spring.gif", "bounce.gif", "compass.gif"
     ]
