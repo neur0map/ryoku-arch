@@ -40,7 +40,7 @@ overlay_user_edits() {
     mkdir -p "${dst%/*}"
     cp -f "$src" "$dst"
     ((++n))
-  done < <(find "$root" -type f -print0)
+  done < <(find "$root" -type f -not -name '*.md' -print0)
   (( n > 0 )) && say "overlaid $n user edit(s)"
   return 0
 }

@@ -14,7 +14,9 @@ for finer detail.
   fixes flowing; forking a whole file opts out for that one file, and `ryoku
   doctor` reports the drift. `ryoku reset [path]` reverts an override; `ryoku
   recovery` wipes the overlay and the Hub's stores back to shipped defaults.
-  Ryoku Settings writes its output into the overlay too. See `docs/updates.md`.
+  Ryoku Settings writes its output into the overlay too, and a seeded `README.md`
+  plus clearer file headers explain to hand-editors what edits what. See
+  `docs/updates.md`.
 - Update-delivery guard: `bin/ryoku-dev-verify-delivery` fails a commit when a
   `ryoku/apps` config reaches no user (shipped by no package, installer, or
   deploy path) and reports how far `main` lags `unstable-dev`. Wired into

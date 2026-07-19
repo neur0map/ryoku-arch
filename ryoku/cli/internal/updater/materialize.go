@@ -231,16 +231,16 @@ func overlayUserEdits(dest string) error {
 	return sys.WriteForkLedger(forks)
 }
 
-// walkRelFiles: regular files under root, slash-relative and sorted, symlinks
-// skipped. Used for the user overlay, where a symlink is a store discovery
-// pointer back into ~/.config, not a file to lay.
+// walkRelFiles: regular files under root, slash-relative and sorted; symlinks
+// (store discovery pointers back into ~/.config) and .md files (notes and the
+// overlay guide, never config) are skipped. Used for the user overlay only.
 func walkRelFiles(root string) ([]string, error) {
 	var rels []string
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() || d.Type()&os.ModeSymlink != 0 {
+		if d.IsDir() || d.Type()&os.ModeSymlink != 0 || strings.HasSuffix(d.Name(), ".md") {
 			return nil
 		}
 		rel, err := filepath.Rel(root, p)

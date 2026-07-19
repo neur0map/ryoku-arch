@@ -28,28 +28,35 @@ func ueWrite(t *testing.T, path, body string) {
 	}
 }
 
-// adopt copies a machine's loose user files into the overlay, idempotently, and
-// leaves the live copy alone so a running session is never disturbed.
+// adopt seeds the overlay guide and copies a machine's loose user files into the
+// overlay, idempotently, leaving the live copy alone so a session is undisturbed.
 func TestReconcileUserEditsAdopt(t *testing.T) {
 	ueSetup(t)
 	cfg := sys.ConfigHome()
 	edits := sys.UserEditsDir()
 
-	if r := reconcileUserEditsAdopt(false); r.status != recOK {
-		t.Fatalf("empty: status=%s detail=%q, want ok", r.status.label(), r.detail)
+	// fresh box: the guide is missing; check reports it, fix writes it.
+	if r := reconcileUserEditsAdopt(true); r.status != recWouldFix {
+		t.Fatalf("fresh check: status=%s detail=%q, want todo", r.status.label(), r.detail)
+	}
+	if r := reconcileUserEditsAdopt(false); r.status != recFixed {
+		t.Fatalf("fresh fix: status=%s detail=%q, want fixed", r.status.label(), r.detail)
+	}
+	if !sys.Exists(filepath.Join(edits, "README.md")) {
+		t.Fatal("overlay guide not written")
 	}
 
+	// loose user files get adopted; the live copies stay put.
 	ueWrite(t, filepath.Join(cfg, "hypr/user.lua"), "-- my hypr\n")
 	ueWrite(t, filepath.Join(cfg, "kitty/user.conf"), "font_size 12\n")
-
 	if r := reconcileUserEditsAdopt(true); r.status != recWouldFix {
-		t.Fatalf("check: status=%s detail=%q, want todo", r.status.label(), r.detail)
+		t.Fatalf("adopt check: status=%s detail=%q, want todo", r.status.label(), r.detail)
 	}
 	if sys.Exists(filepath.Join(edits, "hypr/user.lua")) {
 		t.Fatal("check-only must not copy anything")
 	}
 	if r := reconcileUserEditsAdopt(false); r.status != recFixed {
-		t.Fatalf("fix: status=%s detail=%q, want fixed", r.status.label(), r.detail)
+		t.Fatalf("adopt fix: status=%s detail=%q, want fixed", r.status.label(), r.detail)
 	}
 	for _, rel := range []string{"hypr/user.lua", "kitty/user.conf"} {
 		if !sys.Exists(filepath.Join(edits, rel)) {
@@ -59,6 +66,8 @@ func TestReconcileUserEditsAdopt(t *testing.T) {
 			t.Fatalf("adopt removed the live %s; it must stay put", rel)
 		}
 	}
+
+	// idempotent: guide present, nothing loose left.
 	if r := reconcileUserEditsAdopt(false); r.status != recOK {
 		t.Fatalf("idempotent: status=%s, want ok", r.status.label())
 	}
