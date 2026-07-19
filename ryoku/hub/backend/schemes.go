@@ -24,14 +24,48 @@ func loadScheme(mode string) (map[string]string, error) {
 	return m, json.Unmarshal(b, &m)
 }
 
-// writePalette writes the wallust outputs every consumer reads (the cache
-// colors.json, the hypr border colours, the kitty theme) from a fixed palette.
+// writePalette authors the shell's own palette (the cache colors.json every
+// Quickshell singleton reads) and hands that same palette to matugen, which
+// renders every external app config from it.
 func writePalette(pal map[string]string) {
 	_ = os.MkdirAll(wallustCacheDir(), 0o755)
 	_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(pal), 0o644)
-	_ = atomicWrite(filepath.Join(wallustCacheDir(), "hypr-colors.lua"),
-		[]byte(fmt.Sprintf("return {\n    active = %q,\n    inactive = %q,\n}\n", paletteAccent(pal), pal["background"])), 0o644)
-	_ = atomicWrite(kittyThemePath(), []byte(renderKitty(pal)), 0o644)
+	renderApps(pal)
+}
+
+// renderApps runs matugen in json (templating-only) mode over the palette, the
+// one engine that fans it into kitty, Hyprland borders, GTK, Qt, and btop from
+// the templates deployed under ~/.config/matugen. Passthrough keeps every
+// colour byte-exact; only .hex resolves in this mode, so Qt's ARGB roles read
+// the pre-formatted *_argb keys the carrier carries beside the plain colours.
+func renderApps(pal map[string]string) {
+	carrier := map[string]any{"colors": paletteCarrier(pal)}
+	cacheDir := filepath.Join(cacheHome(), "ryoku")
+	_ = os.MkdirAll(cacheDir, 0o755)
+	carrierPath := filepath.Join(cacheDir, "matugen-carrier.json")
+	if err := atomicWrite(carrierPath, mustJSON(carrier), 0o644); err != nil {
+		return
+	}
+	cfg := filepath.Join(configHome(), "matugen", "config.toml")
+	if out, err := exec.Command("matugen", "-c", cfg, "json", carrierPath).CombinedOutput(); err != nil {
+		fmt.Fprintf(os.Stderr, "matugen: %v: %s\n", err, out)
+	}
+}
+
+// paletteCarrier shapes the palette into matugen's json input: each colour as
+// colors.<name>.default.hex, plus a colors.<name>_argb.default.hex variant
+// (#aarrggbb) for Qt's palette roles, plus cursor mirrored from the foreground.
+func paletteCarrier(pal map[string]string) map[string]any {
+	c := map[string]any{}
+	put := func(name, hex string) {
+		c[name] = map[string]any{"default": map[string]any{"hex": hex}}
+	}
+	for k, v := range pal {
+		put(k, v)
+		put(k+"_argb", "#ff"+strings.TrimPrefix(v, "#"))
+	}
+	put("cursor", pal["foreground"])
+	return c
 }
 
 // currentScheme reports the active palette mode for the UI: light/dark when a
@@ -78,6 +112,13 @@ func applyScheme(mode string) error {
 			return err
 		}
 		writePalette(pal)
+		// GTK apps re-read gtk.css when the colour-scheme preference flips; pin
+		// light/dark so libadwaita picks the freshly rendered palette up.
+		gtkScheme := "prefer-dark"
+		if mode == "light" {
+			gtkScheme = "prefer-light"
+		}
+		_ = exec.Command("gsettings", "set", "org.gnome.desktop.interface", "color-scheme", gtkScheme).Run()
 	default:
 		return fmt.Errorf("unknown scheme %q (want follow|light|dark|mono)", mode)
 	}
@@ -132,29 +173,11 @@ func kittyThemePath() string {
 	return filepath.Join(base, "kitty", "current-theme.conf")
 }
 
-// paletteAccent = the active-border colour: color4 by wallust convention.
-func paletteAccent(p map[string]string) string {
-	if c := p["color4"]; c != "" {
-		return c
+func cacheHome() string {
+	if b := os.Getenv("XDG_CACHE_HOME"); b != "" {
+		return b
 	}
-	return p["foreground"]
-}
-
-// renderKitty fills kitty's current-theme.conf from the palette (cursor =
-// foreground), matches the wallust kitty template.
-func renderKitty(p map[string]string) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "background %s\n", p["background"])
-	fmt.Fprintf(&b, "foreground %s\n", p["foreground"])
-	fmt.Fprintf(&b, "cursor %s\n", p["foreground"])
-	fmt.Fprintf(&b, "cursor_text_color %s\n", p["background"])
-	fmt.Fprintf(&b, "selection_background %s\n", p["color8"])
-	fmt.Fprintf(&b, "selection_foreground %s\n", p["foreground"])
-	for i := range 16 {
-		key := fmt.Sprintf("color%d", i)
-		fmt.Fprintf(&b, "%s %s\n", key, p[key])
-	}
-	return b.String()
+	return filepath.Join(os.Getenv("HOME"), ".cache")
 }
 
 func mustJSON(v any) []byte {

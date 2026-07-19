@@ -1,0 +1,24 @@
+/* Ryoku palette -> GTK / libadwaita. Rendered by matugen; do not edit. */
+@define-color accent_color {{colors.color4.default.hex}};
+@define-color accent_bg_color {{colors.color4.default.hex}};
+@define-color accent_fg_color {{colors.background.default.hex}};
+@define-color window_bg_color {{colors.background.default.hex}};
+@define-color window_fg_color {{colors.foreground.default.hex}};
+@define-color view_bg_color {{colors.background.default.hex}};
+@define-color view_fg_color {{colors.foreground.default.hex}};
+@define-color headerbar_bg_color {{colors.color0.default.hex}};
+@define-color headerbar_fg_color {{colors.foreground.default.hex}};
+@define-color headerbar_border_color {{colors.foreground.default.hex}};
+@define-color headerbar_backdrop_color {{colors.background.default.hex}};
+@define-color card_bg_color {{colors.color0.default.hex}};
+@define-color card_fg_color {{colors.foreground.default.hex}};
+@define-color dialog_bg_color {{colors.background.default.hex}};
+@define-color dialog_fg_color {{colors.foreground.default.hex}};
+@define-color popover_bg_color {{colors.color0.default.hex}};
+@define-color popover_fg_color {{colors.foreground.default.hex}};
+@define-color sidebar_bg_color {{colors.color0.default.hex}};
+@define-color sidebar_fg_color {{colors.foreground.default.hex}};
+@define-color destructive_color {{colors.color1.default.hex}};
+@define-color destructive_bg_color {{colors.color1.default.hex}};
+@define-color warning_color {{colors.color3.default.hex}};
+@define-color success_color {{colors.color2.default.hex}};

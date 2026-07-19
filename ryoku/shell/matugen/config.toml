@@ -1,8 +1,7 @@
 [config]
 
-[templates.colors]
-input_path = "~/.config/matugen/templates/colors.json"
-output_path = "~/.cache/wallust/colors.json"
+# colors.json (the shell's own palette) is authored by the Go control plane;
+# matugen fans that same palette into every external app config below.
 
 [templates.kitty]
 input_path = "~/.config/matugen/templates/kitty-colors.conf"
@@ -11,3 +10,19 @@ output_path = "~/.config/kitty/current-theme.conf"
 [templates.hypr]
 input_path = "~/.config/matugen/templates/hypr-colors.lua"
 output_path = "~/.cache/wallust/hypr-colors.lua"
+
+[templates.gtk3]
+input_path = "~/.config/matugen/templates/gtk-colors.css"
+output_path = "~/.config/gtk-3.0/gtk.css"
+
+[templates.gtk4]
+input_path = "~/.config/matugen/templates/gtk-colors.css"
+output_path = "~/.config/gtk-4.0/gtk.css"
+
+[templates.btop]
+input_path = "~/.config/matugen/templates/btop.theme"
+output_path = "~/.config/btop/themes/ryoku.theme"
+
+[templates.qt6ct]
+input_path = "~/.config/matugen/templates/qt6ct-colors.conf"
+output_path = "~/.config/qt6ct/colors/ryoku.conf"

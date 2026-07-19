@@ -295,6 +295,7 @@ mkdir -p "$cfg/matugen"; cp -a "$here/matugen/." "$cfg/matugen/"
 cp -a "$here/../apps/fish/config.fish" "$cfg/fish/config.fish"
 mkdir -p "$cfg/fish/conf.d"; cp -a "$here/../apps/fish/conf.d/." "$cfg/fish/conf.d/"
 mkdir -p "$cfg/qt6ct"; cp -a "$here/qt6ct/qt6ct.conf" "$cfg/qt6ct/qt6ct.conf"
+mkdir -p "$cfg/btop"; cp -a "$here/../apps/btop/btop.conf" "$cfg/btop/btop.conf"
 mkdir -p "$cfg/pipewire"; cp -a "$here/../apps/pipewire/." "$cfg/pipewire/"
 mkdir -p "$cfg/systemd/user"; cp -a "$here/systemd/user/." "$cfg/systemd/user/"
 # pip (PEP 668 --user) + the default-app map: Ryoku-owned, so a dev box tracks
