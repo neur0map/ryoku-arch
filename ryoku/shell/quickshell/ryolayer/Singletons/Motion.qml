@@ -28,7 +28,7 @@ Singleton {
     }
 
     readonly property int fast:     reduce ? 0 : 140
-    readonly property int window:   reduce ? 0 : 240
+    readonly property int window:   reduce ? 0 : 300
     readonly property int settle:   reduce ? 0 : 170
     readonly property int easeStandard: Easing.OutCubic
     readonly property int easeExpo:     Easing.OutExpo

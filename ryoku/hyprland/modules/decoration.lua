@@ -96,15 +96,21 @@ hl.layer_rule({
 -- blur 0 the board maps as "ryolayer-noblur" and never frosts. Pinned widgets
 -- ride their own small "ryolayer-pin" windows, never blurred. QML owns every
 -- open/close morph, so Hyprland's layer animation is suppressed for all three.
+-- ignore_alpha ties the frost to surface alpha: the compositor only blurs where
+-- the board's own alpha clears the threshold, so the frost sweeps in and out
+-- WITH the board's fade instead of popping to full strength the instant the
+-- layer maps -- and, because it ramps with alpha, the one-frame gap between the
+-- baseline blur at map and the forced size landing is never visible.
 hl.layer_rule({
   name    = "ryolayer-noanim",
   match   = { namespace = "^ryolayer" },
   no_anim = true,
 })
 hl.layer_rule({
-  name    = "ryolayer-blur",
-  match   = { namespace = "^ryolayer$" },
-  blur    = not no_blur,
+  name        = "ryolayer-blur",
+  match       = { namespace = "^ryolayer$" },
+  blur        = not no_blur,
+  ignore_alpha = 0.05,
 })
 
 -- The wallpaper rides the background layer: the awww image daemon and the
