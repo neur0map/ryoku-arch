@@ -25,12 +25,16 @@ Singleton {
         return (n && typeof PwNodeType !== "undefined") ? PwNodeType.toString(n.type) : "";
     }
 
-    // a real, switchable output/input device (not a stream).
-    function isOutput(n) { return !!(n && n.isSink && !n.isStream && n.audio); }
+    // a real, switchable output/input device (not a stream). the ryoku-eq
+    // filter-chain sink is internal plumbing, not a user-pickable output:
+    // picking it while the chain is down routes @DEFAULT into silence.
+    function isOutput(n) { return !!(n && n.isSink && !n.isStream && n.audio && n.name !== "ryoku.eq.sink"); }
     function isInput(n) { return !!(n && !n.isSink && !n.isStream && n.audio); }
     // an application feeding the graph (playback, not capture). per-app here.
+    // the ryoku.eq.out node is the equalizer's own output leg, not an app:
+    // muting or dropping it in the mixer silences everything routed through the EQ.
     function isPlayStream(n) {
-        return !!(n && n.isStream && n.audio && root.typeOf(n).indexOf("In") < 0);
+        return !!(n && n.isStream && n.audio && root.typeOf(n).indexOf("In") < 0 && n.name !== "ryoku.eq.out");
     }
 
     readonly property var outputs: root.nodes.filter(root.isOutput)
