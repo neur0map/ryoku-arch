@@ -90,6 +90,23 @@ hl.layer_rule({
   no_anim = true,
 })
 
+-- ryolayer (qs -c ryolayer, Super+G) is a full-screen transparent tool layer:
+-- blur the desktop behind the board so its widgets read on top; the strength
+-- slider drives decoration:blur:size live (the launcher's force/restore). At
+-- blur 0 the board maps as "ryolayer-noblur" and never frosts. Pinned widgets
+-- ride their own small "ryolayer-pin" windows, never blurred. QML owns every
+-- open/close morph, so Hyprland's layer animation is suppressed for all three.
+hl.layer_rule({
+  name    = "ryolayer-noanim",
+  match   = { namespace = "^ryolayer" },
+  no_anim = true,
+})
+hl.layer_rule({
+  name    = "ryolayer-blur",
+  match   = { namespace = "^ryolayer$" },
+  blur    = not no_blur,
+})
+
 -- The wallpaper rides the background layer: the awww image daemon and the
 -- ryoku-livewall video daemon each map a surface there (mpvpaper/phonto on
 -- boxes whose orphaned players predate livewall), and switching image<->live

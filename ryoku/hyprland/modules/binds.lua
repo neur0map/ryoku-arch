@@ -55,6 +55,7 @@ hl.bind(K(mod .. " + Tab"),       hl.dsp.exec_cmd("ryoku-shell overview")) -- wo
 hl.bind(K(mod .. " + ALT + Tab"), hl.dsp.exec_cmd("ryoku-shell overview")) -- workspace overview, stepping desktops (Alt+Tab again inside cycles desktops)
 hl.bind(K(mod .. " + M"),         hl.dsp.exec_cmd("ryoku-shell visualizer"))        -- toggle the desktop audio visualiser
 hl.bind(K(mod .. " + SHIFT + M"), hl.dsp.exec_cmd("ryoku-shell visualizer-overlay")) -- raise the visualiser over windows (flip back to desktop)
+hl.bind(K(mod .. " + G"),         hl.dsp.exec_cmd("ryoku-shell ryolayer"))         -- ryolayer: the tool overlay (music + EQ, mic; drag, resize, pin over the desktop)
 hl.bind(K(mod .. " + grave"),     hl.dsp.exec_cmd("ryoku-shell voice"))             -- tap: Voxtype speech-to-text + mic wave (tap again to stop)
 hl.bind(K(mod .. " + comma"),     hl.dsp.exec_cmd("flock -n -o /tmp/ryoku-hub.lock qs -c hub"))     -- ryoku settings
 hl.bind(K(mod .. " + K"),         hl.dsp.exec_cmd("ryoku-hub config set section keybinds; flock -n -o /tmp/ryoku-hub.lock qs -c hub")) -- keybind reference (the live shortcut legend)

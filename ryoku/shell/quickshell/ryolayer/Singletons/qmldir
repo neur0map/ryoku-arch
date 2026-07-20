@@ -1,0 +1,3 @@
+singleton Config Config.qml
+singleton Catalog Catalog.qml
+singleton Motion Motion.qml
