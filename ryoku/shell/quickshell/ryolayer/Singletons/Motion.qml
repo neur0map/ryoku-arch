@@ -34,6 +34,5 @@ Singleton {
     readonly property int windowOut: reduce ? 0 : 180
     readonly property int settle:   reduce ? 0 : 170
     readonly property int easeStandard: Easing.OutCubic
-    readonly property int easeExpo:     Easing.OutExpo
     readonly property int easeExit:     Easing.InCubic
 }

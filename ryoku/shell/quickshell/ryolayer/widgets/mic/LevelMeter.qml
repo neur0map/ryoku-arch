@@ -54,7 +54,7 @@ Item {
         width: (parent.width - Tokens.border * 2) * Math.min(1, meter.level)
         color: Tokens.ink
         opacity: 0.7
-        Behavior on width { NumberAnimation { duration: 80 } }
+        Behavior on width { NumberAnimation { duration: Tokens.snap } }
     }
     Rectangle {
         x: Tokens.border + (parent.width - Tokens.border * 2) * Math.min(1, meter.peak)

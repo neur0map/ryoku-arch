@@ -136,7 +136,6 @@ ShellRoot {
         repeat: false
     }
     onOpenChanged: {
-        Quickshell.execDetached(["ryoku-shell", "state", "ryolayer", open ? "1" : "0"]);
         if (open) {
             openHold.restart();
             blurRestoreDelay.stop();

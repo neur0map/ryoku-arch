@@ -28,7 +28,7 @@ Item {
         // a growth (requestHeight) can fire before the board is laid out; a
         // zero-size parent would divide the normalized center to NaN and land
         // null in ryolayer.json, so wait for a real layout before persisting.
-        if (!entry || !parent || parent.width <= 0 || parent.height <= 0)
+        if (!slot.interactive || !entry || !parent || parent.width <= 0 || parent.height <= 0)
             return;
         Config.setGeometry(entry.id, slot.screenName,
                            (x + width / 2) / parent.width,
@@ -37,7 +37,7 @@ Item {
     }
     // a body panel (the EQ) may need more room than the user left it.
     function requestHeight(px) {
-        if (!def)
+        if (!slot.interactive || !def)
             return;
         var target = Math.min(def.maxH, Math.max(px, height));
         if (target !== height) {
@@ -78,7 +78,6 @@ Item {
     // the plate keeps its own clicks; only the scrim behind dismisses the board.
     MouseArea { anchors.fill: parent }
 
-    // eyebrow: kanji + tracked mono title, the printed-instrument lead.
     Row {
         id: eyebrow
         anchors { top: parent.top; left: parent.left; margins: Tokens.s3 }

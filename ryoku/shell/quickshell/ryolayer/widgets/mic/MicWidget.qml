@@ -39,7 +39,7 @@ Item {
                     font { family: Tokens.mono; pixelSize: Tokens.fTiny; letterSpacing: Tokens.trackLabel }
                 }
                 TapHandler {
-                    enabled: mic.src !== null
+                    enabled: mic.src && mic.src.audio
                     onTapped: mic.src.audio.muted = !mic.src.audio.muted
                 }
                 Behavior on color { ColorAnimation { duration: Motion.fast } }

@@ -85,8 +85,9 @@ The two shipped instruments are backed by real system services, not mocks.
 - **mic** (`widgets/mic/`) controls capture through
   `Quickshell.Services.Pipewire`: a mute plate, a gain fader with a percent
   readout, device rows when more than one input exists, a **RECORDING NOW**
-  section (its own cava filtered by node identity to the apps actually
-  capturing), and one-tap unity normalize via `ryoku-mic apply`. A `LevelMeter`
+  section (the PipeWire stream nodes actually capturing the source, with the
+  shell's own level-meter cava excluded by node identity), and one-tap unity
+  normalize via `ryoku-mic apply`. A `LevelMeter`
   runs a cava VU on the default source, gated on visibility and unmuted so the
   analyser only runs when it is seen.
 

@@ -42,7 +42,6 @@ Item {
         MouseArea { anchors.fill: parent; onClicked: board.requestClose() }
     }
 
-    // the vocabulary hint when the board is empty on this screen.
     Empty {
         anchors.centerIn: parent
         visible: board.entries.length === 0

@@ -64,7 +64,6 @@ Column {
             active: eq.activeFeed && Eq.enabled
         }
 
-        // zero line.
         Rectangle {
             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; verticalCenterOffset: -Tokens.s2 }
             height: Tokens.border
@@ -99,7 +98,7 @@ Column {
                         border { width: Tokens.border; color: Tokens.paper }
                     }
                     MouseArea {
-                        anchors { fill: parent; bottomMargin: Tokens.s4 }
+                        anchors { fill: parent; bottomMargin: Tokens.s4 + knob.height }
                         enabled: Eq.enabled
                         onPositionChanged: (e) => { if (pressed) band.push(e.y); }
                         onPressed: (e) => band.push(e.y)
