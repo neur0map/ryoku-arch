@@ -95,21 +95,63 @@ start() {
   pactl set-default-sink ryoku.eq.sink 2>/dev/null || true
 }
 
+# the first real output sink, i.e. any sink that is not our own EQ sink; empty
+# if none exists. used to get @DEFAULT off a dead EQ sink.
+real_sink() {
+  pactl list short sinks 2>/dev/null | awk '$2 != "ryoku.eq.sink" { print $2; exit }'
+}
+
+# make sure the default output is not the EQ sink. only intervenes when @DEFAULT
+# is actually stranded on ryoku.eq.sink (chain down or torn down): restore the
+# saved sink if it still exists, else fall back to the first real sink. a
+# default already pointing at hardware is left exactly as the user set it.
+restore_default() {
+  [[ $(pactl get-default-sink 2>/dev/null || true) == ryoku.eq.sink ]] || return 0
+  local saved="" target=""
+  [[ -s $saved_sink ]] && saved=$(cat "$saved_sink")
+  if [[ -n $saved && $saved != ryoku.eq.sink ]] \
+    && pactl list short sinks 2>/dev/null | grep -qF "$saved"; then
+    target=$saved
+  else
+    target=$(real_sink)
+  fi
+  [[ -n $target ]] && pactl set-default-sink "$target" 2>/dev/null || true
+}
+
 stop() {
   if [[ ${RYOKU_DRYRUN:-0} == 1 ]]; then
     printf 'stop ryoku-eq instance, restore default sink\n'
     return 0
   fi
-  if [[ -s $saved_sink ]] && pactl list short sinks | grep -qF "$(cat "$saved_sink")"; then
-    pactl set-default-sink "$(cat "$saved_sink")" 2>/dev/null || true
-  fi
   pkill -f "pipewire -c $conf" 2>/dev/null || true
   rm -f "$conf"
+  restore_default
+}
+
+# true once the filter chain's output node is actually linked downstream; a
+# filter-chain that started but failed to route leaves @DEFAULT on a silent sink.
+routed() {
+  pw-link -l 2>/dev/null | awk '
+    /^ryoku\.eq\.out:output/ { p = 1; next }
+    p && /\|->/ { print "ok"; exit }
+    p && /^[^[:space:]]/ { p = 0 }'
 }
 
 apply() {
   command -v pw-cli >/dev/null 2>&1 || return 0
-  if enabled; then start; else stop; fi
+  if enabled; then
+    start
+    local i
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+      [[ -n $(routed) ]] && return 0
+      sleep 0.2
+    done
+    stop
+    echo "ryoku-eq: filter chain did not route to hardware; reverted" >&2
+    exit 1
+  else
+    stop
+  fi
 }
 
 set_band() {
