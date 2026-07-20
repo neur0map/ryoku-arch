@@ -5,3 +5,4 @@ singleton Players Players.qml
 singleton Eq Eq.qml
 singleton Sound Sound.qml
 singleton Notes Notes.qml
+singleton Sys Sys.qml

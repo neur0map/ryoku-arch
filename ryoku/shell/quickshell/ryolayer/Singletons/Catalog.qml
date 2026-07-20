@@ -33,6 +33,15 @@ Singleton {
             defW: 380, defH: 430,
             minW: 300, minH: 280,
             maxW: 640, maxH: 900
+        },
+        {
+            id: "sys",
+            title: "SYSTEM",
+            kanji: "\u76e3",
+            source: "widgets/sys/SysWidget.qml",
+            defW: 440, defH: 380,
+            minW: 340, minH: 260,
+            maxW: 720, maxH: 900
         }
     ]
 
