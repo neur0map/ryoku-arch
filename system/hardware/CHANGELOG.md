@@ -101,6 +101,16 @@
   proprietary modules otherwise.
 
 ### Fixed
+- `audio/ryoku-eq`: switching the EQ on or off no longer silences audio that was
+  already playing. Enable now pins `ryoku.eq.sink` to unmuted unity (a stale
+  wireplumber volume/mute remembered for the virtual sink otherwise attenuated or
+  fully muted everything routed through it) and pulls any stream still on the old
+  default onto it, so a stream that predates the swap keeps playing through the
+  EQ. Disable now moves every stream off `ryoku.eq.sink` and repoints the default
+  before killing the filter chain: tearing the sink out from under a live stream
+  made clients (mpv, browsers) cork themselves, heard as audio that never came
+  back. Full playing->enable->disable cycles now stay audible (RMS-verified) and
+  the crash-recovery self-heal is unchanged.
 - `display/ryoku-monitor`: the Settings paths (`apply`, `save`, `load`) now
   snap every explicit scale to the nearest Hyprland-valid value for its mode (a
   1/120 multiple dividing width and height to whole logical pixels), the same

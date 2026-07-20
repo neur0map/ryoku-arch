@@ -101,27 +101,83 @@ real_sink() {
   pactl list short sinks 2>/dev/null | awk '$2 != "ryoku.eq.sink" { print $2; exit }'
 }
 
-# make sure the default output is not the EQ sink. only intervenes when @DEFAULT
-# is actually stranded on ryoku.eq.sink (chain down or torn down): restore the
-# saved sink if it still exists, else fall back to the first real sink. a
-# default already pointing at hardware is left exactly as the user set it.
-restore_default() {
-  [[ $(pactl get-default-sink 2>/dev/null || true) == ryoku.eq.sink ]] || return 0
-  local saved="" target=""
+# numeric id of a sink by name (pactl move-sink-input wants a live target).
+sink_id() {
+  pactl list short sinks 2>/dev/null | awk -v n="$1" '$2 == n { print $1; exit }'
+}
+
+# sink-input ids currently parked on sink id $1, minus our own eq.out playback
+# stream (moving that onto the EQ sink would feed the chain into itself).
+movable_inputs_on() {
+  pactl list sink-inputs 2>/dev/null | awk -v s="$1" '
+    function flush() { if (id != "" && sink == s && name != "ryoku.eq.out") print id }
+    /^Sink Input #/ { flush(); id = substr($3, 2); sink = ""; name = "" }
+    $1 == "Sink:" { sink = $2 }
+    $1 == "node.name" { name = $3; gsub(/"/, "", name) }
+    END { flush() }'
+}
+
+# where playback should land when the EQ sink is not in use: the sink saved
+# before the swap if it still exists, else the first real sink. never the EQ sink.
+restore_target() {
+  local saved=""
   [[ -s $saved_sink ]] && saved=$(cat "$saved_sink")
   if [[ -n $saved && $saved != ryoku.eq.sink ]] \
     && pactl list short sinks 2>/dev/null | grep -qF "$saved"; then
-    target=$saved
+    echo "$saved"
   else
-    target=$(real_sink)
+    real_sink
   fi
+}
+
+# make sure the default output is not the EQ sink. only intervenes when @DEFAULT
+# is actually stranded on ryoku.eq.sink (chain down or torn down); a default
+# already pointing at hardware is left exactly as the user set it.
+restore_default() {
+  [[ $(pactl get-default-sink 2>/dev/null || true) == ryoku.eq.sink ]] || return 0
+  local target; target=$(restore_target)
   [[ -n $target ]] && pactl set-default-sink "$target" 2>/dev/null || true
 }
 
+# with the chain live and routed, pin the EQ sink to unmuted unity (a stale
+# wireplumber volume/mute remembered for ryoku.eq.sink would otherwise attenuate
+# or fully silence everything routed through it) and pull any stream still on the
+# previous default across, so a stream that predates the swap keeps playing
+# through the EQ even where the session's default-follow policy does not move it.
+finalize_enable() {
+  local eqid; eqid=$(sink_id ryoku.eq.sink)
+  [[ -n $eqid ]] || return 0
+  pactl set-sink-mute ryoku.eq.sink 0 2>/dev/null || true
+  pactl set-sink-volume ryoku.eq.sink 100% 2>/dev/null || true
+  local prev previd si
+  prev=$(cat "$saved_sink" 2>/dev/null || true)
+  [[ -n $prev && $prev != ryoku.eq.sink ]] || return 0
+  previd=$(sink_id "$prev")
+  [[ -n $previd ]] || return 0
+  for si in $(movable_inputs_on "$previd"); do
+    pactl move-sink-input "$si" "$eqid" 2>/dev/null || true
+  done
+}
+
+# before the chain dies, pull every stream off ryoku.eq.sink onto the restore
+# target while that sink still exists, and repoint the default there. killing the
+# filter chain out from under a live stream makes the client (mpv, browsers) see
+# its sink vanish and cork itself, heard as audio that never returns after the EQ
+# is switched off; moving first, then killing, keeps playback continuous.
 stop() {
   if [[ ${RYOKU_DRYRUN:-0} == 1 ]]; then
     printf 'stop ryoku-eq instance, restore default sink\n'
     return 0
+  fi
+  local eqid; eqid=$(sink_id ryoku.eq.sink)
+  if [[ -n $eqid ]]; then
+    local target si; target=$(restore_target)
+    if [[ -n $target ]]; then
+      for si in $(movable_inputs_on "$eqid"); do
+        pactl move-sink-input "$si" "$target" 2>/dev/null || true
+      done
+      pactl set-default-sink "$target" 2>/dev/null || true
+    fi
   fi
   pkill -f "pipewire -c $conf" 2>/dev/null || true
   rm -f "$conf"
@@ -143,7 +199,10 @@ apply() {
     start
     local i
     for i in 1 2 3 4 5 6 7 8 9 10; do
-      [[ -n $(routed) ]] && return 0
+      if [[ -n $(routed) ]]; then
+        finalize_enable
+        return 0
+      fi
       sleep 0.2
     done
     stop
