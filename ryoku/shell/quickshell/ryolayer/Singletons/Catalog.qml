@@ -12,7 +12,7 @@ Singleton {
             title: "SOUND / OUT",
             kanji: "\u97f3",
             source: "widgets/music/MusicWidget.qml",
-            defW: 440, defH: 250,
+            defW: 440, defH: 470,
             minW: 360, minH: 210,
             maxW: 640, maxH: 760
         },

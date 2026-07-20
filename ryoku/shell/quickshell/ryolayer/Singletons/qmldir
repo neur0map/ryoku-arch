@@ -2,3 +2,4 @@ singleton Config Config.qml
 singleton Catalog Catalog.qml
 singleton Motion Motion.qml
 singleton Players Players.qml
+singleton Eq Eq.qml

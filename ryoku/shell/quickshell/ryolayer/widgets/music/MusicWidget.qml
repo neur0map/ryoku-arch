@@ -195,6 +195,10 @@ Item {
             }
         }
 
-        // Task 8 mounts EqPanel here.
+        EqPanel {
+            width: parent.width
+            activeFeed: music.active && music.shown && music.shown.isPlaying
+            onImplicitHeightChanged: if (music.slot) music.slot.requestHeight(implicitHeight + 320)
+        }
     }
 }

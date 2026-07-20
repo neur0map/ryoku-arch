@@ -25,7 +25,10 @@ Item {
     y: entry && parent ? Math.round(entry.cy * parent.height - height / 2) : 0
 
     function persistGeometry() {
-        if (!entry || !parent)
+        // a growth (requestHeight) can fire before the board is laid out; a
+        // zero-size parent would divide the normalized center to NaN and land
+        // null in ryolayer.json, so wait for a real layout before persisting.
+        if (!entry || !parent || parent.width <= 0 || parent.height <= 0)
             return;
         Config.setGeometry(entry.id, slot.screenName,
                            (x + width / 2) / parent.width,
@@ -102,6 +105,7 @@ Item {
     Loader {
         id: body
         anchors { fill: parent; topMargin: eyebrow.height + Tokens.s4; margins: Tokens.s3 }
+        clip: true
         source: slot.def ? Qt.resolvedUrl(slot.def.source) : ""
         onLoaded: {
             item.slot = slot;
