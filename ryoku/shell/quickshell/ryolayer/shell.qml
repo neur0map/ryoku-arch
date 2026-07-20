@@ -128,9 +128,17 @@ ShellRoot {
         interval: Motion.windowOut
         onTriggered: root.restoreBlur()
     }
+    // hold pinned windows mapped through the entrance so the opaque plate sits
+    // under the identical board slot fading in over it, then unmaps covered.
+    Timer {
+        id: openHold
+        interval: Motion.window
+        repeat: false
+    }
     onOpenChanged: {
         Quickshell.execDetached(["ryoku-shell", "state", "ryolayer", open ? "1" : "0"]);
         if (open) {
+            openHold.restart();
             blurRestoreDelay.stop();
             applyBackdropBlur();
         } else {
@@ -165,12 +173,13 @@ ShellRoot {
             WlrLayershell.keyboardFocus: (shown && isFocused) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             anchors { top: true; bottom: true; left: true; right: true }
 
-            Grain { anchors.fill: parent; z: 10000; opacity: Tokens.grainOpacity }
+            Grain { anchors.fill: parent; z: 10000; opacity: board.opacity * Tokens.grainOpacity }
 
             Timer { id: closing; interval: Motion.windowOut; repeat: false }
             onShownChanged: if (!shown) closing.restart()
 
             Board {
+                id: board
                 anchors.fill: parent
                 screenName: win.modelData ? win.modelData.name : ""
                 active: win.shown
@@ -178,9 +187,7 @@ ShellRoot {
                 onRequestClose: root.hide()
 
                 opacity: win.shown ? 1 : 0
-                scale: win.shown ? 1 : 0.97
                 Behavior on opacity { NumberAnimation { duration: win.shown ? Motion.window : Motion.windowOut; easing.type: win.shown ? Motion.easeStandard : Motion.easeExit } }
-                Behavior on scale { NumberAnimation { duration: win.shown ? Motion.window : Motion.windowOut; easing.type: win.shown ? Motion.easeExpo : Motion.easeExit } }
             }
         }
     }
@@ -229,7 +236,7 @@ ShellRoot {
                     }
 
                     screen: pinScope.modelData
-                    visible: !root.open
+                    visible: (!root.open) || openHold.running
                     color: "transparent"
                     exclusiveZone: 0
                     WlrLayershell.namespace: "ryolayer-pin"
