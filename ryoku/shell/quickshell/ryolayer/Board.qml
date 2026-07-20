@@ -67,14 +67,14 @@ Item {
         anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Tokens.s6 }
     }
 
-    Item {
-        anchors.fill: parent
-        focus: board.active && board.focusHere
-        Keys.onPressed: (e) => {
-            if (e.key === Qt.Key_Escape) {
-                board.requestClose();
-                e.accepted = true;
-            }
-        }
+    // Esc dismisses from anywhere in the board, even while a widget's text field
+    // holds focus. A WindowShortcut fires for the focused window regardless of
+    // which item holds focus; a focus-scoped Keys handler on a sibling Item never
+    // saw an Esc that a focused composer let bubble up its own ancestor chain.
+    Shortcut {
+        sequence: "Escape"
+        context: Qt.WindowShortcut
+        enabled: board.active && board.focusHere
+        onActivated: board.requestClose()
     }
 }
