@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+
+# a real 10-band equalizer on the default output, with zero extra packages: a
+# PipeWire module-filter-chain sink (the shipped sink-eq6.conf pattern, widened
+# to ten ISO octave bands) run as a private pipewire instance. state lives in
+# ~/.config/ryoku/eq.json, written only by the shell's Eq singleton; this
+# helper realizes it (apply), nudges bands live (set), and reports (status).
+# apply runs at login from Hyprland autostart, after ryoku-mic.
+
+set -euo pipefail
+
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/eq.json"
+run="${XDG_RUNTIME_DIR:-/tmp}"
+conf="$run/ryoku-eq.conf"
+lock="$run/ryoku-eq.lock"
+saved_sink="$run/ryoku-eq-prev-sink"
+
+freqs=(31.25 62.5 125 250 500 1000 2000 4000 8000 16000)
+
+enabled() {
+  [[ -f $cfg ]] || return 1
+  grep -q '"enabled"[[:space:]]*:[[:space:]]*true' "$cfg"
+}
+
+# gain for band N (1..10) out of eq.json's flat "gains" array; 0 if unreadable.
+gain() {
+  local n=$1
+  [[ -f $cfg ]] || { echo 0; return; }
+  tr -d ' \n' < "$cfg" | sed -n 's/.*"gains":\[\([^]]*\)\].*/\1/p' \
+    | awk -F, -v n="$n" '{ v = $n; if (v == "") v = 0; print v }'
+}
+
+# the filter-chain node that accepts Props (per the Task 1 spike: the sink side).
+node_id() {
+  pw-cli ls Node 2>/dev/null | awk '
+    /^[[:space:]]*id [0-9]+,/ { id = $2; sub(",", "", id) }
+    /node.name = "ryoku.eq.sink"/ { print id; exit }'
+}
+
+write_conf() {
+  local i nodes="" links=""
+  for i in "${!freqs[@]}"; do
+    local n=$((i + 1)) label=bq_peaking
+    [[ $n == 1 ]] && label=bq_lowshelf
+    [[ $n == 10 ]] && label=bq_highshelf
+    nodes+="                    { type = builtin name = eq_band_$n label = $label control = { \"Freq\" = ${freqs[$i]} \"Q\" = 1.0 \"Gain\" = $(gain "$n") } }\n"
+    [[ $n -lt 10 ]] && links+="                    { output = \"eq_band_$n:Out\" input = \"eq_band_$((n + 1)):In\" }\n"
+  done
+  # a standalone `pipewire -c` instance needs the base modules to connect to the
+  # running daemon; the filter-chain module alone fails at "can't find protocol
+  # PipeWire:Protocol:Native" (Task 1 spike). Mirror stock filter-chain.conf.
+  printf '%b' \
+    "context.properties = { core.daemon = false }\n" \
+    "context.spa-libs = {\n" \
+    "    audio.convert.* = audioconvert/libspa-audioconvert\n" \
+    "    support.*       = support/libspa-support\n" \
+    "}\n" \
+    "context.modules = [\n" \
+    "    { name = libpipewire-module-rt              args = { }  flags = [ ifexists nofail ] }\n" \
+    "    { name = libpipewire-module-protocol-native }\n" \
+    "    { name = libpipewire-module-client-node }\n" \
+    "    { name = libpipewire-module-adapter }\n" \
+    "    { name = libpipewire-module-filter-chain\n" \
+    "        args = {\n" \
+    "            node.description = \"Ryoku Equalizer\"\n" \
+    "            media.name       = \"Ryoku Equalizer\"\n" \
+    "            filter.graph = {\n" \
+    "                nodes = [\n$nodes                ]\n" \
+    "                links = [\n$links                ]\n" \
+    "            }\n" \
+    "            audio.channels = 2\n" \
+    "            audio.position = [ FL FR ]\n" \
+    "            capture.props  = { node.name = \"ryoku.eq.sink\" media.class = Audio/Sink }\n" \
+    "            playback.props = { node.name = \"ryoku.eq.out\" node.passive = true }\n" \
+    "        }\n" \
+    "    }\n" \
+    "]\n" > "$conf"
+}
+
+start() {
+  [[ -n $(node_id) ]] && return 0
+  write_conf
+  if [[ ${RYOKU_DRYRUN:-0} == 1 ]]; then
+    printf 'pipewire -c %s\n' "$conf"
+    return 0
+  fi
+  pactl get-default-sink > "$saved_sink" 2>/dev/null || true
+  flock -n "$lock" pipewire -c "$conf" &
+  # the sink needs a beat to appear before it can be made default.
+  local i
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    [[ -n $(node_id) ]] && break
+    sleep 0.2
+  done
+  pactl set-default-sink ryoku.eq.sink 2>/dev/null || true
+}
+
+stop() {
+  if [[ ${RYOKU_DRYRUN:-0} == 1 ]]; then
+    printf 'stop ryoku-eq instance, restore default sink\n'
+    return 0
+  fi
+  if [[ -s $saved_sink ]] && pactl list short sinks | grep -qF "$(cat "$saved_sink")"; then
+    pactl set-default-sink "$(cat "$saved_sink")" 2>/dev/null || true
+  fi
+  pkill -f "pipewire -c $conf" 2>/dev/null || true
+  rm -f "$conf"
+}
+
+apply() {
+  command -v pw-cli >/dev/null 2>&1 || return 0
+  if enabled; then start; else stop; fi
+}
+
+set_band() {
+  local band=$1 db=$2 id
+  [[ $band =~ ^([1-9]|10)$ ]] || { echo "ryoku-eq: band must be 1..10" >&2; exit 2; }
+  id=$(node_id)
+  [[ -n $id ]] || { echo "ryoku-eq: equalizer is not running" >&2; exit 1; }
+  if [[ ${RYOKU_DRYRUN:-0} == 1 ]]; then
+    printf 'pw-cli s %s Props { params = [ "eq_band_%s:Gain" %s ] }\n' "$id" "$band" "$db"
+    return 0
+  fi
+  pw-cli s "$id" Props "{ params = [ \"eq_band_$band:Gain\" $db ] }" >/dev/null
+}
+
+status() {
+  local id
+  id=$(node_id)
+  printf 'enabled=%d node=%s sink=%s\n' \
+    "$(enabled && echo 1 || echo 0)" "${id:-none}" \
+    "$(pactl get-default-sink 2>/dev/null || echo none)"
+}
+
+usage() {
+  cat <<'USAGE'
+Usage: ryoku-eq [apply|set <band 1..10> <gain dB>|status]
+
+apply   realize ~/.config/ryoku/eq.json: start the filter-chain sink and make it
+        the default output when enabled, stop it and restore the previous
+        default when disabled. run at login and by the shell on toggle.
+set     live-update one band's gain on the running chain (does not persist;
+        the shell writes eq.json)
+status  print enabled flag, filter node id, and the current default sink
+
+Env:
+  RYOKU_DRYRUN=1   print the mutating commands instead of running them
+USAGE
+}
+
+cmd=${1:-apply}
+case "$cmd" in
+  apply) apply ;;
+  set) set_band "${2:?band}" "${3:?gain}" ;;
+  status) status ;;
+  -h | --help | help) usage ;;
+  *)
+    printf 'ryoku-eq: unknown command: %s\n' "$cmd" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

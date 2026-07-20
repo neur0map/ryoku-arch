@@ -11,6 +11,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("command -v ryoku-idle >/dev/null 2>&1 && ryoku-idle start")
     hl.exec_cmd("command -v ryoku-leds >/dev/null 2>&1 && ryoku-leds apply")
     hl.exec_cmd("command -v ryoku-mic >/dev/null 2>&1 && ryoku-mic")
+    hl.exec_cmd("command -v ryoku-eq >/dev/null 2>&1 && ryoku-eq apply")
     -- Booted into a btrfs snapshot from the Limine menu: offer the one-click
     -- restore. limine-snapper-sync ships this as an XDG autostart entry, which
     -- Hyprland never runs (no autostart manager), so start it here; on a normal

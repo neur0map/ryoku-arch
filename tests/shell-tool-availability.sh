@@ -55,6 +55,7 @@ declare -A need=(
   [music-recognition]=songrec
   [display-brightness]=ddcutil
   [vibrance]=nvibrant-bin
+  [equalizer]=pipewire
 )
 
 missing=()
