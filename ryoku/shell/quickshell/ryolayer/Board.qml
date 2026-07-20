@@ -49,7 +49,21 @@ Item {
         caption: "RYOLAYER. Add a tool from the dock below. Drag to place, drag the bracket to size, pin to keep it over the desktop."
     }
 
-    // Task 5 replaces this stub with the RyoSlot repeater + Dock.
+    Repeater {
+        model: board.entries
+        delegate: RyoSlot {
+            required property var modelData
+            entry: modelData
+            screenName: board.screenName
+            interactive: true
+            active: board.active
+        }
+    }
+
+    Dock {
+        screenName: board.screenName
+        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Tokens.s6 }
+    }
 
     Item {
         anchors.fill: parent
