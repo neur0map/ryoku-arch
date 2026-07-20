@@ -125,7 +125,7 @@ ShellRoot {
     }
     Timer {
         id: blurRestoreDelay
-        interval: Motion.window
+        interval: Motion.windowOut
         onTriggered: root.restoreBlur()
     }
     onOpenChanged: {
@@ -167,7 +167,7 @@ ShellRoot {
 
             Grain { anchors.fill: parent; z: 10000; opacity: Tokens.grainOpacity }
 
-            Timer { id: closing; interval: Motion.window; repeat: false }
+            Timer { id: closing; interval: Motion.windowOut; repeat: false }
             onShownChanged: if (!shown) closing.restart()
 
             Board {
@@ -179,8 +179,8 @@ ShellRoot {
 
                 opacity: win.shown ? 1 : 0
                 scale: win.shown ? 1 : 0.97
-                Behavior on opacity { NumberAnimation { duration: Motion.window; easing.type: Motion.easeStandard } }
-                Behavior on scale { NumberAnimation { duration: Motion.window; easing.type: Motion.easeExpo } }
+                Behavior on opacity { NumberAnimation { duration: win.shown ? Motion.window : Motion.windowOut; easing.type: win.shown ? Motion.easeStandard : Motion.easeExit } }
+                Behavior on scale { NumberAnimation { duration: win.shown ? Motion.window : Motion.windowOut; easing.type: win.shown ? Motion.easeExpo : Motion.easeExit } }
             }
         }
     }

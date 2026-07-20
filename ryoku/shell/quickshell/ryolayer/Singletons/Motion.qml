@@ -29,7 +29,11 @@ Singleton {
 
     readonly property int fast:     reduce ? 0 : 140
     readonly property int window:   reduce ? 0 : 300
+    // exit is shorter and accelerating (InCubic): reusing the entrance's long
+    // decelerating curve made the close start fast then linger with a mushy tail.
+    readonly property int windowOut: reduce ? 0 : 180
     readonly property int settle:   reduce ? 0 : 170
     readonly property int easeStandard: Easing.OutCubic
     readonly property int easeExpo:     Easing.OutExpo
+    readonly property int easeExit:     Easing.InCubic
 }
