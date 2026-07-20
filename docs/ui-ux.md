@@ -235,6 +235,10 @@ Each surface is its own directory under `quickshell/`, each component its own
   (scroll/Tab) and desktops (Super+Alt+Tab). A "desktop" is a block of ten
   workspace ids, so each desktop keeps its own 01..10; the same grouping drives
   the desktop-relative Super+N binds (`scripts/ryoku-workspace`).
+- **ryolayer** the Super+G tool overlay: a transparent board over the
+  compositor-blurred desktop hosting instrument widgets (music + equalizer,
+  microphone) the user drags, resizes, and pins onto a Top-layer window that
+  outlives the board. See `docs/ryolayer.md`.
 - **the keyring prompt** the GNOME keyring password prompt, grown from the bar
   edge as a popout rather than gcr's centred dialog. The `ryoku-shell` daemon acts as the
   keyring system prompter and drives it; `KeyringSurface.qml` renders it.

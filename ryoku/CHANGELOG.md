@@ -3,6 +3,23 @@
 ## Unreleased
 
 ### Added
+- `hyprland` + `shell/quickshell/ryolayer` + `system/hardware/audio`:
+  **RyoLayer (`Super+G`): a transparent tool overlay over the desktop.** A
+  board fades in over the compositor-blurred desktop, blur on a live slider
+  (forced to the layer's own strength while open and restored on close, the
+  launcher's serialized force/restore), hosting modular instrument widgets you
+  drag, bracket-resize, and pin onto a `WlrLayer.Top` window that outlives the
+  board. Ships two: a music controller (MPRIS transport, seek, art, player
+  switch, and a real 10-band PipeWire equalizer with presets over a live cava
+  ghost) and a microphone controller (gain, mute, device switch, live level,
+  who's recording, one-tap unity normalize). The equalizer is a
+  `module-filter-chain` sink (`ryoku-eq`, applied at login) and mic normalize
+  is `ryoku-mic`, both with no extra packages. Layout persists to
+  `ryolayer.json` as per-screen normalized centres, EQ state to `eq.json`.
+  Toggled by `ryoku-shell ryolayer`; the Hub's keybind reference lists the
+  bind since it reads `binds.lua` (`hyprland/modules/binds.lua`,
+  `shell/quickshell/ryolayer/`, `system/hardware/audio/ryoku-eq`,
+  `system/hardware/audio/ryoku-mic`; see `docs/ryolayer.md`).
 - `hyprland` + `shell`: **`Super+Alt+D` opens the right (System) sidebar**, the
   mirror of `Super+D` for the left (Features) sidebar. The bind runs
   `ryoku-shell system`, a new IPC verb that toggles the System control centre;

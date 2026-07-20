@@ -34,7 +34,7 @@ truth for the live desktop.
   plated top bar and morphing island, which also draws the screen frame, hosts
   the edge popouts under `pill/popouts/`, and grows the centre-island control
   deck (`Super+D`:
-  stash, tools, and utilities)), `launcher`, `ryoshot`, `welcome` (the first-run guided tour), and `widgets` (the desktop
+  stash, tools, and utilities)), `launcher`, `ryoshot`, `ryolayer` (the Super+G tool overlay), `welcome` (the first-run guided tour), and `widgets` (the desktop
   clock and weather on the wallpaper), and `plugins` (the third-party shell
   plugin runtime: `discover.sh` merges the catalogue with the user's
   `plugins.json`, `shell.qml` is the desktop-widget host layer, and `kit/` is the
