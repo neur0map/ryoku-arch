@@ -184,4 +184,80 @@ ShellRoot {
             }
         }
     }
+
+    // --- pinned widgets: small Top-layer windows while the board is closed ---
+    // One window per pinned entry, sized to the slot and placed by margins, so
+    // input is naturally confined to the widget (the camera-bubble pattern
+    // without the mask bookkeeping). Clickthrough pins mask to nothing and
+    // fade, an ambient readout the pointer ignores.
+    Variants {
+        model: Quickshell.screens
+
+        Scope {
+            id: pinScope
+            required property var modelData
+
+            property var pinned: []
+            function reloadPinned() {
+                var out = [];
+                var all = Config.widgets || [];
+                for (var i = 0; i < all.length; i++)
+                    if (all[i].screen === pinScope.modelData.name && all[i].pinned)
+                        out.push(all[i]);
+                pinScope.pinned = out;
+            }
+            Component.onCompleted: reloadPinned()
+            Connections {
+                target: Config
+                function onWidgetsChanged() { pinScope.reloadPinned(); }
+            }
+
+            Variants {
+                model: pinScope.pinned
+
+                PanelWindow {
+                    id: pinWin
+                    required property var modelData
+                    readonly property var geom: {
+                        var s = pinScope.modelData;
+                        var x = Math.round(modelData.cx * s.width - modelData.w / 2);
+                        var y = Math.round(modelData.cy * s.height - modelData.h / 2);
+                        return {
+                            x: Math.max(0, Math.min(s.width - modelData.w, x)),
+                            y: Math.max(0, Math.min(s.height - modelData.h, y))
+                        };
+                    }
+
+                    screen: pinScope.modelData
+                    visible: !root.open
+                    color: "transparent"
+                    exclusiveZone: 0
+                    WlrLayershell.namespace: "ryolayer-pin"
+                    WlrLayershell.layer: WlrLayer.Top
+                    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+                    anchors { top: true; left: true }
+                    margins { top: pinWin.geom.y; left: pinWin.geom.x }
+                    implicitWidth: modelData.w
+                    implicitHeight: modelData.h
+
+                    // clickthrough: no input at all, and a quieter presence.
+                    mask: modelData.clickthrough ? passRegion : null
+                    Region { id: passRegion }
+
+                    RyoSlot {
+                        anchors.fill: parent
+                        entry: pinWin.modelData
+                        screenName: pinScope.modelData.name
+                        interactive: false
+                        active: pinWin.visible
+
+                        // fade a clickthrough pin to the ambient 0.8; the plate
+                        // eases with the house settle, the window map does not.
+                        opacity: pinWin.modelData.clickthrough ? 0.8 : 1
+                        Behavior on opacity { NumberAnimation { duration: Motion.settle; easing.type: Motion.easeStandard } }
+                    }
+                }
+            }
+        }
+    }
 }
