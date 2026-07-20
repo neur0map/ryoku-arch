@@ -24,6 +24,15 @@ Singleton {
             defW: 400, defH: 300,
             minW: 340, minH: 240,
             maxW: 600, maxH: 640
+        },
+        {
+            id: "notes",
+            title: "NOTES",
+            kanji: "\u8a18",
+            source: "widgets/notes/NotesWidget.qml",
+            defW: 380, defH: 430,
+            minW: 300, minH: 280,
+            maxW: 640, maxH: 900
         }
     ]
 

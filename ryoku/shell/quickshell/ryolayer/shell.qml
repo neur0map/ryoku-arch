@@ -240,7 +240,9 @@ ShellRoot {
                     exclusiveZone: 0
                     WlrLayershell.namespace: "ryolayer-pin"
                     WlrLayershell.layer: WlrLayer.Top
-                    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+                    // click-to-focus lets a pinned notes plate take typing;
+                    // OnDemand releases focus on click-away, so pinned plates stay non-intrusive.
+                    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
                     anchors { top: true; left: true }
                     margins { top: pinWin.geom.y; left: pinWin.geom.x }
                     implicitWidth: modelData.w
