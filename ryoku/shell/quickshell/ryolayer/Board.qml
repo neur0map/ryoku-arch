@@ -15,9 +15,9 @@ Item {
     property bool focusHere: false
     signal requestClose()
 
-    // instances on this screen. Rebuilt only when MEMBERSHIP changes: a
-    // geometry save must not recreate the delegates mid-drag (slots own their
-    // live x/y/w/h; entries feed initial placement and pin flags).
+    // instances on this screen. Rebuilt only when MEMBERSHIP changes so a
+    // geometry save never recreates the delegates mid-drag; the delegate then
+    // reads its geometry live off Config (below), not this frozen snapshot.
     property var entries: []
     function reload() {
         var out = [];
@@ -52,7 +52,10 @@ Item {
         model: board.entries
         delegate: RyoSlot {
             required property var modelData
-            entry: modelData
+            // the snapshot in board.entries goes stale after a drag/resize
+            // persists (membership is unchanged, so it is not rebuilt); read the
+            // live entry keyed on Config.rev so a reopened plate keeps its spot.
+            entry: (Config.rev, Config.entry(modelData.id, board.screenName)) || modelData
             screenName: board.screenName
             interactive: true
             active: board.active
