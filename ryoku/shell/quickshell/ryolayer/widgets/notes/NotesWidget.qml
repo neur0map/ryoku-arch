@@ -277,6 +277,37 @@ Item {
                     color: Tokens.inkFaint
                     font: editor.font
                 }
+
+                // Toggle a todo checkbox when its leading [ ]/[x] token is
+                // clicked; every other press falls through untouched so cursor
+                // placement and selection keep working. Editing just the state
+                // character (remove+insert) preserves cursor, scroll, selection
+                // and undo, and the textChanged->autosave path persists it.
+                MouseArea {
+                    anchors.fill: parent
+                    onPressed: (mouse) => {
+                        var pos = editor.positionAt(mouse.x, mouse.y);
+                        var full = editor.text;
+                        var lineStart = full.lastIndexOf("\n", pos - 1) + 1;
+                        var lineEnd = full.indexOf("\n", pos);
+                        if (lineEnd < 0)
+                            lineEnd = full.length;
+                        var m = full.substring(lineStart, lineEnd).match(/^(\s*)\[([ x])\]/);
+                        if (m) {
+                            var tokEnd = lineStart + m[0].length;
+                            if (full.charAt(tokEnd) === " ")
+                                tokEnd += 1;
+                            if (pos >= lineStart && pos <= tokEnd) {
+                                var statePos = lineStart + m[1].length + 1;
+                                editor.remove(statePos, statePos + 1);
+                                editor.insert(statePos, m[2] === " " ? "x" : " ");
+                                mouse.accepted = true;
+                                return;
+                            }
+                        }
+                        mouse.accepted = false;
+                    }
+                }
             }
         }
     }
