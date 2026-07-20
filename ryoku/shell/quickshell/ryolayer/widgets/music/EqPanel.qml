@@ -58,6 +58,10 @@ Column {
         id: field
         width: parent.width
         height: 140
+        // the fader field is present only while the EQ is on; the header row
+        // (switch, label, presets) always shows, and the column compacts when
+        // this is hidden so the plate can shrink to transport height.
+        visible: Eq.enabled
 
         SpectrumGhost {
             anchors { fill: parent; bottomMargin: Tokens.s4 }

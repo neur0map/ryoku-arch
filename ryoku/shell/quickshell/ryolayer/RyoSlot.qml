@@ -35,15 +35,18 @@ Item {
                            (y + height / 2) / parent.height,
                            width, height);
     }
-    // a body panel (the EQ) may need more room than the user left it.
-    function requestHeight(px) {
-        if (!slot.interactive || !def)
+    // the EQ panel grows or compacts the plate as it toggles; clamp to the
+    // widget's envelope and persist only the height (never the center) so this
+    // stays safe from any context, including pinned plates.
+    function setHeight(px) {
+        if (!def)
             return;
-        var target = Math.min(def.maxH, Math.max(px, height));
-        if (target !== height) {
-            height = target;
-            persistGeometry();
-        }
+        var target = Math.min(def.maxH, Math.max(def.minH, px));
+        if (target === height)
+            return;
+        height = target;
+        if (entry)
+            Config.patch(entry.id, slot.screenName, { h: target });
     }
 
     // IconBtn carries no engaged state, so a filled underlay marks a live
@@ -139,7 +142,7 @@ Item {
     // ── drag (grid-snapped) and resize bracket ───────────────────────────
     DragHandler {
         id: drag
-        enabled: slot.interactive
+        enabled: slot.interactive && !sizeArea.pressed
         target: slot
         xAxis.minimum: 0
         xAxis.maximum: slot.parent ? slot.parent.width - slot.width : 0
@@ -164,6 +167,7 @@ Item {
         MouseArea {
             id: sizeArea
             anchors.fill: parent
+            preventStealing: true
             cursorShape: Qt.SizeFDiagCursor
             property real pw: 0
             property real ph: 0

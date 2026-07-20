@@ -38,7 +38,39 @@ Item {
         return m + ":" + (r < 10 ? "0" : "") + r;
     }
 
+    // ambient playback spectrum behind the transport while the EQ is closed;
+    // the EQ field ghost takes over when it opens, so exactly one cava runs.
+    SpectrumGhost {
+        anchors.fill: parent
+        z: -1
+        active: music.active && music.shown && music.shown.isPlaying && !Eq.enabled
+    }
+
+    // the plate tracks the column's natural height as the EQ opens and closes.
+    // chrome (eyebrow + body margins) is measured live off the slot; the fit
+    // reacts to the real post-layout implicitHeight (a toggle changes it), and
+    // stays grow-only until the first toggle so a reopen never shrinks a plate
+    // the user enlarged.
+    property bool _fitShrinks: false
+    function fitPlate() {
+        if (!slot)
+            return;
+        var fit = col.implicitHeight + (slot.height - height);
+        if (_fitShrinks || slot.height < fit)
+            slot.setHeight(fit);
+    }
+    onSlotChanged: if (slot) Qt.callLater(music.fitPlate)
+    Connections {
+        target: Eq
+        function onEnabledChanged() { music._fitShrinks = true; Qt.callLater(music.fitPlate); }
+    }
+    Connections {
+        target: col
+        function onImplicitHeightChanged() { Qt.callLater(music.fitPlate); }
+    }
+
     Column {
+        id: col
         anchors.fill: parent
         spacing: Tokens.s3
 
@@ -198,7 +230,6 @@ Item {
         EqPanel {
             width: parent.width
             activeFeed: music.active && music.shown && music.shown.isPlaying
-            onImplicitHeightChanged: if (music.slot) music.slot.requestHeight(implicitHeight + 320)
         }
     }
 }
