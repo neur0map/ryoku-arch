@@ -30,6 +30,10 @@ Singleton {
         watchChanges: true
         printErrors: false
         atomicWrites: true
+        // setEnabled writes eq.json then immediately runs `ryoku-eq apply`, which
+        // re-reads the file to decide start vs stop; the write must land first, or
+        // apply reads the stale flag and toggling the switch does nothing.
+        blockWrites: true
         onFileChanged: reload()
         JsonAdapter {
             id: adapter

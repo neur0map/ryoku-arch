@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Fixed
+- `ryolayer/Singletons/Eq.qml`: toggling the equalizer switch now takes effect.
+  `setEnabled` wrote `eq.json` and immediately ran `ryoku-eq apply`, but the
+  FileView write was async, so `apply` re-read the file before the new flag
+  landed and started/stopped the wrong way; the switch appeared to do nothing.
+  The eq.json FileView now sets `blockWrites: true`, so the write completes
+  before `apply` runs.
 - **The App Launcher's backdrop blur no longer flashes a frame of frost on open
   at the lowest setting.** With blur set to 0, opening the palette still flashed
   frost for ~one frame: the launcher's layer is frosted by a compositor layer
