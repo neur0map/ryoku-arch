@@ -78,8 +78,28 @@ Item {
     }
     Grain { anchors.fill: parent; opacity: Tokens.grainOpacity }
 
-    // the plate keeps its own clicks; only the scrim behind dismisses the board.
-    MouseArea { anchors.fill: parent }
+    // Plate drag and click-swallow. A MouseArea, not a DragHandler: it sits as a
+    // background sibling BELOW the body Loader, so a control on top grabs its own
+    // press first and this only receives blank chrome/padding. Unlike a
+    // DragHandler (which competes for the exclusive grab across its whole
+    // geometry and would steal a fader mid-drag), a MouseArea never wrests a grab
+    // an inner control already holds. Keep it below the body; do not reparent.
+    MouseArea {
+        id: plateDrag
+        anchors.fill: parent
+        enabled: slot.interactive && !sizeArea.pressed
+        drag.target: slot
+        drag.axis: Drag.XAndYAxis
+        drag.minimumX: 0
+        drag.maximumX: slot.parent ? slot.parent.width - slot.width : 0
+        drag.minimumY: 0
+        drag.maximumY: slot.parent ? slot.parent.height - slot.height : 0
+        onReleased: {
+            slot.x = Math.round(slot.x / Tokens.s2) * Tokens.s2;
+            slot.y = Math.round(slot.y / Tokens.s2) * Tokens.s2;
+            slot.persistGeometry();
+        }
+    }
 
     Row {
         id: eyebrow
@@ -139,22 +159,7 @@ Item {
         }
     }
 
-    // ── drag (grid-snapped) and resize bracket ───────────────────────────
-    DragHandler {
-        id: drag
-        enabled: slot.interactive && !sizeArea.pressed
-        target: slot
-        xAxis.minimum: 0
-        xAxis.maximum: slot.parent ? slot.parent.width - slot.width : 0
-        yAxis.minimum: 0
-        yAxis.maximum: slot.parent ? slot.parent.height - slot.height : 0
-        onActiveChanged: if (!active) {
-            slot.x = Math.round(slot.x / Tokens.s2) * Tokens.s2;
-            slot.y = Math.round(slot.y / Tokens.s2) * Tokens.s2;
-            slot.persistGeometry();
-        }
-    }
-    z: drag.active || sizeArea.pressed ? 2 : 1
+    z: plateDrag.drag.active || sizeArea.pressed ? 2 : 1
 
     Item {
         id: bracket
@@ -184,7 +189,7 @@ Item {
         }
     }
 
-    Behavior on x { enabled: !drag.active; NumberAnimation { duration: Motion.settle; easing.type: Motion.easeStandard } }
-    Behavior on y { enabled: !drag.active; NumberAnimation { duration: Motion.settle; easing.type: Motion.easeStandard } }
+    Behavior on x { enabled: !plateDrag.drag.active; NumberAnimation { duration: Motion.settle; easing.type: Motion.easeStandard } }
+    Behavior on y { enabled: !plateDrag.drag.active; NumberAnimation { duration: Motion.settle; easing.type: Motion.easeStandard } }
     Behavior on height { enabled: !sizeArea.pressed; NumberAnimation { duration: Motion.settle; easing.type: Motion.easeStandard } }
 }
