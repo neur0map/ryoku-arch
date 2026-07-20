@@ -30,6 +30,7 @@ power
 quit
 refresh
 reload
+ryolayer
 saturation
 scale
 set

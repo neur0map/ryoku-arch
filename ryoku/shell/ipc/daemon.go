@@ -29,6 +29,7 @@ var components = []component{
 	{"visualizer", true},
 	{"widgets", true},
 	{"overview", true},
+	{"ryolayer", true},
 }
 
 // parseDisabledComponents pulls the "disabledComponents" string array from a
@@ -451,6 +452,8 @@ func route(cmd string) (config, target, fn string, ok bool) {
 		return "launcher", "launcher", "toggle", true
 	case "overview":
 		return "overview", "overview", "toggle", true
+	case "ryolayer":
+		return "ryolayer", "ryolayer", "toggle", true
 	case "visualizer":
 		return "visualizer", "visualizer", "toggle", true
 	case "visualizer-overlay":

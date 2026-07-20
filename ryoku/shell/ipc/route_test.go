@@ -10,6 +10,7 @@ func TestRoute(t *testing.T) {
 	}{
 		{"launcher", "launcher", "launcher", "toggle"},
 		{"overview", "overview", "overview", "toggle"},
+		{"ryolayer", "ryolayer", "ryolayer", "toggle"},
 		{"clipboard", "pill", "pill", "clipboard"},
 		{"link", "pill", "pill", "link"},
 		{"inbox", "pill", "pill", "inbox"},
