@@ -21,6 +21,7 @@ on:
       - 'installation/tui/**'
       - 'system/boot/limine/**'
       - 'tests/install-partition-alongside.sh'
+      - 'tests/install-resize.sh'
       - 'tests/install-partition-whole.sh'
       - 'tests/install-largest-free.sh'
       - 'tests/install-preflight.sh'
@@ -39,6 +40,7 @@ on:
       - 'installation/tui/**'
       - 'system/boot/limine/**'
       - 'tests/install-partition-alongside.sh'
+      - 'tests/install-resize.sh'
       - 'tests/install-partition-whole.sh'
       - 'tests/install-largest-free.sh'
       - 'tests/install-preflight.sh'
@@ -111,14 +113,20 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           # gdisk -> sgdisk, parted -> parted + partprobe, dosfstools -> mkfs.vfat;
-          # losetup/blkid/truncate/udevadm ship with the base image.
-          sudo apt-get install -y --no-install-recommends gdisk parted dosfstools
+          # btrfs-progs -> mkfs.btrfs/btrfs; ntfs-3g on Debian/Ubuntu bundles
+          # ntfsresize + mkntfs (Arch splits those into ntfsprogs); jq for sfdisk
+          # --json. losetup/blkid/truncate/udevadm/e2fsprogs ship with the base image.
+          sudo apt-get install -y --no-install-recommends gdisk parted dosfstools btrfs-progs ntfs-3g jq
 
       - name: Partition alongside a fake Windows layout on a loop device
         shell: bash
         # needs root for losetup/sgdisk; the runner grants passwordless sudo. the
         # test itself prints a skip and exits 0 if a runner lacks loop support.
         run: sudo bash tests/install-partition-alongside.sh
+
+      - name: Carve space out of ntfs/ext4/btrfs partitions on a loop device
+        shell: bash
+        run: sudo bash tests/install-resize.sh
 
   tui:
     name: Installer TUI unit tests (go test)
