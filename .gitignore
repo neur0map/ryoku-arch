@@ -2,6 +2,7 @@
 /installation/iso/work/
 /installation/iso/out/
 /installation/iso/staging/
+/installation/tests/cache/
 /installation/tui/ryoku-tui
 /ryoku/shell/ipc/ryoku-shell
 /ryoku/hub/backend/ryoku-hub
