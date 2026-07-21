@@ -83,8 +83,8 @@ installation/
 
 Ten backend fixtures live at the repo root (`tests/install-*.sh`) because they
 guard the backend from outside `installation/`: the two partitioners
-(`install-partition-whole.sh`, `install-partition-alongside.sh`), the free-space
-sizer (`install-largest-free.sh`), the Secure Boot preflight gate
+(`install-partition-whole.sh`, `install-partition-alongside.sh`), the free-region
+prober (`install-largest-free.sh`), the Secure Boot preflight gate
 (`install-preflight.sh`), the clock-skew heal (`install-clock-skew.sh`), the
 dry-run step/sentinel matrix (`install-dryrun-matrix.sh`), the disk teardown
 (`install-disk-teardown.sh`), the DNS and mirror gates (`install-dns.sh`,
@@ -151,36 +151,41 @@ risk a silent wipe) and decides the whole layout.
 A disk that already holds partitions needs `RYOKU_WIPE_CONFIRMED=1` (the TUI sets
 it after the typed `ERASE` acknowledgement); a blank disk installs without it.
 
-### alongside: dual-boot, dedicated Ryoku ESP
+### alongside: dual-boot, shared Windows ESP + XBOOTLDR /boot
 
-Keeps every existing partition. Ryoku creates its own ESP and root in the
-largest contiguous free region; the user makes that room by shrinking Windows
-first (from Windows Disk Management).
+Keeps every existing partition. Ryoku creates a 2 GiB XBOOTLDR boot partition and
+a btrfs root in the chosen contiguous free region; the user makes that room by
+shrinking Windows first (from Windows Disk Management). The bootloader shares
+Windows' single ESP.
 
 ```
 /dev/DISK  (existing GPT, nothing moved, nothing wiped)
 +-----------+------+----------------+----------------+-------------------+
-| Windows   | MSR  | Windows  C:    | RYOKU  ESP     | RYOKU  root       |
+| Windows   | MSR  | Windows  C:    | RYOKU  boot    | RYOKU  root       |
 | ESP       |      | (shrunk by     | FAT32  "BOOT"  | btrfs  "ryoku"    |
-| NEVER     |      |  the user in   | EF00           | @ @home @log ...  |
-| touched   |      |  Windows)      | "ryokuboot"    |                   |
-|           |      |                |<--- largest free region (new) --->|
+| SHARED    |      |  the user in   | XBOOTLDR       | @ @home @log ...  |
+| (limine)  |      |  Windows)      | "ryokuboot"    |                   |
+|           |      |                |<----- chosen free region (new) -->|
 +-----------+------+----------------+----------------+-------------------+
 ```
 
 The **never-touched guarantee**: `alongside` only ever creates the two new
-partitions (partlabels `ryokuboot` and `ryoku`) inside free space. The Windows
-ESP is never reused or mounted, because a 100-260 MiB OEM ESP cannot hold our
-kernel + initramfs + UKIs and writing our fallback loader there would clobber
-Windows'. Multiple ESPs per disk are valid UEFI: our NVRAM entry points at ours,
-Windows keeps its own ESP + fallback, and a chainload entry keeps Windows in the
-Limine menu. Before any `wipefs`/`mkfs`, `disk.sh` proves each new partition is a
-real new block device, was absent before `sgdisk`, and has the target disk as
-its parent; anything else aborts. Partitions labeled exactly `ryoku`/`ryokuboot`
-(leftovers of a prior failed run) abort the install unless
-`RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed `ERASE` ack) deletes only the
-unmounted ones, so re-runs never stack; a mounted match is always left alone.
-Minimum free region is `20 + RYOKU_SWAP_GIB + RYOKU_ESP_GIB` GiB.
+partitions (partlabels `ryokuboot` and `ryoku`) at explicit sectors inside the
+chosen free region. Exactly one ESP stays on the disk -- Windows' -- and it is
+SHARED, not replaced: before any write the bootloader tars its whole contents to
+`/var/backups/ryoku/windows-esp-<date>.tar`, then drops Limine at
+`/EFI/ryoku/BOOTX64.EFI` with `limine.conf` beside it and registers "Ryoku" first
+in BootOrder. `/EFI/Microsoft` is never touched, and `/EFI/BOOT/BOOTX64.EFI` is
+written only when absent. The kernels live on the XBOOTLDR `/boot` (Limine reads
+FAT only) and are referenced from `limine.conf` by that partition's GPT GUID;
+Windows chainloads same-volume via `boot():/EFI/Microsoft/Boot/bootmgfw.efi`.
+Before any `wipefs`/`mkfs`, `disk.sh` proves each new partition is a real new
+block device, was absent before `sgdisk`, and has the target disk as its parent;
+anything else aborts. Partitions labeled exactly `ryoku`/`ryokuboot` (leftovers
+of a prior failed run) abort the install unless `RYOKU_RECLAIM_LEFTOVERS=1` (the
+TUI's typed `ERASE` ack) deletes only the unmounted ones, so re-runs never stack;
+a mounted match is always left alone. Minimum free region is
+`2 + 20 + RYOKU_SWAP_GIB` GiB (a 2 GiB boot partition plus the root floor).
 
 ## What runs where
 
