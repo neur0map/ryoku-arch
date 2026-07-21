@@ -1,17 +1,8 @@
 #!/usr/bin/env python3
 # Real-Windows dual-boot replication under KVM: the permanent regression gate for
-# "does our alongside install damage a pre-existing Windows disk?". A user's
-# second real-hardware test reported Windows "fully broke" after an alongside
-# install (drive undetected by Windows setup afterwards); this harness answers the
-# question deterministically on a real Windows layout instead of a synthetic loop
-# disk.
-#
-# It is Python, not bash, because the orchestration is heavy: three separate QEMU
-# lifecycles (Windows autounattend install, Ryoku pexpect-driven install, two OVMF
-# boot legs), a QEMU monitor for key injection + screendumps, OCR, and a pile of
-# qemu-nbd byte-comparisons. install-vm.py already proves the pexpect + OVMF idiom
-# in Python, and this reuses its serial contract; bash would fight the monitor and
-# JSON diffing at every turn.
+# "does our alongside install damage a pre-existing Windows disk?" -- run on a real
+# Windows layout, not a synthetic loop disk, after a field report of Windows
+# breaking post-install.
 #
 #   Stage 1  build a CACHED golden Windows 11 image (once) + an integrity manifest
 #   Stage 2  qcow2 overlay of the golden; run Ryoku's alongside install from our ISO
@@ -21,16 +12,21 @@
 #   install-dualboot-vm.py --golden-only                                 build cache
 #   install-dualboot-vm.py --iso <iso> --skip-golden                     reuse cache
 #
-# Everything is qcow2/loop and nbd; it NEVER touches a physical disk. Needs root
-# for modprobe nbd + qemu-nbd + mounts (re-invokes via sudo where needed). The
+# Python (like install-vm.py, whose pexpect+OVMF serial contract this reuses)
+# because it juggles three QEMU lifecycles, a monitor for keys+screendumps, OCR,
+# and qemu-nbd byte-diffs. Everything is qcow2/nbd; it NEVER touches a physical
+# disk. Needs root for modprobe nbd + qemu-nbd + mounts (re-invokes via sudo). The
 # golden image + Windows ISO are cached under cache/ (gitignored); overlays are
-# per-run and deleted. See README.md and .superpowers/sdd/dualboot-vm-report.md.
+# per-run and cleaned up even on SIGTERM/SIGINT. See README.md and
+# .superpowers/sdd/dualboot-vm-report.md.
 import argparse
+import atexit
 import hashlib
 import json
 import os
 import re
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -106,6 +102,47 @@ def guard_space(need_gib, what):
     if have < need_gib:
         die(f"only {have:.1f} GiB free on /, need >= {need_gib} GiB for {what}; "
             f"free space and retry (golden cache is kept, overlays are deleted).")
+
+
+# Track every connected nbd device so a SIGTERM/SIGINT (or any exit) can never
+# leak a connected /dev/nbdN or a mount pinning the overlay. Mounts are discovered
+# from /proc/mounts per device, so no mount call site needs special handling; we
+# unmount them (lazily if busy) before detaching the device they sit on.
+_OPEN_NBD = []
+
+
+def _umount_nbd_mounts(dev):
+    try:
+        with open("/proc/mounts") as f:
+            mounts = [ln.split()[1] for ln in f if ln.split() and ln.split()[0].startswith(dev)]
+    except OSError:
+        mounts = []
+    for mnt in mounts:
+        subprocess.run(["sudo", "umount", mnt], check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["sudo", "umount", "-l", mnt], check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def _emergency_cleanup():
+    for dev in list(_OPEN_NBD):
+        _umount_nbd_mounts(dev)
+        subprocess.run(["sudo", "qemu-nbd", "-d", dev], check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if dev in _OPEN_NBD:
+            _OPEN_NBD.remove(dev)
+
+
+def _signal_cleanup(signum, _frame):
+    _emergency_cleanup()
+    # re-raise default disposition so the exit status reflects the signal
+    signal.signal(signum, signal.SIG_DFL)
+    os.kill(os.getpid(), signum)
+
+
+atexit.register(_emergency_cleanup)
+for _sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+    signal.signal(_sig, _signal_cleanup)
 
 
 # ----------------------------------------------------------------------------- #
@@ -323,6 +360,7 @@ def nbd_connect(img, readonly):
         args.append("-r")
     args.append(img)
     sudo(args)
+    _OPEN_NBD.append(dev)
     sudo(["partprobe", dev], check=False)
     for _ in range(20):
         if os.path.exists(dev + "p1"):
@@ -336,7 +374,10 @@ def nbd_disconnect(dev):
     if not dev:
         return
     subprocess.run(["sync"], check=False)
+    _umount_nbd_mounts(dev)
     sudo(["qemu-nbd", "-d", dev], check=False)
+    if dev in _OPEN_NBD:
+        _OPEN_NBD.remove(dev)
     time.sleep(0.5)
 
 
@@ -370,9 +411,26 @@ def sha256_file(path):
 # ----------------------------------------------------------------------------- #
 # Stage 1: golden Windows image + integrity manifest.
 def download_windows_iso():
+    # Size (published Content-Length) is the fast integrity gate against a
+    # partial/redirected download. On top of that we pin a REAL sha256 on first
+    # download to a sidecar and re-verify it on every reuse -- Microsoft rotates
+    # the eval ISO across releases and does not publish a stable hash, so a
+    # hash-on-first-download pin is the honest, self-consistent check. Returns the
+    # pinned sha256.
+    pin = WIN_ISO + ".sha256"
     if os.path.exists(WIN_ISO) and os.path.getsize(WIN_ISO) == WIN_ISO_BYTES:
-        log(f"Windows ISO cached ({WIN_ISO_BYTES} bytes) -> {WIN_ISO}")
-        return
+        have = sha256_file(WIN_ISO)
+        if os.path.exists(pin):
+            want = open(pin).read().split()[0]
+            if have != want:
+                die(f"cached Windows ISO sha256 {have} != pinned {want}; ISO changed "
+                    f"or corrupt. Delete {WIN_ISO} (+ .sha256) to re-download.")
+            log(f"Windows ISO cached, sha256 verified against pin -> {WIN_ISO}")
+        else:
+            with open(pin, "w") as f:
+                f.write(have + "\n")
+            log(f"Windows ISO cached; pinned sha256 {have[:16]}...")
+        return have
     os.makedirs(CACHE, exist_ok=True)
     guard_space(8, "Windows ISO download")
     log("downloading Windows 11 Enterprise evaluation ISO (~5 GiB, resumable)")
@@ -381,7 +439,11 @@ def download_windows_iso():
     sz = os.path.getsize(WIN_ISO)
     if sz != WIN_ISO_BYTES:
         die(f"Windows ISO size {sz} != expected {WIN_ISO_BYTES}; download corrupt")
-    log(f"Windows ISO OK ({sz} bytes)")
+    sha = sha256_file(WIN_ISO)
+    with open(pin, "w") as f:
+        f.write(sha + "\n")
+    log(f"Windows ISO OK ({sz} bytes), sha256 {sha[:16]}... pinned")
+    return sha
 
 
 def build_answer_iso(work):
@@ -438,7 +500,7 @@ def install_windows(work):
     log("Windows guest powered off after autounattend shrink")
 
 
-def record_manifest(work):
+def record_manifest(work, iso_sha256):
     log("recording golden integrity manifest via qemu-nbd (read-only)")
     dev = nbd_connect(GOLDEN, readonly=True)
     try:
@@ -472,14 +534,21 @@ def record_manifest(work):
         esp_info = probe_esp_baseline(esp_node)
         manifest = {
             "created": time.strftime("%Y-%m-%dT%H:%M:%S"),
-            "windows_iso_sha256_bytes": WIN_ISO_BYTES,
+            "windows_iso_bytes": WIN_ISO_BYTES,
+            "windows_iso_sha256": iso_sha256,
             "disk_bytes": table["lastlba"] * sector,
             "sector_size": sector,
             "partitions": parts,
             "windows_esp": esp_info,
         }
-        with open(MANIFEST, "w") as f:
+        # atomic write: an interrupt mid-write must not strand truncated JSON that
+        # would crash the next --skip-golden.
+        tmp = MANIFEST + ".tmp"
+        with open(tmp, "w") as f:
             json.dump(manifest, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, MANIFEST)
         log(f"manifest written: {len(parts)} partitions -> {MANIFEST}")
         summary = ", ".join(f"{e['number']}:{e['type'][:8]}({e['size']//2//1024}MiB)"
                             for e in parts)
@@ -542,9 +611,9 @@ def build_golden(work):
         with open(MANIFEST) as f:
             return json.load(f)
     os.makedirs(CACHE, exist_ok=True)
-    download_windows_iso()
+    iso_sha = download_windows_iso()
     install_windows(work)
-    manifest = record_manifest(work)
+    manifest = record_manifest(work, iso_sha)
     write_cache_readme()
     return manifest
 
@@ -1254,9 +1323,12 @@ def main():
         leg2 = boot_leg_windows(overlay, work, ev)
     finally:
         leg2_ok = leg2 in ("BOOTMGFW_ALIVE", "BOOTMGFW_ALIVE_OS_DAMAGED")
-        # VERDICT: does the alongside install DAMAGE the pre-existing Windows?
-        # A broken chainload OR a damaged/altered Windows OS both count as damage.
-        damaged = (not a_ok) or (not b_ok) or (not leg2_ok) or \
+        # VERDICT: does the alongside install leave a WORKING dual-boot? Any of a
+        # mangled table, an unhealthy Windows filesystem, Ryoku failing to boot, a
+        # broken Windows chainload, or a damaged/altered Windows OS is a failure.
+        # Both legs must boot -- the harness claims to prove BOTH, so leg 1 gates
+        # the verdict too (a green table + dead Ryoku is still a broken install).
+        damaged = (not a_ok) or (not b_ok) or (not leg1_ok) or (not leg2_ok) or \
             (leg2 == "BOOTMGFW_ALIVE_OS_DAMAGED")
         ev["free_gib_end"] = round(free_gib(), 1)
         ev["results"] = {
