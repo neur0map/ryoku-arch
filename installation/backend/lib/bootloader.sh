@@ -374,7 +374,7 @@ ryoku_boot_install_efi() {
 # bootloader, alongside branch: the kernels already live on the XBOOTLDR /boot
 # (mkinitcpio wrote them there, wipe-mode /boot semantics). limine reads FAT only
 # (limine FAQ.md), so limine + its config go on Windows' SHARED ESP and point at
-# the kernels by the boot partition's GPT GUID. we NEVER touch /EFI/Microsoft,
+# the kernels by the boot partition's FAT label (fslabel). we NEVER touch /EFI/Microsoft,
 # and we tar the whole ESP first so a mistake stays recoverable. 9.x cross-ESP
 # chainload reboot-loops (limine#492) and multi-ESP-per-disk is firmware-flaky,
 # so this is the only bootable layout: one ESP, ours beside Windows'.
@@ -383,7 +383,7 @@ ryoku_bootloader_alongside() {
   run arch-chroot /mnt mkinitcpio -P
 
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
-    log "DRYRUN: would mount Windows' ESP at /mnt/efi, tar it to /var/backups/ryoku/, drop limine at /efi/EFI/ryoku/{BOOTX64.EFI,limine.conf} (guid() kernels, boot() Windows chainload), and register 'Ryoku' first in BootOrder; /EFI/Microsoft untouched"
+    log "DRYRUN: would mount Windows' ESP at /mnt/efi, tar it to /var/backups/ryoku/, drop limine at /efi/EFI/ryoku/{BOOTX64.EFI,limine.conf} (fslabel(RYOKUBOOT) kernels, boot() Windows chainload), and register 'Ryoku' first in BootOrder; /EFI/Microsoft untouched"
     return 0
   fi
 
