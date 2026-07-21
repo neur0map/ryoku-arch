@@ -469,10 +469,10 @@ const (
 	kNet  // connectivity / Wi-Fi
 )
 
-const minDiskGiB = 32 // installer floor: minRootGiB closure + 1G ESP + swap/snapshot headroom
-const minRootGiB = 20 // min root partition (GiB): base+desktop closure plus AUR/snapshot headroom (matches backend ryoku_min_root_gib)
+const minDiskGiB = 32      // installer floor: minRootGiB closure + 1G ESP + swap/snapshot headroom
+const minRootGiB = 20      // min root partition (GiB): base+desktop closure plus AUR/snapshot headroom (matches backend ryoku_min_root_gib)
 const alongsideBootGiB = 2 // XBOOTLDR /boot carved inside the free region (matches backend RYOKU_ALONGSIDE_BOOT_MIB)
-const minTermW = 80   // below this the layout can't lay out cleanly
+const minTermW = 80        // below this the layout can't lay out cleanly
 const minTermH = 20
 
 // abortWindow is how long a first install-state ctrl+c stays "armed": a second
@@ -732,7 +732,8 @@ type model struct {
 	exitAction   string // done screen choice: "reboot" | "poweroff" | "" (exit to shell)
 
 	diskDev                                      string // chosen target disk
-	diskTotal                                    int    // its size in GiB
+	diskTotal                                    int    // its size in GiB (layout math)
+	diskBytes                                    int64  // its exact size in bytes (dual-unit display)
 	netOnline                                    bool
 	netStage                                     int    // 0 pick SSID · 1 Wi-Fi password (offline only)
 	pwStage                                      int    // 0 enter · 1 confirm
@@ -776,9 +777,9 @@ type model struct {
 	// typed-ERASE ack, so reclaimG counts toward the usable free figure.
 	reclaim                     []part
 	reclaimG                    int
-	gpt                         bool // target disk has a GPT label (alongside requires it)
-	bitlocker                   bool // target disk carries a BitLocker partition (review warning)
-	freeG                       int   // largest contiguous free region (GiB) for alongside (excludes reclaimG)
+	gpt                         bool   // target disk has a GPT label (alongside requires it)
+	bitlocker                   bool   // target disk carries a BitLocker partition (review warning)
+	freeG                       int    // largest contiguous free region (GiB) for alongside (excludes reclaimG)
 	regionStart, regionEnd      int64  // that region's first/last sector, from the probe (exported at install)
 	probeVerdict, probeMessage  string // alongside probe verdict + human cause (rendered as the block reason)
 	espG, swapG                 int
@@ -826,7 +827,7 @@ func newModel() model {
 	m.hwCPU, m.hwGPU, m.hwMem = hw.cpu, hw.gpu, hw.mem
 	m.hwFW, m.hwDisk, m.hwProfile = hw.fw, hw.disk, hw.profile
 	if d := sysDisks(); len(d) > 0 {
-		m.diskDev, m.diskTotal = d[0].key, sysDiskSize(d[0].key)
+		m.diskDev, m.diskTotal, m.diskBytes = d[0].key, sysDiskSize(d[0].key), sysDiskBytes(d[0].key)
 	} else {
 		m.diskHint = diskHint()
 	}
@@ -1108,6 +1109,7 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 			if s.key == "diskpick" { // WIRE: real device + size from lsblk/blockdev
 				m.diskDev = s.items[sel].key
 				m.diskTotal = diskSizeOf(m.diskDev)
+				m.diskBytes = sysDiskBytes(m.diskDev)
 			}
 			if s.key == "keyboard" {
 				if keymapRelaunch(m.picks["keyboard"]) {
@@ -1972,9 +1974,23 @@ func (m model) viewWizard() string {
 }
 
 // ───────────────────────── guided partition view ─────────────────────────
+// humanSize renders a byte count in BOTH units the partition UI needs: binary
+// GiB (what the layout math uses) and decimal GB (what the drive is sold as),
+// e.g. "465.7 GiB (500 GB)", so a 500 GB drive never looks like it shrank.
+func humanSize(bytes int64) string {
+	if bytes <= 0 {
+		return "unknown size"
+	}
+	return fmt.Sprintf("%.1f GiB (%.0f GB)", float64(bytes)/(1<<30), float64(bytes)/1e9)
+}
+
 func (m model) partBody(inner int) string {
 	var b strings.Builder
-	b.WriteString(fg(cSub, fmt.Sprintf("%s · %d GiB · UEFI · ", m.diskDev, m.diskG)) +
+	size := humanSize(m.diskBytes)
+	if m.diskBytes <= 0 {
+		size = fmt.Sprintf("%d GiB", m.diskG)
+	}
+	b.WriteString(fg(cSub, fmt.Sprintf("%s · %s · UEFI · ", m.diskDev, size)) +
 		fg(cText, "Limine") + "\n")
 	b.WriteString(m.diskBar(m.layoutSegs(), inner, m.selSeg()) + "\n\n")
 

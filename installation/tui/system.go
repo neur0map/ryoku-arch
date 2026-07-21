@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -296,7 +297,7 @@ func sysDisks() []item {
 		}
 		tran := strings.ToUpper(r["TRAN"])
 		model := strings.TrimSpace(r["MODEL"])
-		hint := strings.TrimSpace(fmt.Sprintf("%s · %s · %s %s", r["SIZE"], model, tran, kind))
+		hint := strings.TrimSpace(fmt.Sprintf("%s · %s · %s %s", humanSize(sysDiskBytes(r["NAME"])), model, tran, kind))
 		items = append(items, item{r["NAME"], r["NAME"], hint})
 	}
 	return items
@@ -328,8 +329,8 @@ func hasVMD() bool {
 	return false
 }
 
-// sysDiskSize returns a device size in GiB via blockdev. WIRE target.
-func sysDiskSize(dev string) int {
+// sysDiskBytes returns a device's exact size in bytes via blockdev. WIRE target.
+func sysDiskBytes(dev string) int64 {
 	out, ok := run("blockdev", "--getsize64", dev)
 	if !ok {
 		return 0
@@ -338,8 +339,11 @@ func sysDiskSize(dev string) int {
 	if err != nil {
 		return 0
 	}
-	return int(n / (1024 * 1024 * 1024))
+	return n
 }
+
+// sysDiskSize returns a device size in whole GiB (for the layout math).
+func sysDiskSize(dev string) int { return int(sysDiskBytes(dev) / (1024 * 1024 * 1024)) }
 
 // espTypeGUID is the GPT partition type for an EFI System Partition.
 const espTypeGUID = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
@@ -932,6 +936,30 @@ func stepIndex(id string) (int, bool) {
 	return 0, false
 }
 
+// ansiCSI matches an ANSI CSI escape (colours, cursor moves, line erase) -- what
+// pacman/curl progress bars spray alongside carriage returns.
+var ansiCSI = regexp.MustCompile("\x1b\\[[0-9;?]*[ -/]*[@-~]")
+
+// sanitizeLine flattens a child's terminal output into a plain string the
+// bubbletea viewport can render without shredding: keep only the final segment a
+// carriage-return progress bar left, strip ANSI escapes, and drop stray control
+// bytes. Display-only -- the @@RYOKU sentinels are matched on the raw line.
+func sanitizeLine(s string) string {
+	if i := strings.LastIndexByte(s, '\r'); i >= 0 {
+		s = s[i+1:]
+	}
+	s = ansiCSI.ReplaceAllString(s, "")
+	return strings.Map(func(r rune) rune {
+		if r == '\t' {
+			return r
+		}
+		if r < 0x20 || r == 0x7f {
+			return -1
+		}
+		return r
+	}, s)
+}
+
 // startInstall launches the backend with the built environment and streams its
 // output as messages. The backend path comes from RYOKU_BACKEND or PATH.
 func (m *model) startInstall() tea.Cmd {
@@ -974,7 +1002,7 @@ func (m *model) startInstall() tea.Cmd {
 			if line == "@@RYOKU_DONE" {
 				continue
 			}
-			st.ch <- installLineMsg(line)
+			st.ch <- installLineMsg(sanitizeLine(line))
 		}
 		// A backend line longer than the 1 MiB scanner cap stops Scan with
 		// ErrTooLong. Left alone, this goroutine would exit while the backend

@@ -123,8 +123,8 @@ ryoku_deploy_packages() {
   local -a pkgs=(ryoku-keyring ryoku-desktop)
 
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
-    log "DRYRUN: arch-chroot /mnt pacman -Sy"
-    log "DRYRUN: arch-chroot /mnt pacman -S --noconfirm --needed ${pkgs[*]} (one retry on a network flake)"
+    log "DRYRUN: arch-chroot /mnt pacman -Sy --noprogressbar"
+    log "DRYRUN: arch-chroot /mnt pacman -S --noconfirm --needed --noprogressbar ${pkgs[*]} (one retry on a network flake)"
     log "DRYRUN: would warn if $RYOKU_REPO/.payload version differs from pacman -Si ryoku-desktop"
     return 0
   fi
@@ -141,10 +141,12 @@ ryoku_deploy_packages() {
 
   log "installing the Ryoku desktop set: ${pkgs[*]}"
   local rc=0
-  if arch-chroot /mnt pacman -Sy; then
-    if ! arch-chroot /mnt pacman -S --noconfirm --needed "${pkgs[@]}"; then
+  # --noprogressbar: the TUI streams this output through a line viewport that the
+  # \r-driven pacman bar would shred; the download still runs, just without the bar.
+  if arch-chroot /mnt pacman -Sy --noprogressbar; then
+    if ! arch-chroot /mnt pacman -S --noconfirm --needed --noprogressbar "${pkgs[@]}"; then
       log "desktop set install failed (often a mid-download network flake); retrying once"
-      arch-chroot /mnt pacman -S --noconfirm --needed "${pkgs[@]}" || rc=$?
+      arch-chroot /mnt pacman -S --noconfirm --needed --noprogressbar "${pkgs[@]}" || rc=$?
     fi
   else
     rc=1

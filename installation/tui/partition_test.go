@@ -935,3 +935,29 @@ func TestPartBlockReasonSurfacesProbeCause(t *testing.T) {
 		t.Fatalf("partBlockReason = %q, want the probe message %q", got, r.message)
 	}
 }
+
+// sanitizeLine must flatten the \r-and-ANSI progress spew pacman/curl stream so
+// the bubbletea viewport renders a clean final line, not shredded partials.
+func TestSanitizeLine(t *testing.T) {
+	for _, c := range []struct{ in, want string }{
+		{"plain log line", "plain log line"},
+		{"downloading 50%\rdownloading 100%", "downloading 100%"},
+		{"\x1b[32m ok \x1b[0m", " ok "},
+		{" foo (1/9)  30%\x1b[K\r foo (1/9) 100%\x1b[K", " foo (1/9) 100%"},
+		{"\x1b[1;34mheading\x1b[0m done", "heading done"},
+	} {
+		if got := sanitizeLine(c.in); got != c.want {
+			t.Fatalf("sanitizeLine(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
+// humanSize shows both units so a 500 GB drive never reads as a shrunk "465".
+func TestHumanSize(t *testing.T) {
+	if got := humanSize(500 * 1000 * 1000 * 1000); got != "465.7 GiB (500 GB)" {
+		t.Fatalf("humanSize(500GB) = %q, want %q", got, "465.7 GiB (500 GB)")
+	}
+	if got := humanSize(0); got != "unknown size" {
+		t.Fatalf("humanSize(0) = %q, want unknown size", got)
+	}
+}
