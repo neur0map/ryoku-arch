@@ -11,7 +11,8 @@ Flickable {
     id: grid
 
     property real s: 1
-    // entries: flat [{ id, title, icon, execute }] sorted by title.
+    // entries: flat [{ id, title, icon, actions: [{ execute }] }] sorted by title,
+    // the same row shape the dispatcher and ResultList use.
     property var entries: []
     property int selectedIndex: 0
 
@@ -61,17 +62,20 @@ Flickable {
     // Fresh view every time the grid is summoned.
     onVisibleChanged: if (visible) { selectedIndex = 0; contentY = 0; }
 
-    function activate() {
-        var e = grid.entries[grid.selectedIndex];
-        if (e && e.execute)
-            e.execute();
+    // Run a row's primary action (actions[0]); the row shape comes from the apps
+    // provider's rowFor(), shared with the search results.
+    function runPrimary(entry) {
+        if (entry && entry.actions && entry.actions.length > 0 && entry.actions[0].execute)
+            entry.actions[0].execute();
         grid.activated();
     }
 
+    function activate() {
+        runPrimary(grid.entries[grid.selectedIndex]);
+    }
+
     function launch(entry) {
-        if (entry && entry.execute)
-            entry.execute();
-        grid.activated();
+        runPrimary(entry);
     }
 
     Column {

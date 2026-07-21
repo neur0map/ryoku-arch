@@ -177,6 +177,28 @@
       ]
     },
     {
+      "id": "grid-launch",
+      "name": "Enter in the all-apps grid launches the selected app and bumps frecency",
+      "covers": "ResultGrid activate/launch via actions[0].execute (the browse-state launch path)",
+      "steps": [
+        "sh mkdir -p /tmp/launcher-qa-fixtures; jq -r '[to_entries[]|.value]|add // 0' ~/.local/state/ryoku/launcher-usage.json 2>/dev/null >/tmp/launcher-qa-fixtures/grid.frec.before || echo 0 >/tmp/launcher-qa-fixtures/grid.frec.before; hyprctl clients -j | jq -r '[.[].address]|join(\",\")' >/tmp/launcher-qa-fixtures/grid.win.before",
+        "show",
+        "ctrl a",
+        "sleep 0.6",
+        "key Return",
+        "sleep 2"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "b=$(cat /tmp/launcher-qa-fixtures/grid.frec.before); a=$(jq -r '[to_entries[]|.value]|add // 0' ~/.local/state/ryoku/launcher-usage.json); [ \"$a\" -gt \"$b\" ]"
+      ],
+      "teardown": [
+        "before=$(cat /tmp/launcher-qa-fixtures/grid.win.before); for a in $(hyprctl clients -j | jq -r '.[].address'); do case \",$before,\" in *,\"$a\",*) : ;; *) hyprctl dispatch closewindow address:$a ;; esac; done"
+      ]
+    },
+    {
       "id": "help-open",
       "name": "F1 opens the help cheat-sheet",
       "covers": "help panel toggle",
