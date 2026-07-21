@@ -14,8 +14,8 @@
 RYOKU_BTRFS_OPTS="compress=zstd,noatime"
 
 ryoku_filesystems() {
-  # both strategies own their ESP now (alongside creates a dedicated Ryoku ESP,
-  # never the Windows one), so format it the same way in both.
+  # ESP_DEV is our own /boot partition in both strategies (whole: the ESP;
+  # alongside: the 2 GiB XBOOTLDR beside Windows' ESP), so format it the same.
   log "formatting ESP ($ESP_DEV, vfat) and root ($ROOT_DEV, btrfs)"
   run mkfs.vfat -F32 -n BOOT "$ESP_DEV"
   run mkfs.btrfs -f -L ryoku "$ROOT_DEV"
@@ -58,8 +58,8 @@ ryoku_mount() {
   # bootloader step: the Limine binaries, the kernel, and both initramfs images
   # have to fit on /mnt/boot, but pacstrap + mkinitcpio fill /boot long before
   # the bootloader runs, so a too-small ESP used to fail cryptically mid-install.
-  # with the new partitioning this NEVER fires (whole-disk and alongside each
-  # give us our OWN >= 1 GiB ESP); it only catches a hand-built/reused ESP that
+  # with the current partitioning this NEVER fires (whole gives a >= 1 GiB ESP,
+  # alongside a 2 GiB XBOOTLDR /boot); it only catches a hand-built/reused ESP
   # is too small, BEFORE anything is written to it. dry-run narrates (no fs yet).
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
     log "dry-run: would require >= 64 MiB free on the ESP (/mnt/boot)"

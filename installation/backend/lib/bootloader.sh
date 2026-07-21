@@ -31,21 +31,24 @@ ryoku_bootloader() {
   # below), or the installed system can't find its own NVMe at boot.
   ryoku_boot_vmd
 
-  if chroot_has limine-mkinitcpio; then
-    log "building UKI via limine-mkinitcpio"
-    ryoku_boot_limine_conf branding_only
-    run arch-chroot /mnt limine-mkinitcpio
-    chroot_has limine-update && run arch-chroot /mnt limine-update
+  if [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]]; then
+    ryoku_bootloader_alongside
   else
-    log "building initramfs via mkinitcpio -P"
-    ryoku_boot_limine_conf with_entry
-    run arch-chroot /mnt mkinitcpio -P
+    if chroot_has limine-mkinitcpio; then
+      log "building UKI via limine-mkinitcpio"
+      ryoku_boot_limine_conf branding_only
+      run arch-chroot /mnt limine-mkinitcpio
+      chroot_has limine-update && run arch-chroot /mnt limine-update
+    else
+      log "building initramfs via mkinitcpio -P"
+      ryoku_boot_limine_conf with_entry
+      run arch-chroot /mnt mkinitcpio -P
+    fi
+    # any Windows on any drive: chainload it from the menu.
+    ryoku_windows_entry
+    ryoku_boot_install_efi
   fi
 
-  # any Windows on any drive: chainload it from the menu.
-  ryoku_windows_entry
-
-  ryoku_boot_install_efi
   log "enabling services: sddm, NetworkManager, bluetooth, rtkit"
   run arch-chroot /mnt systemctl enable sddm.service NetworkManager.service bluetooth.service rtkit-daemon.service
 }
@@ -59,6 +62,9 @@ ryoku_bootloader() {
 # to the newest UKI (entry 2). offline installs (no hook) keep the flat entry
 # and default_entry: 1 untouched.
 ryoku_bootloader_finalize() {
+  # alongside hand-writes limine.conf on the shared Windows ESP, not /boot; the
+  # UKI-tree promotion below only applies to wipe mode's /boot limine.conf.
+  [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]] && return 0
   local conf=/mnt/boot/limine.conf
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
     log "DRYRUN: promote $conf to the tool-managed menu (when the generated tree exists)"
@@ -362,6 +368,97 @@ ryoku_boot_install_efi() {
       run efibootmgr --bootnext "$num" || log "WARNING: could not set BootNext; pick 'Ryoku' from the firmware boot menu on the first reboot (or it falls back to EFI/BOOT/BOOTX64.EFI)."
     fi
   fi
+}
+
+# bootloader, alongside branch: the kernels already live on the XBOOTLDR /boot
+# (mkinitcpio wrote them there, wipe-mode /boot semantics). limine reads FAT only
+# (limine FAQ.md), so limine + its config go on Windows' SHARED ESP and point at
+# the kernels by the boot partition's GPT GUID. we NEVER touch /EFI/Microsoft,
+# and we tar the whole ESP first so a mistake stays recoverable. 9.x cross-ESP
+# chainload reboot-loops (limine#492) and multi-ESP-per-disk is firmware-flaky,
+# so this is the only bootable layout: one ESP, ours beside Windows'.
+ryoku_bootloader_alongside() {
+  log "building initramfs via mkinitcpio -P (kernels on the XBOOTLDR /boot)"
+  run arch-chroot /mnt mkinitcpio -P
+
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    log "DRYRUN: would mount Windows' ESP at /mnt/efi, tar it to /var/backups/ryoku/, drop limine at /efi/EFI/ryoku/{BOOTX64.EFI,limine.conf} (guid() kernels, boot() Windows chainload), and register 'Ryoku' first in BootOrder; /EFI/Microsoft untouched"
+    return 0
+  fi
+
+  local wesp
+  wesp=$(ryoku_windows_esp "$RYOKU_DISK") \
+    || die "alongside bootloader: no Windows ESP (EF00 holding /EFI/Microsoft) on $RYOKU_DISK; refusing to install a bootloader with nowhere shared to land."
+
+  run mkdir -p /mnt/efi
+  run mount "$wesp" /mnt/efi
+
+  # BEFORE any write: back the ESP up to the new root, so a botched write to a
+  # user's Windows ESP is recoverable from the installed system.
+  local ts
+  ts=$(date +%Y%m%d-%H%M%S)
+  run mkdir -p /mnt/var/backups/ryoku
+  run_sh "tar -C /mnt/efi -cf /mnt/var/backups/ryoku/windows-esp-${ts}.tar ."
+  log "backed up Windows ESP ($wesp) to /var/backups/ryoku/windows-esp-${ts}.tar"
+
+  # our loader + config in our OWN /EFI/ryoku dir; NEVER /EFI/Microsoft.
+  run mkdir -p /mnt/efi/EFI/ryoku
+  run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/efi/EFI/ryoku/BOOTX64.EFI
+  ryoku_boot_alongside_conf
+
+  # removable-path fallback only if there isn't one already: Windows' own
+  # /EFI/BOOT/BOOTX64.EFI (if present) must survive untouched.
+  if [[ -e /mnt/efi/EFI/BOOT/BOOTX64.EFI ]]; then
+    log "leaving the existing /EFI/BOOT/BOOTX64.EFI in place (not ours to overwrite)"
+  else
+    run mkdir -p /mnt/efi/EFI/BOOT
+    run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/efi/EFI/BOOT/BOOTX64.EFI
+  fi
+
+  # register 'Ryoku' first in BootOrder; Windows' entry is left as-is. best
+  # effort: firmware that rejects NVRAM writes still boots via the fallback above.
+  local esp_partnum
+  esp_partnum=$(part_num "$wesp"); : "${esp_partnum:=1}"
+  if ! run arch-chroot /mnt efibootmgr --create --disk "$RYOKU_DISK" --part "$esp_partnum" \
+    --label Ryoku --loader '\EFI\ryoku\BOOTX64.EFI' --unicode; then
+    log "WARNING: efibootmgr could not register the 'Ryoku' NVRAM boot entry (readonly or full firmware NVRAM). The system still boots via /EFI/BOOT/BOOTX64.EFI on the shared ESP; if the firmware ignores it, pick it once from the firmware boot menu."
+  fi
+
+  run umount /mnt/efi
+  run_sh 'rmdir /mnt/efi 2>/dev/null || true'
+}
+
+# limine.conf on the shared ESP, beside our BOOTX64.EFI: <EFI app path>/limine.conf
+# is searched first (limine CONFIG.md). the kernels are addressed by the boot
+# partition's GPT GUID because they live on a DIFFERENT partition than the loader
+# (guid() takes a filesystem or GPT partition GUID); Windows chainloads
+# same-volume via boot(), which sidesteps the 9.x cross-ESP reboot loop.
+ryoku_boot_alongside_conf() {
+  local boot_uuid branding src="$RYOKU_REPO/system/boot/limine/limine.conf"
+  boot_uuid=$(blkid -s PARTUUID -o value "$ESP_DEV" 2>/dev/null) || true
+  [[ -n $boot_uuid ]] || die "alongside bootloader: could not read the ryoku-boot PARTUUID ($ESP_DEV); refusing to write a limine.conf that cannot find the kernels."
+  if [[ -f $src ]]; then
+    branding=$(sed '/^\/Ryoku Linux/,$d' "$src")
+  else
+    branding=$(ryoku_builtin_limine_branding)
+  fi
+  branding=$(printf '%s\n' "$branding" | sed 's/^default_entry: 2$/default_entry: 1/')
+  {
+    printf '%s\n' "$branding"
+    cat <<EOF
+
+/Ryoku Linux
+    protocol: linux
+    kernel_path: guid($boot_uuid):/vmlinuz-linux
+    cmdline: $CMDLINE quiet splash
+    module_path: guid($boot_uuid):/initramfs-linux.img
+
+/Windows
+    protocol: efi
+    path: boot():/EFI/Microsoft/Boot/bootmgfw.efi
+    comment: Windows Boot Manager
+EOF
+  } | write_file /mnt/efi/EFI/ryoku/limine.conf
 }
 
 ryoku_builtin_default_limine() {

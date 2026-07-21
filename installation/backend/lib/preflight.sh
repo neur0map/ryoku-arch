@@ -26,6 +26,7 @@ ryoku_preflight() {
     log "preflight: would require root, UEFI (/sys/firmware/efi) with Secure Boot off (override RYOKU_ALLOW_SECUREBOOT=1), and $RYOKU_DISK a whole disk >= 32 GiB"
     log "preflight: would log the disk's logical sector size (blockdev --getss)"
     log "preflight: would require the repo payload at $RYOKU_REPO and a working DNS resolver before any disk write"
+    [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]] && log "preflight: would also require GPT, exactly one EF00 ESP holding /EFI/Microsoft with >= 8 MiB free, a free region >= $(( 2 + $(ryoku_min_root_gib) ))GiB, and warn on any BitLocker neighbor"
     log "preflight: ok (profile=$RYOKU_PROFILE, strategy=$RYOKU_DISK_STRATEGY, encrypt=${RYOKU_ENCRYPT:-0})"
     return 0
   fi
@@ -68,5 +69,46 @@ ryoku_preflight() {
   [[ -f $base_list ]] || die "repo payload missing: $base_list not found (RYOKU_REPO=$RYOKU_REPO). The installer image is incomplete or RYOKU_REPO is wrong; the disk has not been touched."
 
   log "preflight: $RYOKU_DISK is $(( size / 1024 / 1024 / 1024 )) GiB, $(blockdev --getss "$RYOKU_DISK")-byte logical sectors"
+  [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]] && ryoku_preflight_alongside
   log "preflight: ok (profile=$RYOKU_PROFILE, strategy=$RYOKU_DISK_STRATEGY, encrypt=${RYOKU_ENCRYPT:-0})"
+}
+
+# alongside preflight gates (run after the shared checks). fail closed with an
+# actionable message; this writes to a user's Windows disk exactly once.
+ryoku_preflight_alongside() {
+  local disk=$RYOKU_DISK
+
+  local pttype
+  pttype=$(blkid -o value -s PTTYPE "$disk" 2>/dev/null || true)
+  [[ $pttype == gpt ]] || die "alongside needs a GPT disk; $disk has '${pttype:-no}' partition table. Use whole-disk, or convert to GPT."
+
+  # exactly one EF00 on the disk, and it must be Windows' (holds /EFI/Microsoft).
+  # multiple ESPs per disk are firmware-flaky; we share Windows' single ESP.
+  local ef_count wesp
+  ef_count=$(sgdisk -p "$disk" 2>/dev/null | awk '$6=="EF00"' | wc -l)
+  (( ef_count == 1 )) || die "alongside expects exactly one EFI System Partition on $disk (found $ef_count). Ryoku shares Windows' single ESP; refusing a multi-ESP disk."
+  wesp=$(ryoku_windows_esp "$disk") || die "no Windows ESP found on $disk (no EF00 partition holding /EFI/Microsoft). alongside shares Windows' ESP; install Windows first, or use whole-disk."
+
+  # limine is < 1 MiB, but demand 8 MiB headroom on the shared ESP.
+  local tmpd avail_kib=0
+  tmpd=$(mktemp -d)
+  if mount -o ro "$wesp" "$tmpd" 2>/dev/null; then
+    avail_kib=$(df -k --output=avail "$tmpd" 2>/dev/null | tail -1 | tr -d ' ')
+    umount "$tmpd" 2>/dev/null || true
+  fi
+  rmdir "$tmpd" 2>/dev/null || true
+  [[ $avail_kib =~ ^[0-9]+$ ]] || avail_kib=0
+  (( avail_kib >= 8192 )) || die "Windows ESP $wesp has ${avail_kib} KiB free; alongside needs >= 8 MiB there for the Limine loader. Free space on the ESP, or use whole-disk."
+
+  # a free region big enough for the 2 GiB boot + root floor must exist.
+  local need_gib region_mib
+  need_gib=$(( 2 + $(ryoku_min_root_gib) ))
+  region_mib=$(ryoku_free_regions "$disk" | sort -k3,3 -nr | awk 'NR==1{print $3+0}')
+  (( region_mib >= need_gib * 1024 )) || die "no unallocated region >= ${need_gib}GiB on $disk (largest is $(( region_mib / 1024 ))GiB). Shrink a Windows partition first, then retry."
+
+  # BitLocker neighbors: warn + record, do not block (the user may hold the key).
+  if lsblk -rno FSTYPE "$disk" 2>/dev/null | grep -qi bitlocker; then
+    log "WARNING: a BitLocker-encrypted partition is present on $disk. Booting Windows via Ryoku may prompt for the BitLocker recovery key; have it ready. (Recorded, not blocking.)"
+  fi
+  log "preflight alongside: GPT ok, Windows ESP $wesp (>= 8 MiB free), free region $(( region_mib / 1024 ))GiB >= ${need_gib}GiB"
 }
