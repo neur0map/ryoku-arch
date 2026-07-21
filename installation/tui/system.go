@@ -345,14 +345,17 @@ func sysDiskSize(dev string) int {
 const espTypeGUID = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
 
 // diskLayout is a disk's real partition layout: the existing partitions (kept for
-// a dual-boot install) and the largest contiguous free region in GiB. It is read
-// from lsblk + parted so the installer shows the actual disk, never a guess.
+// a dual-boot install) and the largest contiguous free region. Partitions come
+// from lsblk; the free region comes from the backend's read-only alongside probe
+// (the single source of truth for free space), so the TUI never guesses.
 type diskLayout struct {
-	parts     []part
-	freeG     int
-	windows   bool // an NTFS partition is present (a Windows install)
-	gpt       bool // GPT label (alongside requires it)
-	bitlocker bool // a BitLocker-encrypted partition is present (recovery-key warning)
+	parts       []part
+	freeG       int
+	regionStart int64 // chosen free region, first sector (alongside; 0 when none)
+	regionEnd   int64 // chosen free region, last sector
+	windows     bool  // an NTFS partition is present (a Windows install)
+	gpt         bool  // GPT label (alongside requires it)
+	bitlocker   bool  // a BitLocker-encrypted partition is present (recovery-key warning)
 }
 
 // sysDiskLayout reads the existing partitions and largest free region of a disk.
@@ -402,7 +405,7 @@ func sysDiskLayout(disk string) diskLayout {
 			dl.parts = append(dl.parts, p)
 		}
 	}
-	dl.freeG = largestFreeGiB(disk)
+	dl.freeG, dl.regionStart, dl.regionEnd = probeAlongside(disk)
 	return dl
 }
 
@@ -423,41 +426,37 @@ func partLabel(lbl, fs string) string {
 	return "partition"
 }
 
-// largestFreeGiB returns the largest contiguous free region on the disk in GiB.
-// It parses parted's byte-precise `unit B` listing (parted rounds MiB/GiB output,
-// overpromising up to 1 MiB at thresholds); parseLargestFreeGiB does the flooring.
-func largestFreeGiB(disk string) int {
-	out, ok := run("parted", "-ms", disk, "unit", "B", "print", "free")
-	if !ok {
-		return 0
+// probeAlongside runs the backend's read-only alongside probe and returns the
+// largest usable free region: size (GiB, floored) and its first/last sectors.
+// The backend (sfdisk) is the single source of truth for free space; the TUI
+// renders what it reports and hands the chosen region's sectors back at install
+// time (RYOKU_REGION_START/END). Zero values when the probe finds no region.
+func probeAlongside(disk string) (freeG int, start, end int64) {
+	bin := os.Getenv("RYOKU_BACKEND")
+	if bin == "" {
+		bin = "ryoku-install"
 	}
-	return parseLargestFreeGiB(out)
+	out, ok := run(bin, "probe", "alongside", disk)
+	if !ok {
+		return 0, 0, 0
+	}
+	var bestMiB int64
+	for _, line := range strings.Split(out, "\n") {
+		f := strings.Fields(line)
+		if len(f) != 4 || f[0] != "region" {
+			continue
+		}
+		s, e := parseI64(f[1]), parseI64(f[2])
+		if m := parseI64(f[3]); m > bestMiB {
+			bestMiB, start, end = m, s, e
+		}
+	}
+	return int(bestMiB / 1024), start, end
 }
 
-// parseLargestFreeGiB mirrors the backend's ryoku_largest_free_mib exactly: over
-// parted's `unit B print free` output it takes the largest "free;" region in whole
-// bytes, floors to MiB, drops a 1 MiB alignment margin, then floors to GiB. Pure so
-// the byte-flooring can be tested over fixture strings without a real disk.
-func parseLargestFreeGiB(out string) int {
-	var bestB int64
-	for _, line := range strings.Split(out, "\n") {
-		line = strings.TrimSpace(line)
-		if !strings.HasSuffix(line, "free;") {
-			continue
-		}
-		f := strings.Split(line, ":")
-		if len(f) < 4 {
-			continue
-		}
-		if v, err := strconv.ParseInt(strings.TrimSuffix(f[3], "B"), 10, 64); err == nil && v > bestB {
-			bestB = v
-		}
-	}
-	mib := bestB / (1 << 20) // floor to whole MiB (no float truncation)
-	if mib > 0 {
-		mib-- // 1 MiB alignment margin so the partition can start aligned inside the region
-	}
-	return int(mib / 1024) // floor to GiB
+func parseI64(s string) int64 {
+	v, _ := strconv.ParseInt(s, 10, 64)
+	return v
 }
 
 // sysSSIDs lists the cached nearby Wi-Fi networks via nmcli. It uses --rescan no
@@ -828,6 +827,13 @@ func (m model) installEnv() []string {
 	}
 	if m.picks["encryption"] == "LUKS" {
 		env = append(env, "RYOKU_ENCRYPT=1", "RYOKU_LUKS_PASSPHRASE="+m.luksPass)
+	}
+	// Alongside places its partitions at the exact sectors the probe reported for
+	// the chosen free region; the backend re-validates the range is still free.
+	if m.picks["disk"] == "alongside" && m.regionEnd > 0 {
+		env = append(env,
+			"RYOKU_REGION_START="+strconv.FormatInt(m.regionStart, 10),
+			"RYOKU_REGION_END="+strconv.FormatInt(m.regionEnd, 10))
 	}
 	// The typed "ERASE" acknowledgement (wipeStage == 2) authorizes a destructive
 	// step, but which one depends on strategy: a whole-disk wipe needs

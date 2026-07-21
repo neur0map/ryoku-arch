@@ -471,6 +471,7 @@ const (
 
 const minDiskGiB = 32 // installer floor: minRootGiB closure + 1G ESP + swap/snapshot headroom
 const minRootGiB = 20 // min root partition (GiB): base+desktop closure plus AUR/snapshot headroom (matches backend ryoku_min_root_gib)
+const alongsideBootGiB = 2 // XBOOTLDR /boot carved inside the free region (matches backend RYOKU_ALONGSIDE_BOOT_MIB)
 const minTermW = 80   // below this the layout can't lay out cleanly
 const minTermH = 20
 
@@ -777,7 +778,8 @@ type model struct {
 	reclaimG                    int
 	gpt                         bool // target disk has a GPT label (alongside requires it)
 	bitlocker                   bool // target disk carries a BitLocker partition (review warning)
-	freeG                       int  // largest contiguous free region (GiB) for alongside (excludes reclaimG)
+	freeG                       int   // largest contiguous free region (GiB) for alongside (excludes reclaimG)
+	regionStart, regionEnd      int64 // that region's first/last sector, from the probe (exported at install)
 	espG, swapG                 int
 	snapshots, sepHome, backups bool
 	lsel                        int
@@ -860,6 +862,7 @@ func (m *model) loadStep() {
 			// leftover ryoku/ryokuboot partitions get reclaimed (freed), so their
 			// GiB counts toward usable space instead of against it.
 			m.kept, m.reclaim, m.reclaimG, m.freeG = nil, nil, 0, dl.freeG
+			m.regionStart, m.regionEnd = dl.regionStart, dl.regionEnd
 			for _, p := range dl.parts {
 				if p.reclaim {
 					m.reclaim = append(m.reclaim, p)
@@ -870,6 +873,7 @@ func (m *model) loadStep() {
 			}
 		} else {
 			m.kept, m.reclaim, m.reclaimG, m.freeG = nil, nil, 0, 0
+			m.regionStart, m.regionEnd = 0, 0
 		}
 		m.clampSwapToLayout() // keep default swap within the layout (backend-consistent)
 	case kPass:
@@ -1433,18 +1437,17 @@ func (m model) needsEraseAck() bool {
 }
 
 // availRoot is the size (GiB) of the root partition: the space we lay out minus
-// the ESP we always create. For alongside that space is the detected free region
-// (our ESP + root both live there, never the Windows ESP); for whole it is the
-// disk minus any kept partitions. The swapfile is carved from root, so usable
-// root is availRoot - swap.
+// the boot/ESP partition. For alongside that space is the detected free region
+// (a 2 GiB XBOOTLDR /boot + root both live there; Windows' ESP is shared, not
+// counted); for whole it is the disk minus any kept partitions, minus the ESP.
+// The swapfile is carved from root, so usable root is availRoot - swap.
 func (m model) availRoot() int {
 	var a int
 	if m.picks["disk"] == "alongside" {
-		a = m.freeAlongside() // free region + leftover Ryoku partitions we'll reclaim
+		a = m.freeAlongside() - alongsideBootGiB // free region + reclaimable Ryoku parts, minus the boot partition
 	} else {
-		a = m.diskG - m.keptG()
+		a = m.diskG - m.keptG() - m.espG
 	}
-	a -= m.espG // both strategies carve their own ESP inside their space
 	if a < 0 {
 		a = 0
 	}
@@ -1482,7 +1485,9 @@ func (m model) layoutRows() []lrow {
 	for i, r := range m.reclaim {
 		rows = append(rows, lrow{"reclaim", fmt.Sprintf("reclaim%d", i), r.dev, "previous Ryoku, will be freed", "reclaim"})
 	}
-	rows = append(rows, lrow{"size", "esp", "ESP size", "/boot · fat32", "required"})
+	if m.picks["disk"] != "alongside" {
+		rows = append(rows, lrow{"size", "esp", "ESP size", "/boot · fat32", "required"}) // alongside boot is a fixed 2 GiB XBOOTLDR
+	}
 	rows = append(rows,
 		lrow{"size", "swap", "Swap (swapfile)", "@swap · 0 = none · carved from root", "optional"},
 		lrow{"toggle", "snap", "Snapshots & rollbacks", "@snapshots → /.snapshots", "recommended"},
@@ -1604,8 +1609,8 @@ func (m model) partBlockReason() string {
 			// and die at backend stage 1. Fail here with the same guidance.
 			return "alongside needs a GPT disk; press esc and choose 'Erase whole disk'."
 		}
-		if free, need := m.freeAlongside(), minRootGiB+m.espG; free < need {
-			return fmt.Sprintf("Only %dG free; alongside needs %dG (a %dG root plus a %dG boot partition). Shrink Windows first, or press esc and choose 'Erase whole disk'.", free, need, minRootGiB, m.espG)
+		if free, need := m.freeAlongside(), minRootGiB+alongsideBootGiB; free < need {
+			return fmt.Sprintf("Only %dG free; alongside needs %dG (a %dG root plus a %dG boot partition). Shrink Windows first, or press esc and choose 'Erase whole disk'.", free, need, minRootGiB, alongsideBootGiB)
 		}
 		return ""
 	default:
@@ -1649,10 +1654,14 @@ func (m model) layoutSummary() string {
 	return fmt.Sprintf("alongside · btrfs %dsv", n)
 }
 
-// layoutSegs builds the disk-bar segments: kept + (new ESP) + root + free.
+// layoutSegs builds the disk-bar segments: kept + (new boot/ESP) + root + free.
 func (m model) layoutSegs() []part {
 	segs := append([]part(nil), m.kept...)
-	segs = append(segs, part{dev: "ESP", size: m.espG, fs: "vfat", mount: "/boot", flags: "esp", status: "new"})
+	bootG, bootDev := m.espG, "ESP"
+	if m.picks["disk"] == "alongside" {
+		bootG, bootDev = alongsideBootGiB, "boot" // fixed 2 GiB XBOOTLDR; Windows' ESP is shared, not shown
+	}
+	segs = append(segs, part{dev: bootDev, size: bootG, fs: "vfat", mount: "/boot", flags: "esp", status: "new"})
 	rootUsable := m.availRoot() - m.swapG
 	if rootUsable < 0 {
 		rootUsable = 0

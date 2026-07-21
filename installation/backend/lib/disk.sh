@@ -4,15 +4,21 @@
 #   whole     wipe the disk, fresh GPT: ESP + a root that takes the rest.
 #             destroys everything on the disk.
 #   alongside keep every existing partition (e.g. Windows on the same drive):
-#             create a DEDICATED Ryoku ESP + root in the largest free region.
-#             the Windows ESP is never reused or mounted. nothing existing gets
-#             wiped or moved, so the user makes room first by shrinking Windows.
+#             create a 2 GiB XBOOTLDR boot partition + root in the chosen free
+#             region. ESP_DEV is that XBOOTLDR (/boot); Windows' own ESP is SHARED
+#             by the bootloader step (limine lands beside Windows' loader), never
+#             wiped or moved. the user makes room first by shrinking Windows.
 
-# largest free region 'alongside' needs = a dedicated Ryoku ESP (RYOKU_ESP_GIB)
-# plus the root, whose floor is the base system closure + the swapfile (which
-# lives inside root, @swap subvolume). base raised 15->20 after measuring the
-# base+dev+desktop closure at ~13-15 GiB plus AUR build/snapshot headroom.
+# free region 'alongside' needs = the 2 GiB XBOOTLDR boot partition plus the
+# root, whose floor is the base system closure + the swapfile (which lives inside
+# root, @swap subvolume). base raised 15->20 after measuring the base+dev+desktop
+# closure at ~13-15 GiB plus AUR build/snapshot headroom.
 ryoku_min_root_gib() { echo $(( 20 + ${RYOKU_SWAP_GIB:-0} )); }
+
+# alongside boot partition: a 2 GiB FAT32 XBOOTLDR (label BOOT) that holds the
+# kernels/initramfs at /boot. limine + limine.conf live on Windows' shared ESP;
+# limine reads FAT only (limine FAQ.md), so the kernels get their own FAT here.
+RYOKU_ALONGSIDE_BOOT_MIB=2048
 
 # ryoku_release_previous_attempt: the failure EXIT trap deliberately LEAVES /mnt
 # mounted so a failed install's partial tree + log can be inspected. but the TUI
@@ -278,21 +284,21 @@ ryoku_partition_whole() {
 
 ryoku_partition_alongside() {
   local disk=$RYOKU_DISK
-  log "partitioning $disk (alongside existing OS: dedicated Ryoku ESP + root in free space, nothing wiped)"
+  log "partitioning $disk (alongside existing OS: 2GiB XBOOTLDR /boot + root in free space, nothing wiped, Windows ESP shared not touched)"
 
   # under dry-run the disk may not exist; narrate what we'd do and pick
   # plausible device names so the rest of the flow can be exercised.
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
     local d_min d_need d_max
     d_min=$(ryoku_min_root_gib)
-    d_need=$(( d_min + RYOKU_ESP_GIB ))
-    log "DRYRUN: would require a GPT disk and >= ${d_need}GiB contiguous free (${d_min}GiB root + ${RYOKU_ESP_GIB}GiB ESP); the Windows ESP is never touched"
+    d_need=$(( d_min + 2 ))
+    log "DRYRUN: would require a GPT disk with a Windows ESP and >= ${d_need}GiB contiguous free (2GiB boot + ${d_min}GiB root); Windows' ESP is shared, never wiped"
     log "DRYRUN: with RYOKU_RECLAIM_LEFTOVERS=1 would reclaim UNMOUNTED leftover partitions labeled exactly ryoku/ryokuboot from a prior failed run; without the ack, existing such partitions abort the install"
     d_max=$(ryoku_max_partnum "$disk" 2>/dev/null || true)
     { [[ $d_max =~ ^[0-9]+$ ]] && (( d_max > 0 )); } || d_max=3   # disk absent on dev box: assume ESP+MSR+C:
     ESP_DEV=$(part_dev "$disk" "$(( d_max + 1 ))")
     ROOT_PART=$(part_dev "$disk" "$(( d_max + 2 ))")
-    log "DRYRUN: new Ryoku ESP=$ESP_DEV (${RYOKU_ESP_GIB}GiB, label ryokuboot) root=$ROOT_PART (label ryoku)"
+    log "DRYRUN: new ryoku-boot (XBOOTLDR)=$ESP_DEV (2GiB, label ryokuboot) root=$ROOT_PART (label ryoku)"
     return 0
   fi
 
@@ -307,17 +313,34 @@ ryoku_partition_alongside() {
   # existing ryoku/ryokuboot partitions are fatal, not silently deleted.
   ryoku_reclaim_leftovers "$disk"
 
-  # need a contiguous free region big enough for a DEDICATED Ryoku ESP + root.
-  # we never reuse the Windows ESP: a 100-260 MiB OEM ESP cannot hold our kernel
-  # + initramfs + UKIs (ENOSPC mid-pacstrap or at mkinitcpio), and writing our
-  # fallback loader onto it clobbers Windows'. user makes room by shrinking
-  # Windows first (safest from Windows Disk Management).
-  local free_mib min_root need_gib
-  free_mib=$(ryoku_largest_free_mib "$disk")
+  # pick the free region. the TUI ran the same sfdisk probe and passes the chosen
+  # region's exact sectors; a direct backend/test call falls back to the largest.
+  # either way we RE-READ the live table and refuse a range that is not still
+  # free -- the disk runs this once and must never write over Windows.
+  local ss spm region_start region_end min_root need_gib region_mib
+  ss=$(blockdev --getss "$disk"); spm=$(( 1048576 / ss ))
   min_root=$(ryoku_min_root_gib)
-  need_gib=$(( min_root + RYOKU_ESP_GIB ))
-  (( free_mib >= need_gib * 1024 )) || die "not enough free space on $disk: $(( free_mib / 1024 ))GiB contiguous free, need >= ${need_gib}GiB (${min_root}GiB root + ${RYOKU_ESP_GIB}GiB ESP). Shrink the Windows partition first, then retry."
-  log "largest free region: $(( free_mib / 1024 ))GiB (need >= ${need_gib}GiB for root + ESP)"
+  need_gib=$(( 2 + min_root ))
+  if [[ -n ${RYOKU_REGION_START:-} && -n ${RYOKU_REGION_END:-} ]]; then
+    region_start=$RYOKU_REGION_START; region_end=$RYOKU_REGION_END
+    ryoku_region_is_free "$disk" "$region_start" "$region_end" \
+      || die "requested region ${region_start}-${region_end} is not inside a free area of $disk (did the disk change since it was probed?); refusing to partition."
+  else
+    read -r region_start region_end _ < <(ryoku_free_regions "$disk" | sort -k3,3 -nr | head -n1) || true
+    [[ -n ${region_start:-} && -n ${region_end:-} ]] \
+      || die "no unallocated region >= ${need_gib}GiB on $disk; shrink a Windows partition first, then retry."
+  fi
+  region_mib=$(( (region_end - region_start + 1) / spm ))
+  (( region_mib >= need_gib * 1024 )) || die "not enough free space on $disk: $(( region_mib / 1024 ))GiB in the chosen region, need >= ${need_gib}GiB (2GiB boot + ${min_root}GiB root). Shrink the Windows partition first, then retry."
+
+  # boot fills the region head; root fills the remainder of THE SAME region.
+  # region_start/end are already 1 MiB-aligned by ryoku_free_regions, so every
+  # boundary below stays aligned.
+  local boot_start boot_end root_start
+  boot_start=$region_start
+  boot_end=$(( boot_start + RYOKU_ALONGSIDE_BOOT_MIB * spm - 1 ))
+  root_start=$(( boot_end + 1 ))
+  log "alongside region: sectors ${region_start}-${region_end} ($(( region_mib / 1024 ))GiB); boot ${boot_start}-${boot_end}, root ${root_start}-${region_end}"
 
   # snapshot the pre-existing partition set so we can prove (after sgdisk) that
   # BOTH new partitions landed in free space without overwriting an existing one.
@@ -327,19 +350,14 @@ ryoku_partition_alongside() {
     [[ -n $p ]] && pre_parts+=("$p")
   done < <(ryoku_partitions "$disk")
 
-  # create the dedicated Ryoku ESP (EF00, label ryokuboot) then the root (8300,
-  # label ryoku), each in the largest aligned free region sgdisk sees at that
-  # step. 0:0 places the ESP in the current largest free block; the root's 0:0:0
-  # then takes the largest free block AFTER the ESP -- usually the remainder of
-  # the same region, but if that remainder is now smaller than another free
-  # block the root lands in that OTHER region instead. either way only free
-  # space is used and no existing partition is touched (the post-sgdisk checks
-  # below prove exactly two NEW partitions appeared), and the >= root+ESP
-  # single-region requirement measured above guarantees a home for both. one
-  # invocation = one atomic table write.
+  # create ryoku-boot (XBOOTLDR ea00, label ryokuboot) then root (8300, label
+  # ryoku) at EXPLICIT sector ranges from the chosen region -- never 0:0 first-fit,
+  # which could land the root in some OTHER free block. type ea00 (not EF00) keeps
+  # exactly one ESP on the disk: Windows'. one invocation = one atomic table write;
+  # 0: for the number lets sgdisk assign the next free partition slots.
   run sgdisk \
-    -n "0:0:+${RYOKU_ESP_GIB}G" -t 0:ef00 -c 0:ryokuboot \
-    -n 0:0:0 -t 0:8300 -c 0:ryoku \
+    -n "0:${boot_start}:${boot_end}" -t 0:ea00 -c 0:ryokuboot \
+    -n "0:${root_start}:${region_end}" -t 0:8300 -c 0:ryoku \
     "$disk"
   run partprobe "$disk"
   run_sh 'udevadm settle || true'
@@ -400,7 +418,7 @@ ryoku_partition_alongside() {
   # fail the later mkfs/mount.
   run wipefs --all "$ESP_DEV"
   run wipefs --all "$ROOT_PART"
-  log "ESP=$ESP_DEV (new Ryoku ESP) root partition=$ROOT_PART"
+  log "boot=$ESP_DEV (new ryoku-boot XBOOTLDR, /boot) root partition=$ROOT_PART"
 }
 
 # ryoku_reclaim_leftovers deletes partitions whose GPT partlabel is EXACTLY
@@ -482,13 +500,112 @@ ryoku_max_partnum() {
   sgdisk -p "$1" 2>/dev/null | awk '/^[[:space:]]+[0-9]+[[:space:]]/{n=$1} END{print n+0}'
 }
 
-# ryoku_largest_free_mib: size (MiB) of the largest contiguous free region on
-# the disk. parses parted's machine-readable free listing in whole BYTES (no
-# float truncation), floors to MiB, then subtracts a 1 MiB alignment margin so
-# the partition can still start on an aligned boundary inside the region.
-ryoku_largest_free_mib() {
-  parted -ms "$1" unit B print free 2>/dev/null | awk -F: '
-    $0 ~ /free;[[:space:]]*$/ { s = $4; sub(/B$/, "", s); if (s + 0 > m) m = s + 0 }
-    END { mib = int(m / 1048576); if (mib > 0) mib -= 1; printf "%d\n", mib }
+# ryoku_free_regions <disk>: one aligned free region per line as
+#   START_SECTOR END_SECTOR SIZE_MIB
+# for every gap >= 1024 MiB, read structurally from `sfdisk --json`. I stopped
+# trusting parted here: dirty NTFS makes it lie, and archinstall crashes on the
+# same disks (KPMcore reads the table with sfdisk for exactly this reason). start
+# aligns UP to 1 MiB, end DOWN, in the disk's real sector size (512 and 4096 both
+# correct). sfdisk's lastlba already excludes the backup GPT, so a gap never eats it.
+ryoku_free_regions() {
+  local disk=$1 json
+  json=$(sfdisk --json "$disk" 2>/dev/null) || return 0
+  [[ -n $json ]] || return 0
+  printf '%s\n' "$json" | jq -r '
+    .partitiontable |
+    "meta \(.sectorsize) \(.firstlba) \(.lastlba)",
+    (.partitions[]? | "part \(.start) \(.size)")
+  ' | awk '
+    function emit(gs, ge,   as, ae, mib) {
+      as = int((gs + spm - 1) / spm) * spm         # align start up to 1 MiB
+      ae = int((ge + 1) / spm) * spm - 1            # align end down to 1 MiB
+      if (ae <= as) return
+      mib = (ae - as + 1) / spm
+      if (mib >= 1024) printf "%d %d %d\n", as, ae, mib
+    }
+    $1 == "meta" { ss = $2; first = $3; last = $4; spm = 1048576 / ss; next }
+    $1 == "part" { n++; ps[n] = $2; pe[n] = $2 + $3 - 1; next }
+    END {
+      for (i = 2; i <= n; i++) {                    # insertion sort by start; n is tiny
+        a = ps[i]; b = pe[i]; j = i - 1
+        while (j >= 1 && ps[j] > a) { ps[j+1] = ps[j]; pe[j+1] = pe[j]; j-- }
+        ps[j+1] = a; pe[j+1] = b
+      }
+      cur = first
+      for (i = 1; i <= n; i++) {
+        if (ps[i] > cur) emit(cur, ps[i] - 1)
+        if (pe[i] + 1 > cur) cur = pe[i] + 1
+      }
+      emit(cur, last)
+    }
   '
+}
+
+# ryoku_region_is_free <disk> <start> <end>: 0 when [start,end] sits fully inside
+# one free region sfdisk reports RIGHT NOW. the TUI passes sectors it computed
+# from the same probe, but the disk is precious: re-read and refuse a range that
+# is no longer free (a partition changed under us since the probe).
+ryoku_region_is_free() {
+  local disk=$1 s=$2 e=$3
+  ryoku_free_regions "$disk" | awk -v s="$s" -v e="$e" '
+    (s + 0 >= $1 + 0 && e + 0 <= $2 + 0) { found = 1; exit }
+    END { exit(found ? 0 : 1) }
+  '
+}
+
+# ryoku_windows_esp <disk>: the EF00 partition on <disk> that holds /EFI/Microsoft
+# -- Windows' own ESP, the single ESP we share. mounts each ESP-type partition
+# read-only just long enough to look, never writes. prints the device (empty +
+# non-zero when none). the single-ESP doctrine hinges on this: we add our loader
+# beside Windows' on THIS partition, never a second ESP.
+ryoku_windows_esp() {
+  local disk=$1 p typ tmpd found="" hit
+  tmpd=$(mktemp -d) || return 1
+  while IFS= read -r p; do
+    [[ -n $p ]] || continue
+    typ=$(lsblk -dno PARTTYPE "$p" 2>/dev/null || true)
+    [[ ${typ,,} == c12a7328-f81f-11d2-ba4b-00a0c93ec93b ]] || continue
+    if mount -o ro "$p" "$tmpd" 2>/dev/null; then
+      hit=$(find "$tmpd" -maxdepth 2 -type d -ipath '*/efi/microsoft' -print -quit 2>/dev/null || true)
+      [[ -n $hit ]] && found=$p
+      umount "$tmpd" 2>/dev/null || true
+    fi
+    [[ -n $found ]] && break
+  done < <(ryoku_partitions "$disk")
+  rmdir "$tmpd" 2>/dev/null || true
+  [[ -n $found ]] || return 1
+  printf '%s\n' "$found"
+}
+
+# ryoku_probe_alongside <disk>: read-only report the TUI renders. machine lines:
+#   sectorsize <bytes>
+#   esp <device>                 Windows' ESP (the one we share)
+#   region <start> <end> <mib>   zero or more, largest first
+#   verdict ok|none|no-gpt|no-esp|error
+#   message <text>               present on every non-ok verdict
+# the TUI stops computing free space itself: one source of truth lives here.
+ryoku_probe_alongside() {
+  local disk=$1 pttype ss esp regions need
+  [[ -b $disk ]] || { printf 'verdict error\nmessage %s is not a block device\n' "$disk"; return 0; }
+  pttype=$(blkid -o value -s PTTYPE "$disk" 2>/dev/null || true)
+  if [[ $pttype != gpt ]]; then
+    printf 'verdict no-gpt\nmessage %s has a '\''%s'\'' partition table; alongside needs GPT. Use whole-disk, or convert to GPT.\n' "$disk" "${pttype:-none}"
+    return 0
+  fi
+  ss=$(blockdev --getss "$disk" 2>/dev/null || echo 512)
+  printf 'sectorsize %s\n' "$ss"
+  if esp=$(ryoku_windows_esp "$disk"); then
+    printf 'esp %s\n' "$esp"
+  else
+    printf 'verdict no-esp\nmessage no Windows ESP found on %s (no EF00 partition holding /EFI/Microsoft). alongside shares Windows'\'' ESP; install Windows first, or use whole-disk.\n' "$disk"
+    return 0
+  fi
+  need=$(( 2 + $(ryoku_min_root_gib) ))
+  regions=$(ryoku_free_regions "$disk" | sort -k3,3 -nr)
+  if [[ -z $regions ]]; then
+    printf 'verdict none\nmessage no unallocated region >= %d GiB on %s; shrink a Windows partition first, then retry.\n' "$need" "$disk"
+    return 0
+  fi
+  printf '%s\n' "$regions" | while read -r s e m; do printf 'region %s %s %s\n' "$s" "$e" "$m"; done
+  printf 'verdict ok\n'
 }

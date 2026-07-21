@@ -50,6 +50,19 @@ source "$LIB_DIR/aur.sh"
 # shellcheck source=lib/snapshots.sh
 source "$LIB_DIR/snapshots.sh"
 
+# probe: read-only disk inspection for the TUI. no RYOKU_* contract, no disk
+# writes, so it runs BEFORE the install-answer validation below (which dies on a
+# missing password/strategy). usage: ryoku-install probe alongside <disk>.
+if [[ ${1:-} == probe ]]; then
+  case ${2:-} in
+    alongside)
+      [[ -n ${3:-} ]] || die "usage: ryoku-install probe alongside <disk>"
+      ryoku_probe_alongside "$3"
+      exit 0 ;;
+    *) die "unknown probe '${2:-}' (only 'alongside' is supported)" ;;
+  esac
+fi
+
 # defaults for the optional half of the contract.
 : "${RYOKU_HOSTNAME:=ryoku}"
 : "${RYOKU_USERNAME:=ryoku}"

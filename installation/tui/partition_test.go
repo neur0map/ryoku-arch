@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -95,8 +94,9 @@ func TestESPBumpClampsSwap(t *testing.T) {
 
 // alongsideModel: a dual-boot layout on a 256 GiB disk with the given free
 // region. The kept partitions model a real Windows install (its ESP + an NTFS
-// data partition). Alongside now creates its OWN ESP inside the free region, so
-// readiness/sizing never depend on the kept Windows ESP.
+// data partition). Alongside carves a fixed 2 GiB XBOOTLDR /boot inside the free
+// region (Windows' ESP is shared, not counted), so readiness/sizing depend on
+// the free region and alongsideBootGiB, never on espG or the kept Windows ESP.
 func alongsideModel(freeG, swapG int) model {
 	return model{
 		// a real dual-boot disk is GPT; the GPT-only guard is exercised separately.
@@ -108,29 +108,30 @@ func alongsideModel(freeG, swapG int) model {
 	}
 }
 
-// alongside drops root into the detected free region and carves its own ESP from
-// that region (never the Windows ESP), so usable root = free - our ESP - swap.
+// alongside drops root into the detected free region and carves a fixed 2 GiB
+// XBOOTLDR /boot from that region (never the Windows ESP), so usable root =
+// free - 2 GiB boot - swap.
 func TestAlongsideRootUsesFreeSpace(t *testing.T) {
 	m := alongsideModel(100, 16)
-	if got := m.availRoot(); got != 99 {
-		t.Fatalf("availRoot = %d, want 99 (100 free - 1 ESP)", got)
+	if got := m.availRoot(); got != 98 {
+		t.Fatalf("availRoot = %d, want 98 (100 free - 2 boot)", got)
 	}
 	root, ok := segByMount(m.layoutSegs(), "/")
-	if !ok || root.size != 83 {
-		t.Fatalf("root usable = %d (ok=%v), want 83 (99 - 16 swap)", root.size, ok)
+	if !ok || root.size != 82 {
+		t.Fatalf("root usable = %d (ok=%v), want 82 (98 - 16 swap)", root.size, ok)
 	}
-	// A fresh ESP for OUR install must exist in the free region.
-	var newESP bool
+	// A fresh 2 GiB boot partition for OUR install must exist in the free region.
+	var newBoot bool
 	for _, s := range m.layoutSegs() {
 		if s.status == "new" && strings.Contains(s.flags, "esp") {
-			newESP = true
-			if s.size != m.espG {
-				t.Fatalf("new ESP size = %d, want %d", s.size, m.espG)
+			newBoot = true
+			if s.size != alongsideBootGiB {
+				t.Fatalf("new boot size = %d, want %d", s.size, alongsideBootGiB)
 			}
 		}
 	}
-	if !newESP {
-		t.Fatal("alongside must create its own ESP in the free region, never reuse Windows'")
+	if !newBoot {
+		t.Fatal("alongside must create its own boot partition in the free region, never reuse Windows' ESP")
 	}
 	// The kept Windows ESP must be mounted nowhere (never /boot), so pacstrap /
 	// mkinitcpio can never fill and clobber it.
@@ -139,10 +140,11 @@ func TestAlongsideRootUsesFreeSpace(t *testing.T) {
 	}
 }
 
-// alongside is allowed once the free region holds our ESP plus the root floor
-// (minRootGiB + espG), so the TUI never hands the backend a layout it'd reject.
+// alongside is allowed once the free region holds our 2 GiB boot plus the root
+// floor (minRootGiB + alongsideBootGiB), so the TUI never hands the backend a
+// layout it'd reject.
 func TestAlongsidePartReady(t *testing.T) {
-	need := minRootGiB + 1 // espG is 1 in alongsideModel
+	need := minRootGiB + alongsideBootGiB
 	if !alongsideModel(need, 0).partReady() {
 		t.Fatalf("alongside with exactly %dG free should be ready", need)
 	}
@@ -154,25 +156,25 @@ func TestAlongsidePartReady(t *testing.T) {
 	}
 }
 
-// swapCeil leaves minRootGiB of root after the ESP for BOTH strategies; alongside
-// works off the free region (freeG - espG), whole off the disk.
+// swapCeil leaves minRootGiB of root after the boot partition for BOTH
+// strategies; alongside works off the free region (freeG - alongsideBootGiB).
 func TestAlongsideSwapCeil(t *testing.T) {
-	if got := alongsideModel(40, 0).swapCeil(); got != 40-1-minRootGiB {
-		t.Fatalf("alongside swapCeil = %d, want %d (40 free - 1 ESP - %d root)", got, 40-1-minRootGiB, minRootGiB)
+	if got := alongsideModel(40, 0).swapCeil(); got != 40-alongsideBootGiB-minRootGiB {
+		t.Fatalf("alongside swapCeil = %d, want %d (40 free - %d boot - %d root)", got, 40-alongsideBootGiB-minRootGiB, alongsideBootGiB, minRootGiB)
 	}
 }
 
 // regression for the alongside install that died mid-run: the free-space gate
-// must account for OUR ESP and the root floor plus the swapfile, and swap must be
-// clamped on load so a fat default never over-promises. Invariant after clamp:
-// minRootGiB + swap <= availRoot (= freeG - espG).
+// must account for OUR boot partition and the root floor plus the swapfile, and
+// swap must be clamped on load so a fat default never over-promises. Invariant
+// after clamp: minRootGiB + swap <= availRoot (= freeG - alongsideBootGiB).
 func TestAlongsideSwapClampMatchesBackend(t *testing.T) {
-	// tight region: 25G free leaves availRoot 24; the 16G default can't coexist
-	// with the 20G root floor, so clamp pins swap to 24-20=4 and Tab stays open.
+	// tight region: 25G free leaves availRoot 23; the 16G default can't coexist
+	// with the 20G root floor, so clamp pins swap to 23-20=3 and Tab stays open.
 	tight := alongsideModel(25, 16)
 	tight.clampSwapToLayout()
-	if tight.swapG != 4 {
-		t.Fatalf("tight swapG = %d, want 4 (availRoot 24 - %d root)", tight.swapG, minRootGiB)
+	if tight.swapG != 3 {
+		t.Fatalf("tight swapG = %d, want 3 (availRoot 23 - %d root)", tight.swapG, minRootGiB)
 	}
 	if minRootGiB+tight.swapG > tight.availRoot() {
 		t.Fatalf("tight over-promises backend: %d + %d > %d availRoot", minRootGiB, tight.swapG, tight.availRoot())
@@ -190,8 +192,8 @@ func TestAlongsideSwapClampMatchesBackend(t *testing.T) {
 	}
 
 	// the invariant holds across the whole installable range: once freeG clears
-	// the ESP + root floor, root + swap always fits the free region after clamp.
-	for _, freeG := range []int{minRootGiB + 1, minRootGiB + 2, 25, 40, 200} {
+	// the boot + root floor, root + swap always fits the free region after clamp.
+	for _, freeG := range []int{minRootGiB + alongsideBootGiB, minRootGiB + alongsideBootGiB + 1, 25, 40, 200} {
 		m := alongsideModel(freeG, 16)
 		m.clampSwapToLayout()
 		if minRootGiB+m.swapG > m.availRoot() {
@@ -493,25 +495,33 @@ func TestReviewWipeGateEnterWithoutEraseDoesNotLaunch(t *testing.T) {
 	}
 }
 
-// alongside must show the ESP-size row now that it creates its own boot
-// partition (it used to hide the row and reuse Windows' ESP).
-func TestAlongsideLayoutHasESPRow(t *testing.T) {
-	m := alongsideModel(100, 16)
+// alongside no longer shows the ESP-size row: its boot partition is a fixed 2
+// GiB XBOOTLDR carved in the free region, so there is nothing to size. Whole
+// still exposes the ESP-size control.
+func TestAlongsideLayoutHasNoESPRow(t *testing.T) {
+	along := alongsideModel(100, 16)
+	for _, r := range along.layoutRows() {
+		if r.kind == "size" && r.key == "esp" {
+			t.Fatal("alongside must not show an ESP-size row; its boot partition is a fixed 2 GiB XBOOTLDR")
+		}
+	}
+	whole := model{picks: map[string]string{"disk": "whole"}, diskG: 256, espG: 1}
 	var espRow bool
-	for _, r := range m.layoutRows() {
+	for _, r := range whole.layoutRows() {
 		if r.kind == "size" && r.key == "esp" {
 			espRow = true
 		}
 	}
 	if !espRow {
-		t.Fatal("alongside layout is missing the ESP size row; it must create its own ESP")
+		t.Fatal("whole must still show the ESP-size row")
 	}
 }
 
 // swapCeil uses the same minRootGiB floor for whole and alongside (the old 8/15
-// split is gone): identical usable space must yield an identical ceiling.
+// split is gone): identical usable space must yield an identical ceiling. Whole's
+// ESP is sized to 2 here to match alongside's fixed 2 GiB XBOOTLDR boot.
 func TestSwapCeilFloorBothStrategies(t *testing.T) {
-	whole := model{picks: map[string]string{"disk": "whole"}, diskG: 40, espG: 1}
+	whole := model{picks: map[string]string{"disk": "whole"}, diskG: 40, espG: alongsideBootGiB}
 	along := alongsideModel(40, 0)
 	if whole.availRoot() != along.availRoot() {
 		t.Fatalf("availRoot differs: whole %d vs alongside %d", whole.availRoot(), along.availRoot())
@@ -519,8 +529,8 @@ func TestSwapCeilFloorBothStrategies(t *testing.T) {
 	if whole.swapCeil() != along.swapCeil() {
 		t.Fatalf("swapCeil differs across strategies: whole %d vs alongside %d", whole.swapCeil(), along.swapCeil())
 	}
-	if got := whole.swapCeil(); got != 39-minRootGiB {
-		t.Fatalf("swapCeil = %d, want %d (39 avail - %d floor)", got, 39-minRootGiB, minRootGiB)
+	if got := whole.swapCeil(); got != 40-alongsideBootGiB-minRootGiB {
+		t.Fatalf("swapCeil = %d, want %d (40 - %d boot - %d floor)", got, 40-alongsideBootGiB-minRootGiB, alongsideBootGiB, minRootGiB)
 	}
 }
 
@@ -709,8 +719,8 @@ func TestReclaimCountsTowardFree(t *testing.T) {
 	if !m.partReady() {
 		t.Fatalf("alongside blocked despite 44G effective free: %q", m.partBlockReason())
 	}
-	if got := m.availRoot(); got != 43 { // reclaimed space folds into root, minus our ESP
-		t.Fatalf("availRoot = %d, want 43 (44 - 1G ESP)", got)
+	if got := m.availRoot(); got != 42 { // reclaimed space folds into root, minus the 2 GiB boot
+		t.Fatalf("availRoot = %d, want 42 (44 - 2G boot)", got)
 	}
 	// the same 4G raw region with NOTHING to reclaim stays blocked.
 	m.reclaim, m.reclaimG = nil, 0
@@ -841,41 +851,6 @@ func TestSplitNMTerse(t *testing.T) {
 				t.Fatalf("%s: field %d = %q, want %q (from %q)", c.name, i, got[i], c.want[i], c.line)
 			}
 		}
-	}
-}
-
-// parseLargestFreeGiB mirrors the backend's ryoku_largest_free_mib byte-floor:
-// the largest "free;" region -> whole MiB (floor) -> minus a 1 MiB alignment
-// margin -> floor to GiB. Parsing parted's MiB output rounded to NEAREST and
-// overpromised up to 1 MiB at thresholds; the byte parse never over-promises.
-func TestParseLargestFreeGiB(t *testing.T) {
-	const GiB = 1 << 30
-	free := func(sizeB int64) string {
-		return "BYT;\n/dev/nvme0n1:512110190592B:nvme:512:512:gpt:disk:;\n" +
-			"1:1048576B:273678336B:272629760B:fat32::boot, esp;\n" +
-			fmt.Sprintf("2:273678336B:%dB:%dB:free;\n", 273678336+sizeB, sizeB)
-	}
-	for _, c := range []struct {
-		name string
-		out  string
-		want int
-	}{
-		{"exact 100 GiB floors to 99 (1 MiB margin)", free(100 * GiB), 99},
-		{"exact 21 GiB floors to 20 (1 MiB margin)", free(21 * GiB), 20},
-		{"21 GiB + 2 MiB clears 21", free(21*GiB + 2*(1<<20)), 21},
-		{"sub-MiB region rounds to 0", free(500000), 0},
-		{"no free region", "BYT;\n/dev/sda:1B:scsi:512:512:gpt:d:;\n1:0B:1B:1B:ntfs::;\n", 0},
-	} {
-		if got := parseLargestFreeGiB(c.out); got != c.want {
-			t.Fatalf("%s: parseLargestFreeGiB = %d, want %d", c.name, got, c.want)
-		}
-	}
-	// picks the LARGEST of several free regions, not the first or last.
-	multi := "BYT;\n/dev/sda:1B:scsi:512:512:gpt:d:;\n" +
-		fmt.Sprintf("1:0B:%dB:%dB:free;\n", int64(5*GiB), int64(5*GiB)) +
-		fmt.Sprintf("3:0B:%dB:%dB:free;\n", int64(100*GiB), int64(100*GiB))
-	if got := parseLargestFreeGiB(multi); got != 99 {
-		t.Fatalf("multi-region largest = %d, want 99", got)
 	}
 }
 
