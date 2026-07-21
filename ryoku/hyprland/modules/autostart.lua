@@ -24,10 +24,18 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("command -v voxtype >/dev/null 2>&1 && command -v ryoku-hub >/dev/null 2>&1 && ryoku-hub voxtype ensure >/dev/null 2>&1")
     -- First-login welcome walkthrough: show the guided tour once, then mark it
     -- seen so it never returns. The flag lives in state (not config), so it needs
-    -- no doctor reconciler; an flock guards a double fire. The tour window quits on
-    -- finish or close, then the flag is written only if qs actually ran the tour
-    -- (`&&`), so a first-boot launch failure retries next login instead of marking
-    -- it seen forever. exec is async, so the blocking `qs` never holds up autostart.
+    -- no doctor reconciler. The seen-check lives in Lua because Hyprland's exec
+    -- reads a leading [...] as its window-rules prefix: the old `[ -e flag ]`
+    -- shell guard was eaten as a rule block, sh got a line starting at `||`, and
+    -- the tour never launched on any install. The flock still guards a double
+    -- fire, and the flag is written only if qs actually ran the tour (`&&`), so a
+    -- first-boot launch failure retries next login instead of marking it seen
+    -- forever. exec is async, so the blocking `qs` never holds up autostart.
     local welcome_state = (os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state")) .. "/ryoku"
-    hl.exec_cmd("[ -e '" .. welcome_state .. "/welcome-seen' ] || { flock -n \"${XDG_RUNTIME_DIR:-/tmp}/ryoku-welcome.lock\" qs -c welcome && mkdir -p '" .. welcome_state .. "' && touch '" .. welcome_state .. "/welcome-seen'; }")
+    local seen = io.open(welcome_state .. "/welcome-seen", "r")
+    if seen then
+        seen:close()
+    else
+        hl.exec_cmd("flock -n \"${XDG_RUNTIME_DIR:-/tmp}/ryoku-welcome.lock\" qs -c welcome && mkdir -p '" .. welcome_state .. "' && touch '" .. welcome_state .. "/welcome-seen'")
+    end
 end)
