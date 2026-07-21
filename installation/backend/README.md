@@ -102,7 +102,8 @@ Other (all optional, env-only):
   against a live `sfdisk` read before any write). The bootloader tars the Windows
   ESP to `/var/backups/ryoku/windows-esp-<date>.tar`, then drops Limine at
   `/EFI/ryoku/BOOTX64.EFI` with `limine.conf` beside it (kernels addressed by the
-  boot partition's GPT GUID; Limine reads FAT only) and chainloads Windows
+  boot partition's FAT label `fslabel(RYOKUBOOT)` -- Limine reads FAT only and
+  does not resolve `guid()` to a FAT volume in 12.4.0) and chainloads Windows
   same-volume via `boot():/EFI/Microsoft/Boot/bootmgfw.efi`. `/EFI/Microsoft` is
   never touched, and exactly one ESP stays on the disk -- Windows'. Partitions
   labeled exactly `ryoku`/`ryokuboot` (leftovers of a prior failed run) abort the

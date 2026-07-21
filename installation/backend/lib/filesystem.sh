@@ -15,9 +15,13 @@ RYOKU_BTRFS_OPTS="compress=zstd,noatime"
 
 ryoku_filesystems() {
   # ESP_DEV is our own /boot partition in both strategies (whole: the ESP;
-  # alongside: the 2 GiB XBOOTLDR beside Windows' ESP), so format it the same.
-  log "formatting ESP ($ESP_DEV, vfat) and root ($ROOT_DEV, btrfs)"
-  run mkfs.vfat -F32 -n BOOT "$ESP_DEV"
+  # alongside: the 2 GiB XBOOTLDR beside Windows' ESP). alongside's limine.conf
+  # (on the shared ESP) finds the kernels by this FAT label, so it must be the
+  # distinct RYOKUBOOT there; whole boots them same-volume and keeps BOOT.
+  local boot_label=BOOT
+  [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]] && boot_label=${RYOKU_ALONGSIDE_BOOT_LABEL:-RYOKUBOOT}
+  log "formatting boot ($ESP_DEV, vfat, label $boot_label) and root ($ROOT_DEV, btrfs)"
+  run mkfs.vfat -F32 -n "$boot_label" "$ESP_DEV"
   run mkfs.btrfs -f -L ryoku "$ROOT_DEV"
 
   log "creating subvolumes"

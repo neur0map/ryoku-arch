@@ -177,7 +177,7 @@ SHARED, not replaced: before any write the bootloader tars its whole contents to
 `/EFI/ryoku/BOOTX64.EFI` with `limine.conf` beside it and registers "Ryoku" first
 in BootOrder. `/EFI/Microsoft` is never touched, and `/EFI/BOOT/BOOTX64.EFI` is
 written only when absent. The kernels live on the XBOOTLDR `/boot` (Limine reads
-FAT only) and are referenced from `limine.conf` by that partition's GPT GUID;
+FAT only) and are referenced from `limine.conf` by its FAT label `fslabel(RYOKUBOOT)`;
 Windows chainloads same-volume via `boot():/EFI/Microsoft/Boot/bootmgfw.efi`.
 Before any `wipefs`/`mkfs`, `disk.sh` proves each new partition is a real new
 block device, was absent before `sgdisk`, and has the target disk as its parent;

@@ -431,14 +431,14 @@ ryoku_bootloader_alongside() {
 }
 
 # limine.conf on the shared ESP, beside our BOOTX64.EFI: <EFI app path>/limine.conf
-# is searched first (limine CONFIG.md). the kernels are addressed by the boot
-# partition's GPT GUID because they live on a DIFFERENT partition than the loader
-# (guid() takes a filesystem or GPT partition GUID); Windows chainloads
-# same-volume via boot(), which sidesteps the 9.x cross-ESP reboot loop.
+# is searched first (limine CONFIG.md). the kernels live on a DIFFERENT partition
+# than the loader (the XBOOTLDR /boot), addressed by its FAT label: limine 12.4.0
+# does NOT resolve guid(<GPT-PARTUUID>) to a FAT volume (verified under OVMF),
+# fslabel is deterministic. Windows chainloads same-volume via boot(), which
+# sidesteps the 9.x cross-ESP reboot loop.
 ryoku_boot_alongside_conf() {
-  local boot_uuid branding src="$RYOKU_REPO/system/boot/limine/limine.conf"
-  boot_uuid=$(blkid -s PARTUUID -o value "$ESP_DEV" 2>/dev/null) || true
-  [[ -n $boot_uuid ]] || die "alongside bootloader: could not read the ryoku-boot PARTUUID ($ESP_DEV); refusing to write a limine.conf that cannot find the kernels."
+  local branding src="$RYOKU_REPO/system/boot/limine/limine.conf"
+  local label=${RYOKU_ALONGSIDE_BOOT_LABEL:-RYOKUBOOT}
   if [[ -f $src ]]; then
     branding=$(sed '/^\/Ryoku Linux/,$d' "$src")
   else
@@ -451,9 +451,9 @@ ryoku_boot_alongside_conf() {
 
 /Ryoku Linux
     protocol: linux
-    kernel_path: guid($boot_uuid):/vmlinuz-linux
+    kernel_path: fslabel($label):/vmlinuz-linux
     cmdline: $CMDLINE quiet splash
-    module_path: guid($boot_uuid):/initramfs-linux.img
+    module_path: fslabel($label):/initramfs-linux.img
 
 /Windows
     protocol: efi

@@ -135,4 +135,28 @@ grep -qF '  //linux' "$indent" || fail "indented-fence strip swallowed the //lin
 grep -qF 'uuid(7777-8888)' "$indent" || fail "indented-fence sync did not write the fresh GUID"
 grep -qF 'uuid(old)' "$indent" && fail "indented-fence sync left the stale GUID"
 
+# --- shared ESP (Windows' ESP IS Limine's boot volume): boot(), not uuid() -----
+# the alongside pivot: a uuid() chainload to Limine's own boot volume panics on
+# 9.x+, so when the conf's volume PARTUUID matches the detected Windows GUID the
+# entry must be protocol efi + boot():/...
+shared="$tmp/shared.conf"
+printf '/Ryoku Linux\n    protocol: linux\n' >"$shared"
+RYOKU_WINDOWS_GUID="5eaf9964-1111-2222-3333-444455556666" \
+RYOKU_CONF_PARTUUID="5EAF9964-1111-2222-3333-444455556666" \
+  "$tool" sync "$shared" >/dev/null
+grep -qF 'protocol: efi' "$shared" || fail "shared-ESP entry is not protocol efi"
+grep -qF 'path: boot():/EFI/Microsoft/Boot/bootmgfw.efi' "$shared" \
+  || fail "shared-ESP entry did not use boot():"
+grep -qF 'uuid(' "$shared" && fail "shared-ESP entry used uuid() (would panic on the boot volume)"
+grep -qF 'protocol: efi_chainload' "$shared" && fail "shared-ESP entry used efi_chainload"
+
+# --- cross-drive Windows (different volume): still uuid() ----------------------
+cross="$tmp/cross.conf"
+printf '/Ryoku Linux\n    protocol: linux\n' >"$cross"
+RYOKU_WINDOWS_GUID="5eaf9964-1111-2222-3333-444455556666" \
+RYOKU_CONF_PARTUUID="aaaaaaaa-0000-0000-0000-000000000000" \
+  "$tool" sync "$cross" >/dev/null
+grep -qF 'path: uuid(5eaf9964-1111-2222-3333-444455556666):/EFI/Microsoft/Boot/bootmgfw.efi' "$cross" \
+  || fail "cross-drive Windows must stay uuid()"
+
 echo "limine-windows: all checks passed"

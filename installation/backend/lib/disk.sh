@@ -15,10 +15,14 @@
 # closure at ~13-15 GiB plus AUR build/snapshot headroom.
 ryoku_min_root_gib() { echo $(( 20 + ${RYOKU_SWAP_GIB:-0} )); }
 
-# alongside boot partition: a 2 GiB FAT32 XBOOTLDR (label BOOT) that holds the
-# kernels/initramfs at /boot. limine + limine.conf live on Windows' shared ESP;
-# limine reads FAT only (limine FAQ.md), so the kernels get their own FAT here.
+# alongside boot partition: a 2 GiB FAT32 XBOOTLDR that holds the kernels/initramfs
+# at /boot. limine + limine.conf live on Windows' shared ESP; limine reads FAT only
+# (limine FAQ.md), so the kernels get their own FAT here, addressed from limine.conf
+# by its FAT label. limine 12.4.0 does NOT resolve guid(<GPT-PARTUUID>) to a FAT
+# volume (verified under OVMF), so a DISTINCT label is the reliable handle -- and
+# distinct so it can never collide with a stray "BOOT"-labeled ESP.
 RYOKU_ALONGSIDE_BOOT_MIB=2048
+RYOKU_ALONGSIDE_BOOT_LABEL=RYOKUBOOT
 
 # ryoku_release_previous_attempt: the failure EXIT trap deliberately LEAVES /mnt
 # mounted so a failed install's partial tree + log can be inspected. but the TUI
@@ -312,6 +316,15 @@ ryoku_partition_alongside() {
   # gated on RYOKU_RECLAIM_LEFTOVERS=1 (the TUI's typed-ERASE ack): without it,
   # existing ryoku/ryokuboot partitions are fatal, not silently deleted.
   ryoku_reclaim_leftovers "$disk"
+
+  # limine finds our kernels by the boot partition's FAT label, so that label
+  # MUST be unique across the machine. if anything already carries it (a foreign
+  # partition, a hand-built layout), refuse rather than create a second one and
+  # let limine chainload the wrong volume. our own not-yet-created partition
+  # can't match; a reclaimed leftover was already deleted above.
+  local clash
+  clash=$(lsblk -rpno NAME,LABEL 2>/dev/null | awk -v l="$RYOKU_ALONGSIDE_BOOT_LABEL" '$2==l{print $1}' | head -n1)
+  [[ -z $clash ]] || die "a partition ($clash) already has the FAT label '$RYOKU_ALONGSIDE_BOOT_LABEL' that alongside needs for its boot partition; refusing to create a colliding label. Relabel or remove $clash, then retry."
 
   # pick the free region. the TUI ran the same sfdisk probe and passes the chosen
   # region's exact sectors; a direct backend/test call falls back to the largest.
