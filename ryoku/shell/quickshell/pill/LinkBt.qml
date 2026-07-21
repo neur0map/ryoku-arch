@@ -238,7 +238,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: root.adapter ? root.adapter.enabled === true : false
                 text: root.discovering ? "Scanning…" : "Scan"
-                color: root.discovering ? Theme.vermLit : Theme.dim
+                color: root.discovering ? Theme.bright : Theme.dim
                 font.family: Theme.font
                 font.pixelSize: 9.5 * root.s
                 font.weight: Font.DemiBold
@@ -343,7 +343,7 @@ Item {
                             width: parent.width
                             height: 38 * root.s
                             radius: Theme.radius
-                            color: rowHover.hovered ? Theme.frameBg : "transparent"
+                            color: rowHover.hovered ? Theme.tileBg : "transparent"
 
                             HoverHandler { id: rowHover }
 
@@ -361,16 +361,16 @@ Item {
                                 width: 26 * root.s
                                 height: 26 * root.s
                                 radius: Theme.radius
-                                color: Theme.tileBg
+                                color: devItem.isConnected ? Theme.bright : Theme.tileBg
                                 border.width: 1
-                                border.color: Theme.border
+                                border.color: devItem.isConnected ? "transparent" : Theme.border
 
                                 GlyphIcon {
                                     anchors.centerIn: parent
                                     width: 15 * root.s
                                     height: 15 * root.s
                                     name: "bluetooth"
-                                    color: devItem.isConnected ? Theme.vermLit : Theme.iconDim
+                                    color: devItem.isConnected ? Theme.cardBot : Theme.iconDim
                                     stroke: 1.7
                                 }
                             }
@@ -418,7 +418,7 @@ Item {
                                     width: 4 * root.s
                                     height: 4 * root.s
                                     radius: width / 2
-                                    color: Theme.flameGlow
+                                    color: Theme.bright
 
                                     SequentialAnimation on opacity {
                                         running: devItem.pairing

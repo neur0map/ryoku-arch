@@ -157,7 +157,7 @@ Flow {
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 8 * root.s
                 text: root.glyphFor(card.modelData)
-                color: Theme.vermLit
+                color: Theme.bright
                 font.family: Theme.mono
                 font.pixelSize: 44 * root.s
             }
@@ -170,7 +170,7 @@ Flow {
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 8 * root.s
                 text: card.battery + "%"
-                color: card.battery <= 20 ? Theme.sun : Theme.vermLit
+                color: card.battery <= 20 ? Theme.sun : Theme.bright
                 font.family: Theme.mono
                 font.pixelSize: 26 * root.s
                 font.weight: Font.Medium
