@@ -26,7 +26,13 @@ ryoku_preflight() {
     log "preflight: would require root, UEFI (/sys/firmware/efi) with Secure Boot off (override RYOKU_ALLOW_SECUREBOOT=1), and $RYOKU_DISK a whole disk >= 32 GiB"
     log "preflight: would log the disk's logical sector size (blockdev --getss)"
     log "preflight: would require the repo payload at $RYOKU_REPO and a working DNS resolver before any disk write"
-    [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]] && log "preflight: would also require GPT, exactly one EF00 ESP holding /EFI/Microsoft with >= 8 MiB free, a free region >= $(( 2 + $(ryoku_min_root_gib) ))GiB, and warn on any BitLocker neighbor"
+    if [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]]; then
+      if [[ -n ${RYOKU_RESIZE_PART:-} ]]; then
+        log "preflight: would also require GPT + a shared Windows ESP, the shrink tool for ${RYOKU_RESIZE_PART}'s filesystem, and RYOKU_RESIZE_TAKE_MIB >= $(( (2 + $(ryoku_min_root_gib)) * 1024 )); the freed region is checked after the carve"
+      else
+        log "preflight: would also require GPT, exactly one EF00 ESP holding /EFI/Microsoft with >= 8 MiB free, a free region >= $(( 2 + $(ryoku_min_root_gib) ))GiB, and warn on any BitLocker neighbor"
+      fi
+    fi
     log "preflight: ok (profile=$RYOKU_PROFILE, strategy=$RYOKU_DISK_STRATEGY, encrypt=${RYOKU_ENCRYPT:-0})"
     return 0
   fi
@@ -69,28 +75,28 @@ ryoku_preflight() {
   [[ -f $base_list ]] || die "repo payload missing: $base_list not found (RYOKU_REPO=$RYOKU_REPO). The installer image is incomplete or RYOKU_REPO is wrong; the disk has not been touched."
 
   log "preflight: $RYOKU_DISK is $(( size / 1024 / 1024 / 1024 )) GiB, $(blockdev --getss "$RYOKU_DISK")-byte logical sectors"
-  [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]] && ryoku_preflight_alongside
+  if [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]]; then
+    if [[ -n ${RYOKU_RESIZE_PART:-} ]]; then ryoku_preflight_resize; else ryoku_preflight_alongside; fi
+  fi
   log "preflight: ok (profile=$RYOKU_PROFILE, strategy=$RYOKU_DISK_STRATEGY, encrypt=${RYOKU_ENCRYPT:-0})"
 }
 
-# alongside preflight gates (run after the shared checks). fail closed with an
-# actionable message; this writes to a user's Windows disk exactly once.
-ryoku_preflight_alongside() {
-  local disk=$RYOKU_DISK
-
-  local pttype
+# ryoku_require_shared_esp: the gates common to every alongside-family install
+# (plain alongside AND carve). A GPT disk with exactly one ESP, and that ESP is
+# Windows' with >= 8 MiB free for the Limine loader we land beside its own. Sets
+# RYOKU_PF_WESP. Fail closed: this writes to a user's Windows disk exactly once.
+ryoku_require_shared_esp() {
+  local disk=$RYOKU_DISK pttype ef_count wesp tmpd avail_kib=0
   pttype=$(blkid -o value -s PTTYPE "$disk" 2>/dev/null || true)
   [[ $pttype == gpt ]] || die "alongside needs a GPT disk; $disk has '${pttype:-no}' partition table. Use whole-disk, or convert to GPT."
 
   # exactly one EF00 on the disk, and it must be Windows' (holds /EFI/Microsoft).
   # multiple ESPs per disk are firmware-flaky; we share Windows' single ESP.
-  local ef_count wesp
   ef_count=$(sgdisk -p "$disk" 2>/dev/null | awk '$6=="EF00"' | wc -l)
   (( ef_count == 1 )) || die "alongside expects exactly one EFI System Partition on $disk (found $ef_count). Ryoku shares Windows' single ESP; refusing a multi-ESP disk."
   wesp=$(ryoku_windows_esp "$disk") || die "no Windows ESP found on $disk (no EF00 partition holding /EFI/Microsoft). alongside shares Windows' ESP; install Windows first, or use whole-disk."
 
   # limine is < 1 MiB, but demand 8 MiB headroom on the shared ESP.
-  local tmpd avail_kib=0
   tmpd=$(mktemp -d)
   if mount -o ro "$wesp" "$tmpd" 2>/dev/null; then
     avail_kib=$(df -k --output=avail "$tmpd" 2>/dev/null | tail -1 | tr -d ' ')
@@ -99,16 +105,50 @@ ryoku_preflight_alongside() {
   rmdir "$tmpd" 2>/dev/null || true
   [[ $avail_kib =~ ^[0-9]+$ ]] || avail_kib=0
   (( avail_kib >= 8192 )) || die "Windows ESP $wesp has ${avail_kib} KiB free; alongside needs >= 8 MiB there for the Limine loader. Free space on the ESP, or use whole-disk."
+  RYOKU_PF_WESP=$wesp
+}
 
-  # a free region big enough for the 2 GiB boot + root floor must exist.
-  local need_gib region_mib
+# ryoku_bitlocker_warn <disk>: a BitLocker neighbour is not blocking (the user may
+# hold the key), but boot may later prompt for the recovery key.
+ryoku_bitlocker_warn() {
+  if lsblk -rno FSTYPE "$1" 2>/dev/null | grep -qi bitlocker; then
+    log "WARNING: a BitLocker-encrypted partition is present on $1. Booting Windows via Ryoku may prompt for the BitLocker recovery key; have it ready. (Recorded, not blocking.)"
+  fi
+}
+
+# alongside preflight: the shared ESP gates PLUS an existing free region big
+# enough for the 2 GiB boot + root floor. fail closed with an actionable message.
+ryoku_preflight_alongside() {
+  local disk=$RYOKU_DISK need_gib region_mib
+  ryoku_require_shared_esp
   need_gib=$(( 2 + $(ryoku_min_root_gib) ))
   region_mib=$(ryoku_free_regions "$disk" | sort -k3,3 -nr | awk 'NR==1{print $3+0}')
   (( region_mib >= need_gib * 1024 )) || die "no unallocated region >= ${need_gib}GiB on $disk (largest is $(( region_mib / 1024 ))GiB). Shrink a Windows partition first, then retry."
+  ryoku_bitlocker_warn "$disk"
+  log "preflight alongside: GPT ok, Windows ESP $RYOKU_PF_WESP (>= 8 MiB free), free region $(( region_mib / 1024 ))GiB >= ${need_gib}GiB"
+}
 
-  # BitLocker neighbors: warn + record, do not block (the user may hold the key).
-  if lsblk -rno FSTYPE "$disk" 2>/dev/null | grep -qi bitlocker; then
-    log "WARNING: a BitLocker-encrypted partition is present on $disk. Booting Windows via Ryoku may prompt for the BitLocker recovery key; have it ready. (Recorded, not blocking.)"
-  fi
-  log "preflight alongside: GPT ok, Windows ESP $wesp (>= 8 MiB free), free region $(( region_mib / 1024 ))GiB >= ${need_gib}GiB"
+# carve preflight: the shared ESP gates PLUS the shrink tool for the selected
+# partition's filesystem and a big-enough take. NO free-region gate here: carve
+# CREATES that region, and the alongside partition step re-checks it once the gap
+# exists. The deep shrinkability re-verify happens in ryoku_carve.
+ryoku_preflight_resize() {
+  local disk=$RYOKU_DISK part=$RYOKU_RESIZE_PART take=${RYOKU_RESIZE_TAKE_MIB:-0} fstype tool need_gib
+  ryoku_require_shared_esp
+  [[ -b $part ]] || die "carve target RYOKU_RESIZE_PART=$part is not a block device."
+  local parent; parent=$(lsblk -no PKNAME "$part" 2>/dev/null | head -n1)
+  [[ /dev/$parent == "$disk" ]] || die "carve target $part is not a partition of $disk (parent is ${parent:-unknown})."
+  fstype=$(blkid -o value -s TYPE "$part" 2>/dev/null || true)
+  case $fstype in
+    ntfs)           tool=ntfsresize ;;
+    ext4|ext3|ext2) tool=resize2fs ;;
+    btrfs)          tool=btrfs ;;
+    swap)           tool=mkswap ;;
+    *)              die "carve does not support filesystem '${fstype:-none}' on $part (only ntfs, ext4, btrfs, swap)." ;;
+  esac
+  command -v "$tool" >/dev/null 2>&1 || die "carve of $fstype needs '$tool', which is not on the live image (ntfsresize ships in ntfsprogs)."
+  need_gib=$(( 2 + $(ryoku_min_root_gib) ))
+  { [[ $take =~ ^[0-9]+$ ]] && (( take >= need_gib * 1024 )); } || die "RYOKU_RESIZE_TAKE_MIB='${take}' must free at least ${need_gib} GiB (2 GiB boot + $(ryoku_min_root_gib) GiB root) for Ryoku."
+  ryoku_bitlocker_warn "$disk"
+  log "preflight carve: GPT ok, Windows ESP $RYOKU_PF_WESP, will carve ${take} MiB out of $part ($fstype) with $tool"
 }

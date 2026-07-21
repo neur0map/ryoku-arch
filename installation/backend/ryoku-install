@@ -27,6 +27,8 @@ source "$LIB_DIR/common.sh"
 source "$LIB_DIR/preflight.sh"
 # shellcheck source=lib/disk.sh
 source "$LIB_DIR/disk.sh"
+# shellcheck source=lib/resize.sh
+source "$LIB_DIR/resize.sh"
 # shellcheck source=lib/luks.sh
 source "$LIB_DIR/luks.sh"
 # shellcheck source=lib/filesystem.sh
@@ -59,7 +61,11 @@ if [[ ${1:-} == probe ]]; then
       [[ -n ${3:-} ]] || die "usage: ryoku-install probe alongside <disk>"
       ryoku_probe_alongside "$3"
       exit 0 ;;
-    *) die "unknown probe '${2:-}' (only 'alongside' is supported)" ;;
+    resize)
+      [[ -n ${3:-} ]] || die "usage: ryoku-install probe resize <disk>"
+      ryoku_probe_resize "$3"
+      exit 0 ;;
+    *) die "unknown probe '${2:-}' (supported: 'alongside', 'resize')" ;;
   esac
 fi
 
@@ -90,6 +96,10 @@ fi
 : "${RYOKU_GPU_MODE:=}"
 : "${RYOKU_REBOOT:=}"
 : "${RYOKU_DRYRUN:=}"
+# carve (in-place resize) contract: shrink RYOKU_RESIZE_PART to free
+# RYOKU_RESIZE_TAKE_MIB before the alongside layout is placed. Absent = no carve.
+: "${RYOKU_RESIZE_PART:=}"
+: "${RYOKU_RESIZE_TAKE_MIB:=}"
 
 # required answers.
 [[ -n $RYOKU_DISK ]] || die "RYOKU_DISK is required"
@@ -118,6 +128,9 @@ main() {
   ryoku_ensure_keyring
 
   step partition
+  # carve first when a resize was requested: shrink the chosen partition to free a
+  # region, then let the alongside layout drop into it. A no-op otherwise.
+  ryoku_carve
   ryoku_partition
   ryoku_luks
 
