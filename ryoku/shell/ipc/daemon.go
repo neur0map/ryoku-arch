@@ -25,11 +25,11 @@ type component struct {
 
 var components = []component{
 	{"pill", true},
-	{"launcher", true},
-	{"visualizer", true},
-	{"widgets", true},
-	{"overview", true},
-	{"ryolayer", true},
+	{"launcher", false},  // on-demand: starts on Super+Space, parks when idle
+	{"visualizer", true}, // audio-gated: parked while the desktop is silent
+	{"widgets", true},    // covered-gated: parked while windows cover the desktop
+	{"overview", false},  // on-demand: starts on Super+Tab, parks when idle
+	{"ryolayer", false},  // on-demand: Super+G (or at login only if a widget is pinned)
 }
 
 // parseDisabledComponents pulls the "disabledComponents" string array from a
@@ -52,14 +52,18 @@ func parseDisabledComponents(b []byte) map[string]bool {
 	return out
 }
 
-// componentDisabled reports whether the user turned a component off in
-// performance.json. Disabled components never start, at boot or on demand, so a
-// user who never opens the overview, launcher, or visualiser stops paying for its
-// resident process entirely (the Ryoku analogue of iNiR's enabledPanels). pill is
-// always on; a missing file disables nothing.
+// componentDisabled reports whether a component is turned off. performance.json's
+// disabledComponents array is the general control; ryolayer additionally honours
+// the Shell page's `ryolayerEnabled` toggle in shell.json (the widget board on/
+// off). Disabled components never start, at boot or on demand -- a user who
+// never opens the overview, launcher, or widget board stops paying for its
+// resident process entirely. pill is always on; a missing file disables nothing.
 func componentDisabled(name string) bool {
 	if name == "pill" {
 		return false
+	}
+	if name == "ryolayer" && !shellFlagDefault("ryolayerEnabled", true) {
+		return true
 	}
 	b, err := os.ReadFile(perfPath())
 	if err != nil {
@@ -75,7 +79,6 @@ var pillSurfaces = map[string]string{
 	"inbox":      "inbox",
 	"mixer":      "mixer",
 	"calendar":   "calendar",
-	"power":      "power",
 	"battery":    "battery",
 	"peek":       "peek",
 	"hide":       "hide",
@@ -84,6 +87,7 @@ var pillSurfaces = map[string]string{
 	"utilities":  "utilities",
 	"system":     "sidebarRight", // Super+Alt+D: right (System) sidebar
 	"workspaces": "workspaces",
+	"power":      "power",
 }
 
 type daemon struct {
@@ -231,10 +235,7 @@ const startupStagger = 250 * time.Millisecond
 // needs a component before its turn still starts it at once.
 func (d *daemon) startComponents() {
 	for _, c := range components {
-		if !c.persistent {
-			continue
-		}
-		if componentDisabled(c.name) {
+		if !startsAtBoot(c) {
 			continue
 		}
 		d.ensure(c.name)
@@ -244,6 +245,20 @@ func (d *daemon) startComponents() {
 		case <-time.After(startupStagger):
 		}
 	}
+}
+
+// startsAtBoot reports whether a component comes up at login. Persistent
+// components always do; an on-demand palette does only when a login-time reason
+// forces it -- ryolayer with a pinned widget must render it at once rather than
+// wait for a Super+G. A disabled component never starts.
+func startsAtBoot(c component) bool {
+	if componentDisabled(c.name) {
+		return false
+	}
+	if c.persistent {
+		return true
+	}
+	return c.name == "ryolayer" && ryolayerHasPins()
 }
 
 // ensure guarantees a supervisor goroutine exists for a component.

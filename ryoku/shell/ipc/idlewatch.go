@@ -1,30 +1,71 @@
 package main
 
-import "time"
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"time"
+)
 
-// idlewatch frees a resident-but-hidden palette after a grace of not being used,
-// if the user opted in. The launcher and the overview draw nothing while hidden
-// (a basic, render-on-demand loop) yet keep a full Qt/jemalloc process resident
-// so they open instantly. Freeing one reclaims ~a quarter gig of RSS until the
-// next open, which respawns it and shows it in a single cold start (setGate wakes
-// the supervisor; ipcCall retries until the fresh instance answers). Off by
-// default: the palettes trade RAM for an instant open, so a user only gives that
-// up deliberately. Every failure mode resolves to "keep the palette loaded".
+// idlewatch frees an idle palette (launcher, overview, ryolayer) after a grace
+// of not being used. These palettes draw nothing while hidden yet hold a full
+// Qt/jemalloc process, so freeing one reclaims ~a quarter gig of RSS until the
+// next open, which respawns and shows it in a single cold start (setGate wakes
+// the supervisor; ipcCall retries until the fresh instance answers). On by
+// default: the shell ships cheap on RAM, so a palette gives up its resident
+// process the moment it is idle; a user who wants instant opens opts out per
+// palette. Every failure mode resolves to "keep the palette loaded".
 
 // parkable reports whether a component is one of the idle-freeable palettes.
+// All three are on-demand (not persistent): they start on their first keybind
+// and park again after the idle grace.
 func parkable(name string) bool {
-	return name == "launcher" || name == "overview"
+	return name == "launcher" || name == "overview" || name == "ryolayer"
 }
 
-// unloadPaletteWhenIdle is the per-palette opt-in that frees it after a grace of
-// being hidden. Keys mirror the widget/visualiser unload flags in
-// performance.json; a missing file or key is off.
+// unloadPaletteWhenIdle is the per-palette control that frees it after a grace
+// of being hidden. On by default (perfFlagDefault true): the palette is on-
+// demand, so keeping it after use only wastes RAM; a user opts OUT to keep it
+// warm between opens. Keys live in performance.json beside the other unload
+// flags.
 func unloadPaletteWhenIdle(name string) bool {
 	switch name {
 	case "launcher":
-		return perfFlag("unloadLauncherWhenIdle")
+		return perfFlagDefault("unloadLauncherWhenIdle", true)
 	case "overview":
-		return perfFlag("unloadOverviewWhenIdle")
+		return perfFlagDefault("unloadOverviewWhenIdle", true)
+	case "ryolayer":
+		return perfFlagDefault("unloadRyolayerWhenIdle", true)
+	}
+	return false
+}
+
+// ryolayerHasPins reports whether ryolayer.json holds at least one pinned
+// widget. A pinned widget is an always-on desktop plate the ryolayer process
+// renders even while its Super+G board is closed, so ryolayer must run at login
+// to show it. No pins (the default) leaves ryolayer purely on-demand: it starts
+// on the first Super+G and parks when idle.
+func ryolayerHasPins() bool {
+	dir := ryokuConfigDir()
+	if dir == "" {
+		return false
+	}
+	b, err := os.ReadFile(filepath.Join(dir, "ryolayer.json"))
+	if err != nil {
+		return false
+	}
+	var m struct {
+		Widgets []struct {
+			Pinned bool `json:"pinned"`
+		} `json:"widgets"`
+	}
+	if json.Unmarshal(b, &m) != nil {
+		return false
+	}
+	for _, w := range m.Widgets {
+		if w.Pinned {
+			return true
+		}
 	}
 	return false
 }
@@ -77,7 +118,7 @@ func (d *daemon) idlePark() {
 			return
 		case <-tick.C:
 		}
-		for _, name := range []string{"launcher", "overview"} {
+		for _, name := range []string{"launcher", "overview", "ryolayer"} {
 			if !unloadPaletteWhenIdle(name) {
 				continue
 			}

@@ -32,9 +32,11 @@ func audioActive() bool {
 	return parseAudioActive(string(out))
 }
 
-// unloadVisualizerWhenSilent is the opt-in that frees the visualiser's memory
-// while the desktop is silent. Off by default; perfFlag lives in widgetwatch.go.
-func unloadVisualizerWhenSilent() bool { return perfFlag("unloadVisualizerWhenSilent") }
+// unloadVisualizerWhenSilent frees the visualiser's memory while the desktop is
+// silent. On by default: a music spectrum with no sound draws nothing, so a
+// resident visualiser is pure waste; a user opts out to keep it warm. perfFlag
+// lives in widgetwatch.go.
+func unloadVisualizerWhenSilent() bool { return perfFlagDefault("unloadVisualizerWhenSilent", true) }
 
 // watchAudio parks the visualiser process after a grace period of silence (only
 // when the opt-in is on) and brings it back the moment audio returns. It rides

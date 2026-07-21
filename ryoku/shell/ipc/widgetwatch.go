@@ -28,9 +28,9 @@ func parsePerfFlag(b []byte, key string) bool {
 	return v
 }
 
-// perfPath is ~/.config/ryoku/performance.json, the file the Performance section
-// in Ryoku Settings writes. Empty only when the home dir is unknowable.
-func perfPath() string {
+// ryokuConfigDir is ~/.config/ryoku (honouring XDG_CONFIG_HOME), the dir the
+// Ryoku Settings sections write. Empty only when the home dir is unknowable.
+func ryokuConfigDir() string {
 	dir := os.Getenv("XDG_CONFIG_HOME")
 	if dir == "" {
 		home, err := os.UserHomeDir()
@@ -39,7 +39,17 @@ func perfPath() string {
 		}
 		dir = filepath.Join(home, ".config")
 	}
-	return filepath.Join(dir, "ryoku", "performance.json")
+	return filepath.Join(dir, "ryoku")
+}
+
+// perfPath is ~/.config/ryoku/performance.json, the file the Performance section
+// in Ryoku Settings writes. Empty only when the home dir is unknowable.
+func perfPath() string {
+	dir := ryokuConfigDir()
+	if dir == "" {
+		return ""
+	}
+	return filepath.Join(dir, "performance.json")
 }
 
 // perfFlag reads one opt-in out of performance.json. A missing file is off.
@@ -56,6 +66,29 @@ func perfFlag(key string) bool {
 // type all yield def.
 func perfFlagDefault(key string, def bool) bool {
 	b, err := os.ReadFile(perfPath())
+	if err != nil {
+		return def
+	}
+	var m map[string]any
+	if json.Unmarshal(b, &m) != nil {
+		return def
+	}
+	if v, ok := m[key].(bool); ok {
+		return v
+	}
+	return def
+}
+
+// shellFlagDefault reads one boolean out of shell.json (the Shell section's
+// store), with an explicit default. Mirrors perfFlagDefault; used for the few
+// shell features whose on/off the daemon must honour -- the ryolayer widget
+// board's Shell-page toggle.
+func shellFlagDefault(key string, def bool) bool {
+	dir := ryokuConfigDir()
+	if dir == "" {
+		return def
+	}
+	b, err := os.ReadFile(filepath.Join(dir, "shell.json"))
 	if err != nil {
 		return def
 	}
