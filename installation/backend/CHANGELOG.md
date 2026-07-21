@@ -25,6 +25,19 @@
   `ryoku doctor`, and `ryoku materialize` all manage.
 
 ### Fixed
+- `lib/mirrors.sh` + `lib/pacstrap.sh`: mirror handling is now a bounded
+  four-tier fallback so a user far from every shipped origin no longer stalls the
+  install at "failed to install packages to new root" (issue #21). Ranking tries
+  reflector (`timeout 60`, https, last 24h, top 10 by rate), then the
+  mirror-status API (`curl --retry 3`, ranked by score, https + fully-synced
+  only, the retry pattern archinstall uses), then the ISO's bundled mirrorlist;
+  three reachable-from-anywhere mirrors are appended to every tier as a last
+  resort. The install-time `pacman.conf` gets `ParallelDownloads = 5` +
+  `DisableDownloadTimeout` so a slow-but-alive mirror cannot abort pacstrap. On a
+  pacstrap failure the mirrorlist is regenerated from the next tier down and the
+  install retries once with `--needed` (resuming over the packages already
+  installed); a second failure lists the tiers tried and the failing mirror URL
+  from pacman's output. Covered by `tests/install-mirrors.sh`.
 - `lib/snapshots.sh`: declining snapshots at install now sticks. The opt-out
   only skipped the snapper setup, and `ryoku doctor` (run inside every
   `ryoku update`) converges any btrfs root missing the snapper config onto the
