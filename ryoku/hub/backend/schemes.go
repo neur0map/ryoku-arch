@@ -34,10 +34,13 @@ func writePalette(pal map[string]string) {
 }
 
 // renderApps runs matugen in json (templating-only) mode over the palette, the
-// one engine that fans it into kitty, Hyprland borders, GTK, Qt, and btop from
-// the templates deployed under ~/.config/matugen. Passthrough keeps every
-// colour byte-exact; only .hex resolves in this mode, so Qt's ARGB roles read
-// the pre-formatted *_argb keys the carrier carries beside the plain colours.
+// one engine that fans it into the app configs from the templates deployed
+// under ~/.config/matugen. config.toml is the core surface (kitty, Hyprland
+// borders, btop, Qt) and always renders; apps.toml is the GTK / GUI-app reach,
+// rendered only when "Theme apps" is on (else the GTK stylesheets are blanked
+// so those apps fall back to stock). Passthrough keeps every colour byte-exact;
+// only .hex resolves in this mode, so Qt's ARGB roles read the pre-formatted
+// *_argb keys the carrier carries beside the plain colours.
 func renderApps(pal map[string]string) {
 	carrier := map[string]any{"colors": paletteCarrier(pal)}
 	cacheDir := filepath.Join(cacheHome(), "ryoku")
@@ -46,9 +49,35 @@ func renderApps(pal map[string]string) {
 	if err := atomicWrite(carrierPath, mustJSON(carrier), 0o644); err != nil {
 		return
 	}
-	cfg := filepath.Join(configHome(), "matugen", "config.toml")
-	if out, err := exec.Command("matugen", "-c", cfg, "json", carrierPath).CombinedOutput(); err != nil {
+	matugenDir := filepath.Join(configHome(), "matugen")
+	runMatugen(filepath.Join(matugenDir, "config.toml"), carrierPath)
+	if themeAppsOn(loadThemeState()) {
+		runMatugen(filepath.Join(matugenDir, "apps.toml"), carrierPath)
+	} else {
+		blankGtk()
+	}
+}
+
+func runMatugen(cfg, carrier string) {
+	if out, err := exec.Command("matugen", "-c", cfg, "json", carrier).CombinedOutput(); err != nil {
 		fmt.Fprintf(os.Stderr, "matugen: %v: %s\n", err, out)
+	}
+}
+
+// themeAppsOn reports whether the palette should reach GTK / GUI apps. A theme
+// state without the key (an older theme.json) reads as on, so existing installs
+// keep the themed apps they already had.
+func themeAppsOn(s themeState) bool { return s.ThemeApps == nil || *s.ThemeApps }
+
+// gtkOff is written to the generated GTK stylesheets when app theming is off, so
+// GTK / libadwaita apps drop the Ryoku palette and use their own stock colours.
+const gtkOff = "/* Ryoku: app theming is off; apps use their own colours. */\n"
+
+func blankGtk() {
+	for _, rel := range []string{"gtk-3.0/gtk.css", "gtk-4.0/gtk.css"} {
+		p := filepath.Join(configHome(), rel)
+		_ = os.MkdirAll(filepath.Dir(p), 0o755)
+		_ = atomicWrite(p, []byte(gtkOff), 0o644)
 	}
 }
 
@@ -127,12 +156,48 @@ func applyScheme(mode string) error {
 	return nil
 }
 
+// currentThemeApps reports the app-theming toggle for the UI.
+func currentThemeApps() bool { return themeAppsOn(loadThemeState()) }
+
+// applyThemeApps sets whether the palette reaches GTK / GUI apps and re-fans the
+// live palette at once, so the toggle takes hold without a wallpaper change or a
+// scheme flip. renderApps honours the new flag (renders the GTK templates, or
+// blanks them); nudgeGtk then asks already-open GTK apps to re-read.
+func applyThemeApps(on bool) error {
+	st := loadThemeState()
+	st.ThemeApps = &on
+	saveThemeState(st)
+	if pal := readPalette(filepath.Join(wallustCacheDir(), "colors.json")); pal != nil {
+		renderApps(pal)
+	} else if !on {
+		blankGtk()
+	}
+	nudgeGtk()
+	return nil
+}
+
+// nudgeGtk forces already-open GTK / libadwaita apps to re-read the stylesheet
+// by flipping the GTK theme name off and back, the standard live-reload signal.
+func nudgeGtk() {
+	out, err := exec.Command("gsettings", "get", "org.gnome.desktop.interface", "gtk-theme").Output()
+	if err != nil {
+		return
+	}
+	name := strings.Trim(strings.TrimSpace(string(out)), "'")
+	if name == "" {
+		return
+	}
+	_ = exec.Command("gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", "").Run()
+	_ = exec.Command("gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", name).Run()
+}
+
 // themeState persists the palette master: whether colours track the wallpaper
 // (wallust) and, when they don't, which curated scheme is locked. Lives at
 // ~/.config/ryoku/theme.json.
 type themeState struct {
 	FollowWallpaper bool   `json:"followWallpaper"`
 	Scheme          string `json:"scheme,omitempty"`
+	ThemeApps       *bool  `json:"themeApps,omitempty"`
 }
 
 func themeStatePath() string {

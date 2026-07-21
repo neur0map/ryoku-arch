@@ -26,8 +26,9 @@ import (
 const riceSchema = 1
 
 type RiceColor struct {
-	Mode    string `json:"mode"`              // "wallpaper" | "fixed"
-	Palette string `json:"palette,omitempty"` // relative file, when Mode == "fixed"
+	Mode      string `json:"mode"`                // "wallpaper" | "fixed"
+	Palette   string `json:"palette,omitempty"`   // relative file, when Mode == "fixed"
+	ThemeApps *bool  `json:"themeApps,omitempty"` // do external GTK / GUI apps follow this look
 }
 
 type RiceAssets struct {
@@ -432,11 +433,14 @@ func captureRice(name string, layers []string) (Rice, error) {
 			r.Assets.Cursor = t
 		}
 	}
-	if loadThemeState().FollowWallpaper {
+	st := loadThemeState()
+	if st.FollowWallpaper {
 		r.Color = RiceColor{Mode: "wallpaper"}
 	} else {
 		r.Color = RiceColor{Mode: "fixed", Palette: "palette.json"}
 	}
+	ta := themeAppsOn(st)
+	r.Color.ThemeApps = &ta
 	if err := saveRice(r); err != nil {
 		return r, err
 	}
@@ -459,7 +463,8 @@ func captureRice(name string, layers []string) (Rice, error) {
 	}
 	if r.Color.Mode == "fixed" {
 		if copyFile(filepath.Join(wallustCacheDir(), "colors.json"), filepath.Join(dir, "palette.json")) != nil {
-			r.Color = RiceColor{Mode: "wallpaper"} // no cached palette: follow the wallpaper instead
+			r.Color.Mode = "wallpaper" // no cached palette: follow the wallpaper instead
+			r.Color.Palette = ""
 		}
 	}
 	bundleDecorAssets(dir, r.Look["decor"])
@@ -651,6 +656,13 @@ func applyRice(slug string, layers []string) error {
 	}
 
 	st := loadThemeState()
+	// a rice built after the toggle carries its app-theming choice; apply it so
+	// a shared full-system look reaches (or spares) the recipient's apps the same
+	// way it did the author's. an older rice (nil) leaves the recipient's setting.
+	if r.Color.ThemeApps != nil {
+		ta := *r.Color.ThemeApps
+		st.ThemeApps = &ta
+	}
 	if r.Color.Mode == "fixed" {
 		st.FollowWallpaper = false
 		st.Scheme = ""
@@ -842,6 +854,9 @@ func riceTouches(r Rice, dir string) []riceTouch {
 			riceTouch{homeRel(filepath.Join(wallustCacheDir(), "colors.json")), "output", "refresh", "Colour palette (wallust cache)", true},
 			riceTouch{homeRel(kittyThemePath()), "output", "terminal", "kitty colours", true},
 		)
+	}
+	if r.Color.ThemeApps == nil || *r.Color.ThemeApps {
+		touches = append(touches, riceTouch{homeRel(filepath.Join(configHome(), "gtk-3.0", "gtk.css")), "output", "widgets", "GTK / GUI apps (Files, editors)", true})
 	}
 	if r.Assets.Wallpaper != "" {
 		label := "Desktop wallpaper"
@@ -1120,6 +1135,7 @@ func preflightData() map[string]any {
 		"visualizer": len(readJSONMap(visualizerStorePath())) > 0,
 		"layers":     layers,
 		"fixed":      !loadThemeState().FollowWallpaper,
+		"themeApps":  themeAppsOn(loadThemeState()),
 	}
 }
 

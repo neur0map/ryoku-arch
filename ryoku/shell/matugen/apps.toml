@@ -1,0 +1,20 @@
+[config]
+
+# The GTK / GUI-app fan-out, rendered only when "Theme apps" is on (theme.json
+# themeApps, default true). This is the reach of the palette past the Ryoku
+# shell and into third-party apps: GTK 3, GTK 4, and libadwaita apps (Files /
+# Nautilus, text editors, GNOME apps) recolour to the wallpaper or the locked
+# scheme. When the toggle is off the control plane writes a comment-only gtk.css
+# instead, so those apps fall back to their own stock (Adwaita) look while the
+# shell, terminal, borders, and Qt (config.toml) keep tracking the palette.
+#
+# gtk-colors.css carries both the libadwaita named colours (GTK 4) and the
+# classic GTK 3 @theme_* names, so one template themes both toolkit versions.
+
+[templates.gtk3]
+input_path = "~/.config/matugen/templates/gtk-colors.css"
+output_path = "~/.config/gtk-3.0/gtk.css"
+
+[templates.gtk4]
+input_path = "~/.config/matugen/templates/gtk-colors.css"
+output_path = "~/.config/gtk-4.0/gtk.css"

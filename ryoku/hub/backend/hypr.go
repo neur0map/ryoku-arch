@@ -600,6 +600,11 @@ func runHypr(args []string) error {
 		return applyScheme(args[1])
 	case "ryoku-theme":
 		return applyRyokuTheme()
+	case "theme-apps":
+		if len(args) < 2 {
+			return printJSON(map[string]bool{"themeApps": currentThemeApps()})
+		}
+		return applyThemeApps(args[1] == "on" || args[1] == "true")
 	default:
 		return fmt.Errorf("unknown hypr subcommand: %s", args[0])
 	}

@@ -210,6 +210,68 @@ func TestApplyMergesAndRestoreReverts(t *testing.T) {
 	}
 }
 
+// themeApps travels with a rice: capture records the author's app-theming
+// choice, apply sets it on the recipient, and an older rice (no themeApps key)
+// leaves the recipient's own setting alone. themeAppsOn defaults to on when the
+// key is absent, so existing installs keep their themed apps.
+func TestThemeAppsRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(dir, "cache"))
+	t.Setenv("HOME", dir)
+	if err := os.MkdirAll(filepath.Join(dir, "ryoku"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	origRun, origReload := riceRun, riceReload
+	riceRun = func(name string, args ...string) error { return nil }
+	riceReload = func() {}
+	t.Cleanup(func() { riceRun, riceReload = origRun, origReload })
+	w := func(p, body string) {
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if !themeAppsOn(loadThemeState()) {
+		t.Fatal("themeApps absent should read as on")
+	}
+
+	// capture with the toggle off records the choice on the rice.
+	w(hyprStorePath(), `{"appearance":{"rounding":2}}`)
+	w(shellStorePath(), `{"barStyle":"noctalia"}`)
+	w(launcherStorePath(), `{}`)
+	w(themeStatePath(), `{"followWallpaper":true,"themeApps":false}`)
+	r, err := captureRice("Bare", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Color.ThemeApps == nil || *r.Color.ThemeApps {
+		t.Fatalf("capture did not record themeApps=false: %v", r.Color.ThemeApps)
+	}
+
+	// a recipient with the toggle on adopts the rice's off.
+	w(themeStatePath(), `{"followWallpaper":true,"themeApps":true}`)
+	if err := applyRice("bare", nil); err != nil {
+		t.Fatal(err)
+	}
+	if themeAppsOn(loadThemeState()) {
+		t.Fatal("apply did not carry themeApps=false onto the recipient")
+	}
+
+	// an older rice without the key must not clear the recipient's setting.
+	w(themeStatePath(), `{"followWallpaper":true,"themeApps":true}`)
+	if err := os.MkdirAll(filepath.Join(ricesDir(), "legacy"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	w(ricePath("legacy"), `{"schema":1,"slug":"legacy","name":"Legacy","color":{"mode":"wallpaper"},"look":{"hypr":{},"shell":{},"launcher":{}}}`)
+	if err := applyRice("legacy", nil); err != nil {
+		t.Fatal(err)
+	}
+	if !themeAppsOn(loadThemeState()) {
+		t.Fatal("a rice without themeApps must not clear the recipient's setting")
+	}
+}
+
 // riceTouches flags which config stores a rice provides and includes the fixed
 // palette outputs and bundled assets; exportRice lays the manifest, a per-store
 // configs breakout, and a README into a plain folder.

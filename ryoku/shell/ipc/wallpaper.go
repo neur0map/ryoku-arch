@@ -606,7 +606,47 @@ func renderApps() {
 	if cfgBase == "" {
 		cfgBase = filepath.Join(os.Getenv("HOME"), ".config")
 	}
-	_ = exec.Command("matugen", "-c", filepath.Join(cfgBase, "matugen", "config.toml"), "json", cpath).Run()
+	matugenDir := filepath.Join(cfgBase, "matugen")
+	// core surface (terminal, frame, monitor, Qt) always tracks the palette.
+	_ = exec.Command("matugen", "-c", filepath.Join(matugenDir, "config.toml"), "json", cpath).Run()
+	// GTK / GUI apps only when "Theme apps" is on; else revert them to stock.
+	if themeAppsEnabled() {
+		_ = exec.Command("matugen", "-c", filepath.Join(matugenDir, "apps.toml"), "json", cpath).Run()
+	} else {
+		blankGtk(cfgBase)
+	}
+}
+
+// themeAppsEnabled reports whether the palette should reach GTK / GUI apps.
+// Mirrors the hub control plane: a theme.json without the key reads as on, so
+// existing installs keep the themed apps they already had.
+func themeAppsEnabled() bool {
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		base = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	b, err := os.ReadFile(filepath.Join(base, "ryoku", "theme.json"))
+	if err != nil {
+		return true
+	}
+	var s struct {
+		ThemeApps *bool `json:"themeApps"`
+	}
+	if json.Unmarshal(b, &s) != nil || s.ThemeApps == nil {
+		return true
+	}
+	return *s.ThemeApps
+}
+
+// blankGtk drops the Ryoku palette from the generated GTK stylesheets, so GTK /
+// libadwaita apps fall back to their own stock colours when app theming is off.
+func blankGtk(cfgBase string) {
+	const off = "/* Ryoku: app theming is off; apps use their own colours. */\n"
+	for _, rel := range []string{"gtk-3.0/gtk.css", "gtk-4.0/gtk.css"} {
+		p := filepath.Join(cfgBase, rel)
+		_ = os.MkdirAll(filepath.Dir(p), 0o755)
+		_ = os.WriteFile(p, []byte(off), 0o644)
+	}
 }
 
 // themePaletteLocked: does a Ryoku Settings theme own the colours (so a wallpaper

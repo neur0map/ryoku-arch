@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Added
+- **A "Theme apps" toggle extends the palette past the shell into GTK / GUI
+  apps.** The Appearance page's Theme tab, under the palette scheme, gains a
+  switch (`ryoku-hub hypr theme-apps`) that decides whether Files, text editors
+  and other GTK / libadwaita apps recolour to the wallpaper or the locked
+  scheme, or stay stock. On renders the GTK stylesheets through matugen; off
+  blanks them so apps fall back to Adwaita. The shell, terminal, borders and Qt
+  always track the palette. A rice now carries the choice (`color.themeApps`),
+  so a shared full-system look reaches (or spares) the recipient's apps the same
+  way it did the author's, and the Rices tab lists the GTK apps it touches
+  (`schemes.go`, `hypr.go`, `rice.go`, `pages/AppearancePage.qml`).
+
 ### Changed
 - **Ryoku Settings writes its generated Hyprland Lua into the `user_edits`
   overlay.** `settings.lua` and `rebinds.lua` are authored under

@@ -196,6 +196,26 @@ Item {
     }
     Process { id: schemeApplyProc; stdout: StdioCollector { onStreamFinished: schemeQueryProc.running = true } }
 
+    // Theme apps: extend the palette to GTK / GUI apps (theme.json themeApps),
+    // instant via `ryoku-hub hypr theme-apps`. Governs the reach past the shell
+    // (Files, editors, GTK apps); the shell, terminal, borders and Qt always
+    // track the palette. Sits under the scheme, the same instant-apply family.
+    property bool themeApps: true
+    function setThemeApps(v) {
+        pg.themeApps = v;
+        themeAppsApplyProc.command = ["ryoku-hub", "hypr", "theme-apps", v ? "on" : "off"];
+        themeAppsApplyProc.running = true;
+    }
+    Process {
+        id: themeAppsQueryProc
+        command: ["ryoku-hub", "hypr", "theme-apps"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: { try { pg.themeApps = JSON.parse(this.text).themeApps !== false; } catch (e) {} }
+        }
+    }
+    Process { id: themeAppsApplyProc; stdout: StdioCollector { onStreamFinished: themeAppsQueryProc.running = true } }
+
     // Ryoku default: reset the whole desktop to the shipped signature (stele
     // bar, square corners, Space Grotesk, grainy mono) in one click, via
     // `ryoku-hub hypr ryoku-theme`. Instant and live, like the scheme apply.
@@ -1108,6 +1128,37 @@ Item {
                         color: Tokens.inkMuted
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fSmall
+                    }
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s3
+                        topPadding: Tokens.s2
+                        Column {
+                            width: Math.max(0, parent.width - appsSw.width - Tokens.s3)
+                            spacing: Tokens.s1
+                            Text {
+                                text: "THEME APPS"
+                                color: Tokens.inkMuted
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fMicro
+                                font.weight: Font.Medium
+                                font.letterSpacing: Tokens.trackLabel
+                            }
+                            Text {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: "Extend the palette past the shell into GTK and GUI apps, so Files, text editors, and other desktop apps recolour to match. Off keeps them stock."
+                                color: Tokens.inkMuted
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fSmall
+                            }
+                        }
+                        Sw {
+                            id: appsSw
+                            anchors.verticalCenter: parent.verticalCenter
+                            on: pg.themeApps
+                            onToggled: (v) => pg.setThemeApps(v)
+                        }
                     }
                 }
 

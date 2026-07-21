@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Changed
+- **The GTK / GUI-app palette fan-out is now a toggle, and reaches GTK 3 too.**
+  matugen's app templates split into `matugen/config.toml` (the always-on core:
+  kitty, Hyprland borders, btop, Qt) and `matugen/apps.toml` (GTK 3 / GTK 4),
+  the latter rendered only when "Theme apps" is on (theme.json `themeApps`,
+  default on so existing installs keep themed apps); off, the daemon blanks the
+  generated `gtk.css` so GTK / libadwaita apps revert to stock Adwaita. The
+  shared GTK template now carries the classic GTK 3 `@theme_*` names beside the
+  libadwaita ones, so GTK 3 apps follow the palette and not just GTK 4
+  (`matugen/config.toml`, `matugen/apps.toml`,
+  `matugen/templates/gtk-colors.css`, `ipc/wallpaper.go`).
+
 ### Fixed
 - `ryolayer/Singletons/Eq.qml`: toggling the equalizer switch now takes effect.
   `setEnabled` wrote `eq.json` and immediately ran `ryoku-eq apply`, but the

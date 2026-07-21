@@ -1,4 +1,9 @@
-/* Ryoku palette -> GTK / libadwaita. Rendered by matugen; do not edit. */
+/* Ryoku palette -> GTK. Rendered by matugen; do not edit. One file themes both
+   toolkits: libadwaita / GTK 4 read the *_color names, classic GTK 3 (Adwaita)
+   reads the @theme_* names. Each toolkit ignores the other's names, so both
+   sets can live together. */
+
+/* --- libadwaita / GTK 4 (Files, text editors, GNOME apps) --- */
 @define-color accent_color {{colors.color4.default.hex}};
 @define-color accent_bg_color {{colors.color4.default.hex}};
 @define-color accent_fg_color {{colors.background.default.hex}};
@@ -22,3 +27,23 @@
 @define-color destructive_bg_color {{colors.color1.default.hex}};
 @define-color warning_color {{colors.color3.default.hex}};
 @define-color success_color {{colors.color2.default.hex}};
+
+/* --- classic GTK 3 (Adwaita named palette) --- */
+@define-color theme_bg_color {{colors.background.default.hex}};
+@define-color theme_fg_color {{colors.foreground.default.hex}};
+@define-color theme_base_color {{colors.background.default.hex}};
+@define-color theme_text_color {{colors.foreground.default.hex}};
+@define-color theme_selected_bg_color {{colors.color4.default.hex}};
+@define-color theme_selected_fg_color {{colors.background.default.hex}};
+@define-color theme_unfocused_bg_color {{colors.background.default.hex}};
+@define-color theme_unfocused_fg_color {{colors.foreground.default.hex}};
+@define-color theme_unfocused_base_color {{colors.background.default.hex}};
+@define-color theme_unfocused_text_color {{colors.foreground.default.hex}};
+@define-color theme_unfocused_selected_bg_color {{colors.color4.default.hex}};
+@define-color theme_unfocused_selected_fg_color {{colors.background.default.hex}};
+@define-color insensitive_bg_color {{colors.color0.default.hex}};
+@define-color insensitive_fg_color {{colors.color8.default.hex}};
+@define-color insensitive_base_color {{colors.background.default.hex}};
+@define-color borders {{colors.color0.default.hex}};
+@define-color unfocused_borders {{colors.color0.default.hex}};
+@define-color error_color {{colors.color1.default.hex}};
