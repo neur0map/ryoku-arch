@@ -5,7 +5,8 @@
 # canonical order the TUI tracks, and print exactly one @@RYOKU_DONE as the LAST
 # sentinel (the TUI treats @@RYOKU_DONE as the success signal; a stray or early
 # one would falsely mark a failed install complete). also pins the per-mode
-# narration a reviewer relies on: the dedicated-ESP dual-boot promise, the pinned
+# narration a reviewer relies on: the shared-Windows-ESP dual-boot promise (a
+# dedicated XBOOTLDR /boot, Windows' own /EFI/Microsoft left alone), the pinned
 # LUKS KDF, and the hibernation resume line. dry-run, so no disk is touched.
 set -euo pipefail
 
@@ -49,11 +50,11 @@ for strategy in whole alongside; do
 
       # per-strategy narration.
       if [[ $strategy == alongside ]]; then
-        grep -qF 'dedicated' <<<"$out"    || fail "$tag: alongside missing the dedicated-ESP narration"
-        grep -qF 'never touched' <<<"$out" || fail "$tag: alongside missing the 'Windows ESP never touched' promise"
+        grep -qF 'XBOOTLDR' <<<"$out"        || fail "$tag: alongside missing the dedicated XBOOTLDR /boot narration"
+        grep -qF '/EFI/Microsoft' <<<"$out"  || fail "$tag: alongside missing the shared-Windows-ESP (/EFI/Microsoft) promise"
         grep -qF 'ryokuboot' <<<"$out"    || fail "$tag: alongside missing the ryokuboot partlabel"
       else
-        grep -qF 'never touched' <<<"$out" && fail "$tag: whole-disk wrongly narrated an untouched Windows ESP"
+        grep -qF '/EFI/Microsoft' <<<"$out" && fail "$tag: whole-disk wrongly narrated Windows' ESP (/EFI/Microsoft)"
       fi
 
       # per-encrypt narration: the pinned argon2id KDF only when encrypting.

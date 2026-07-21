@@ -62,8 +62,11 @@ ryoku_carve() {
   gap_mib=$(( (pend - pnew_end) / spm ))
   need_gib=$(( 2 + $(ryoku_min_root_gib) ))
 
-  (( fs_new_mib >= min_mib )) \
-    || die "carve of ${take} MiB is too large: $part needs at least ${min_mib} MiB (used + margin), which would leave only ${fs_new_mib} MiB. Take less."
+  # the TUI's max drag lands part_new at exactly min_mib; accept that and let the
+  # filesystem take the 1 MiB slack (min_mib already folds in a used+margin buffer,
+  # so the fs floor sits below it). only a genuinely-below-min take is refused.
+  (( part_new_mib >= min_mib )) \
+    || die "carve of ${take} MiB is too large: $part needs at least ${min_mib} MiB (used + margin), which would leave only ${part_new_mib} MiB. Take less."
   (( gap_mib >= need_gib * 1024 )) \
     || die "carve of ${take} MiB frees only ${gap_mib} MiB, below the ${need_gib} GiB Ryoku needs (2 GiB boot + $(ryoku_min_root_gib) GiB root). Take more."
 
@@ -73,6 +76,8 @@ ryoku_carve() {
   pnum=$(part_num "$part")
   partuuid_before=$(sgdisk -i "$pnum" "$disk" | sed -n 's/^Partition unique GUID: //p')
   typeguid_before=$(sgdisk -i "$pnum" "$disk" | sed -n 's/^Partition GUID code: \([0-9A-Fa-f-]*\).*/\1/p')
+  [[ -n $partuuid_before && -n $typeguid_before ]] \
+    || die "carve could not read $part identity (PARTUUID/typeGUID) before the shrink; refusing (cannot prove it is preserved)."
 
   log "carve: $part ($fstype) ${size_mib} MiB -> ${part_new_mib} MiB (filesystem to ${fs_new_mib} MiB), freeing ~${gap_mib} MiB for Ryoku"
 

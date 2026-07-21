@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- In-installer carve (resize). `probe resize <disk>` reports, per partition, what
+  it can give up (min size, used, shrinkable + reason) for NTFS, ext4, and btrfs;
+  `lib/resize.sh` then shrinks the chosen partition (filesystem first, table
+  second via `sfdisk -N`) to free a region and hands it to the alongside flow, so
+  a full Windows or Ryoku disk can install alongside without a manual pre-shrink.
+  Fails closed: refuses dirty/hibernated NTFS, BitLocker, multi-device btrfs, and
+  any shrink below the filesystem minimum; PARTUUID/typeGUID are preserved and
+  asserted. Contract: `RYOKU_RESIZE_PART`, `RYOKU_RESIZE_TAKE_MIB`. The live ISO
+  gains `ntfsprogs` (ntfsresize/mkntfs) and `ntfs-3g`. Covered by
+  `tests/install-resize.sh`.
 - Automated install tests (`installation/tests/`, run by the Install test
   workflow): `container-install.sh` builds the packages, installs `ryoku-desktop`,
   and asserts the materialized config is complete on Arch and CachyOS bases;
