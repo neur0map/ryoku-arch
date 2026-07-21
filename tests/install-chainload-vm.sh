@@ -19,14 +19,21 @@
 #
 # a Linux kernel with console=ttyS0 is the headless marker: Limine renders to the
 # GOP, not serial, but the kernel it hands off to prints to ttyS0 (QEMU -serial).
-# the loop device is detached (flushing FAT writes) before every boot; KVM is
-# used when available (TCG is too flaky for the Limine handoff here).
+# the loop device is detached (flushing FAT writes) before every boot. KVM is
+# REQUIRED: TCG is too flaky for the Limine handoff here, so a runner with no
+# /dev/kvm skips (with a notice under CI) rather than run a flaky boot.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$here/.."
 fail() { echo "FAIL: $1" >&2; exit 1; }
-skip() { echo "install-chainload-vm: SKIP ($1)"; exit 0; }
+# under GitHub Actions a skip also emits a ::notice so the dropped coverage is
+# visible in the run summary instead of passing silently green.
+skip() {
+  [[ -n ${GITHUB_ACTIONS:-} ]] && echo "::notice title=install-chainload-vm skipped::$1"
+  echo "install-chainload-vm: SKIP ($1)"
+  exit 0
+}
 
 [[ $EUID -eq 0 ]] || skip "not root; needs losetup + FAT mount (run: sudo bash $0)"
 for t in qemu-system-x86_64 losetup sgdisk mkfs.vfat blkid; do
@@ -44,7 +51,8 @@ KERNEL=""
 for k in /usr/lib/modules/*/vmlinuz; do [[ -f $k ]] && { KERNEL="$k"; break; }; done
 [[ -n $KERNEL ]] || skip "no /usr/lib/modules/*/vmlinuz kernel image to boot"
 LABEL=RYOKUBOOT
-KVM=(); [[ -w /dev/kvm ]] && KVM=(-enable-kvm -cpu host)
+[[ -w /dev/kvm ]] || skip "no KVM (/dev/kvm); TCG is too flaky for the Limine handoff here (see header)"
+KVM=(-enable-kvm -cpu host)
 
 work="$(mktemp -d)"
 DISK_LOOP=""
