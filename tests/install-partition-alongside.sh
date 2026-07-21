@@ -141,7 +141,7 @@ edge_sha() {
 }
 
 # type_guid <loop> <partnum>: GPT partition type GUID (lowercased).
-type_guid() { sgdisk -i "$2" "$1" | sed -n 's/^Partition GUID code: \([0-9A-Fa-f-]*\).*/\1/p' | tr 'A-Z' 'a-z'; }
+type_guid() { sgdisk -i "$2" "$1" | sed -n 's/^Partition GUID code: \([0-9A-Fa-f-]*\).*/\1/p' | tr '[:upper:]' '[:lower:]'; }
 
 # ef00_count <loop>: number of EF00 (ESP-type) partitions on the disk.
 ef00_count() { sgdisk -p "$1" 2>/dev/null | awk '$6=="EF00"' | wc -l; }
