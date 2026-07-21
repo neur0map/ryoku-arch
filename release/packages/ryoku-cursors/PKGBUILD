@@ -1,0 +1,43 @@
+# Maintainer: Ryoku <releases@ryoku.dev>
+#
+# ryoku-cursors = the Bibata XCursor set the desktop is configured against.
+# env.lua and autostart.lua set XCURSOR_THEME / HYPRCURSOR_THEME to
+# Bibata-Modern-Ice, the Hub cursor picker defaults to it, and doctor's cursor
+# reconciler asserts it. Without the theme on disk the pointer falls back to a
+# lone X11 bitmap and the picker shows a single fallback -- the "my cursor is
+# the ugly default" break.
+#
+# shipped from [ryoku] instead of the AUR on purpose. it was an AUR package
+# (bibata-cursor-theme-bin), installed only in the post-install AUR step: skipped
+# offline, best-effort on failure, and never revisited by `ryoku update` (which
+# is pacman-only and never touches the AUR). A box that installed offline or hit
+# a flaky AUR build came up with no configured cursor and only a manual
+# `ryoku doctor` to notice. Building it here as a signed [ryoku] package makes it
+# resolve as a hard ryoku-desktop dependency and reach every box on install and
+# on `ryoku update`, exactly like wallust and awww.
+#
+# fixed-version package: it tracks upstream Bibata releases, not the monorepo
+# RYOKU_PKGVER. To follow a new Bibata release, bump pkgver + sha256sums and
+# reset pkgrel; bump pkgrel alone when only this recipe changes. GitHub release
+# assets are immutable, so the checksum is pinned for real (not SKIP) -- the
+# Codeberg-archive drift that forces the git packages onto a pinned commit does
+# not apply here. build-repo.sh adopts the already-published bytes for an
+# unchanged filename, so a rebuild at the same pkgver never breaks clients
+# holding the previous db.
+pkgname=ryoku-cursors
+pkgver=2.0.7
+pkgrel=1
+pkgdesc="Bibata XCursor set (the Ryoku desktop's configured cursor theme)"
+# XCursor themes are architecture-independent image/config data.
+arch=('any')
+url="https://github.com/ful1e5/Bibata_Cursor"
+license=('GPL-3.0-or-later')
+source=("Bibata-$pkgver.tar.xz::$url/releases/download/v$pkgver/Bibata.tar.xz")
+sha256sums=('172e33c4ae415278384dcecc7d1a9b7a024266bc944bc751fd86532be1cc6251')
+
+package() {
+  # the tarball unpacks each variant as a top-level Bibata-* theme dir; install
+  # the whole family so the Hub cursor picker offers every edge/colour.
+  install -d "$pkgdir/usr/share/icons"
+  cp -r Bibata* "$pkgdir/usr/share/icons/"
+}

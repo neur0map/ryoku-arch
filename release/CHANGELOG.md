@@ -20,6 +20,19 @@
   pulls it onto every install and existing box. The publish workflow gains `lz4`
   (awww's pkg-config build probe) and skips `awww` in its official-repo dependency
   check.
+- **`ryoku-cursors` now ships from the `[ryoku]` repo** as a hard `ryoku-desktop`
+  dependency, not the AUR. It packages the Bibata XCursor family (the theme
+  `env.lua`/`autostart.lua` set as `XCURSOR_THEME`/`HYPRCURSOR_THEME` and the Hub
+  cursor picker defaults to) into `/usr/share/icons`, built from the pinned
+  upstream release tarball (GitHub assets are immutable, so the sha256 is pinned
+  for real, GPL-3.0-or-later). As an AUR package (`bibata-cursor-theme-bin`) it
+  installed only in the post-install AUR step -- skipped offline, best-effort on
+  failure, and never revisited by `ryoku update` -- so a box could come up with no
+  configured cursor and a lone fallback bitmap. It is removed from
+  `system/packages/aur.packages` (single source of truth) and added, unpinned
+  like `wallust`/`awww` (a fixed upstream version, not the monorepo `RYOKU_PKGVER`),
+  to `ryoku-desktop`'s depends, so `pacman -Syu` pulls it onto every install and
+  existing box.
 - Four new `[ryoku]` repo packages build the optional Hyprland compositor plugins
   the Hub can toggle, installed to `/usr/lib/hyprland/plugins/`:
   `hypr-dynamic-cursors`, `ryoku-hypr-plugins` (hyprbars + hyprfocus),

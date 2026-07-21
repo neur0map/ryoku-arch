@@ -56,6 +56,14 @@ depends=(
   # named freedesktop icons (e.g. the Avahi entries' network-wired) resolve in
   # the launcher's all-apps grid instead of a broken-image placeholder.
   'papirus-icon-theme'
+  # the Bibata XCursor set the desktop is configured against (env.lua +
+  # autostart set XCURSOR_THEME/HYPRCURSOR_THEME to Bibata-Modern-Ice, the Hub
+  # cursor picker defaults to it). ships from [ryoku], not the AUR, so a fresh
+  # install and `ryoku update` always carry it: the old AUR theme was skipped
+  # offline and never revisited by `ryoku update`, leaving the pointer on a lone
+  # fallback bitmap. fixed upstream version, so unpinned like wallust / awww; see
+  # release/packages/ryoku-cursors/PKGBUILD.
+  'ryoku-cursors'
   # shell + apps configured here
   'quickshell'
   'kitty'

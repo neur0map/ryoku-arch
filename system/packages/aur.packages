@@ -10,12 +10,14 @@ yay-bin
 limine-mkinitcpio-hook
 limine-snapper-sync
 
-# Cursor themes: a curated set of modern XCursor themes the Ryoku Settings picker
-# offers (XCURSOR_THEME defaults to Bibata-Modern-Ice). The modern flat vimix set
-# ships from the official repo, see base.packages. Prebuilt packages are preferred
-# so a flaky source build cannot leave the picker with a single fallback.
-# Bibata family: Modern and Original edges in Ice, Amber, Classic.
-bibata-cursor-theme-bin
+# Cursor themes: extra XCursor themes the Ryoku Settings picker offers on top of
+# the configured default. Bibata (XCURSOR_THEME defaults to Bibata-Modern-Ice)
+# now ships first-class from the [ryoku] repo as a hard ryoku-desktop dependency,
+# not the AUR: an AUR-only theme installed only in the post-install step (skipped
+# offline, best-effort on failure) and `ryoku update` never revisited it, so a
+# box could come up with no configured cursor. See release/packages/ryoku-cursors.
+# The modern flat vimix set ships from the official repo, see base.packages.
+# These prebuilt extras are best-effort, like every package in this set.
 # phinger: clean rounded set, light and dark, from a prebuilt release.
 phinger-cursors
 # volantes: minimal modern set, light and dark; the base Catppuccin is built on.
