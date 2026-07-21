@@ -25,3 +25,6 @@ singleton Media Media.qml
 singleton IslandDock IslandDock.qml
 singleton SysStats SysStats.qml
 singleton Fullscreen Fullscreen.qml
+singleton Toggles Toggles.qml
+singleton Workspaces Workspaces.qml
+singleton Session Session.qml

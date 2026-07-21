@@ -64,6 +64,26 @@ Singleton {
         return m ? parseInt(m[1], 10) : -1;
     }
 
+    // --- internal backlight (brightnessctl): the laptop panel, distinct from
+    // the external ddc monitors above. backlightPct stays -1 until the first
+    // read, and on a machine with no backlight device the reader never sets it,
+    // so backlightAvailable stays false and the fader hides.
+    property int backlightPct: -1
+    readonly property bool backlightAvailable: root.backlightPct >= 0
+
+    function readBacklight() {
+        blRead.running = true;
+    }
+
+    // set the panel brightness to `pct`%, floored at 1 so it never blacks out.
+    // tracks the value optimistically so the fader does not snap back while the
+    // poll catches up.
+    function setBacklight(pct) {
+        var p = Math.max(1, Math.min(100, Math.round(pct)));
+        root.backlightPct = p;
+        Quickshell.execDetached(["brightnessctl", "set", p + "%"]);
+    }
+
     Process {
         id: ddcDetect
         command: ["ddcutil", "detect", "--brief"]
@@ -79,6 +99,19 @@ Singleton {
                         mons.push({ bus: bus[1], label: conn ? conn[1] : "BUS " + bus[1] });
                 }
                 root.ddcMonitors = mons;
+            }
+        }
+    }
+
+    Process {
+        id: blRead
+        command: ["bash", "-c", "brightnessctl -m 2>/dev/null | awk -F, 'NR==1{print substr($4,1,length($4)-1)}'"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var v = parseInt(this.text.trim());
+                if (!isNaN(v))
+                    root.backlightPct = v;
             }
         }
     }

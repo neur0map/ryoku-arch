@@ -227,6 +227,13 @@ Item {
             onMoved: (v) => { if (Audio.sink) Audio.sink.audio.volume = v; }
             onIconTapped: { if (Audio.sink) Audio.sink.audio.muted = !Audio.sink.audio.muted; }
         }
+
+        // brightness: internal backlight + a fader per detected external monitor.
+        BrightnessControl {
+            width: parent.width
+            s: root.s
+            active: root.open
+        }
     }
 
     // ── tab rail: data-driven from `panes`, swaps the content pane below ─────

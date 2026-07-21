@@ -13,6 +13,10 @@ Row {
 
     property real s: 1
     property bool vertical: false
+    // when >= 0, the widest the whole module may be; the title elides to fit so
+    // the right cluster never crosses the centred clock. <0 leaves it uncapped.
+    property real maxW: -1
+    readonly property real chromeW: (14 + 13) * s + 2 * spacing
 
     readonly property var player: Media.player
     readonly property bool playing: Media.playing
@@ -59,7 +63,7 @@ Row {
         id: title
         anchors.verticalCenter: parent.verticalCenter
         readonly property real natW: titleMetrics.advanceWidth
-        width: Math.min(natW + 2, 170 * media.s)
+        width: Math.min(natW + 2, 170 * media.s, media.maxW >= 0 ? Math.max(0, media.maxW - media.chromeW) : 170 * media.s)
         active: media.playing
         text: media.line
         color: media.playing ? Theme.cream : Theme.dim

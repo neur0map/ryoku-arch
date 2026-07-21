@@ -50,7 +50,7 @@ function formatTemp(temp, unit) {
 function parseForecast(json, unit) {
     var out = {
         available: false, tempNow: 0, temp: "", condition: "", glyph: "cloud",
-        humidity: 0, isDay: true, hourly: [], daily: []
+        humidity: 0, wind: 0, feels: 0, isDay: true, hourly: [], daily: []
     };
     var cur = json && json.current;
     if (!cur || typeof cur.temperature_2m !== "number" || typeof cur.weather_code !== "number")
@@ -60,7 +60,7 @@ function parseForecast(json, unit) {
     if (h && h.time && h.temperature_2m && h.weather_code) {
         var n = Math.min(h.time.length, h.temperature_2m.length, h.weather_code.length);
         for (var i = 0; i < n; i++)
-            out.hourly.push({ hour: String(h.time[i]).slice(11, 13), temp: Math.round(h.temperature_2m[i]), code: h.weather_code[i] });
+            out.hourly.push({ hour: String(h.time[i]).slice(11, 13), temp: Math.round(h.temperature_2m[i]), code: h.weather_code[i], precip: (h.precipitation_probability && typeof h.precipitation_probability[i] === "number") ? h.precipitation_probability[i] : 0 });
     }
 
     var d = json.daily;
@@ -79,6 +79,8 @@ function parseForecast(json, unit) {
     out.condition = labelFor(cur.weather_code);
     out.glyph = glyphFor(cur.weather_code);
     out.humidity = typeof cur.relative_humidity_2m === "number" ? Math.round(cur.relative_humidity_2m) : 0;
+    out.wind = typeof cur.wind_speed_10m === "number" ? Math.round(cur.wind_speed_10m) : 0;
+    out.feels = typeof cur.apparent_temperature === "number" ? Math.round(cur.apparent_temperature) : 0;
     out.isDay = cur.is_day === 1;
     out.available = true;
     return out;

@@ -16,6 +16,10 @@ Item {
 
     property real s: 1
     property bool open: false
+    // rich mode gives the washi warp-surface an art + title header above the
+    // transport (the pill warps into a full now-playing panel); the framed
+    // skins keep the bare hover transport (rich stays false).
+    property bool rich: false
 
     readonly property var player: Media.player
     readonly property bool playing: Media.playing
@@ -44,7 +48,7 @@ Item {
     }
 
     anchors.fill: parent
-    implicitWidth: 220 * s
+    implicitWidth: (rich ? 330 : 220) * s
     implicitHeight: body.implicitHeight + 28 * s
 
     Timer {
@@ -89,6 +93,63 @@ Item {
         anchors.leftMargin: 16 * root.s
         anchors.rightMargin: 16 * root.s
         spacing: 9 * root.s
+        // ---- rich header: art specimen + track lines (washi surface) ----
+        Row {
+            width: parent.width
+            visible: root.rich
+            spacing: 12 * root.s
+            Rectangle {
+                width: 52 * root.s
+                height: 52 * root.s
+                radius: 8 * root.s
+                color: Qt.alpha(Theme.bright, 0.05)
+                border.width: 1
+                border.color: Theme.hair
+                clip: true
+                Image {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    source: root.player ? (root.player.trackArtUrl || "") : ""
+                    sourceSize: Qt.size(Math.ceil(width * 2), Math.ceil(height * 2))
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    cache: true
+                    visible: status === Image.Ready
+                }
+                Text {
+                    anchors.centerIn: parent
+                    visible: !root.player || !(root.player.trackArtUrl || "").length
+                    text: "\u97f3"
+                    color: Theme.iconDim
+                    font.family: Theme.fontJp
+                    font.pixelSize: 24 * root.s
+                }
+            }
+            Column {
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width - 52 * root.s - 12 * root.s
+                spacing: 3 * root.s
+                Text {
+                    width: parent.width
+                    text: root.player ? (root.player.trackTitle || "Nothing playing") : "Nothing playing"
+                    color: Theme.cream
+                    elide: Text.ElideRight
+                    font.family: Theme.font
+                    font.pixelSize: 14 * root.s
+                    font.weight: Font.DemiBold
+                }
+                Text {
+                    width: parent.width
+                    visible: text.length > 0
+                    text: root.player ? Theme.joinArtists(root.player.trackArtists, root.player.trackArtist) : ""
+                    color: Theme.dim
+                    elide: Text.ElideRight
+                    font.family: Theme.font
+                    font.pixelSize: 11 * root.s
+                }
+            }
+        }
+
 
         Item {
             width: parent.width

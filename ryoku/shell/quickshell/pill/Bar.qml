@@ -1,8 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
-import Quickshell.Io
 import Quickshell.Services.Pipewire
 import Quickshell.Wayland
 import "Singletons"
@@ -34,9 +32,19 @@ Item {
     readonly property bool inir: Config.barStyle === "inir"
     readonly property bool aurora: Config.barStyle === "aurora"
     readonly property bool angel: Config.barStyle === "angel"
+    // atoll: ilyamiro's multi-island bar, a separate loaded component like the
+    // flat set; a frame-off row of floating islands (AtollBar.qml).
+    readonly property bool atoll: Config.barStyle === "atoll"
     // the flat iNiR-ported skins: a flush full-width bar painting its own
     // background (TUI / glass / brutalist), no frame band, no lobes.
     readonly property bool flatBar: inir || aurora || angel
+    // modular = the reorderable data-driven face (BarModularFace), opt-in: only
+    // on a straight-band skin once the user customises a zone list. the bespoke
+    // skins (triptych, nacre, the flat set) keep their designed layouts.
+    readonly property bool modular: !bar.triptych && !bar.nacre && !bar.flatBar
+        && ((Config.barLayoutLeft && Config.barLayoutLeft.length > 0)
+            || (Config.barLayoutCentre && Config.barLayoutCentre.length > 0)
+            || (Config.barLayoutRight && Config.barLayoutRight.length > 0))
     // triptych wraps each cluster in a transparent hugger and shell.qml grows a
     // matching frame lobe under it, so the bar dips between the three; every
     // other skin keeps the hugger invisible and the plain straight band.
@@ -57,23 +65,11 @@ Item {
         ? (nacreLoader.item ? nacreLoader.item.bellCenter : -1)
         : bar.flatBar
         ? (flatLoader.item ? flatLoader.item.bellCenter : -1)
+        : bar.modular
+        ? (modularLoader.item ? modularLoader.item.bellCenter : -1)
         : (Config.barShowStatus ? hStatus.bellCenter : -1)
 
-    property int seedWsId: -1
-    readonly property int activeWsId: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : seedWsId
-
-    // quickshell's refreshWorkspaces parses nothing out of this Hyprland's
-    // IPC, so the focused workspace stays null on a fresh instance until the
-    // first event. seed once from hyprctl; events own it from the first switch.
-    Process {
-        running: true
-        command: ["hyprctl", "activeworkspace", "-j"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try { bar.seedWsId = JSON.parse(text).id; } catch (e) {}
-            }
-        }
-    }
+    readonly property int activeWsId: Workspaces.activeId
 
     readonly property var sink: Pipewire.defaultAudioSink
     function nudgeVolume(steps) {
@@ -89,8 +85,8 @@ Item {
     Item {
         id: face
         anchors.fill: parent
-        visible: !bar.nacre && !bar.flatBar
-        enabled: !bar.nacre && !bar.flatBar
+        visible: !bar.nacre && !bar.flatBar && !bar.modular && !bar.atoll
+        enabled: !bar.nacre && !bar.flatBar && !bar.modular && !bar.atoll
 
         // ---- left island: seal + workspaces + title --------------------
         Rectangle {
@@ -109,42 +105,82 @@ Item {
                 anchors.leftMargin: bar.triptych ? bar.islandPad : 0
                 spacing: 8 * bar.s
 
-                BarModule {
+                // seal, workspaces, special and stats are the fixed left group; the
+                // now-playing chip and the title share the room left before the
+                // centred clock, so the cluster never grows across it.
+                Row {
+                    id: leftFixed
                     anchors.verticalCenter: parent.verticalCenter
-                    s: bar.s
-                    height: bar.moduleSpan
-                    width: bar.moduleSpan
-                    filled: false
-                    onTapped: Quickshell.execDetached(["ryoku-shell", "launcher"])
+                    spacing: 8 * bar.s
 
-                    BrandMark {
-                        size: 11 * bar.s
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        width: bar.moduleSpan
+                        filled: false
+                        onTapped: Quickshell.execDetached(["ryoku-shell", "launcher"])
+                        BrandMark { size: 11 * bar.s }
+                    }
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: (Config.barStyle === "noctalia" || bar.triptych) ? 10 * bar.s : (Config.barStyle === "stele" ? 7 * bar.s : 4 * bar.s)
+                        interactive: false
+                        BarWorkspaces { s: bar.s; activeWsId: bar.activeWsId }
+                    }
+                    BarModule {
+                        id: specialMod
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        visible: Config.barShowSpecialWs && specialWs.active
+                        interactive: false
+                        BarSpecialWs { id: specialWs; s: bar.s }
+                    }
+                    // system stats (temps/cpu/ram): on the left with the workspaces,
+                    // like the flat and nacre skins, so the right cluster stays slim.
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        interactive: false
+                        BarStats { s: bar.s; onRequestPopout: (name, center) => bar.popoutRequested(name, center) }
                     }
                 }
 
-                BarModule {
+                // now-playing music section: a real chip with art + title, sized so
+                // it and the window title share the room left before the clock.
+                BarReveal {
+                    id: leftMediaReveal
                     anchors.verticalCenter: parent.verticalCenter
                     s: bar.s
-                    height: bar.moduleSpan
-                    padX: (Config.barStyle === "noctalia" || bar.triptych) ? 10 * bar.s : (Config.barStyle === "stele" ? 7 * bar.s : 4 * bar.s)
-                    interactive: false
-
-                    BarWorkspaces {
+                    dropWhenClosed: true
+                    shown: Config.barShowMedia && Media.present
+                    BarModule {
+                        id: mediaMod
                         s: bar.s
-                        activeWsId: bar.activeWsId
+                        height: bar.moduleSpan
+                        onTapped: hMedia.toggle()
+                        onWheeled: (steps) => bar.nudgeVolume(steps)
+                        onHoveredChanged: bar.hoverPopoutRequested("media", mediaMod.mapToItem(null, mediaMod.width / 2, mediaMod.height / 2).x, mediaMod.hovered)
+                        BarMedia { id: hMedia; s: bar.s; maxW: 190 * bar.s }
                     }
                 }
 
                 BarTitle {
                     anchors.verticalCenter: parent.verticalCenter
                     s: bar.s
-                    maxWidth: (bar.triptych ? 240 : 340) * bar.s
+                    // the room left before the centred clock, after the fixed group
+                    // and (when present) the now-playing chip: elide, never cross it.
+                    maxWidth: Math.max(0, (bar.width - centreIsland.width) / 2 - bar.edgeMargin - leftFixed.implicitWidth - (Config.barShowMedia && Media.present ? 210 * bar.s : 0) - 2 * leftRow.spacing - 12 * bar.s)
                     label: Config.barShowTitle && ToplevelManager.activeToplevel ? (ToplevelManager.activeToplevel.title || "") : ""
                 }
             }
         }
 
-        // ---- centre island: clock, and now-playing on triptych ----------
+        // ---- centre island: the clock ------------------------------------
         Rectangle {
             id: centreIsland
             anchors.horizontalCenter: parent.horizontalCenter
@@ -170,27 +206,6 @@ Item {
                         s: bar.s
                     }
                 }
-
-                BarReveal {
-                    anchors.verticalCenter: parent.verticalCenter
-                    s: bar.s
-                    gap: 8 * bar.s
-                    shown: bar.triptych && Config.barShowMedia && Media.present
-
-                    BarModule {
-                        id: mediaCenter
-                        s: bar.s
-                        height: bar.moduleSpan
-                        onTapped: hMediaCenter.toggle()
-                        onWheeled: (steps) => bar.nudgeVolume(steps)
-                        onHoveredChanged: bar.hoverPopoutRequested("media", mediaCenter.mapToItem(null, mediaCenter.width / 2, mediaCenter.height / 2).x, mediaCenter.hovered)
-
-                        BarMedia {
-                            id: hMediaCenter
-                            s: bar.s
-                        }
-                    }
-                }
             }
         }
 
@@ -211,69 +226,80 @@ Item {
                 anchors.rightMargin: bar.triptych ? bar.islandPad : 0
                 spacing: 8 * bar.s
 
-                BarReveal {
+                Row {
+                    id: rightFixed
                     anchors.verticalCenter: parent.verticalCenter
-                    s: bar.s
-                    dropWhenClosed: true
-                    shown: !bar.triptych && Config.barShowMedia && Media.present
+                    spacing: 8 * bar.s
 
                     BarModule {
-                        id: mediaMod
+                        anchors.verticalCenter: parent.verticalCenter
                         s: bar.s
                         height: bar.moduleSpan
-                        onTapped: hMedia.toggle()
-                        onWheeled: (steps) => bar.nudgeVolume(steps)
-                        onHoveredChanged: bar.hoverPopoutRequested("media", mediaMod.mapToItem(null, mediaMod.width / 2, mediaMod.height / 2).x, mediaMod.hovered)
+                        visible: Config.barShowStatus
+                        interactive: false
 
-                        BarMedia {
-                            id: hMedia
+                        BarStatus {
+                            id: hStatus
                             s: bar.s
+                            onRequestPopout: (name, center) => bar.popoutRequested(name, center)
                         }
                     }
-                }
 
-                BarModule {
-                    anchors.verticalCenter: parent.verticalCenter
-                    s: bar.s
-                    height: bar.moduleSpan
-                    visible: Config.barShowStatus
-                    interactive: false
-
-                    BarStatus {
-                        id: hStatus
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
                         s: bar.s
-                        onRequestPopout: (name, center) => bar.popoutRequested(name, center)
+                        height: bar.moduleSpan
+                        visible: Config.barShowWeather && Weather.available
+                        interactive: false
+
+                        BarWeather {
+                            s: bar.s
+                            onRequestPopout: (name, center) => bar.popoutRequested(name, center)
+                        }
                     }
-                }
 
-                BarModule {
-                    anchors.verticalCenter: parent.verticalCenter
-                    s: bar.s
-                    height: bar.moduleSpan
-                    visible: hTray.count > 0
-                    padX: 11 * bar.s
-                    interactive: false
-
-                    BarTray {
-                        id: hTray
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
                         s: bar.s
-                        trayWindow: bar.trayWindow
-                        menuEdgeY: bar.height
+                        height: bar.moduleSpan
+                        visible: Config.barToggles.length > 0
+                        interactive: false
+
+                        BarToggles {
+                            s: bar.s
+                            kinds: Config.barToggles
+                        }
                     }
-                }
 
-                BarModule {
-                    id: hPowerMod
-                    anchors.verticalCenter: parent.verticalCenter
-                    s: bar.s
-                    height: bar.moduleSpan
-                    padX: 10 * bar.s
-                    onTapped: bar.popoutRequested("power", hPowerMod.mapToItem(null, hPowerMod.width / 2, hPowerMod.height / 2).x)
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        visible: hTray.count > 0
+                        padX: 11 * bar.s
+                        interactive: false
 
-                    MaterialIcon {
-                        text: "power_settings_new"
-                        color: Theme.verm
-                        font.pixelSize: 14 * bar.s
+                        BarTray {
+                            id: hTray
+                            s: bar.s
+                            trayWindow: bar.trayWindow
+                            menuEdgeY: bar.height
+                        }
+                    }
+
+                    BarModule {
+                        id: hPowerMod
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 10 * bar.s
+                        onTapped: bar.popoutRequested("power", hPowerMod.mapToItem(null, hPowerMod.width / 2, hPowerMod.height / 2).x)
+
+                        MaterialIcon {
+                            text: "power_settings_new"
+                            color: Theme.verm
+                            font.pixelSize: 14 * bar.s
+                        }
                     }
                 }
             }
@@ -287,6 +313,24 @@ Item {
         anchors.fill: parent
         active: bar.nacre
         sourceComponent: nacreComp
+    }
+
+    // ---- atoll: floating dark islands (ported from ilyamiro's nixos shell) --
+    Loader {
+        id: atollLoader
+        anchors.fill: parent
+        active: bar.atoll
+        sourceComponent: atollComp
+    }
+    Component {
+        id: atollComp
+        AtollBar {
+            s: bar.s
+            band: bar.band
+            trayWindow: bar.trayWindow
+            onPopoutRequested: (name, center) => bar.popoutRequested(name, center)
+            onHoverPopoutRequested: (name, center, hovered) => bar.hoverPopoutRequested(name, center, hovered)
+        }
     }
     Component {
         id: nacreComp
@@ -403,6 +447,15 @@ Item {
                         s: bar.s
                         height: bar.moduleSpan
                         padX: 6 * bar.s
+                        visible: Config.barShowSpecialWs && nSpecialWs.active
+                        interactive: false
+                        BarSpecialWs { id: nSpecialWs; s: bar.s }
+                    }
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 6 * bar.s
                         interactive: false
                         BarStats { s: bar.s; onRequestPopout: (name, center) => bar.popoutRequested(name, center) }
                     }
@@ -437,6 +490,24 @@ Item {
                         visible: Config.barShowStatus
                         interactive: false
                         BarStatus { id: nStatus; s: bar.s; onRequestPopout: (name, center) => bar.popoutRequested(name, center) }
+                    }
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 8 * bar.s
+                        visible: Config.barShowWeather && Weather.available
+                        interactive: false
+                        BarWeather { s: bar.s; onRequestPopout: (name, center) => bar.popoutRequested(name, center) }
+                    }
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 8 * bar.s
+                        visible: Config.barToggles.length > 0
+                        interactive: false
+                        BarToggles { s: bar.s; kinds: Config.barToggles }
                     }
                     BarModule {
                         anchors.verticalCenter: parent.verticalCenter
@@ -488,21 +559,20 @@ Item {
                 anchors.fill: parent
                 readonly property color surf: Config.matchWallpaper ? Wallust.surface : Config.surfaceColor
                 readonly property color deep: Config.matchWallpaper ? Wallust.base : Config.surfaceColor
-                // aurora reads as a lit glass pane: a top-down translucency gradient
-                // (denser up top where the light catches, clearer below) keeps the
-                // modules legible and stops it collapsing into inir's flat panel on a
-                // dark wallpaper. inir and angel are flat, so both stops resolve to
-                // one solid tone.
+                // aurora reads as a clean, modern niri-style bar: one flat
+                // translucent tone the wallpaper shows faintly through, with a crisp
+                // hairline top -- no layered gaussy sheen. inir and angel are flat
+                // opaque, so both stops resolve to a single solid tone.
                 gradient: Gradient {
-                    GradientStop { position: 0; color: bar.aurora ? Qt.alpha(flatBg.surf, 0.62) : (bar.angel ? flatBg.deep : flatBg.surf) }
-                    GradientStop { position: 1; color: bar.aurora ? Qt.alpha(flatBg.surf, 0.44) : (bar.angel ? flatBg.deep : flatBg.surf) }
+                    GradientStop { position: 0; color: bar.aurora ? Qt.alpha(flatBg.surf, 0.85) : (bar.angel ? flatBg.deep : flatBg.surf) }
+                    GradientStop { position: 1; color: bar.aurora ? Qt.alpha(flatBg.surf, 0.85) : (bar.angel ? flatBg.deep : flatBg.surf) }
                 }
 
-                Rectangle { // aurora glass edge: a crisp lit highlight along the top
+                Rectangle { // aurora crisp top hairline (a clean edge, not a glass glare)
                     visible: bar.aurora
                     anchors { left: parent.left; right: parent.right; top: parent.top }
-                    height: Math.max(1, 2 * bar.s)
-                    color: Qt.alpha(Theme.cream, 0.3)
+                    height: Math.max(1, bar.s)
+                    color: Qt.alpha(Theme.cream, 0.08)
                 }
                 Rectangle { // angel inset top glow
                     visible: bar.angel
@@ -517,38 +587,55 @@ Item {
                 }
             }
 
-            // ---- left cluster: seal, workspaces, stats, media ----
+            // ---- left cluster: seal, workspaces, special, stats (fixed), then
+            // media. the fixed cluster's own width caps the media title, so a long
+            // track name can never push the cluster across the centred clock.
             Row {
                 anchors.left: parent.left
                 anchors.leftMargin: flatFace.edge
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 6 * bar.s
 
-                BarModule {
+                Row {
+                    id: flatLeftFixed
                     anchors.verticalCenter: parent.verticalCenter
-                    s: bar.s
-                    height: bar.moduleSpan
-                    width: bar.moduleSpan
-                    filled: false
-                    onTapped: Quickshell.execDetached(["ryoku-shell", "launcher"])
-                    BrandMark { size: 11 * bar.s }
-                }
-                BarModule {
-                    anchors.verticalCenter: parent.verticalCenter
-                    s: bar.s
-                    height: bar.moduleSpan
-                    padX: 6 * bar.s
-                    interactive: false
-                    BarWorkspaces { s: bar.s; activeWsId: bar.activeWsId }
-                }
-                Sep {}
-                BarModule {
-                    anchors.verticalCenter: parent.verticalCenter
-                    s: bar.s
-                    height: bar.moduleSpan
-                    padX: 8 * bar.s
-                    interactive: false
-                    BarStats { s: bar.s; onRequestPopout: (name, center) => bar.popoutRequested(name, center) }
+                    spacing: 6 * bar.s
+
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        width: bar.moduleSpan
+                        filled: false
+                        onTapped: Quickshell.execDetached(["ryoku-shell", "launcher"])
+                        BrandMark { size: 11 * bar.s }
+                    }
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 6 * bar.s
+                        interactive: false
+                        BarWorkspaces { s: bar.s; activeWsId: bar.activeWsId }
+                    }
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 6 * bar.s
+                        visible: Config.barShowSpecialWs && flatSpecialWs.active
+                        interactive: false
+                        BarSpecialWs { id: flatSpecialWs; s: bar.s }
+                    }
+                    Sep {}
+                    BarModule {
+                        anchors.verticalCenter: parent.verticalCenter
+                        s: bar.s
+                        height: bar.moduleSpan
+                        padX: 8 * bar.s
+                        interactive: false
+                        BarStats { s: bar.s; onRequestPopout: (name, center) => bar.popoutRequested(name, center) }
+                    }
                 }
                 Sep { visible: bar.inir && Config.barShowMedia && Media.present }
                 BarReveal {
@@ -563,7 +650,13 @@ Item {
                         onTapped: flatMedia.toggle()
                         onWheeled: (steps) => bar.nudgeVolume(steps)
                         onHoveredChanged: bar.hoverPopoutRequested("media", flatMediaMod.mapToItem(null, flatMediaMod.width / 2, flatMediaMod.height / 2).x, flatMediaMod.hovered)
-                        BarMedia { id: flatMedia; s: bar.s }
+                        BarMedia {
+                            id: flatMedia
+                            s: bar.s
+                            // elide to the room left of the centred clock, past the
+                            // fixed modules, so the cluster never crosses it.
+                            maxW: Math.max(0, (bar.width - flatClockMod.width) / 2 - flatFace.edge - flatLeftFixed.implicitWidth - 22 * bar.s)
+                        }
                     }
                 }
             }
@@ -595,6 +688,24 @@ Item {
                     interactive: false
                     BarStatus { id: flatStatus; s: bar.s; onRequestPopout: (name, center) => bar.popoutRequested(name, center) }
                 }
+                BarModule {
+                    anchors.verticalCenter: parent.verticalCenter
+                    s: bar.s
+                    height: bar.moduleSpan
+                    padX: 8 * bar.s
+                    visible: Config.barShowWeather && Weather.available
+                    interactive: false
+                    BarWeather { s: bar.s; onRequestPopout: (name, center) => bar.popoutRequested(name, center) }
+                }
+                BarModule {
+                    anchors.verticalCenter: parent.verticalCenter
+                    s: bar.s
+                    height: bar.moduleSpan
+                    padX: 8 * bar.s
+                    visible: Config.barToggles.length > 0
+                    interactive: false
+                    BarToggles { s: bar.s; kinds: Config.barToggles }
+                }
                 Sep { visible: bar.inir && flatTray.count > 0 }
                 BarModule {
                     anchors.verticalCenter: parent.verticalCenter
@@ -606,6 +717,28 @@ Item {
                     BarTray { id: flatTray; s: bar.s; trayWindow: bar.trayWindow; menuEdgeY: bar.height }
                 }
             }
+        }
+    }
+
+    // ---- modular face: the reorderable data-driven straight-band bar, loaded
+    // only when the user customises a zone on a band skin (Config.barLayout*).
+    Loader {
+        id: modularLoader
+        anchors.fill: parent
+        active: bar.modular
+        sourceComponent: modularComp
+    }
+    Component {
+        id: modularComp
+        BarModularFace {
+            s: bar.s
+            moduleSpan: bar.moduleSpan
+            activeWsId: bar.activeWsId
+            trayWindow: bar.trayWindow
+            edgeMargin: bar.edgeMargin
+            onPopoutRequested: (name, center) => bar.popoutRequested(name, center)
+            onHoverPopoutRequested: (name, center, hovered) => bar.hoverPopoutRequested(name, center, hovered)
+            onNudgeVolume: (steps) => bar.nudgeVolume(steps)
         }
     }
 }

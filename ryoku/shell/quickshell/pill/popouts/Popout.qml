@@ -147,9 +147,11 @@ Item {
     // blob field and that corner squares off, so a corner popout reads as the
     // frame swelling out of the corner -- no gap, the same way the growing edge
     // fuses into the bar. top/bottom bar only (along-axis is X); a centred
-    // popout is never at a wall, so it stays put.
-    readonly property bool hugLeft: !vertical && width > 0 && bodyOpenW > 0 && alongX <= edgeInset + 0.5
-    readonly property bool hugRight: !vertical && width > 0 && bodyOpenW > 0 && alongX >= width - bodyOpenW - edgeInset - 0.5
+    // popout is never at a wall, so it stays put. the flat/floating skins
+    // (noWeld) have no frame wall to fuse into, so they never hug: a module
+    // popout near the screen edge stays inset instead of clipping off it.
+    readonly property bool hugLeft: !noWeld && !vertical && width > 0 && bodyOpenW > 0 && alongX <= edgeInset + 0.5
+    readonly property bool hugRight: !noWeld && !vertical && width > 0 && bodyOpenW > 0 && alongX >= width - bodyOpenW - edgeInset - 0.5
 
     // body geometry in window coords; grows inward from the border.
     readonly property real curW: vertical ? Math.max(0, bodyOpenW * prog)
@@ -246,18 +248,44 @@ Item {
     // empty band to collapse: it narrows back toward the module it grew from
     // (curW tracks the melt, centred on the trigger), so the band retracts into
     // that lobe and the dips return around it -- the popout melts back into the
-    // frame it came out of. the flat iNiR skins (inir/aurora/angel) narrow-melt
-    // too: they have no band, so a full-width neck would hang over the bar.
-    readonly property bool dipHost: Config.barStyle === "delos" || (atTop && ["triptych", "nacre", "inir", "aurora", "angel"].includes(Config.barStyle))
+    // frame it came out of. the flat iNiR skins (inir/aurora/angel) and atoll's
+    // floating islands narrow-melt too: they have no swelled band, so a
+    // full-width neck would hang over the bar.
+    readonly property bool dipHost: Config.barStyle === "delos" || (!vertical && (root.noWeld || ["triptych", "nacre", "inir", "aurora", "angel", "atoll"].includes(Config.barStyle)))
+
+    // a welded popout grows a neck into the frame-border blob and, on close, buries
+    // that inner face one smoothing-depth in, so the border reads as swallowing it.
+    // with the frame off there is no border: the neck would bridge empty space and
+    // flicker as it drops out (the close bump), so noWeld drops the neck and the
+    // corner hug. it KEEPS the burial, though -- retracting the inner face still
+    // makes the blob hit zero size before it can strand a metaball fillet, so a
+    // floating island melts shut clean with no shrinking nub. noWeld = any skin
+    // with the frame off (border gone), plus atoll -- both its variants float
+    // their islands over the wallpaper (ilyamiro round, ryoku square), so the
+    // frame never swells a band for them to weld into.
+    readonly property bool noWeld: Config.barStyle === "atoll" || !Config.frameEnabled
 
     BlobRect {
         id: bodyBlob
         readonly property real reach: root.frameThickness + root.smoothing
-        readonly property real neckW: root.vertical ? reach : 0
-        readonly property real neckH: root.vertical ? 0 : reach
-        readonly property real hugNeckL: root.hugLeft ? reach : 0
-        readonly property real hugNeckR: root.hugRight ? reach : 0
+        readonly property real neckW: (root.vertical && !root.noWeld) ? reach : 0
+        readonly property real neckH: (!root.vertical && !root.noWeld) ? reach : 0
+        readonly property real hugNeckL: (root.hugLeft && !root.noWeld) ? reach : 0
+        readonly property real hugNeckR: (root.hugRight && !root.noWeld) ? reach : 0
         group: root.group
+        // a closed popout (prog 0) still sits in the shared blob field at its
+        // resting origin, and even at zero implicit size it pulls a smooth-min
+        // nub onto whatever popout is open at the same centre -- every popout
+        // shares `alongCenter`, so they stack at one point. that nub is invisible
+        // on transparent popout content (the blob IS the surface there) but reads
+        // as a dark bump on an opaque one (the power panel's wallpaper hero). so
+        // drop the body from the field until it actually opens, matching bodyClip.
+        visible: root.prog > 0.004
+        // noWeld has no frame band to weld into (frame off, or atoll's floating
+        // islands), so it grows no neck -- but it stays a blob and still buries its
+        // inner face on close (see `burial`), so it hits zero size cleanly instead
+        // of stranding a shrinking fillet nub. it melts shut toward the bar it grew
+        // from, the same retract a welded body makes into the frame border.
         // edge-side corners flush (fused into the frame border), inner corners
         // rounded -- so the body is continuous with the frame edge it grows from.
         topLeftRadius: (root.atTop || root.atLeft || root.hugLeft || root.spanning) ? 0 : root.radius
@@ -274,8 +302,8 @@ Item {
         // outline clips off-screen (like the frame's own -50 oversize); only the
         // inner edge shows a line. the content clip below stays on-screen.
         y: root.spanning ? -60 : (root.bodyY - (root.atTop ? neckH : 0) + (root.atBottom ? root.burial : 0))
-        implicitWidth: root.bodyW > 0 ? Math.max(0, root.bodyW + neckW + hugNeckL + hugNeckR - (root.vertical ? root.burial : 0)) : 0
-        implicitHeight: root.spanning ? (root.height + 120) : (root.bodyH > 0 ? Math.max(0, root.bodyH + neckH - (root.vertical ? 0 : root.burial)) : 0)
+        implicitWidth: root.bodyW <= 0 ? 0 : Math.max(0, root.bodyW + neckW + hugNeckL + hugNeckR - (root.vertical ? root.burial : 0))
+        implicitHeight: root.spanning ? (root.height + 120) : (root.bodyH <= 0 ? 0 : Math.max(0, root.bodyH + neckH - (root.vertical ? 0 : root.burial)))
     }
 
     // content at full size, revealed by a widening clip anchored to the border

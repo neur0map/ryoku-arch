@@ -44,8 +44,8 @@ eq(formatTemp(19.7, "celsius"), "20\u00b0C", "formatTemp rounds and appends C");
 eq(formatTemp(67.5, "fahrenheit"), "68\u00b0F", "formatTemp rounds half-up and appends F");
 
 const sample = {
-    current: { time: "2026-06-22T10:30", temperature_2m: 19.7, weather_code: 3, is_day: 1, relative_humidity_2m: 63 },
-    hourly: { time: ["2026-06-22T10:00", "2026-06-22T11:00", "2026-06-22T12:00"], temperature_2m: [18.1, 19.9, 20.9], weather_code: [3, 3, 61] },
+    current: { time: "2026-06-22T10:30", temperature_2m: 19.7, weather_code: 3, is_day: 1, relative_humidity_2m: 63, apparent_temperature: 18.2, wind_speed_10m: 11.4 },
+    hourly: { time: ["2026-06-22T10:00", "2026-06-22T11:00", "2026-06-22T12:00"], temperature_2m: [18.1, 19.9, 20.9], weather_code: [3, 3, 61], precipitation_probability: [0, 20, 55] },
     daily: { time: ["2026-06-22", "2026-06-23"], weather_code: [63, 55], temperature_2m_max: [20.9, 22.1], temperature_2m_min: [9.5, 15.5] }
 };
 const f = parseForecast(sample, "celsius");
@@ -55,10 +55,12 @@ eq(f.temp, "20\u00b0C", "temp formatted");
 eq(f.condition, "Cloudy", "condition from code 3");
 eq(f.glyph, "cloud", "glyph from code 3");
 eq(f.humidity, 63, "humidity parsed");
+eq(f.wind, 11, "wind rounded");
+eq(f.feels, 18, "feels rounded");
 eq(f.isDay, true, "isDay from is_day 1");
 eq(f.hourly.length, 3, "hourly length");
-eq(f.hourly[0], { hour: "10", temp: 18, code: 3 }, "hourly[0] hour/temp/code");
-eq(f.hourly[2], { hour: "12", temp: 21, code: 61 }, "hourly[2] parsed");
+eq(f.hourly[0], { hour: "10", temp: 18, code: 3, precip: 0 }, "hourly[0] hour/temp/code/precip");
+eq(f.hourly[2], { hour: "12", temp: 21, code: 61, precip: 55 }, "hourly[2] parsed");
 eq(f.daily.length, 2, "daily length");
 eq(f.daily[0].code, 63, "daily[0] code");
 eq(f.daily[0].hi, 21, "daily[0] hi rounded");

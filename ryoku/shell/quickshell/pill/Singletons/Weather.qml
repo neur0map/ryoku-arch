@@ -9,7 +9,7 @@ import "../lib/weather.js" as Model
 // ~/.local/state/ryoku/weather-loc.json so a restart skips the coord round-trip.
 // replaced the old wttr.in scrape (rate-limited, re-located on every poll).
 // public contract = temp / condition / glyph / available, unchanged. hourly /
-// daily / humidity / city for richer panes. all parsing + the WMO-code ->
+// daily / humidity / wind / feels / city for richer panes. all parsing + WMO-code ->
 // glyph/label map live in lib/weather.js (unit-tested under node); this
 // singleton just fetches and assigns. unit follows the locale (F for US/LR/MM,
 // C elsewhere), matching the old IP-located feel.
@@ -32,6 +32,8 @@ Singleton {
     // richer data, ready for an hourly / 5-day pane.
     property int tempNow: 0
     property int humidity: 0
+    property int wind: 0
+    property int feels: 0
     property bool isDay: true
     property string city: ""
     property var hourly: []
@@ -66,6 +68,8 @@ Singleton {
         root.condition = f.condition;
         root.glyph = f.glyph;
         root.humidity = f.humidity;
+        root.wind = f.wind;
+        root.feels = f.feels;
         root.isDay = f.isDay;
         root.hourly = f.hourly;
         root.daily = f.daily;
@@ -164,10 +168,10 @@ Singleton {
         command: ["curl", "-s", "--max-time", "10",
             "https://api.open-meteo.com/v1/forecast?latitude=" + root.lat
             + "&longitude=" + root.lon
-            + "&current=temperature_2m,weather_code,is_day,relative_humidity_2m"
-            + "&hourly=temperature_2m,weather_code&forecast_hours=24"
+            + "&current=temperature_2m,weather_code,is_day,relative_humidity_2m,apparent_temperature,wind_speed_10m"
+            + "&hourly=temperature_2m,weather_code,precipitation_probability&forecast_hours=24"
             + "&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5"
-            + "&timezone=auto&temperature_unit=" + root.fetchUnit]
+            + "&timezone=auto&temperature_unit=" + root.fetchUnit + "&wind_speed_unit=" + (root.fetchUnit === "fahrenheit" ? "mph" : "kmh")]
         stdout: StdioCollector {
             onStreamFinished: {
                 root.applyForecast(this.text);

@@ -22,6 +22,18 @@ Item {
 
     readonly property string style: Config.barStyle
     readonly property bool rounded: style === "noctalia" || style === "caelestia"
+    // the flat iNiR-family module treatments: inir = TUI bordered cell, aurora =
+    // faint glass tint (the full-width panel carries the translucency), angel =
+    // a raised brutalist key with a hard accent offset shadow (no blur) that
+    // deepens as it lifts on hover -- the "escalonado" carried from iNiR.
+    readonly property bool tui:    style === "inir"
+    readonly property bool glass:  style === "aurora"
+    readonly property bool brutal: style === "angel"
+    readonly property real modRadius: rounded ? Math.min(width, height) / 2
+        : (tui || brutal) ? Math.max(2, Theme.radius) : 0
+    readonly property bool raised: brutal && filled
+    property real shadowOff: (hoverArea.containsMouse && interactive ? 5 : 2.5) * s
+    Behavior on shadowOff { NumberAnimation { duration: Motion.hover; easing.type: Easing.OutCubic } }
 
     signal tapped()
     signal wheeled(int steps)
@@ -29,13 +41,30 @@ Item {
     implicitWidth: vertical ? width : slot.implicitWidth + 2 * padX
     implicitHeight: vertical ? slot.implicitHeight + 2 * padY : height
 
+    // angel: the escalonado hard offset shadow -- a pure-offset accent plate
+    // behind the key, no blur, deepening as the key lifts on hover.
+    Rectangle {
+        visible: mod.raised
+        x: mod.shadowOff
+        y: mod.shadowOff
+        width: base.width
+        height: base.height
+        radius: base.radius
+        color: Qt.alpha(Theme.brand, 0.5)
+    }
     Rectangle {
         id: base
         anchors.fill: parent
-        radius: mod.rounded ? Math.min(width, height) / 2 : 0
+        radius: mod.modRadius
         color: !mod.filled ? "transparent"
-            : (mod.rounded ? Theme.tileBg
-            : (mod.style === "stele" ? Qt.alpha(Theme.bright, 0.03) : "transparent"))
+            : mod.rounded ? Theme.tileBg
+            : mod.tui ? "transparent"
+            : mod.glass ? "transparent"
+            : mod.brutal ? Theme.tileBg
+            : mod.style === "stele" ? Qt.alpha(Theme.bright, 0.03)
+            : "transparent"
+        border.width: (mod.brutal && mod.filled) ? Math.max(1, mod.s) : 0
+        border.color: mod.brutal ? Qt.alpha(Theme.brand, 0.55) : "transparent"
         clip: true
 
         Rectangle {

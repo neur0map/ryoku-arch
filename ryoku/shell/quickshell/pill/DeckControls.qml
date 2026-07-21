@@ -24,7 +24,6 @@ Item {
 
     implicitHeight: content.implicitHeight
 
-    readonly property string scripts: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/"
 
     // ── keep-awake elapsed ────────────────────────────────────────────────
     property int awakeElapsed: 0
@@ -45,66 +44,20 @@ Item {
         return (h > 0 ? h + ":" + p(m) : m) + ":" + p(r);
     }
 
-    // ── quick-toggle state (wifi, mic; bluetooth via BT service, night via pgrep) ──
-    property bool wifiOn: false
-    Process {
-        id: wifiProc
-        command: ["sh", "-c", "nmcli radio wifi 2>/dev/null"]
-        stdout: StdioCollector { onStreamFinished: root.wifiOn = this.text.trim() === "enabled" }
+    // quick-toggle state + actions live in the shared Toggles singleton (one
+    // copy, which also drives the bar's placeable toggle modules). the deck bumps
+    // its watcher count while open so the wifi / mic / night probes only poll
+    // when a control surface is actually showing.
+    property bool watching: false
+    function syncWatch() {
+        if (root.active === root.watching)
+            return;
+        Toggles.watchers += root.active ? 1 : -1;
+        root.watching = root.active;
     }
-    function toggleWifi() {
-        Quickshell.execDetached(["nmcli", "radio", "wifi", root.wifiOn ? "off" : "on"]);
-        root.wifiOn = !root.wifiOn;
-        wifiPoll.restart();
-    }
-    Timer { id: wifiPoll; interval: 1200; onTriggered: wifiProc.running = true }
-
-    property bool micMuted: true
-    Process {
-        id: micProc
-        command: ["sh", "-c", "wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null"]
-        stdout: StdioCollector { onStreamFinished: root.micMuted = this.text.indexOf("MUTED") >= 0 }
-    }
-    function toggleMic() {
-        Quickshell.execDetached(["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]);
-        root.micMuted = !root.micMuted;
-        micPoll.restart();
-    }
-    Timer { id: micPoll; interval: 600; onTriggered: micProc.running = true }
-
-    readonly property var btAdapter: Bluetooth.defaultAdapter
-    readonly property bool btOn: btAdapter ? btAdapter.enabled : false
-    function toggleBt() {
-        if (root.btAdapter)
-            root.btAdapter.enabled = !root.btAdapter.enabled;
-    }
-
-    property bool nightOn: false
-    Process {
-        id: nightProc
-        command: ["sh", "-c", "pgrep -x hyprsunset >/dev/null 2>&1 && echo on || echo off"]
-        stdout: StdioCollector { onStreamFinished: root.nightOn = this.text.trim() === "on" }
-    }
-    function toggleNight() {
-        Quickshell.execDetached([root.scripts + "ryoku-cmd-nightlight"]);
-        root.nightOn = !root.nightOn;
-        nightPoll.restart();
-    }
-    Timer { id: nightPoll; interval: 2000; onTriggered: nightProc.running = true }
-
-    function repoll() {
-        wifiProc.running = true;
-        micProc.running = true;
-        nightProc.running = true;
-    }
-    onActiveChanged: if (active) repoll()
-    Component.onCompleted: repoll()
-    Timer {
-        interval: 4000
-        running: root.active
-        repeat: true
-        onTriggered: root.repoll()
-    }
+    onActiveChanged: syncWatch()
+    Component.onCompleted: syncWatch()
+    Component.onDestruction: if (root.watching) Toggles.watchers -= 1
 
     // ── wide session stat-tile: glyph · label · live value. lights the whole
     // tile vermilion-tinted when on and the whole face taps to toggle, matching
@@ -240,20 +193,20 @@ Item {
             ToggleTile {
                 width: togglesRow.tileW
                 glyph: "wifi"
-                on: root.wifiOn
-                onActed: root.toggleWifi()
+                on: Toggles.wifiOn
+                onActed: Toggles.toggleWifi()
             }
             ToggleTile {
                 width: togglesRow.tileW
                 glyph: "bluetooth"
-                on: root.btOn
-                onActed: root.toggleBt()
+                on: Toggles.btOn
+                onActed: Toggles.toggleBt()
             }
             ToggleTile {
                 width: togglesRow.tileW
-                glyph: root.micMuted ? "mic-off" : "mic"
-                on: !root.micMuted
-                onActed: root.toggleMic()
+                glyph: Toggles.micMuted ? "mic-off" : "mic"
+                on: !Toggles.micMuted
+                onActed: Toggles.toggleMic()
             }
             ToggleTile {
                 width: togglesRow.tileW
@@ -264,8 +217,8 @@ Item {
             ToggleTile {
                 width: togglesRow.tileW
                 glyph: "moon"
-                on: root.nightOn
-                onActed: root.toggleNight()
+                on: Toggles.nightOn
+                onActed: Toggles.toggleNight()
             }
         }
     }

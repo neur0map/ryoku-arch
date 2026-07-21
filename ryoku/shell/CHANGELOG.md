@@ -2,6 +2,50 @@
 
 ## Unreleased
 
+### Added
+- **The Super+Tab overview reads the scrolling layout and takes a right-click to
+  enter a workspace.** Each workspace cell now maps its windows against their
+  bounding box unioned with the monitor viewport, not the viewport alone: a normal
+  (dwindle/master) desktop is unchanged, but a scrolling-layout workspace -- an
+  infinite horizontal tape whose off-screen columns sit far past the monitor edge
+  -- is shown whole, uniformly scaled into a letterboxed band with the on-screen
+  slice framed and a scroll marker, instead of every off-view window crushed onto
+  the edge. Right-clicking anywhere on a cell (a window, a gap, or the "+") now
+  enters that workspace, so a packed cell is still one click to switch to, while
+  left-click keeps focusing the exact window it hits
+  (`quickshell/overview/WorkspaceCell.qml`, `quickshell/overview/Overview.qml`).
+- **Every bar skin caps the now-playing width, aurora goes niri-clean, and the
+  band faces are rebalanced around a real music section.** The music module could grow its title until it
+  crossed the centred clock or a neighbouring cluster on the flat (inir / aurora /
+  angel), triptych, atoll and delos skins; each now caps its `maxW` to the room
+  beside its neighbours (the band skins and washi already did), so a long track
+  name elides instead of overlapping. `aurora` drops its layered translucent-glass
+  gradient and cream sheen for one flat niri-style tone with a crisp hairline and
+  flat borderless modules -- no more weird glassy layering. The reference / native
+  band faces (noctalia, caelestia, aegis, stele, triptych) were rebalanced so the
+  right cluster no longer overloads and hides the centred clock: the now-playing
+  chip and the CPU / RAM / temp stats move to the left beside the workspaces (a
+  real music section, matching the flat and nacre skins), the window title elides
+  to the room left before the clock, and the right keeps status / weather /
+  toggles / tray / power. The delos island re-centres on its docked edge instead
+  of cramming into the corner (`pill/Bar.qml`, `pill/BarModule.qml`,
+  `pill/AtollBar.qml`, `pill/DelosIsland.qml`, `docs/bar.md`).
+- **A power/session popup that warps out of the top-right frame corner.** Super+
+  Escape and every bar power button now open one shared card (`qs -c power`)
+  instead of a per-skin popout. It is a resident surface, kept warm and hidden,
+  so it opens instantly -- like a sidebar -- rather than cold-starting a process
+  on every press. It shows the current wallpaper as a live hero (the clip plays
+  when the desktop wears one), the logged-in user with uptime, and the session
+  actions: Lock and Sleep tap, Logout / Restart / Shutdown are hold-to-confirm, a
+  bone plate ramping up under the glyph so one stray click never reboots the box.
+  Beta-18 paper and ink with a 力 seal, Space Mono vitals and a scannable
+  barcode; the only colour is the wallpaper itself. It scales up from the
+  top-right corner its button lives in and collapses back into it. The card and
+  its video decoder build only while open, and the still poster shows instantly
+  while the clip fades in behind it, so a hidden popup holds no decoder
+  (`quickshell/power/`, `ipc/daemon.go` keeps it warm and routes to it,
+  `quickshell/pill/shell.qml` points every skin's power trigger at it).
+
 ### Changed
 - **The GTK / GUI-app palette fan-out is now a toggle, and reaches GTK 3 too.**
   matugen's app templates split into `matugen/config.toml` (the always-on core:
@@ -13,14 +57,104 @@
   libadwaita ones, so GTK 3 apps follow the palette and not just GTK 4
   (`matugen/config.toml`, `matugen/apps.toml`,
   `matugen/templates/gtk-colors.css`, `ipc/wallpaper.go`).
+- **The shell ships cheap on RAM by default: idle surfaces free their whole
+  process.** The launcher, workspace overview and the RyoLayer widget board are
+  on-demand now (they start on their keybind, not at login), and they unload
+  after an idle grace like the visualiser (when silent) and the desktop widgets
+  (when covered); all these unloads now default ON. A desktop at rest holds only
+  the bar and the daemon, about 330 MB instead of ~900 MB across six resident
+  processes. Turn an unload off per surface in Ryoku Settings > Performance to
+  keep it warm. RyoLayer with a pinned widget still starts at login to show it
+  (`ipc/daemon.go`, `ipc/idlewatch.go`, `ipc/audiowatch.go`, `ipc/widgetwatch.go`).
+- **RyoLayer builds its editing slots only while the board is open.** A ryolayer
+  kept resident for a pinned widget no longer holds a hidden slot per widget;
+  slots read their geometry live off `ryolayer.json`, so a reopen rebuilds them
+  in place (`quickshell/ryolayer/Board.qml`, `quickshell/ryolayer/shell.qml`).
 
 ### Fixed
+- **The atoll Thickness control resizes the islands across its whole range, not
+  just the top third.** atoll floored its band at the islands' minimum height, so
+  the lower half of the Thickness slider (18 to ~34) all mapped to that one floor:
+  lowering did nothing, and raising did nothing until the value crossed it. The
+  band now maps linearly from the control's minimum, so every step from 18 to 48
+  visibly resizes the islands (`pill/Singletons/Config.qml` adds `barBandBase`;
+  `pill/shell.qml` uses it for the drawn band and the window reserve).
+
+- **Frame-off bar popouts melt shut cleanly instead of leaving a shrinking bump,
+  and open from their module without clipping off the screen.** On a frame-off skin
+  (atoll, and the flat iNiR skins) a popout is a standalone floating blob with no
+  frame band to melt into. On close it shrank to an opaque nub above the bar -- a
+  bump -- because a blob in the shared field cannot fade. The welded skins already
+  avoid this with a burial that retracts the blob's inner face one smoothing-depth
+  in, so the shape hits zero size before it can strand a metaball fillet; frame-off
+  popouts now reuse that same burial (the weld neck stays off, so no bridge across
+  the empty band), so they melt shut with no nub while staying a blob.
+  Separately, a popout opening from an edge module (battery or network on the
+  right) fused flush to the screen edge like a framed skin and clipped its own
+  controls off; with no frame wall to fuse into it now stays inset and fully
+  on-screen (`quickshell/pill/popouts/Popout.qml`).
+
+- **Wi-Fi login works from the bar on every skin, not just from Ryoku Settings.**
+  The bar's network popout was never in the keyboard-focus list, so its inline
+  password field could not receive typing -- only washi (Wi-Fi via the link
+  surface) and the Hub worked. `network` now takes keyboard focus like the other
+  input popouts, so a secured network's password can be typed and the connect
+  (`nmcli --ask`, the same backend everywhere) goes through
+  (`quickshell/pill/shell.qml`).
+
+- **The atoll volume popout shows how to switch audio devices.** Output and input
+  rows already promoted to default on tap, but only a hover cursor hinted it;
+  non-default rows now show a bone-outline USE chip on hover (mirroring the
+  DEFAULT chip on the active device), so changing the output or the microphone is
+  discoverable (`quickshell/pill/popouts/AtollVolumePopout.qml`).
+
+- **Frame-off is flat now: the frame corners square off.** With the frame
+  disabled the border already collapsed flush, but the inverted frame rect kept
+  its `frameRadius`, leaving four curved frame-surface cut-outs at the screen
+  corners. The radius drops to 0 when the frame is off. (Window corners round via
+  Hyprland `decoration:rounding`, a separate knob on the Hub's Look page; set it
+  to 0 for fully square windows to match.)
+
+- **atoll gained input-device switching, a bar power icon, and a look that
+  saves.** The atoll volume popout listed only outputs; it now has an Input
+  section (tap a microphone to make it default, its fader sets the level),
+  mirroring Output. The atoll bar's left island gained a power icon that opens
+  the session popout (lock / sleep / restart / power), which atoll previously
+  reached only through the battery popout. And the atoll look picker
+  (`atollVariant`) now persists: it was in the Settings schema but missing from
+  the Hub's store, so the choice was dropped on save.
+
+- **Sidebar hover-corners are reachable on a multi-monitor shared edge.** A
+  left/right sidebar arms only when the pointer reaches the corner where it
+  clamps, but on a shared edge between two screens the pointer crosses to the
+  neighbour before it can clamp, so that corner never armed. Each overlay now
+  detects a flush-adjacent screen and, on that shared axis only, opens the arming
+  reach to the whole corner while any axis that still clamps keeps its tight 6px
+  reach; the 150ms dwell is unchanged, so a corner is never armed before it is
+  reached. Single-monitor behaviour is identical.
+
 - `ryolayer/Singletons/Eq.qml`: toggling the equalizer switch now takes effect.
   `setEnabled` wrote `eq.json` and immediately ran `ryoku-eq apply`, but the
   FileView write was async, so `apply` re-read the file before the new flag
   landed and started/stopped the wrong way; the switch appeared to do nothing.
   The eq.json FileView now sets `blockWrites: true`, so the write completes
   before `apply` runs.
+- **Bars no longer show a wrong workspace number (usually "9") on a fresh shell.**
+  This Hyprland fork answers the workspace resync socket in a shape quickshell
+  0.3.0 cannot parse (see `Singletons/Fullscreen.qml`), so
+  `Hyprland.focusedWorkspace` is null on a fresh instance until the first live
+  focus event. The delos island fed that null straight to the workspace strip as
+  `-1`, and the strip's desktop-group math (`base = floor((id-1)/10)*10`)
+  rendered `-1` as "9" (and `0` as "10"), so a bar shown before you first switched
+  workspaces displayed a bogus active number until the next switch. The bar skins
+  hid it behind their own `hyprctl activeworkspace` seed; the island had none. The
+  current workspace id now comes from one `Workspaces` singleton that seeds the
+  truth from `hyprctl`, re-seeds while the live focus is still missing, and prefers
+  `focusedWorkspace` once it exists, so the seed no longer lives in two places and
+  every skin reads the same id. Verified live: on a fresh restart parked on ws 3
+  the island and the stele strip both show 3, and both track switches
+  (`quickshell/pill/Singletons/Workspaces.qml`, `quickshell/pill/Bar.qml`,
+  `quickshell/pill/DelosIsland.qml`).
 - **The App Launcher's backdrop blur no longer flashes a frame of frost on open
   at the lowest setting.** With blur set to 0, opening the palette still flashed
   frost for ~one frame: the launcher's layer is frosted by a compositor layer
@@ -54,6 +188,95 @@
   (`quickshell/welcome/shell.qml`).
 
 ### Added
+- **A brightness control in the System (right) sidebar, multi-monitor aware.**
+  Below the volume fader, a brightness fader drives the internal backlight
+  (`brightnessctl`) plus one fader per external DDC monitor (`ddcutil detect`), so
+  a laptop shows one clean fader and a multi-head rig gets a labelled fader each
+  (`BrightnessControl.qml`). `Singletons/Devices.qml` now owns the internal
+  backlight alongside the external monitors it already tracked, and runs `ddcutil
+  detect` when the sidebar opens (nothing called it before, so external brightness
+  never populated). Writes debounce so a drag never floods i2c or brightnessctl.
+
+- **A new `washi` bar skin: a floating warping pill, ported from Ricelin.**
+  Ryoku forked from Gakuseei's Ricelin long ago, then diverged to the bar + frame
+  + delos model; `washi` brings back Ricelin's signature. A small pill rides
+  top-centre and warps in place into full surfaces (media, calendar, clipboard,
+  mixer, network + bluetooth, power, resources, notifications, workspaces, and a
+  wallpaper strip on Ryoku's own switcher), each surface growing out of the body
+  on the liquid morph curve as its content cross-fades in, the Ame flame docking
+  to each. At rest it shows a glyph, the clock and a breathing flame bead; hover
+  expands to workspaces, date and quick-surface icons. It reuses Ryoku's existing
+  PillSurfaces, Ame flame and Motion/Theme tokens, routes the existing surface
+  keybinds and the `pill` IPC to warp instead of opening an edge popout, and
+  reserves a top strip so windows tuck below it. `washiVariant` picks the look:
+  `ryoku` (the 力 mark, Space Grotesk, paper-ink) or `ricelin` (faithful: the 時
+  kanji and JetBrains Mono). Both selectable in Settings -> Shell -> Bar
+  (`quickshell/pill/WashiPill.qml` + the `*Surface.qml` wrappers,
+  `Singletons/Config.qml`, `quickshell/pill/shell.qml`).
+- **A new `atoll` bar skin: a floating multi-island bar with ilyamiro's popouts,
+  ported from ilyamiro's nixos-configuration.** Frame-off, a row of dark rounded
+  islands rides the wallpaper and cascades up on startup: search + settings,
+  numbered workspace pills with a bone chip sliding behind the active one, a
+  now-playing media island, the clock + typewriter date + weather centred, and
+  bright status chips (wifi / bluetooth / volume / battery) that invert to bone
+  plates when on, plus the tray. Its popouts are faithful ports of ilyamiro's own,
+  re-homed on Ryoku's frame-blob surfaces and Motion/Theme tokens: a radial
+  network/bluetooth orbit with a wifi|bt toggle, a month grid with an hourly
+  weather sun-arc and condition rings, a 10-band EQ music player (wired to
+  `ryoku-eq`) with a spinning vinyl and presets, liquid-fill CPU/RAM/temp/disk/net
+  cards, a battery ring with brightness/volume faders and session controls, and a
+  hero volume orb. Each popout is a transparent content Item swapped in per skin
+  by a Loader in the shared popout hosts, so the existing hover/click triggers,
+  keybinds and `pill` IPC open them unchanged; settings route to the Hub.
+  Selectable in Settings -> Shell -> Bar -> Style, with Ricelin (Gakuseei) and
+  ilyamiro credited on the Hub credits page. Verified live: the bar and its
+  popouts render on the running compositor (`quickshell/pill/AtollBar.qml`,
+  `quickshell/pill/AtollWorkspaces.qml`, `quickshell/pill/AtollStatus.qml`,
+  `quickshell/pill/popouts/Atoll*Popout.qml`, `Singletons/Config.qml`,
+  `Singletons/Silhouette.qml`, `quickshell/pill/shell.qml`, `quickshell/pill/Bar.qml`,
+  `../hub/quickshell/schema/ShellSettingsPage.js`, `../hub/quickshell/pages/CreditsPage.qml`).
+- **The band skins get a reorderable modular layout (iNiR's modular bar,
+  ported).** On noctalia / caelestia / aegis / stele the left, centre and right
+  clusters are data-driven from `barLayoutLeft` / `barLayoutCentre` /
+  `barLayoutRight` (ordered module-id lists), edited from Settings -> Shell ->
+  Bar -> Layout, so a module reorders, drops, or moves between clusters. It is
+  opt-in and zero-regression: an empty zone keeps the classic hardcoded
+  arrangement untouched; customise a zone and `BarModularFace` renders that
+  skin's own module treatment from the data. The bespoke skins (triptych, nacre,
+  the flat iNiR set, delos) keep their designed layouts. Verified live reordering
+  on stele and caelestia and confirming the empty default is byte-identical to
+  before (`quickshell/pill/BarModularFace.qml`, `quickshell/pill/Bar.qml`,
+  `quickshell/pill/Singletons/Config.qml`, `../hub/quickshell/schema/ShellSettingsPage.js`).
+- **The bar carries weather, quick-toggles and a special-workspace cue, and the
+  user adds or removes what it shows.** A weather module (`BarWeather`, condition
+  glyph + temperature off the `Weather` singleton) opens a compact `WeatherPopout`
+  (current reading, hourly strip, daily forecast) from the bar edge, with a
+  `weather` IPC for keybinds. A placeable quick-toggle module (`BarToggle` /
+  `BarToggles`) carries wifi / bluetooth / mic / do-not-disturb / caffeine /
+  night-light switches, accent-lit while on; their state and actions live in a new
+  shared `Toggles` singleton that also backs the System deck's control tiles, so
+  the wifi/mic/night probes and toggle logic exist once, not twice (`DeckControls`
+  was refactored onto it). A special-workspace cue (`BarSpecialWs`) names an active
+  Hyprland scratchpad and clears when it closes, tracking the `activespecial`
+  event. All three, plus the existing title/media/status modules, toggle from
+  Ryoku Settings -> Shell -> Bar -> Content (`barShowWeather`, `barShowSpecialWs`,
+  a `barToggles` multi-select). Present on every skin, verified live
+  (`quickshell/pill/Bar*.qml`, `quickshell/pill/Singletons/Toggles.qml`,
+  `quickshell/pill/popouts/WeatherPopout.qml`, `../hub/quickshell/schema/ShellSettingsPage.js`).
+- **The flat iNiR skins carry iNiR's per-module character, recoloured to
+  bone-and-ink.** `angel` finally has its signature: modules are raised keys with
+  a hard accent offset shadow (the iNiR "escalonado" -- no blur, deepening on
+  hover) the shell's `shadowHard`/`shadowOffset` tokens described but the bar never
+  used; `inir` is a clean flush TUI status-line, `aurora` refined glass. The
+  treatments live on `BarModule` so no skin re-rolls them (`quickshell/pill/BarModule.qml`).
+- **The delos island is a contextual dynamic island (ActivSpot port).** Its face
+  follows the live context -- now-playing (art + title + transport), a
+  screen-recording tally (pulsing dot + timer), or a Discord voice call (glyph +
+  timer) -- and spring-morphs to fit, falling back to the clock/modules when idle.
+  A second active context rides beside it as a minibubble (a satellite blob melding
+  into the same field), and a timer rotates which holds the island's face. Verified
+  live morphing music <-> idle and the music+recording dual-bubble
+  (`quickshell/pill/DelosIsland.qml`).
 - **matugen fans the palette across the whole app suite.** A scheme apply (or a
   wallpaper change in follow mode) now renders GTK (libadwaita), Qt (qt6ct), and
   btop from the same colours as kitty and the Hyprland borders, through matugen
@@ -67,11 +290,11 @@
   `qt6ct.conf` points at the generated scheme (`ipc/wallpaper.go`,
   `../hub/backend/schemes.go`).
 - **Launcher: an "@" prefix tunes a live lofi radio.** `@` lists the stations
-  — Lofi Girl and Chillhop Radio (YouTube 24/7 streams), SomaFM Groove Salad
-  and Fluid (plain Icecast) — `@lofi` puts Lofi Girl on air, `@stop` (or the
+  -- Lofi Girl and Chillhop Radio (YouTube 24/7 streams), SomaFM Groove Salad
+  and Fluid (plain Icecast) -- `@lofi` puts Lofi Girl on air, `@stop` (or the
   row's Stop) tunes out. The engine (`ryoku-cmd-radio`) resolves a channel's
-  /live page with yt-dlp at play time — pinned video ids rot whenever the
-  stream restarts — pulling the stream's own thumbnail in the same call, so
+  /live page with yt-dlp at play time -- pinned video ids rot whenever the
+  stream restarts -- pulling the stream's own thumbnail in the same call, so
   the card wears the broadcast's real artwork (direct stations carry their
   published covers; no iTunes guessing for a radio). When YouTube or yt-dlp is
   having a day, each YouTube station falls back to its paired Icecast one,
@@ -81,11 +304,11 @@
   except an explicit stop. On air, the now-playing surfaces wear a broadcast
   coat instead of the track dress: a pulsing ON AIR tally and station plate on
   the launcher card, "● LIVE / 24/7" where elapsed/total would be, and no
-  seekbar anywhere — a broadcast has no position, so the pill popout and
+  seekbar anywhere -- a broadcast has no position, so the pill popout and
   sidebar retire their scrubbers too (the cava wave carries the motion). When
   other music starts, the radio doesn't fight it: a collision watcher sets it
   aside (live wallpapers, which are mpv on the players bus too, never count as
-  music) and a slim parked-radio chip keeps it one tap from returning —
+  music) and a slim parked-radio chip keeps it one tap from returning --
   RESUME restarts the stream, × lets it go. Playback is mpv + mpv-mpris (new
   `ryoku-desktop` deps with yt-dlp), so the radio is an ordinary MPRIS player
   everywhere else. New `lib/radio.js` (+ tests), `Singletons/Radio.qml`,

@@ -61,11 +61,31 @@ ShellRoot {
     property string sidebarLeftPane: ""
     property string sidebarRightPane: ""
 
+    // washi (the warping-pill skin) opens its surfaces inside the pill body, not
+    // in an edge blob, so it carries its own state separate from `popout`.
+    property string washiSurface: ""
+    property string washiMon: ""
+    function toggleWashi(mon, name) {
+        if (root.washiSurface === name && root.washiMon === mon) { root.washiSurface = ""; return; }
+        root.washiMon = mon;
+        root.washiSurface = name;
+    }
+    // route a surface trigger: washi warps its pill into the surface in place;
+    // every other skin opens the matching edge popout. one keybind serves both.
+    function sfc(mon, name) {
+        if (Config.barStyle === "washi") { root.toggleWashi((mon && mon.length > 0) ? mon : root.focusedMonName(), name); return; }
+        root.togglePopout(mon, name);
+    }
+    function focusedMonName() {
+        return Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name
+            : (Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "");
+    }
+
     // popouts that need the keyboard (search / password fields). while one of
     // these is the pinned popout, the overlay grabs the keyboard the way an open
     // surface does and hands it back on close; the pointer-only popouts and
     // voice stay keyboardFocus None.
-    readonly property var kbPopouts: ["clipboard", "link", "keyring", "sidebarLeft", "sidebarRight", "calendar"]
+    readonly property var kbPopouts: ["clipboard", "link", "network", "keyring", "sidebarLeft", "sidebarRight", "calendar"]
     property string prevPopout: ""
     onPopoutChanged: {
         if (kbPopouts.indexOf(prevPopout) >= 0 && kbPopouts.indexOf(popout) < 0)
@@ -286,18 +306,19 @@ ShellRoot {
 
     IpcHandler {
         target: "pill"
-        function mixer(mon: string): void { root.togglePopout(mon, "mixer"); }
-        function calendar(mon: string): void { root.togglePopout(mon, "calendar"); }
-        function power(mon: string): void { root.togglePopout(mon, "power"); }
-        function link(mon: string): void { root.togglePopout(mon, "link"); }
-        function inbox(mon: string): void { root.togglePopout(mon, "inbox"); }
+        function mixer(mon: string): void { root.sfc(mon, "mixer"); }
+        function calendar(mon: string): void { root.sfc(mon, "calendar"); }
+        function power(mon: string): void { root.sfc(mon, "power"); }
+        function link(mon: string): void { root.sfc(mon, "link"); }
+        function inbox(mon: string): void { root.sfc(mon, "inbox"); }
         function battery(mon: string): void { root.togglePopout(mon, "battery"); }
+        function weather(mon: string): void { root.togglePopout(mon, "weather"); }
         // status-cluster quick popouts (the compact hover panels; a keybind can
         // also pin one). distinct from the deep surfaces above; side bar only.
-        function network(mon: string): void { root.togglePopout(mon, "network"); }
-        function bluetooth(mon: string): void { root.togglePopout(mon, "bluetooth"); }
+        function network(mon: string): void { if (Config.barStyle === "washi") root.sfc(mon, "link"); else root.togglePopout(mon, "network"); }
+        function bluetooth(mon: string): void { if (Config.barStyle === "washi") root.sfc(mon, "link"); else root.togglePopout(mon, "bluetooth"); }
         function batteryPopout(mon: string): void { root.togglePopout(mon, "battery"); }
-        function clipboard(mon: string): void { root.togglePopout(mon, "clipboard"); }
+        function clipboard(mon: string): void { root.sfc(mon, "clipboard"); }
         function stash(mon: string): void { root.sidebarLeftPane = "stash"; root.popoutMon = mon; root.popout = "sidebarLeft"; }
         // stash-send <file>: open the left sidebar's stash pane and jump straight
         // to its LocalSend picker, so the file manager can hand a file to the send
@@ -312,7 +333,7 @@ ShellRoot {
         // and the file manager still call these).
         function toolkit(mon: string): void { root.togglePopout(mon, "sidebarLeft"); }
         function utilities(mon: string): void { root.togglePopout(mon, "sidebarLeft"); }
-        function workspaces(mon: string): void { root.togglePopout(mon, "workspaces"); }
+        function workspaces(mon: string): void { root.sfc(mon, "workspaces"); }
         function sidebarLeft(mon: string): void { root.togglePopout(mon, "sidebarLeft"); }
         function sidebarRight(mon: string): void { root.togglePopout(mon, "sidebarRight"); }
         function keyringPrompt(payload: string): void {
@@ -338,6 +359,12 @@ ShellRoot {
         function hide(): void { root.popout = ""; }
         // toggle an enabled plugin's frame popout by id (leader menu / keybind).
         function pluginPopout(mon: string, id: string): void { root.togglePopout(mon, "plugin:" + id); }
+        function washi(mon: string, name: string): void {
+            root.toggleWashi((mon && mon.length > 0) ? mon : root.focusedMonName(), name);
+        }
+        function media(mon: string): void { root.sfc(mon, "media"); }
+        function resources(mon: string): void { root.sfc(mon, "resources"); }
+        function wallpaper(mon: string): void { root.sfc(mon, "wallpaper"); }
     }
 
     // The daemon writes surface commands to this socket to toggle pill surfaces
@@ -354,9 +381,14 @@ ShellRoot {
         var fn = parts[0];
         var mon = parts.length > 1 ? parts[1] : "";
         switch (fn) {
-        case "battery": case "mixer": case "power":
-            root.togglePopout(mon, fn); return true;
-        case "network": case "bluetooth": case "calendar": case "clipboard": case "link": case "inbox": case "workspaces": case "sidebarLeft": case "sidebarRight":
+        case "battery":
+            root.togglePopout(mon, "battery"); return true;
+        case "mixer": case "power": case "calendar": case "clipboard": case "link": case "inbox": case "workspaces": case "media": case "resources": case "wallpaper":
+            root.sfc(mon, fn); return true;
+        case "network": case "bluetooth":
+            if (Config.barStyle === "washi") root.sfc(mon, "link"); else root.togglePopout(mon, fn);
+            return true;
+        case "sidebarLeft": case "sidebarRight":
             root.togglePopout(mon, fn); return true;
         case "toolkit": case "utilities":
             root.togglePopout(mon, "sidebarLeft"); return true;
@@ -404,15 +436,17 @@ ShellRoot {
             readonly property string barPos: Config.barEnabled ? (Config.barPosition === "bottom" ? "bottom" : "top") : ""
             readonly property bool barTop: barPos === "top"
             readonly property bool delos: Config.barStyle === "delos"
-            readonly property string rEdge: delos ? IslandDock.edge : barPos
+            readonly property bool washi: Config.barEnabled && Config.barStyle === "washi"
+            readonly property string rEdge: delos ? IslandDock.edge : (washi ? "top" : barPos)
             // a TOP bar reserves the visible bar strip (frame edge + band, the
             // same numbers as the overlay's barVisibleH) so tiles tuck right
             // against it. bottom/left/right bars reserve their own edge in
             // sideReserve; with no island there is nothing else to reserve at
             // the top, so this window only maps for a top bar.
-            readonly property real barBand: Config.barHeight * s
+            readonly property real barBand: Config.barBandBase * s
             readonly property real barVisibleH: Math.max(0, Config.effectiveFrameBorder - 50) + barBand
-            readonly property real zone: delos ? Math.max(0, IslandDock.thickness) : barVisibleH
+            readonly property real washiZone: Math.max(0, Config.effectiveFrameBorder - 50) + 34 * s
+            readonly property real zone: delos ? Math.max(0, IslandDock.thickness) : (washi ? washiZone : barVisibleH)
 
             screen: modelData
             visible: rEdge === "top"
@@ -440,11 +474,12 @@ ShellRoot {
             readonly property real s: (modelData ? modelData.height / 1080 : 1) * Math.max(0.7, Math.min(1.6, Config.fontScale))
             readonly property string barPos: Config.barEnabled ? (Config.barPosition === "bottom" ? "bottom" : "top") : ""
             readonly property bool delos: Config.barStyle === "delos"
-            readonly property string rEdge: delos ? IslandDock.edge : barPos
+            readonly property bool washi: Config.barEnabled && Config.barStyle === "washi"
+            readonly property string rEdge: delos ? IslandDock.edge : (washi ? "top" : barPos)
             readonly property bool active: rEdge === "bottom" || rEdge === "left" || rEdge === "right"
             // a vertical band needs room for stacked content; floor it at 30.
             readonly property real minBand: rEdge === "left" || rEdge === "right" ? 30 : 0
-            readonly property real zone: delos ? Math.max(0, IslandDock.thickness) : (Math.max(0, Config.effectiveFrameBorder - 50) + Math.max(Config.barHeight, minBand) * s)
+            readonly property real zone: delos ? Math.max(0, IslandDock.thickness) : (Math.max(0, Config.effectiveFrameBorder - 50) + Math.max(Config.barBandBase, minBand) * s)
 
             screen: modelData
             visible: active
@@ -491,6 +526,13 @@ ShellRoot {
             readonly property bool inir: Config.barStyle === "inir"
             readonly property bool aurora: Config.barStyle === "aurora"
             readonly property bool angel: Config.barStyle === "angel"
+            readonly property bool washi: Config.barStyle === "washi"
+            // atoll: a floating-island bar (ported from ilyamiro); frame-off like
+            // the flat set -- the islands ride the wallpaper and the frame edge
+            // never swells into a band. both variants float: ilyamiro's round
+            // translucent pills and ryoku's square grainy paper chips alike, so
+            // the only difference is the island surface, not the frame.
+            readonly property bool atoll: Config.barStyle === "atoll"
             // inir/aurora/angel are flat frame-off bars ported from iNiR: the Bar
             // paints its own flush, full-width background (TUI / translucent glass /
             // brutalist) instead of riding the frame band, so the frame grows no
@@ -505,7 +547,9 @@ ShellRoot {
             readonly property bool triptychLobes: barTop && (triptych || nacre) && !monFullscreen
             readonly property real frameTopVisible: Math.max(0, Config.effectiveFrameBorder - 50)
             // a vertical band needs room for stacked content; floor it at 30.
-            readonly property real barBand: Math.max(Config.barHeight, barVertical ? 30 : 0) * s
+            // atoll's tall island mapping lives in Config.barBandBase (it scales
+            // with the Thickness control across its whole range).
+            readonly property real barBand: Math.max(Config.barBandBase, barVertical ? 30 : 0) * s
             readonly property real barVisibleH: frameTopVisible + barBand
 
             // the two sidebars: full-height panels that melt out of the left and
@@ -519,6 +563,35 @@ ShellRoot {
             readonly property real sidebarBotGap: (barBottom ? barVisibleH : frameTopVisible) + 14 * s
             readonly property real sidebarCornerW: Config.sidebarCornerSize * s
             readonly property real sidebarCornerH: Config.sidebarCornerSize * s
+
+            // multi-monitor: an edge is "shared" when another screen sits flush
+            // against it, so the pointer crosses to that screen at the boundary
+            // instead of clamping. the sidebar corner can never reach its clamped
+            // point on a shared side, so its arming relaxes along that axis only
+            // (a real screen edge stays strict, so a corner is never armed early).
+            function edgeShared(edge) {
+                var me = overlay.modelData;
+                if (!me)
+                    return false;
+                var list = Quickshell.screens;
+                for (var i = 0; i < list.length; i++) {
+                    var o = list[i];
+                    if (!o || o === me)
+                        continue;
+                    var vOverlap = (o.y < me.y + me.height) && (o.y + o.height > me.y);
+                    var hOverlap = (o.x < me.x + me.width) && (o.x + o.width > me.x);
+                    if (edge === "left" && vOverlap && Math.abs((o.x + o.width) - me.x) <= 2)
+                        return true;
+                    if (edge === "right" && vOverlap && Math.abs(o.x - (me.x + me.width)) <= 2)
+                        return true;
+                    if (edge === "top" && hOverlap && Math.abs((o.y + o.height) - me.y) <= 2)
+                        return true;
+                }
+                return false;
+            }
+            readonly property bool leftEdgeShared: overlay.edgeShared("left")
+            readonly property bool rightEdgeShared: overlay.edgeShared("right")
+            readonly property bool topEdgeShared: overlay.edgeShared("top")
 
             // drag-to-stash trigger: a thin masked band down the left frame edge
             // that opens the sidebar when a file is flung at the edge (a
@@ -536,7 +609,9 @@ ShellRoot {
             // pinned on this monitor: grabs the keyboard for text entry.
             readonly property bool kbPopout: root.popoutMon === modelData.name
                 && root.kbPopouts.indexOf(root.popout) >= 0
-            readonly property bool modal: kbPopout
+            readonly property bool washiOpen: overlay.washi && root.washiMon === modelData.name && root.washiSurface.length > 0
+            readonly property bool washiKb: washiOpen && ["clipboard", "link", "calendar"].indexOf(root.washiSurface) >= 0
+            readonly property bool modal: kbPopout || washiOpen
 
             // true when this monitor's visible workspace holds a fullscreen
             // window. Fullscreen owns the id -> fullscreen map (hyprctl-backed,
@@ -560,7 +635,7 @@ ShellRoot {
             WlrLayershell.layer: WlrLayer.Overlay
             // None, not OnDemand: this layer is always mapped, so OnDemand would
             // hold the keyboard after a popout closes and a launched window can't type.
-            WlrLayershell.keyboardFocus: kbPopout ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            WlrLayershell.keyboardFocus: (kbPopout || washiKb) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             WlrLayershell.namespace: "pill"
 
             anchors { top: true; left: true; right: true; bottom: true }
@@ -610,6 +685,7 @@ ShellRoot {
                 Region { x: powerPop.maskX; y: powerPop.maskY; width: powerPop.maskW; height: powerPop.maskH }
                 Region { x: networkPop.maskX; y: networkPop.maskY; width: networkPop.maskW; height: networkPop.maskH }
                 Region { x: batteryPop.maskX; y: batteryPop.maskY; width: batteryPop.maskW; height: batteryPop.maskH }
+                Region { x: weatherPop.maskX; y: weatherPop.maskY; width: weatherPop.maskW; height: weatherPop.maskH }
                 Region { x: bluetoothPop.maskX; y: bluetoothPop.maskY; width: bluetoothPop.maskW; height: bluetoothPop.maskH }
                 Region { x: calendarPop.maskX; y: calendarPop.maskY; width: calendarPop.maskW; height: calendarPop.maskH }
                 Region { x: clipboardPop.maskX; y: clipboardPop.maskY; width: clipboardPop.maskW; height: clipboardPop.maskH }
@@ -626,6 +702,8 @@ ShellRoot {
                 Region { x: recHud.trigX; y: recHud.trigY; width: Recorder.anyActive ? recHud.trigW : 0; height: Recorder.anyActive ? recHud.trigH : 0 }
                 Region { x: delosIsland.hudX; y: delosIsland.hudY; width: (overlay.delos && delosIsland.prog > 0.25) ? delosIsland.hudW : 0; height: (overlay.delos && delosIsland.prog > 0.25) ? delosIsland.hudH : 0 }
                 Region { x: delosIsland.trigX; y: delosIsland.trigY; width: overlay.delos ? delosIsland.trigW : 0; height: overlay.delos ? delosIsland.trigH : 0 }
+                Region { x: washiPill.hudX; y: washiPill.hudY; width: (overlay.washi && washiPill.prog > 0.25) ? washiPill.hudW : 0; height: (overlay.washi && washiPill.prog > 0.25) ? washiPill.hudH : 0 }
+                Region { x: washiPill.trigX; y: washiPill.trigY; width: overlay.washi ? washiPill.trigW : 0; height: overlay.washi ? washiPill.trigH : 0 }
                 Region { x: 0; y: 0; width: (overlay.sidebarLeftOn && !overlay.monFullscreen) ? overlay.sidebarCornerW : 0; height: (overlay.sidebarLeftOn && !overlay.monFullscreen) ? overlay.sidebarCornerH : 0 }
                 Region { x: 0; y: 0; width: (overlay.sidebarLeftOn && !overlay.monFullscreen) ? overlay.leftEdgeStripW : 0; height: (overlay.sidebarLeftOn && !overlay.monFullscreen) ? overlay.height : 0 }
                 Region { x: sidebarLeftPop.maskX; y: sidebarLeftPop.maskY; width: sidebarLeftPop.maskW; height: sidebarLeftPop.maskH }
@@ -638,22 +716,25 @@ ShellRoot {
                 enabled: overlay.modal
                 acceptedButtons: Qt.AllButtons
                 onPressed: (mouse) => {
-                    // a press on the bar strip belongs to the bar (its icons take
-                    // their own clicks, the band is inert), so it never dismisses.
-                    // only a true backdrop press dismisses the modal popout.
+                    // a bar-strip press belongs to the bar; a press on the open
+                    // washi pill belongs to its surface. only a true backdrop
+                    // press dismisses the modal surface.
                     if (overlay.inBarStrip(mouse.x, mouse.y)) return;
+                    if (overlay.washiOpen && mouse.x >= washiPill.hudX && mouse.x <= washiPill.hudX + washiPill.hudW
+                        && mouse.y >= washiPill.hudY && mouse.y <= washiPill.hudY + washiPill.hudH) return;
                     if (overlay.kbPopout) root.popout = "";
+                    if (overlay.washiOpen) root.washiSurface = "";
                 }
             }
 
             FocusScope {
                 id: focusScope
                 anchors.fill: parent
-                focus: overlay.kbPopout
+                focus: overlay.kbPopout || overlay.washiKb
                 // whole shell hides while a window is fullscreen.
                 visible: !overlay.monFullscreen
 
-                Keys.onEscapePressed: if (overlay.kbPopout) root.popout = "";
+                Keys.onEscapePressed: { if (overlay.kbPopout) root.popout = ""; if (overlay.washiOpen) root.washiSurface = ""; }
 
                 // Ryoku brand grain: one fine matte over the whole overlay -- the
                 // frame, the bar, every popout, and (through the transparent body)
@@ -732,8 +813,8 @@ ShellRoot {
                     anchors.fill: parent
                     anchors.margins: -50
                     group: blobGroup
-                    radius: overlay.nacre ? 0 : Config.frameRadius
-                    borderTop: overlay.nacre ? Config.frameBorder : ((overlay.barTop && !overlay.triptych && !overlay.delos && !overlay.flatBar) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder)
+                    radius: (overlay.nacre || !Config.frameEnabled) ? 0 : Config.frameRadius
+                    borderTop: overlay.nacre ? Config.frameBorder : ((overlay.barTop && !overlay.triptych && !overlay.delos && !overlay.flatBar && !overlay.washi && !overlay.atoll) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder)
                     borderBottom: (overlay.barBottom && !overlay.delos && !overlay.flatBar) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
                     borderLeft: (overlay.barLeft && !overlay.delos) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
                     borderRight: (overlay.barRight && !overlay.delos) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
@@ -797,7 +878,7 @@ ShellRoot {
                     // the bar modules it grows from. content insets above the band,
                     // so the bar only ever covers a popout's neck, never its body.
                     z: 1
-                    visible: Config.barEnabled && !overlay.monFullscreen && !overlay.delos
+                    visible: Config.barEnabled && !overlay.monFullscreen && !overlay.delos && !overlay.washi
                     x: overlay.barMaskX
                     y: overlay.barMaskY
                     width: overlay.barMaskW
@@ -829,11 +910,13 @@ ShellRoot {
                     openW: mixerContent.implicitWidth
                     openH: mixerContent.implicitHeight
 
-                    Mixer {
+                    Loader {
                         id: mixerContent
-                        s: overlay.s
-                        open: mixerPop.prog > 0.5
+                        anchors.fill: parent
+                        sourceComponent: overlay.atoll ? atollMixerComp : ryokuMixerComp
                     }
+                    Component { id: ryokuMixerComp; Mixer { s: overlay.s; open: mixerPop.prog > 0.5 } }
+                    Component { id: atollMixerComp; AtollVolumePopout { s: overlay.s; open: mixerPop.prog > 0.5 } }
                 }
 
                 // power popout: on a side bar it grows from the bar's inner
@@ -852,11 +935,14 @@ ShellRoot {
                     s: overlay.s
                     active: !overlay.monFullscreen
                     pinned: root.popout === "power" && root.popoutMon === overlay.modelData.name
-                    openW: 74 * overlay.s
-                    openH: 312 * overlay.s
+                    openW: powerContent.implicitWidth
+                    openH: powerContent.implicitHeight
 
-                    Power {
+                    PowerPanel {
+                        id: powerContent
                         s: overlay.s
+                        open: powerPop.prog > 0.5
+                        onCloseRequested: root.popout = ""
                     }
                 }
 
@@ -879,11 +965,13 @@ ShellRoot {
                     openW: netContent.implicitWidth
                     openH: netContent.implicitHeight
 
-                    NetworkPopout {
+                    Loader {
                         id: netContent
-                        s: overlay.s
-                        open: networkPop.prog > 0.5
+                        anchors.fill: parent
+                        sourceComponent: overlay.atoll ? atollNetComp : ryokuNetComp
                     }
+                    Component { id: ryokuNetComp; NetworkPopout { s: overlay.s; open: networkPop.prog > 0.5 } }
+                    Component { id: atollNetComp; AtollNetworkPopout { s: overlay.s; open: networkPop.prog > 0.5 } }
                 }
 
                 Popout {
@@ -901,11 +989,13 @@ ShellRoot {
                     openW: batContent.implicitWidth
                     openH: batContent.implicitHeight
 
-                    BatteryPopout {
+                    Loader {
                         id: batContent
-                        s: overlay.s
-                        open: batteryPop.prog > 0.5
+                        anchors.fill: parent
+                        sourceComponent: overlay.atoll ? atollBatComp : ryokuBatComp
                     }
+                    Component { id: ryokuBatComp; BatteryPopout { s: overlay.s; open: batteryPop.prog > 0.5 } }
+                    Component { id: atollBatComp; AtollBatteryPopout { s: overlay.s; open: batteryPop.prog > 0.5 } }
                 }
 
                 // resources popout: opened from the Nacre stats module, the CPU /
@@ -925,10 +1015,36 @@ ShellRoot {
                     openW: resContent.implicitWidth
                     openH: resContent.implicitHeight
 
-                    ResourcesPopout {
+                    Loader {
                         id: resContent
+                        anchors.fill: parent
+                        sourceComponent: overlay.atoll ? atollResComp : ryokuResComp
+                    }
+                    Component { id: ryokuResComp; ResourcesPopout { s: overlay.s; open: resourcesPop.prog > 0.5 } }
+                    Component { id: atollResComp; AtollSysPopout { s: overlay.s; open: resourcesPop.prog > 0.5 } }
+                }
+
+                // weather popout: opened from the weather module, the current
+                // reading + hourly strip + daily forecast grows from the bar edge.
+                Popout {
+                    id: weatherPop
+                    group: blobGroup
+                    frameThickness: overlay.barVisibleH
+                    radius: Config.frameRadius
+                    smoothing: Config.frameSmoothing
+                    edge: overlay.barPos
+                    hoverOpen: false
+                    alongCenter: root.popoutCenter
+                    s: overlay.s
+                    active: !overlay.monFullscreen
+                    pinned: root.popout === "weather" && root.popoutMon === overlay.modelData.name
+                    openW: wxContent.implicitWidth
+                    openH: wxContent.implicitHeight
+
+                    WeatherPopout {
+                        id: wxContent
                         s: overlay.s
-                        open: resourcesPop.prog > 0.5
+                        open: weatherPop.prog > 0.5
                     }
                 }
 
@@ -947,11 +1063,13 @@ ShellRoot {
                     openW: btContent.implicitWidth
                     openH: btContent.implicitHeight
 
-                    BluetoothPopout {
+                    Loader {
                         id: btContent
-                        s: overlay.s
-                        open: bluetoothPop.prog > 0.5
+                        anchors.fill: parent
+                        sourceComponent: overlay.atoll ? atollBtComp : ryokuBtComp
                     }
+                    Component { id: ryokuBtComp; BluetoothPopout { s: overlay.s; open: bluetoothPop.prog > 0.5 } }
+                    Component { id: atollBtComp; AtollNetworkPopout { s: overlay.s; open: bluetoothPop.prog > 0.5 } }
                 }
 
                 // calendar popout: opened from the clock module on the bar, the
@@ -971,11 +1089,13 @@ ShellRoot {
                     openW: calContent.implicitWidth
                     openH: calContent.implicitHeight
 
-                    CalendarPopout {
+                    Loader {
                         id: calContent
-                        s: overlay.s
-                        open: calendarPop.prog > 0.5
+                        anchors.fill: parent
+                        sourceComponent: overlay.atoll ? atollCalComp : ryokuCalComp
                     }
+                    Component { id: ryokuCalComp; CalendarPopout { s: overlay.s; open: calendarPop.prog > 0.5 } }
+                    Component { id: atollCalComp; AtollCalendarPopout { s: overlay.s; open: calendarPop.prog > 0.5 } }
                 }
 
                 // media hover popout: hovering the now-playing module grows a
@@ -998,11 +1118,13 @@ ShellRoot {
                     openW: mediaContent.implicitWidth
                     openH: mediaContent.implicitHeight
 
-                    MediaPopout {
+                    Loader {
                         id: mediaContent
-                        s: overlay.s
-                        open: mediaPop.prog > 0.5
+                        anchors.fill: parent
+                        sourceComponent: overlay.atoll ? atollMediaComp : ryokuMediaComp
                     }
+                    Component { id: ryokuMediaComp; MediaPopout { s: overlay.s; open: mediaPop.prog > 0.5 } }
+                    Component { id: atollMediaComp; AtollMusicPopout { s: overlay.s; open: mediaPop.prog > 0.5 } }
                 }
 
                 // clipboard popout: Super+V grows the clipboard search/history
@@ -1072,12 +1194,13 @@ ShellRoot {
                     openW: inboxContent.implicitWidth
                     openH: inboxContent.implicitHeight
 
-                    InboxPopout {
+                    Loader {
                         id: inboxContent
-                        s: overlay.s
-                        open: inboxPop.prog > 0.5
-                        onCloseRequested: root.popout = ""
+                        anchors.fill: parent
+                        sourceComponent: overlay.atoll ? atollInboxComp : ryokuInboxComp
                     }
+                    Component { id: ryokuInboxComp; InboxPopout { s: overlay.s; open: inboxPop.prog > 0.5; onCloseRequested: root.popout = "" } }
+                    Component { id: atollInboxComp; AtollNotifPopout { s: overlay.s; open: inboxPop.prog > 0.5; onCloseRequested: root.popout = "" } }
                 }
 
                 // notification toasts: grow from the bar edge at the bell (like
@@ -1202,11 +1325,18 @@ ShellRoot {
                     onVisibleChanged: if (!visible) armed = false
                     // the pointer must reach the very corner (where it clamps when
                     // flung there), not just enter the region, so grazing the top
-                    // frame near the corner never arms the sidebar.
+                    // frame never arms the sidebar. on a multi-monitor shared edge
+                    // the pointer crosses to the neighbour instead of clamping and
+                    // can never reach that point, so the reach opens to the whole
+                    // corner along the shared axis only (the still-clamped axis keeps
+                    // the 6px reach, and the 150ms dwell still gates it, so a corner
+                    // is never armed before it is actually reached).
                     readonly property real reach: 6 * overlay.s
+                    readonly property real reachX: overlay.leftEdgeShared ? sidebarLeftCorner.width : reach
+                    readonly property real reachY: overlay.topEdgeShared ? sidebarLeftCorner.height : reach
                     readonly property bool atCorner: leftHov.hovered &&
-                        leftHov.point.position.x <= sidebarLeftCorner.reach &&
-                        leftHov.point.position.y <= sidebarLeftCorner.reach
+                        leftHov.point.position.x <= sidebarLeftCorner.reachX &&
+                        leftHov.point.position.y <= sidebarLeftCorner.reachY
                     onAtCornerChanged: {
                         if (atCorner) sidebarLeftIntent.restart();
                         else { sidebarLeftIntent.stop(); sidebarLeftCorner.armed = false; }
@@ -1270,11 +1400,15 @@ ShellRoot {
                     height: overlay.sidebarCornerH
                     property bool armed: false
                     onVisibleChanged: if (!visible) armed = false
-                    // mirror of the left: only the extreme top-right corner arms it.
+                    // mirror of the left, with the same shared-edge relaxation: a
+                    // right edge flush against another screen opens the x-reach to
+                    // the whole corner (the top likewise when a screen sits above).
                     readonly property real reach: 6 * overlay.s
+                    readonly property real reachX: overlay.rightEdgeShared ? sidebarRightCorner.width : reach
+                    readonly property real reachY: overlay.topEdgeShared ? sidebarRightCorner.height : reach
                     readonly property bool atCorner: rightHov.hovered &&
-                        rightHov.point.position.x >= (sidebarRightCorner.width - sidebarRightCorner.reach) &&
-                        rightHov.point.position.y <= sidebarRightCorner.reach
+                        rightHov.point.position.x >= (sidebarRightCorner.width - sidebarRightCorner.reachX) &&
+                        rightHov.point.position.y <= sidebarRightCorner.reachY
                     onAtCornerChanged: {
                         if (atCorner) sidebarRightIntent.restart();
                         else { sidebarRightIntent.stop(); sidebarRightCorner.armed = false; }
@@ -1358,6 +1492,17 @@ ShellRoot {
                     trayWindow: overlay
                     onPopoutRequested: (name) => root.togglePopoutAt(overlay.modelData.name, name, delosIsland.alongCentre)
                     onHoverPopoutRequested: (name, hovered) => root.setHoverPopout(overlay.modelData.name, name, delosIsland.alongCentre, hovered)
+                }
+
+                WashiPill {
+                    id: washiPill
+                    group: blobGroup
+                    s: overlay.s
+                    active: overlay.washi && Config.barEnabled && !overlay.monFullscreen
+                    trayWindow: overlay
+                    surface: (overlay.washi && root.washiMon === overlay.modelData.name) ? root.washiSurface : ""
+                    onRequestSurface: (name) => root.toggleWashi(overlay.modelData.name, name)
+                    onRequestClose: { if (root.washiMon === overlay.modelData.name) root.washiSurface = ""; }
                 }
 
             }

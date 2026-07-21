@@ -4,7 +4,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Ryoku.Blobs
-import Quickshell.Hyprland
 import "Singletons"
 
 // the delos bar: the whole bar collapsed into one floating island in the
@@ -31,7 +30,7 @@ Item {
     property string barEdge: ""
 
     // module inputs the same way Bar.qml feeds its clusters.
-    readonly property int activeWsId: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : -1
+    readonly property int activeWsId: Workspaces.activeId
     required property var trayWindow
 
     // a module was tapped / hovered: shell.qml grows the popout from the
@@ -42,6 +41,38 @@ Item {
     readonly property int moveDur: 560
     readonly property int meltDur: 620
     readonly property int mergeDur: 1700
+
+    // --- contextual dynamic-island state (ActivSpot port). the island face
+    // follows the active context (recording / discord call / music) and springs
+    // to fit; any secondary contexts ride alongside as minibubbles, and a
+    // rotation cycles which one is primary. contextual only on a horizontal dock
+    // -- a vertical (side) island keeps the module column.
+    readonly property var ctxActive: {
+        var a = [];
+        if (Recorder.anyActive) a.push("recording");
+        if (VoiceCall.active) a.push("call");
+        if (Media.playing) a.push("music");
+        return a;
+    }
+    property string primaryCtx: ""
+    onCtxActiveChanged: {
+        if (hud.ctxActive.indexOf(hud.primaryCtx) < 0)
+            hud.primaryCtx = hud.ctxActive.length > 0 ? hud.ctxActive[0] : "";
+    }
+    readonly property string context: (hud.ctxActive.indexOf(hud.primaryCtx) >= 0) ? hud.primaryCtx
+        : (hud.ctxActive.length > 0 ? hud.ctxActive[0] : "idle")
+    readonly property bool contextual: hud.context !== "idle" && !hud.layoutVertical
+    readonly property var bubbleCtx: hud.ctxActive.filter(function (c) { return c !== hud.context; })
+    Timer {
+        interval: 4200
+        running: hud.ctxActive.length > 1 && !hud.dragging && !hud.tucked
+        repeat: true
+        onTriggered: {
+            var a = hud.ctxActive;
+            var i = a.indexOf(hud.primaryCtx);
+            hud.primaryCtx = a[(i + 1) % a.length];
+        }
+    }
 
     anchors.fill: parent
 
@@ -120,8 +151,8 @@ Item {
 
     property real bodyW: grid.implicitWidth + 22 * hud.s
     property real bodyH: grid.implicitHeight + 13 * hud.s
-    Behavior on bodyW { NumberAnimation { duration: hud.moveDur; easing.type: Easing.InOutCubic } }
-    Behavior on bodyH { NumberAnimation { duration: hud.moveDur; easing.type: Easing.InOutCubic } }
+    Behavior on bodyW { SpringAnimation { spring: 4; damping: 0.42; mass: 1; epsilon: 0.5 } }
+    Behavior on bodyH { SpringAnimation { spring: 4; damping: 0.42; mass: 1; epsilon: 0.5 } }
 
     readonly property real dockX: hud.dockEdge === "left" ? hud.lipL
         : hud.dockEdge === "right" ? (hud.width - hud.lipR - hud.bodyW)
@@ -249,6 +280,50 @@ Item {
         bottomRightRadius: (hud.nearEdge === "bottom" || hud.nearEdge === "right") ? 0 : hud.radius
     }
 
+    // minibubbles: any active context that is not the island's current face
+    // rides beside it as a satellite blob in the same field (the ActivSpot
+    // dual-bubble). the primary rotates on the timer above; each bubble spawns
+    // with a little spring pop.
+    Repeater {
+        model: (hud.live && hud.contextual && hud.prog > 0.6) ? hud.bubbleCtx : []
+        delegate: Item {
+            id: bub
+            required property string modelData
+            required property int index
+            readonly property real bs: Math.round(hud.bodyH * 0.74)
+            readonly property real gap: 8 * hud.s
+            x: hud.vDock ? hud.px + (hud.bodyW - bs) / 2
+                : hud.px + hud.bodyW + gap + index * (bs + gap)
+            y: hud.vDock ? hud.py + hud.bodyH + gap + index * (bs + gap)
+                : hud.py + (hud.bodyH - bs) / 2
+            width: bs
+            height: bs
+            property bool shown: false
+            scale: shown ? 1 : 0.05
+            transformOrigin: Item.Center
+            Behavior on scale { SpringAnimation { spring: 4; damping: 0.38 } }
+            Component.onCompleted: bub.shown = true
+
+            BlobRect {
+                group: hud.live ? hud.group : null
+                stiffness: 110
+                damping: 15
+                deformScale: 0.00003
+                anchors.fill: parent
+                radius: parent.height / 2
+            }
+            MaterialIcon {
+                anchors.centerIn: parent
+                text: bub.modelData === "music" ? "music_note"
+                    : bub.modelData === "recording" ? "fiber_manual_record" : "call"
+                fill: 1
+                color: Theme.sun
+                font.pixelSize: 13 * hud.s
+            }
+            TapHandler { onTapped: hud.primaryCtx = bub.modelData }
+        }
+    }
+
     // edge strip: hovering here pops a hidden nub back out.
     Item {
         x: hud.trigX
@@ -329,7 +404,7 @@ Item {
             visible: Media.present
             implicitWidth: hud.layoutVertical ? vIcon.implicitWidth : (Media.present ? med.implicitWidth : 0)
             implicitHeight: hud.layoutVertical ? vIcon.implicitHeight : med.implicitHeight
-            BarMedia { id: med; s: hud.s; visible: !hud.layoutVertical }
+            BarMedia { id: med; s: hud.s; visible: !hud.layoutVertical; maxW: 200 * hud.s }
             MaterialIcon {
                 id: vIcon
                 anchors.centerIn: parent
@@ -346,6 +421,97 @@ Item {
     Component { id: titleComp; BarTitle { s: hud.s; maxWidth: 220 * hud.s; label: Config.barShowTitle && ToplevelManager.activeToplevel ? (ToplevelManager.activeToplevel.title || "") : "" } }
     Component { id: statusComp; BarStatus { s: hud.s; vertical: hud.layoutVertical; onRequestPopout: (name, center) => hud.popoutRequested(name) } }
     Component { id: trayComp; BarTray { s: hud.s; vertical: hud.layoutVertical; trayWindow: hud.trayWindow; menuEdgeY: hud.py + hud.bodyH } }
+
+    // contextual faces: the island morphs to carry the live context, ActivSpot
+    // style, recoloured to Delos's fixed red sun. display-driven off the shared
+    // singletons; the grip stays put beside them so the island is still draggable.
+    Component {
+        id: musicFace
+        Row {
+            spacing: 8 * hud.s
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 22 * hud.s; height: 22 * hud.s; radius: width / 2; clip: true
+                color: Qt.alpha(Theme.bright, 0.05)
+                border.width: 1
+                border.color: Qt.alpha(Theme.sun, 0.85)
+                Image {
+                    anchors.fill: parent; anchors.margins: 1
+                    source: Media.player ? (Media.player.trackArtUrl || "") : ""
+                    sourceSize: Qt.size(44, 44); fillMode: Image.PreserveAspectCrop
+                    asynchronous: true; cache: true; visible: status === Image.Ready
+                }
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    visible: !(Media.player && (Media.player.trackArtUrl || "").length)
+                    text: "music_note"; color: Theme.iconDim; font.pixelSize: 11 * hud.s
+                }
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: Media.line; elide: Text.ElideRight
+                width: Math.min(implicitWidth, 220 * hud.s)
+                color: Theme.cream; font.family: Theme.font
+                font.pixelSize: 11 * hud.s; font.weight: Font.Medium
+            }
+            MaterialIcon {
+                anchors.verticalCenter: parent.verticalCenter
+                text: Media.playing ? "pause" : "play_arrow"; fill: 1
+                color: Theme.sun; font.pixelSize: 14 * hud.s
+            }
+            TapHandler { onTapped: Media.toggle() }
+            HoverHandler { id: mfHov; onHoveredChanged: hud.hoverPopoutRequested("media", mfHov.hovered) }
+        }
+    }
+    Component {
+        id: recordingFace
+        Row {
+            spacing: 7 * hud.s
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 9 * hud.s; height: 9 * hud.s; radius: width / 2; color: Theme.sun
+                SequentialAnimation on opacity {
+                    running: !Recorder.paused; loops: Animation.Infinite
+                    NumberAnimation { to: 0.2; duration: 620; easing.type: Easing.InOutSine }
+                    NumberAnimation { to: 1.0; duration: 620; easing.type: Easing.InOutSine }
+                }
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: Recorder.paused ? "PAUSED" : "REC"; color: Theme.sun
+                font.family: Theme.mono; font.pixelSize: 10 * hud.s
+                font.weight: Font.Bold; font.letterSpacing: 2 * hud.s
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: Recorder.elapsedText; color: Theme.cream
+                font.family: Theme.mono; font.pixelSize: 11 * hud.s
+                font.weight: Font.DemiBold; font.features: ({ "tnum": 1 })
+            }
+        }
+    }
+    Component {
+        id: callFace
+        Row {
+            spacing: 7 * hud.s
+            MaterialIcon {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "call"; fill: 1; color: Theme.sun; font.pixelSize: 14 * hud.s
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "CALL"; color: Theme.sun
+                font.family: Theme.mono; font.pixelSize: 10 * hud.s
+                font.weight: Font.Bold; font.letterSpacing: 2 * hud.s
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: VoiceCall.elapsedText; color: Theme.cream
+                font.family: Theme.mono; font.pixelSize: 11 * hud.s
+                font.weight: Font.DemiBold; font.features: ({ "tnum": 1 })
+            }
+        }
+    }
 
     Item {
         id: content
@@ -425,6 +591,7 @@ Item {
                 model: Config.islandModules
                 Loader {
                     required property var modelData
+                    visible: !hud.contextual
                     enabled: !hud.dragging
                     sourceComponent: modelData === "workspaces" ? wsComp
                         : modelData === "clock" ? clockComp
@@ -435,6 +602,14 @@ Item {
                         : modelData === "tray" ? trayComp
                         : null
                 }
+            }
+            Loader {
+                id: ctxLoader
+                active: hud.contextual
+                visible: hud.contextual
+                sourceComponent: hud.context === "music" ? musicFace
+                    : hud.context === "recording" ? recordingFace
+                    : hud.context === "call" ? callFace : null
             }
         }
     }
