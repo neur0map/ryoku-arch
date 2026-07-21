@@ -1,6 +1,6 @@
 # AUR packages. These are NOT installed by pacstrap (the base install has no AUR
-# helper). They are built later via an AUR helper during post-install, and are
-# the source-of-truth for an offline AUR mirror on the ISO.
+# helper). They are built via an AUR helper during post-install: online-only and
+# best-effort, so the install completes without them and they arrive later.
 # One package per line; '#' and blank lines are ignored. Use the AUR PackageBase.
 
 # AUR helper (bootstrapped first so the rest can be built)
