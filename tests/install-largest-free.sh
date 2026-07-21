@@ -1,70 +1,71 @@
 #!/usr/bin/env bash
-# fixture test for ryoku_largest_free_mib (installation/backend/lib/disk.sh): the
-# free-space sizer the 'alongside' strategy uses to decide whether a dedicated
-# Ryoku ESP + root fits without touching Windows. it parses parted's
-# machine-readable free listing in whole BYTES, floors to MiB, then subtracts a
-# 1 MiB alignment margin. a float-truncating or margin-less parse would either
-# reject a disk with room or place a partition that can't start on an aligned
-# boundary, so we pin the exact arithmetic. parted is mocked with a fixture, so
-# no disk is touched.
-# the parted mock is single-quoted on purpose: it is a shell snippet eval'd in a
-# subshell and must not expand here.
+# fixture test for ryoku_free_regions (installation/backend/lib/disk.sh): the
+# sfdisk-based free-space prober the 'alongside' strategy uses to place its boot
+# + root partitions. it parses `sfdisk --json` (sectorsize, firstlba, lastlba,
+# partitions), computes the gaps, aligns each region's start UP and end DOWN to
+# 1 MiB in the disk's real sector size, and emits one `START END SIZE_MIB` line
+# per gap >= 1024 MiB. we pin the exact sector arithmetic (512 and 4096 both) and
+# the sub-floor exclusion. sfdisk is mocked with a JSON fixture, so no disk is
+# touched; jq + awk run for real.
+# the sfdisk mock is single-quoted on purpose: a shell snippet eval'd in a
+# subshell that must not expand here.
 # shellcheck disable=SC2016
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$here/.."
 fail() { echo "FAIL: $1" >&2; exit 1; }
+skip() { echo "install-largest-free: SKIP ($1)"; exit 0; }
+command -v jq >/dev/null 2>&1 || skip "missing jq"
 
-# free_mib <parted-fixture>: run ryoku_largest_free_mib with parted mocked to
-# emit the fixture. the disk arg is ignored by the mock. result on stdout.
-free_mib() {
+# regions <sfdisk-json>: run ryoku_free_regions with sfdisk mocked to emit the
+# fixture JSON. the disk arg is ignored by the mock. lines on stdout.
+regions() {
   ROOT="$root" FIXTURE="$1" bash -c '
     source "$ROOT/installation/backend/lib/common.sh"
     source "$ROOT/installation/backend/lib/disk.sh"
-    parted() { printf "%s\n" "$FIXTURE"; }
-    ryoku_largest_free_mib /dev/fake
+    sfdisk() { printf "%s\n" "$FIXTURE"; }
+    ryoku_free_regions /dev/fake
   '
 }
 
-# --- multiple free rows: picks the largest, floors to MiB, minus 1 margin ------
-# a 1 MiB sliver, a 30 GiB main region (32212254720B == 30*1024 MiB), plus two
-# trailing NON-free rows (a partition and the disk header) that must be ignored.
-# expected: int(32212254720/1048576) - 1 = 30720 - 1 = 30719.
-multi='BYT;
-/dev/fake:42949672960B:loopback:512:512:gpt:Loopback device:;
-1:17408B:1048575B:1031168B:free;
-1:1048576B:2097151B:1048576B:free;
-2:2097152B:34014052351B:32212254720B:free;
-1:34014052352B:34119909375B:105857024B:fat32::boot, esp;
-3:34119909376B:42949672959B:8829763584B:ntfs::msftdata;'
-out="$(free_mib "$multi")"
-[[ $out == 30719 ]] || fail "largest free of a 30 GiB region must floor-minus-margin to 30719 MiB, got '$out'"
+# --- single big region (512-byte sectors): ESP + 10 GiB NTFS, rest free --------
+# p2 ends at 534528+20971520-1 = 21506047; the gap 21506048..lastlba aligns down
+# to 83884031, size (83884031-21506048+1)/2048 = 30458 MiB. The ~1 MiB lead gap
+# (34..2047) is below the 1024 MiB floor and excluded.
+single='{"partitiontable":{"label":"gpt","sectorsize":512,"firstlba":34,"lastlba":83886046,"partitions":[
+  {"start":2048,"size":532480},
+  {"start":534528,"size":20971520}
+]}}'
+out="$(regions "$single")"
+[[ "$out" == "21506048 83884031 30458" ]] || fail "single region wrong: got '$out'"
 
-# a smaller main region must not be shadowed by the byte count of a non-free row:
-# swap the 30 GiB free region for a 2 GiB one (2147483648B) and keep the 8.2 GiB
-# ntfs partition. expected int(2147483648/1048576)-1 = 2048-1 = 2047.
-smaller='BYT;
-/dev/fake:42949672960B:loopback:512:512:gpt:Loopback device:;
-2:2097152B:2149580799B:2147483648B:free;
-3:2149580800B:42949672959B:40800092160B:ntfs::msftdata;'
-out="$(free_mib "$smaller")"
-[[ $out == 2047 ]] || fail "must size from the free row, not the larger ntfs partition row, got '$out'"
+# --- sub-floor gap excluded, big gap reported (512) ----------------------------
+# a 600 MiB gap sits between the ESP and NTFS (below the 1024 MiB floor -> gone);
+# only the big trailing gap 22734848..83884031 (29858 MiB) is emitted.
+frag='{"partitiontable":{"label":"gpt","sectorsize":512,"firstlba":34,"lastlba":83886046,"partitions":[
+  {"start":2048,"size":532480},
+  {"start":1763328,"size":20971520}
+]}}'
+out="$(regions "$frag")"
+[[ "$out" == "22734848 83884031 29858" ]] || fail "fragmented region wrong (sub-floor gap must be excluded): got '$out'"
 
-# --- no free rows at all: nothing fits, size is 0 ------------------------------
-none='BYT;
-/dev/fake:42949672960B:loopback:512:512:gpt:Loopback device:;
-1:1048576B:42949672959B:42948624384B:ntfs::msftdata;'
-out="$(free_mib "$none")"
-[[ $out == 0 ]] || fail "a disk with no free region must size to 0, got '$out'"
+# --- fully allocated: no region at all -----------------------------------------
+none='{"partitiontable":{"label":"gpt","sectorsize":512,"firstlba":34,"lastlba":83886046,"partitions":[
+  {"start":2048,"size":532480},
+  {"start":534528,"size":83351519}
+]}}'
+out="$(regions "$none")"
+[[ -z "$out" ]] || fail "a fully allocated disk must emit no region, got '$out'"
 
-# --- only sub-MiB slivers free: floors to 0 (nothing usable) -------------------
-# 786432B (768 KiB) and 524288B (512 KiB): both floor to 0 MiB.
-sub='BYT;
-/dev/fake:42949672960B:loopback:512:512:gpt:Loopback device:;
-1:17408B:803839B:786432B:free;
-2:803840B:1328127B:524288B:free;'
-out="$(free_mib "$sub")"
-[[ $out == 0 ]] || fail "sub-MiB slivers must floor to 0, got '$out'"
+# --- 4096-byte logical sectors: alignment math uses the real sector size -------
+# spm = 256. p2 ends at 66816+5242880-1 = 5309695; gap 5309696..lastlba aligns
+# down to 15728383, size (15728383-5309696+1)/256 = 40698 MiB.
+fourk='{"partitiontable":{"label":"gpt","sectorsize":4096,"firstlba":6,"lastlba":15728634,"partitions":[
+  {"start":256,"size":66560},
+  {"start":66816,"size":5242880}
+]}}'
+out="$(regions "$fourk")"
+[[ "$out" == "5309696 15728383 40698" ]] || fail "4096-byte sector region wrong: got '$out'"
 
 echo "install-largest-free: all checks passed"
