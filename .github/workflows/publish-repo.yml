@@ -140,7 +140,7 @@ jobs:
           # public domain: Cloudflare 403s datacenter runners.
           rclone copy "Ryoku:$R2_BUCKET/x86_64/" "$GITHUB_WORKSPACE/.published-mirror/" --include '*.pkg.tar.zst'
 
-      - name: Verify hard dependencies exist in the official repos
+      - name: Verify hard dependencies exist in the official repos or [ryoku]
         run: |
           set -euo pipefail
           # build-repo.sh builds with --nodeps, so a typo'd or AUR-only entry in
@@ -149,17 +149,22 @@ jobs:
           # here turns that into a failed publish instead.
           # bash reads the array the same way makepkg does; hand-parsing the
           # file trips over single-line arrays and comments.
+          # internal deps resolve inside [ryoku] itself, so they are exempt from
+          # the -Si check; the exempt list is derived from the PKGBUILDs rather
+          # than hand-kept, so a typo'd internal name (say ryoku-cursor) is
+          # caught here instead of skipped into a broken publish.
+          internal=$(for p in release/packages/*/PKGBUILD; do
+            bash -c 'source "$1" >/dev/null 2>&1; printf "%s\n" "${pkgname[@]}"' _ "$p"
+          done)
           missing=0
           for p in release/packages/*/PKGBUILD; do
             mapfile -t deps < <(bash -c 'source "$1" >/dev/null 2>&1; printf "%s\n" "${depends[@]:-}"' _ "$p")
             for d in "${deps[@]}"; do
               d="${d%%[<>=]*}"
               [[ -z $d ]] && continue
-              # skip packages built here in [ryoku] (self-referential deps): the
-              # ryoku* set, gpk, wallust, ryomotion, and the compositor plugins.
-              case "$d" in ryoku*|gpk|hypr-dynamic-cursors|hyprglass|imgborders|wallust|ryomotion|awww) continue ;; esac
+              grep -qxF "$d" <<<"$internal" && continue
               if ! pacman -Si "$d" >/dev/null 2>&1; then
-                echo "::error::$p: dependency '$d' not found in the official repos"
+                echo "::error::$p: dependency '$d' not found in the official repos or [ryoku]"
                 missing=1
               fi
             done
