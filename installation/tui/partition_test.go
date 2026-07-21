@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -886,5 +888,50 @@ func TestUnescapeLsblk(t *testing.T) {
 		if got := unescapeLsblk(c.in); got != c.want {
 			t.Fatalf("unescapeLsblk(%q) = %q, want %q", c.in, got, c.want)
 		}
+	}
+}
+
+// stubBackend writes a fake `ryoku-install` on PATH-via-RYOKU_BACKEND that prints
+// canned probe lines, so probeAlongside's parsing can be tested without a disk.
+func stubBackend(t *testing.T, probeOut string) {
+	t.Helper()
+	dir := t.TempDir()
+	stub := filepath.Join(dir, "ryoku-install")
+	script := "#!/bin/sh\ncat <<'PROBE_EOF'\n" + probeOut + "\nPROBE_EOF\n"
+	if err := os.WriteFile(stub, []byte(script), 0o755); err != nil {
+		t.Fatalf("write stub: %v", err)
+	}
+	t.Setenv("RYOKU_BACKEND", stub)
+}
+
+// the probe is the source of truth: probeAlongside must take the LARGEST region
+// and carry the verdict through.
+func TestProbeAlongsideParsesLargestRegionAndVerdict(t *testing.T) {
+	stubBackend(t, "sectorsize 512\nesp /dev/sda1\nregion 2048 1000000 400\nregion 4096 90000000 43900\nverdict ok")
+	r := probeAlongside("/dev/sda")
+	if r.verdict != "ok" {
+		t.Fatalf("verdict = %q, want ok", r.verdict)
+	}
+	if r.regionStart != 4096 || r.regionEnd != 90000000 {
+		t.Fatalf("region = %d-%d, want 4096-90000000 (the larger one)", r.regionStart, r.regionEnd)
+	}
+	if r.freeG != 43900/1024 {
+		t.Fatalf("freeG = %d, want %d", r.freeG, 43900/1024)
+	}
+}
+
+// a non-ok verdict carries its human message, and partBlockReason surfaces the
+// exact cause (no Windows ESP) instead of a generic free-space line -- the point
+// of routing free-space through the probe.
+func TestPartBlockReasonSurfacesProbeCause(t *testing.T) {
+	stubBackend(t, "sectorsize 512\nverdict no-esp\nmessage no Windows ESP found on /dev/sda")
+	r := probeAlongside("/dev/sda")
+	if r.verdict != "no-esp" || !strings.Contains(r.message, "no Windows ESP found") {
+		t.Fatalf("probe = %+v, want verdict no-esp with the ESP message", r)
+	}
+	m := model{picks: map[string]string{"disk": "alongside"}, gpt: true, diskG: 256, freeG: 200,
+		probeVerdict: r.verdict, probeMessage: r.message}
+	if got := m.partBlockReason(); got != r.message {
+		t.Fatalf("partBlockReason = %q, want the probe message %q", got, r.message)
 	}
 }

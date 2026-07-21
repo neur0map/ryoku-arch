@@ -349,13 +349,15 @@ const espTypeGUID = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
 // from lsblk; the free region comes from the backend's read-only alongside probe
 // (the single source of truth for free space), so the TUI never guesses.
 type diskLayout struct {
-	parts       []part
-	freeG       int
-	regionStart int64 // chosen free region, first sector (alongside; 0 when none)
-	regionEnd   int64 // chosen free region, last sector
-	windows     bool  // an NTFS partition is present (a Windows install)
-	gpt         bool  // GPT label (alongside requires it)
-	bitlocker   bool  // a BitLocker-encrypted partition is present (recovery-key warning)
+	parts        []part
+	freeG        int
+	regionStart  int64  // chosen free region, first sector (alongside; 0 when none)
+	regionEnd    int64  // chosen free region, last sector
+	probeVerdict string // ok|none|no-gpt|no-esp|error from the alongside probe
+	probeMessage string // human cause for a non-ok verdict (rendered as the block reason)
+	windows      bool   // an NTFS partition is present (a Windows install)
+	gpt          bool   // GPT label (alongside requires it)
+	bitlocker    bool   // a BitLocker-encrypted partition is present (recovery-key warning)
 }
 
 // sysDiskLayout reads the existing partitions and largest free region of a disk.
@@ -405,7 +407,9 @@ func sysDiskLayout(disk string) diskLayout {
 			dl.parts = append(dl.parts, p)
 		}
 	}
-	dl.freeG, dl.regionStart, dl.regionEnd = probeAlongside(disk)
+	pr := probeAlongside(disk)
+	dl.freeG, dl.regionStart, dl.regionEnd = pr.freeG, pr.regionStart, pr.regionEnd
+	dl.probeVerdict, dl.probeMessage = pr.verdict, pr.message
 	return dl
 }
 
@@ -426,32 +430,48 @@ func partLabel(lbl, fs string) string {
 	return "partition"
 }
 
-// probeAlongside runs the backend's read-only alongside probe and returns the
-// largest usable free region: size (GiB, floored) and its first/last sectors.
-// The backend (sfdisk) is the single source of truth for free space; the TUI
-// renders what it reports and hands the chosen region's sectors back at install
-// time (RYOKU_REGION_START/END). Zero values when the probe finds no region.
-func probeAlongside(disk string) (freeG int, start, end int64) {
+// probeResult is the backend alongside probe's report: the largest usable free
+// region (GiB + first/last sectors), plus the verdict and its human message so
+// the exact cause (no ESP, no GPT, no region, probe failure) reaches the user
+// instead of a generic "not enough space". The backend (sfdisk) is the single
+// source of truth for free space; the TUI renders what it says and hands the
+// chosen region's sectors back at install time (RYOKU_REGION_START/END).
+type probeResult struct {
+	freeG                  int
+	regionStart, regionEnd int64
+	verdict, message       string
+}
+
+func probeAlongside(disk string) probeResult {
 	bin := os.Getenv("RYOKU_BACKEND")
 	if bin == "" {
 		bin = "ryoku-install"
 	}
 	out, ok := run(bin, "probe", "alongside", disk)
 	if !ok {
-		return 0, 0, 0
+		return probeResult{verdict: "error", message: "could not run the disk probe (ryoku-install probe alongside)."}
 	}
+	var r probeResult
 	var bestMiB int64
 	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
 		f := strings.Fields(line)
-		if len(f) != 4 || f[0] != "region" {
+		if len(f) == 0 {
 			continue
 		}
-		s, e := parseI64(f[1]), parseI64(f[2])
-		if m := parseI64(f[3]); m > bestMiB {
-			bestMiB, start, end = m, s, e
+		switch {
+		case len(f) == 4 && f[0] == "region":
+			if m := parseI64(f[3]); m > bestMiB {
+				bestMiB, r.regionStart, r.regionEnd = m, parseI64(f[1]), parseI64(f[2])
+			}
+		case len(f) >= 2 && f[0] == "verdict":
+			r.verdict = f[1]
+		case f[0] == "message":
+			r.message = strings.TrimSpace(strings.TrimPrefix(line, "message"))
 		}
 	}
-	return int(bestMiB / 1024), start, end
+	r.freeG = int(bestMiB / 1024)
+	return r
 }
 
 func parseI64(s string) int64 {

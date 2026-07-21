@@ -337,15 +337,16 @@ ryoku_boot_install_efi() {
   run mkdir -p /mnt/boot/EFI/BOOT /mnt/boot/EFI/limine
   run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/boot/EFI/limine/limine_x64.efi
   # EFI/BOOT/BOOTX64.EFI is the UEFI removable-media fallback loader. writing it
-  # is ALWAYS safe now: both strategies install onto OUR OWN ESP (alongside
-  # creates a dedicated 'ryokuboot' ESP, never the Windows one), so this can no
-  # longer clobber a foreign fallback (the Calamares #2416 hazard). it is also
-  # the loader that keeps the box bootable when firmware ignores or drops the
+  # is safe here: the wipe strategy installs onto OUR OWN ESP (alongside takes a
+  # separate path, ryoku_bootloader_alongside, and never reaches this function),
+  # so this can't clobber a foreign fallback (the Calamares #2416 hazard). it is
+  # also the loader that keeps the box bootable when firmware ignores or drops the
   # NVRAM entry we register below -- see the best-effort handling there.
   run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/boot/EFI/BOOT/BOOTX64.EFI
 
   local esp_partnum
-  esp_partnum=$(part_num "$ESP_DEV"); : "${esp_partnum:=1}"
+  esp_partnum=$(part_num "$ESP_DEV")
+  [[ -n $esp_partnum ]] || die "could not derive the ESP partition number from $ESP_DEV; refusing to register a boot entry against a guessed partition."
   # efibootmgr writes firmware NVRAM, which some machines expose readonly or
   # report full (HP / Insyde-class firmware). that MUST NOT abort the install
   # (set -e): the removable-path EFI/BOOT/BOOTX64.EFI copy above still boots the
@@ -418,7 +419,8 @@ ryoku_bootloader_alongside() {
   # register 'Ryoku' first in BootOrder; Windows' entry is left as-is. best
   # effort: firmware that rejects NVRAM writes still boots via the fallback above.
   local esp_partnum
-  esp_partnum=$(part_num "$wesp"); : "${esp_partnum:=1}"
+  esp_partnum=$(part_num "$wesp")
+  [[ -n $esp_partnum ]] || die "could not derive the Windows ESP partition number from $wesp; refusing to register a boot entry against a guessed partition."
   if ! run arch-chroot /mnt efibootmgr --create --disk "$RYOKU_DISK" --part "$esp_partnum" \
     --label Ryoku --loader '\EFI\ryoku\BOOTX64.EFI' --unicode; then
     log "WARNING: efibootmgr could not register the 'Ryoku' NVRAM boot entry (readonly or full firmware NVRAM). The system still boots via /EFI/BOOT/BOOTX64.EFI on the shared ESP; if the firmware ignores it, pick it once from the firmware boot menu."

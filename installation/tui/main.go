@@ -779,7 +779,8 @@ type model struct {
 	gpt                         bool // target disk has a GPT label (alongside requires it)
 	bitlocker                   bool // target disk carries a BitLocker partition (review warning)
 	freeG                       int   // largest contiguous free region (GiB) for alongside (excludes reclaimG)
-	regionStart, regionEnd      int64 // that region's first/last sector, from the probe (exported at install)
+	regionStart, regionEnd      int64  // that region's first/last sector, from the probe (exported at install)
+	probeVerdict, probeMessage  string // alongside probe verdict + human cause (rendered as the block reason)
 	espG, swapG                 int
 	snapshots, sepHome, backups bool
 	lsel                        int
@@ -863,6 +864,7 @@ func (m *model) loadStep() {
 			// GiB counts toward usable space instead of against it.
 			m.kept, m.reclaim, m.reclaimG, m.freeG = nil, nil, 0, dl.freeG
 			m.regionStart, m.regionEnd = dl.regionStart, dl.regionEnd
+			m.probeVerdict, m.probeMessage = dl.probeVerdict, dl.probeMessage
 			for _, p := range dl.parts {
 				if p.reclaim {
 					m.reclaim = append(m.reclaim, p)
@@ -874,6 +876,7 @@ func (m *model) loadStep() {
 		} else {
 			m.kept, m.reclaim, m.reclaimG, m.freeG = nil, nil, 0, 0
 			m.regionStart, m.regionEnd = 0, 0
+			m.probeVerdict, m.probeMessage = "", ""
 		}
 		m.clampSwapToLayout() // keep default swap within the layout (backend-consistent)
 	case kPass:
@@ -1608,6 +1611,13 @@ func (m model) partBlockReason() string {
 			// reads GPT partlabels); an MBR disk with free space would pass the TUI
 			// and die at backend stage 1. Fail here with the same guidance.
 			return "alongside needs a GPT disk; press esc and choose 'Erase whole disk'."
+		}
+		// The probe knows the exact hard blocker (no Windows ESP, unreadable table)
+		// that a generic free-space message would hide; surface it verbatim. These
+		// are reclaim-independent, unlike the free-space gate below (which folds in
+		// reclaimable ryoku/ryokuboot leftovers the backend frees before measuring).
+		if m.probeVerdict == "no-esp" || m.probeVerdict == "error" {
+			return m.probeMessage
 		}
 		if free, need := m.freeAlongside(), minRootGiB+alongsideBootGiB; free < need {
 			return fmt.Sprintf("Only %dG free; alongside needs %dG (a %dG root plus a %dG boot partition). Shrink Windows first, or press esc and choose 'Erase whole disk'.", free, need, minRootGiB, alongsideBootGiB)

@@ -394,9 +394,9 @@ ryoku_partition_alongside() {
       ryoku)     ROOT_PART=$p ;;
     esac
   done
-  [[ -n $ESP_DEV ]]   || die "alongside could not find the new Ryoku ESP (partlabel ryokuboot) after sgdisk; refusing to continue."
+  [[ -n $ESP_DEV ]]   || die "alongside could not find the new ryoku-boot partition (partlabel ryokuboot) after sgdisk; refusing to continue."
   [[ -n $ROOT_PART ]] || die "alongside could not find the new Ryoku root (partlabel ryoku) after sgdisk; refusing to continue."
-  [[ $ESP_DEV != "$ROOT_PART" ]] || die "alongside ESP and root resolved to the same device $ESP_DEV; refusing to continue."
+  [[ $ESP_DEV != "$ROOT_PART" ]] || die "alongside boot and root resolved to the same device $ESP_DEV; refusing to continue."
 
   # hard safety, applied to BOTH new partitions: each must be a real NEW block
   # device, must not be the disk itself, must not have existed before sgdisk, and
@@ -601,6 +601,12 @@ ryoku_probe_alongside() {
     return 0
   fi
   need=$(( 2 + $(ryoku_min_root_gib) ))
+  # a table sfdisk can't read is NOT a free-space problem: say so, so the user
+  # is not sent to shrink Windows over an unreadable/failed probe.
+  if ! sfdisk --json "$disk" >/dev/null 2>&1; then
+    printf 'verdict error\nmessage could not read the partition table on %s (sfdisk failed); the disk may be unreadable or lack a usable GPT. This is not a free-space problem.\n' "$disk"
+    return 0
+  fi
   regions=$(ryoku_free_regions "$disk" | sort -k3,3 -nr)
   if [[ -z $regions ]]; then
     printf 'verdict none\nmessage no unallocated region >= %d GiB on %s; shrink a Windows partition first, then retry.\n' "$need" "$disk"
