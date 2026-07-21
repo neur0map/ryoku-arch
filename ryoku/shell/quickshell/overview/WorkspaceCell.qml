@@ -12,11 +12,12 @@ import "Singletons"
  * the identity (vermillion when active); windows sit at their real fractional
  * positions, each a LIVE ScreencopyView over an app-icon fallback. Every cell
  * carries a hard solid-black offset shadow (Ryoku brutalist depth, no blur), and
- * lifts on hover. Each window tile has a hover ✕ that closes just that window.
- * Click empty space to switch here; click a window to focus it; press-drag a
- * window onto another cell to move it. The trailing cell (wsId -1) is the "+"
- * that opens a fresh workspace. Tiles glide via Behaviors so a move/drop/reflow
- * animates instead of snapping.
+ * Left-click empty space to switch here, or a window to focus it; RIGHT-CLICK
+ * anywhere enters that workspace. Press-drag a window onto another cell to move
+ * it. In the scrolling layout a workspace is an infinite horizontal tape, so the
+ * whole tape is shown uniformly scaled with the on-screen slice framed. The
+ * trailing cell (wsId -1) is the "+" that opens a fresh workspace. Tiles glide
+ * via Behaviors so a move/drop/reflow animates instead of snapping.
  */
 Item {
     id: cell
@@ -50,11 +51,23 @@ Item {
     Behavior on opacity { NumberAnimation { duration: Motion.standard; easing.type: Motion.easeExpo } }
     Behavior on scale { NumberAnimation { duration: Motion.standard; easing.type: Motion.easeExpo } }
 
-    // windows on this ws as fraction-of-monitor rects (empty for the add cell).
-    readonly property var cards: {
-        var out = [];
+    // Windows on this ws mapped into the cell. Positions normalise against the
+    // CONTENT BOUNDS -- the window bounding box unioned with the monitor viewport
+    // -- not the viewport alone. In a normal (dwindle/master) layout the windows
+    // sit inside the viewport, so the bounds ARE the viewport and this is the
+    // plain monitor mini-map (the transform reduces exactly to it). In the
+    // SCROLLING layout the workspace is an infinite horizontal tape: off-screen
+    // columns report x past the monitor, so the bounds widen and the whole tape
+    // is shown, uniformly scaled (windows keep aspect, letterboxed into a band)
+    // with the on-screen slice framed. One transform, both layouts.
+    readonly property var geom: {
+        var out = { cards: [], tape: false, vp: null };
         if (cell.isAdd || !cell.full || !cell.ov || !cell.ov.mon)
             return out;
+        var ov = cell.ov;
+        var vx0 = ov.monX, vy0 = ov.monY, vx1 = ov.monX + ov.monLW, vy1 = ov.monY + ov.monLH;
+        var cx0 = vx0, cy0 = vy0, cx1 = vx1, cy1 = vy1;   // content bounds seeded with the viewport
+        var raw = [];
         var tl = Hyprland.toplevels.values;
         for (var i = 0; i < tl.length; i++) {
             var t = tl[i];
@@ -63,16 +76,31 @@ Item {
                 continue;
             if (!o || !o.at || !o.size || o.mapped === false)
                 continue;
-            out.push({
-                addr: o.address, tl: t, cls: (o.class || "").toLowerCase(),
-                fx: cell.clamp((o.at[0] - cell.ov.monX) / cell.ov.monLW, 0, 0.98),
-                fy: cell.clamp((o.at[1] - cell.ov.monY) / cell.ov.monLH, 0, 0.98),
-                fw: cell.clamp(o.size[0] / cell.ov.monLW, 0.03, 1),
-                fh: cell.clamp(o.size[1] / cell.ov.monLH, 0.03, 1)
-            });
+            var ax = o.at[0], ay = o.at[1], aw = o.size[0], ah = o.size[1];
+            raw.push({ addr: o.address, tl: t, cls: (o.class || "").toLowerCase(), ax: ax, ay: ay, aw: aw, ah: ah });
+            cx0 = Math.min(cx0, ax); cy0 = Math.min(cy0, ay);
+            cx1 = Math.max(cx1, ax + aw); cy1 = Math.max(cy1, ay + ah);
         }
+        var cw = Math.max(1, cx1 - cx0), ch = Math.max(1, cy1 - cy0);
+        var asp = cell.ov.aspect;                 // cell height / width
+        var m = Math.min(1 / cw, asp / ch);       // uniform fit, independent of pixel size
+        var ox = (1 - cw * m) / 2;                // x letterbox, as a fraction of cell width
+        var oy = (asp - ch * m) / (2 * asp);      // y letterbox, as a fraction of cell height
+        function mapRect(ax, ay, aw, ah) {
+            return { fx: ox + (ax - cx0) * m, fy: oy + (ay - cy0) * m / asp,
+                     fw: aw * m, fh: ah * m / asp };
+        }
+        for (var j = 0; j < raw.length; j++) {
+            var r = raw[j], q = mapRect(r.ax, r.ay, r.aw, r.ah);
+            out.cards.push({ addr: r.addr, tl: r.tl, cls: r.cls, fx: q.fx, fy: q.fy, fw: q.fw, fh: q.fh });
+        }
+        out.tape = cw > ov.monLW + 1;             // windows spilled past the viewport = a tape
+        out.vp = out.tape ? mapRect(vx0, vy0, ov.monLW, ov.monLH) : null;
         return out;
     }
+    readonly property var cards: cell.geom.cards
+    readonly property bool tape: cell.geom.tape
+    readonly property var viewportFrac: cell.geom.vp
 
     // distinct app icons open on this workspace (dedup by class, capped), for the
     // small roster under the number badge.
@@ -230,11 +258,45 @@ Item {
             font.letterSpacing: 2 * cell.s
         }
 
+        // scrolling tape: the slice currently on screen, framed within the whole
+        // tape so the current viewport is legible against the off-screen columns.
+        // Above the wallpaper, below the window tiles and the number badge.
+        Rectangle {
+            visible: cell.tape && cell.viewportFrac !== null
+            x: (cell.viewportFrac ? cell.viewportFrac.fx : 0) * mini.width
+            y: (cell.viewportFrac ? cell.viewportFrac.fy : 0) * mini.height
+            width: (cell.viewportFrac ? cell.viewportFrac.fw : 0) * mini.width
+            height: (cell.viewportFrac ? cell.viewportFrac.fh : 0) * mini.height
+            radius: Theme.radius
+            color: Qt.alpha(Theme.brand, 0.10)
+            border.width: 1
+            border.color: Qt.alpha(Theme.brand, 0.55)
+            antialiasing: true
+        }
+
+        // tape marker: a horizontal double-arrow so a scrolling workspace reads
+        // as scrollable at a glance (bottom centre, faint).
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 6 * cell.s
+            visible: cell.tape
+            text: "\u21C6"
+            color: Theme.brand
+            font.family: Theme.mono
+            font.pixelSize: 15 * cell.s
+            opacity: 0.85
+            z: 3
+        }
+
         // click empty space -> switch here (windows above capture their own).
+        // left OR right on bare workspace space enters it. Right-click also enters
+        // from on top of a window (handled in the tile's own MouseArea below).
         MouseArea {
             anchors.fill: parent
             visible: !cell.isAdd
             hoverEnabled: true
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
             cursorShape: Qt.PointingHandCursor
             onEntered: cell.hovered = true
             onExited: cell.hovered = false
@@ -300,12 +362,20 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     preventStealing: true
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
                     cursorShape: Qt.PointingHandCursor
                     property real downX: 0
                     property real downY: 0
                     property bool armed: false
+                    property int btn: Qt.LeftButton
 
-                    onPressed: (m) => { tileMa.armed = true; tileMa.downX = m.x; tileMa.downY = m.y; }
+                    // left arms a drag-or-focus; right never drags, it just enters
+                    // this window's workspace on release.
+                    onPressed: (m) => {
+                        tileMa.btn = m.button;
+                        tileMa.armed = (m.button === Qt.LeftButton);
+                        tileMa.downX = m.x; tileMa.downY = m.y;
+                    }
                     onPositionChanged: (m) => {
                         if (!tileMa.armed || !cell.ov)
                             return;
@@ -324,6 +394,8 @@ Item {
                         if (cell.ov && cell.ov.dragging) {
                             cell.ov.commitDrop();
                             cell.ov.endDrag();
+                        } else if (tileMa.btn === Qt.RightButton && cell.ov) {
+                            cell.ov.switchWs(cell.wsId);
                         } else if (tileMa.armed && cell.ov) {
                             cell.ov.focusWindow(tile.modelData.tl, tile.addr);
                         }
@@ -383,6 +455,7 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 hoverEnabled: true
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
                 cursorShape: Qt.PointingHandCursor
                 onEntered: cell.hovered = true
                 onExited: cell.hovered = false

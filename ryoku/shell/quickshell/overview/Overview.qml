@@ -461,7 +461,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 38 * root.s
-        text: "SCROLL / TAB  CYCLE      ALT+TAB  DESKTOP      DRAG  MOVE      \u2715  CLOSE      ENTER  GO      ESC  DISMISS"
+        text: "SCROLL / TAB  CYCLE      ALT+TAB  DESKTOP      DRAG  MOVE      \u2715  CLOSE      R-CLICK / ENTER  GO      ESC  DISMISS"
         color: Theme.faint
         font.family: Theme.mono
         font.pixelSize: 10 * root.s
