@@ -668,6 +668,7 @@ type part struct {
 	flags   string
 	status  string // keep | new | free
 	reclaim bool   // leftover ryoku/ryokuboot partition the backend will free (alongside)
+	used    int    // GiB in use (existing-content map shading); 0 = solid, no shading
 }
 
 func partColor(p part) color.Color {
@@ -775,13 +776,21 @@ type model struct {
 	// reclaim holds leftover ryoku/ryokuboot partitions from a prior failed run.
 	// Under alongside the backend frees them (RYOKU_RECLAIM_LEFTOVERS) after the
 	// typed-ERASE ack, so reclaimG counts toward the usable free figure.
-	reclaim                     []part
-	reclaimG                    int
-	gpt                         bool   // target disk has a GPT label (alongside requires it)
-	bitlocker                   bool   // target disk carries a BitLocker partition (review warning)
-	freeG                       int    // largest contiguous free region (GiB) for alongside (excludes reclaimG)
-	regionStart, regionEnd      int64  // that region's first/last sector, from the probe (exported at install)
-	probeVerdict, probeMessage  string // alongside probe verdict + human cause (rendered as the block reason)
+	reclaim                    []part
+	reclaimG                   int
+	gpt                        bool   // target disk has a GPT label (alongside requires it)
+	bitlocker                  bool   // target disk carries a BitLocker partition (review warning)
+	freeG                      int    // largest contiguous free region (GiB) for alongside (excludes reclaimG)
+	regionStart, regionEnd     int64  // that region's first/last sector, from the probe (exported at install)
+	probeVerdict, probeMessage string // alongside probe verdict + human cause (rendered as the block reason)
+	// carve (in-installer resize): resizeParts is the backend's per-partition
+	// shrinkability report; when non-empty on an alongside disk the layout page
+	// offers the carve picker. carvePart indexes the chosen partition to shrink
+	// (-1 = use the existing gap instead), and carveTakeMiB is how much space to
+	// arrow out of it for Ryoku. Exported as RYOKU_RESIZE_PART/TAKE_MIB.
+	resizeParts                 []resizePart
+	carvePart                   int
+	carveTakeMiB                int64
 	espG, swapG                 int
 	snapshots, sepHome, backups bool
 	lsel                        int
@@ -859,6 +868,7 @@ func (m *model) loadStep() {
 		dl := sysDiskLayout(m.diskDev) // real partitions, used by alongside layout AND the wipe gate
 		m.existing = dl.parts
 		m.gpt, m.bitlocker = dl.gpt, dl.bitlocker
+		m.resizeParts, m.carvePart, m.carveTakeMiB = nil, -1, 0
 		if m.picks["disk"] == "alongside" {
 			// Split real partitions: genuine keeps stay put and occupy space;
 			// leftover ryoku/ryokuboot partitions get reclaimed (freed), so their
@@ -873,6 +883,14 @@ func (m *model) loadStep() {
 				} else {
 					m.kept = append(m.kept, p)
 				}
+			}
+			// The resize probe drives the carve picker. When the existing gap is too
+			// small to install into (the fully-allocated disk that only offered wipe),
+			// pre-select the largest partition we can shrink so carve is the obvious
+			// path rather than a dead end.
+			m.resizeParts = probeResize(m.diskDev)
+			if len(m.reclaim) == 0 && m.freeG < minRootGiB+alongsideBootGiB {
+				m.selectDefaultCarve()
 			}
 		} else {
 			m.kept, m.reclaim, m.reclaimG, m.freeG = nil, nil, 0, 0
@@ -1421,11 +1439,119 @@ func (m model) keptG() int {
 // m.existing when the partition step loads, so this is a cheap field check.
 func (m model) diskPopulated() bool { return len(m.existing) > 0 }
 
-// freeAlongside is the usable free space (GiB) for an alongside install: the
-// detected free region plus any leftover ryoku/ryokuboot partitions the backend
-// will reclaim (free) before it measures space. Matches the backend, which
-// reclaims before measuring.
-func (m model) freeAlongside() int { return m.freeG + m.reclaimG }
+// freeAlongside is the usable free space (GiB) for an alongside install. When
+// carving, that space is the gap the backend will open by shrinking the chosen
+// partition (the take), which everything downstream — availRoot, swapCeil, the
+// readiness gate — then treats exactly like a pre-existing region. Otherwise it
+// is the detected free region plus any leftover ryoku/ryokuboot partitions the
+// backend reclaims before it measures (matching the backend's own order).
+func (m model) freeAlongside() int {
+	if m.carving() {
+		return m.carveTakeG()
+	}
+	return m.freeG + m.reclaimG
+}
+
+// ── carve (in-installer resize) ──────────────────────────────────────────────
+// Arrow steps for scrubbing the take: a fine 1 GiB nudge, a coarse 10 GiB jump.
+const carveStepMiB = 1024
+const carveBigStepMiB = 10 * 1024
+
+func clampI64(v, lo, hi int64) int64 {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}
+
+// carveFloorMiB is the least we can take: Ryoku's own minimum (the 2 GiB boot
+// partition plus the root floor). Below this the carved gap can't hold an install.
+func (m model) carveFloorMiB() int64 { return int64(alongsideBootGiB+minRootGiB) * 1024 }
+
+// carveCeilMiB is the most we can take from p: its headroom above the smallest
+// the filesystem can shrink to (size − min).
+func (m model) carveCeilMiB(p resizePart) int64 { return p.sizeMiB - p.minMiB }
+
+// carveDefaultMiB is the take we pre-select: half the partition's headroom, capped
+// at 64 GiB, never below Ryoku's floor.
+func (m model) carveDefaultMiB(p resizePart) int64 {
+	def := m.carveCeilMiB(p) / 2
+	if def > 64*1024 {
+		def = 64 * 1024
+	}
+	return clampI64(def, m.carveFloorMiB(), m.carveCeilMiB(p))
+}
+
+// carveablePart reports whether p can be shrunk enough to fit Ryoku: the probe
+// says the filesystem may shrink, and its headroom clears our floor.
+func (m model) carveablePart(p resizePart) bool {
+	return p.shrinkable && m.carveCeilMiB(p) >= m.carveFloorMiB()
+}
+
+// carveUI reports whether the layout page shows the carve picker: an alongside
+// install with a shrinkability report to drive it. When the disk holds leftover
+// Ryoku partitions the reclaim path owns it (freeing them is cleaner than
+// shrinking a live filesystem), so carve stays out of the way.
+func (m model) carveUI() bool {
+	return m.picks["disk"] == "alongside" && len(m.reclaim) == 0 && len(m.resizeParts) > 0
+}
+
+// carving reports whether a partition is currently selected to be shrunk.
+func (m model) carving() bool {
+	return m.carveUI() && m.carvePart >= 0 && m.carvePart < len(m.resizeParts)
+}
+
+func (m model) carveTakeG() int { return int(m.carveTakeMiB / 1024) }
+
+// hasCarveable reports whether any listed partition can be carved.
+func (m model) hasCarveable() bool {
+	for _, p := range m.resizeParts {
+		if m.carveablePart(p) {
+			return true
+		}
+	}
+	return false
+}
+
+// selectDefaultCarve pre-selects the largest carveable partition (with its default
+// take), used when there is no free region big enough to install into.
+func (m *model) selectDefaultCarve() {
+	best := -1
+	for i, p := range m.resizeParts {
+		if m.carveablePart(p) && (best < 0 || p.sizeMiB > m.resizeParts[best].sizeMiB) {
+			best = i
+		}
+	}
+	if best >= 0 {
+		m.carvePart = best
+		m.carveTakeMiB = m.carveDefaultMiB(m.resizeParts[best])
+	}
+}
+
+// carveScrub selects the carve target at resizeParts[i] (defaulting its take on
+// first touch) and moves the take by deltaMiB, clamped to [floor, headroom]. A
+// zero delta just selects. Swap is re-clamped because the root pool moved.
+func (m *model) carveScrub(i int, deltaMiB int64) {
+	if i < 0 || i >= len(m.resizeParts) {
+		return
+	}
+	if m.carvePart != i {
+		m.carvePart = i
+		m.carveTakeMiB = m.carveDefaultMiB(m.resizeParts[i])
+	}
+	m.carveTakeMiB = clampI64(m.carveTakeMiB+deltaMiB, m.carveFloorMiB(), m.carveCeilMiB(m.resizeParts[i]))
+	m.clampSwapToLayout()
+}
+
+// carveIndex reads the resizeParts index out of a "carveN" layout-row key.
+func carveIndex(key string) int {
+	var i int
+	fmt.Sscanf(key, "carve%d", &i)
+	return i
+}
 
 // needsEraseAck reports whether Review must demand the typed "ERASE"
 // acknowledgement before launching: a whole-disk wipe on a populated disk, or an
@@ -1482,13 +1608,28 @@ func (m *model) clampSwapToLayout() { m.swapG = clamp(m.swapG, 0, m.swapCeil()) 
 
 func (m model) layoutRows() []lrow {
 	var rows []lrow
-	for i, k := range m.kept {
-		rows = append(rows, lrow{"keep", fmt.Sprintf("keep%d", i), k.dev, "", "keep"})
-	}
-	// Leftover Ryoku partitions are shown as reclaimed (freed), not kept, so the
-	// user sees they will be removed and their space folded into the new root.
-	for i, r := range m.reclaim {
-		rows = append(rows, lrow{"reclaim", fmt.Sprintf("reclaim%d", i), r.dev, "previous Ryoku, will be freed", "reclaim"})
+	if m.carveUI() {
+		// The existing partitions show in the content map above; the chooser here
+		// is a radio group: use the existing gap (when it's big enough) or carve a
+		// shrinkable partition. Non-shrinkable partitions surface as dimmed reasons
+		// in the body, not as rows.
+		if m.freeG >= minRootGiB+alongsideBootGiB {
+			rows = append(rows, lrow{"region", "region", fmt.Sprintf("Use existing free space (%d GiB)", m.freeG), "", ""})
+		}
+		for i, p := range m.resizeParts {
+			if m.carveablePart(p) {
+				rows = append(rows, lrow{"carve", fmt.Sprintf("carve%d", i), "Carve from " + p.name(), "", ""})
+			}
+		}
+	} else {
+		for i, k := range m.kept {
+			rows = append(rows, lrow{"keep", fmt.Sprintf("keep%d", i), k.dev, "", "keep"})
+		}
+		// Leftover Ryoku partitions are shown as reclaimed (freed), not kept, so the
+		// user sees they will be removed and their space folded into the new root.
+		for i, r := range m.reclaim {
+			rows = append(rows, lrow{"reclaim", fmt.Sprintf("reclaim%d", i), r.dev, "previous Ryoku, will be freed", "reclaim"})
+		}
 	}
 	if m.picks["disk"] != "alongside" {
 		rows = append(rows, lrow{"size", "esp", "ESP size", "/boot · fat32", "required"}) // alongside boot is a fixed 2 GiB XBOOTLDR
@@ -1566,25 +1707,39 @@ func (m *model) partKey(k string) {
 		if r.kind == "size" {
 			v, _, _, st, _ := m.rowSpec(r.key)
 			m.setRow(r.key, v-st)
+		} else if r.kind == "carve" {
+			m.carveScrub(carveIndex(r.key), -carveStepMiB)
 		}
 	case "right", "l":
 		if r.kind == "size" {
 			v, _, _, st, _ := m.rowSpec(r.key)
 			m.setRow(r.key, v+st)
+		} else if r.kind == "carve" {
+			m.carveScrub(carveIndex(r.key), +carveStepMiB)
 		}
 	case "shift+left", "H":
 		if r.kind == "size" {
 			v, _, _, _, bg := m.rowSpec(r.key)
 			m.setRow(r.key, v-bg)
+		} else if r.kind == "carve" {
+			m.carveScrub(carveIndex(r.key), -carveBigStepMiB)
 		}
 	case "shift+right", "L":
 		if r.kind == "size" {
 			v, _, _, _, bg := m.rowSpec(r.key)
 			m.setRow(r.key, v+bg)
+		} else if r.kind == "carve" {
+			m.carveScrub(carveIndex(r.key), +carveBigStepMiB)
 		}
 	case "enter", "space":
-		if r.kind == "toggle" {
+		switch r.kind {
+		case "toggle":
 			m.toggle(r.key)
+		case "carve":
+			m.carveScrub(carveIndex(r.key), 0) // select this partition, keep its take
+		case "region":
+			m.carvePart = -1 // fall back to the existing gap
+			m.clampSwapToLayout()
 		}
 	case "a": // reset the editable sizes and toggles to recommended
 		m.espG, m.swapG = 1, 16
@@ -1621,7 +1776,17 @@ func (m model) partBlockReason() string {
 		if m.probeVerdict == "no-esp" || m.probeVerdict == "error" {
 			return m.probeMessage
 		}
+		// When carving, freeAlongside() is the take — clamped to at least Ryoku's
+		// floor — so this gate passes. It only bites with no usable gap and nothing
+		// selected to carve.
 		if free, need := m.freeAlongside(), minRootGiB+alongsideBootGiB; free < need {
+			if m.carveUI() {
+				if m.hasCarveable() {
+					return "Not enough free space; select a partition below and use ←/→ to carve space for Ryoku."
+				}
+				// No gap AND nothing shrinkable: the per-partition reasons show below.
+				return "No free space, and no partition here can be shrunk safely (see reasons below). Press esc to pick another disk or 'Erase whole disk'."
+			}
 			return fmt.Sprintf("Only %dG free; alongside needs %dG (a %dG root plus a %dG boot partition). Shrink Windows first, or press esc and choose 'Erase whole disk'.", free, need, minRootGiB, alongsideBootGiB)
 		}
 		return ""
@@ -1683,6 +1848,69 @@ func (m model) layoutSegs() []part {
 		segs = append(segs, part{dev: "swap", size: m.swapG, fs: "swap", mount: "[SWAP]", flags: "swap", status: "new"})
 	}
 	return segs
+}
+
+// gibRound rounds a MiB count to the nearest whole GiB (bar segments are integers).
+func gibRound(mib int64) int { return int((mib + 512) / 1024) }
+
+// ryokuSegs are the segments Ryoku drops into a gapG-GiB gap: the 2 GiB boot
+// partition, the btrfs root, and a swap partition when one is configured.
+func (m model) ryokuSegs(gapG int) []part {
+	segs := []part{{dev: "boot", size: alongsideBootGiB, fs: "vfat", mount: "/boot", flags: "esp", status: "new"}}
+	root := gapG - alongsideBootGiB - m.swapG
+	if root < 0 {
+		root = 0
+	}
+	segs = append(segs, part{dev: "root", size: root, fs: "btrfs", mount: "/", flags: "-", status: "new"})
+	if m.swapG > 0 {
+		segs = append(segs, part{dev: "swap", size: m.swapG, fs: "swap", mount: "[SWAP]", flags: "swap", status: "new"})
+	}
+	return segs
+}
+
+// existingSegs is the disk's current contents as bar segments: one per partition
+// (shaded by usage) plus the trailing free region, from the resize probe.
+func (m model) existingSegs() []part {
+	var segs []part
+	for _, p := range m.resizeParts {
+		flags := "-"
+		if p.fs == "vfat" || p.fs == "fat32" {
+			flags = "esp"
+		}
+		segs = append(segs, part{
+			dev: p.name(), size: gibRound(p.sizeMiB), fs: p.fs,
+			used: gibRound(p.usedMiB), flags: flags, status: "keep",
+		})
+	}
+	if m.freeG > 0 {
+		segs = append(segs, part{dev: "free", size: m.freeG, status: "free"})
+	}
+	return segs
+}
+
+// mapSegs is what the content bar draws on an alongside carve disk: the existing
+// layout by default, morphing live into the post-carve preview as you scrub — the
+// chosen partition shrinks and Ryoku's segments grow in the freed space.
+func (m model) mapSegs() []part {
+	base := m.existingSegs()
+	if !m.carving() {
+		return base
+	}
+	take := m.carveTakeG()
+	var out []part
+	for i, s := range base {
+		if i == m.carvePart {
+			s.size -= take
+			if s.size < 0 {
+				s.size = 0
+			}
+			out = append(out, s)
+			out = append(out, m.ryokuSegs(take)...)
+		} else {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // selSeg maps the selected editable row to a disk-bar segment (for the ▲ marker).
@@ -1992,7 +2220,21 @@ func (m model) partBody(inner int) string {
 	}
 	b.WriteString(fg(cSub, fmt.Sprintf("%s · %s · UEFI · ", m.diskDev, size)) +
 		fg(cText, "Limine") + "\n")
-	b.WriteString(m.diskBar(m.layoutSegs(), inner, m.selSeg()) + "\n\n")
+	segs, sel := m.layoutSegs(), m.selSeg()
+	barLabel := ""
+	if m.carveUI() {
+		// Show the disk's real contents; it morphs into the post-carve preview live.
+		segs, sel = m.mapSegs(), -1
+		barLabel = "on this disk now"
+		if m.carving() {
+			barLabel = m.resizeParts[m.carvePart].name() + " shrinks · Ryoku fills the freed space"
+		}
+	}
+	b.WriteString(m.diskBar(segs, inner, sel) + "\n")
+	if barLabel != "" {
+		b.WriteString(fg(cDim, barLabel) + "\n")
+	}
+	b.WriteString("\n")
 
 	if r := m.partBlockReason(); r != "" {
 		b.WriteString(bold(cRed, "⚠ "+r) + "\n")
@@ -2037,6 +2279,33 @@ func (m model) partBody(inner int) string {
 				val = "none"
 			}
 			b.WriteString(prefix + "   " + labelStyled(sel, r.label, 16) + " [" + knob + "] " + padTo(bold(cText, val), 6) + "  " + tagStyle(r.tag) + "\n")
+		case "region":
+			mark := fg(cDim, gOff)
+			if !m.carving() {
+				mark = fg(cGreen, gOn)
+			}
+			b.WriteString(prefix + "   " + labelStyled(sel, r.label, 30) + " " + mark + "\n")
+		case "carve":
+			rp := m.resizeParts[carveIndex(r.key)]
+			active := m.carving() && carveIndex(r.key) == m.carvePart
+			mark := fg(cDim, gOff)
+			if active {
+				mark = fg(cGreen, gOn)
+			}
+			line := prefix + "   " + labelStyled(sel, r.label, 22) + " " + mark
+			if active {
+				floor, ceil := m.carveFloorMiB(), m.carveCeilMiB(rp)
+				frac := 0.0
+				if ceil > floor {
+					frac = float64(m.carveTakeMiB-floor) / float64(ceil-floor)
+				}
+				fill := clamp(int(frac*float64(knobW)+0.5), 0, knobW)
+				knob := fg(cBrand, strings.Repeat(gFull, fill)) + fg(cDim, strings.Repeat(gEmpty, knobW-fill))
+				line += "  [" + knob + "] " + bold(cText, humanSize(m.carveTakeMiB<<20))
+			} else {
+				line += fg(cDim, "  ←/→ to carve")
+			}
+			b.WriteString(line + "\n")
 		default: // toggle
 			mark := fg(cDim, gOff)
 			if m.toggleOn(r.key) {
@@ -2045,6 +2314,21 @@ func (m model) partBody(inner int) string {
 			used := 2 + 3 + 16 + 1 + 5 + 2 + 11 + 2
 			sub := truncW(r.sub, max(0, inner-used))
 			b.WriteString(prefix + "   " + labelStyled(sel, r.label, 16) + " " + mark + "  " + padTo(tagStyle(r.tag), 11) + "  " + fg(cDim, sub) + "\n")
+		}
+	}
+	// Honesty: the partitions we cannot carve show dimmed, each with the probe's
+	// reason, so a disk that can't be carved says exactly why rather than just
+	// omitting options.
+	if m.carveUI() {
+		for _, rp := range m.resizeParts {
+			if m.carveablePart(rp) {
+				continue
+			}
+			reason := rp.reason
+			if reason == "" {
+				reason = "cannot be shrunk"
+			}
+			b.WriteString("   " + fg(cDim, gBad+" "+rp.name()+" — "+reason) + "\n")
 		}
 	}
 	rootUsable := m.availRoot() - m.swapG
@@ -2193,7 +2477,16 @@ func (m model) diskBar(parts []part, w, selIdx int) string {
 		} else if selIdx >= 0 {
 			s = s.Faint(true)
 		}
-		bar.WriteString(s.Render(strings.Repeat(gFull, widths[i])))
+		// On the read-only content map (no selection marker) a partition with known
+		// usage shades its used portion solid and its free tail faint, so you can
+		// see at a glance how full each one is. New/free segments render solid.
+		if selIdx < 0 && p.used > 0 && p.used < p.size && widths[i] >= 2 {
+			uw := clamp(int(float64(p.used)/float64(p.size)*float64(widths[i])+0.5), 1, widths[i]-1)
+			bar.WriteString(s.Render(strings.Repeat(gFull, uw)))
+			bar.WriteString(s.Faint(true).Render(strings.Repeat(gFull, widths[i]-uw)))
+		} else {
+			bar.WriteString(s.Render(strings.Repeat(gFull, widths[i])))
+		}
 		start += widths[i]
 	}
 	row := bar.String()
