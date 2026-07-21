@@ -49,7 +49,11 @@ Item {
     }
 
     Repeater {
-        model: board.entries
+        // build the editing slots only while the board is actually open. A
+        // ryolayer kept resident for a pinned widget (board closed) then holds
+        // just its pins, not a full hidden slot per widget; slots read their
+        // geometry live off Config, so a reopen rebuilds them in place.
+        model: board.active ? board.entries : []
         delegate: RyoSlot {
             required property var modelData
             // the snapshot in board.entries goes stale after a drag/resize

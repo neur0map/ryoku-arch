@@ -28,6 +28,22 @@ ShellRoot {
     function hide() { root.open = false; }
     function toggle() { root.open = !root.open; }
 
+    // Report our effective visibility to the daemon's idle-park worker (mirrors
+    // launcher/overview `state`): the board being open OR any pinned widget on
+    // the desktop keeps ryolayer resident; with neither, the daemon parks the
+    // process after its grace and a fresh Super+G respawns it. onCompleted seeds
+    // the initial state so a login with no pins parks on its own.
+    readonly property bool hasPins: {
+        var all = Config.widgets || [];
+        for (var i = 0; i < all.length; i++)
+            if (all[i] && all[i].pinned)
+                return true;
+        return false;
+    }
+    readonly property bool residentNeeded: root.open || root.hasPins
+    onResidentNeededChanged: Quickshell.execDetached(["ryoku-shell", "state", "ryolayer", residentNeeded ? "1" : "0"])
+    Component.onCompleted: Quickshell.execDetached(["ryoku-shell", "state", "ryolayer", residentNeeded ? "1" : "0"])
+
     readonly property string focusedName: {
         var m = Hyprland.focusedMonitor;
         return m && m.name ? m.name : "";
