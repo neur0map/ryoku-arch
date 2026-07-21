@@ -416,6 +416,12 @@ cmd_list() {
     width, height, refresh: (.refreshRate | round),
     x, y, scale, transform, vrr, disabled, focused,
     mirror: (.mirrorOf // "none"),
+    cm: (
+      (.colorManagementPreset // "srgb") as $p
+      | if ($p == "hdr" or $p == "hdredid") then "hdr"
+        elif ($p == "" or $p == "srgb" or $p == "auto") then "srgb"
+        else "wide" end ),
+    sdrbrightness: (.sdrBrightness // 1.0),
     modes: (.availableModes // []),
     scaleLadders: (
       ( [ (.availableModes // [])[] | capture("^(?<w>[0-9]+)x(?<h>[0-9]+)")? ]
@@ -444,6 +450,7 @@ apply_specs() {
       + (if (.transform // 0) != 0 then ", transform = \(.transform)" else "" end)
       + (if (.vrr // 0) != 0 then ", vrr = \(.vrr)" else "" end)
       + (if (.mirror // "") != "" and (.mirror // "") != "none" then ", mirror = \(.mirror|@json)" else "" end)
+      + ((.cm // "srgb") as $cm | ", cm = \($cm|@json), bitdepth = \(if $cm == "srgb" then 8 else 10 end), sdrbrightness = \(if $cm == "hdr" then (.sdrbrightness // 1) else 1 end)")
     end')
 }
 
@@ -492,6 +499,7 @@ write_monitors_explicit() {
         + (if (.transform // 0) != 0 then ", transform = \(.transform)" else "" end)
         + (if (.vrr // 0) != 0 then ", vrr = \(.vrr)" else "" end)
         + (if (.mirror // "") != "" and (.mirror // "") != "none" then ", mirror = \"\(.mirror)\"" else "" end)
+        + ((.cm // "srgb") as $cm | ", cm = \"\($cm)\", bitdepth = \(if $cm == "srgb" then 8 else 10 end), sdrbrightness = \(if $cm == "hdr" then (.sdrbrightness // 1) else 1 end)")
         + " })"
       end'
     printf '\n'

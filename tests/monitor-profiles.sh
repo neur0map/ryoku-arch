@@ -25,8 +25,8 @@ export RYOKU_MONITOR_VM=0
 # Two distinct displays, Dell on DP-1 and LG on DP-2.
 cat >"$tmp/two.json" <<'JSON'
 [
-  {"name":"DP-1","make":"Dell","model":"U2720Q","serial":"ABC123","width":3840,"height":2160,"refreshRate":60.0,"x":0,"y":0,"scale":1.5,"transform":0,"vrr":false,"disabled":false,"focused":true,"mirrorOf":"none","availableModes":["3840x2160@60.00Hz","2560x1440@60.00Hz"]},
-  {"name":"DP-2","make":"LG","model":"27GL850","serial":"XYZ789","width":2560,"height":1440,"refreshRate":144.0,"x":3840,"y":0,"scale":1.0,"transform":0,"vrr":true,"disabled":false,"focused":false,"mirrorOf":"none","availableModes":["2560x1440@144.00Hz"]}
+  {"name":"DP-1","make":"Dell","model":"U2720Q","serial":"ABC123","width":3840,"height":2160,"refreshRate":60.0,"x":0,"y":0,"scale":1.5,"transform":0,"vrr":false,"disabled":false,"focused":true,"mirrorOf":"none","availableModes":["3840x2160@60.00Hz","2560x1440@60.00Hz"],"colorManagementPreset":"hdr","sdrBrightness":1.30},
+  {"name":"DP-2","make":"LG","model":"27GL850","serial":"XYZ789","width":2560,"height":1440,"refreshRate":144.0,"x":3840,"y":0,"scale":1.0,"transform":0,"vrr":true,"disabled":false,"focused":false,"mirrorOf":"none","availableModes":["2560x1440@144.00Hz"],"colorManagementPreset":"wide"}
 ]
 JSON
 
@@ -39,8 +39,8 @@ cat >"$tmp/swapped.json" <<'JSON'
 JSON
 
 layout='[
-  {"id":"Dell|U2720Q|ABC123","output":"DP-1","mode":"3840x2160@60","position":"0x0","scale":1.5,"transform":0,"vrr":0,"mirror":"none","disabled":false},
-  {"id":"LG|27GL850|XYZ789","output":"DP-2","mode":"2560x1440@144","position":"2560x0","scale":1,"transform":1,"vrr":1,"mirror":"none","disabled":false}
+  {"id":"Dell|U2720Q|ABC123","output":"DP-1","mode":"3840x2160@60","position":"0x0","scale":1.5,"transform":0,"vrr":0,"mirror":"none","cm":"hdr","sdrbrightness":1.3,"disabled":false},
+  {"id":"LG|27GL850|XYZ789","output":"DP-2","mode":"2560x1440@144","position":"2560x0","scale":1,"transform":1,"vrr":1,"mirror":"none","cm":"wide","disabled":false}
 ]'
 
 run() { RYOKU_MONITOR_JSON="$tmp/two.json" RYOKU_MONITORS_CONF="$conf" RYOKU_MONITORS_DIR="$profiles" "$mon" "$@"; }
@@ -52,6 +52,9 @@ n="$(run list | jq 'length')"
 [[ $n == 2 ]] || fail "list returned $n monitors, want 2"
 run list | jq -e '.[0].id == "Dell|U2720Q|ABC123"' >/dev/null || fail "list missing hardware id"
 run list | jq -e '(.[0].modes | length) == 2' >/dev/null || fail "list missing available modes"
+run list | jq -e '.[0].cm == "hdr" and .[0].sdrbrightness == 1.3' >/dev/null \
+  || fail "list did not map the HDR colour mode and SDR brightness"
+run list | jq -e '.[1].cm == "wide"' >/dev/null || fail "list did not map the wide-gamut colour mode"
 
 # --- apply: explicit modes preserved (not highrr) -------------------------
 run apply "$layout" >/dev/null
@@ -62,6 +65,11 @@ has "$conf" 'vrr = 1' "apply dropped vrr"
 has "$conf" 'position = "2560x0"' "apply dropped the position"
 has "$conf" 'output = "", mode = "highrr"' "apply omitted the hotplug catch-all"
 grep -q 'highrr' <(grep 'DP-1' "$conf") && fail "DP-1 was written as highrr, not its explicit mode"
+# Colour management rides the explicit layout: cm is always written with its
+# implied bitdepth (srgb->8, wide/hdr->10), and sdrbrightness resets to 1
+# outside HDR so turning HDR off in the hub clears the elevated value live.
+has "$conf" 'cm = "hdr", bitdepth = 10, sdrbrightness = 1.3' "apply dropped the HDR colour mode / brightness"
+has "$conf" 'cm = "wide", bitdepth = 10, sdrbrightness = 1' "apply dropped the wide-gamut mode or left SDR brightness elevated"
 
 # --- save + profiles ------------------------------------------------------
 run save desk "$layout" >/dev/null
@@ -97,6 +105,9 @@ runT() { RYOKU_MONITOR_JSON="$tmp/tv.json" RYOKU_MONITORS_CONF="$conf" \
 runT apply "$tvlayout" >/dev/null
 has "$conf" 'scale = 1.6' "apply did not snap the invalid 720p scale 1.5 to 1.6"
 grep -qF 'scale = 1.5' "$conf" && fail "apply persisted the invalid scale 1.5"
+# A layout with no colour mode is plain sRGB at 8-bit with SDR brightness reset,
+# so switching a display back from HDR fully clears the 10-bit / bright state.
+has "$conf" 'cm = "srgb", bitdepth = 8, sdrbrightness = 1' "apply did not write the sRGB reset (8-bit, SDR brightness 1)"
 jq -e '.monitors[0].scale == 1.6' "$tmp/tv-applied.json" >/dev/null \
   || fail "the applied layout recorded the invalid scale instead of the snapped one"
 runT save tv "$tvlayout" >/dev/null
@@ -178,7 +189,7 @@ jq -e '.monitors[0].scale == 1' "$appliedfile" >/dev/null || fail "applied layou
 
 # ...and a plain login autoscale recalls it (scale 1.0), not the live/DPI scale (2.5).
 runA autoscale >/dev/null
-eDP | grep -qE 'scale = 1(\.0)? ' || fail "autoscale did not recall the applied scale (got: $(eDP))"
+eDP | grep -qE 'scale = 1(\.0)?[, ]' || fail "autoscale did not recall the applied scale (got: $(eDP))"
 eDP | grep -q 'scale = 2.5' && fail "autoscale used the live scale, not the applied layout"
 
 # A forced DPI pass clears the override so it stops winning at login.

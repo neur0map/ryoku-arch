@@ -139,19 +139,40 @@ restore_default() {
   [[ -n $target ]] && pactl set-default-sink "$target" 2>/dev/null || true
 }
 
-# with the chain live and routed, pin the EQ sink to unmuted unity (a stale
-# wireplumber volume/mute remembered for ryoku.eq.sink would otherwise attenuate
-# or fully silence everything routed through it) and pull any stream still on the
-# previous default across, so a stream that predates the swap keeps playing
-# through the EQ even where the session's default-follow policy does not move it.
+# copy a sink's volume + mute onto another, so the master level rides across the
+# default swap instead of jumping. reads the first percentage pactl prints (the
+# sinks are balanced stereo); a parse miss leaves the target untouched.
+carry_volume() {
+  local from=$1 to=$2 v m
+  v=$(pactl get-sink-volume "$from" 2>/dev/null | grep -oE '[0-9]+%' | head -1) || true
+  m=$(pactl get-sink-mute "$from" 2>/dev/null | grep -oE '(yes|no)' | head -1) || true
+  [[ -n $v ]] && pactl set-sink-volume "$to" "$v" 2>/dev/null || true
+  if [[ $m == yes ]]; then
+    pactl set-sink-mute "$to" 1 2>/dev/null || true
+  else
+    pactl set-sink-mute "$to" 0 2>/dev/null || true
+  fi
+}
+
+# with the chain live and routed, make the EQ sink @DEFAULT's continuation of
+# the master volume rather than a second, separate level. node volumes multiply
+# along app -> eq.sink -> eq.out -> hardware, so a hardware sink left at its old
+# level would cap the chain and split volume in two (the OSD and keys drive the
+# EQ sink while the real level hides on the hardware). carry the master onto the
+# EQ sink, pin the hardware leg at unmuted unity, and pull any stream still on
+# the previous default across so it keeps playing through the EQ.
 finalize_enable() {
   local eqid; eqid=$(sink_id ryoku.eq.sink)
   [[ -n $eqid ]] || return 0
   pactl set-sink-mute ryoku.eq.sink 0 2>/dev/null || true
-  pactl set-sink-volume ryoku.eq.sink 100% 2>/dev/null || true
   local prev previd si
   prev=$(cat "$saved_sink" 2>/dev/null || true)
-  [[ -n $prev && $prev != ryoku.eq.sink ]] || return 0
+  # no recorded hardware default: fall back to plain unity so a stale wireplumber
+  # volume/mute on the EQ sink cannot attenuate or silence the chain.
+  [[ -n $prev && $prev != ryoku.eq.sink ]] || { pactl set-sink-volume ryoku.eq.sink 100% 2>/dev/null || true; return 0; }
+  carry_volume "$prev" ryoku.eq.sink
+  pactl set-sink-volume "$prev" 100% 2>/dev/null || true
+  pactl set-sink-mute "$prev" 0 2>/dev/null || true
   previd=$(sink_id "$prev")
   [[ -n $previd ]] || return 0
   for si in $(movable_inputs_on "$previd"); do
@@ -173,6 +194,9 @@ stop() {
   if [[ -n $eqid ]]; then
     local target si; target=$(restore_target)
     if [[ -n $target ]]; then
+      # carry the master level back onto the hardware sink before it becomes the
+      # default again, so switching the EQ off does not jump the volume.
+      carry_volume ryoku.eq.sink "$target"
       for si in $(movable_inputs_on "$eqid"); do
         pactl move-sink-input "$si" "$target" 2>/dev/null || true
       done

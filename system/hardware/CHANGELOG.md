@@ -14,6 +14,15 @@
   with no behaviour change (empty/absent fields still render as `""`).
 
 ### Added
+- `display/ryoku-monitor`: the Settings paths carry per-output colour management.
+  `list` reports each monitor's `cm` (from Hyprland's `colorManagementPreset`,
+  normalised to srgb/wide/hdr) and its SDR brightness; `apply`/`save`/`load` write
+  `cm` with the bit depth it implies (sRGB -> 8-bit, Wide/HDR -> 10-bit) and, in
+  HDR, `sdrbrightness`, into the `hl.monitor({ ... })` calls and the persisted
+  layout. The colour spec is written on every enabled monitor rather than omitted
+  at its default, so switching a display out of HDR live actually clears the
+  10-bit / raised-brightness state instead of leaving it stuck. Covered by
+  `tests/monitor-profiles.sh`.
 - `gpu/ryoku-gpu-lib32`: installs the 32-bit (lib32) GPU userspace for the
   detected hardware, so 32-bit and Proton/DXVK games render on the real GPU
   instead of falling back to software. The base install and the 64-bit driver
@@ -101,16 +110,22 @@
   proprietary modules otherwise.
 
 ### Fixed
-- `audio/ryoku-eq`: switching the EQ on or off no longer silences audio that was
-  already playing. Enable now pins `ryoku.eq.sink` to unmuted unity (a stale
-  wireplumber volume/mute remembered for the virtual sink otherwise attenuated or
-  fully muted everything routed through it) and pulls any stream still on the old
-  default onto it, so a stream that predates the swap keeps playing through the
-  EQ. Disable now moves every stream off `ryoku.eq.sink` and repoints the default
-  before killing the filter chain: tearing the sink out from under a live stream
-  made clients (mpv, browsers) cork themselves, heard as audio that never came
-  back. Full playing->enable->disable cycles now stay audible (RMS-verified) and
-  the crash-recovery self-heal is unchanged.
+- `audio/ryoku-eq`: the equalizer no longer splits the volume, and toggling it
+  never silences or jumps audio that was already playing. Node volumes multiply
+  along `app -> ryoku.eq.sink -> ryoku.eq.out -> hardware`, so enabling the EQ
+  (which makes `ryoku.eq.sink` the default) used to force that sink to 100% while
+  the real level stayed on the hardware sink: a second, hidden volume the OSD,
+  the mixer, and the volume keys could no longer reach. Enable now carries the
+  current master level onto `ryoku.eq.sink` and pins the hardware leg at unmuted
+  unity, so `@DEFAULT_AUDIO_SINK@` stays the one global volume every control
+  reads and writes and the toggle never jumps the level; disable carries it back
+  onto the hardware sink before repointing the default. Enable still pulls any
+  stream on the old default across, and disable still moves every stream off
+  `ryoku.eq.sink` before killing the filter chain (tearing the sink out from
+  under a live stream made clients like mpv and browsers cork themselves, heard
+  as audio that never came back). Full playing->enable->disable cycles stay
+  audible under one continuous volume (verified live), and the crash-recovery
+  self-heal is unchanged.
 - `display/ryoku-monitor`: the Settings paths (`apply`, `save`, `load`) now
   snap every explicit scale to the nearest Hyprland-valid value for its mode (a
   1/120 multiple dividing width and height to whole logical pixels), the same
