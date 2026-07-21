@@ -122,6 +122,7 @@ ryoku_mirror_emergency() {
   local list=$1
   local marker='# ryoku emergency mirrors'
   grep -qF "$marker" "$list" 2>/dev/null && return 0
+  # shellcheck disable=SC2016  # pacman expands $repo/$arch itself; literal on purpose
   if {
     printf '\n%s\n' "$marker"
     printf '# I keep these last: reachable from anywhere, so pacman never runs out of\n'
