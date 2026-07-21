@@ -628,3 +628,156 @@ ryoku_probe_alongside() {
   printf '%s\n' "$regions" | while read -r s e m; do printf 'region %s %s %s\n' "$s" "$e" "$m"; done
   printf 'verdict ok\n'
 }
+
+# ryoku_human_to_mib <value>: convert a btrfs-style size ("144.00MiB", "1.17GiB",
+# "160.00KiB", or a bare byte count) to whole MiB, rounding up. used by the btrfs
+# branch of the resize probe, which reads `btrfs filesystem show` unmounted.
+ryoku_human_to_mib() {
+  local v=$1
+  [[ -n $v ]] || { printf '0'; return 0; }
+  awk -v v="$v" 'BEGIN{
+    n=v; sub(/[KMGTPE]iB$/,"",n)
+    u=v; sub(/^[0-9.]+/,"",u)
+    m=(u=="KiB")?n/1024:(u=="MiB")?n:(u=="GiB")?n*1024:(u=="TiB")?n*1048576:(u=="PiB")?n*1073741824:n/1048576
+    if (m<0) m=0
+    printf "%d", m + 0.999999
+  }'
+}
+
+# ryoku_part_label <partdev>: a single whitespace-free label token for the probe
+# line. fs LABEL first, then GPT PARTLABEL, else "-"; internal whitespace becomes
+# underscores so a "Basic data partition" name can't shift the positional fields.
+ryoku_part_label() {
+  local dev=$1 lbl
+  lbl=$(blkid -o value -s LABEL "$dev" 2>/dev/null || true)
+  [[ -n $lbl ]] || lbl=$(lsblk -dno PARTLABEL "$dev" 2>/dev/null || true)
+  lbl=$(printf '%s' "$lbl" | tr -s '[:space:]' '_')
+  lbl=${lbl#_}; lbl=${lbl%_}
+  [[ -n $lbl ]] || lbl='-'
+  printf '%s' "$lbl"
+}
+
+# ryoku_part_shrink_info <partdev> <fstype> <sizeMiB>: judge ONE partition's
+# shrinkability, strictly read-only, and print "<usedMiB> <minMiB> <shrinkable> <reason...>".
+# usedMiB/minMiB are -1 when unknown or not shrinkable. the resize probe and the
+# carve re-verify both call this, so a partition is judged the same in both places.
+ryoku_part_shrink_info() {
+  local dev=$1 fstype=$2 size_mib=$3
+  local used=-1 min=-1 shrink=no reason
+  case $fstype in
+    ntfs)
+      if ! command -v ntfsresize >/dev/null 2>&1; then
+        reason="ntfsresize (ntfsprogs) not installed"
+      else
+        local info min_bytes margin
+        info=$(ntfsresize --info "$dev" 2>&1 || true)
+        if grep -q 'You might resize at' <<<"$info"; then
+          min_bytes=$(grep -o 'You might resize at [0-9]\+ bytes' <<<"$info" | grep -o '[0-9]\+' | head -n1)
+          [[ -n $min_bytes ]] || min_bytes=0
+          used=$(( (min_bytes + 1048575) / 1048576 ))
+          margin=$(( size_mib / 10 )); (( margin < 1024 )) && margin=1024
+          min=$(( used + margin ))
+          if (( min < size_mib )); then shrink=yes; reason="clean NTFS"; else reason="NTFS already at its minimum size"; fi
+        elif grep -qiE 'scheduled for check|volume is dirty|unsafe state|hibernat' <<<"$info"; then
+          reason="NTFS is dirty (hibernated or Fast Startup): boot Windows, disable Fast Startup, full shutdown"
+        else
+          reason="NTFS could not be probed (ntfsresize --info failed)"
+        fi
+      fi
+      ;;
+    ext4|ext3|ext2)
+      local state bs blkcount freeblk mblocks
+      state=$(dumpe2fs -h "$dev" 2>/dev/null | sed -n 's/^Filesystem state:[[:space:]]*//p' | head -n1)
+      if [[ $state != clean ]]; then
+        reason="${fstype} is not clean (${state:-unknown}): run e2fsck -f first"
+      else
+        bs=$(dumpe2fs -h "$dev" 2>/dev/null | sed -n 's/^Block size:[[:space:]]*//p' | head -n1)
+        blkcount=$(dumpe2fs -h "$dev" 2>/dev/null | sed -n 's/^Block count:[[:space:]]*//p' | head -n1)
+        freeblk=$(dumpe2fs -h "$dev" 2>/dev/null | sed -n 's/^Free blocks:[[:space:]]*//p' | head -n1)
+        mblocks=$(resize2fs -P "$dev" 2>/dev/null | sed -n 's/.*:[[:space:]]*//p' | head -n1)
+        if [[ $bs =~ ^[0-9]+$ && $mblocks =~ ^[0-9]+$ ]]; then
+          min=$(( (mblocks * bs + 1048575) / 1048576 ))
+          min=$(( min + (min + 9) / 10 ))
+          [[ $blkcount =~ ^[0-9]+$ && $freeblk =~ ^[0-9]+$ ]] && used=$(( (blkcount - freeblk) * bs / 1048576 ))
+          if (( min < size_mib )); then shrink=yes; reason="${fstype}"; else reason="${fstype} already near its minimum size"; fi
+        else
+          reason="${fstype} minimum size could not be estimated"
+        fi
+      fi
+      ;;
+    btrfs)
+      local show total used_h alloc_h used_m alloc_m
+      show=$(btrfs filesystem show "$dev" 2>/dev/null || true)
+      total=$(grep -o 'Total devices [0-9]\+' <<<"$show" | grep -o '[0-9]\+' | head -n1)
+      if [[ -z $show ]]; then
+        reason="btrfs could not be probed"
+      elif [[ ${total:-1} != 1 ]]; then
+        reason="multi-device btrfs: shrink unsupported"
+      else
+        used_h=$(grep -o 'FS bytes used [0-9.]\+[KMGTPE]iB' <<<"$show" | awk '{print $NF}' | head -n1)
+        alloc_h=$(sed -n 's/.*devid.* used \([0-9.]\+[KMGTPE]iB\) .*/\1/p' <<<"$show" | head -n1)
+        used_m=$(ryoku_human_to_mib "$used_h")
+        alloc_m=$(ryoku_human_to_mib "$alloc_h")
+        used=$used_m
+        # btrfs cannot shrink below the highest allocated chunk without a balance,
+        # so the honest floor is max(used + 15%, currently allocated), not used+15%.
+        min=$(( used_m + (used_m * 15 + 99) / 100 ))
+        (( min < alloc_m )) && min=$alloc_m
+        if (( min < size_mib )); then shrink=yes; reason="single-device btrfs"; else reason="btrfs already near its minimum size"; fi
+      fi
+      ;;
+    swap)
+      used=0; min=8; shrink=yes; reason="swap (recreated smaller, UUID kept)"
+      ;;
+    crypto_LUKS)
+      reason="LUKS: carve is a documented follow-up (decrypt, or use whole-disk)"
+      ;;
+    BitLocker)
+      reason="BitLocker: decrypt in Windows first"
+      ;;
+    vfat)
+      reason="FAT/ESP: not carveable"
+      ;;
+    '')
+      reason="no filesystem"
+      ;;
+    *)
+      reason="${fstype}: not carveable"
+      ;;
+  esac
+  printf '%s %s %s %s\n' "$used" "$min" "$shrink" "$reason"
+}
+
+# ryoku_probe_resize <disk>: the read-only report the TUI's carve view renders.
+# a superset of `probe alongside`: the same sectorsize/esp/region lines, PLUS one
+# `part` line per partition describing what it can give up. frozen format lives in
+# .superpowers/sdd/resize-probe-format.txt. a fully allocated disk (no region
+# lines) is still verdict ok -- that is exactly the disk carve exists for.
+ryoku_probe_resize() {
+  local disk=$1 pttype ss esp regions p idx fstype label size_mib info
+  [[ -b $disk ]] || { printf 'verdict error\nmessage %s is not a block device\n' "$disk"; return 0; }
+  pttype=$(blkid -o value -s PTTYPE "$disk" 2>/dev/null || true)
+  if [[ $pttype != gpt ]]; then
+    printf 'verdict no-gpt\nmessage %s has a '\''%s'\'' partition table; carve needs GPT. Use whole-disk, or convert to GPT.\n' "$disk" "${pttype:-none}"
+    return 0
+  fi
+  if ! sfdisk --json "$disk" >/dev/null 2>&1; then
+    printf 'verdict error\nmessage could not read the partition table on %s (sfdisk failed); the disk may be unreadable or lack a usable GPT.\n' "$disk"
+    return 0
+  fi
+  ss=$(blockdev --getss "$disk" 2>/dev/null || echo 512)
+  printf 'sectorsize %s\n' "$ss"
+  if esp=$(ryoku_windows_esp "$disk"); then printf 'esp %s\n' "$esp"; fi
+  regions=$(ryoku_free_regions "$disk" | sort -k3,3 -nr)
+  [[ -n $regions ]] && printf '%s\n' "$regions" | while read -r s e m; do printf 'region %s %s %s\n' "$s" "$e" "$m"; done
+  while IFS= read -r p; do
+    [[ -n $p ]] || continue
+    idx=$(part_num "$p")
+    fstype=$(blkid -o value -s TYPE "$p" 2>/dev/null || true)
+    label=$(ryoku_part_label "$p")
+    size_mib=$(( $(blockdev --getsize64 "$p" 2>/dev/null || echo 0) / 1048576 ))
+    info=$(ryoku_part_shrink_info "$p" "$fstype" "$size_mib")
+    printf 'part %s %s %s %s %s %s\n' "$p" "$idx" "${fstype:--}" "$label" "$size_mib" "$info"
+  done < <(ryoku_partitions "$disk")
+  printf 'verdict ok\n'
+}
