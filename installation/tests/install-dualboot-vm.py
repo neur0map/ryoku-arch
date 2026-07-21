@@ -635,6 +635,30 @@ def write_cache_readme():
 
 
 # ----------------------------------------------------------------------------- #
+# Carve leg helpers: parse `ryoku-install probe resize <disk>` off the live serial
+# to pick the NTFS partition the backend reports shrinkable (frozen probe format,
+# .superpowers/sdd/resize-probe-format.txt: part <dev> <idx> <fstype> <label>
+# <sizeMiB> <usedMiB> <minMiB> <shrinkable> <reason...>).
+def _carve_pick_ntfs(probe_text):
+    for line in probe_text.splitlines():
+        f = line.split()
+        if "part" not in f:
+            continue
+        g = f[f.index("part"):]
+        if len(g) >= 9 and g[3] == "ntfs" and g[8] == "yes":
+            return g[1]
+    return None
+
+
+def _carve_probe_line(probe_text, dev):
+    for line in probe_text.splitlines():
+        f = line.split()
+        if "part" in f and dev in f:
+            return " ".join(f[f.index("part"):])
+    return ""
+
+
+# ----------------------------------------------------------------------------- #
 # Stage 2: overlay + Ryoku alongside install (pexpect over serial, install-vm.py
 # contract with the two alongside tweaks: AHCI /dev/sda + strategy=alongside).
 def make_overlay(work):
@@ -646,7 +670,7 @@ def make_overlay(work):
     return overlay
 
 
-def ryoku_install(work, iso, overlay, user="ryoku"):
+def ryoku_install(work, iso, overlay, user="ryoku", carve_take_mib=None, ev=None):
     import pexpect
     varsfd = fresh_vars(work, "OVMF_VARS_ryoku.fd")
     serial_log = os.path.join(work, "ryoku-serial.log")
@@ -696,13 +720,28 @@ def ryoku_install(work, iso, overlay, user="ryoku"):
             child.expect(r"# ", timeout=120)
         log_reached = "live shell reached"
         print(f"dualboot-vm: {log_reached}")
-        # alongside contract: keep every existing partition, take the largest free
-        # region (omit RYOKU_REGION_*), defaults elsewhere. NO RYOKU_WIPE_CONFIRMED.
+        # alongside contract: keep every existing partition, defaults elsewhere.
+        # NO RYOKU_WIPE_CONFIRMED. The carve leg additionally shrinks C: first.
         env = (f"RYOKU_DISK=/dev/sda RYOKU_DISK_STRATEGY=alongside "
                f"RYOKU_PROFILE=vm RYOKU_HOSTNAME=ryoku-dual RYOKU_USERNAME={user} "
                f"RYOKU_SKIP_AUR=1 RYOKU_REPO=/usr/share/ryoku "
                f"RYOKU_KEYMAP=us RYOKU_XKB_LAYOUT=us "
                f"RYOKU_PASSWORD_HASH='{pwhash}'")
+        if carve_take_mib:
+            # the disk is FULL, so there is no pre-made gap to take. Probe first and
+            # REQUIRE C: reported shrinkable, then carve it by the requested amount;
+            # the backend frees that region and installs Ryoku into it.
+            probe_out = sh("ryoku-install probe resize /dev/sda", t=180)
+            cpart = _carve_pick_ntfs(probe_out)
+            if not cpart:
+                bail("probe resize did not report an NTFS partition as shrinkable "
+                     f"(C: not carveable):\n{probe_out[-1500:]}")
+            pline = _carve_probe_line(probe_out, cpart)
+            print(f"dualboot-vm: probe resize -> {pline}")
+            print(f"dualboot-vm: carving {carve_take_mib} MiB out of {cpart}")
+            if ev is not None:
+                ev["carve"] = {"part": cpart, "take_mib": carve_take_mib, "probe_line": pline}
+            env += f" RYOKU_RESIZE_PART={cpart} RYOKU_RESIZE_TAKE_MIB={carve_take_mib}"
         sh(": > /usr/share/ryoku/system/packages/aur.packages", t=60)
         child.sendline(f"export {env}; ryoku-install; echo BACKEND_EXIT:$?")
         j = child.expect([r"@@RYOKU_DONE", r"BACKEND_EXIT:[1-9]", pexpect.TIMEOUT],
@@ -728,10 +767,11 @@ def ryoku_install(work, iso, overlay, user="ryoku"):
 
 # ----------------------------------------------------------------------------- #
 # Stage 3A: table integrity.
-def assert_table(overlay, manifest, ev):
+def assert_table(overlay, manifest, ev, carved_type=None):
     log("Stage 3A: table integrity (qemu-nbd read-only)")
     dev = nbd_connect(overlay, readonly=True)
     diffs = []
+    carved_new_end = None
     try:
         table = sfdisk_json(dev)
         sector = table.get("sectorsize", 512)
@@ -752,9 +792,31 @@ def assert_table(overlay, manifest, ev):
                 continue
             if match["start"] != base["start"]:
                 diffs.append(f"{u}: start {base['start']} -> {match['start']}")
-            if match["start"] + match["size"] - 1 != base["end"]:
-                diffs.append(f"{u}: end {base['end']} -> "
-                             f"{match['start'] + match['size'] - 1}")
+            new_end = match["start"] + match["size"] - 1
+            is_carved = carved_type is not None and base["type"] == carved_type
+            if is_carved:
+                # the carved partition is INTENTIONALLY smaller. Prove it actually
+                # shrank and kept its start, typeGUID, and PARTUUID (the dict key).
+                # Its edge bytes are NOT asserted: ntfsresize rewrites the NTFS boot
+                # sector at the START (total-sectors field + the scheduled chkdsk
+                # flag) and the new END is the fresh boundary, so both MiB edges
+                # legitimately change. Data integrity is proven by Stage 3B (clean
+                # NTFS + intact registry hive) and, decisively, leg 2 booting Windows
+                # to login after its own C: was shrunk.
+                if new_end >= base["end"]:
+                    diffs.append(f"{u}: carved partition did not shrink "
+                                 f"(end {base['end']} -> {new_end})")
+                else:
+                    carved_new_end = new_end
+                    ev.setdefault("stage3A_notes", []).append(
+                        f"{u}: carved C: shrank end {base['end']} -> {new_end} "
+                        f"({(base['end'] - new_end) * sector // MIB} MiB freed); "
+                        f"boot-sector bytes rewritten by ntfsresize (expected)")
+                if match["type"].upper() != base["type"]:
+                    diffs.append(f"{u}: typeGUID {base['type']} -> {match['type']}")
+                continue
+            if new_end != base["end"]:
+                diffs.append(f"{u}: end {base['end']} -> {new_end}")
             if match["type"].upper() != base["type"]:
                 diffs.append(f"{u}: typeGUID {base['type']} -> {match['type']}")
             # The Windows ESP is the ONE partition alongside intentionally writes
@@ -787,22 +849,29 @@ def assert_table(overlay, manifest, ev):
             diffs.append(f"new partition types {types_new} != XBOOTLDR+Linux "
                          f"({GUID_XBOOTLDR},{GUID_LINUX})")
 
-        # the new partitions lie strictly inside the FORMER free region (the gap
-        # between C: end and the trailing WinRE start).
-        cbytes = sorted(manifest["partitions"], key=lambda e: e["start"])
-        gap_start = gap_end = None
-        for a, b in zip(cbytes, cbytes[1:]):
-            if b["start"] - (a["end"] + 1) >= 2 * 1024 * MIB // sector:
-                if gap_start is None or (b["start"] - a["end"]) > (gap_end - gap_start):
-                    gap_start, gap_end = a["end"] + 1, b["start"] - 1
+        # the new partitions lie strictly inside the free region Ryoku installed
+        # into: on the plain alongside disk that is the pre-existing gap (from the
+        # manifest); on the carve disk it is the space just freed at C:'s NEW end.
+        if carved_type is not None and carved_new_end is not None:
+            after = [p for p in table["partitions"]
+                     if p["start"] > carved_new_end and p.get("uuid", "").upper() in pre_uuids]
+            gap_start = carved_new_end + 1
+            gap_end = (min(p["start"] for p in after) - 1) if after else table["lastlba"]
+        else:
+            cbytes = sorted(manifest["partitions"], key=lambda e: e["start"])
+            gap_start = gap_end = None
+            for a, b in zip(cbytes, cbytes[1:]):
+                if b["start"] - (a["end"] + 1) >= 2 * 1024 * MIB // sector:
+                    if gap_start is None or (b["start"] - a["end"]) > (gap_end - gap_start):
+                        gap_start, gap_end = a["end"] + 1, b["start"] - 1
         if gap_start is None:
             diffs.append("no former free region found between pre-existing partitions")
         else:
             for p in new:
                 s, e = p["start"], p["start"] + p["size"] - 1
                 if s < gap_start or e > gap_end:
-                    diffs.append(f"new {p['node']} sectors {s}-{e} escape the former "
-                                 f"free region {gap_start}-{gap_end}")
+                    diffs.append(f"new {p['node']} sectors {s}-{e} escape the free "
+                                 f"region {gap_start}-{gap_end}")
 
         # still exactly ONE EF00 on the disk (Windows' ESP; ours is ea00 XBOOTLDR)
         ef = [p for p in table["partitions"] if p["type"].upper() == GUID_EFI]
@@ -1132,7 +1201,7 @@ def boot_leg_ryoku(overlay, work, ev):
     return ok
 
 
-def boot_leg_windows(overlay, work, ev):
+def boot_leg_windows(overlay, work, ev, require_login=False):
     # Leg 2: select the Windows entry and prove bootmgfw actually LOADS. Pressing
     # DOWN once STOPS limine's auto-boot countdown AND moves the selection from the
     # default (Ryoku, entry 1) to Windows (entry 2), so there is no countdown race;
@@ -1163,11 +1232,18 @@ def boot_leg_windows(overlay, work, ev):
     recovery_re = re.compile(r"needs to be repaired|recovery|failed to start|"
                              r"automatic repair|winload|0xc0|inaccessible|"
                              r"boot device|bootmgfw|winre", re.I)
+    # the Windows lock screen (the login surface: click it for the password field)
+    # shows a large clock + date and often no words, so match the time/date too.
     winalive_re = re.compile(r"getting windows ready|just a moment|please wait|"
                              r"welcome|preparing|sign in|password|other user|"
-                             r"ease of access", re.I)
+                             r"ease of access|\d{1,2}:\d{2}\s*[ap]m|"
+                             r"\d{1,2}/\d{1,2}/20\d\d", re.I)
     ryoku_serial_re = re.compile(r"Reached target|systemd\[1\]|Arch Linux|"
                                  r"login:|sddm|ryoku-dual", re.I)
+    # after a carve, ntfsresize set C:'s scheduled-check flag, so Windows runs a
+    # one-time chkdsk before it boots. Detect it to log + keep waiting for login.
+    chkdsk_re = re.compile(r"scanning and repairing|checking file system|"
+                           r"repairing drive|chkdsk|percent complete", re.I)
 
     def read_serial():
         if not os.path.exists(serial):
@@ -1196,7 +1272,8 @@ def boot_leg_windows(overlay, work, ev):
         shots.append(("selected", pngs, ocr_png(pngs)))
         mon.cmd("sendkey ret")
         # Poll for handoff evidence.
-        deadline = time.time() + 60 * 4
+        deadline = time.time() + 60 * (10 if require_login else 4)
+        chkdsk_logged = False
         idx = 0
         while time.time() < deadline:
             time.sleep(15)
@@ -1224,13 +1301,23 @@ def boot_leg_windows(overlay, work, ev):
                 break
             if winalive_re.search(txt):
                 verdict = "BOOTMGFW_ALIVE"
-                detail = f"Windows boot/login UI (bootmgfw loaded): {txt[:160]!r}"
+                detail = (("Windows reached login/welcome after its C: was shrunk "
+                           "(chkdsk included): " if require_login
+                           else "Windows boot/login UI (bootmgfw loaded): ")
+                          + f"{txt[:160]!r}")
                 break
+            if chkdsk_re.search(txt):
+                if not chkdsk_logged:
+                    log("Stage 3C leg 2: Windows chkdsk pass in progress "
+                        "(expected once after a carve)")
+                    chkdsk_logged = True
+                continue
             # menu gone + serial silent (no Linux) + no panic, several polls in ->
             # bootmgfw handed off to a graphical Windows boot (logo/spinner/clock
-            # carries little OCR text; Ryoku would have printed to serial).
-            if menu_seen and not menu_re.search(txt) and not ryoku_serial_re.search(sertail) \
-                    and idx >= 3:
+            # carries little OCR text; Ryoku would have printed to serial). The
+            # carve leg does NOT accept this weaker signal: it waits for real login.
+            if not require_login and menu_seen and not menu_re.search(txt) \
+                    and not ryoku_serial_re.search(sertail) and idx >= 3:
                 verdict = "BOOTMGFW_ALIVE"
                 detail = ("limine menu handed off; serial silent (not Ryoku), no "
                           "panic -> graphical Windows boot")
@@ -1244,6 +1331,7 @@ def boot_leg_windows(overlay, work, ev):
         "verdict": verdict,
         "detail": detail,
         "menu_rendered": menu_seen,
+        "chkdsk_seen": chkdsk_logged,
         "serial_tail": read_serial()[-800:],
         "screendumps": [{"tag": t, "png": p, "ocr": (o[:400] if o else "")}
                         for (t, p, o) in shots],
@@ -1276,6 +1364,10 @@ def main():
                     help="require an existing cached golden (fail if absent)")
     ap.add_argument("--keep", action="store_true", help="keep overlays + work dir")
     ap.add_argument("--report", default=None, help="write the evidence JSON here")
+    ap.add_argument("--carve", type=int, default=0, metavar="GIB",
+                    help="carve leg: shrink Windows C: by GIB via the real backend "
+                         "(RYOKU_RESIZE_PART/TAKE_MIB) and install into the freed "
+                         "space; 0 = plain alongside into the pre-existing gap")
     args = ap.parse_args()
 
     if not OVMF_CODE or not OVMF_VARS:
@@ -1310,17 +1402,21 @@ def main():
     ev["ryoku_iso_sha256"] = sha256_file(args.iso)
 
     overlay = make_overlay(work)
-    ryoku_install(work, args.iso, overlay)
+    carve_take_mib = args.carve * 1024 if args.carve else None
+    if carve_take_mib:
+        log(f"CARVE LEG: will shrink Windows C: by {args.carve} GiB and install into it")
+    ryoku_install(work, args.iso, overlay, carve_take_mib=carve_take_mib, ev=ev)
 
     a_ok = b_ok = leg1_ok = False
     leg2 = "INCONCLUSIVE"
     report_path = args.report or os.path.join(work, "evidence.json")
     try:
-        a_ok = assert_table(overlay, manifest, ev)
+        a_ok = assert_table(overlay, manifest, ev,
+                            carved_type=(GUID_MSDATA if args.carve else None))
         b_ok = assert_filesystems(overlay, manifest, ev)
         prep_overlay_bootconf(overlay, work)
         leg1_ok = boot_leg_ryoku(overlay, work, ev)
-        leg2 = boot_leg_windows(overlay, work, ev)
+        leg2 = boot_leg_windows(overlay, work, ev, require_login=bool(args.carve))
     finally:
         leg2_ok = leg2 in ("BOOTMGFW_ALIVE", "BOOTMGFW_ALIVE_OS_DAMAGED")
         # VERDICT: does the alongside install leave a WORKING dual-boot? Any of a
@@ -1344,7 +1440,7 @@ def main():
             json.dump(ev, f, indent=2)
 
     log("=" * 68)
-    log(f"VERDICT: the alongside install {verdict}")
+    log(f"VERDICT: the {'carve' if args.carve else 'alongside'} install {verdict}")
     log(f"  table integrity:      {'PASS' if a_ok else 'FAIL'}")
     log(f"  filesystem health:    {'PASS' if b_ok else 'FAIL'}")
     log(f"  leg1 Ryoku boots:     {'PASS' if leg1_ok else 'FAIL'}")
