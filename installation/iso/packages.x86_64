@@ -56,6 +56,11 @@ cage
 foot
 xorg-xwayland
 ttf-jetbrains-mono-nerd
+# ryoku-cursors: the Bibata XCursor set the desktop is configured against, from
+# the [ryoku] repo (build.sh wires a local file:// mirror into the staged
+# pacman.conf). Gives the cage kiosk the real Ryoku pointer instead of the wlroots
+# fallback bitmap; the installer session exports XCURSOR_THEME to match.
+ryoku-cursors
 
 # Small CLI tools the TUI and backend shell out to.
 git

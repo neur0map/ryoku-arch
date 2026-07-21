@@ -60,6 +60,57 @@ stage_repo() {
   git -C "$src" archive --format=tar HEAD | tar -C "$dst" -xf -
 }
 
+# populate a local [ryoku] repo the staged pacman.conf's file:// token points at,
+# so mkarchiso can install ryoku-cursors (the Bibata cursor theme the live kiosk
+# needs) into the airootfs. source precedence keeps dev/test ISOs off public
+# infra and fails closed:
+#   1. RYOKU_ISO_LOCAL_REPO   an explicit build-repo.sh out/ tree
+#   2. release/repo/out/x86_64 a repo already built in this checkout
+#   3. repo.ryoku.dev          fetched; fails actionably if unreachable or if
+#                              ryoku-cursors is not published yet
+# publish-repo (on a main push) therefore precedes build-iso (on a tag): the
+# package must already be in the repo when a tagged ISO builds.
+stage_ryoku_repo() {
+  local arch=x86_64
+  # outside PROFILE_STAGE on purpose: it must not land in the profile mkarchiso
+  # ships, and iso-stage-check diffs only the profile tree.
+  local dst=$STAGE_DIR/ryoku-repo/$arch
+  rm -rf "$dst"; mkdir -p "$dst"
+
+  local src=""
+  if [[ -n ${RYOKU_ISO_LOCAL_REPO:-} ]]; then
+    src=$RYOKU_ISO_LOCAL_REPO/$arch
+    [[ -f $src/ryoku.db ]] || src=$RYOKU_ISO_LOCAL_REPO   # accept a tree with or without the arch subdir
+    [[ -f $src/ryoku.db ]] || die "RYOKU_ISO_LOCAL_REPO=$RYOKU_ISO_LOCAL_REPO has no ryoku.db (expected a release/repo/build-repo.sh out/ tree)"
+  elif [[ -f $REPO_ROOT/release/repo/out/$arch/ryoku.db ]]; then
+    src=$REPO_ROOT/release/repo/out/$arch
+  fi
+
+  if [[ -n $src ]]; then
+    log "Staging [ryoku] from local repo $src"
+    cp -a "$src"/. "$dst/"
+    compgen -G "$dst/ryoku-cursors-*.pkg.tar.zst" >/dev/null \
+      || die "local [ryoku] repo $src has no ryoku-cursors package; rebuild it (release/repo/build-repo.sh) or repoint RYOKU_ISO_LOCAL_REPO"
+  else
+    local base=${RYOKU_ISO_REPO_URL:-https://repo.ryoku.dev/stable/$arch}
+    log "Fetching [ryoku] db + ryoku-cursors from $base"
+    curl -fsSL --retry 2 --max-time 30 -o "$dst/ryoku.db" "$base/ryoku.db" \
+      || die "cannot reach the [ryoku] repo at $base -- publish the repo first, or set RYOKU_ISO_LOCAL_REPO to a build-repo.sh out/ tree"
+    local file
+    file=$(bsdtar -xOf "$dst/ryoku.db" 2>/dev/null | awk '/^%FILENAME%/{getline; print}' | grep -E '^ryoku-cursors-' | head -n1 || true)
+    [[ -n $file ]] || die "ryoku-cursors is not published in $base yet -- publish the repo first, or set RYOKU_ISO_LOCAL_REPO to a build-repo.sh out/ tree"
+    curl -fsSL --retry 2 --max-time 120 -o "$dst/$file" "$base/$file" || die "cannot fetch $file from $base"
+    curl -fsSL --retry 2 --max-time 30 -o "$dst/$file.sig" "$base/$file.sig" 2>/dev/null || true
+  fi
+
+  # only the Server line carries the file:// token; the comment's bare
+  # @RYOKU_ISO_REPO@ mention is left intact (and stays reproducible).
+  sed -i "s|file://@RYOKU_ISO_REPO@|file://$dst|" "$PROFILE_STAGE/pacman.conf"
+  grep -q "^Server = file://$dst\$" "$PROFILE_STAGE/pacman.conf" \
+    || die "failed to wire the [ryoku] repo path into the staged pacman.conf"
+  log "[ryoku] staged at $dst"
+}
+
 # 0. preflight.
 [[ -f $TUI_DIR/go.mod ]]         || die "installer TUI not found at $TUI_DIR"
 [[ -f $BACKEND_DIR/ryoku-install ]] || die "backend not found at $BACKEND_DIR/ryoku-install"
@@ -86,6 +137,10 @@ if [[ ${RYOKU_ISO_REPRO:-0} == 1 ]]; then
   sed -i "s|^Include = /etc/pacman.d/mirrorlist|Server = https://archive.archlinux.org/repos/$ala_date/\$repo/os/\$arch|" \
     "$PROFILE_STAGE/pacman.conf"
 fi
+
+# 1b. wire the [ryoku] repo so the staged pacman.conf's file:// token resolves
+#     and mkarchiso can install ryoku-cursors into the live set.
+stage_ryoku_repo
 
 # 2. build the installer TUI from source. live env has no Go toolchain;
 #    the ISO carries the prebuilt binary.
