@@ -1202,21 +1202,122 @@ func reconcilePortalRouting(checkOnly bool) recResult {
 
 // ---- reconciler: cursor theme ------------------------------------------------
 
-// reconcileCursorTheme flags a Ryoku desktop with no Bibata cursor theme.
-// shipped XCURSOR_THEME default (env.lua + Ryoku Settings) = Bibata-Modern-Ice,
-// and the AUR set installs the whole Bibata family. but a failed source build
-// or a dev checkout (deploy.sh installs no AUR packages) can leave the cursor
-// picker with only a single fallback. the -bin package is prebuilt, so the
-// fix never has to compile.
-func reconcileCursorTheme(_ bool) recResult {
+const defaultCursorTheme = "Bibata-Modern-Ice"
+
+// cursorSearchDirs: the XCursor theme search path, in load order. the system dir
+// (where ryoku-cursors installs the Bibata family) first, then the two per-user
+// dirs a Hub-installed third-party theme can land in.
+func cursorSearchDirs() []string {
+	return []string{
+		"/usr/share/icons",
+		filepath.Join(sys.Home(), ".local", "share", "icons"),
+		filepath.Join(sys.Home(), ".icons"),
+	}
+}
+
+// cursorThemeInstalled: is <theme>/cursors present under any search dir? a bare
+// theme dir with no cursors/ is an index-only stub the loader cannot use.
+func cursorThemeInstalled(theme string, dirs []string) bool {
+	if theme == "" {
+		return false
+	}
+	for _, d := range dirs {
+		if sys.Exists(filepath.Join(d, theme, "cursors")) {
+			return true
+		}
+	}
+	return false
+}
+
+// configuredCursor: the theme + size the desktop actually loads = the Hub
+// override in hypr.json when set, else the shipped env.lua default. pure, so the
+// converge decision is unit-testable without a live desktop.
+func configuredCursor(raw []byte) (string, int) {
+	theme, size := defaultCursorTheme, 24
+	var cfg struct {
+		Cursor struct {
+			Theme string `json:"theme"`
+			Size  int    `json:"size"`
+		} `json:"cursor"`
+	}
+	if json.Unmarshal(raw, &cfg) == nil {
+		if cfg.Cursor.Theme != "" {
+			theme = cfg.Cursor.Theme
+		}
+		if cfg.Cursor.Size > 0 {
+			size = cfg.Cursor.Size
+		}
+	}
+	return theme, size
+}
+
+// resetCursorTheme rewrites hypr.json's cursor.theme to def, leaving every other
+// key (size, the rest of the store) intact. pure and idempotent.
+func resetCursorTheme(raw []byte, def string) ([]byte, error) {
+	cfg := map[string]any{}
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &cfg); err != nil {
+			return nil, err
+		}
+	}
+	cur, _ := cfg["cursor"].(map[string]any)
+	if cur == nil {
+		cur = map[string]any{}
+	}
+	cur["theme"] = def
+	cfg["cursor"] = cur
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return append(out, '\n'), nil
+}
+
+// reconcileCursorTheme keeps the desktop pointing at a cursor theme that is
+// actually on disk. ryoku-cursors now ships the Bibata family as a hard
+// ryoku-desktop dependency, so the configured default is package-guaranteed and
+// the failure worth healing is a Hub-picked third-party theme that was never
+// installed (or was removed): the pointer then falls back to a bare bitmap.
+// the fix is config-side -- reset hypr.json to the guaranteed default -- never a
+// pacman call. when even the default is absent (a dev checkout with no package)
+// there is nothing config can heal, so it only warns.
+func reconcileCursorTheme(checkOnly bool) recResult {
 	if !sys.Exists(filepath.Join(sys.Home(), ".config", "hypr")) && !sys.Has("Hyprland") {
 		return okRes("not a Hyprland desktop")
 	}
-	if anyPkgInstalled("bibata-cursor-theme-bin", "bibata-cursor-theme") {
-		return okRes("Bibata cursor themes installed")
+	dirs := cursorSearchDirs()
+	store := filepath.Join(sys.ConfigHome(), "ryoku", "hypr.json")
+	raw, _ := os.ReadFile(store)
+	theme, size := configuredCursor(raw)
+	if cursorThemeInstalled(theme, dirs) {
+		return okRes("configured cursor theme %q is installed", theme)
 	}
-	return warnRes("Ryoku's Bibata cursor themes are missing; the cursor picker has only fallbacks").
-		withFix("ryoku-pkg-aur-add bibata-cursor-theme-bin")
+	if !cursorThemeInstalled(defaultCursorTheme, dirs) {
+		// the package default is missing too: no config edit can conjure the
+		// theme files, and doctor never drives pacman.
+		return warnRes("cursor theme %q is missing on disk and so is the default %q; the pointer falls back to a bitmap", theme, defaultCursorTheme).
+			withFix("install ryoku-cursors (it ships the Bibata family and is a ryoku-desktop dependency)")
+	}
+	if checkOnly {
+		return wouldRes("cursor theme %q missing on disk; would reset to %s", theme, defaultCursorTheme).
+			withFix("ryoku doctor resets it to %s; re-pick your theme in the Hub after installing it", defaultCursorTheme)
+	}
+	out, err := resetCursorTheme(raw, defaultCursorTheme)
+	if err != nil {
+		return warnRes("cursor theme %q missing on disk and hypr.json does not parse (%v)", theme, err).
+			withFix("set cursor.theme to %s in %s", defaultCursorTheme, store)
+	}
+	tmp := store + ".ryoku-tmp"
+	if err := os.WriteFile(tmp, out, 0o644); err != nil {
+		return failRes("could not write %s: %v", tmp, err)
+	}
+	if err := os.Rename(tmp, store); err != nil {
+		os.Remove(tmp)
+		return failRes("could not replace %s: %v", store, err)
+	}
+	// best-effort live apply; no-ops off a running session.
+	_ = exec.Command("hyprctl", "setcursor", defaultCursorTheme, fmt.Sprintf("%d", size)).Run()
+	return fixedRes("cursor theme %q missing on disk; reset to %s (re-pick your theme in the Hub after installing it)", theme, defaultCursorTheme)
 }
 
 // ---- reconciler: SDDM greeter theme readable ---------------------------------

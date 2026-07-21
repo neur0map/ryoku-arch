@@ -461,6 +461,94 @@ func TestReconcileCursorThemeNotDesktop(t *testing.T) {
 	}
 }
 
+func TestConfiguredCursor(t *testing.T) {
+	if th, sz := configuredCursor(nil); th != defaultCursorTheme || sz != 24 {
+		t.Fatalf("no store: got %q/%d, want %s/24", th, sz, defaultCursorTheme)
+	}
+	if th, sz := configuredCursor([]byte(`{"cursor":{"theme":"phinger-cursors","size":32}}`)); th != "phinger-cursors" || sz != 32 {
+		t.Fatalf("override: got %q/%d, want phinger-cursors/32", th, sz)
+	}
+	if th, sz := configuredCursor([]byte(`not json`)); th != defaultCursorTheme || sz != 24 {
+		t.Fatalf("garbage store must fall back to the default: got %q/%d", th, sz)
+	}
+}
+
+func TestCursorThemeInstalled(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "Real-Theme", "cursors"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// a theme dir with no cursors/ subdir is an index-only stub, not usable.
+	if err := os.MkdirAll(filepath.Join(root, "Stub-Theme"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	dirs := []string{root}
+	if !cursorThemeInstalled("Real-Theme", dirs) {
+		t.Error("Real-Theme with a cursors/ dir must count as installed")
+	}
+	if cursorThemeInstalled("Stub-Theme", dirs) {
+		t.Error("a theme with no cursors/ dir must not count as installed")
+	}
+	if cursorThemeInstalled("", dirs) || cursorThemeInstalled("Absent", dirs) {
+		t.Error("empty or absent theme must not count as installed")
+	}
+}
+
+func TestResetCursorTheme(t *testing.T) {
+	out, err := resetCursorTheme([]byte(`{"cursor":{"theme":"phinger-cursors","size":32},"input":{"sensitivity":0.2}}`), defaultCursorTheme)
+	if err != nil {
+		t.Fatal(err)
+	}
+	th, sz := configuredCursor(out)
+	if th != defaultCursorTheme || sz != 32 {
+		t.Fatalf("reset kept theme %q size %d, want %s/32 (size preserved)", th, sz, defaultCursorTheme)
+	}
+	if !strings.Contains(string(out), "sensitivity") {
+		t.Error("reset dropped an unrelated key")
+	}
+}
+
+// the converge path: a Hub-picked theme that is not on disk resets to the
+// package-guaranteed default, then a re-run is a no-op.
+func TestReconcileCursorThemeConverge(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("PATH", t.TempDir()) // no hyprctl; the live setcursor no-ops
+	if err := os.MkdirAll(filepath.Join(home, ".config", "hypr"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// the default is present in a per-user icon dir (independent of /usr/share).
+	if err := os.MkdirAll(filepath.Join(home, ".local", "share", "icons", defaultCursorTheme, "cursors"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	store := filepath.Join(home, ".config", "ryoku", "hypr.json")
+	if err := os.MkdirAll(filepath.Dir(store), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(store, []byte(`{"cursor":{"theme":"No-Such-Cursor-Theme","size":28}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if r := reconcileCursorTheme(true); r.status != recWouldFix {
+		t.Fatalf("check-only on a missing theme: got %s, want todo", r.status.label())
+	}
+	r := reconcileCursorTheme(false)
+	if r.status != recFixed {
+		t.Fatalf("apply on a missing theme: got %s (%s), want fixed", r.status.label(), r.detail)
+	}
+	// the detail must name both sides so the user understands the reset.
+	if !strings.Contains(r.detail, "No-Such-Cursor-Theme") || !strings.Contains(r.detail, defaultCursorTheme) {
+		t.Errorf("fixed detail must name the missing theme and the default: %q", r.detail)
+	}
+	raw, _ := os.ReadFile(store)
+	if th, sz := configuredCursor(raw); th != defaultCursorTheme || sz != 28 {
+		t.Fatalf("after reset the store has %q/%d, want %s/28 (size kept)", th, sz, defaultCursorTheme)
+	}
+	if r := reconcileCursorTheme(false); r.status != recOK {
+		t.Fatalf("idempotent re-run: got %s (%s), want ok", r.status.label(), r.detail)
+	}
+}
+
 // The sddm greeter (neither owner nor group member of the theme) reads it only
 // through the world bits, and the dir must be root-owned. The broken case the
 // reconciler heals is a catalogue skin left 0700 user-owned by an old `cp -a`.

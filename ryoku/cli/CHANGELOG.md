@@ -382,12 +382,16 @@
   several keyboard layouts had to re-add them after each update. Its comment now
   shows the multi-layout syntax (`kb_layout = "us,ru,de,fr"` with a switch key).
   Covered by `materialize_test.go`.
-- `doctor` gains a "cursor theme" reconciler: it warns when a Ryoku desktop has no
-  Bibata cursor theme and points at `ryoku-pkg-aur-add bibata-cursor-theme-bin`.
-  A failed AUR source build, or a dev checkout (which installs no AUR packages),
-  could leave the Ryoku Settings cursor picker with a single fallback theme; the
-  prebuilt `-bin` package installs the whole Bibata family. Covered by
-  `doctor_test.go`.
+- `doctor` gains a "cursor theme" reconciler that converges the configured cursor
+  onto a theme that is actually on disk. The Bibata family now ships as the
+  `ryoku-cursors` package (a hard `ryoku-desktop` dependency, from the `[ryoku]`
+  repo), so the shipped default is package-guaranteed; the failure worth healing
+  is a Hub-picked third-party theme that was never installed, which drops the
+  pointer to a bare bitmap. The reconciler resets `hypr.json`'s `cursor.theme`
+  back to `Bibata-Modern-Ice` (config-side, never a pacman call) and names both
+  sides so a user who set the theme on purpose can re-pick it after installing
+  it; it only warns when even the default is absent (a dev checkout with no
+  package). Covered by `doctor_test.go`.
 - `doctor` gains a "display resolution" reconciler that recovers a monitor a
   degraded link left below its available resolution. A cold boot or the
   post-upgrade `hyprctl reload` can briefly leave a DP/HDMI link advertising only
