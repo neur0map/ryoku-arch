@@ -45,7 +45,7 @@ Required:
 |-----------------------|------------------------------------------------------------|
 | `RYOKU_DISK`          | Target block device, e.g. `/dev/nvme0n1` or `/dev/sda`.    |
 | `RYOKU_PASSWORD_HASH` | `openssl passwd -6` hash of the user password (no plaintext). |
-| `RYOKU_DISK_STRATEGY` | `whole` (wipe the disk) or `alongside` (dual-boot; dedicated Ryoku ESP). No default: an empty value aborts rather than risk a silent wipe. |
+| `RYOKU_DISK_STRATEGY` | `whole` (wipe the disk) or `alongside` (dual-boot; shares Windows' ESP, kernels on an XBOOTLDR `/boot`). No default: an empty value aborts rather than risk a silent wipe. |
 
 With defaults:
 
@@ -57,7 +57,7 @@ With defaults:
 | `RYOKU_LOCALE`            | `en_US.UTF-8`      | Locale (`locale.gen` + `locale.conf`).   |
 | `RYOKU_TIMEZONE`          | `UTC`              | `Region/City`, or `auto` (ipinfo.io).    |
 | `RYOKU_PROFILE`           | `vm`               | `amd-nvidia` \| `amd` \| `intel` \| `vm`. |
-| `RYOKU_ESP_GIB`           | `1`                | ESP size in GiB.                         |
+| `RYOKU_ESP_GIB`           | `1`                | Whole-disk ESP size in GiB (alongside boot is a fixed 2 GiB). |
 | `RYOKU_SWAP_GIB`          | `0`                | Swapfile size in GiB (0 disables it).    |
 | `RYOKU_SUBVOL_SNAPSHOTS`  | `1`                | Create `@snapshots` -> `/.snapshots`.    |
 | `RYOKU_SUBVOL_HOME`       | `1`                | Create `@home` -> `/home`.               |
@@ -77,6 +77,7 @@ Other (all optional, env-only):
 | Variable                  | Meaning                                                              |
 |---------------------------|----------------------------------------------------------------------|
 | `RYOKU_GPU_MODE`          | Hybrid-GPU render mode, **consumed** after driver install: `offload` (iGPU-first default), `sync` (pin the dGPU as primary), `vfio` (pin the iGPU alone, freeing the dGPU for a VM). Applied with `ryoku-gpu mode` to the user's `~/.config/hypr/gpu.lua`. Empty leaves Hyprland's own selection. |
+| `RYOKU_REGION_START` / `RYOKU_REGION_END` | For `alongside`: the exact start/end SECTORS of the free region the TUI's probe chose. The backend places the boot + root partitions there and re-validates the range is still free before writing. Omitted -> the backend picks the largest free region itself. |
 | `RYOKU_RECLAIM_LEFTOVERS` | `1` lets `alongside` DELETE *unmounted* partitions labeled exactly `ryoku`/`ryokuboot` (leftovers of a prior failed run). Without it, finding such partitions aborts the install (they may be a working Ryoku install). The TUI sets it after the typed `ERASE` ack. |
 | `RYOKU_WIPE_CONFIRMED`    | `1` lets `whole` wipe a non-empty disk (the TUI's typed `ERASE` ack). |
 | `RYOKU_REBOOT`            | Non-empty reboots after a successful install.                        |
@@ -92,20 +93,26 @@ Other (all optional, env-only):
   (FAT32, label `BOOT`) plus a Btrfs root taking the rest. A disk that already
   holds partitions needs `RYOKU_WIPE_CONFIRMED=1` (the TUI sets it after the
   typed `ERASE` ack); a blank disk installs without it.
-- `alongside` keeps every existing partition (e.g. a Windows install) and never
-  reuses or mounts the existing/Windows ESP. In the largest contiguous free
-  region it creates a *dedicated* Ryoku ESP (`RYOKU_ESP_GIB` GiB, FAT32, GPT
-  type EF00, partlabel `ryokuboot`, label `BOOT`) followed by the Btrfs root
-  (partlabel `ryoku`). Multiple ESPs per disk are valid UEFI: the NVRAM entry
-  points at ours, and Windows keeps its own ESP + fallback loader. Partitions
-  labeled exactly `ryoku`/`ryokuboot` (leftovers of a prior failed run) abort
-  the install unless `RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed `ERASE` ack) is
-  set, which deletes the *unmounted* ones so re-runs never stack partitions; a
-  mounted one is always left alone.
+- `alongside` keeps every existing partition (e.g. a Windows install) and shares
+  Windows' single ESP -- it never creates a second one. In the chosen contiguous
+  free region it creates a 2 GiB XBOOTLDR boot partition (FAT32, GPT type `ea00`,
+  partlabel `ryokuboot`, label `BOOT`, mounted at `/boot` with the kernels)
+  followed by the Btrfs root (partlabel `ryoku`), at the explicit sectors the
+  TUI's probe reported (`RYOKU_REGION_START`/`RYOKU_REGION_END`, re-validated
+  against a live `sfdisk` read before any write). The bootloader tars the Windows
+  ESP to `/var/backups/ryoku/windows-esp-<date>.tar`, then drops Limine at
+  `/EFI/ryoku/BOOTX64.EFI` with `limine.conf` beside it (kernels addressed by the
+  boot partition's GPT GUID; Limine reads FAT only) and chainloads Windows
+  same-volume via `boot():/EFI/Microsoft/Boot/bootmgfw.efi`. `/EFI/Microsoft` is
+  never touched, and exactly one ESP stays on the disk -- Windows'. Partitions
+  labeled exactly `ryoku`/`ryokuboot` (leftovers of a prior failed run) abort the
+  install unless `RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed `ERASE` ack) is set,
+  which deletes the *unmounted* ones so re-runs never stack partitions; a mounted
+  one is always left alone.
 
-  Minimum free region for `alongside` is `20 + RYOKU_SWAP_GIB + RYOKU_ESP_GIB`
-  GiB -- a 20 GiB root floor covers the base + dev + desktop closure with headroom
-  for AUR builds and snapshots. Make room first by shrinking Windows.
+  Minimum free region for `alongside` is `2 + 20 + RYOKU_SWAP_GIB` GiB -- a 2 GiB
+  boot partition plus a 20 GiB root floor (the base + dev + desktop closure with
+  headroom for AUR builds and snapshots). Make room first by shrinking Windows.
 
 ## Install is online-only
 
@@ -139,7 +146,8 @@ stage runs two: the chroot config (`chroot.sh`) then the desktop install
 (`deploy.sh`: add the `[ryoku]` repo, `pacman -S` the Ryoku packages, then
 `ryoku materialize`), both under the one `configure` sentinel. After the
 bootloader and AUR steps, `ryoku_bootloader_finalize` promotes the Limine menu
-to the tool-managed UKI tree (when `limine-mkinitcpio-hook` landed), then
+to the tool-managed UKI tree (when `limine-mkinitcpio-hook` landed; wipe mode
+only -- alongside hand-writes its `limine.conf` on the shared ESP), then
 `snapshots.sh` wires up Btrfs snapshots (snapper `root`, snap-pac,
 `limine-snapper-sync`).
 
