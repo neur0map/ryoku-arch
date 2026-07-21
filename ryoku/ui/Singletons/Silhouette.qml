@@ -17,7 +17,9 @@ Singleton {
         { key: "nacre",     origin: "ryoku",     draw: "nacre",     what: "Three islands with concave dips under a hairline top edge" },
         { key: "inir",      origin: "inir",      draw: "inir",      what: "Flat frame-off panel with hairline cell separators" },
         { key: "aurora",    origin: "inir",      draw: "aurora",    what: "Translucent frame-off glass with a soft top sheen" },
-        { key: "angel",     origin: "inir",      draw: "angel",     what: "Opaque brutalist panel, heavy base, bright inset top" }
+        { key: "angel",     origin: "inir",      draw: "angel",     what: "Opaque brutalist panel, heavy base, bright inset top" },
+        { key: "washi",     origin: "ricelin",   draw: "washi",     what: "A floating pill that warps in place into full surfaces" },
+        { key: "atoll",     origin: "ilyamiro",  draw: "atoll",     what: "Floating dark islands, a bright active chip, a startup cascade" }
     ]
 
     function pill(c, x, y, w, h, r) {
@@ -137,6 +139,24 @@ Singleton {
             for (i = 0; i < 3; i++) { dot(c, ws[i], cy, 1.7); c.fill(); }
             pill(c, cx - 12, cy - 2, 24, 4, 2); c.fill();
             for (i = 0; i < 3; i++) { dot(c, st[i], cy, 1.8); c.fill(); }
+        } else if (kind === "washi") {
+            // a compact floating pill at top-centre: a flame bead + the clock,
+            // the rest state it warps out of.
+            var ww = Math.min(W * 0.4, 54), wx = cx - ww / 2;
+            c.fillStyle = dim; pill(c, wx, cy - 6, ww, 12, 6); c.fill();
+            c.fillStyle = fg;
+            dot(c, wx + 9, cy, 2.2); c.fill();
+            c.fillRect(wx + 16, cy - 2, 14, 4);
+        } else if (kind === "atoll") {
+            // ilyamiro's floating islands: separate dark panels, a bright active
+            // workspace chip in the left island, a centred clock island.
+            c.fillStyle = dim; pill(c, 3, cy - 6, 20, 12, 4); c.fill();
+            c.fillStyle = fg; pill(c, 6, cy - 3, 6, 6, 2); c.fill();
+            c.fillStyle = dim; dot(c, 17, cy, 1.8); c.fill();
+            c.fillStyle = dim; pill(c, cx - 16, cy - 6, 32, 12, 4); c.fill();
+            c.fillStyle = fg; c.fillRect(cx - 9, cy - 2, 18, 4);
+            c.fillStyle = dim; pill(c, W - 30, cy - 6, 27, 12, 4); c.fill();
+            c.fillStyle = fg; for (i = 0; i < 3; i++) { dot(c, W - 24 + i * 7, cy, 1.6); c.fill(); }
         }
     }
 }
