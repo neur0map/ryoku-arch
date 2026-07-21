@@ -533,12 +533,12 @@ func (d *daemon) scheduleTheme() {
 	}
 }
 
-// paintWorker: regen the wallust palette for whatever is on screen, reload hypr
-// (config-only, monitors untouched), wake the LED worker. `wallust run` rewrites
-// every template in wallust.toml: kitty + hypr colors, and the shell palette at
-// ~/.cache/wallust/colors.json the desktop visualiser live-watches, so its
-// spectrum retunes to the wallpaper too. reads state every pass, so a coalesced
-// burst themes the final wallpaper. runs for the life of the daemon.
+// paintWorker: regen the palette for whatever is on screen, reload hypr
+// (config-only, monitors untouched), wake the LED worker. `wallust run` extracts
+// the palette to ~/.cache/wallust/colors.json (the desktop visualiser live-
+// watches it, so its spectrum retunes too); renderApps then fans that one
+// palette into every app config through matugen. reads state every pass, so a
+// coalesced burst themes the final wallpaper. runs for the life of the daemon.
 func (d *daemon) paintWorker() {
 	for range d.paintSig {
 		pic := readState()

@@ -1,4 +1,8 @@
+# wallust does one job: extract the palette from the wallpaper into
+# ~/.cache/wallust/colors.json (the shell's source of truth, tuned by ryowalls).
+# matugen owns all app templating (kitty, Hyprland, GTK, Qt, btop) from that one
+# palette, so a follow-mode wallpaper change renders each app config exactly
+# once. wallust used to render kitty and hypr here too, but matugen overwrote
+# them a moment later at the same paths, so those templates were dropped.
 [templates]
-kitty   = { src = "kitty-colors.tmpl", dst = "~/.config/kitty/current-theme.conf" }
-hypr    = { src = "hypr-colors.lua.tmpl", dst = "~/.cache/wallust/hypr-colors.lua" }
-shell   = { src = "colors.json.tmpl", dst = "~/.cache/wallust/colors.json" }
+shell = { src = "colors.json.tmpl", dst = "~/.cache/wallust/colors.json" }
