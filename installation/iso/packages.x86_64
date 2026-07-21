@@ -28,6 +28,11 @@ btrfs-progs
 dosfstools
 cryptsetup
 e2fsprogs
+# NTFS carve (alongside on a Windows disk): ntfsprogs provides ntfsresize/mkntfs
+# (the resize tool), ntfs-3g the FUSE driver + mount helper. Without these, an
+# NTFS shrink is impossible and the backend refuses the carve.
+ntfsprogs
+ntfs-3g
 efibootmgr
 limine
 # reflector re-ranks the package mirrors by measured speed before pacstrap, so a
