@@ -76,6 +76,31 @@ var rows = [
     {
         "tab": "",
         "group": "<selected monitor name> (dynamic; fallback \"DISPLAY\")",
+        "key": "cm",
+        "label": "Colour",
+        "desc": "sRGB is standard, Wide is wide-gamut, HDR needs a display that supports it (falls back to sRGB otherwise)",
+        "ctl": "seg",
+        "src": "<name>.json (Save)",
+        "opts": [
+            "sRGB",
+            "Wide",
+            "HDR"
+        ]
+    },
+    {
+        "tab": "",
+        "group": "<selected monitor name> (dynamic; fallback \"DISPLAY\")",
+        "key": "sdrbrightness",
+        "label": "SDR brightness",
+        "desc": "How bright non-HDR content looks in HDR mode; shown only when Color is HDR",
+        "ctl": "step",
+        "src": "<name>.json (Save)",
+        "lo": 1.0,
+        "hi": 2.0
+    },
+    {
+        "tab": "",
+        "group": "<selected monitor name> (dynamic; fallback \"DISPLAY\")",
         "key": "mirror",
         "label": "Mirror of",
         "desc": "Shows a copy of the chosen display here; disabled screens aren't listed",

@@ -494,6 +494,19 @@ Item {
                     leftPadding: 40
                 }
             }
+
+            // section face: fills the quiet idle column (a short recent-history
+            // list leaves a long void), per DESIGN.md section 12. Ink-only poster,
+            // no control; it flows after the list so a long incoming set scrolls.
+            Decor {
+                width: idleCol.width
+                height: Tokens.cellH * 2 + Tokens.s5
+                title: "更新"; sub: "アップデート"
+                tate: "常に最新へ"
+                caption: "Ryoku tracks its channel; one command snapshots, pulls, and reloads."
+                readout: ["CHANNEL|main", "METHOD|ryoku update", "SAFETY|snapshot first", "SCOPE|whole system"]
+                code: "SYS-07"; seal: "更"; boxId: "updates.channel"; seed: 3; ditherFreq: 1.0
+            }
         }
     }
 

@@ -18,6 +18,7 @@ Item {
     SchemaPage {
         anchors.fill: parent
         schema: ShellSchema.rows
+        styleKey: "barStyle"
         draft: pg.hub ? pg.hub.draft : null
         defaults: pg.hub ? pg.hub.committed : ({})
         title: pg.pTitle

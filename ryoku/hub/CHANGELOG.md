@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- **The Displays page gains per-monitor colour management, including HDR.** Each
+  display gets a COLOUR control (sRGB / Wide / HDR) beside Adaptive sync; picking
+  HDR reveals an SDR brightness stepper (1.0x-2.0x) that lifts SDR content into
+  the HDR range. The choice maps to Hyprland's `cm` (with 10-bit depth on Wide
+  and HDR) and rides Apply, the persisted layout and named profiles like every
+  other per-monitor setting. A panel that cannot do HDR has the compositor
+  resolve it back to sRGB, so the page reflects that honestly on the next read
+  (`pages/DisplaysPage.qml`, `schema/DisplaysPage.js`).
 - **A "Theme apps" toggle extends the palette past the shell into GTK / GUI
   apps.** The Appearance page's Theme tab, under the palette scheme, gains a
   switch (`ryoku-hub hypr theme-apps`) that decides whether Files, text editors
@@ -13,8 +21,77 @@
   so a shared full-system look reaches (or spares) the recipient's apps the same
   way it did the author's, and the Rices tab lists the GTK apps it touches
   (`schemes.go`, `hypr.go`, `rice.go`, `pages/AppearancePage.qml`).
+- **Performance ships cheap on RAM by default, and RyoLayer gets an on/off on the
+  Shell page.** The Performance page's memory unloads (launcher, overview,
+  visualiser, covered desktop widgets) now default ON, so a fresh desktop frees
+  every idle surface, and it adds an "Unload the widget board" toggle for
+  RyoLayer. The Shell page's DESKTOP tab gains an "Enable widget board" switch
+  that turns RyoLayer (the Super+G overlay) on or off entirely
+  (`pages/PerformancePage.qml`, `schema/PerformancePage.js`,
+  `schema/ShellSettingsPage.js`, `Hub.qml`).
+- **The GPU page gains live, per-session tuning, and a full beta-18 rework.** It
+  now explains itself (plain-language purpose plus a live status line) and, below
+  the render-mode selector, a TUNING section that probes the machine
+  (`ryoku-hub gpu tune caps`) and shows only the knobs that hardware actually
+  exposes: NVIDIA power limit (where the driver still allows it) and persistence,
+  AMD performance level and power cap, Intel frequency, and the vendor-generic
+  ACPI thermal profile. Overclock, undervolt, clock-lock and manual fan sit
+  behind an Advanced disclosure with a bone-plate warning. Everything is runtime
+  sysfs / nvidia-smi state applied through one pkexec batch and gone on reboot,
+  so a reboot (or `gpu tune reset`) is the whole backup. Named presets (Quiet /
+  Balanced / Performance plus your own) persist to
+  `~/.config/ryoku/gpu-presets.json`; built-ins are symbolic and skip any knob a
+  box lacks. The specimen is rebuilt as a Ticks-framed instrument plate under the
+  描画 watermark, no bespoke card (`GpuPage.qml`, `gputune.go`, `gpupreset.go`).
 
 ### Changed
+- **Ryoku Settings reorganized around how you look for a setting, not how it is
+  implemented.** The rail is regrouped into task-oriented sections -- OVERVIEW,
+  DEVICES (displays, connections, input, GPU), DESKTOP (appearance, shell,
+  animations, lockscreen, launcher, widgets), APPS & KEYS (keybinds + window /
+  app / layer rules), TOOLS (recording, dictation, fastfetch), SYSTEM
+  (performance, autostart, environment, updates) and ADD-ONS (store, installed,
+  rashin) -- so recording/dictation/fastfetch read as tools, performance and the
+  agent OS leave the old ADVANCED catch-all, and the group holding the open
+  section lifts up the ink ramp as a quiet monochrome "you are here" (`Hub.qml`).
+- **Global search reaches every page, the words people actually type, and whole
+  phrases.** Each section carries a keyword set, so `wifi` / `bluetooth` /
+  `hotspot` find Connections, `agent` finds Rashin, `plugin` finds the Store, and
+  synonyms the labels avoid (`transparency`->opacity, `startup`->autostart,
+  `screensaver`->lockscreen, `visualizer`) resolve. Multi-word queries no longer
+  cliff to nothing when one word is out of vocabulary -- scoring is tolerant,
+  summing the words that match and scaling by coverage, so `dark mode`, `second
+  monitor` and `turn off blur` land their page instead of blanking. A setting
+  also matches its option values (`h264`, `dwindle`, `dark`, `fahrenheit`); tab
+  names are searchable; engineering-only surface rows (action buttons,
+  dynamic-title notes) no longer pollute results; and a page whose keywords own
+  the queried word floats above a stray control that merely mentions it, so a
+  bare `blur` / `cursor` / `battery` lands the section, not a decoy (`Hub.qml`).
+- **Appearance is re-tabbed by task: the 73-setting Look tab became Windows +
+  Effects, and the Wallpaper tab is reframed as Theme.** The old Look wall (window
+  shape, tiling, gaps, behaviour, blur, shadows, glow, glass, opacity, motion) is
+  now **Windows** (shape, tiling, gaps, behaviour) and **Effects** (the visual
+  layers). The former Wallpaper tab -- which already led with the light/dark/follow
+  colour scheme and Apply-Ryoku-theme above the wallpaper gallery -- is now named
+  **Theme**, since choosing a scheme or wallpaper is how you theme the desktop, so
+  `dark mode` / `theme` / `accent` land an obvious tab instead of hiding under
+  "Wallpaper". Seven tabs, sized to clear the write-ledger column
+  (`schema/AppearancePage.js`, `pages/AppearancePage.qml`).
+- **The Installed and Updates pages fill their dead space with a poster.** A
+  short plugin list or an up-to-date channel used to leave a large empty column;
+  each now closes on a `Decor` specimen (ink-only, no control) that gives the
+  section its face, matching the rest of the Hub (`pages/AddonsPage.qml`,
+  `pages/UpdatesPage.qml`).
+- **Shell settings show only the options the active bar style actually uses.**
+  Beyond the Style gallery, each bar style now exposes just the settings its bar
+  reads: `washi` shows only its Washi Look, `delos` its island modules / edge /
+  radius, the band skins (`noctalia` / `caelestia` / `aegis` / `stele`) the
+  module layout, `atoll` only position and thickness, and so on, so a style never
+  lists a knob that does nothing for it (e.g. atoll no longer shows the washi or
+  island settings). A schema row carries a `styles` list and the sheet hides it
+  while the drafted `barStyle` is not in it, live as you switch styles in the
+  gallery (`schema/ShellSettingsPage.js`, `SettingsSheet.qml`, `SchemaPage.qml`,
+  `pages/ShellPage.qml`).
 - **Ryoku Settings writes its generated Hyprland Lua into the `user_edits`
   overlay.** `settings.lua` and `rebinds.lua` are authored under
   `~/.config/ryoku/user_edits/hypr` (the source that survives updates) and
@@ -89,6 +166,16 @@
   overrides, autostart, environment, brand -- applies by default and taps off
   individually, so a recipient can take the look and leave the keybinds
   (`pages/AppearancePage.qml`).
+- **Border colours live with the scheme that governs them, and a colour is a
+  swatch now, not a hex string.** The active/inactive window-frame colours moved
+  out of Borders and under the Theme tab's colour scheme (Follow / Light /
+  Dark), so the one decision -- follow the wallpaper or use fixed colours -- and
+  the colours it controls sit in one place instead of split across two tabs. A
+  new `ColorField` renders a live swatch with a click-to-open picker beside the
+  hex, used wherever a colour was a bare hex field (border, shadow, glow, glass,
+  OSD, fastfetch accent), so a colour reads as a colour rather than a code
+  (`ColorField.qml`, `SettingsSheet.qml`, `pages/AppearancePage.qml`,
+  `schema/AppearancePage.js`).
 
 ### Added
 - **The capture card shows its coverage before you name the rice.** A
@@ -104,6 +191,22 @@
   (`backend/rice.go`, `pages/AppearancePage.qml`).
 
 ### Fixed
+- **The colour picker is Ryoku's own paper-and-ink surface, not a grey web
+  dialog.** Clicking a colour swatch opened the platform `ColorDialog`, which
+  ignored the theme. It now opens an in-app picker on the bar's own black surface:
+  a saturation/value field, a hue rail, a live swatch and a mono hex field, all
+  drawn from `Tokens` (`ColorField.qml`).
+- **A colour setting no longer prints its hex on top of its own control.** The
+  SURFACE colour cells reserved no footer for the swatch and still showed the raw
+  hex as the cell value, so the `ColorField` overlapped the cell content and
+  spilled into the gap between cards. Colour cells now reserve the control footer
+  and blank the redundant value, like the picker and image cells
+  (`SettingsSheet.qml`).
+- **Text settings save the value you typed, not the one before it.** A text
+  field (the desktop brand name, the mark glyph) committed its edit only on
+  focus loss, but clicking Save never blurs the field, so the typed value was
+  dropped and the setting "would not save". Fields now commit as you type, so
+  Save always writes what is on screen (`SettingsSheet.qml`).
 - **The Fastfetch preview shows the emblem at its real size, and an Auto fit
   sizes it undistorted.** The readout preview drew the emblem as a fixed 84x84
   square, so changing Width, Height or Pad moved nothing -- the preview never

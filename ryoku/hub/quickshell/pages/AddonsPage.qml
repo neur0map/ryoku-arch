@@ -298,8 +298,8 @@ Item {
                 id: flick
                 anchors {
                     left: parent.left; right: parent.right
-                    top: sect.bottom; bottom: parent.bottom
-                    topMargin: Tokens.s4
+                    top: sect.bottom; bottom: instDecor.visible ? instDecor.top : parent.bottom
+                    topMargin: Tokens.s4; bottomMargin: instDecor.visible ? Tokens.s4 : 0
                 }
                 contentWidth: width
                 contentHeight: Math.max(col.height, height)
@@ -423,6 +423,21 @@ Item {
                 visible: pg.plugins.length > 0 && pg.shown.length === 0
                 text: "No add-ons match your search."
                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+            }
+
+            // fills the dead grid slot below a short plugin list, per DESIGN.md
+            // section 12: a poster gives the section its face. Ink-only, holds no
+            // control; hidden while searching so results own the full column.
+            Decor {
+                id: instDecor
+                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                height: Math.min(300, parent.height - Tokens.cellH * 2 - Tokens.s5)
+                visible: pg.loaded && pg.shown.length > 0 && pg.query.trim() === "" && height > 140
+                title: "拡張"; sub: "アドオン"
+                tate: "力を継ぎ足す"
+                caption: "Plugins extend the shell: live surfaces you install from the Store."
+                readout: ["SOURCE|plugins.json", "APPLY|live", "SITS|frame · desktop", "SCOPE|per-plugin"]
+                code: "ADDON-04"; seal: "拡"; boxId: "addons.installed"; seed: 5; ditherFreq: 1.0
             }
         }
     }

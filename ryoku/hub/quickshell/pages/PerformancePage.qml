@@ -16,9 +16,10 @@ import Ryoku.Ui.Singletons
 //
 // This page is performance.json's ONLY writer, and cfg.writeAdapter() serialises
 // the whole adapter, so every key the file carries is declared below or it would
-// be dropped on the next save. Two keys ship ON (freezeVisualizerWhenIdle guards
-// an NVIDIA idle-repaint leak, unloadWidgetsWhenCovered reclaims widget memory);
-// their defaults are mirrored across five shell singletons and the Go watchers
+// be dropped on the next save. The cheap-on-RAM keys ship ON (freezeVisualizer-
+// WhenIdle guards an NVIDIA idle-repaint leak; unloadWidgetsWhenCovered,
+// unloadVisualizerWhenSilent and the launcher/overview/ryolayer unloads each
+// free a hidden surface's whole process); their defaults mirror the Go watchers
 // and must not drift. The lowPowerMode implication is applied downstream by each
 // consumer (`lowPower || flag`), NOT here: the page writes only raw keys, so a
 // sub-toggle stays visibly OFF while lowPowerMode overrides its behaviour, and
@@ -43,10 +44,11 @@ Item {
         "disableShadows": false,
         "freezeVisualizerWhenIdle": true,
         "freezePillWhenIdle": false,
-        "unloadVisualizerWhenSilent": false,
+        "unloadVisualizerWhenSilent": true,
         "unloadWidgetsWhenCovered": true,
-        "unloadLauncherWhenIdle": false,
-        "unloadOverviewWhenIdle": false
+        "unloadLauncherWhenIdle": true,
+        "unloadOverviewWhenIdle": true,
+        "unloadRyolayerWhenIdle": true
     })
 
     // the keys the compositor reads; a Save touching one of these reloads Hyprland.
@@ -93,7 +95,8 @@ Item {
             "unloadVisualizerWhenSilent": cfgA.unloadVisualizerWhenSilent,
             "unloadWidgetsWhenCovered": cfgA.unloadWidgetsWhenCovered,
             "unloadLauncherWhenIdle": cfgA.unloadLauncherWhenIdle,
-            "unloadOverviewWhenIdle": cfgA.unloadOverviewWhenIdle
+            "unloadOverviewWhenIdle": cfgA.unloadOverviewWhenIdle,
+            "unloadRyolayerWhenIdle": cfgA.unloadRyolayerWhenIdle
         };
     }
 
@@ -140,6 +143,7 @@ Item {
         cfgA.unloadWidgetsWhenCovered = pg.draft.unloadWidgetsWhenCovered;
         cfgA.unloadLauncherWhenIdle = pg.draft.unloadLauncherWhenIdle;
         cfgA.unloadOverviewWhenIdle = pg.draft.unloadOverviewWhenIdle;
+        cfgA.unloadRyolayerWhenIdle = pg.draft.unloadRyolayerWhenIdle;
         cfg.writeAdapter();
         pg.committed = pg.clone(pg.draft);
         if (needsReload)
@@ -169,10 +173,11 @@ Item {
             property bool disableShadows: false
             property bool freezeVisualizerWhenIdle: true
             property bool freezePillWhenIdle: false
-            property bool unloadVisualizerWhenSilent: false
+            property bool unloadVisualizerWhenSilent: true
             property bool unloadWidgetsWhenCovered: true
-            property bool unloadLauncherWhenIdle: false
-            property bool unloadOverviewWhenIdle: false
+            property bool unloadLauncherWhenIdle: true
+            property bool unloadOverviewWhenIdle: true
+            property bool unloadRyolayerWhenIdle: true
         }
 
         Component.onCompleted: if (!cfg.text()) cfg.writeAdapter()
@@ -214,7 +219,10 @@ Item {
           "desc": "Frees about 250 MB after a minute hidden; the next open cold-starts." },
         { "tab": "", "group": "MEMORY", "key": "unloadOverviewWhenIdle", "ctl": "sw", "src": "performance",
           "label": "Unload the overview",
-          "desc": "Frees about 250 MB after a minute hidden; the next Super+Tab cold-starts it." }
+          "desc": "Frees about 250 MB after a minute hidden; the next Super+Tab cold-starts it." },
+        { "tab": "", "group": "MEMORY", "key": "unloadRyolayerWhenIdle", "ctl": "sw", "src": "performance",
+          "label": "Unload the widget board",
+          "desc": "Frees the Super+G board's memory a minute after it closes; the next open cold-starts." }
     ]
 
     // group order and membership come straight from the schema, so a regroup is

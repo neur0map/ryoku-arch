@@ -20,12 +20,18 @@ Item {
     property var defaults: ({})      // factory values, for the struck default
     property string tab: ""
     property string query: ""
+    // when set (e.g. "barStyle"), a schema row carrying a `styles` list is shown
+    // only while draft[styleKey] is in it, so each bar style exposes just the
+    // settings its bar actually reads. reads draft (replaced on edit) so it is live.
+    property string styleKey: ""
 
     signal edited(string key, var value)
 
     readonly property var rows: {
         var q = query.toLowerCase();
         return schema.filter(function (r) {
+            if (sheet.styleKey !== "" && r.styles && sheet.draft
+                && r.styles.indexOf(sheet.draft[sheet.styleKey]) < 0) return false;
             if (r.tab !== sheet.tab && query === "") return false;
             if (query === "") return true;
             return (r.label + " " + (r.desc || "") + " " + r.key).toLowerCase().indexOf(q) >= 0;
@@ -111,13 +117,13 @@ Item {
                             width: sect.span(sect.packed[index] || 4)
                             height: neededHeight
                             block: Spans.isBlock(r.ctl) || (r.ctl === "seg" && cell.optCount >= 3)
-                            footH: (r.ctl === "pick" || r.ctl === "text" || r.ctl === "image" || r.ctl === "location") ? 34 : 0
+                            footH: (r.ctl === "pick" || r.ctl === "text" || r.ctl === "image" || r.ctl === "location" || r.ctl === "color") ? 34 : 0
                             controlWidth: Spans.inlineWidth(r.ctl, optCount, width)
 
                             label: r.label
                             desc: r.desc || ""
                             unit: r.pct ? "%" : (r.unit || "")
-                            value: (r.ctl === "text" || r.ctl === "seg" || r.ctl === "image" || r.ctl === "location") ? "" : sheet.shown(r)
+                            value: (r.ctl === "text" || r.ctl === "seg" || r.ctl === "image" || r.ctl === "location" || r.ctl === "color") ? "" : sheet.shown(r)
                             def: sheet.shownDef(r)
                             changed: sheet.isChanged(r)
                             source: r.src + ".json"
@@ -136,6 +142,7 @@ Item {
                                     case "gallery": return galleryC;
                                     case "image": return imageC;
                                     case "location": return locationC;
+                                    case "color": return colorC;
                                     default: return textC;
                                     }
                                 }
@@ -249,7 +256,25 @@ Item {
                                         selectByMouse: true
                                         text: String(sheet.val(cell.r))
                                         onEditingFinished: sheet.edited(cell.r.key, text)
+                                        // commit as you type, not only on focus
+                                        // loss: clicking Save (a TapHandler) never
+                                        // blurs this field, so an editingFinished-
+                                        // only commit dropped the typed value and
+                                        // the setting "would not save".
+                                        onTextEdited: sheet.edited(cell.r.key, text)
                                     }
+                                }
+                            }
+                            // a colour: a live swatch + hex, with a visual picker
+                            // on the swatch, instead of the bare text field this
+                            // used to fall through to (ctl "color" had no case).
+                            Component {
+                                id: colorC
+                                ColorField {
+                                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                                    height: 30
+                                    value: String(sheet.val(cell.r))
+                                    onChosen: (v) => sheet.edited(cell.r.key, v)
                                 }
                             }
                             // an image mark: a live thumbnail of the current

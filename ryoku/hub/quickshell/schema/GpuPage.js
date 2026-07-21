@@ -21,6 +21,60 @@ var rows = [
     },
     {
         "tab": "",
+        "group": "TUNING \u00b7 THIS SESSION",
+        "key": "",
+        "label": "Power limit / TDP",
+        "desc": "GPU power budget in watts, applied live for this session (NVIDIA nvidia-smi, AMD sysfs cap)",
+        "ctl": "slid",
+        "src": "ryoku-hub gpu tune (runtime, resets on reboot)"
+    },
+    {
+        "tab": "",
+        "group": "TUNING \u00b7 THIS SESSION",
+        "key": "",
+        "label": "Performance level",
+        "desc": "AMD power_dpm_force_performance_level: auto, low, or high",
+        "ctl": "seg",
+        "src": "ryoku-hub gpu tune (runtime, resets on reboot)"
+    },
+    {
+        "tab": "",
+        "group": "TUNING \u00b7 THIS SESSION",
+        "key": "",
+        "label": "Thermal profile",
+        "desc": "Chassis fan and power envelope: quiet, balanced, or performance (ACPI platform_profile)",
+        "ctl": "seg",
+        "src": "ryoku-hub gpu tune (runtime, resets on reboot)"
+    },
+    {
+        "tab": "",
+        "group": "TUNING \u00b7 THIS SESSION",
+        "key": "",
+        "label": "Persistence mode",
+        "desc": "Keep the NVIDIA driver initialised so the GPU stays responsive",
+        "ctl": "sw",
+        "src": "ryoku-hub gpu tune (runtime, resets on reboot)"
+    },
+    {
+        "tab": "",
+        "group": "TUNING \u00b7 THIS SESSION",
+        "key": "",
+        "label": "Overclock / undervolt / clock lock / fan (Advanced)",
+        "desc": "GPU clock and fan control, gated behind a per-session warning; can misbehave, resets on reboot",
+        "ctl": "slid",
+        "src": "ryoku-hub gpu tune (runtime, resets on reboot)"
+    },
+    {
+        "tab": "",
+        "group": "TUNING \u00b7 THIS SESSION",
+        "key": "",
+        "label": "Presets (Quiet / Balanced / Performance / custom)",
+        "desc": "Save and apply named tuning bundles; built-ins adapt to whatever knobs your hardware exposes",
+        "ctl": "action",
+        "src": "~/.config/ryoku/gpu-presets.json"
+    },
+    {
+        "tab": "",
         "group": "GPU PASSTHROUGH \u00b7 ADVANCED",
         "key": "",
         "label": "Readiness checks / Hide readiness checks (disclosure)",

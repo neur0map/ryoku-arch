@@ -33,7 +33,9 @@ Item {
         { "name": "noctalia",     "by": "noctalia-dev",   "role": "shell polish",         "url": "https://github.com/noctalia-dev/noctalia-shell" },
         { "name": "DankMaterial", "by": "AvengeMedia",    "role": "material shell",       "url": "https://github.com/AvengeMedia/DankMaterialShell" },
         { "name": "Omarchy",      "by": "DHH",            "role": "opinionated Arch",     "url": "" },
-        { "name": "CachyOS",      "by": "CachyOS team",   "role": "performance Arch",     "url": "" }
+        { "name": "CachyOS",      "by": "CachyOS team",   "role": "performance Arch",     "url": "" },
+        { "name": "Ricelin",      "by": "Gakuseei",       "role": "washi warping pill",   "url": "https://github.com/Gakuseei/Ricelin" },
+        { "name": "nixos-configuration", "by": "ilyamiro", "role": "atoll island bar",    "url": "https://github.com/ilyamiro/nixos-configuration" }
     ]
 
     // the alpha/beta crew, constantly stress-testing and filing bugs. each name

@@ -7,8 +7,8 @@ import Ryoku.Ui
 import Ryoku.Ui.Singletons
 
 // Displays (SYSTEM). Detect every connected monitor, arrange them to scale on a
-// drag canvas (no coordinate math), and tune resolution, scale, rotation and
-// mirror per monitor. Apply writes the layout to the live session via
+// drag canvas (no coordinate math), and tune resolution, scale, rotation, colour
+// (HDR) and mirror per monitor. Apply writes the layout to the live session via
 // ryoku-monitor (over hyprctl) and persists it, so it returns at next login; a
 // named profile is hardware-keyed so it returns when the same displays are
 // plugged in. Edits stage in a draft and only touch real screens on Apply, so
@@ -134,7 +134,8 @@ Item {
             "scale": mon.scale, "x": mon.x, "y": mon.y, "transform": mon.transform || 0,
             "vrr": (mon.vrr === true ? 1 : (mon.vrr | 0)),
             "mirror": (mon.mirror && mon.mirror !== "none") ? mon.mirror : "",
-            "disabled": mon.disabled === true
+            "disabled": mon.disabled === true,
+            "cm": (mon.cm || "srgb"), "sdrbrightness": (mon.sdrbrightness || 1.0)
         };
     }
     // Hyprland only accepts a scale that is a 1/120 multiple dividing the
@@ -171,7 +172,8 @@ Item {
             out.push({
                 "id": m.id, "output": m.name, "mode": m.mode, "position": m.x + "x" + m.y,
                 "scale": m.scale, "transform": m.transform, "vrr": m.vrr,
-                "mirror": m.mirror, "disabled": m.disabled
+                "mirror": m.mirror, "disabled": m.disabled,
+                "cm": m.cm, "sdrbrightness": m.sdrbrightness
             });
         }
         return out;
@@ -352,6 +354,15 @@ Item {
     readonly property var vrrLabels: ["Off", "On", "Fullscreen"]
     function vrrLabel(v) { return pg.vrrLabels[v] !== undefined ? pg.vrrLabels[v] : "Off"; }
     function vrrKey(label) { var k = pg.vrrLabels.indexOf(label); return k < 0 ? 0 : k; }
+    // colour management: the cm preset drives HDR. sRGB is the safe default,
+    // Wide is wide-gamut (BT2020), HDR turns on the PQ transfer + 10-bit. The
+    // labels round-trip to Hyprland's `cm` value (bitdepth is derived downstream).
+    readonly property var cmLabels: ["sRGB", "Wide", "HDR"]
+    readonly property var cmKeys: ["srgb", "wide", "hdr"]
+    function cmLabel(v) { var i = pg.cmKeys.indexOf(v); return i < 0 ? "sRGB" : pg.cmLabels[i]; }
+    function cmKey(label) { var i = pg.cmLabels.indexOf(label); return i < 0 ? "srgb" : pg.cmKeys[i]; }
+    // SDR content brightness in HDR: 1.0x-2.0x, the Hyprland-typical range.
+    readonly property var sdrLadder: [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
     function labelForKey(opts, key) {
         for (var i = 0; i < opts.length; i++)
             if (opts[i].key === key)
@@ -459,7 +470,7 @@ Item {
 
         Text {
             width: Math.min(parent.width, 720)
-            text: "Detect connected displays, drag to arrange them to scale, and tune resolution, scale, rotation and mirroring per monitor. Apply writes the layout to your live session and persists it; save a named profile to restore this arrangement when you plug the same displays in again."
+            text: "Detect connected displays, drag to arrange them to scale, and tune resolution, scale, rotation, colour (including HDR) and mirroring per monitor. Apply writes the layout to your live session and persists it; save a named profile to restore this arrangement when you plug the same displays in again."
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -723,6 +734,39 @@ Item {
                             options: pg.vrrLabels
                             current: { void pg.tick; return pg.sel ? pg.vrrLabel(pg.sel.vrr) : "Off"; }
                             onChose: (label) => pg.setField(pg.selected, "vrr", pg.vrrKey(label))
+                        }
+                    }
+                    CtlRow {
+                        label: "COLOUR"
+                        Seg {
+                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            options: pg.cmLabels
+                            current: { void pg.tick; return pg.sel ? pg.cmLabel(pg.sel.cm) : "sRGB"; }
+                            onChose: (label) => pg.setField(pg.selected, "cm", pg.cmKey(label))
+                        }
+                    }
+                    // SDR brightness only bites in HDR (it maps SDR content into the
+                    // HDR range); hidden otherwise so it never reads as a dead knob.
+                    CtlRow {
+                        label: "SDR BRIGHTNESS"
+                        visible: { void pg.tick; return pg.sel ? pg.sel.cm === "hdr" : false; }
+                        Row {
+                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            spacing: Tokens.s2
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: { void pg.tick; return pg.sel ? pg.sel.sdrbrightness.toFixed(1) + "\u00d7" : ""; }
+                                color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fRow
+                                font.weight: Font.Light
+                            }
+                            Step {
+                                anchors.verticalCenter: parent.verticalCenter
+                                readonly property var ladder: pg.sdrLadder
+                                from: 0; to: ladder.length - 1; stepBy: 1
+                                value: { void pg.tick; return pg.sel ? pg.nearestScaleIdx(ladder, pg.sel.sdrbrightness) : 0; }
+                                onModified: (v) => pg.setField(pg.selected, "sdrbrightness",
+                                    ladder[Math.max(0, Math.min(ladder.length - 1, v))])
+                            }
                         }
                     }
                     CtlRow {

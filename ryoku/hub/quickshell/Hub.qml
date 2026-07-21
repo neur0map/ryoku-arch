@@ -57,24 +57,26 @@ Rectangle {
     // than a settings page that cannot save.
     readonly property var groups: [
         { name: "OVERVIEW", items: [ { key: "profile", name: "Profile" } ] },
-        { name: "SYSTEM", items: [
-            { key: "displays", name: "Displays" }, { key: "input", name: "Input" },
-            { key: "keybinds", name: "Keybinds" }, { key: "connections", name: "Connections" },
-            { key: "gpu", name: "GPU" }, { key: "recording", name: "Recording" },
-            { key: "dictation", name: "Dictation" } ] },
+        { name: "DEVICES", items: [
+            { key: "displays", name: "Displays" }, { key: "connections", name: "Connections" },
+            { key: "input", name: "Input" }, { key: "gpu", name: "GPU" } ] },
         { name: "DESKTOP", items: [
             { key: "appearance", name: "Appearance" }, { key: "shell", name: "Shell", wired: true },
-            { key: "launcher", name: "App Launcher" }, { key: "fastfetch", name: "Fastfetch" },
-            { key: "widgets", name: "Desktop Widgets" }, { key: "lockscreen", name: "Lockscreen" },
-            { key: "animations", name: "Animations" } ] },
+            { key: "animations", name: "Animations" }, { key: "lockscreen", name: "Lockscreen" },
+            { key: "launcher", name: "App Launcher" }, { key: "widgets", name: "Desktop Widgets" } ] },
+        { name: "APPS & KEYS", items: [
+            { key: "keybinds", name: "Keybinds" }, { key: "windowrules", name: "Window Rules" },
+            { key: "appoverrides", name: "App Overrides" }, { key: "layerrules", name: "Layer Rules" } ] },
+        { name: "TOOLS", items: [
+            { key: "recording", name: "Recording" }, { key: "dictation", name: "Dictation" },
+            { key: "fastfetch", name: "Fastfetch" } ] },
+        { name: "SYSTEM", items: [
+            { key: "performance", name: "Performance" }, { key: "autostart", name: "Autostart" },
+            { key: "environment", name: "Environment" }, { key: "updates", name: "Updates" } ] },
         { name: "ADD-ONS", items: [
-            { key: "store", name: "Store" }, { key: "addons", name: "Installed" } ] },
-        { name: "ADVANCED", items: [
-            { key: "windowrules", name: "Window Rules" }, { key: "appoverrides", name: "App Overrides" },
-            { key: "layerrules", name: "Layer Rules" }, { key: "autostart", name: "Autostart" },
-            { key: "environment", name: "Environment" }, { key: "performance", name: "Performance" },
+            { key: "store", name: "Store" }, { key: "addons", name: "Installed" },
             { key: "rashin", name: "Rashin" } ] },
-        { name: "", items: [ { key: "updates", name: "Updates" }, { key: "credits", name: "Credits" } ] }
+        { name: "", items: [ { key: "credits", name: "Credits" } ] }
     ]
 
     // Each section's terse kanji, paired with its Latin name in the rail. Latin
@@ -89,6 +91,39 @@ Rectangle {
         "addons": "拡張", "windowrules": "規則", "appoverrides": "上書", "layerrules": "階層",
         "autostart": "自動", "environment": "環境", "performance": "性能", "rashin": "羅針",
         "updates": "更新", "credits": "謝辞"
+    })
+
+    // Extra search vocabulary per section: the words a user actually types that
+    // the labels never use. This is what lets the search reach a page with no
+    // schema rows (Connections, Store, Rashin) and cover synonyms the copy
+    // avoids (transparency->opacity, startup->autostart, screensaver->lockscreen).
+    readonly property var sectionKeywords: ({
+        "profile": "dashboard status overview telemetry hostname cpu gpu memory uptime specs",
+        "displays": "monitor screen resolution refresh scale rotation arrange mirror hidpi dual second external multiple",
+        "connections": "wifi wi-fi wireless bluetooth network hotspot tether internet ethernet pair pairing device",
+        "input": "keyboard mouse touchpad pointer trackpad sensitivity scroll layout dvorak remap capslock repeat gesture",
+        "keybinds": "shortcuts hotkeys binds keys browser terminal editor files launch super",
+        "gpu": "graphics nvidia amd vram passthrough vfio rendering hybrid performance",
+        "recording": "screen record capture video screencast screenshot fps codec framerate",
+        "dictation": "voice typing speech transcribe whisper microphone stt",
+        "appearance": "windows rounding corners gaps border accent color colour titlebar blur transparency transparent opacity dim shadow glow glass tiling cursor wallpaper background theme nightlight bluelight comfort brightness backlight rice dark",
+        "shell": "bar panel taskbar move reposition position notification osd toast frame font grain noise visualizer visualiser weather island sidebar brand logo mark surface",
+        "launcher": "launcher spotlight command palette greeting weather home",
+        "fastfetch": "fetch neofetch terminal system info logo ascii emblem readout",
+        "widgets": "desktop widget clock calendar weather face overlay wallpaper",
+        "lockscreen": "lock screensaver signin greeter skin theme login",
+        "animations": "animation animations motion transition bezier curve speed feel wobbly disable enable toggle",
+        "store": "store marketplace plugin widget install browse extras bundle addon download",
+        "addons": "installed plugin addon extension manage enable remove update widget",
+        "windowrules": "window rule float pin size place opacity class title override",
+        "appoverrides": "app override per-app opacity blur corner class inherit opaque transparent",
+        "layerrules": "layer rule namespace blur dim bar notification surface",
+        "autostart": "autostart startup launch login run command boot",
+        "environment": "environment variable env var session export",
+        "performance": "performance battery power saving save lowpower potato lag cpu gpu ram memory idle freeze reduce motion fps",
+        "rashin": "rashin agent ai assistant hermes vault memory skills chat code llm needle",
+        "updates": "update upgrade version channel commit behind check origin",
+        "credits": "credits thanks acknowledgement gratitude contributor"
     })
 
     // ── global search ────────────────────────────────────────────────────
@@ -109,19 +144,38 @@ Rectangle {
             "environment": EnvironmentSchema.rows, "performance": PerformanceSchema.rows,
             "updates": UpdatesSchema.rows
         };
+        // a real, navigable setting vs a doc-only "surface" row (an action button
+        // or a dynamic-title note) whose engineering copy must never surface.
+        var isSetting = function (r) {
+            if (!r || !r.label) return false;
+            if (r.ctl === "action" || r.ctl === "layoutdemo") return false;
+            if (/^\s*\(/.test(r.label) || /\((action bar|quick action)\)/.test(r.label)) return false;
+            return true;
+        };
+        // a result breadcrumb shows the group; the schemas hide engineering notes
+        // in it (parentheticals, <dynamic> tokens), so drop those from display.
+        var cleanGroup = function (g) {
+            if (!g) return "";
+            if (g.indexOf("(") >= 0 || g.indexOf("<") >= 0) return "";
+            return g;
+        };
         var nameOf = {}, out = [];
         for (var gi = 0; gi < groups.length; gi++)
             for (var ii = 0; ii < groups[gi].items.length; ii++) {
                 var it = groups[gi].items[ii];
                 nameOf[it.key] = it.name;
-                out.push({ section: it.key, sectionName: it.name, group: "", label: it.name, desc: "", key: "", isPage: true });
+                out.push({ section: it.key, sectionName: it.name, group: "", tab: "", label: it.name, desc: "", kw: sectionKeywords[it.key] || "", key: "", isPage: true });
             }
         for (var k in srcs) {
             var rows = srcs[k] || [];
             for (var ri = 0; ri < rows.length; ri++) {
                 var r = rows[ri];
-                if (!r || !r.label) continue;
-                out.push({ section: k, sectionName: nameOf[k] || k, group: r.group || "", label: r.label, desc: r.desc || "", key: r.key || "", isPage: false });
+                if (!isSetting(r)) continue;
+                // a setting also matches its option values (h264, dwindle, dark,
+                // fahrenheit): index the lowercase ones (skips DisplaysPage's
+                // capitalised doc placeholders) so an enum value finds its row.
+                var optkw = r.opts ? r.opts.filter(function (o) { return typeof o === "string" && /^[a-z0-9][a-z0-9 ._/-]*$/.test(o); }).join(" ") : "";
+                out.push({ section: k, sectionName: nameOf[k] || k, group: cleanGroup(r.group), tab: r.tab || "", label: r.label, desc: r.desc || "", kw: optkw, key: r.key || "", isPage: false });
             }
         }
         return out;
@@ -148,15 +202,21 @@ Rectangle {
         }
         return best;
     }
+    // Tolerant multi-word scoring: sum the words that DO match and scale by how
+    // much of the query landed, rather than zeroing the moment one word misses.
+    // A full-phrase match still wins (coverage 1.0), but "dark mode" or "second
+    // monitor" surface their page on the word that hit instead of cliffing to
+    // nothing -- the old AND-match made a single out-of-vocab word blank the rail.
     function searchScore(q, text) {
-        var words = q.split(/\s+/), total = 0;
+        var words = q.split(/\s+/), total = 0, matched = 0, n = 0;
         for (var wi = 0; wi < words.length; wi++) {
             if (!words[wi]) continue;
+            n++;
             var s = wordScore(words[wi], text);
-            if (s <= 0) return 0;
-            total += s;
+            if (s > 0) { total += s; matched++; }
         }
-        return total;
+        if (matched === 0 || n === 0) return 0;
+        return total * (matched / n);
     }
     readonly property var searchResults: {
         var q = query.toLowerCase().trim();
@@ -164,9 +224,20 @@ Rectangle {
         var scored = [];
         for (var i = 0; i < searchIndex.length; i++) {
             var e = searchIndex[i];
-            var hay = (e.label + " " + e.desc + " " + e.sectionName + " " + e.group).toLowerCase();
-            var s = searchScore(q, hay);
-            if (s > 0) scored.push({ e: e, s: s + (e.isPage ? 300 : 0) });
+            // The full hay keeps a multi-word query matchable across fields; the
+            // label is re-scored on top (specificity) and the section vocabulary
+            // (its keywords) once more. A page that OWNS the queried word -- the
+            // word is in that section's keyword set -- then floats above any
+            // sub-setting that merely mentions it in a label, so "blur", "cursor"
+            // and "battery" land the section, not a stray control that says it.
+            var full = (e.label + " " + e.desc + " " + e.sectionName + " " + e.group + " " + e.tab + " " + e.kw).toLowerCase();
+            var s = searchScore(q, full);
+            if (s <= 0) continue;
+            s += 2 * searchScore(q, e.label.toLowerCase());
+            var kwHit = searchScore(q, (e.sectionName + " " + e.tab + " " + e.kw).toLowerCase());
+            s += kwHit;
+            if (e.isPage) s += 300 + 3 * kwHit;
+            scored.push({ e: e, s: s });
         }
         scored.sort(function (a, b) { return b.s - a.s; });
         var out = [];
@@ -227,7 +298,7 @@ Rectangle {
         "frameRadius": 9, "roundness": 10, "frameBorder": 59, "frameEnabled": true,
         "frameSmoothing": 8, "frameOpacity": 1, "grainStrength": 0.09, "shadowStrength": 0.63, "shadowSize": 12,
         "surfaceColor": "#0f1115", "osdRadius": 28, "osdOpacity": 1,
-        "barEnabled": true, "barPosition": "top", "barStyle": "noctalia", "barHeight": 30,
+        "barEnabled": true, "barPosition": "top", "barStyle": "noctalia", "barHeight": 30, "washiVariant": "ryoku", "atollVariant": "ilyamiro",
         "barShowTitle": true, "barShowMedia": true, "barShowStatus": true,
         "barOccupiedWorkspaces": true, "islandEdge": "top", "islandAlong": -1,
         "islandHidden": false, "islandModules": ["workspaces", "clock", "date", "media"],
@@ -370,6 +441,14 @@ Rectangle {
             property bool barShowMedia: true
             property bool barShowStatus: true
             property bool barOccupiedWorkspaces: true
+            property bool barShowWeather: true
+            property bool barShowSpecialWs: true
+            property var barToggles: ["caffeine", "dnd", "nightlight"]
+            property var barLayoutLeft: []
+            property var barLayoutCentre: []
+            property var barLayoutRight: []
+            property string washiVariant: "ryoku"
+            property string atollVariant: "ilyamiro"
             property string islandEdge: "top"
             property real islandAlong: -1
             property bool islandHidden: false
@@ -379,6 +458,7 @@ Rectangle {
             property real fontScale: 1.3
             property string weatherLocation: ""
             property string weatherUnit: "auto"
+            property bool ryolayerEnabled: true
             property bool sidebarLeftEnabled: true
             property bool sidebarRightEnabled: true
             property var sidebarLeftPanes: ["stash"]
@@ -671,6 +751,11 @@ Rectangle {
                         required property int index
                         width: nav.width
                         spacing: 0
+                        // which group holds the open section: its header lifts up
+                        // the ink ramp (faint -> dim) as a quiet "you are here",
+                        // monochrome, never a colour, so the bone-plate item stays
+                        // the one emphasis.
+                        readonly property bool activeGroup: grp.modelData.items.some(function (i) { return i.key === hub.section; })
 
                         Item {
                             readonly property bool anyMatch: hub.query === ""
@@ -689,12 +774,12 @@ Rectangle {
                                 // its index, 01..05, in tabular mono.
                                 Text {
                                     text: (grp.index + 1 < 10 ? "0" : "") + (grp.index + 1)
-                                    color: Tokens.inkFaint
+                                    color: grp.activeGroup ? Tokens.inkDim : Tokens.inkFaint
                                     font.family: Tokens.mono; font.pixelSize: 9
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                                 Text {
-                                    text: grp.modelData.name; color: Tokens.inkFaint
+                                    text: grp.modelData.name; color: grp.activeGroup ? Tokens.inkDim : Tokens.inkFaint
                                     font.family: Tokens.ui; font.pixelSize: 9
                                     font.weight: Font.Medium; font.letterSpacing: 2
                                     anchors.verticalCenter: parent.verticalCenter
@@ -704,7 +789,7 @@ Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                                 Rectangle {
-                                    width: 1; height: 5; color: Tokens.line
+                                    width: 1; height: 5; color: grp.activeGroup ? Tokens.lineStrong : Tokens.line
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.verticalCenterOffset: -2
                                 }

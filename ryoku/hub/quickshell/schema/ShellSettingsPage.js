@@ -3,6 +3,14 @@
 // ShellSettingsPage as data. 67 settings, 57 controls: the 13 hand-wired
 // member toggles are three sets, not thirteen switches.
 
+// per bar-style visibility: a bar-tab row with a `styles` list shows only when
+// the active barStyle is in it; a row without `styles` is universal. the sets
+// mirror which bar components actually read each Config key (verified in-tree).
+var BAND4 = ["noctalia", "caelestia", "aegis", "stele"];
+var BANDFLAT = BAND4.concat(["triptych", "nacre", "inir", "aurora", "angel"]);
+var THICK = BANDFLAT.concat(["atoll"]);
+var WSHOSTS = BANDFLAT.concat(["delos"]);
+
 var rows = [
     {
         "tab": "frame",
@@ -255,6 +263,15 @@ var rows = [
         ]
     },
     {
+        "tab": "desktop",
+        "group": "WIDGET BOARD",
+        "key": "ryolayerEnabled",
+        "label": "Enable widget board",
+        "desc": "The Super+G board of drag-and-drop instrument widgets (RyoLayer); off frees it and its pins entirely",
+        "ctl": "sw",
+        "src": "shell"
+    },
+    {
         "tab": "bar",
         "group": "BAR",
         "key": "barEnabled",
@@ -267,6 +284,7 @@ var rows = [
         "tab": "bar",
         "group": "BAR",
         "key": "barPosition",
+        "styles": THICK,
         "label": "Position",
         "desc": "Which frame edge the bar rides",
         "ctl": "seg",
@@ -294,13 +312,44 @@ var rows = [
             "nacre",
             "inir",
             "aurora",
-            "angel"
+            "angel",
+            "washi",
+            "atoll"
+        ]
+    },
+    {
+        "tab": "bar",
+        "group": "BAR",
+        "key": "washiVariant",
+        "styles": ["washi"],
+        "label": "Washi look",
+        "desc": "The warping pill's aesthetic: Ryoku's own, or faithful to Ricelin",
+        "ctl": "seg",
+        "src": "shell",
+        "opts": [
+            "ryoku",
+            "ricelin"
+        ]
+    },
+    {
+        "tab": "bar",
+        "group": "BAR",
+        "key": "atollVariant",
+        "styles": ["atoll"],
+        "label": "Atoll look",
+        "desc": "Faithful to ilyamiro, or Ryoku-native: the frame wraps square grainy islands",
+        "ctl": "seg",
+        "src": "shell",
+        "opts": [
+            "ilyamiro",
+            "ryoku"
         ]
     },
     {
         "tab": "bar",
         "group": "BAR",
         "key": "barHeight",
+        "styles": THICK,
         "label": "Thickness",
         "desc": "How thick the band the bar rides is",
         "ctl": "step",
@@ -313,6 +362,7 @@ var rows = [
         "tab": "bar",
         "group": "CONTENT",
         "key": "barShowTitle",
+        "styles": BANDFLAT,
         "label": "Focused window title",
         "desc": "Show the focused window's title",
         "ctl": "sw",
@@ -322,6 +372,7 @@ var rows = [
         "tab": "bar",
         "group": "CONTENT",
         "key": "barShowMedia",
+        "styles": BANDFLAT,
         "label": "Now playing",
         "desc": "Show what is playing",
         "ctl": "sw",
@@ -330,7 +381,28 @@ var rows = [
     {
         "tab": "bar",
         "group": "CONTENT",
+        "key": "barShowWeather",
+        "styles": BANDFLAT,
+        "label": "Weather",
+        "desc": "Show the condition glyph + temperature",
+        "ctl": "sw",
+        "src": "shell"
+    },
+    {
+        "tab": "bar",
+        "group": "CONTENT",
+        "key": "barShowSpecialWs",
+        "styles": BANDFLAT,
+        "label": "Special workspace cue",
+        "desc": "Flag a Hyprland scratchpad while one is open",
+        "ctl": "sw",
+        "src": "shell"
+    },
+    {
+        "tab": "bar",
+        "group": "CONTENT",
         "key": "barShowStatus",
+        "styles": BANDFLAT,
         "label": "Status glyphs (network, battery, inbox)",
         "desc": "Show the status glyphs",
         "ctl": "sw",
@@ -340,6 +412,7 @@ var rows = [
         "tab": "bar",
         "group": "CONTENT",
         "key": "barOccupiedWorkspaces",
+        "styles": WSHOSTS,
         "label": "Only occupied workspaces",
         "desc": "Only show workspaces that have windows",
         "ctl": "sw",
@@ -347,8 +420,99 @@ var rows = [
     },
     {
         "tab": "bar",
+        "group": "CONTENT",
+        "key": "barToggles",
+        "styles": BANDFLAT,
+        "label": "Quick toggles",
+        "desc": "Which quick-toggles the bar carries. Order follows the strip.",
+        "ctl": "multi",
+        "src": "shell",
+        "opts": [
+            "wifi",
+            "bluetooth",
+            "mic",
+            "dnd",
+            "caffeine",
+            "nightlight"
+        ]
+    },
+    {
+        "tab": "bar",
+        "group": "LAYOUT (band skins: noctalia, caelestia, aegis, stele)",
+        "key": "barLayoutLeft",
+        "styles": BAND4,
+        "label": "Left cluster",
+        "desc": "Modules in the left group, in order. Empty keeps the classic layout.",
+        "ctl": "multi",
+        "src": "shell",
+        "opts": [
+            "seal",
+            "workspaces",
+            "special",
+            "title",
+            "clock",
+            "media",
+            "stats",
+            "weather",
+            "toggles",
+            "status",
+            "tray",
+            "power"
+        ]
+    },
+    {
+        "tab": "bar",
+        "group": "LAYOUT (band skins: noctalia, caelestia, aegis, stele)",
+        "key": "barLayoutCentre",
+        "styles": BAND4,
+        "label": "Centre cluster",
+        "desc": "Modules in the centred group, in order. Empty centres the clock.",
+        "ctl": "multi",
+        "src": "shell",
+        "opts": [
+            "seal",
+            "workspaces",
+            "special",
+            "title",
+            "clock",
+            "media",
+            "stats",
+            "weather",
+            "toggles",
+            "status",
+            "tray",
+            "power"
+        ]
+    },
+    {
+        "tab": "bar",
+        "group": "LAYOUT (band skins: noctalia, caelestia, aegis, stele)",
+        "key": "barLayoutRight",
+        "styles": BAND4,
+        "label": "Right cluster",
+        "desc": "Modules in the right group, in order. Empty keeps the classic layout.",
+        "ctl": "multi",
+        "src": "shell",
+        "opts": [
+            "seal",
+            "workspaces",
+            "special",
+            "title",
+            "clock",
+            "media",
+            "stats",
+            "weather",
+            "toggles",
+            "status",
+            "tray",
+            "power"
+        ]
+    },
+    {
+        "tab": "bar",
         "group": "ISLAND",
         "key": "islandRadius",
+        "styles": ["delos"],
         "label": "Roundness",
         "desc": "Corner rounding of the island",
         "ctl": "step",
@@ -361,6 +525,7 @@ var rows = [
         "tab": "bar",
         "group": "ISLAND",
         "key": "islandModules",
+        "styles": ["delos"],
         "label": "Island modules",
         "desc": "Which modules the bar carries. Order follows the strip.",
         "ctl": "multi",
@@ -379,6 +544,7 @@ var rows = [
         "tab": "bar",
         "group": "ISLAND",
         "key": "islandEdge",
+        "styles": ["delos"],
         "label": "Dock edge",
         "desc": "Which screen edge the island docks to",
         "ctl": "seg",

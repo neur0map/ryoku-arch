@@ -8,6 +8,7 @@ import Quickshell.Io
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
 import "../schema/AppearancePage.js" as Schema
+import ".."
 
 // Appearance (DESIGN.md, DESKTOP). The system look and feel, ported to the
 // beta18 monochrome instrument. Look/Borders/Cursor are the live Hyprland draft
@@ -66,7 +67,7 @@ Item {
         var out = [];
         for (var i = 0; i < Schema.rows.length; i++) {
             var r = Schema.rows[i];
-            if (r.tab !== "Look" && r.tab !== "Borders" && r.tab !== "Cursor")
+            if (r.tab !== "Windows" && r.tab !== "Effects" && r.tab !== "Borders" && r.tab !== "Cursor")
                 continue;
             if (!pg.gateOk(r.key, d))
                 continue;
@@ -154,10 +155,9 @@ Item {
         return true;
     }
 
-    // ── tabs ────────────────────────────────────────────────────────────────
-    property string tab: "Look"
-    readonly property var tabs: ["Look", "Borders", "Cursor", "Wallpaper", "Comfort", "Rices"]
-    readonly property bool settingsTab: pg.tab === "Look" || pg.tab === "Borders" || pg.tab === "Cursor"
+    property string tab: "Windows"
+    readonly property var tabs: ["Windows", "Effects", "Borders", "Cursor", "Theme", "Comfort", "Rices"]
+    readonly property bool settingsTab: pg.tab === "Windows" || pg.tab === "Effects" || pg.tab === "Borders" || pg.tab === "Cursor"
     readonly property bool searching: pg.hub ? (pg.hub.query || "") !== "" : false
 
     readonly property string home: Quickshell.env("HOME") || ""
@@ -498,7 +498,7 @@ Item {
 
     // lazy refresh, matching the old page's onGroupChanged wiring.
     onTabChanged: {
-        if (pg.tab === "Wallpaper") pg.refreshWalls();
+        if (pg.tab === "Theme") { pg.refreshWalls(); schemeQueryProc.running = true; themeAppsQueryProc.running = true; }
         else if (pg.tab === "Comfort") pg.refreshComfort();
         else if (pg.tab === "Borders") schemeQueryProc.running = true;
         else if (pg.tab === "Rices") pg.reloadRices();
@@ -1061,7 +1061,7 @@ Item {
             schema: pg.settingsSchema
             draft: pg.draft
             defaults: pg.committed
-            tab: pg.settingsTab ? pg.tab : "Look"
+            tab: pg.settingsTab ? pg.tab : "Windows"
             query: pg.hub ? (pg.hub.query || "") : ""
             onEdited: (k, v) => pg.setKey(k, v)
             onPickRequested: (r) => {
@@ -1074,7 +1074,7 @@ Item {
         Flickable {
             id: wallView
             anchors.fill: parent
-            visible: pg.tab === "Wallpaper" && !pg.searching
+            visible: pg.tab === "Theme" && !pg.searching
             contentWidth: width
             contentHeight: wallCol.height + Tokens.s5
             clip: true
@@ -1087,6 +1087,7 @@ Item {
                 spacing: Tokens.s5
 
                 Column {
+                    visible: pg.tab === "Theme"
                     width: parent.width
                     spacing: Tokens.s3
                     SectionHead { width: parent.width; title: "THEME PALETTE" }
@@ -1162,7 +1163,62 @@ Item {
                     }
                 }
 
+                // Border colours: the fixed frame colours, sitting right under
+                // the scheme that decides whether they apply. Shown only when a
+                // fixed palette is set (Follow derives borders from the wallpaper),
+                // so the whole "what colour are my borders" question lives here,
+                // not split between this scheme and a separate Borders tab.
                 Column {
+                    visible: pg.tab === "Theme" && pg.scheme !== "follow"
+                    width: parent.width
+                    spacing: Tokens.s3
+                    SectionHead { width: parent.width; title: "BORDER COLOURS" }
+                    Text {
+                        width: Math.min(parent.width, 620)
+                        wrapMode: Text.WordWrap
+                        text: "The window frame colours a fixed palette uses; Follow takes the wallpaper's accent instead. Click a swatch to pick, or type a hex."
+                        color: Tokens.inkMuted
+                        font.family: Tokens.ui
+                        font.pixelSize: Tokens.fSmall
+                    }
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s4
+                        Column {
+                            width: (parent.width - Tokens.s4) / 2
+                            spacing: Tokens.s1
+                            Text {
+                                text: "ACTIVE WINDOW"
+                                color: Tokens.inkMuted; font.family: Tokens.ui
+                                font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
+                                font.letterSpacing: Tokens.trackLabel
+                            }
+                            ColorField {
+                                width: parent.width
+                                value: pg.hub ? String(pg.hub.hyprVal("appearance.activeBorder") || "") : ""
+                                onChosen: (v) => pg.setKey("appearance.activeBorder", v)
+                            }
+                        }
+                        Column {
+                            width: (parent.width - Tokens.s4) / 2
+                            spacing: Tokens.s1
+                            Text {
+                                text: "INACTIVE WINDOW"
+                                color: Tokens.inkMuted; font.family: Tokens.ui
+                                font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
+                                font.letterSpacing: Tokens.trackLabel
+                            }
+                            ColorField {
+                                width: parent.width
+                                value: pg.hub ? String(pg.hub.hyprVal("appearance.inactiveBorder") || "") : ""
+                                onChosen: (v) => pg.setKey("appearance.inactiveBorder", v)
+                            }
+                        }
+                    }
+                }
+
+                Column {
+                    visible: pg.tab === "Theme"
                     width: parent.width
                     spacing: Tokens.s3
                     SectionHead { width: parent.width; title: "RYOKU DEFAULT" }
@@ -1189,6 +1245,7 @@ Item {
                 }
 
                 Column {
+                    visible: pg.tab === "Theme"
                     width: parent.width
                     spacing: Tokens.s3
                     SectionHead { width: parent.width; title: "WALLPAPER" }

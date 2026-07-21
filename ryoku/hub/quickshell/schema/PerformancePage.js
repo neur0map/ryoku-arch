@@ -94,5 +94,14 @@ var rows = [
         "desc": "Frees about 250 MB after a minute hidden; next Super+Tab cold-starts it",
         "ctl": "sw",
         "src": "performance.json"
+    },
+    {
+        "tab": "",
+        "group": "MEMORY",
+        "key": "unloadRyolayerWhenIdle",
+        "label": "Unload the widget board (RyoLayer) to free its memory when idle (brief delay on the next Super+G)",
+        "desc": "Frees the Super+G board's memory a minute after it closes; the next open cold-starts",
+        "ctl": "sw",
+        "src": "performance.json"
     }
 ];

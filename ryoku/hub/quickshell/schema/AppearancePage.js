@@ -6,7 +6,7 @@
 
 var rows = [
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "SHAPE",
         "key": "appearance.rounding",
         "label": "Corner radius",
@@ -18,7 +18,7 @@ var rows = [
         "unit": "px"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "SHAPE",
         "key": "appearance.roundingPower",
         "label": "Corner softness",
@@ -29,7 +29,7 @@ var rows = [
         "hi": 8.0
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "SHAPE",
         "key": "appearance.borderSize",
         "label": "Border thickness",
@@ -41,7 +41,7 @@ var rows = [
         "unit": "px"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "SHAPE",
         "key": "appearance.borderPartOfWindow",
         "label": "Border inside window",
@@ -50,7 +50,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "TILING",
         "key": "appearance.layout",
         "label": "Tiling layout",
@@ -64,7 +64,7 @@ var rows = [
         ]
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "TILING",
         "ctl": "layoutdemo",
         "label": "",
@@ -72,7 +72,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "TILING",
         "key": "plugins.hyprscrolling.columnWidth",
         "label": "Column width",
@@ -85,7 +85,7 @@ var rows = [
         "pct": true
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "TILING",
         "key": "plugins.hyprscrolling.followFocus",
         "label": "Scroll to follow focus",
@@ -94,7 +94,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "DWINDLE",
         "key": "dwindle.preserveSplit",
         "label": "Preserve split",
@@ -103,7 +103,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "DWINDLE",
         "key": "dwindle.smartSplit",
         "label": "Smart split",
@@ -112,7 +112,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "DWINDLE",
         "key": "dwindle.smartResizing",
         "label": "Smart resizing",
@@ -121,7 +121,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "DWINDLE",
         "key": "dwindle.defaultSplitRatio",
         "label": "Default split ratio",
@@ -132,7 +132,7 @@ var rows = [
         "hi": 1.9
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "DWINDLE",
         "key": "dwindle.forceSplit",
         "label": "Force split side",
@@ -146,7 +146,7 @@ var rows = [
         ]
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "DWINDLE",
         "key": "dwindle.useActiveForSplits",
         "label": "Split from active",
@@ -155,7 +155,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "MASTER",
         "key": "master.mfact",
         "label": "Master size",
@@ -166,7 +166,7 @@ var rows = [
         "hi": 0.9
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "MASTER",
         "key": "master.newStatus",
         "label": "New window role",
@@ -180,7 +180,7 @@ var rows = [
         ]
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "MASTER",
         "key": "master.newOnTop",
         "label": "New on top",
@@ -189,7 +189,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "MASTER",
         "key": "master.orientation",
         "label": "Master side",
@@ -205,7 +205,7 @@ var rows = [
         ]
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "MASTER",
         "key": "master.smartResizing",
         "label": "Smart resizing",
@@ -214,7 +214,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "GAPS",
         "key": "appearance.gapsIn",
         "label": "Inner (between windows)",
@@ -226,7 +226,7 @@ var rows = [
         "unit": "px"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "GAPS",
         "key": "appearance.gapsOut",
         "label": "Outer (screen edge)",
@@ -238,7 +238,7 @@ var rows = [
         "unit": "px"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "GAPS",
         "key": "appearance.gapsWorkspaces",
         "label": "Workspace gaps",
@@ -250,7 +250,7 @@ var rows = [
         "unit": "px"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "BEHAVIOUR",
         "key": "appearance.resizeOnBorder",
         "label": "Drag to resize at window edges",
@@ -259,7 +259,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "BEHAVIOUR",
         "key": "appearance.snapEnabled",
         "label": "Snap floating windows",
@@ -268,7 +268,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "BEHAVIOUR",
         "key": "appearance.extendBorderGrab",
         "label": "Border grab area",
@@ -280,7 +280,7 @@ var rows = [
         "unit": "px"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "BEHAVIOUR",
         "key": "appearance.hoverIconOnBorder",
         "label": "Resize cursor on border",
@@ -289,7 +289,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "BEHAVIOUR",
         "key": "appearance.noFocusFallback",
         "label": "No focus fallback",
@@ -298,7 +298,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Windows",
         "group": "BEHAVIOUR",
         "key": "appearance.resizeCorner",
         "label": "Resize corner",
@@ -309,7 +309,7 @@ var rows = [
         "hi": 4.0
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "TITLE BARS",
         "key": "plugins.hyprbars.enabled",
         "label": "Window title bars",
@@ -318,7 +318,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "TITLE BARS",
         "key": "plugins.hyprbars.height",
         "label": "Bar height",
@@ -330,7 +330,7 @@ var rows = [
         "unit": "px"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "TITLE BARS",
         "key": "plugins.hyprbars.textSize",
         "label": "Title text size",
@@ -342,7 +342,7 @@ var rows = [
         "unit": "px"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "TITLE BARS",
         "key": "plugins.hyprbars.blur",
         "label": "Blur the bar",
@@ -351,7 +351,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "TITLE BARS",
         "key": "plugins.hyprbars.buttons",
         "label": "Close and maximise buttons",
@@ -360,7 +360,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "OPACITY",
         "key": "appearance.activeOpacity",
         "label": "Active",
@@ -373,7 +373,7 @@ var rows = [
         "pct": true
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "OPACITY",
         "key": "appearance.inactiveOpacity",
         "label": "Inactive",
@@ -386,7 +386,7 @@ var rows = [
         "pct": true
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "OPACITY",
         "key": "appearance.dimInactive",
         "label": "Dim inactive windows",
@@ -395,7 +395,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "OPACITY",
         "key": "appearance.dimStrength",
         "label": "Dim strength",
@@ -408,7 +408,7 @@ var rows = [
         "pct": true
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "OPACITY",
         "key": "appearance.fullscreenOpacity",
         "label": "Fullscreen opacity",
@@ -421,7 +421,7 @@ var rows = [
         "pct": true
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "OPACITY",
         "key": "appearance.dimSpecial",
         "label": "Dim special workspaces",
@@ -434,7 +434,7 @@ var rows = [
         "pct": true
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "OPACITY",
         "key": "appearance.dimAround",
         "label": "Dim around floating",
@@ -447,7 +447,7 @@ var rows = [
         "pct": true
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "OPACITY",
         "key": "appearance.dimModal",
         "label": "Dim modal dialogs",
@@ -456,7 +456,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurEnabled",
         "label": "Enabled",
@@ -465,7 +465,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurSize",
         "label": "Size",
@@ -477,7 +477,7 @@ var rows = [
         "unit": "px"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurPasses",
         "label": "Passes",
@@ -488,7 +488,7 @@ var rows = [
         "hi": 6.0
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurXray",
         "label": "X-ray (blur shows the wallpaper)",
@@ -497,7 +497,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurVibrancy",
         "label": "Vibrancy",
@@ -508,7 +508,7 @@ var rows = [
         "hi": 0.5
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurNoise",
         "label": "Noise",
@@ -519,7 +519,7 @@ var rows = [
         "hi": 0.1
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurContrast",
         "label": "Blur contrast",
@@ -530,7 +530,7 @@ var rows = [
         "hi": 2.0
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurBrightness",
         "label": "Blur brightness",
@@ -541,7 +541,7 @@ var rows = [
         "hi": 2.0
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurSpecial",
         "label": "Blur special workspace",
@@ -550,7 +550,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurPopups",
         "label": "Blur popups",
@@ -559,7 +559,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurIgnoreOpacity",
         "label": "Blur ignores opacity",
@@ -568,7 +568,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurNewOptimizations",
         "label": "Blur optimizations",
@@ -577,7 +577,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "BLUR",
         "key": "appearance.blurVibrancyDarkness",
         "label": "Blur vibrancy darkness",
@@ -588,7 +588,7 @@ var rows = [
         "hi": 1.0
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "SHADOWS",
         "key": "appearance.shadowEnabled",
         "label": "Window shadows",
@@ -597,7 +597,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "SHADOWS",
         "key": "appearance.shadowRange",
         "label": "Shadow range",
@@ -609,7 +609,7 @@ var rows = [
         "unit": "px"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "SHADOWS",
         "key": "appearance.shadowPower",
         "label": "Shadow sharpness",
@@ -620,7 +620,7 @@ var rows = [
         "hi": 4.0
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "SHADOWS",
         "key": "appearance.shadowSharp",
         "label": "Sharp shadow",
@@ -629,7 +629,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "SHADOWS",
         "key": "appearance.shadowScale",
         "label": "Shadow scale",
@@ -640,7 +640,7 @@ var rows = [
         "hi": 1.0
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "SHADOWS",
         "key": "appearance.shadowColor",
         "label": "Shadow color",
@@ -649,7 +649,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "MOTION",
         "key": "appearance.animations",
         "label": "Animations",
@@ -658,7 +658,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "MOTION",
         "key": "appearance.wobblyWindows",
         "label": "Wobbly windows",
@@ -667,7 +667,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "MOTION",
         "key": "appearance.windowStyle",
         "label": "Open / close",
@@ -681,7 +681,7 @@ var rows = [
         ]
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "GLOW",
         "key": "appearance.glowEnabled",
         "label": "Glow behind windows",
@@ -690,7 +690,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "GLOW",
         "key": "appearance.glowRange",
         "label": "Range",
@@ -702,7 +702,7 @@ var rows = [
         "unit": "px"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "GLOW",
         "key": "appearance.glowColor",
         "label": "Colour",
@@ -711,7 +711,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "GLASS",
         "key": "plugins.hyprglass.enabled",
         "label": "Liquid glass windows",
@@ -720,7 +720,7 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "GLASS",
         "key": "plugins.hyprglass.preset",
         "label": "Preset",
@@ -735,7 +735,7 @@ var rows = [
         ]
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "GLASS",
         "key": "plugins.hyprglass.blurStrength",
         "label": "Blur strength",
@@ -746,7 +746,7 @@ var rows = [
         "hi": 5.0
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "GLASS",
         "key": "plugins.hyprglass.opacity",
         "label": "Glass opacity",
@@ -759,7 +759,7 @@ var rows = [
         "pct": true
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "GLASS",
         "key": "plugins.hyprglass.brightness",
         "label": "Glass brightness",
@@ -770,7 +770,7 @@ var rows = [
         "hi": 2.0
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "GLASS",
         "key": "plugins.hyprglass.theme",
         "label": "Glass theme",
@@ -783,7 +783,7 @@ var rows = [
         ]
     },
     {
-        "tab": "Look",
+        "tab": "Effects",
         "group": "GLASS",
         "key": "plugins.hyprglass.tint",
         "label": "Glass tint",
@@ -792,8 +792,8 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Borders",
-        "group": "FIXED COLOURS",
+        "tab": "Theme",
+        "group": "BORDER COLOURS",
         "key": "appearance.activeBorder",
         "label": "Active window",
         "desc": "Frame colour of the focused window, only with a fixed palette",
@@ -801,8 +801,8 @@ var rows = [
         "src": "hypr.json"
     },
     {
-        "tab": "Borders",
-        "group": "FIXED COLOURS",
+        "tab": "Theme",
+        "group": "BORDER COLOURS",
         "key": "appearance.inactiveBorder",
         "label": "Inactive window",
         "desc": "Frame colour of unfocused windows, only with a fixed palette",
@@ -983,7 +983,7 @@ var rows = [
         "hi": 10.0
     },
     {
-        "tab": "Wallpaper",
+        "tab": "Theme",
         "group": "THEME PALETTE",
         "key": "scheme (+ followWallpaper)",
         "label": "Colours",
@@ -999,7 +999,7 @@ var rows = [
         ]
     },
     {
-        "tab": "Wallpaper",
+        "tab": "Theme",
         "group": "WALLPAPER",
         "key": "(no key \u2014 a path in a state file)",
         "label": "Wallpaper",
