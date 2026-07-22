@@ -1160,9 +1160,13 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 	switch s.kind {
 	case kSelect:
 		if done, sel := m.pick.update(k); done {
-			m.picks[s.key] = s.items[sel].key
+			// Commit from the picker's own list, never s.items: loadStep swaps
+			// per-disk items into the picker only (the step keeps its static
+			// placeholder), so the two can diverge - selecting "alongside" used
+			// to store "whole" and the review offered to erase the disk.
+			m.picks[s.key] = m.pick.items[sel].key
 			if s.key == "diskpick" { // WIRE: real device + size from lsblk/blockdev
-				m.diskDev = s.items[sel].key
+				m.diskDev = m.pick.items[sel].key
 				m.diskTotal = diskSizeOf(m.diskDev)
 				m.diskBytes = sysDiskBytes(m.diskDev)
 			}
