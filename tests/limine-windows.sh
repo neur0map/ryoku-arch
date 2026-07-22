@@ -159,4 +159,39 @@ RYOKU_CONF_PARTUUID="aaaaaaaa-0000-0000-0000-000000000000" \
 grep -qF 'path: uuid(5eaf9964-1111-2222-3333-444455556666):/EFI/Microsoft/Boot/bootmgfw.efi' "$cross" \
   || fail "cross-drive Windows must stay uuid()"
 
+# --- alongside shared-ESP limine.conf generator (ryoku_alongside_conf_text) -----
+# the alongside branch writes limine.conf onto the existing OS's shared ESP with a
+# menu entry for that existing system. windows keeps its historical /Windows entry
+# byte-for-byte; a ryoku/linux neighbor gets a boot()-addressed "(existing)" entry;
+# an existing_boot of none emits no entry (bootable via firmware menu only).
+repo="$here/.."
+# shellcheck source=/dev/null
+source "$repo/installation/backend/lib/common.sh"
+# shellcheck source=/dev/null
+source "$repo/installation/backend/lib/disk.sh"
+# shellcheck source=/dev/null
+source "$repo/installation/backend/lib/bootloader.sh"
+export RYOKU_REPO="$repo" CMDLINE="root=UUID=deadbeef rw"
+
+win_conf="$(ryoku_alongside_conf_text windows /EFI/Microsoft/Boot/bootmgfw.efi)"
+grep -qxF '/Windows' <<<"$win_conf" || fail "alongside windows conf missing the /Windows entry"
+grep -qF 'path: boot():/EFI/Microsoft/Boot/bootmgfw.efi' <<<"$win_conf" || fail "alongside windows conf did not chainload bootmgfw via boot()"
+grep -qF 'comment: Windows Boot Manager' <<<"$win_conf" || fail "alongside windows conf lost the Windows comment"
+grep -qF 'kernel_path: fslabel(RYOKUBOOT):/vmlinuz-linux' <<<"$win_conf" || fail "alongside conf missing the fslabel(RYOKUBOOT) kernel path"
+
+ryoku_conf="$(ryoku_alongside_conf_text ryoku /EFI/limine/limine_x64.efi)"
+grep -qxF '/Ryoku (existing)' <<<"$ryoku_conf" || fail "alongside ryoku conf missing the '/Ryoku (existing)' entry"
+grep -qF 'path: boot():/EFI/limine/limine_x64.efi' <<<"$ryoku_conf" || fail "alongside ryoku conf did not chainload the existing limine via boot()"
+grep -qF 'comment: existing ryoku install' <<<"$ryoku_conf" || fail "alongside ryoku conf lost the existing-install comment"
+grep -qF '/Windows' <<<"$ryoku_conf" && fail "alongside ryoku conf wrongly emitted a /Windows entry"
+
+linux_conf="$(ryoku_alongside_conf_text linux /EFI/systemd/systemd-bootx64.efi)"
+grep -qxF '/Linux (existing)' <<<"$linux_conf" || fail "alongside linux conf missing the '/Linux (existing)' entry"
+grep -qF 'path: boot():/EFI/systemd/systemd-bootx64.efi' <<<"$linux_conf" || fail "alongside linux conf did not chainload the vendor binary via boot()"
+
+none_conf="$(ryoku_alongside_conf_text ryoku none)"
+grep -qF '(existing)' <<<"$none_conf" && fail "alongside conf with existing_boot none wrongly emitted a chainload entry"
+grep -qF 'kernel_path: fslabel(RYOKUBOOT):/vmlinuz-linux' <<<"$none_conf" || fail "alongside none conf lost the Ryoku Linux entry"
+echo "limine-windows: alongside conf generator (windows/ryoku/linux/none) checks passed"
+
 echo "limine-windows: all checks passed"

@@ -23,7 +23,7 @@ fail() { echo "FAIL: $1" >&2; exit 1; }
 
 skip() { echo "install-partition-alongside: SKIP ($1)"; exit 0; }
 [[ $EUID -eq 0 ]] || skip "not root; needs losetup/sgdisk (run: sudo bash $0)"
-for t in losetup sgdisk sfdisk jq parted mkfs.vfat mkfs.btrfs blkid partprobe truncate udevadm mountpoint sha256sum; do
+for t in losetup sgdisk sfdisk jq parted mkfs.vfat mkfs.btrfs btrfs blkid partprobe truncate udevadm mountpoint sha256sum; do
   command -v "$t" >/dev/null 2>&1 || skip "missing $t"
 done
 # part_num lives in common.sh; the D4 fixtures call it at top level.
@@ -195,6 +195,56 @@ check_fixture() {
   echo "   $name: byte-exact region, sector-exact creation, XBOOTLDR + one EF00, neighbors intact"
 }
 
+# fmt_ryoku_esp <part>: format a bare ESP vfat labeled BOOT with NO /EFI tree --
+# the shape of a whole-disk Ryoku's shared ESP as it looks to the probe (an empty
+# ESP that must be classified by the disk's living root fs, not by ESP content).
+fmt_ryoku_esp() { mkfs.vfat -F 32 -n BOOT "$1" >/dev/null 2>&1 || fail "could not format Ryoku ESP $1"; }
+
+# mk_living_ryoku <part>: a LIVING Ryoku btrfs -- fslabel ryoku, the @/@home/
+# @snapshots subvols, an @/etc holding a file, plus a data blob whose checksum we
+# track. sets $RYOKU_SEED_SUM. this is the disk carve exists for, never a leftover.
+mk_living_ryoku() {
+  local part=$1 mp
+  mkfs.btrfs -q -f -L ryoku "$part" >/dev/null 2>&1 || fail "could not mkfs.btrfs a living Ryoku root on $part"
+  mp="$(mktemp -d)"
+  mount "$part" "$mp" || fail "could not mount $part to seed a living Ryoku install"
+  btrfs subvolume create "$mp/@" >/dev/null || fail "could not create @ subvolume"
+  btrfs subvolume create "$mp/@home" >/dev/null || fail "could not create @home subvolume"
+  btrfs subvolume create "$mp/@snapshots" >/dev/null || fail "could not create @snapshots subvolume"
+  mkdir -p "$mp/@/etc"; echo ryoku-host >"$mp/@/etc/hostname"
+  dd if=/dev/urandom of="$mp/@/blob" bs=1M count=64 status=none; sync
+  RYOKU_SEED_SUM="$(sha256sum "$mp/@/blob" | awk '{print $1}')"
+  umount "$mp"; rmdir "$mp"
+}
+
+# check_living_ryoku <part> <want-sum>: prove the living Ryoku btrfs still mounts,
+# still has @/etc, and its data blob checksum is unchanged after an alongside run.
+check_living_ryoku() {
+  local part=$1 want=$2 mp got
+  mp="$(mktemp -d)"
+  mount -o subvolid=5 "$part" "$mp" || fail "living Ryoku root no longer mounts after alongside"
+  [[ -f "$mp/@/etc/hostname" ]] || fail "living Ryoku @/etc was lost after alongside"
+  got="$(sha256sum "$mp/@/blob" 2>/dev/null | awk '{print $1}')"
+  umount "$mp"; rmdir "$mp"
+  [[ $got == "$want" ]] || fail "living Ryoku data checksum changed after alongside ($want -> ${got:-gone})"
+}
+
+# probe_alongside <loop>: the machine report the TUI consumes.
+probe_alongside() { "$root/installation/backend/ryoku-install" probe alongside "$1" 2>/dev/null; }
+
+# run_reclaim <loop> [ack]: call ryoku_reclaim_leftovers directly in a subshell so
+# a die can't kill the test. [ack] non-empty sets RYOKU_RECLAIM_LEFTOVERS.
+run_reclaim() {
+  rc=0
+  out="$(ROOT="$root" DISK="$1" ACK="${2:-}" bash -c '
+    source "$ROOT/installation/backend/lib/common.sh"
+    source "$ROOT/installation/backend/lib/disk.sh"
+    [[ -n $ACK ]] && export RYOKU_RECLAIM_LEFTOVERS=$ACK
+    set -euo pipefail
+    ryoku_reclaim_leftovers "$DISK"
+  ' 2>&1)" || rc=$?
+}
+
 # ==========================================================================
 # 1. dedicated ESP + root in free space, nothing existing touched
 # ==========================================================================
@@ -343,5 +393,92 @@ else
   settle "$fd" 3
   check_fixture "d 4096-byte sector loop" "$fd" 5313792 15728383 40682
 fi
+
+# ==========================================================================
+# R1. pure-Ryoku disk: empty ESP + a LIVING ryoku btrfs, free region to spare.
+# probe classifies it esp_kind ryoku with NO leftover lines; an alongside layout
+# placed in the free region touches neither the ESP nor the living btrfs.
+# ==========================================================================
+echo "-- ryoku disk: esp_kind + living-install preservation --"
+make_disk 60G; rdisk=$DISK
+sgdisk -n 1:2048:+1G -t 1:ef00 -c 1:"EFI system partition" \
+       -n 2:0:+20G   -t 2:8300 -c 2:"Basic data partition" "$rdisk" >/dev/null
+settle "$rdisk" 2
+fmt_ryoku_esp "${rdisk}p1"
+mk_living_ryoku "${rdisk}p2"
+esp_edge_before="$(edge_sha "${rdisk}p1")"
+root_edge_before="$(edge_sha "${rdisk}p2")"
+rparts_before="$(for n in 1 2; do echo "== p$n =="; sgdisk -i "$n" "$rdisk"; done)"
+rpre_count="$(part_count "$rdisk")"
+
+rprobe="$(probe_alongside "$rdisk")"
+grep -qx 'esp_kind ryoku' <<<"$rprobe" || fail "ryoku disk: probe did not classify esp_kind ryoku: $rprobe"
+grep -qx 'verdict ok' <<<"$rprobe" || fail "ryoku disk: verdict not ok: $rprobe"
+grep -qE '^leftover ' <<<"$rprobe" && fail "ryoku disk: a living install was wrongly reported as a leftover: $rprobe"
+grep -qx 'existing_boot none' <<<"$rprobe" || fail "ryoku disk: empty ESP should report existing_boot none: $rprobe"
+
+read -r r_start r_end _ < <(region_top "$rdisk")
+[[ -n $r_start && -n $r_end ]] || fail "ryoku disk: probe reported no free region to place alongside in"
+create_in_region "$rdisk" "$r_start" "$r_end"
+[[ $rc -eq 0 ]] || fail "ryoku disk: alongside creation in the free region failed (rc=$rc): $out"
+[[ "$(lsblk -dno PARTLABEL "$esp")" == ryokuboot ]] || fail "ryoku disk: new boot not labeled ryokuboot"
+[[ "$(lsblk -dno PARTLABEL "$root_part")" == ryoku ]] || fail "ryoku disk: new root not labeled ryoku"
+[[ "$(part_count "$rdisk")" -eq $(( rpre_count + 2 )) ]] || fail "ryoku disk: expected $(( rpre_count + 2 )) partitions"
+[[ "$rparts_before" == "$(for n in 1 2; do echo "== p$n =="; sgdisk -i "$n" "$rdisk"; done)" ]] || fail "ryoku disk: an existing partition (p1/p2) changed after alongside"
+[[ "$(edge_sha "${rdisk}p1")" == "$esp_edge_before" ]] || fail "ryoku disk: the existing ESP changed after alongside"
+[[ "$(edge_sha "${rdisk}p2")" == "$root_edge_before" ]] || fail "ryoku disk: the living btrfs edges changed after alongside"
+check_living_ryoku "${rdisk}p2" "$RYOKU_SEED_SUM"
+echo "   ryoku disk: esp_kind ryoku, no leftover, alongside landed only in free space, living btrfs byte-identical + data intact"
+
+# ==========================================================================
+# R2. true leftovers (empty ryoku/ryokuboot partitions from a failed run):
+# probe emits leftover lines; reclaim deletes them ONLY with the ack.
+# ==========================================================================
+echo "-- true leftovers: probe emits leftover lines, reclaim gated --"
+make_disk 40G; ldisk=$DISK
+fake_windows "$ldisk" 12G
+fmt_win_esp "${ldisk}p1"
+sgdisk -n 4:0:+2G  -t 4:ea00 -c 4:ryokuboot \
+       -n 5:0:+20G -t 5:8300 -c 5:ryoku "$ldisk" >/dev/null
+settle "$ldisk" 5
+wipefs -a "${ldisk}p4" "${ldisk}p5" >/dev/null 2>&1   # empty fs = genuine debris
+lprobe="$(probe_alongside "$ldisk")"
+grep -qx 'esp_kind windows' <<<"$lprobe" || fail "leftovers: seeded Windows ESP not classified windows: $lprobe"
+grep -qE "^leftover ${ldisk}p4 ryokuboot [0-9]+$" <<<"$lprobe" || fail "leftovers: no leftover line for the empty ryokuboot debris: $lprobe"
+grep -qE "^leftover ${ldisk}p5 ryoku [0-9]+$" <<<"$lprobe" || fail "leftovers: no leftover line for the empty ryoku debris: $lprobe"
+lcount_before="$(part_count "$ldisk")"
+run_reclaim "$ldisk"                     # no ack
+[[ $rc -ne 0 ]] || fail "leftovers: reclaim deleted debris WITHOUT the ack (rc=$rc): $out"
+grep -qF 'RYOKU_RECLAIM_LEFTOVERS' <<<"$out" || fail "leftovers: unacked refusal did not point at the ack env"
+[[ "$(part_count "$ldisk")" -eq $lcount_before ]] || fail "leftovers: unacked reclaim still changed the partition count"
+run_reclaim "$ldisk" 1                    # ack
+[[ $rc -eq 0 ]] || fail "leftovers: acked reclaim failed (rc=$rc): $out"
+grep -qF 'reclaiming leftover' <<<"$out" || fail "leftovers: acked reclaim did not reclaim the debris"
+[[ "$(part_count "$ldisk")" -eq $(( lcount_before - 2 ))  ]] || fail "leftovers: acked reclaim did not delete exactly the two debris partitions"
+echo "   true leftovers: probe emitted leftover lines, reclaim deleted them only with the ack"
+
+# ==========================================================================
+# R3. living-install protection: a partition labeled EXACTLY ryoku that holds a
+# LIVING @/etc btrfs is NEVER a leftover and is NEVER reclaimed -- not even with
+# the RYOKU_RECLAIM_LEFTOVERS ack. this is the "erase my old Ryoku" hazard.
+# ==========================================================================
+echo "-- living-install protection: partlabel ryoku + @/etc btrfs, ack set --"
+make_disk 40G; pdisk=$DISK
+sgdisk -n 1:2048:+1G -t 1:ef00 -c 1:"EFI system partition" \
+       -n 2:0:+20G   -t 2:8300 -c 2:ryoku "$pdisk" >/dev/null
+settle "$pdisk" 2
+fmt_ryoku_esp "${pdisk}p1"
+mk_living_ryoku "${pdisk}p2"          # partlabel ryoku AND a living @/etc btrfs
+[[ "$(lsblk -dno PARTLABEL "${pdisk}p2")" == ryoku ]] || fail "protection: fixture p2 is not partlabel ryoku"
+pprobe="$(probe_alongside "$pdisk")"
+grep -qE '^leftover ' <<<"$pprobe" && fail "protection: living install reported as a leftover: $pprobe"
+pbefore="$(sgdisk -i 2 "$pdisk")"
+run_reclaim "$pdisk" 1                 # ACK set -- must still refuse to delete a living install
+[[ $rc -eq 0 ]] || fail "protection: reclaim aborted on a living install instead of leaving it alone (rc=$rc): $out"
+grep -qF 'living install' <<<"$out" || fail "protection: reclaim did not name the living-install guard: $out"
+[[ -b "${pdisk}p2" ]] || fail "protection: the living Ryoku partition was DELETED despite the guard"
+[[ "$(sgdisk -i 2 "$pdisk")" == "$pbefore" ]] || fail "protection: the living Ryoku partition table entry changed"
+check_living_ryoku "${pdisk}p2" "$RYOKU_SEED_SUM"
+echo "   living-install protection: partlabel-ryoku living btrfs never reclaimed even with the ack"
 
 echo "install-partition-alongside: all checks passed"

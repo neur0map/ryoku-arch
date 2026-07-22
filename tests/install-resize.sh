@@ -19,7 +19,7 @@ fail() { echo "FAIL: $1" >&2; exit 1; }
 skip() { echo "install-resize: SKIP ($1)"; exit 0; }
 
 [[ $EUID -eq 0 ]] || skip "not root; needs losetup + fs tools (run: sudo bash $0)"
-for t in losetup sgdisk sfdisk jq partprobe blkid udevadm truncate sha256sum \
+for t in losetup sgdisk sfdisk jq partprobe blkid udevadm truncate sha256sum mkfs.vfat \
          mkfs.ext4 resize2fs e2fsck dumpe2fs mkfs.btrfs btrfs mkntfs ntfsresize; do
   command -v "$t" >/dev/null 2>&1 || skip "missing $t"
 done
@@ -203,6 +203,25 @@ sgdisk -n 1:2048:+100M -t 1:ef00 -c 1:"EFI system partition" \
 settle "$disk" 2
 mkfs.btrfs -q -L BTRDATA "${disk}p2" >/dev/null 2>&1
 carve_battery "btrfs" "$disk" "${disk}p2"
+
+# ==========================================================================
+# 3b. verdict generalization: a FULLY ALLOCATED disk (no free region) whose
+# partition is shrinkable is still `probe alongside` verdict ok -- the carve path
+# is what makes it viable. this is the frozen-contract change that lets the TUI
+# offer alongside on a disk with no gaps.
+# ==========================================================================
+echo "-- verdict: fully-allocated + shrinkable btrfs = alongside ok --"
+make_disk 64G; disk=$DISK
+sgdisk -n 1:2048:+100M -t 1:ef00 -c 1:"EFI system partition" \
+       -n 2:0:0        -t 2:8300 -c 2:"Basic data partition" "$disk" >/dev/null
+settle "$disk" 2
+mkfs.vfat -F 32 -n BOOT "${disk}p1" >/dev/null 2>&1 || fail "verdict: could not format the ESP"
+mkfs.btrfs -q -L ryoku "${disk}p2" >/dev/null 2>&1
+aprobe="$("$root/installation/backend/ryoku-install" probe alongside "$disk" 2>/dev/null)"
+grep -qE '^region ' <<<"$aprobe" && fail "verdict: fixture was expected to be fully allocated (a free region appeared): $aprobe"
+grep -qx 'verdict ok' <<<"$aprobe" || fail "verdict: fully-allocated shrinkable disk was not verdict ok: $aprobe"
+grep -qE '^esp_kind (ryoku|linux)$' <<<"$aprobe" || fail "verdict: expected esp_kind for the shared ESP: $aprobe"
+echo "   verdict ok on a fully-allocated disk via btrfs shrinkability"
 
 # ==========================================================================
 # 4. refusal: dirty NTFS (scheduled consistency check) is never carved
