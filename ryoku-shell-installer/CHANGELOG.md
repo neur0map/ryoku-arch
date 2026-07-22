@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Fixed
+- **A shell-installed box now gets the identical package set an ISO box does.** The
+  installer reads `system/packages/base.packages` from the payload -- the same
+  manifest the ISO pacstraps -- instead of a hand-kept `sessionPkgs` list that had
+  drifted (missing `bluez`, `rtkit`, `ddcutil`, `gpu-screen-recorder`, `hyprsunset`,
+  fonts and more), so features silently differed between ISO and shell users. The
+  boot chain (bootloader/initramfs/encryption/snapshots) is skipped since a
+  converting machine owns its own. `ryokuPkgs` is reduced to `ryoku-keyring` +
+  `ryoku-desktop` (the umbrella pulls the rest), matching the ISO. Rebuilt the
+  committed binary + checksum.
+
 ### Added
 
 - Safety gates: non-systemd systems (Artix/openrc/runit/s6/dinit) are

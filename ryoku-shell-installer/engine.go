@@ -30,25 +30,25 @@ SigLevel = Required
 Server = https://repo.ryoku.dev/stable/$arch
 `
 
-// desktop set from deploy.sh plus the session/system packages the ISO puts in
-// base.packages that ryoku-desktop does not depend on. --needed makes overlap
-// free.
-var ryokuPkgs = []string{"ryoku-keyring", "ryoku-shell", "ryoku-hub", "ryoku-blobs", "ryoku", "ryoku-desktop"}
+// ryokuPkgs mirrors the ISO's deploy.sh: the keyring plus the ryoku-desktop
+// umbrella. The umbrella version-pins and pulls every monorepo component and
+// the desktop's runtime tools (recorder, night light, dictation, OCR/QR, LED,
+// external-monitor brightness, ...) as hard depends, so installing just these
+// two -- exactly what the ISO installs -- is the single source of truth for the
+// Ryoku desktop set. Everything else (session, base OS, fonts) comes from
+// base.packages via readBasePackages: the same manifest the ISO pacstraps.
+var ryokuPkgs = []string{"ryoku-keyring", "ryoku-desktop"}
 
-var sessionPkgs = []string{
-	"sddm", "networkmanager", "iwd", "iw",
-	"pipewire", "pipewire-alsa", "pipewire-pulse", "wireplumber",
-	"mesa", "vulkan-icd-loader",
-	"xdg-user-dirs", "qt6ct", "adwaita-icon-theme", "vimix-cursors",
-	"polkit", "gnome-keyring",
-	"qt6-declarative", "qt6-multimedia", "qt6-multimedia-ffmpeg",
-	"gst-plugins-base", "gst-plugins-good", "gst-plugins-bad", "gst-plugins-ugly",
-	"upower", "fuzzel", "curl", "libnotify", "python", "xdg-utils", "desktop-file-utils",
-	// tools the shell invokes by name (stash, launcher, media, night light)
-	"flatpak", "ffmpeg", "yt-dlp", "mpv", "libqalculate", "mpv-mpris", "songrec",
-	// rust: the toolchain ships by default (never gated on the devtools toggle)
-	// so a shell-installed box matches the ISO's base set, which carries it.
-	"rust",
+// bootChainSkip: base.packages entries a shell-converted box must NOT get -- it
+// already owns its bootloader, initramfs, encryption and snapshot stack, and
+// (re)installing these would rewrite its boot. Everything else in base.packages
+// installs, so a shell box matches the ISO's set with no second hand-kept list
+// to drift out of sync.
+var bootChainSkip = map[string]bool{
+	"base": true, "base-devel": true, "linux": true, "linux-firmware": true,
+	"mkinitcpio": true, "sudo": true, "btrfs-progs": true, "cryptsetup": true,
+	"dosfstools": true, "efibootmgr": true, "limine": true, "plymouth": true,
+	"snapper": true, "snap-pac": true,
 }
 
 // the standard Ryoku extras, all best-effort here. awww (the wallpaper daemon)
@@ -61,7 +61,7 @@ var devPkgs = []string{"go", "nodejs", "npm", "python", "python-pip", "python-pi
 
 var sparsePaths = []string{
 	"ryoku/lockscreen", "ryoku/assets", "ryoku/apps",
-	"system/hardware/drivers", "release/packages/ryoku-keyring",
+	"system/hardware/drivers", "system/packages", "release/packages/ryoku-keyring",
 }
 
 type plan struct {
@@ -710,8 +710,39 @@ func stepRepo(e *engine) error {
 	return e.sudo("pacman", "-Sy")
 }
 
+// readBasePackages parses system/packages/base.packages from the payload (the
+// same manifest the ISO pacstraps): one package per line, '#' comments and
+// blank lines dropped, boot-chain entries skipped. This is the single source of
+// truth for the machine package set, shared verbatim with the ISO.
+func (e *engine) readBasePackages() ([]string, error) {
+	path := filepath.Join(e.payload, "system/packages/base.packages")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", path, err)
+	}
+	var pkgs []string
+	for _, ln := range strings.Split(string(data), "\n") {
+		if i := strings.IndexByte(ln, '#'); i >= 0 {
+			ln = ln[:i]
+		}
+		ln = strings.TrimSpace(ln)
+		if ln == "" || bootChainSkip[ln] {
+			continue
+		}
+		pkgs = append(pkgs, ln)
+	}
+	return pkgs, nil
+}
+
 func stepPackages(e *engine) error {
-	pkgs := append(append([]string{}, ryokuPkgs...), sessionPkgs...)
+	base, err := e.readBasePackages()
+	if err != nil {
+		if !e.dry {
+			return err
+		}
+		e.say("DRYRUN: payload not cloned; would read system/packages/base.packages")
+	}
+	pkgs := append(append([]string{}, ryokuPkgs...), base...)
 	if e.f.ucodePkg != "" {
 		pkgs = append(pkgs, e.f.ucodePkg)
 	}
