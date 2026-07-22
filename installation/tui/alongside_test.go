@@ -129,8 +129,8 @@ func TestCarveShiftKeyDispatch(t *testing.T) {
 func TestCarveFooterHintTracksState(t *testing.T) {
 	active := carveModel(0) // full disk -> the target auto-selects
 	active.flow, active.idx, active.w = []step{{kind: kPartition}}, 0, 112
-	if f := active.footer(); !strings.Contains(f, "carve") || !strings.Contains(f, "±big") {
-		t.Fatalf("active carve row must advertise carve + ±big: %q", f)
+	if f := active.footer(); !strings.Contains(f, "Ryoku's space") || !strings.Contains(f, "±big") {
+		t.Fatalf("active carve row must advertise Ryoku's space + ±big: %q", f)
 	}
 	idle := carveModel(200)                                                        // roomy gap -> nothing auto-selected
 	idle.flow, idle.idx, idle.w, idle.lsel = []step{{kind: kPartition}}, 0, 112, 1 // row 1 is the carve row

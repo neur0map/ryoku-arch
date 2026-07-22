@@ -11,7 +11,7 @@ func TestParseResizeParts(t *testing.T) {
 	out := strings.Join([]string{
 		"sectorsize 512",
 		"esp /dev/nvme0n1p1",
-		"part /dev/nvme0n1p1 1 vfat ESP 1024 42 -1 no ESP: not carveable",
+		"part /dev/nvme0n1p1 1 vfat ESP 1024 42 -1 no boot partition (ESP): kept as is",
 		"part /dev/nvme0n1p3 3 btrfs ryoku 951000 420000 490000 yes single-device btrfs",
 		"part /dev/sda3 3 BitLocker Basic_data 512000 -1 -1 no BitLocker: decrypt in Windows first",
 		"part /dev/sda4 4 ntfs - 200000 90000 100000 yes clean NTFS",
@@ -124,7 +124,7 @@ func carveModel(freeG int) model {
 		picks: map[string]string{"disk": "alongside"}, gpt: true, diskG: 1024,
 		espG: 1, swapG: 16, freeG: freeG, carvePart: -1,
 		resizeParts: []resizePart{
-			{dev: "/dev/sda1", index: 1, fs: "vfat", label: "ESP", sizeMiB: 1024, usedMiB: 42, minMiB: -1, shrinkable: false, reason: "ESP: not carveable"},
+			{dev: "/dev/sda1", index: 1, fs: "vfat", label: "ESP", sizeMiB: 1024, usedMiB: 42, minMiB: -1, shrinkable: false, reason: "boot partition (ESP): kept as is"},
 			{dev: "/dev/sda2", index: 2, fs: "ntfs", label: "", sizeMiB: 900 * 1024, usedMiB: 180 * 1024, minMiB: 200 * 1024, shrinkable: true, reason: "clean NTFS"},
 		},
 	}
@@ -343,7 +343,7 @@ func TestCarveBlockReasonHonesty(t *testing.T) {
 	m := model{
 		picks: map[string]string{"disk": "alongside"}, gpt: true, diskG: 1024, freeG: 0, carvePart: -1,
 		resizeParts: []resizePart{
-			{dev: "/dev/sda1", fs: "vfat", label: "ESP", sizeMiB: 1024, minMiB: -1, shrinkable: false, reason: "ESP: not carveable"},
+			{dev: "/dev/sda1", fs: "vfat", label: "ESP", sizeMiB: 1024, minMiB: -1, shrinkable: false, reason: "boot partition (ESP): kept as is"},
 		},
 	}
 	got := m.partBlockReason()

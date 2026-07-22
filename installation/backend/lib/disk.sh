@@ -909,19 +909,19 @@ ryoku_part_shrink_info() {
       used=0; min=8; shrink=yes; reason="swap (recreated smaller, UUID kept)"
       ;;
     crypto_LUKS)
-      reason="LUKS: carve is a documented follow-up (decrypt, or use whole-disk)"
+      reason="LUKS: shrinking encrypted volumes is a documented follow-up (decrypt, or use whole-disk)"
       ;;
     BitLocker)
       reason="BitLocker: decrypt in Windows first"
       ;;
     vfat)
-      reason="FAT/ESP: not carveable"
+      reason="boot partition (ESP): kept as is"
       ;;
     '')
       reason="no filesystem"
       ;;
     *)
-      reason="${fstype}: not carveable"
+      reason="${fstype}: cannot be shrunk"
       ;;
   esac
   printf '%s %s %s %s\n' "$used" "$min" "$shrink" "$reason"

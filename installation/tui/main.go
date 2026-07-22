@@ -1657,9 +1657,21 @@ func (m model) layoutRows() []lrow {
 		if m.freeG >= minRootGiB+alongsideBootGiB {
 			rows = append(rows, lrow{"region", "region", fmt.Sprintf("Use existing free space (%d GiB)", m.freeG), "", ""})
 		}
+		nCarve := 0
+		for _, p := range m.resizeParts {
+			if m.carveablePart(p) {
+				nCarve++
+			}
+		}
 		for i, p := range m.resizeParts {
 			if m.carveablePart(p) {
-				rows = append(rows, lrow{"carve", fmt.Sprintf("carve%d", i), "Carve from " + p.name(), "", ""})
+				// One candidate is the common case and needs no qualifier; with
+				// several, each row names the partition it takes the space from.
+				label := "Space for Ryoku"
+				if nCarve > 1 {
+					label += " · " + strings.TrimPrefix(p.dev, "/dev/")
+				}
+				rows = append(rows, lrow{"carve", fmt.Sprintf("carve%d", i), label, "", ""})
 			}
 		}
 	} else {
@@ -1824,7 +1836,7 @@ func (m model) partBlockReason() string {
 		if free, need := m.freeAlongside(), minRootGiB+alongsideBootGiB; free < need {
 			if m.carveUI() {
 				if m.hasCarveable() {
-					return "Not enough free space; select a partition below and use ←/→ to carve space for Ryoku."
+					return "Not enough free space; select a partition below and use ←/→ to set how much space Ryoku gets."
 				}
 				// No gap AND nothing shrinkable: the per-partition reasons show below.
 				return "No free space, and no partition here can be shrunk safely (see reasons below). Press esc to pick another disk or 'Erase whole disk'."
@@ -2274,7 +2286,8 @@ func (m model) partBody(inner int) string {
 		segs, sel = m.mapSegs(), -1
 		barLabel = "on this disk now"
 		if m.carving() {
-			barLabel = m.resizeParts[m.carvePart].name() + " shrinks · Ryoku fills the freed space"
+			rp := m.resizeParts[m.carvePart]
+			barLabel = strings.TrimPrefix(rp.dev, "/dev/") + " (" + rp.name() + ") shrinks · the freed space becomes Ryoku"
 		}
 	}
 	b.WriteString(m.diskBar(segs, inner, sel) + "\n")
@@ -2350,7 +2363,7 @@ func (m model) partBody(inner int) string {
 				knob := fg(cBrand, strings.Repeat(gFull, fill)) + fg(cDim, strings.Repeat(gEmpty, knobW-fill))
 				line += "  [" + knob + "] " + bold(cText, humanSize(m.carveTakeMiB<<20))
 			} else {
-				line += fg(cDim, "  ←/→ to carve")
+				line += fg(cDim, "  ←/→ how much space Ryoku gets")
 			}
 			b.WriteString(line + "\n")
 		default: // toggle
@@ -2973,7 +2986,7 @@ func (m model) footer() string {
 		case m.layoutRows()[m.lsel].kind == "carve":
 			// The ±big hint tracks the handler: it only fires once this row is the
 			// active carve target, so advertise it only then.
-			parts = []string{keyHint("←/→", "carve")}
+			parts = []string{keyHint("←/→", "Ryoku's space")}
 			if m.carving() && carveIndex(m.layoutRows()[m.lsel].key) == m.carvePart {
 				parts = append(parts, keyHint("shift", "±big"))
 			}
@@ -3106,7 +3119,7 @@ func snapshot() {
 	// shared Ryoku ESP had no chainloadable binary (existing_boot none).
 	const btrfsMiB = 952832 // 930.5 GiB
 	ryokuParts := []resizePart{
-		{dev: "/dev/loop0p1", index: 1, fs: "vfat", label: "BOOT", sizeMiB: 1024, usedMiB: 60, minMiB: -1, shrinkable: false, reason: "ESP: not carveable"},
+		{dev: "/dev/loop0p1", index: 1, fs: "vfat", label: "BOOT", sizeMiB: 1024, usedMiB: 60, minMiB: -1, shrinkable: false, reason: "boot partition (ESP): kept as is"},
 		{dev: "/dev/loop0p2", index: 2, fs: "btrfs", label: "ryoku", sizeMiB: btrfsMiB, usedMiB: 2048, minMiB: 2048, shrinkable: true, reason: "single-device btrfs"},
 	}
 	ryokuKept := []part{
