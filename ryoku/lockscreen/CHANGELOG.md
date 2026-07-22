@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Changed
+- **`sddm/setup` ships unlock-on-login by default instead of stripping the
+  keyring.** The old wiring unconditionally deleted `pam_gnome_keyring` from
+  `/etc/pam.d/sddm`, citing a "passwordless Default_keyring" that nothing in the
+  repo ever created, so browsers prompted for the keyring on every launch. A
+  fresh install now wires `pam_gnome_keyring` (auth + session) so the login
+  keyring unlocks with the login password at sign-in -- unless autologin is
+  configured, where there is no password to reuse and it ships never-ask (lines
+  stripped; the blank default keyring is seeded lazily by the Hub/CLI, never by
+  this root installer). Honors `RYOKU_DRYRUN`; `ryoku keyring` changes it later.
+
 ### Fixed
 - **Suspend now waits for the lock to actually cover the screen.** qylock's
   `lock_shell.qml` touches `$XDG_RUNTIME_DIR/qylock.locked` the moment the
