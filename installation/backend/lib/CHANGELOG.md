@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+- **One fewer `.pacnew` out of the box.** `chroot` no longer overwrites the
+  `filesystem`-owned `/etc/hosts` (the default `nss-myhostname` already resolves
+  localhost and the machine hostname), so the first `ryoku update` no longer spawns
+  an `/etc/hosts.pacnew` when `filesystem` upgrades.
+
 ### Added
 - `seed`: the decor art the desktop's Decor/Placard components render is laid into
   `~/Pictures/ryodecors` (beside `Wallpapers`), from `ryoku/assets/ryodecors`, so a

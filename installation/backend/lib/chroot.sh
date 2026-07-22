@@ -99,11 +99,10 @@ ryoku_cfg_hostname() {
   write_file /mnt/etc/hostname <<EOF
 $RYOKU_HOSTNAME
 EOF
-  write_file /mnt/etc/hosts <<EOF
-127.0.0.1   localhost
-::1         localhost
-127.0.1.1   $RYOKU_HOSTNAME.localdomain $RYOKU_HOSTNAME
-EOF
+  # No /etc/hosts write: that file is owned by the `filesystem` package, so
+  # editing it makes pacman drop a .pacnew on every filesystem upgrade. The
+  # stock nss-myhostname (default in /etc/nsswitch.conf) already resolves
+  # localhost and the machine hostname, so the hand-written table is redundant.
 }
 
 ryoku_cfg_user() {
