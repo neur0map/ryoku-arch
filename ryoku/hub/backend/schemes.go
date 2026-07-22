@@ -49,6 +49,16 @@ func renderApps(pal map[string]string) {
 	if err := atomicWrite(carrierPath, mustJSON(carrier), 0o644); err != nil {
 		return
 	}
+	for _, dir := range []string{
+		filepath.Join(configHome(), "kitty"),
+		filepath.Join(cacheHome(), "wallust"),
+		filepath.Join(configHome(), "btop", "themes"),
+		filepath.Join(configHome(), "qt6ct", "colors"),
+		filepath.Join(configHome(), "gtk-3.0"),
+		filepath.Join(configHome(), "gtk-4.0"),
+	} {
+		_ = os.MkdirAll(dir, 0o755)
+	}
 	matugenDir := filepath.Join(configHome(), "matugen")
 	runMatugen(filepath.Join(matugenDir, "config.toml"), carrierPath)
 	if themeAppsOn(loadThemeState()) {

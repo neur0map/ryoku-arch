@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Fixed
+- **Matugen (fixed-scheme path): pre-create the template output dirs.**
+  `backend/schemes.go` (`renderApps`) makes the output dirs before matugen runs so
+  its "folder doesn't exist" warnings stay out of the log (matugen already
+  self-creates them, and its errors were already surfaced here). GTK/Qt generation
+  is intact -- verified live; the reported "no themes" failure is now diagnosable
+  via the daemon's newly surfaced matugen errors (see ryoku/shell).
+- **Settings nav rail: long translated category labels no longer collide with the
+  kanji seal.** The Latin label in `Hub.qml` now elides within the space before the
+  right-aligned kanji (Portuguese "Widgets da área de trabalho", "Substituições de
+  aplicativos"); short labels are unchanged.
+- **Language > Generate with AI now explains the key file.**
+  `schema/ShellSettingsPage.js` states that Ryoku auto-creates
+  `~/.config/ryoku/i18n-llm.json` on login and the user pastes an Anthropic/OpenAI
+  key into it (button and file were wired but undocumented).
+
 ### Added
 - **Displays page: live drag, no cursor-trapping gaps, and a main display.** The
   arrangement canvas now moves each display tile live under the cursor (it only

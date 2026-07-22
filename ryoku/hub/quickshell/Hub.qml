@@ -833,6 +833,7 @@ Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: Tokens.s2
                                     Text {
+                                        id: navLead
                                         visible: navItem.sel
                                         text: "//"
                                         color: Tokens.inkOnBoneDim
@@ -840,14 +841,19 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
                                     Text {
+                                        id: navLatin
                                         text: I18n.tr(navItem.modelData.name)
                                         color: navItem.sel ? Tokens.inkOnBone : Tokens.inkDim
                                         font.family: Tokens.ui; font.pixelSize: 14
                                         anchors.verticalCenter: parent.verticalCenter
+                                        elide: Text.ElideRight
+                                        width: Math.max(0, navKana.x - Tokens.s2 - Tokens.s3
+                                            - (navItem.sel ? navLead.width + Tokens.s2 : 0))
                                         Behavior on color { ColorAnimation { duration: Tokens.snap } }
                                     }
                                 }
                                 Text {
+                                    id: navKana
                                     anchors { right: parent.right; rightMargin: Tokens.s3; verticalCenter: parent.verticalCenter }
                                     text: hub.jpName[navItem.modelData.key] || ""
                                     color: navItem.sel ? Tokens.inkOnBoneDim : Tokens.inkFaint
