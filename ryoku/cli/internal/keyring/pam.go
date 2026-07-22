@@ -3,6 +3,7 @@ package keyring
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"ryoku-cli/internal/sys"
@@ -120,7 +121,29 @@ func applyPAMFile(path, mode string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, []byte(out), info.Mode().Perm())
+	// tmp+rename in the same directory: a crash mid-write must never leave a
+	// truncated PAM stack behind, that locks every login out of the machine.
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".ryoku-pam-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if err := tmp.Chmod(info.Mode().Perm()); err != nil {
+		tmp.Close()
+		return err
+	}
+	if _, err := tmp.WriteString(out); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), path)
 }
 
 // pamWritable reports whether the current process can write path in place,
