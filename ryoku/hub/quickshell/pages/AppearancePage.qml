@@ -156,7 +156,7 @@ Item {
     }
 
     property string tab: "Windows"
-    readonly property var tabs: ["Windows", "Effects", "Borders", "Cursor", "Theme", "Comfort", "Rices"]
+    readonly property var tabs: ["Windows", "Effects", "Borders", "Cursor", "Theme", "Matugen", "Comfort", "Rices"]
     readonly property bool settingsTab: pg.tab === "Windows" || pg.tab === "Effects" || pg.tab === "Borders" || pg.tab === "Cursor"
     readonly property bool searching: pg.hub ? (pg.hub.query || "") !== "" : false
 
@@ -221,6 +221,51 @@ Item {
     // `ryoku-hub hypr ryoku-theme`. Instant and live, like the scheme apply.
     function applyRyokuTheme() { ryokuThemeProc.running = true; }
     Process { id: ryokuThemeProc; command: ["ryoku-hub", "hypr", "ryoku-theme"]; stdout: StdioCollector { onStreamFinished: schemeQueryProc.running = true } }
+    // ════════════════════════════════════════════════════════════════════════
+    // Matugen Material 3 Configuration State
+    // ════════════════════════════════════════════════════════════════════════
+    property var matugenCfg: ({
+        "engine": "wallust",
+        "schemeType": "scheme-tonal-spot",
+        "mode": "dark",
+        "contrast": 0.0,
+        "lightnessDark": 0.0,
+        "lightnessLight": 0.0,
+        "prefer": "dominant",
+        "sourceColorIndex": 0,
+        "templates": {
+            "btop": true, "qt": true, "gtk": true, "discord": true, "obs": true,
+            "zed": true, "heroic": true, "hyprland": true, "telegram": true,
+            "steam": true, "kitty": true, "cava": true, "ghostty": true,
+            "micro": true, "papirus": true
+        }
+    })
+
+    function refreshMatugen() { matugenGetProc.running = true; }
+    function saveMatugen(cfg) {
+        pg.matugenCfg = cfg;
+        matugenSetProc.command = ["ryoku-hub", "hypr", "matugen", "set", JSON.stringify(cfg)];
+        matugenSetProc.running = true;
+    }
+    function applyMatugen() {
+        matugenApplyProc.running = true;
+    }
+
+    Process {
+        id: matugenGetProc
+        command: ["ryoku-hub", "hypr", "matugen", "get"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var parsed = JSON.parse(this.text);
+                    if (parsed) pg.matugenCfg = parsed;
+                } catch(e) {}
+            }
+        }
+    }
+    Process { id: matugenSetProc; stdout: StdioCollector { onStreamFinished: refreshMatugen() } }
+    Process { id: matugenApplyProc; command: ["ryoku-hub", "hypr", "matugen", "apply"]; stdout: StdioCollector { onStreamFinished: refreshMatugen() } }
 
     // ════════════════════════════════════════════════════════════════════════
     // Wallpaper: pick one to retheme via the wallust palette (ryoku-shell), the
@@ -499,11 +544,12 @@ Item {
     // lazy refresh, matching the old page's onGroupChanged wiring.
     onTabChanged: {
         if (pg.tab === "Theme") { pg.refreshWalls(); schemeQueryProc.running = true; themeAppsQueryProc.running = true; }
+        else if (pg.tab === "Matugen") pg.refreshMatugen();
         else if (pg.tab === "Comfort") pg.refreshComfort();
         else if (pg.tab === "Borders") schemeQueryProc.running = true;
         else if (pg.tab === "Rices") pg.reloadRices();
     }
-    Component.onCompleted: { pg.refreshWalls(); pg.refreshComfort(); pg.reloadRices(); }
+    Component.onCompleted: { pg.refreshWalls(); pg.refreshComfort(); pg.reloadRices(); pg.refreshMatugen(); }
 
     // ════════════════════════════════════════════════════════════════════════
     // small shared pieces
@@ -1400,6 +1446,312 @@ Item {
                     color: Tokens.ink
                     font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall
+                }
+            }
+        }
+        // ── Matugen: Material 3 Color Engine & Templates ──
+        Flickable {
+            id: matugenView
+            anchors.fill: parent
+            visible: pg.tab === "Matugen" && !pg.searching
+            contentWidth: width
+            contentHeight: matugenCol.height + Tokens.s5
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: ScrollRail { policy: ScrollBar.AsNeeded }
+
+            Column {
+                id: matugenCol
+                width: matugenView.width - Tokens.s3
+                spacing: Tokens.s5
+
+                // SECTION 1: COLOR ENGINE SELECTION
+                Column {
+                    width: parent.width
+                    spacing: Tokens.s3
+                    SectionHead { width: parent.width; title: I18n.tr("COLOR ENGINE") }
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s4
+                        Column {
+                            width: Math.min(parent.width - 240, 480)
+                            spacing: Tokens.s1
+                            Text {
+                                text: I18n.tr("ACTIVE ENGINE")
+                                color: Tokens.inkMuted
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fMicro
+                                font.weight: Font.Medium
+                                font.letterSpacing: Tokens.trackLabel
+                            }
+                            Text {
+                                text: (pg.matugenCfg.engine || "wallust") === "matugen" ? I18n.tr("Matugen (Material 3)") : I18n.tr("Wallust (Pywal Classic)")
+                                color: Tokens.ink
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fValue
+                                font.weight: Font.Light
+                            }
+                            Text {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: I18n.tr("Wallust extracts pywal base16 palettes. Matugen generates Material 3 (Material You) color schemes and templates.")
+                                color: Tokens.inkMuted
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fSmall
+                            }
+                        }
+                        Seg {
+                            anchors.verticalCenter: parent.verticalCenter
+                            options: ["WALLUST", "MATUGEN"]
+                            current: (pg.matugenCfg.engine || "wallust").toUpperCase()
+                            onChose: (k) => {
+                                var c = Object.assign({}, pg.matugenCfg);
+                                c.engine = k.toLowerCase();
+                                pg.saveMatugen(c);
+                            }
+                        }
+                    }
+                }
+
+                // SECTION 2: MATERIAL 3 SCHEME & MODE
+                Column {
+                    visible: (pg.matugenCfg.engine || "wallust") === "matugen"
+                    width: parent.width
+                    spacing: Tokens.s3
+                    SectionHead { width: parent.width; title: I18n.tr("MATERIAL 3 PALETTE SCHEME") }
+
+                    // Scheme Type Buttons
+                    Column {
+                        width: parent.width
+                        spacing: Tokens.s2
+                        Text {
+                            text: I18n.tr("ALGORITHM")
+                            color: Tokens.inkMuted
+                            font.family: Tokens.ui
+                            font.pixelSize: Tokens.fMicro
+                            font.weight: Font.Medium
+                            font.letterSpacing: Tokens.trackLabel
+                        }
+                        Flow {
+                            width: parent.width
+                            spacing: Tokens.s2
+                            property var schemeList: [
+                                { id: "scheme-tonal-spot", name: "Tonal Spot" },
+                                { id: "scheme-expressive", name: "Expressive" },
+                                { id: "scheme-vibrant", name: "Vibrant" },
+                                { id: "scheme-content", name: "Content" },
+                                { id: "scheme-fidelity", name: "Fidelity" },
+                                { id: "scheme-fruit-salad", name: "Fruit Salad" },
+                                { id: "scheme-rainbow", name: "Rainbow" },
+                                { id: "scheme-neutral", name: "Neutral" },
+                                { id: "scheme-monochrome", name: "Monochrome" },
+                                { id: "scheme-smart", name: "Smart" }
+                            ]
+                            Repeater {
+                                model: parent.schemeList
+                                Btn {
+                                    required property var modelData
+                                    text: modelData.name
+                                    primary: (pg.matugenCfg.schemeType || "scheme-tonal-spot") === modelData.id
+                                    onClicked: {
+                                        var c = Object.assign({}, pg.matugenCfg);
+                                        c.schemeType = modelData.id;
+                                        pg.saveMatugen(c);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Mode Selection
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s4
+                        Column {
+                            width: Math.min(parent.width - 240, 480)
+                            spacing: Tokens.s1
+                            Text {
+                                text: I18n.tr("COLOR MODE")
+                                color: Tokens.inkMuted
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fMicro
+                                font.weight: Font.Medium
+                                font.letterSpacing: Tokens.trackLabel
+                            }
+                            Text {
+                                text: (pg.matugenCfg.mode || "dark").toUpperCase()
+                                color: Tokens.ink
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fValue
+                                font.weight: Font.Light
+                            }
+                        }
+                        Seg {
+                            anchors.verticalCenter: parent.verticalCenter
+                            options: ["DARK", "LIGHT", "SMART"]
+                            current: (pg.matugenCfg.mode || "dark").toUpperCase()
+                            onChose: (k) => {
+                                var c = Object.assign({}, pg.matugenCfg);
+                                c.mode = k.toLowerCase();
+                                pg.saveMatugen(c);
+                            }
+                        }
+                    }
+                }
+
+                // SECTION 3: FINE TUNING (CONTRAST & LIGHTNESS)
+                Column {
+                    visible: (pg.matugenCfg.engine || "wallust") === "matugen"
+                    width: parent.width
+                    spacing: Tokens.s4
+                    SectionHead { width: parent.width; title: I18n.tr("PALETTE TUNING") }
+
+                    // Contrast Slider
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s3
+                        Column {
+                            width: 220
+                            spacing: Tokens.s1
+                            Text {
+                                text: I18n.tr("CONTRAST")
+                                color: Tokens.inkMuted
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fMicro
+                                font.letterSpacing: Tokens.trackLabel
+                            }
+                            Text {
+                                text: String(pg.matugenCfg.contrast || 0.0)
+                                color: Tokens.ink
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fBody
+                            }
+                        }
+                        Slid {
+                            width: parent.width - 230
+                            anchors.verticalCenter: parent.verticalCenter
+                            from: -1.0; to: 1.0
+                            value: pg.matugenCfg.contrast || 0.0
+                            onModified: (v) => {
+                                var c = Object.assign({}, pg.matugenCfg);
+                                c.contrast = Math.round(v * 100) / 100;
+                                pg.saveMatugen(c);
+                            }
+                        }
+                    }
+
+                    // Extraction Preference
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s4
+                        Column {
+                            width: Math.min(parent.width - 240, 480)
+                            spacing: Tokens.s1
+                            Text {
+                                text: I18n.tr("COLOR PREFERENCE")
+                                color: Tokens.inkMuted
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fMicro
+                                font.letterSpacing: Tokens.trackLabel
+                            }
+                            Text {
+                                text: (pg.matugenCfg.prefer || "dominant").toUpperCase()
+                                color: Tokens.ink
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fBody
+                            }
+                        }
+                        Seg {
+                            anchors.verticalCenter: parent.verticalCenter
+                            options: ["SATURATION", "LIGHTNESS", "DARKNESS", "CLOSEST"]
+                            current: (pg.matugenCfg.prefer || "saturation") === "closest-to-fallback" ? "CLOSEST" : (pg.matugenCfg.prefer || "saturation").toUpperCase()
+                            onChose: (k) => {
+                                var c = Object.assign({}, pg.matugenCfg);
+                                c.prefer = k === "CLOSEST" ? "closest-to-fallback" : k.toLowerCase();
+                                pg.saveMatugen(c);
+                            }
+                        }
+                    }
+                }
+
+                // SECTION 4: APPLICATION TEMPLATES TOGGLES
+                Column {
+                    visible: (pg.matugenCfg.engine || "wallust") === "matugen"
+                    width: parent.width
+                    spacing: Tokens.s3
+                    SectionHead { width: parent.width; title: I18n.tr("APPLICATION TEMPLATES") }
+
+                    Flow {
+                        width: parent.width
+                        spacing: Tokens.s3
+                        property var appList: [
+                            { id: "btop", name: "Btop System Monitor" },
+                            { id: "qt", name: "Qt6ct Toolkit" },
+                            { id: "gtk", name: "GTK 3 & GTK 4" },
+                            { id: "discord", name: "Discord (Vesktop / Equibop)" },
+                            { id: "obs", name: "OBS Studio" },
+                            { id: "zed", name: "Zed Editor" },
+                            { id: "heroic", name: "Heroic Games Launcher" },
+                            { id: "hyprland", name: "Hyprland Frame & Borders" },
+                            { id: "telegram", name: "Telegram Desktop" },
+                            { id: "steam", name: "Steam Client" },
+                            { id: "kitty", name: "Kitty Terminal" },
+                            { id: "cava", name: "Cava Visualizer" },
+                            { id: "ghostty", name: "Ghostty Terminal" },
+                            { id: "micro", name: "Micro Text Editor" },
+                            { id: "papirus", name: "Papirus Icon Folders" }
+                        ]
+                        Repeater {
+                            model: parent.appList
+                            Rectangle {
+                                required property var modelData
+                                width: Math.floor((matugenCol.width - Tokens.s3) / 2) - 2
+                                height: 50
+                                color: Tokens.shadeCard
+                                border.color: Tokens.shadeLine
+                                border.width: 1
+                                radius: Tokens.r1
+
+                                Row {
+                                    anchors.fill: parent
+                                    anchors.margins: Tokens.s3
+                                    spacing: Tokens.s2
+                                    Text {
+                                        width: parent.width - swApp.width - Tokens.s2
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: modelData.name
+                                        color: Tokens.ink
+                                        font.family: Tokens.ui
+                                        font.pixelSize: Tokens.fSmall
+                                        elide: Text.ElideRight
+                                    }
+                                    Sw {
+                                        id: swApp
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        on: pg.matugenCfg.templates ? pg.matugenCfg.templates[modelData.id] !== false : true
+                                        onToggled: (v) => {
+                                            var c = JSON.parse(JSON.stringify(pg.matugenCfg));
+                                            if (!c.templates) c.templates = {};
+                                            c.templates[modelData.id] = v;
+                                            pg.saveMatugen(c);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // SECTION 5: ACTION BUTTONS
+                Row {
+                    visible: (pg.matugenCfg.engine || "wallust") === "matugen"
+                    width: parent.width
+                    spacing: Tokens.s3
+                    Btn {
+                        text: I18n.tr("APPLY PALETTE & RENDER TEMPLATES")
+                        primary: true
+                        onClicked: pg.applyMatugen()
+                    }
                 }
             }
         }

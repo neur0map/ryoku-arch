@@ -1,15 +1,7 @@
 [config]
 
-# The GTK / GUI-app fan-out, rendered only when "Theme apps" is on (theme.json
-# themeApps, default true). This is the reach of the palette past the Ryoku
-# shell and into third-party apps: GTK 3, GTK 4, and libadwaita apps (Files /
-# Nautilus, text editors, GNOME apps) recolour to the wallpaper or the locked
-# scheme. When the toggle is off the control plane writes a comment-only gtk.css
-# instead, so those apps fall back to their own stock (Adwaita) look while the
-# shell, terminal, borders, and Qt (config.toml) keep tracking the palette.
-#
-# gtk-colors.css carries both the libadwaita named colours (GTK 4) and the
-# classic GTK 3 @theme_* names, so one template themes both toolkit versions.
+# Ryoku Arch Matugen App Templates
+# Configured and toggled via Ryoku Settings (Hub) -> Appearance -> Matugen
 
 [templates.gtk3]
 input_path = "~/.config/matugen/templates/gtk-colors.css"
@@ -18,3 +10,48 @@ output_path = "~/.config/gtk-3.0/gtk.css"
 [templates.gtk4]
 input_path = "~/.config/matugen/templates/gtk-colors.css"
 output_path = "~/.config/gtk-4.0/gtk.css"
+
+[templates.vesktop]
+input_path = "~/.config/matugen/templates/discord.css"
+output_path = "~/.config/vesktop/themes/matugen.css"
+
+[templates.equibop]
+input_path = "~/.config/matugen/templates/discord.css"
+output_path = "~/.config/equibop/themes/matugen.css"
+
+[templates.obs]
+input_path = "~/.config/matugen/templates/obs.theme"
+output_path = "~/.config/obs-studio/themes/matugen.theme"
+
+[templates.zed]
+input_path = "~/.config/matugen/templates/zed.json"
+output_path = "~/.config/zed/themes/matugen.json"
+
+[templates.heroic]
+input_path = "~/.config/matugen/templates/heroic.css"
+output_path = "~/.config/heroic/store/styles/matugen.css"
+
+[templates.telegram]
+input_path = "~/.config/matugen/templates/telegram.tdesktop-theme"
+output_path = "~/.local/share/TelegramDesktop/tdata/matugen.tdesktop-theme"
+
+[templates.steam]
+input_path = "~/.config/matugen/templates/steam.css"
+output_path = "~/.steam/steam/steamui/skins/Material-Theme/css/main/colors/matugen.css"
+
+[templates.cava]
+input_path = "~/.config/matugen/templates/cava.ini"
+output_path = "~/.config/cava/config"
+
+[templates.ghostty]
+input_path = "~/.config/matugen/templates/ghostty.conf"
+output_path = "~/.config/ghostty/config"
+
+[templates.micro]
+input_path = "~/.config/matugen/templates/micro.micro"
+output_path = "~/.config/micro/colorschemes/matugen.micro"
+
+[templates.papirus]
+input_path = "~/.config/matugen/templates/papirus-color"
+output_path = "~/.cache/matugen/papirus-color"
+post_hook = "which papirus-folders >/dev/null 2>&1 && papirus-folders -c $(cat ~/.cache/matugen/papirus-color) || true"

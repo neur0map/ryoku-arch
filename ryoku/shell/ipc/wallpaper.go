@@ -557,10 +557,12 @@ func (d *daemon) paintWorker() {
 				continue
 			}
 		}
-		_ = exec.Command("wallust", append([]string{"run", src}, tuneArgs()...)...).Run()
-		// matugen fans the freshly extracted palette across the rest of the app
-		// suite (GTK, Qt, btop) so a wallpaper change retints them too.
-		renderApps()
+		if isMatugenEngine() {
+			_ = exec.Command("ryoku-hub", "hypr", "matugen", "apply").Run()
+		} else {
+			_ = exec.Command("wallust", append([]string{"run", src}, tuneArgs()...)...).Run()
+			renderApps()
+		}
 		_ = exec.Command("hyprctl", "reload", "config-only").Run()
 		select {
 		case d.ledsSig <- struct{}{}:
@@ -654,6 +656,23 @@ func themeAppsEnabled() bool {
 		return true
 	}
 	return *s.ThemeApps
+}
+func isMatugenEngine() bool {
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		base = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	b, err := os.ReadFile(filepath.Join(base, "ryoku", "matugen.json"))
+	if err != nil {
+		return false
+	}
+	var s struct {
+		Engine string `json:"engine"`
+	}
+	if json.Unmarshal(b, &s) == nil && s.Engine == "matugen" {
+		return true
+	}
+	return false
 }
 
 // blankGtk drops the Ryoku palette from the generated GTK stylesheets, so GTK /

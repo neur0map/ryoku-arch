@@ -605,6 +605,8 @@ func runHypr(args []string) error {
 			return printJSON(map[string]bool{"themeApps": currentThemeApps()})
 		}
 		return applyThemeApps(args[1] == "on" || args[1] == "true")
+	case "matugen":
+		return runMatugenCmd(args[1:])
 	default:
 		return fmt.Errorf("unknown hypr subcommand: %s", args[0])
 	}
