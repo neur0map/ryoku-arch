@@ -1655,7 +1655,7 @@ func (m model) layoutRows() []lrow {
 		// shrinkable partition. Non-shrinkable partitions surface as dimmed reasons
 		// in the body, not as rows.
 		if m.freeG >= minRootGiB+alongsideBootGiB {
-			rows = append(rows, lrow{"region", "region", fmt.Sprintf("Use existing free space (%d GiB)", m.freeG), "", ""})
+			rows = append(rows, lrow{"region", "region", "Use free space", fmt.Sprintf("%d GiB is already free", m.freeG), ""})
 		}
 		nCarve := 0
 		for _, p := range m.resizeParts {
@@ -1690,7 +1690,7 @@ func (m model) layoutRows() []lrow {
 	}
 	rows = append(rows,
 		lrow{"size", "swap", "Swap (swapfile)", "@swap · 0 = none · carved from root", "optional"},
-		lrow{"toggle", "snap", "Snapshots & rollbacks", "@snapshots → /.snapshots", "recommended"},
+		lrow{"toggle", "snap", "Snapshots & rollback", "@snapshots → /.snapshots", "recommended"},
 		lrow{"toggle", "home", "Separate /home", "@home → /home", "optional"},
 		lrow{"toggle", "backups", "Backups", "@backups → /.backups", "optional"},
 	)
@@ -2305,6 +2305,16 @@ func (m model) partBody(inner int) string {
 	}
 
 	rows := m.layoutRows()
+	// One grid for the whole block: a 20-col label, a 5-col state mark (size
+	// rows carry a blank spacer), then content - every slider bracket opens at
+	// the same column and the row block reads as one table.
+	const rowLabelW = 20
+	markCell := func(on bool) string {
+		if on {
+			return padTo(fg(cGreen, gOn), 5)
+		}
+		return padTo(fg(cDim, gOff), 5)
+	}
 	knobW := clamp(inner-46, 8, 20)
 	for i, r := range rows {
 		sel := i == m.lsel
@@ -2317,12 +2327,12 @@ func (m model) partBody(inner int) string {
 			p := m.kept[m.keepIndex(r.key)]
 			sw := sty().Foreground(partColor(p)).Render(gFull + gFull)
 			info := fmt.Sprintf("%4dG %-5s", p.size, p.fs)
-			b.WriteString(prefix + sw + " " + labelStyled(sel, r.label, 16) + " " + fg(cText, info) + " " + fg(cYell, "keep") + fg(cDim, " · kept") + "\n")
+			b.WriteString(prefix + sw + " " + labelStyled(sel, r.label, rowLabelW) + " " + fg(cText, info) + " " + fg(cYell, "keep") + fg(cDim, " · kept") + "\n")
 		case "reclaim":
 			p := m.reclaim[m.reclaimIndex(r.key)]
 			sw := sty().Foreground(cDim).Render(gFull + gFull)
 			info := fmt.Sprintf("%4dG %-5s", p.size, p.fs)
-			b.WriteString(prefix + sw + " " + labelStyled(sel, r.label, 16) + " " + fg(cText, info) + " " + fg(cRed, "reclaim") + fg(cDim, " · freed") + "\n")
+			b.WriteString(prefix + sw + " " + labelStyled(sel, r.label, rowLabelW) + " " + fg(cText, info) + " " + fg(cRed, "reclaim") + fg(cDim, " · freed") + "\n")
 		case "size":
 			v, _, mx, _, _ := m.rowSpec(r.key)
 			frac := 0.0
@@ -2338,21 +2348,13 @@ func (m model) partBody(inner int) string {
 			if r.key == "swap" && v == 0 {
 				val = "none"
 			}
-			b.WriteString(prefix + "   " + labelStyled(sel, r.label, 16) + " [" + knob + "] " + padTo(bold(cText, val), 6) + "  " + tagStyle(r.tag) + "\n")
+			b.WriteString(prefix + "   " + labelStyled(sel, r.label, rowLabelW) + " " + strings.Repeat(" ", 5) + " [" + knob + "] " + padTo(bold(cText, val), 6) + "  " + tagStyle(r.tag) + "\n")
 		case "region":
-			mark := fg(cDim, gOff)
-			if !m.carving() {
-				mark = fg(cGreen, gOn)
-			}
-			b.WriteString(prefix + "   " + labelStyled(sel, r.label, 30) + " " + mark + "\n")
+			b.WriteString(prefix + "   " + labelStyled(sel, r.label, rowLabelW) + " " + markCell(!m.carving()) + " " + fg(cDim, r.sub) + "\n")
 		case "carve":
 			rp := m.resizeParts[carveIndex(r.key)]
 			active := m.carving() && carveIndex(r.key) == m.carvePart
-			mark := fg(cDim, gOff)
-			if active {
-				mark = fg(cGreen, gOn)
-			}
-			line := prefix + "   " + labelStyled(sel, r.label, 22) + " " + mark
+			line := prefix + "   " + labelStyled(sel, r.label, rowLabelW) + " " + markCell(active)
 			if active {
 				floor, ceil := m.carveFloorMiB(), m.carveCeilMiB(rp)
 				frac := 0.0
@@ -2361,19 +2363,15 @@ func (m model) partBody(inner int) string {
 				}
 				fill := clamp(int(frac*float64(knobW)+0.5), 0, knobW)
 				knob := fg(cBrand, strings.Repeat(gFull, fill)) + fg(cDim, strings.Repeat(gEmpty, knobW-fill))
-				line += "  [" + knob + "] " + bold(cText, humanSize(m.carveTakeMiB<<20))
+				line += " [" + knob + "] " + bold(cText, humanSize(m.carveTakeMiB<<20))
 			} else {
-				line += fg(cDim, "  ←/→ how much space Ryoku gets")
+				line += " " + fg(cDim, "←/→ how much space Ryoku gets")
 			}
 			b.WriteString(line + "\n")
 		default: // toggle
-			mark := fg(cDim, gOff)
-			if m.toggleOn(r.key) {
-				mark = fg(cGreen, gOn)
-			}
-			used := 2 + 3 + 16 + 1 + 5 + 2 + 11 + 2
+			used := 2 + 3 + rowLabelW + 1 + 5 + 1 + 11 + 2
 			sub := truncW(r.sub, max(0, inner-used))
-			b.WriteString(prefix + "   " + labelStyled(sel, r.label, 16) + " " + mark + "  " + padTo(tagStyle(r.tag), 11) + "  " + fg(cDim, sub) + "\n")
+			b.WriteString(prefix + "   " + labelStyled(sel, r.label, rowLabelW) + " " + markCell(m.toggleOn(r.key)) + " " + padTo(tagStyle(r.tag), 11) + "  " + fg(cDim, sub) + "\n")
 		}
 	}
 	// Honesty: the partitions we cannot carve show dimmed, each with the probe's
@@ -2388,7 +2386,7 @@ func (m model) partBody(inner int) string {
 			if reason == "" {
 				reason = "cannot be shrunk"
 			}
-			b.WriteString("   " + fg(cDim, gBad+" "+rp.name()+" — "+reason) + "\n")
+			b.WriteString("     " + fg(cDim, gBad+" "+rp.name()+" — "+reason) + "\n")
 		}
 	}
 	rootUsable := m.availRoot() - m.swapG
