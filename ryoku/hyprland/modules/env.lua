@@ -34,12 +34,9 @@ hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 hl.env("QML_IMPORT_PATH",  os.getenv("HOME") .. "/.local/lib/qt6/qml")
 hl.env("QML2_IMPORT_PATH", os.getenv("HOME") .. "/.local/lib/qt6/qml")
 
--- The ryoku-* binaries split the same way: the package ships /usr/bin, a
--- deploy.sh checkout builds them into ~/.local/bin. Put ~/.local/bin first for
--- the session so the Hub, keybind commands, and the shell daemon all run the
--- deployed build, not a stale packaged one (an old ryoku-hub parsing new
--- binds.lua is what showed keybinds as raw K(...)). Harmless on a package
--- install: nothing ryoku sits in ~/.local/bin, so /usr/bin still wins.
+-- deploy.sh builds the ryoku-* binaries into ~/.local/bin; put it first so the
+-- session runs them, not the package's /usr/bin copies. Inert on a package
+-- install, where ~/.local/bin holds no ryoku binaries.
 hl.env("PATH", (os.getenv("HOME") or "") .. "/.local/bin:" .. (os.getenv("PATH") or ""))
 
 
