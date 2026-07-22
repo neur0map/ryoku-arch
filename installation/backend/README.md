@@ -93,27 +93,35 @@ Other (all optional, env-only):
   (FAT32, label `BOOT`) plus a Btrfs root taking the rest. A disk that already
   holds partitions needs `RYOKU_WIPE_CONFIRMED=1` (the TUI sets it after the
   typed `ERASE` ack); a blank disk installs without it.
-- `alongside` keeps every existing partition (e.g. a Windows install) and shares
-  Windows' single ESP -- it never creates a second one. In the chosen contiguous
-  free region it creates a 2 GiB XBOOTLDR boot partition (FAT32, GPT type `ea00`,
-  partlabel `ryokuboot`, label `BOOT`, mounted at `/boot` with the kernels)
-  followed by the Btrfs root (partlabel `ryoku`), at the explicit sectors the
-  TUI's probe reported (`RYOKU_REGION_START`/`RYOKU_REGION_END`, re-validated
-  against a live `sfdisk` read before any write). The bootloader tars the Windows
-  ESP to `/var/backups/ryoku/windows-esp-<date>.tar`, then drops Limine at
-  `/EFI/ryoku/BOOTX64.EFI` with `limine.conf` beside it (kernels addressed by the
-  boot partition's FAT label `fslabel(RYOKUBOOT)` -- Limine reads FAT only and
-  does not resolve `guid()` to a FAT volume in 12.4.0) and chainloads Windows
-  same-volume via `boot():/EFI/Microsoft/Boot/bootmgfw.efi`. `/EFI/Microsoft` is
-  never touched, and exactly one ESP stays on the disk -- Windows'. Partitions
-  labeled exactly `ryoku`/`ryokuboot` (leftovers of a prior failed run) abort the
-  install unless `RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed `ERASE` ack) is set,
-  which deletes the *unmounted* ones so re-runs never stack partitions; a mounted
-  one is always left alone.
+- `alongside` keeps every existing partition and shares the existing OS's single
+  ESP -- it never creates a second one. It works beside Windows, an old whole-disk
+  Ryoku, or any Linux; the probe reports `esp_kind windows|ryoku|linux` plus the
+  existing system's boot binary to chainload (`existing_boot <path>|none`). In the
+  chosen contiguous free region it creates a 2 GiB XBOOTLDR boot partition (FAT32,
+  GPT type `ea00`, partlabel `ryokuboot`, label `BOOT`, mounted at `/boot` with the
+  kernels) followed by the Btrfs root (partlabel `ryoku`), at the explicit sectors
+  the TUI's probe reported (`RYOKU_REGION_START`/`RYOKU_REGION_END`, re-validated
+  against a live `sfdisk` read before any write). The bootloader tars the shared
+  ESP to `/var/backups/ryoku/` (`windows-esp-<date>.tar` for a Windows ESP, else
+  `esp-<kind>-<date>.tar`), then writes ONLY `/EFI/ryoku/BOOTX64.EFI` with
+  `limine.conf` beside it (kernels addressed by the boot partition's FAT label
+  `fslabel(RYOKUBOOT)` -- Limine reads FAT only and does not resolve `guid()` to a
+  FAT volume in 12.4.0) and adds a same-volume `boot():` chainload entry for the
+  existing system (Windows' `/Windows` entry, or a `<OS> (existing)` entry pointing
+  at `existing_boot`; when none is found the existing system stays bootable via the
+  firmware boot menu only). No other vendor's directory (e.g. `/EFI/Microsoft`) is
+  ever touched, and exactly one ESP stays on the disk. Partitions labeled exactly
+  `ryoku`/`ryokuboot` that are VERIFIED failed-run debris (no filesystem, or an
+  empty/kernel-less boot vfat / an `@`-less btrfs) abort the install unless
+  `RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed `ERASE` ack) is set, which deletes
+  the *unmounted* ones so re-runs never stack partitions; a mounted one, a living
+  install (even carrying our label), or a partition it cannot inspect is always
+  left alone.
 
   Minimum free region for `alongside` is `2 + 20 + RYOKU_SWAP_GIB` GiB -- a 2 GiB
   boot partition plus a 20 GiB root floor (the base + dev + desktop closure with
-  headroom for AUR builds and snapshots). Make room first by shrinking Windows.
+  headroom for AUR builds and snapshots). Make room first by carving an existing
+  partition (the TUI's carve view shrinks it in place).
 
 ## Install is online-only
 

@@ -373,42 +373,55 @@ ryoku_boot_install_efi() {
 
 # bootloader, alongside branch: the kernels already live on the XBOOTLDR /boot
 # (mkinitcpio wrote them there, wipe-mode /boot semantics). limine reads FAT only
-# (limine FAQ.md), so limine + its config go on Windows' SHARED ESP and point at
-# the kernels by the boot partition's FAT label (fslabel). we NEVER touch /EFI/Microsoft,
-# and we tar the whole ESP first so a mistake stays recoverable. 9.x cross-ESP
-# chainload reboot-loops (limine#492) and multi-ESP-per-disk is firmware-flaky,
-# so this is the only bootable layout: one ESP, ours beside Windows'.
+# (limine FAQ.md), so limine + its config go on the existing OS's SHARED ESP and
+# point at the kernels by the boot partition's FAT label (fslabel). we write ONLY
+# /EFI/ryoku/* (never another vendor's dir), and we tar the whole ESP first so a
+# mistake stays recoverable. 9.x cross-ESP chainload reboot-loops (limine#492) and
+# multi-ESP-per-disk is firmware-flaky, so this is the only bootable layout: one
+# ESP, ours beside the existing system's -- Windows, an old Ryoku, or any Linux.
 ryoku_bootloader_alongside() {
   log "building initramfs via mkinitcpio -P (kernels on the XBOOTLDR /boot)"
   run arch-chroot /mnt mkinitcpio -P
 
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
-    log "DRYRUN: would mount Windows' ESP at /mnt/efi, tar it to /var/backups/ryoku/, drop limine at /efi/EFI/ryoku/{BOOTX64.EFI,limine.conf} (fslabel(RYOKUBOOT) kernels, boot() Windows chainload), and register 'Ryoku' first in BootOrder; /EFI/Microsoft untouched"
+    log "DRYRUN: would mount the existing OS's ESP at /mnt/efi, tar it to /var/backups/ryoku/, drop limine at /efi/EFI/ryoku/{BOOTX64.EFI,limine.conf} (fslabel(RYOKUBOOT) kernels, chainload the existing system), and register 'Ryoku' first in BootOrder; other vendors' dirs (e.g. /EFI/Microsoft) untouched"
     return 0
   fi
 
-  local wesp
-  wesp=$(ryoku_windows_esp "$RYOKU_DISK") \
-    || die "alongside bootloader: no Windows ESP (EF00 holding /EFI/Microsoft) on $RYOKU_DISK; refusing to install a bootloader with nowhere shared to land."
+  # re-probe the ESP as the source of truth (no env from the TUI): the shared ESP
+  # device, its kind, and the existing system's EFI binary to chainload.
+  local espinfo esp esp_kind esp_boot
+  espinfo=$(ryoku_esp_scan "$RYOKU_DISK") \
+    || die "alongside bootloader: no EFI System Partition on $RYOKU_DISK to share; refusing to install a bootloader with nowhere to land."
+  read -r esp esp_kind esp_boot <<<"$espinfo"
+  [[ $esp_boot == - ]] && esp_boot=none
 
   run mkdir -p /mnt/efi
-  run mount "$wesp" /mnt/efi
+  run mount "$esp" /mnt/efi
 
-  # BEFORE any write: back the ESP up to the new root, so a botched write to a
-  # user's Windows ESP is recoverable from the installed system.
-  local ts
+  # BEFORE any write: back the ESP up to the new root, so a botched write to the
+  # existing OS's ESP is recoverable from the installed system.
+  local ts bak
   ts=$(date +%Y%m%d-%H%M%S)
+  case $esp_kind in
+    windows) bak="windows-esp-${ts}.tar" ;;   # historical name, kept for Windows
+    *)       bak="esp-${esp_kind}-${ts}.tar" ;;
+  esac
   run mkdir -p /mnt/var/backups/ryoku
-  run_sh "tar -C /mnt/efi -cf /mnt/var/backups/ryoku/windows-esp-${ts}.tar ."
-  log "backed up Windows ESP ($wesp) to /var/backups/ryoku/windows-esp-${ts}.tar"
+  run_sh "tar -C /mnt/efi -cf /mnt/var/backups/ryoku/${bak} ."
+  log "backed up the shared ESP ($esp, kind=$esp_kind) to /var/backups/ryoku/${bak}"
 
-  # our loader + config in our OWN /EFI/ryoku dir; NEVER /EFI/Microsoft.
+  if [[ $esp_kind != windows && $esp_boot == none ]]; then
+    log "note: the existing $esp_kind system on the shared ESP has no chainloadable EFI binary; it stays bootable via the firmware boot menu only."
+  fi
+
+  # our loader + config in our OWN /EFI/ryoku dir; NEVER a foreign vendor's dir.
   run mkdir -p /mnt/efi/EFI/ryoku
   run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/efi/EFI/ryoku/BOOTX64.EFI
-  ryoku_boot_alongside_conf
+  ryoku_boot_alongside_conf "$esp_kind" "$esp_boot"
 
-  # removable-path fallback only if there isn't one already: Windows' own
-  # /EFI/BOOT/BOOTX64.EFI (if present) must survive untouched.
+  # removable-path fallback only if there isn't one already: the existing OS's
+  # own /EFI/BOOT/BOOTX64.EFI (if present) must survive untouched.
   if [[ -e /mnt/efi/EFI/BOOT/BOOTX64.EFI ]]; then
     log "leaving the existing /EFI/BOOT/BOOTX64.EFI in place (not ours to overwrite)"
   else
@@ -416,11 +429,11 @@ ryoku_bootloader_alongside() {
     run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/efi/EFI/BOOT/BOOTX64.EFI
   fi
 
-  # register 'Ryoku' first in BootOrder; Windows' entry is left as-is. best
+  # register 'Ryoku' first in BootOrder; the existing entry is left as-is. best
   # effort: firmware that rejects NVRAM writes still boots via the fallback above.
   local esp_partnum
-  esp_partnum=$(part_num "$wesp")
-  [[ -n $esp_partnum ]] || die "could not derive the Windows ESP partition number from $wesp; refusing to register a boot entry against a guessed partition."
+  esp_partnum=$(part_num "$esp")
+  [[ -n $esp_partnum ]] || die "could not derive the shared ESP partition number from $esp; refusing to register a boot entry against a guessed partition."
   if ! run arch-chroot /mnt efibootmgr --create --disk "$RYOKU_DISK" --part "$esp_partnum" \
     --label Ryoku --loader '\EFI\ryoku\BOOTX64.EFI' --unicode; then
     log "WARNING: efibootmgr could not register the 'Ryoku' NVRAM boot entry (readonly or full firmware NVRAM). The system still boots via /EFI/BOOT/BOOTX64.EFI on the shared ESP; if the firmware ignores it, pick it once from the firmware boot menu."
@@ -434,10 +447,17 @@ ryoku_bootloader_alongside() {
 # is searched first (limine CONFIG.md). the kernels live on a DIFFERENT partition
 # than the loader (the XBOOTLDR /boot), addressed by its FAT label: limine 12.4.0
 # does NOT resolve guid(<GPT-PARTUUID>) to a FAT volume (verified under OVMF),
-# fslabel is deterministic. Windows chainloads same-volume via boot(), which
-# sidesteps the 9.x cross-ESP reboot loop.
+# fslabel is deterministic. the existing OS is chainloaded same-volume via boot(),
+# which sidesteps the 9.x cross-ESP reboot loop.
 ryoku_boot_alongside_conf() {
-  local branding src="$RYOKU_REPO/system/boot/limine/limine.conf"
+  ryoku_alongside_conf_text "${1:-windows}" "${2:-none}" | write_file /mnt/efi/EFI/ryoku/limine.conf
+}
+
+# ryoku_alongside_conf_text <esp_kind> <existing_boot>: the shared-ESP limine.conf
+# body -- pure (stdout only), so it is generator-testable. branding globals + our
+# linux entry, then the existing-system chainload entry.
+ryoku_alongside_conf_text() {
+  local esp_kind=$1 esp_boot=$2 branding src="$RYOKU_REPO/system/boot/limine/limine.conf"
   local label=${RYOKU_ALONGSIDE_BOOT_LABEL:-RYOKUBOOT}
   if [[ -f $src ]]; then
     branding=$(sed '/^\/Ryoku Linux/,$d' "$src")
@@ -445,22 +465,49 @@ ryoku_boot_alongside_conf() {
     branding=$(ryoku_builtin_limine_branding)
   fi
   branding=$(printf '%s\n' "$branding" | sed 's/^default_entry: 2$/default_entry: 1/')
-  {
-    printf '%s\n' "$branding"
-    cat <<EOF
+  printf '%s\n' "$branding"
+  cat <<EOF
 
 /Ryoku Linux
     protocol: linux
     kernel_path: fslabel($label):/vmlinuz-linux
     cmdline: $CMDLINE quiet splash
     module_path: fslabel($label):/initramfs-linux.img
+EOF
+  ryoku_alongside_existing_entry "$esp_kind" "$esp_boot"
+}
+
+# ryoku_alongside_existing_entry <esp_kind> <existing_boot>: the menu entry for the
+# OS that already owns the shared ESP, so it stays bootable after Ryoku takes the
+# boot order. boot():/ addresses the shared volume (a uuid() self-chainload panics
+# on limine 9.x+). Windows keeps its historical /Windows entry byte-for-byte; a
+# ryoku/linux neighbor gets a "(existing)" entry pointing at the binary the probe
+# found. no binary (existing_boot none) = no entry -- honestly, it is then
+# reachable only from the firmware boot menu.
+ryoku_alongside_existing_entry() {
+  local esp_kind=$1 esp_boot=$2 title
+  if [[ $esp_kind == windows ]]; then
+    cat <<'EOF'
 
 /Windows
     protocol: efi
     path: boot():/EFI/Microsoft/Boot/bootmgfw.efi
     comment: Windows Boot Manager
 EOF
-  } | write_file /mnt/efi/EFI/ryoku/limine.conf
+    return 0
+  fi
+  [[ -n $esp_boot && $esp_boot != none && $esp_boot != - ]] || return 0
+  case $esp_kind in
+    ryoku) title="Ryoku (existing)" ;;
+    *)     title="Linux (existing)" ;;
+  esac
+  cat <<EOF
+
+/$title
+    protocol: efi
+    path: boot():$esp_boot
+    comment: existing $esp_kind install
+EOF
 }
 
 ryoku_builtin_default_limine() {
