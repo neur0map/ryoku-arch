@@ -332,6 +332,10 @@ func TestChannelUpdateReconcilesDivergence(t *testing.T) {
 }
 
 func TestRyokuChannelDefaultAndOverride(t *testing.T) {
+	// isolate from any ambient checkout so the .ryoku-channel fallback finds
+	// nothing and the default resolves to main.
+	t.Setenv("RYOKU_REPO", "")
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	t.Setenv("RYOKU_CHANNEL", "")
 	if got := ryokuChannel(); got != "main" {
 		t.Errorf("default channel = %q, want main", got)
@@ -339,6 +343,30 @@ func TestRyokuChannelDefaultAndOverride(t *testing.T) {
 	t.Setenv("RYOKU_CHANNEL", "unstable-dev")
 	if got := ryokuChannel(); got != "unstable-dev" {
 		t.Errorf("override channel = %q, want unstable-dev", got)
+	}
+}
+
+func TestRyokuChannelFile(t *testing.T) {
+	repo := t.TempDir()
+	mustGit(t, repo, "init", "-q")
+	t.Setenv("RYOKU_CHANNEL", "")
+	t.Setenv("RYOKU_REPO", repo)
+
+	// no .ryoku-channel: default main.
+	if got := ryokuChannel(); got != "main" {
+		t.Errorf("no file: channel = %q, want main", got)
+	}
+	// file present: track its branch (what `ryoku track` writes).
+	if err := os.WriteFile(filepath.Join(repo, ".ryoku-channel"), []byte("unstable-dev\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := ryokuChannel(); got != "unstable-dev" {
+		t.Errorf("file present: channel = %q, want unstable-dev", got)
+	}
+	// env still wins over the file.
+	t.Setenv("RYOKU_CHANNEL", "main")
+	if got := ryokuChannel(); got != "main" {
+		t.Errorf("env over file: channel = %q, want main", got)
 	}
 }
 

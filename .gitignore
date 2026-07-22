@@ -45,3 +45,7 @@ __pycache__/
 
 # Developer scratch: local reports and working notes, never part of Ryoku.
 /local/
+
+# `ryoku track` writes the tracked channel branch here in a live checkout.
+# Never committed; `ryoku recovery` git-cleans it away back to main.
+/.ryoku-channel
