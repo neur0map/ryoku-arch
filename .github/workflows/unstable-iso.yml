@@ -6,11 +6,17 @@ name: Build Unstable ISO
 # private testing / early testers, so it never touches iso.ryoku.dev and never
 # gets confused with the production Build ISO pipeline (main / v* tags only).
 #
-# Manual dispatch only, and only from unstable-dev. The ISO stays well under
-# GitHub's per-file limit, so a run artifact is all this needs.
+# Trigger: push an unstable-iso-* tag on an unstable-dev commit to build now.
+# A tag push runs the workflow file at the tagged commit, so it works before
+# this file reaches the default branch; workflow_dispatch only ever shows up
+# once it does, so it is kept for the button after the next release FF. The ISO
+# stays well under GitHub's per-file limit, so a run artifact is all this needs.
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'unstable-iso-*'
 
 permissions:
   contents: read
@@ -20,12 +26,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - name: Guard - unstable-dev only
-        # runs ONLY on the wrong branch, and always fails there, so a dispatch
-        # from main (which has its own Build ISO) or anywhere else stops here.
-        if: github.ref != 'refs/heads/unstable-dev'
+      - name: Guard - unstable-dev or an unstable-iso-* tag only
+        # runs ONLY on the wrong ref, and always fails there, so a dispatch from
+        # main (which has its own Build ISO) or a stray tag stops here. Allows a
+        # workflow_dispatch from unstable-dev or any unstable-iso-* build tag.
+        if: >-
+          github.ref != 'refs/heads/unstable-dev' &&
+          !startsWith(github.ref, 'refs/tags/unstable-iso-')
         run: |
-          echo "::error::Build Unstable ISO only runs from unstable-dev (got ${GITHUB_REF_NAME})."
+          echo "::error::Build Unstable ISO runs only from unstable-dev or an unstable-iso-* tag (got ${GITHUB_REF})."
           exit 1
 
       - name: Checkout
