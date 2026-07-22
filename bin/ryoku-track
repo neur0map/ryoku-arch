@@ -33,15 +33,16 @@ echo 'RYOKU_CHANNEL=unstable-dev' >"$HOME/.config/environment.d/ryoku.conf"
 say "Building and deploying the desktop from the checkout"
 bash "$REPO/ryoku/shell/deploy.sh"
 
-say "Done. Log out and back in, then check:  ryoku status"
+# environment.d misses the graphical session on some display managers, so set the
+# channel in the session too; user.lua survives updates.
+ulua="$HOME/.config/hypr/user.lua"
+line='hl.env("RYOKU_CHANNEL", "unstable-dev")'
+grep -qF "$line" "$ulua" 2>/dev/null || printf '%s\n' "$line" >>"$ulua"
+
+say "Done. Log out and back in, then:  ryoku status  (should say unstable-dev)."
 cat <<'EOF'
 
-If keybinds or `ryoku status` still show main after logging back in:
-  echo 'hl.env("RYOKU_CHANNEL", "unstable-dev")' >> ~/.config/hypr/user.lua
-  ryoku reload && ryoku status
-Still broken? Reboot.
-
-From now on `ryoku update` follows unstable-dev (it will git reset --hard
-origin/unstable-dev if the checkout diverges, so keep no local edits in
-~/ryoku-arch). To go back to main:  ryoku recovery
+Every update after: ryoku update. Back to main: ryoku recovery.
+Keep no local edits in ~/ryoku-arch (ryoku update resets it to origin/unstable-dev).
+If ryoku status still says main, reboot so the session picks up the channel.
 EOF
