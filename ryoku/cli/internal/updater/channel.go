@@ -19,21 +19,11 @@ import (
 // A packaged install has no checkout, so these report "no channel" and the
 // caller falls back to the pacman view of the [ryoku] repo.
 
-// ryokuChannel: the branch update tracks. RYOKU_CHANNEL overrides everything;
-// else `ryoku track` persists the branch in <repo>/.ryoku-channel; else main.
+// ryokuChannel: the branch update tracks. RYOKU_CHANNEL overrides it for
+// tests; every real Ryoku machine follows main.
 func ryokuChannel() string {
 	if c := strings.TrimSpace(os.Getenv("RYOKU_CHANNEL")); c != "" {
 		return c
-	}
-	// `ryoku track <branch>` writes the branch here (gitignored, so it never
-	// dirties the tree or ships). `ryoku recovery` git-cleans the checkout,
-	// which drops the file and returns the box to main.
-	if repo := sys.ResolveRepo(); repo != "" {
-		if b, err := os.ReadFile(filepath.Join(repo, ".ryoku-channel")); err == nil {
-			if c := strings.TrimSpace(string(b)); c != "" {
-				return c
-			}
-		}
 	}
 	return "main"
 }

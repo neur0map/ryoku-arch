@@ -1,56 +1,47 @@
 #!/usr/bin/env bash
-# ryoku track: point this Ryoku checkout at a channel branch (default
-# unstable-dev) so `ryoku update` pulls from it and keeps pulling it. The branch
-# is written to <repo>/.ryoku-channel (gitignored) and the deployed `ryoku`
-# reads it. `ryoku recovery` git-cleans the checkout, dropping the file and
-# restoring main. main is never touched by this.
+# ryoku track: turn a Ryoku box into an unstable-dev tracker. It installs the
+# build tools, clones the repo, switches the desktop to the unstable-dev branch,
+# and sets the update channel, so from then on `ryoku update` pulls unstable-dev.
+# `ryoku recovery` force-resets you back to main, so keep NO local edits in
+# ~/ryoku-arch. Use at your own risk.
 #
 #   curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-track | bash
-#   ryoku-track [channel]        # default: unstable-dev; `ryoku-track main` clears it
 set -euo pipefail
 
-CHANNEL="${1:-unstable-dev}"
+REPO="$HOME/ryoku-arch"
+say() { printf '\n==> %s\n' "$*"; }
 
-say()  { printf '==> %s\n' "$*"; }
-warn() { printf '!!  %s\n' "$*" >&2; }
-die()  { printf 'ryoku-track: %s\n' "$*" >&2; exit 1; }
+say "This turns your box into an unstable-dev tracker so you get unstable-dev changes. Use at your own risk."
 
-command -v ryoku >/dev/null 2>&1 || die "the 'ryoku' CLI is not installed; this is for a Ryoku system"
+say "Installing build tools"
+sudo pacman -S --needed --noconfirm git go cmake ninja qt6-shadertools wayland base-devel
 
-# Find the checkout `ryoku update` tracks, the same way the CLI does: RYOKU_REPO,
-# else the path the last deploy recorded in ~/.local/state/ryoku/repo.
-repo="${RYOKU_REPO:-}"
-if [[ -z $repo ]]; then
-  state_repo="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku/repo"
-  [[ -f $state_repo ]] && repo="$(<"$state_repo")"
-fi
-if [[ -z $repo ]] || ! git -C "$repo" rev-parse --git-dir >/dev/null 2>&1; then
-  die "no Ryoku checkout found; this box updates from packages, not a git channel, so there is nothing to track"
-fi
-
-if [[ $CHANNEL == main ]]; then
-  # main is the default, so tracking it just means removing the override.
-  rm -f "$repo/.ryoku-channel"
-  say "cleared the channel override in $repo; back on main"
+say "Fetching the Ryoku source on unstable-dev into $REPO"
+if [[ -d $REPO/.git ]]; then
+  git -C "$REPO" fetch origin unstable-dev
+  git -C "$REPO" checkout unstable-dev
+  git -C "$REPO" reset --hard origin/unstable-dev
 else
-  printf '%s\n' "$CHANNEL" >"$repo/.ryoku-channel"
-  say "tracking channel '$CHANNEL' in $repo"
+  git clone https://github.com/neur0map/ryoku-arch "$REPO"
+  git -C "$REPO" checkout unstable-dev
 fi
 
-# First switch runs under the currently deployed CLI, which is still main's and
-# does not read the file yet, so hand it the channel by env for this one update.
-# That pull deploys the CLI that reads .ryoku-channel from here on.
-say "pulling and deploying '$CHANNEL' (ryoku update)"
-RYOKU_CHANNEL="$CHANNEL" ryoku update \
-  || die "ryoku update failed; nothing changed but the .ryoku-channel marker. Fix the error and re-run."
+say "Setting the update channel to unstable-dev"
+mkdir -p "$HOME/.config/environment.d"
+echo 'RYOKU_CHANNEL=unstable-dev' >"$HOME/.config/environment.d/ryoku.conf"
 
-hash -r 2>/dev/null || true
+say "Building and deploying the desktop from the checkout"
+bash "$REPO/ryoku/shell/deploy.sh"
 
-say "status:"
-ryoku status || true
+say "Done. Log out and back in, then check:  ryoku status"
+cat <<'EOF'
 
-if ryoku status 2>/dev/null | grep -qE "^channel:[[:space:]]+${CHANNEL}$"; then
-  say "now tracking '$CHANNEL'. Run 'ryoku update' any time to pull it; 'ryoku recovery' restores main."
-else
-  warn "status does not show '$CHANNEL' yet. Reboot (or log out and back in) so the freshly deployed 'ryoku' picks up the channel, then check 'ryoku status'."
-fi
+If keybinds or `ryoku status` still show main after logging back in:
+  echo 'hl.env("RYOKU_CHANNEL", "unstable-dev")' >> ~/.config/hypr/user.lua
+  ryoku reload && ryoku status
+Still broken? Reboot.
+
+From now on `ryoku update` follows unstable-dev (it will git reset --hard
+origin/unstable-dev if the checkout diverges, so keep no local edits in
+~/ryoku-arch). To go back to main:  ryoku recovery
+EOF
