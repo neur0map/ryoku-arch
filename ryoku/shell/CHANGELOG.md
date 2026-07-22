@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### Fixed
+- **The screen recorder captures the microphone out of the box.**
+  `pill/RecordHud.qml` defaulted `optMic` to false, so a Quick capture recorded no
+  voice; it now defaults on (desktop audio stays opt-in) and the pre-record chooser
+  still offers a one-tap disable. The backend already selects the default PipeWire
+  source.
+- **Matugen theme failures are no longer silent.** `ipc/wallpaper.go`
+  (`renderApps`) swallowed matugen's exit with `_ = …Run()`, so a failed GTK/Qt
+  fan-out (missing palette cache, unreadable template) produced nothing with no
+  indication -- the "matugen was enabled but generated no themes, and I couldn't
+  tell why" report. It now logs matugen's output on failure and logs a missing
+  palette cache, and pre-creates the output dirs to keep matugen's own
+  "folder doesn't exist" warnings out of the log. Generation itself is intact:
+  matugen 4.x creates missing dirs and the shipped templates render GTK+Qt
+  correctly (verified live).
+- **Weather location now reaches the launcher and desktop widget.** Changing the
+  location in Settings updated the pill, but the launcher's and widget's Weather
+  singletons never read the explicit `weatherLocation`: they read the shared
+  `~/.local/state/ryoku/weather-loc.json` once at startup (no file watch), and
+  their IP-locate wrote a query-less entry that clobbered the pill's query-keyed
+  cache, so the launcher kept showing the previously-located city even after a
+  restart. Both are now live consumers of the pill's authoritative cache: they
+  `watchChanges` and re-read on every update, and no longer write it (the pill is
+  the sole resolver/writer), so a location change reaches all three surfaces at
+  once (`launcher/Singletons/Weather.qml`, `widgets/Singletons/WeatherData.qml`).
+
 ### Added
 - **The recorder sidebar gains a Discord toggle: a Quick capture auto-shrinks to
   fit a chat.** With it on, a finished Quick recording is re-encoded to a

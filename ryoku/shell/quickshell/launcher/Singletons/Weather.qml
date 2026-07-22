@@ -44,6 +44,9 @@ Singleton {
     property real lat: 0
     property real lon: 0
     property bool located: false
+    // set true once construction finishes; the cache FileView's initial
+    // blockLoading load fires before ipProc/wxProc exist, so loadLoc must wait.
+    property bool ready: false
 
     function fetchWeather() {
         if (!root.located || wxProc.running)
@@ -84,29 +87,42 @@ Singleton {
         wxCache.setText(text);           // cache the forecast so the next start opens on weather, not a bare date
     }
 
-    function writeLoc() {
-        locCache.setText(JSON.stringify({ city: root.city, lat: root.lat, lon: root.lon }));
+    // load the resolved location from the shared cache the pill authoritatively
+    // writes (keyed by the explicit weatherLocation), so a location change in
+    // Settings reaches the launcher live and across restarts. The launcher used
+    // to read this once at startup and never honour a later change, so it kept
+    // showing the previously-located city.
+    function loadLoc() {
+        if (!root.ready)
+            return;
+        var c = Model.parseJson(locCache.text());
+        if (!c || typeof c.lat !== "number" || typeof c.lon !== "number")
+            return;
+        if (root.located && c.lat === root.lat && c.lon === root.lon)
+            return;
+        root.city = c.city || "";
+        root.lat = c.lat;
+        root.lon = c.lon;
+        root.located = true;
+        root.fetchWeather();
     }
 
     Component.onCompleted: {
+        root.ready = true;
         // replay the last cached forecast instantly so the card opens on weather
         // rather than a bare date; the fresh fetch below overwrites it a moment later.
         var w = wxCache.text();
         if (w && w.length > 0)
             root.applyForecast(w);
-        var c = Model.parseJson(locCache.text());
-        if (c && typeof c.lat === "number" && typeof c.lon === "number") {
-            root.city = c.city || "";
-            root.lat = c.lat;
-            root.lon = c.lon;
-            root.located = true;
-            root.fetchWeather();
-        } else {
+        root.loadLoc();
+        // no cache yet (fresh profile): locate by IP for this session. The pill
+        // owns the shared cache and is its only writer, so the launcher never
+        // clobbers the explicit-location resolution.
+        if (!root.located)
             ipProc.running = true;
-        }
     }
 
-    // fresh profile may not have the state dir; mkdir before writeLoc touches it.
+    // fresh profile may not have the state dir; mkdir before the forecast cache is written.
     Process {
         command: ["mkdir", "-p", root.stateDir]
         running: true
@@ -116,7 +132,10 @@ Singleton {
         id: locCache
         path: root.stateDir + "/weather-loc.json"
         blockLoading: true
+        watchChanges: true
         printErrors: false
+        onFileChanged: reload()
+        onLoaded: root.loadLoc()
     }
 
     FileView {
@@ -137,7 +156,6 @@ Singleton {
                     root.lat = loc.lat;
                     root.lon = loc.lon;
                     root.located = true;
-                    root.writeLoc();
                     root.fetchWeather();
                 }
             }

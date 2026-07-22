@@ -80,7 +80,7 @@ Item {
     // between closing the chooser and gsr coming up, so it never blinks out.
     property bool starting: false
     property bool optDesktopAudio: false
-    property bool optMic: false
+    property bool optMic: true
     function recordArgs() {
         var a = [];
         if (hud.optDesktopAudio) a.push("--with-desktop-audio");
