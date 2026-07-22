@@ -3094,6 +3094,65 @@ func snapshot() {
 	m.enterPos, m.lsel = 1, 0
 	show("partitions: required and optional", m)
 
+	// ── alongside on a populated pure-Ryoku disk (the reported 1 TB scenario) ──
+	// Fixture: 953869 MiB GPT, 1 GiB ESP (BOOT), 930.5 GiB btrfs (ryoku); the
+	// shared Ryoku ESP had no chainloadable binary (existing_boot none).
+	const btrfsMiB = 952832 // 930.5 GiB
+	ryokuParts := []resizePart{
+		{dev: "/dev/loop0p1", index: 1, fs: "vfat", label: "BOOT", sizeMiB: 1024, usedMiB: 60, minMiB: -1, shrinkable: false, reason: "ESP: not carveable"},
+		{dev: "/dev/loop0p2", index: 2, fs: "btrfs", label: "ryoku", sizeMiB: btrfsMiB, usedMiB: 2048, minMiB: 2048, shrinkable: true, reason: "single-device btrfs"},
+	}
+	ryokuKept := []part{
+		{dev: "EFI System", size: 1, fs: "fat32", flags: "esp", status: "keep"},
+		{dev: "ryoku", size: 931, fs: "btrfs", status: "keep"},
+	}
+	alongPicks := map[string]string{}
+	for k, v := range picks {
+		alongPicks[k] = v
+	}
+	alongPicks["disk"] = "alongside"
+
+	m = mk()
+	m.idx = 8 // disk strategy
+	dl := diskLayout{parts: ryokuKept, gpt: true, espKind: "ryoku", probeVerdict: "ok"}
+	m.pick = newPicker(diskStrategiesFor(dl), true)
+	m.pick.height, m.picks, m.enterPos = m.listRows(), alongPicks, 1
+	show("alongside: strategy on a 931.5 GiB pure-Ryoku disk", m)
+
+	carve := func() model {
+		c := mk()
+		c.idx, c.picks = 9, alongPicks
+		c.diskDev, c.diskTotal, c.diskG = "/dev/loop0", 931, 931
+		c.diskBytes = 953869 * 1024 * 1024
+		c.gpt, c.espKind, c.existingBoot, c.probeVerdict = true, "ryoku", "none", "ok"
+		c.kept, c.freeG, c.resizeParts = ryokuKept, 0, ryokuParts
+		c.espG, c.swapG = 1, 16
+		c.snapshots, c.sepHome, c.backups = true, true, false
+		c.carvePart, c.carveTakeMiB = 1, 120*1024
+		c.clampSwapToLayout()
+		c.enterPos, c.lsel = 1, 0
+		return c
+	}
+
+	show("alongside: layout carving 120 GiB from ryoku", carve())
+
+	m = carve()
+	m.partKey("shift+right") // +10 GiB big step
+	show("alongside: layout with Shift big-step hint (130 GiB)", m)
+
+	m = carve()
+	m.idx, m.netOnline, m.hwSecureBoot = 14, true, false // review
+	show("alongside: review (shared ESP, no erase)", m)
+
+	m = carve()
+	m.idx, m.netOnline, m.hwSecureBoot = 14, true, false
+	m.reclaim = []part{
+		{dev: "previous Ryoku", size: 6, fs: "ryoku", status: "reclaim", reclaim: true},
+		{dev: "previous Ryoku", size: 1, fs: "ryokuboot", status: "reclaim", reclaim: true},
+	}
+	m.reclaimG = 7
+	show("alongside: review with reclaimed leftovers", m)
+
 	m = mk()
 	m.idx, m.picks = 12, picks // user password
 	m.loadStep()
