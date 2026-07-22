@@ -75,7 +75,7 @@ Item {
 
     FileDialog {
         id: pick
-        title: "Choose a hero image"
+        title: I18n.tr("Choose a hero image")
         nameFilters: ["Images (*.png *.jpg *.jpeg *.webp)", "All files (*)"]
         onAccepted: ed.adoptCustom(selectedFile)
     }
@@ -142,7 +142,7 @@ Item {
                 }
                 Text {
                     anchors.left: parent.left; anchors.bottom: parent.bottom; anchors.margins: Tokens.s2
-                    text: "drag to frame"
+                    text: I18n.tr("drag to frame")
                     color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                 }
             }
@@ -162,7 +162,7 @@ Item {
                     spacing: Tokens.s4
 
                     Text {
-                        text: "HERO"
+                        text: I18n.tr("HERO")
                         color: Tokens.inkMuted; font.family: Tokens.ui
                         font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                         font.letterSpacing: Tokens.trackMark; font.capitalization: Font.AllUppercase
@@ -172,12 +172,12 @@ Item {
                         width: parent.width
                         spacing: Tokens.s2
                         HeroTile {
-                            label: "MARBLE"; selected: ed.heroKind === "default"
+                            label: I18n.tr("MARBLE"); selected: ed.heroKind === "default"
                             art: Qt.resolvedUrl("../art/profile-hero.png")
                             onPicked: { ed.heroKind = "default"; ed.heroSource = ""; ed.commit(); }
                         }
                         HeroTile {
-                            label: "YOUR IMAGE"; plus: true; selected: ed.heroKind === "custom"
+                            label: I18n.tr("YOUR IMAGE"); plus: true; selected: ed.heroKind === "custom"
                             art: ed.heroKind === "custom" ? ed.heroUrl("custom", ed.heroSource) : ""
                             onPicked: pick.open()
                         }
@@ -198,7 +198,7 @@ Item {
                         color: drop.containsDrag ? Tokens.tint10 : "transparent"
                         border.width: Tokens.border; border.color: Tokens.line
                         Text {
-                            anchors.centerIn: parent; text: "drop an image here"
+                            anchors.centerIn: parent; text: I18n.tr("drop an image here")
                             color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                         }
                         DropArea {
@@ -208,18 +208,18 @@ Item {
                     }
 
                     LblSlider {
-                        width: parent.width; label: "ZOOM"; from: 1.0; to: 3.0; value: ed.zoomV
+                        width: parent.width; label: I18n.tr("ZOOM"); from: 1.0; to: 3.0; value: ed.zoomV
                         onMoved: function (v) { ed.zoomV = v; ed.commit(); }
                     }
                     LblSlider {
                         width: parent.width; visible: ed.heroKind === "custom"
-                        label: "DITHER"; from: 1.0; to: 6.0; value: ed.ditherV
+                        label: I18n.tr("DITHER"); from: 1.0; to: 6.0; value: ed.ditherV
                         onMoved: function (v) { ed.ditherV = v; ed.commit(); }
                     }
                     Row {
                         width: parent.width; visible: ed.heroKind === "custom"; spacing: Tokens.s3
                         Text {
-                            anchors.verticalCenter: parent.verticalCenter; text: "INVERT"
+                            anchors.verticalCenter: parent.verticalCenter; text: I18n.tr("INVERT")
                             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                             font.letterSpacing: Tokens.trackLabel; font.capitalization: Font.AllUppercase
                         }
@@ -248,11 +248,11 @@ Item {
                             color: Tokens.inkFaint
                             font.family: Tokens.mono
                             font.pixelSize: Tokens.fTiny
-                            text: "A custom image is dithered live. To bake your own art into this gallery:\n  ryodither <image> --out ~/Pictures/ryodecors\n(needs Pillow; add --invert for a dark subject on a pale ground). Hand-tune any field in ~/.config/ryoku/profile.json. Full guide: docs/profile.md."
+                            text: I18n.tr("A custom image is dithered live. To bake your own art into this gallery:\n  ryodither <image> --out ~/Pictures/ryodecors\n(needs Pillow; add --invert for a dark subject on a pale ground). Hand-tune any field in ~/.config/ryoku/profile.json. Full guide: docs/profile.md.")
                         }
                     }
 
-                    Btn { text: "DONE"; primary: true; onAct: ed.done() }
+                    Btn { text: I18n.tr("DONE"); primary: true; onAct: ed.done() }
                 }
             }
         }
@@ -282,7 +282,7 @@ Item {
         Text {
             anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottomMargin: 2
-            text: tile.label; color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: 8
+            text: I18n.tr(tile.label); color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: 8
             font.letterSpacing: Tokens.trackLabel
         }
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: tile.picked() }
@@ -297,7 +297,7 @@ Item {
         signal moved(real v)
         spacing: Tokens.s1
         Text {
-            text: ls.label; color: Tokens.inkMuted; font.family: Tokens.ui
+            text: I18n.tr(ls.label); color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fMicro; font.letterSpacing: Tokens.trackLabel
             font.capitalization: Font.AllUppercase
         }

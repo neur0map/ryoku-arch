@@ -70,6 +70,25 @@ Singleton {
         }
     }
 
+    // discord-nitro quick compress: when the record chooser's Discord toggle is
+    // on, a finished Quick capture is re-encoded to best-effort 10MB or under
+    // (native resolution and audio kept) so it drops straight into a chat.
+    // Studio never compresses. pendingDiscord latches the toggle at start, so a
+    // mid-capture change can't retarget the clip; discordMode persists.
+    readonly property string discordScript: (Quickshell.env("HOME") || "") + "/.config/hypr/scripts/ryoku-cmd-discord-compress"
+    property bool discordMode: false
+    property bool pendingDiscord: false
+    readonly property string discordFile: (Quickshell.env("RYOKU_STATE_PATH") || (Quickshell.env("HOME") + "/.local/state/ryoku")) + "/discord-record"
+    FileView {
+        id: discordPref
+        path: root.discordFile
+        blockLoading: true
+        printErrors: false
+        onLoaded: root.discordMode = ((discordPref.text() || "").trim() === "1")
+    }
+    onDiscordModeChanged: Quickshell.execDetached(["sh", "-c",
+        "mkdir -p \"${1%/*}\"; printf '%s' \"$2\" > \"$1\"", "sh", root.discordFile, root.discordMode ? "1" : "0"])
+
     function start(extraArgs) {
         Quickshell.execDetached([root.script, ...(extraArgs || [])]);
         root.paused = false;
@@ -83,6 +102,12 @@ Singleton {
         Quickshell.execDetached([root.script, "--stop"]);
         root.active = false;
         root.paused = false;
+        // discord-quick: hand the just-finished clip to the compressor, which
+        // waits for gsr/wf to finalise the mp4 before re-encoding it in place.
+        if (root.pendingDiscord) {
+            Quickshell.execDetached([root.discordScript]);
+            root.pendingDiscord = false;
+        }
     }
 
     function togglePause() {

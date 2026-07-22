@@ -48,10 +48,19 @@ _rtkit() {
   mkdir -p /var/lib/ryoku && : >"$marker"
 }
 
+# reload logind so the lid-policy drop-in (10-ryoku-lid.conf) applies without a
+# reboot. reload is session-safe (unlike restart, which drops sessions); only on
+# a booted system -- the installer chroot reads the drop-in on first boot.
+_logind_lid() {
+  [ -d /run/systemd/system ] || return 0
+  systemctl reload systemd-logind 2>/dev/null || true
+}
+
 post_install() {
   _refresh
   _bluetooth
   _rtkit
+  _logind_lid
   _hint
 }
 
@@ -59,6 +68,7 @@ post_upgrade() {
   _refresh
   _bluetooth
   _rtkit
+  _logind_lid
   _hint
 }
 

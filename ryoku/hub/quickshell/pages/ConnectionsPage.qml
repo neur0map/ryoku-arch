@@ -269,7 +269,7 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: Tokens.s4
                 anchors.verticalCenter: parent.verticalCenter
-                text: cr.label
+                text: I18n.tr(cr.label)
                 color: Tokens.inkMuted
                 font.family: Tokens.ui
                 font.pixelSize: Tokens.fSmall
@@ -291,7 +291,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     readonly property bool hidden: cr.secret && !cr.reveal && cr.value.length > 0
                     text: cr.value.length === 0
-                        ? (cr.placeholder.length ? cr.placeholder : "tap to set")
+                        ? (cr.placeholder.length ? cr.placeholder : I18n.tr("tap to set"))
                         : (hidden ? "\u2022".repeat(Math.max(cr.value.length, 8)) : cr.value)
                     color: cr.value.length === 0 ? Tokens.inkFaint : Tokens.ink
                     font.family: cr.secret ? Tokens.mono : Tokens.ui
@@ -312,7 +312,7 @@ Item {
                 anchors.right: parent.right
                 anchors.rightMargin: Tokens.s3
                 anchors.verticalCenter: parent.verticalCenter
-                text: cr.reveal ? "Hide" : "Show"
+                text: cr.reveal ? I18n.tr("Hide") : I18n.tr("Show")
                 onAct: cr.reveal = !cr.reveal
             }
 
@@ -341,7 +341,7 @@ Item {
                 Text {
                     anchors.fill: parent
                     visible: crInput.text === ""
-                    text: cr.field === "pw" ? "8+ characters" : "Network name"
+                    text: cr.field === "pw" ? "8+ characters" : I18n.tr("Network name")
                     color: Tokens.inkMuted
                     font: crInput.font
                     horizontalAlignment: Text.AlignRight
@@ -359,7 +359,7 @@ Item {
             anchors.leftMargin: Tokens.s4
             anchors.top: crField.bottom
             anchors.topMargin: 4
-            text: "WPA2 needs at least 8 characters"
+            text: I18n.tr("WPA2 needs at least 8 characters")
             color: Tokens.inkMuted
             font.family: Tokens.ui
             font.pixelSize: Tokens.fSmall
@@ -601,7 +601,7 @@ Item {
                     id: wifiSecLabel
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "WI-FI"
+                    text: I18n.tr("WI-FI")
                     color: Tokens.ink
                     font.family: Tokens.ui
                     font.pixelSize: Tokens.fMicro
@@ -624,7 +624,7 @@ Item {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     visible: wifi.wifiOn
-                    text: wifi.scanning ? "Scanning\u2026" : "Scan"
+                    text: wifi.scanning ? I18n.tr("Scanning\u2026") : I18n.tr("Scan")
                     armed: !wifi.scanning
                     onAct: wifi.startScan()
                 }
@@ -642,7 +642,7 @@ Item {
                 Text {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "Wi-Fi"
+                    text: I18n.tr("Wi-Fi")
                     color: Tokens.ink
                     font.family: Tokens.ui
                     font.pixelSize: Tokens.fRow
@@ -676,7 +676,7 @@ Item {
                 anchors.topMargin: Tokens.s6
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: !wifi.wifiOn
-                text: "Wi-Fi is off."
+                text: I18n.tr("Wi-Fi is off.")
                 color: Tokens.inkMuted
                 font.family: Tokens.ui
                 font.pixelSize: Tokens.fSmall
@@ -688,7 +688,7 @@ Item {
                 anchors.topMargin: Tokens.s6
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: wifi.wifiOn && wifi.netsSorted.length === 0
-                text: "Searching networks\u2026"
+                text: I18n.tr("Searching networks\u2026")
                 color: Tokens.inkMuted
                 font.family: Tokens.ui
                 font.pixelSize: Tokens.fSmall
@@ -789,10 +789,10 @@ Item {
                                     Text {
                                         width: parent.width
                                         text: netItem.isActive
-                                            ? "Connected"
+                                            ? I18n.tr("Connected")
                                             : (netItem.known
-                                                ? (netItem.secured ? "Saved \u00b7 Secured" : "Saved \u00b7 Open")
-                                                : (netItem.secured ? "Secured" : "Open"))
+                                                ? (netItem.secured ? I18n.tr("Saved \u00b7 Secured") : I18n.tr("Saved \u00b7 Open"))
+                                                : (netItem.secured ? I18n.tr("Secured") : I18n.tr("Open")))
                                         color: netItem.isActive ? Tokens.inkOnBoneDim : Tokens.inkMuted
                                         font.family: Tokens.ui
                                         font.pixelSize: Tokens.fMicro
@@ -869,7 +869,7 @@ Item {
                                         Text {
                                             anchors.fill: parent
                                             visible: pwField.text === ""
-                                            text: "Password"
+                                            text: I18n.tr("Password")
                                             color: Tokens.inkMuted
                                             font: pwField.font
                                             verticalAlignment: Text.AlignVCenter
@@ -893,7 +893,7 @@ Item {
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
                                         visible: wifi.connecting
-                                        text: "Connecting\u2026"
+                                        text: I18n.tr("Connecting\u2026")
                                         color: Tokens.inkMuted
                                         font.family: Tokens.ui
                                         font.pixelSize: Tokens.fMicro
@@ -902,7 +902,7 @@ Item {
 
                                     Btn {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: "Connect"
+                                        text: I18n.tr("Connect")
                                         primary: true
                                         armed: !wifi.connecting && pwField.text.length > 0
                                         onAct: wifi.connectWithPassword(netItem.ssid, pwField.text)
@@ -921,7 +921,7 @@ Item {
                                     anchors.left: parent.left
                                     anchors.leftMargin: Tokens.s4
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: "Connection failed"
+                                    text: I18n.tr("Connection failed")
                                 }
                             }
                         }
@@ -1136,7 +1136,7 @@ Item {
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "BLUETOOTH"
+                        text: I18n.tr("BLUETOOTH")
                         color: Tokens.ink
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fMicro
@@ -1173,7 +1173,7 @@ Item {
                     Btn {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: bt.adapterOn
-                        text: bt.discovering ? "Scanning\u2026" : "Scan"
+                        text: bt.discovering ? I18n.tr("Scanning\u2026") : I18n.tr("Scan")
                         primary: bt.discovering
                         onAct: {
                             if (!bt.adapter)
@@ -1223,10 +1223,10 @@ Item {
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: !bt.hasAdapter ? "Bluetooth isn't available."
-                            : bt.blocked ? "Bluetooth is blocked."
-                            : !bt.adapterOn ? "Bluetooth is off."
-                            : (bt.discovering ? "Scanning\u2026" : "No devices yet.")
+                        text: !bt.hasAdapter ? I18n.tr("Bluetooth isn't available.")
+                            : bt.blocked ? I18n.tr("Bluetooth is blocked.")
+                            : !bt.adapterOn ? I18n.tr("Bluetooth is off.")
+                            : (bt.discovering ? I18n.tr("Scanning\u2026") : I18n.tr("No devices yet."))
                         color: Tokens.inkDim
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fRow
@@ -1235,10 +1235,10 @@ Item {
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         visible: !bt.hasAdapter || !bt.adapterOn || (!bt.discovering && bt.devices.length === 0)
-                        text: !bt.hasAdapter ? "The bluetooth service (bluez) isn't running."
-                            : bt.blocked ? "The radio is off at the hardware level (rfkill); the toggle unblocks it."
-                            : !bt.adapterOn ? "Turn the adapter on to see nearby and paired devices."
-                            : "Hit Scan to discover nearby devices."
+                        text: !bt.hasAdapter ? I18n.tr("The bluetooth service (bluez) isn't running.")
+                            : bt.blocked ? I18n.tr("The radio is off at the hardware level (rfkill); the toggle unblocks it.")
+                            : !bt.adapterOn ? I18n.tr("Turn the adapter on to see nearby and paired devices.")
+                            : I18n.tr("Hit Scan to discover nearby devices.")
                         color: Tokens.inkMuted
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fSmall
@@ -1249,7 +1249,7 @@ Item {
                     Btn {
                         anchors.horizontalCenter: parent.horizontalCenter
                         visible: !bt.hasAdapter
-                        text: svcProc.running ? "Starting\u2026" : "Start service"
+                        text: svcProc.running ? I18n.tr("Starting\u2026") : I18n.tr("Start service")
                         armed: !svcProc.running
                         onAct: bt.startService()
                     }
@@ -1348,7 +1348,7 @@ Item {
                                                     || dev.modelData.name
                                                     || dev.addr
                                                     || "Unknown")
-                                                : "Unknown"
+                                                : I18n.tr("Unknown")
                                             color: Tokens.ink
                                             font.family: Tokens.ui
                                             font.pixelSize: Tokens.fBody
@@ -1358,7 +1358,7 @@ Item {
                                         Text {
                                             width: parent.width
                                             visible: text.length > 0
-                                            text: dev.pairing ? "pairing\u2026" : bt.metaFor(dev.modelData)
+                                            text: dev.pairing ? I18n.tr("pairing\u2026") : bt.metaFor(dev.modelData)
                                             color: Tokens.inkMuted
                                             font.family: Tokens.ui
                                             font.pixelSize: Tokens.fMicro
@@ -1405,14 +1405,14 @@ Item {
                                         MiniPill {
                                             anchors.verticalCenter: parent.verticalCenter
                                             visible: !dev.isPaired && !dev.pairing
-                                            text: "Pair"
+                                            text: I18n.tr("Pair")
                                             onAct: bt.activateDevice(dev.modelData)
                                         }
 
                                         MiniPill {
                                             anchors.verticalCenter: parent.verticalCenter
                                             visible: dev.isConnected
-                                            text: "Disconnect"
+                                            text: I18n.tr("Disconnect")
                                             onAct: bt.activateDevice(dev.modelData)
                                         }
                                     }
@@ -1421,7 +1421,7 @@ Item {
                                 ErrChip {
                                     visible: dev.failed
                                     x: 66
-                                    text: "Pairing failed"
+                                    text: I18n.tr("Pairing failed")
                                 }
                             }
                         }
@@ -1555,7 +1555,7 @@ Item {
             spacing: Tokens.s2
 
             Text {
-                text: "Share this machine's connection as a Wi-Fi hotspot. NetworkManager owns the profile (named " + hs.hsCon + "); changes to the network name or password apply at once when the hotspot is live."
+                text: I18n.tr("Share this machine's connection as a Wi-Fi hotspot. NetworkManager owns the profile (named ") + hs.hsCon + I18n.tr("); changes to the network name or password apply at once when the hotspot is live.")
                 color: Tokens.inkMuted
                 font.family: Tokens.ui
                 font.pixelSize: Tokens.fSmall
@@ -1600,15 +1600,15 @@ Item {
                     spacing: 2
 
                     Text {
-                        text: "Hotspot"
+                        text: I18n.tr("Hotspot")
                         color: Tokens.ink
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fRow
                         font.weight: Font.DemiBold
                     }
                     Text {
-                        text: hs.hsBusy ? "Working\u2026"
-                            : (hs.hsActive ? ("Active on " + hs.hsIface) : "Off")
+                        text: hs.hsBusy ? I18n.tr("Working\u2026")
+                            : (hs.hsActive ? (I18n.tr("Active on ") + hs.hsIface) : I18n.tr("Off"))
                         color: hs.hsActive ? Tokens.ink : Tokens.inkMuted
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fSmall
@@ -1645,7 +1645,7 @@ Item {
                     spacing: Tokens.s2
                     Rectangle { width: 4; height: 4; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
                     Text {
-                        text: "DETAILS"
+                        text: I18n.tr("DETAILS")
                         color: Tokens.ink
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fMicro
@@ -1664,9 +1664,9 @@ Item {
                 CredRow {
                     width: parent.width
                     field: "name"
-                    label: "Network name"
+                    label: I18n.tr("Network name")
                     value: hs.hsName
-                    placeholder: "Ryoku"
+                    placeholder: I18n.tr("Ryoku")
                     editing: hs.hsEdit === "name"
                     draft: hs.hsDraft
                     onBeginEdit: { hs.hsDraft = value; hs.hsEdit = "name"; }
@@ -1678,9 +1678,9 @@ Item {
                 CredRow {
                     width: parent.width
                     field: "pw"
-                    label: "Password"
+                    label: I18n.tr("Password")
                     value: hs.hsPw
-                    placeholder: "Tap to set"
+                    placeholder: I18n.tr("Tap to set")
                     secret: true
                     editing: hs.hsEdit === "pw"
                     draft: hs.hsDraft
@@ -1723,18 +1723,18 @@ Item {
                     font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {
-                    text: "SYSTEM"; color: Tokens.inkMuted; font.family: Tokens.ui
+                    text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                     anchors.verticalCenter: parent.verticalCenter
                 }
             }
             Text {
-                text: "Connections"; color: Tokens.ink
+                text: I18n.tr("Connections"); color: Tokens.ink
                 font.family: Tokens.display; font.pixelSize: Tokens.fTitle
             }
             Text {
                 width: Math.min(parent.width, 720)
-                text: "Wi-Fi, Bluetooth and this machine's own hotspot, all live. Scan for networks and devices, connect, disconnect or forget, and share your connection. Every change applies immediately."
+                text: I18n.tr("Wi-Fi, Bluetooth and this machine's own hotspot, all live. Scan for networks and devices, connect, disconnect or forget, and share your connection. Every change applies immediately.")
                 color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
             }
@@ -1748,7 +1748,7 @@ Item {
             boxId: "connections.hero"
             title: "\u63a5\u7d9a"; sub: "\u30cd\u30c3\u30c8\u30ef\u30fc\u30af"
             tate: "\u898b\u3048\u306a\u3044\u7cf8"
-            caption: "Wi-Fi, Bluetooth, and this machine's own hotspot -- every link it can make, live."
+            caption: I18n.tr("Wi-Fi, Bluetooth, and this machine's own hotspot -- every link it can make, live.")
             code: "LINK-02"; seal: "\u63a5"; seed: 6; ditherFreq: 1.1
         }
 
@@ -1795,10 +1795,10 @@ Item {
             visible: content.width - width - Tokens.s6 >= 320
             code: "BLADE-07"
             title: "\u7cf8\u3092\u65ad\u3064"
-            sub: "SEVER THE THREAD"
+            sub: I18n.tr("SEVER THE THREAD")
             chapter: "07"
-            label: "SEVERED LINK"
-            quote: "EVERY THREAD ENDS AT A BLADE."
+            label: I18n.tr("SEVERED LINK")
+            quote: I18n.tr("EVERY THREAD ENDS AT A BLADE.")
             seal: "\u65ad"
             art: "katana.png"
             seed: 3

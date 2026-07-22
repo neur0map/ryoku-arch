@@ -88,10 +88,15 @@ func gatherStatus() Status {
 	source := "configured"
 	if !configured {
 		source = "inferred"
+		// Ryoku's default is never prompt: an unconfigured box with no PAM wiring
+		// defaults to never-ask (a blank, passwordless keyring) rather than ask
+		// (which prompts on first use). `ryoku keyring init` records this and seeds
+		// the blank keyring at first login. A PAM-wired box means the user chose
+		// unlock-on-login, so honour that.
 		if pam {
 			mode = ModeUnlockOnLogin
 		} else {
-			mode = ModeAsk
+			mode = ModeNeverAsk
 		}
 	}
 

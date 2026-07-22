@@ -7,6 +7,15 @@
 var rows = [
     {
         "tab": "",
+        "group": "<selected monitor name> (SettingSection title is dynamic: page.sel.name; literal fallback \"DISPLAY\")",
+        "key": "position (Set as main re-bases the layout so this display sits at the 0,0 origin; not a per-display disk key)",
+        "label": "Main display",
+        "desc": "Make this the primary display: puts it at the global origin, Hyprland's cursor-home / reference corner",
+        "ctl": "action",
+        "src": "<name>.json (Save) / monitors-applied.json (Apply)"
+    },
+    {
+        "tab": "",
         "group": "<selected monitor name> (SettingSection title is dynamic: page.sel.name; literal fallback \"DISPLAY\" when no selection)",
         "key": "disabled",
         "label": "Enabled",

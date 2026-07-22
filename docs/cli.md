@@ -132,15 +132,24 @@ yourself, set `RYOKU_CONFIG_BASE`.
 ### `ryoku keyring`
 
 Chooses how the GNOME keyring unlocks your saved passwords and secrets at
-sign-in, so browsers and apps stop prompting on every launch. Three modes:
+sign-in, so browsers and apps stop prompting. **The default is `never-ask`: out
+of the box no app ever prompts.** First login runs `ryoku keyring init`, which
+records the mode and seeds a blank, passwordless default keyring; from then on
+every libsecret app (browsers, editors, the SSH agent) uses it silently, and it
+persists across reboots. Three modes:
 
+- `never-ask` (default) the default keyring is blank (stored in plaintext), so it
+  is already unlocked and nothing ever prompts. Works the same under SDDM
+  autologin or a password login, and is seeded automatically at first login.
 - `unlock-on-login` PAM unlocks (or creates) the login keyring with your login
   password at sign-in; the store stays encrypted at rest and the desktop never
-  prompts. The default keyring points at `login`.
-- `never-ask` the default keyring is blank (stored in plaintext), so it is
-  already unlocked. The only silent option under SDDM autologin, where there is
-  no login password for PAM to reuse.
+  prompts. Opt in for an encrypted store. The default keyring points at `login`.
 - `ask` the store stays locked until an app asks, and gnome-keyring prompts then.
+
+`ryoku keyring init` is the first-login default, run from the Hyprland autostart:
+idempotent, it records the inferred mode and seeds the never-ask keyring, is a
+no-op once you have chosen a mode, and never destroys a pre-existing encrypted
+keyring (it records the policy and points you at `set --reset` instead).
 
 `ryoku keyring status [--json]` reports the configured (or, when unset, inferred)
 mode, whether `/etc/pam.d/sddm` carries `pam_gnome_keyring`, whether autologin is

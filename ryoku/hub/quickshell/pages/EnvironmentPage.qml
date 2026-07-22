@@ -71,18 +71,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "ADVANCED"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("ADVANCED"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Environment"; color: Tokens.ink
+            text: I18n.tr("Environment"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Environment variables for the Hyprland session, layered over the base. Add a NAME and value (e.g. MOZ_ENABLE_WAYLAND = 1); they take full effect at next login."
+            text: I18n.tr("Environment variables for the Hyprland session, layered over the base. Add a NAME and value (e.g. MOZ_ENABLE_WAYLAND = 1); they take full effect at next login.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -104,7 +104,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "VARIABLES"; color: Tokens.ink; font.family: Tokens.ui
+                text: I18n.tr("VARIABLES"); color: Tokens.ink; font.family: Tokens.ui
                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                 font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
@@ -120,12 +120,12 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 // an entry count is file-truth chrome, so mono (DESIGN.md section 2).
-                text: pg.envRows.length + (pg.envRows.length === 1 ? " ENTRY" : " ENTRIES")
+                text: pg.envRows.length + (pg.envRows.length === 1 ? I18n.tr(" ENTRY") : I18n.tr(" ENTRIES"))
                 color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "CLEAR ALL"
+                text: I18n.tr("CLEAR ALL")
                 armed: pg.envRows.length > 0
                 onAct: pg.clearAll()
             }
@@ -186,7 +186,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         width: rowRect.keyW
                         tabular: true
-                        placeholder: "NAME"
+                        placeholder: I18n.tr("NAME")
                         text: rowRect.modelData.key
                         onCommitted: (v) => {
                             if (v !== rowRect.modelData.key)
@@ -226,6 +226,6 @@ Item {
     Empty {
         anchors.centerIn: flick
         visible: pg.ready && pg.envRows.length === 0
-        caption: "No custom variables yet. Add one to get started."
+        caption: I18n.tr("No custom variables yet. Add one to get started.")
     }
 }

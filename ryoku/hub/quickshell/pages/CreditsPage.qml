@@ -35,7 +35,8 @@ Item {
         { "name": "Omarchy",      "by": "DHH",            "role": "opinionated Arch",     "url": "" },
         { "name": "CachyOS",      "by": "CachyOS team",   "role": "performance Arch",     "url": "" },
         { "name": "Ricelin",      "by": "Gakuseei",       "role": "washi warping pill",   "url": "https://github.com/Gakuseei/Ricelin" },
-        { "name": "nixos-configuration", "by": "ilyamiro", "role": "atoll island bar",    "url": "https://github.com/ilyamiro/nixos-configuration" }
+        { "name": "nixos-configuration", "by": "ilyamiro", "role": "atoll island bar",    "url": "https://github.com/ilyamiro/nixos-configuration" },
+        { "name": "dotfiles",     "by": "Jules3182",     "role": "dyad dual-edge bar",   "url": "https://github.com/Jules3182/dotfiles" }
     ]
 
     // the alpha/beta crew, constantly stress-testing and filing bugs. each name
@@ -162,7 +163,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     Text {
-                        text: "KANSHA"
+                        text: I18n.tr("KANSHA")
                         color: Tokens.inkMuted
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fTiny
@@ -184,7 +185,7 @@ Item {
                         font.weight: Font.Medium
                     }
                     Text {
-                        text: "GRATITUDE"
+                        text: I18n.tr("GRATITUDE")
                         color: Tokens.ink
                         font.family: Tokens.display
                         font.pixelSize: Tokens.fTitle
@@ -192,7 +193,7 @@ Item {
                 }
                 Text {
                     width: parent.width
-                    text: "The roots we grow from \u2014 every project, distro, and hand this build stands on."
+                    text: I18n.tr("The roots we grow from \u2014 every project, distro, and hand this build stands on.")
                     color: Tokens.inkMuted
                     font.family: Tokens.display
                     font.italic: true
@@ -235,7 +236,7 @@ Item {
                     spacing: Tokens.s3
 
                     Text {
-                        text: "THE CRASH TEST CREW"
+                        text: I18n.tr("THE CRASH TEST CREW")
                         color: Tokens.inkOnBoneDim
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fMicro
@@ -279,19 +280,19 @@ Item {
                 spacing: Tokens.s4
 
                 Text {
-                    text: "Fraunces 44"
+                    text: I18n.tr("Fraunces 44")
                     color: Tokens.ink
                     font.family: Tokens.display
                     font.pixelSize: Tokens.fTitle
                 }
                 Text {
-                    text: "Space Grotesk 14"
+                    text: I18n.tr("Space Grotesk 14")
                     color: Tokens.inkDim
                     font.family: Tokens.ui
                     font.pixelSize: Tokens.fBody
                 }
                 Text {
-                    text: "SpaceMono 12"
+                    text: I18n.tr("SpaceMono 12")
                     color: Tokens.inkMuted
                     font.family: Tokens.mono
                     font.pixelSize: pg.fRole
@@ -303,7 +304,7 @@ Item {
                         model: pg.ramp
                         delegate: RampChip {
                             required property var modelData
-                            label: modelData.label
+                            label: I18n.tr(modelData.label)
                             swatch: modelData.swatch
                             ratio: modelData.ratio
                         }
@@ -311,7 +312,7 @@ Item {
                 }
 
                 Text {
-                    text: "GRAIN · TILED NOISE · " + (Tokens.grainOpacity * 100).toFixed(1) + "%"
+                    text: I18n.tr("GRAIN · TILED NOISE · ") + (Tokens.grainOpacity * 100).toFixed(1) + "%"
                     color: Tokens.inkFaint
                     font.family: Tokens.mono
                     font.pixelSize: Tokens.fTiny
@@ -319,7 +320,7 @@ Item {
 
                 Text {
                     width: parent.width
-                    text: "Figurative art is AI-generated at dev time and graded by hand."
+                    text: I18n.tr("Figurative art is AI-generated at dev time and graded by hand.")
                     color: Tokens.inkMuted
                     font.family: Tokens.ui
                     font.pixelSize: pg.fRole
@@ -416,7 +417,7 @@ Item {
             color: rcp.swatch
         }
         Text {
-            text: rcp.label
+            text: I18n.tr(rcp.label)
             color: Tokens.inkMuted
             font.family: Tokens.ui
             font.pixelSize: pg.fByline

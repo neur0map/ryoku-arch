@@ -16,6 +16,12 @@ Singleton {
     property int mem: 0
     property int temp: 0
     property bool tempAvailable: false
+    property int gpu: 0
+    property bool gpuAvailable: false
+    // network throughput (bytes/sec) summed over physical interfaces, from
+    // /proc/net/dev deltas -- kernel-native, same cadence as cpu/mem.
+    property real netUp: 0
+    property real netDown: 0
 
     readonly property int histLen: 60
     property var cpuHistory: []
@@ -26,6 +32,10 @@ Singleton {
     property real _prevIdle: 0
     property real _prevTotal: 0
     property string _tempPath: ""
+    property string _gpuPath: ""
+    property real _prevRx: 0
+    property real _prevTx: 0
+    property real _prevNetT: 0
 
     function _push(arr, v) {
         var a = arr.slice();
@@ -43,8 +53,11 @@ Singleton {
         onTriggered: {
             statFile.reload();
             memFile.reload();
+            netFile.reload();
             if (root._tempPath.length > 0)
                 tempFile.reload();
+            if (root._gpuPath.length > 0)
+                gpuFile.reload();
         }
     }
 
@@ -122,6 +135,72 @@ Singleton {
             } else {
                 root.tempAvailable = false;
             }
+        }
+    }
+
+    // gpu busy% -- resolve the drm node once (amdgpu/i915 expose it), poll like temp.
+    Process {
+        id: gpuResolve
+        running: root.active && root._gpuPath.length === 0
+        command: ["sh", "-c",
+            "for d in /sys/class/drm/card[0-9]/device/gpu_busy_percent; do " +
+            "v=$(cat \"$d\" 2>/dev/null); case \"$v\" in [0-9]*) echo \"$d\"; exit 0;; esac; done"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var p = (this.text || "").trim();
+                if (p.length > 0)
+                    root._gpuPath = p;
+            }
+        }
+    }
+
+    FileView {
+        id: gpuFile
+        path: root._gpuPath
+        blockLoading: true
+        printErrors: false
+        onLoaded: {
+            var v = Number((gpuFile.text() || "").trim());
+            if (!isNaN(v)) {
+                root.gpu = Math.max(0, Math.min(100, Math.round(v)));
+                root.gpuAvailable = true;
+            }
+        }
+    }
+
+    // network throughput: sum rx/tx bytes for physical interfaces (e*/w*),
+    // delta over the poll interval -> bytes/sec down and up.
+    FileView {
+        id: netFile
+        path: "/proc/net/dev"
+        blockLoading: true
+        printErrors: false
+        onLoaded: {
+            var lines = (netFile.text() || "").split("\n");
+            var rx = 0, tx = 0;
+            for (var i = 0; i < lines.length; i++) {
+                var l = lines[i].trim();
+                var c = l.indexOf(":");
+                if (c < 0)
+                    continue;
+                var name = l.slice(0, c).trim();
+                if (!/^[ew]/.test(name))
+                    continue;
+                var f = l.slice(c + 1).trim().split(/\s+/);
+                rx += Number(f[0] || 0);
+                tx += Number(f[8] || 0);
+            }
+            var now = Date.now();
+            if (root._prevNetT > 0) {
+                var dt = (now - root._prevNetT) / 1000;
+                if (dt > 0) {
+                    root.netDown = Math.max(0, (rx - root._prevRx) / dt);
+                    root.netUp = Math.max(0, (tx - root._prevTx) / dt);
+                }
+            }
+            root._prevRx = rx;
+            root._prevTx = tx;
+            root._prevNetT = now;
         }
     }
 }

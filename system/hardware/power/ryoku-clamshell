@@ -1,0 +1,243 @@
+#!/usr/bin/env bash
+#
+# ryoku-clamshell -- macOS-style clamshell (closed-lid) mode for laptops.
+#
+# Suspend policy (the `daemon`): while the machine is on AC power AND at least
+# one external display is connected, hold a systemd `handle-lid-switch`
+# inhibitor, so closing the lid keeps the session running on the external
+# instead of suspending. In every other case logind's own HandleLidSwitch*
+# suspends on lid close (10-ryoku-lid.conf sets them all to `suspend`), so this
+# daemon is the ONLY thing that ever keeps a closed lid awake, and only under
+# the macOS conjunction: power AND an external display. When AC or the external
+# goes away while the lid is already shut, the daemon suspends then -- logind
+# saw no new lid event, so without this the box would sit awake with the lid
+# closed (the "cooking in a bag" case).
+#
+# Display policy (the `lid` subcommand, driven by Hyprland's lid-switch bind in
+# hypr/modules/lid.lua): on lid close with an external present, disable the
+# internal panel; on open, re-enable it and re-run autoscale. Guarded so the
+# internal is never disabled when it is the only display (no zero-monitor trap).
+#
+# Laptop-only: a `daemon` start on a desktop exits at once (like ryoku-idle).
+# Env overrides mirror ryoku-hw-laptop, for tests.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+PS_DIR="${RYOKU_POWER_SUPPLY_DIR:-/sys/class/power_supply}"
+DRM_DIR="${RYOKU_DRM_DIR:-/sys/class/drm}"
+LID_STATE_GLOB="${RYOKU_LID_STATE_GLOB:-/proc/acpi/button/lid/*/state}"
+# Internal panels + non-display connectors. Everything else that reports
+# "connected" is an external display (HDMI-A-*, DP-*, ...).
+INTERNAL_RE='^(eDP|LVDS|DSI|Virtual|Writeback)'
+
+log() { printf 'ryoku-clamshell: %s\n' "$*"; }
+
+hw_laptop() {
+  if command -v ryoku-hw-laptop >/dev/null 2>&1; then
+    ryoku-hw-laptop is-laptop
+  elif [[ -x $SCRIPT_DIR/ryoku-hw-laptop ]]; then
+    "$SCRIPT_DIR/ryoku-hw-laptop" is-laptop
+  else
+    log "ryoku-hw-laptop not found" >&2
+    return 1
+  fi
+}
+
+# on AC when any non-battery power supply reads online (Mains, or a USB-C PD
+# charger that enumerates as type USB).
+on_ac() {
+  local ps t o
+  for ps in "$PS_DIR"/*; do
+    [[ -r $ps/type && -r $ps/online ]] || continue
+    t=$(<"$ps/type"); o=$(<"$ps/online")
+    [[ $t != Battery && $o == 1 ]] && return 0
+  done
+  return 1
+}
+
+# an external display is any DRM connector that reports "connected" and is not
+# an internal panel. status is HPD (physical), not DPMS, so a monitor that is
+# merely powered down but still plugged in still counts.
+external_connected() {
+  local c b n
+  for c in "$DRM_DIR"/card*-*; do
+    [[ -r $c/status ]] || continue
+    b=${c##*/}; n=${b#card*-}
+    [[ $n =~ $INTERNAL_RE ]] && continue
+    [[ $(<"$c/status") == connected ]] && return 0
+  done
+  return 1
+}
+
+lid_closed() {
+  local f
+  for f in $LID_STATE_GLOB; do
+    [[ -r $f ]] || continue
+    grep -qi closed "$f" && return 0
+  done
+  return 1
+}
+
+clamshell_wanted() { on_ac && external_connected; }
+
+# --- suspend inhibitor: a child holding a handle-lid-switch block lock --------
+INHIBIT_PID=""
+
+inhibitor_running() { [[ -n $INHIBIT_PID ]] && kill -0 "$INHIBIT_PID" 2>/dev/null; }
+
+start_inhibitor() {
+  inhibitor_running && return 0
+  systemd-inhibit --what=handle-lid-switch --mode=block \
+    --who="ryoku-clamshell" --why="external display on AC power" \
+    sleep infinity &
+  INHIBIT_PID=$!
+  log "holding lid-switch inhibitor (external display on AC power)"
+}
+
+stop_inhibitor() {
+  inhibitor_running || { INHIBIT_PID=""; return 0; }
+  kill "$INHIBIT_PID" 2>/dev/null || true
+  wait "$INHIBIT_PID" 2>/dev/null || true
+  INHIBIT_PID=""
+  log "released lid-switch inhibitor"
+}
+
+PREV_WANTED=0
+evaluate() {
+  if clamshell_wanted; then
+    start_inhibitor
+    PREV_WANTED=1
+  else
+    local was=$PREV_WANTED
+    stop_inhibitor
+    PREV_WANTED=0
+    # AC or the external display was lost while the lid is already shut: logind
+    # cannot see this (no fresh lid event), so match "closing the lid on
+    # battery" and suspend now instead of running on with the lid down.
+    if (( was == 1 )) && lid_closed; then
+      log "clamshell condition lost with the lid shut; suspending"
+      systemctl suspend || true
+    fi
+  fi
+}
+
+run_daemon() {
+  if ! hw_laptop; then
+    [[ ${RYOKU_CLAMSHELL_VERBOSE:-0} == 1 ]] && log "desktop detected; clamshell disabled"
+    exit 0
+  fi
+  if ! command -v systemd-inhibit >/dev/null 2>&1; then
+    log "systemd-inhibit not found; clamshell disabled" >&2
+    exit 0
+  fi
+
+  # one instance per user session.
+  exec 9>"${XDG_RUNTIME_DIR:-/tmp}/ryoku-clamshell.lock"
+  if ! flock -n 9; then
+    [[ ${RYOKU_CLAMSHELL_VERBOSE:-0} == 1 ]] && log "already running"
+    exit 0
+  fi
+
+  trap 'stop_inhibitor; exit 0' TERM INT HUP
+
+  evaluate   # settle the initial state
+
+  # React to AC (power_supply) and display (drm) changes. udevadm monitor is
+  # event-driven (no polling, zero cost when idle) and runs unprivileged. If it
+  # ever exits, the outer loop re-attaches after a short back-off.
+  while :; do
+    while read -r _; do
+      # coalesce a burst (a hotplug emits several lines) into one evaluate, and
+      # let sysfs settle before reading it.
+      while read -r -t 0.2 _; do :; done
+      sleep 0.3
+      evaluate
+    done < <(udevadm monitor --udev \
+               --subsystem-match=power_supply --subsystem-match=drm 2>/dev/null)
+    sleep 2
+  done
+}
+
+# --- display side: called by the Hyprland lid-switch bind ---------------------
+internal_names() {   # $1 = "all" to include disabled outputs
+  local scope=${1:-}
+  hyprctl monitors ${scope:+all} -j 2>/dev/null \
+    | jq -r --arg re "$INTERNAL_RE" '.[] | select(.name | test($re)) | .name' 2>/dev/null
+}
+
+cmd_lid() {
+  local action="${1:-}"
+  command -v hyprctl >/dev/null 2>&1 || return 0
+  case "$action" in
+    close)
+      # only hand off to an external; with no external this is a normal lid
+      # close (logind suspends) and there is nothing to switch to.
+      local ext name
+      ext=$(hyprctl monitors -j 2>/dev/null \
+        | jq -r --arg re "$INTERNAL_RE" '[.[] | select(.name | test($re) | not)] | length' 2>/dev/null || echo 0)
+      [[ ${ext:-0} -gt 0 ]] || return 0
+      while IFS= read -r name; do
+        [[ -n $name ]] || continue
+        hyprctl keyword monitor "$name, disable" >/dev/null 2>&1 || true
+      done < <(internal_names)
+      ;;
+    open)
+      # re-enable the internal panel, then let autoscale restore scale/position.
+      local name
+      while IFS= read -r name; do
+        [[ -n $name ]] || continue
+        hyprctl keyword monitor "$name, preferred, auto, auto" >/dev/null 2>&1 || true
+      done < <(internal_names all)
+      command -v ryoku-monitor >/dev/null 2>&1 && ryoku-monitor autoscale >/dev/null 2>&1 || true
+      ;;
+    *)
+      log "lid needs open|close" >&2
+      return 2
+      ;;
+  esac
+}
+
+cmd_status() {
+  hw_laptop && echo "device=laptop" || echo "device=desktop"
+  on_ac && echo "ac=online" || echo "ac=offline"
+  external_connected && echo "external=connected" || echo "external=none"
+  lid_closed && echo "lid=closed" || echo "lid=open"
+  clamshell_wanted && echo "clamshell=wanted" || echo "clamshell=inactive"
+  if systemd-inhibit --list 2>/dev/null | grep -q "ryoku-clamshell"; then
+    echo "inhibitor=held"
+  else
+    echo "inhibitor=none"
+  fi
+}
+
+usage() {
+  cat <<'USAGE'
+Usage: ryoku-clamshell [daemon|lid <open|close>|status]
+
+daemon   watch power + displays and hold a lid-switch inhibitor while on AC
+         with an external display (laptop-only; a desktop exits at once)
+lid      switch the internal panel off (close) / on (open); the Hyprland
+         lid-switch bind calls this
+status   print device class, AC, external display, lid, and inhibitor state
+
+Env:
+  RYOKU_CLAMSHELL_VERBOSE=1   explain why daemon exits without starting
+  RYOKU_POWER_SUPPLY_DIR / RYOKU_DRM_DIR / RYOKU_LID_STATE_GLOB   test overrides
+USAGE
+}
+
+cmd="${1:-daemon}"
+case "$cmd" in
+  daemon|start) run_daemon ;;
+  lid)          shift; cmd_lid "$@" ;;
+  status)       cmd_status ;;
+  is-laptop)    hw_laptop ;;
+  -h|--help|help) usage ;;
+  *)
+    log "unknown command: $cmd" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

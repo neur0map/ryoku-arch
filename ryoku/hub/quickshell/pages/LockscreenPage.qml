@@ -344,7 +344,7 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "DESKTOP"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("DESKTOP"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -357,7 +357,7 @@ Item {
             Text {
                 id: title
                 anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                text: "Lockscreen"; color: Tokens.ink
+                text: I18n.tr("Lockscreen"); color: Tokens.ink
                 font.family: Tokens.display; font.pixelSize: Tokens.fTitle
             }
             Row {
@@ -382,7 +382,7 @@ Item {
                 }
                 Btn {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: pg.refreshing ? "FETCHING\u2026" : "REFRESH"
+                    text: pg.refreshing ? I18n.tr("FETCHING\u2026") : I18n.tr("REFRESH")
                     armed: pg.pendingSlug === "" && !pg.refreshing
                     onAct: pg.refresh()
                 }
@@ -393,7 +393,7 @@ Item {
             width: Math.min(parent.width, 720)
             // the load-bearing caveat, kept verbatim: it only swaps the look,
             // never your login.
-            text: "Pick the skin your lock and sign-in screens wear. It only swaps the look, never your login; applying reskins the sign-in screen too, so you will be asked for your password."
+            text: I18n.tr("Pick the skin your lock and sign-in screens wear. It only swaps the look, never your login; applying reskins the sign-in screen too, so you will be asked for your password.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -412,7 +412,7 @@ Item {
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "施錠"
-        index: "03"; label: "DESKTOP"
+        index: "03"; label: I18n.tr("DESKTOP")
         glyph: "column"; glyph2: "wave"
     }
 
@@ -441,13 +441,13 @@ Item {
             visible: pg.loadFailed
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-            text: "No lock skins found. Install qylock to add some."
+            text: I18n.tr("No lock skins found. Install qylock to add some.")
             color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fBody
         }
         Btn {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: pg.loadFailed
-            text: "TRY AGAIN"
+            text: I18n.tr("TRY AGAIN")
             onAct: pg.reload()
         }
     }
@@ -456,7 +456,7 @@ Item {
     Text {
         anchors.centerIn: parent
         visible: !pg.loading && !pg.loadFailed && pg.shown.length === 0 && pg.query.trim() !== ""
-        text: "No skins match your search."
+        text: I18n.tr("No skins match your search.")
         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fBody
     }
 
@@ -487,14 +487,14 @@ Item {
                 spacing: Tokens.s2
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "At sign-in"
+                    text: I18n.tr("At sign-in")
                     color: Tokens.ink; font.family: Tokens.ui
                     font.pixelSize: Tokens.fRow; font.weight: Font.DemiBold
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - x
-                    text: "How the keyring unlocks your saved passwords and secrets."
+                    text: I18n.tr("How the keyring unlocks your saved passwords and secrets.")
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; elide: Text.ElideRight
                 }
@@ -504,9 +504,9 @@ Item {
             Row {
                 topPadding: Tokens.s1
                 spacing: Tokens.s2
-                Chip { label: "Unlock at sign-in"; mode: "unlock-on-login" }
-                Chip { label: "Never ask"; mode: "never-ask" }
-                Chip { label: "Ask each time"; mode: "ask" }
+                Chip { label: I18n.tr("Unlock at sign-in"); mode: "unlock-on-login" }
+                Chip { label: I18n.tr("Never ask"); mode: "never-ask" }
+                Chip { label: I18n.tr("Ask each time"); mode: "ask" }
             }
 
             // live status line + caveats from `ryoku keyring status`.
@@ -534,7 +534,7 @@ Item {
                 spacing: Tokens.s2
                 Text {
                     width: parent.width
-                    text: "That keyring is locked with a password. Enter it to switch it to no-password, or start fresh (your old keyring is backed up, never deleted)."
+                    text: I18n.tr("That keyring is locked with a password. Enter it to switch it to no-password, or start fresh (your old keyring is backed up, never deleted).")
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                 }
@@ -562,20 +562,20 @@ Item {
                             Text {
                                 anchors { left: parent.left; verticalCenter: parent.verticalCenter }
                                 visible: kpwField.text.length === 0
-                                text: "Current keyring password"
+                                text: I18n.tr("Current keyring password")
                                 color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                             }
                         }
                     }
                     Btn {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "CONVERT"; compact: true
+                        text: I18n.tr("CONVERT"); compact: true
                         armed: pg.kpending === "" && kpwField.text.length > 0
                         onAct: pg.kconvert(kpwField.text)
                     }
                     Btn {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: pg.kconfirmReset ? "CONFIRM \u2014 START FRESH" : "START FRESH (KEEPS A BACKUP)"
+                        text: pg.kconfirmReset ? I18n.tr("CONFIRM \u2014 START FRESH") : I18n.tr("START FRESH (KEEPS A BACKUP)")
                         compact: true
                         armed: pg.kpending === ""
                         onAct: { if (pg.kconfirmReset) pg.kreset(); else pg.kconfirmReset = true; }
@@ -703,7 +703,7 @@ Item {
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: chip.busy ? (chip.label + "\u2026") : chip.label
+                text: chip.busy ? (I18n.tr(chip.label) + "\u2026") : I18n.tr(chip.label)
                 color: chip.on ? Tokens.ink : Tokens.inkMuted
                 font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 font.weight: chip.on ? Font.DemiBold : Font.Medium
@@ -826,7 +826,7 @@ Item {
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "Preview"; color: Tokens.ink
+                            text: I18n.tr("Preview"); color: Tokens.ink
                             font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                             font.weight: Font.Medium
                         }
@@ -857,7 +857,7 @@ Item {
                         }
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: tile.installing ? "Installing\u2026" : "Applying\u2026"; color: Tokens.ink
+                            text: tile.installing ? I18n.tr("Installing\u2026") : I18n.tr("Applying\u2026"); color: Tokens.ink
                             font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; font.weight: Font.Medium
                         }
                     }
@@ -884,10 +884,10 @@ Item {
                 Text {
                     anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                     visible: !tile.installed && !tile.busy && !tile.active
-                    text: "INSTALL" + (tile.skin.sizeKB > 0
+                    text: I18n.tr("INSTALL") + (tile.skin.sizeKB > 0
                         ? "  \u00b7  " + (tile.skin.sizeKB >= 1024
-                            ? (Math.round(tile.skin.sizeKB / 102.4) / 10 + " MB")
-                            : (tile.skin.sizeKB + " KB"))
+                            ? (Math.round(tile.skin.sizeKB / 102.4) / 10 + I18n.tr(" MB"))
+                            : (tile.skin.sizeKB + I18n.tr(" KB")))
                         : "")
                     color: Tokens.inkFaint
                     font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
@@ -904,7 +904,7 @@ Item {
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: tile.busy ? (tile.installing ? "INSTALLING" : "APPLYING") : "ACTIVE"
+                        text: tile.busy ? (tile.installing ? I18n.tr("INSTALLING") : I18n.tr("APPLYING")) : I18n.tr("ACTIVE")
                         color: Tokens.ink
                         font.family: Tokens.ui; font.pixelSize: 10
                         font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel

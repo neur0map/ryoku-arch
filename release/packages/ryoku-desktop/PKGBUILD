@@ -359,6 +359,13 @@ package() {
   install -Dm644 "$_repo/system/hardware/network/49-ryoku-wifi-powersave.rules" \
     "$pkgdir/usr/share/polkit-1/rules.d/49-ryoku-wifi-powersave.rules"
 
+  # Laptop clamshell: logind suspends on lid close in every case; the
+  # ryoku-clamshell daemon (installed to /usr/bin by the hardware glob above) is
+  # the only thing that keeps a closed lid awake, and only on AC power with an
+  # external display. The .install reloads logind so it applies without a reboot.
+  install -Dm644 "$_repo/system/hardware/power/logind-ryoku-lid.conf" \
+    "$pkgdir/etc/systemd/logind.conf.d/10-ryoku-lid.conf"
+
   # Windows dual-boot: cross-drive detector + a limine-entry-tool post.d hook
   # that re-asserts the uuid()-addressed chainload entry whenever the boot menu
   # is regenerated -- separate-drive Windows survives kernel updates.

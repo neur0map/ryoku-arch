@@ -25,7 +25,7 @@ Flow {
             Text {
                 id: cl
                 anchors.centerIn: parent
-                text: parent.modelData
+                text: I18n.tr(parent.modelData)
                 color: parent.on ? Tokens.inkOnBone : Tokens.inkDim
                 font.family: Tokens.ui
                 font.pixelSize: 10

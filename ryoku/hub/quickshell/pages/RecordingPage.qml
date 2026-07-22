@@ -197,18 +197,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "SYSTEM"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Recording"; color: Tokens.ink
+            text: I18n.tr("Recording"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Ryoku records with gpu-screen-recorder, hardware-encoded on your GPU (it falls back to wf-recorder on multi-GPU machines). Start and stop from the bar's screen-capture Tools; these settings shape every recording. Files land in ~/Videos/Recordings."
+            text: I18n.tr("Ryoku records with gpu-screen-recorder, hardware-encoded on your GPU (it falls back to wf-recorder on multi-GPU machines). Start and stop from the bar's screen-capture Tools; these settings shape every recording. Files land in ~/Videos/Recordings.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -247,7 +247,7 @@ Item {
                         spacing: Tokens.s2
                         Rectangle { width: 4; height: 4; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
                         Text {
-                            text: "QUALITY"; color: Tokens.ink; font.family: Tokens.ui
+                            text: I18n.tr("QUALITY"); color: Tokens.ink; font.family: Tokens.ui
                             font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                             font.letterSpacing: Tokens.trackMark
                             anchors.verticalCenter: parent.verticalCenter
@@ -261,7 +261,7 @@ Item {
                 }
                 Text {
                     width: parent.width
-                    text: "Higher framerate is smoother (120 gets closer to a high-refresh panel); higher quality and HEVC/AV1 are crisper but larger. Constant framerate plays and edits correctly everywhere; variable is smaller but can look choppy or import as 30fps."
+                    text: I18n.tr("Higher framerate is smoother (120 gets closer to a high-refresh panel); higher quality and HEVC/AV1 are crisper but larger. Constant framerate plays and edits correctly everywhere; variable is smaller but can look choppy or import as 30fps.")
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                 }
@@ -274,8 +274,8 @@ Item {
                         width: pg.span(Spans.of("step", 0), col.width)
                         height: Tokens.cellH
                         controlWidth: Spans.inlineWidth("step", 0, width)
-                        label: "Framerate"
-                        desc: "Frames captured per second; higher is smoother but files are larger."
+                        label: I18n.tr("Framerate")
+                        desc: I18n.tr("Frames captured per second; higher is smoother but files are larger.")
                         unit: "fps"
                         source: "recording.json"
                         value: pg.draft ? String(pg.draft.fps) : ""
@@ -292,8 +292,8 @@ Item {
                         width: pg.span(Spans.of("seg", 2), col.width)
                         height: Tokens.cellH
                         controlWidth: Spans.inlineWidth("seg", 2, width)
-                        label: "Framerate mode"
-                        desc: "Constant plays everywhere; variable is smaller but may import as 30fps."
+                        label: I18n.tr("Framerate mode")
+                        desc: I18n.tr("Constant plays everywhere; variable is smaller but may import as 30fps.")
                         source: "recording.json"
                         value: pg.draft ? String(pg.draft.framerateMode) : ""
                         def: pg.committed ? String(pg.committed.framerateMode) : ""
@@ -309,8 +309,8 @@ Item {
                         width: pg.span(Spans.of("seg", 4), col.width)
                         height: Tokens.cellH
                         controlWidth: Spans.inlineWidth("seg", 4, width)
-                        label: "Quality"
-                        desc: "Higher settings look crisper but make larger files."
+                        label: I18n.tr("Quality")
+                        desc: I18n.tr("Higher settings look crisper but make larger files.")
                         source: "recording.json"
                         value: pg.draft ? String(pg.draft.quality) : ""
                         def: pg.committed ? String(pg.committed.quality) : ""
@@ -326,8 +326,8 @@ Item {
                         width: pg.span(Spans.of("seg", 3), col.width)
                         height: Tokens.cellH
                         controlWidth: Spans.inlineWidth("seg", 3, width)
-                        label: "Codec"
-                        desc: "H.264 plays anywhere; HEVC and AV1 are crisper, AV1 needs a newer GPU."
+                        label: I18n.tr("Codec")
+                        desc: I18n.tr("H.264 plays anywhere; HEVC and AV1 are crisper, AV1 needs a newer GPU.")
                         source: "recording.json"
                         value: pg.draft ? String(pg.draft.codec) : ""
                         def: pg.committed ? String(pg.committed.codec) : ""
@@ -355,7 +355,7 @@ Item {
                         spacing: Tokens.s2
                         Rectangle { width: 4; height: 4; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
                         Text {
-                            text: "ENCODER"; color: Tokens.ink; font.family: Tokens.ui
+                            text: I18n.tr("ENCODER"); color: Tokens.ink; font.family: Tokens.ui
                             font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                             font.letterSpacing: Tokens.trackMark
                             anchors.verticalCenter: parent.verticalCenter
@@ -369,7 +369,7 @@ Item {
                 }
                 Text {
                     width: parent.width
-                    text: "GPU encoding is fast and barely touches your CPU. CPU is a fallback if the GPU encoder misbehaves."
+                    text: I18n.tr("GPU encoding is fast and barely touches your CPU. CPU is a fallback if the GPU encoder misbehaves.")
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                 }
@@ -382,8 +382,8 @@ Item {
                         width: pg.span(Spans.of("seg", 2), col.width)
                         height: Tokens.cellH
                         controlWidth: Spans.inlineWidth("seg", 2, width)
-                        label: "Encoder"
-                        desc: "GPU encoding barely loads the CPU; pick CPU if the GPU encoder fails."
+                        label: I18n.tr("Encoder")
+                        desc: I18n.tr("GPU encoding barely loads the CPU; pick CPU if the GPU encoder fails.")
                         source: "recording.json"
                         value: pg.draft ? String(pg.draft.encoder) : ""
                         def: pg.committed ? String(pg.committed.encoder) : ""
@@ -399,8 +399,8 @@ Item {
                         width: pg.span(Spans.of("sw", 0), col.width)
                         height: Tokens.cellH
                         controlWidth: Spans.inlineWidth("sw", 0, width)
-                        label: "Show the cursor"
-                        desc: "The mouse pointer is drawn into the video when on, hidden when off."
+                        label: I18n.tr("Show the cursor")
+                        desc: I18n.tr("The mouse pointer is drawn into the video when on, hidden when off.")
                         source: "recording.json"
                         value: pg.draft ? (pg.draft.cursor ? "ON" : "OFF") : ""
                         def: pg.committed ? (pg.committed.cursor ? "ON" : "OFF") : ""
@@ -427,7 +427,7 @@ Item {
                         spacing: Tokens.s2
                         Rectangle { width: 4; height: 4; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
                         Text {
-                            text: "UNDER THE HOOD"; color: Tokens.ink; font.family: Tokens.ui
+                            text: I18n.tr("UNDER THE HOOD"); color: Tokens.ink; font.family: Tokens.ui
                             font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                             font.letterSpacing: Tokens.trackMark
                             anchors.verticalCenter: parent.verticalCenter
@@ -441,7 +441,7 @@ Item {
                 }
                 Text {
                     width: parent.width
-                    text: "What the recorder resolves for this machine right now."
+                    text: I18n.tr("What the recorder resolves for this machine right now.")
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                 }
@@ -454,10 +454,10 @@ Item {
                     width: parent.width
                     wrapMode: Text.WordWrap
                     text: pg.infoBackend === ""
-                        ? "Detecting\u2026"
-                        : ("Backend    " + (pg.infoBackend === "gsr" ? "gpu-screen-recorder" : "wf-recorder")
-                           + "\nEncoder    " + pg.infoEncoder
-                           + "\nContainer  MP4  \u00b7  " + (pg.draft ? pg.draft.fps : "")
+                        ? I18n.tr("Detecting\u2026")
+                        : (I18n.tr("Backend    ") + (pg.infoBackend === "gsr" ? I18n.tr("gpu-screen-recorder") : "wf-recorder")
+                           + I18n.tr("\nEncoder    ") + pg.infoEncoder
+                           + I18n.tr("\nContainer  MP4  \u00b7  ") + (pg.draft ? pg.draft.fps : "")
                            + "fps " + (pg.draft ? String(pg.draft.framerateMode).toUpperCase() : "")
                            + "  \u00b7  " + (pg.draft ? pg.draft.codec : "")
                            + "  \u00b7  " + (pg.draft ? pg.draft.quality : ""))
@@ -485,11 +485,11 @@ Item {
         visible: pg.width - width - Tokens.s7 >= 560
         code: "REC-02"
         title: "\u9332\u753b"
-        sub: "ON THE RECORD"
-        motto: "Without creativity and obsession, everything is boring."
+        sub: I18n.tr("ON THE RECORD")
+        motto: I18n.tr("Without creativity and obsession, everything is boring.")
         chapter: "02"
-        label: "SYSTEM"
-        quote: "THE SCREEN REMEMBERS EVERYTHING."
+        label: I18n.tr("SYSTEM")
+        quote: I18n.tr("THE SCREEN REMEMBERS EVERYTHING.")
         seal: "\u9332"
         art: "camera.png"
         seed: 5
@@ -549,8 +549,8 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: pg.dirtyCount > 0
-                    ? (pg.dirtyCount + (pg.dirtyCount === 1 ? " CHANGE" : " CHANGES") + " \u00b7 PREVIEWING \u00b7 NOT SAVED")
-                    : "SAVED \u00b7 LIVE ON YOUR DESKTOP"
+                    ? (pg.dirtyCount + (pg.dirtyCount === 1 ? I18n.tr(" CHANGE") : I18n.tr(" CHANGES")) + I18n.tr(" \u00b7 PREVIEWING \u00b7 NOT SAVED"))
+                    : I18n.tr("SAVED \u00b7 LIVE ON YOUR DESKTOP")
                 color: pg.dirtyCount > 0 ? Tokens.ink : Tokens.inkMuted
                 font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                 font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
@@ -566,7 +566,7 @@ Item {
 
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "RESET TO DEFAULTS"
+                text: I18n.tr("RESET TO DEFAULTS")
                 armed: pg.offDefaults
                 onAct: pg.reset()
             }
@@ -576,13 +576,13 @@ Item {
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "REVERT"
+                text: I18n.tr("REVERT")
                 armed: pg.dirtyCount > 0
                 onAct: pg.revert()
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "SAVE"
+                text: I18n.tr("SAVE")
                 primary: true
                 armed: pg.dirtyCount > 0
                 onAct: pg.save()

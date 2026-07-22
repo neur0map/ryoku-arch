@@ -183,18 +183,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "DESKTOP"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("DESKTOP"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "App Launcher"; color: Tokens.ink
+            text: I18n.tr("App Launcher"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 760)
-            text: "Tune the command palette you open with Super+Space: its corners, the blur behind it, and the home card's greeting, weather and backdrop. Nothing is written until you save."
+            text: I18n.tr("Tune the command palette you open with Super+Space: its corners, the blur behind it, and the home card's greeting, weather and backdrop. Nothing is written until you save.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -206,7 +206,7 @@ Item {
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "ランチャー"
-        index: "003"; label: "PALETTE"
+        index: "003"; label: I18n.tr("PALETTE")
     }
 
     // ── pinned live preview of the launcher home card ───────────────────────
@@ -219,7 +219,7 @@ Item {
         anchors { left: parent.left; right: parent.right; top: head.bottom }
         anchors.leftMargin: Tokens.s6; anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s5
         height: 244
-        label: "LIVE PREVIEW"
+        label: I18n.tr("LIVE PREVIEW")
         tag: "SUPER SPACE"
         live: true
 
@@ -257,7 +257,7 @@ Item {
                 Text {
                     visible: (pg.draft.heroImage || "").length === 0
                     anchors.centerIn: parent
-                    text: "SHIPPED ART"
+                    text: I18n.tr("SHIPPED ART")
                     color: Tokens.inkFaint; font.family: Tokens.ui
                     font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                     font.letterSpacing: Tokens.trackMark
@@ -298,14 +298,14 @@ Item {
                 Text {
                     anchors.right: parent.right
                     visible: !!pg.draft.showWeather
-                    text: (pg.effUnit === "F" ? "70" : "21") + (pg.effUnit === "F" ? "\u00b0F" : "\u00b0C")
+                    text: (pg.effUnit === "F" ? "70" : "21") + (pg.effUnit === "F" ? I18n.tr("\u00b0F") : I18n.tr("\u00b0C"))
                     color: Tokens.ink; font.family: Tokens.ui
                     font.pixelSize: 22; font.weight: Font.Light; font.features: ({ "tnum": 1 })
                 }
                 Text {
                     anchors.right: parent.right
                     visible: !!pg.draft.showWeather
-                    text: "Clear sky"
+                    text: I18n.tr("Clear sky")
                     color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 }
                 Text {
@@ -364,7 +364,7 @@ Item {
                 Text {
                     id: dragHint
                     anchors.centerIn: parent
-                    text: "DRAG TO REPOSITION"
+                    text: I18n.tr("DRAG TO REPOSITION")
                     color: Tokens.inkDim; font.family: Tokens.ui
                     font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
                 }
@@ -397,14 +397,14 @@ Item {
             Section {
                 id: palSect
                 width: col.width
-                title: "PALETTE"
+                title: I18n.tr("PALETTE")
 
                 Cell {
                     width: palSect.span(6)
                     height: Tokens.cellH
                     controlWidth: Spans.inlineWidth("step", 0, width)
-                    label: "Corner radius"
-                    desc: "Rounds the palette window corners; inner cards follow 4 px tighter."
+                    label: I18n.tr("Corner radius")
+                    desc: I18n.tr("Rounds the palette window corners; inner cards follow 4 px tighter.")
                     unit: "px"
                     value: String(pg.draft.radius)
                     def: String(pg.committed.radius)
@@ -422,8 +422,8 @@ Item {
                     width: palSect.span(6)
                     height: Tokens.cellH
                     controlWidth: Spans.inlineWidth("step", 0, width)
-                    label: "Background blur"
-                    desc: "Frosts the desktop behind the open palette, even with blur off globally. 0 keeps it sharp."
+                    label: I18n.tr("Background blur")
+                    desc: I18n.tr("Frosts the desktop behind the open palette, even with blur off globally. 0 keeps it sharp.")
                     unit: "px"
                     value: String(pg.draft.bgBlur)
                     def: String(pg.committed.bgBlur)
@@ -443,14 +443,14 @@ Item {
             Section {
                 id: hcSect
                 width: col.width
-                title: "HOME CARD"
+                title: I18n.tr("HOME CARD")
 
                 Cell {
                     width: hcSect.span(4)
                     height: Tokens.cellH
                     controlWidth: Spans.inlineWidth("sw", 0, width)
-                    label: "Show greeting"
-                    desc: "Time-of-day greeting above the home card clock."
+                    label: I18n.tr("Show greeting")
+                    desc: I18n.tr("Time-of-day greeting above the home card clock.")
                     value: pg.draft.showGreeting ? "ON" : "OFF"
                     def: pg.committed.showGreeting ? "ON" : "OFF"
                     changed: !pg.same(pg.draft.showGreeting, pg.committed.showGreeting)
@@ -466,8 +466,8 @@ Item {
                     width: hcSect.span(4)
                     height: Tokens.cellH
                     controlWidth: Spans.inlineWidth("sw", 0, width)
-                    label: "Show weather"
-                    desc: "Current conditions and temperature on the home card; off shows the date."
+                    label: I18n.tr("Show weather")
+                    desc: I18n.tr("Current conditions and temperature on the home card; off shows the date.")
                     value: pg.draft.showWeather ? "ON" : "OFF"
                     def: pg.committed.showWeather ? "ON" : "OFF"
                     changed: !pg.same(pg.draft.showWeather, pg.committed.showWeather)
@@ -483,8 +483,8 @@ Item {
                     width: hcSect.span(4)
                     height: Tokens.cellH
                     controlWidth: Spans.inlineWidth("seg", 3, width)
-                    label: "Weather units"
-                    desc: "Temperature scale on the home card; Auto follows your locale."
+                    label: I18n.tr("Weather units")
+                    desc: I18n.tr("Temperature scale on the home card; Auto follows your locale.")
                     value: pg.unitLabel(pg.draft.weatherUnit)
                     def: pg.unitLabel(pg.committed.weatherUnit)
                     changed: !pg.same(pg.draft.weatherUnit, pg.committed.weatherUnit)
@@ -503,7 +503,7 @@ Item {
             Section {
                 id: bdSect
                 width: col.width
-                title: "BACKDROP"
+                title: I18n.tr("BACKDROP")
 
                 // the backdrop file affordance: a full-width module with the
                 // current filename, the picker, and a way back to the shipped
@@ -550,7 +550,7 @@ Item {
                         spacing: Tokens.s2
 
                         Text {
-                            text: "BACKDROP IMAGE"
+                            text: I18n.tr("BACKDROP IMAGE")
                             color: Tokens.inkMuted; font.family: Tokens.ui
                             font.pixelSize: 10; font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
                         }
@@ -565,7 +565,7 @@ Item {
                                 anchors.rightMargin: Tokens.s3
                                 anchors.verticalCenter: parent.verticalCenter
                                 elide: Text.ElideMiddle
-                                text: heroCell.set ? pg.basename(pg.draft.heroImage) : "Shipped art"
+                                text: heroCell.set ? pg.basename(pg.draft.heroImage) : I18n.tr("Shipped art")
                                 color: heroCell.set ? Tokens.inkDim : Tokens.inkFaint
                                 font.family: heroCell.set ? Tokens.mono : Tokens.ui
                                 font.pixelSize: heroCell.set ? 12 : Tokens.fSmall
@@ -577,13 +577,13 @@ Item {
                                 spacing: Tokens.s2
                                 Btn {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: "CHANGE"
+                                    text: I18n.tr("CHANGE")
                                     onAct: pg.openPicker()
                                 }
                                 Btn {
                                     anchors.verticalCenter: parent.verticalCenter
                                     visible: heroCell.set
-                                    text: "USE SHIPPED ART"
+                                    text: I18n.tr("USE SHIPPED ART")
                                     onAct: pg.edit("heroImage", "")
                                 }
                             }
@@ -591,7 +591,7 @@ Item {
 
                         Text {
                             width: parent.width
-                            text: "A landscape PNG or JPG, ideally 1600 px wide or more. It is cropped to a wide banner and dimmed; drag the preview to pick the part that shows."
+                            text: I18n.tr("A landscape PNG or JPG, ideally 1600 px wide or more. It is cropped to a wide banner and dimmed; drag the preview to pick the part that shows.")
                             color: Tokens.inkMuted; font.family: Tokens.ui
                             font.pixelSize: 12; wrapMode: Text.WordWrap
                             maximumLineCount: 2; elide: Text.ElideRight
@@ -603,8 +603,8 @@ Item {
                     width: bdSect.span(Spans.cols)
                     height: Tokens.cellH
                     controlWidth: Spans.inlineWidth("slid", 0, width)
-                    label: "Strength"
-                    desc: "How visible the backdrop image is; 0 hides it completely."
+                    label: I18n.tr("Strength")
+                    desc: I18n.tr("How visible the backdrop image is; 0 hides it completely.")
                     unit: "%"
                     value: String(Math.round((Number(pg.draft.heroStrength) || 0) * 100))
                     def: String(Math.round((Number(pg.committed.heroStrength) || 0) * 100))
@@ -641,7 +641,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
             kana: "起動"
-            index: "SUPER"; label: "SPACE"
+            index: "SUPER"; label: I18n.tr("SPACE")
         }
 
         Row {
@@ -670,8 +670,8 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: pg.dirty
-                    ? (pg.dirtyCount + (pg.dirtyCount === 1 ? " CHANGE" : " CHANGES") + " \u00b7 PREVIEWING \u00b7 NOT SAVED")
-                    : "SAVED \u00b7 LIVE ON YOUR DESKTOP"
+                    ? (pg.dirtyCount + (pg.dirtyCount === 1 ? I18n.tr(" CHANGE") : I18n.tr(" CHANGES")) + I18n.tr(" \u00b7 PREVIEWING \u00b7 NOT SAVED"))
+                    : I18n.tr("SAVED \u00b7 LIVE ON YOUR DESKTOP")
                 color: pg.dirty ? Tokens.ink : Tokens.inkMuted
                 font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                 font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
@@ -686,7 +686,7 @@ Item {
 
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "RESET TO DEFAULTS"
+                text: I18n.tr("RESET TO DEFAULTS")
                 onAct: pg.resetDefaults()
             }
             Rectangle {
@@ -695,13 +695,13 @@ Item {
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "REVERT"
+                text: I18n.tr("REVERT")
                 armed: pg.dirty
                 onAct: pg.revert()
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "SAVE"
+                text: I18n.tr("SAVE")
                 primary: true
                 armed: pg.dirty
                 onAct: pg.save()
@@ -757,7 +757,7 @@ Item {
             Text {
                 id: ptitle
                 anchors { left: parent.left; top: parent.top; margins: Tokens.s4 }
-                text: "CHOOSE A BACKDROP"
+                text: I18n.tr("CHOOSE A BACKDROP")
                 color: Tokens.ink; font.family: Tokens.ui
                 font.pixelSize: 10; font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
             }
@@ -784,10 +784,10 @@ Item {
                 anchors.leftMargin: Tokens.s4; anchors.rightMargin: Tokens.s4; anchors.topMargin: Tokens.s5
                 spacing: Tokens.s2
 
-                Btn { text: "\u2191 UP"; onAct: pg.pickerFolder = fm.parentFolder }
-                Btn { text: "HOME"; onAct: pg.gotoDir("") }
-                Btn { text: "PICTURES"; onAct: pg.gotoDir("Pictures") }
-                Btn { text: "DOWNLOADS"; onAct: pg.gotoDir("Downloads") }
+                Btn { text: I18n.tr("\u2191 UP"); onAct: pg.pickerFolder = fm.parentFolder }
+                Btn { text: I18n.tr("HOME"); onAct: pg.gotoDir("") }
+                Btn { text: I18n.tr("PICTURES"); onAct: pg.gotoDir("Pictures") }
+                Btn { text: I18n.tr("DOWNLOADS"); onAct: pg.gotoDir("Downloads") }
             }
 
             GridView {
@@ -835,7 +835,7 @@ Item {
                             spacing: Tokens.s2
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "DIR"
+                                text: I18n.tr("DIR")
                                 color: th.hovered ? Tokens.inkOnBone : Tokens.inkMuted
                                 font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                                 font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
@@ -895,7 +895,7 @@ Item {
             Text {
                 anchors.centerIn: grid
                 visible: fm.status === FolderListModel.Ready && fm.count === 0
-                text: "NO IMAGES OR FOLDERS HERE"
+                text: I18n.tr("NO IMAGES OR FOLDERS HERE")
                 color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 12; font.letterSpacing: 2
             }
@@ -912,7 +912,7 @@ Item {
                     anchors.right: parent.right
                     anchors.rightMargin: Tokens.s4
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "CANCEL"
+                    text: I18n.tr("CANCEL")
                     onAct: pg.pickerOpen = false
                 }
             }

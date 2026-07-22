@@ -225,18 +225,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "SYSTEM"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Updates"; color: Tokens.ink
+            text: I18n.tr("Updates"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "The Ryoku update channel: how far this install sits behind origin, the commits that would land (or the recent history it already runs), and a one-click update that runs in a terminal and reports its progress here."
+            text: I18n.tr("The Ryoku update channel: how far this install sits behind origin, the commits that would land (or the recent history it already runs), and a one-click update that runs in a terminal and reports its progress here.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -303,7 +303,7 @@ Item {
                         spacing: Tokens.s2
 
                         Text {
-                            text: Updates.available ? "UPDATE AVAILABLE" : "UP TO DATE"
+                            text: Updates.available ? I18n.tr("UPDATE AVAILABLE") : I18n.tr("UP TO DATE")
                             color: Tokens.ink; font.family: Tokens.ui
                             font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                             font.letterSpacing: Tokens.trackMark
@@ -336,8 +336,8 @@ Item {
 
                         Text {
                             text: Updates.available
-                                ? (Updates.behind + " commit" + (Updates.behind === 1 ? "" : "s") + " behind  \u00b7  checked " + Updates.checkedAgo)
-                                : ("on " + Updates.branch + "  \u00b7  checked " + Updates.checkedAgo)
+                                ? (Updates.behind + " commit" + (Updates.behind === 1 ? "" : "s") + I18n.tr(" behind  \u00b7  checked ") + Updates.checkedAgo)
+                                : ("on " + Updates.branch + I18n.tr("  \u00b7  checked ") + Updates.checkedAgo)
                             color: Tokens.inkMuted; font.family: Tokens.ui
                             font.pixelSize: Tokens.fSmall
                         }
@@ -353,7 +353,7 @@ Item {
 
                     Text {
                         anchors.right: parent.right
-                        text: "AUTOMATIC CHECKS"
+                        text: I18n.tr("AUTOMATIC CHECKS")
                         color: Tokens.inkMuted; font.family: Tokens.ui
                         font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                         font.letterSpacing: Tokens.trackMark
@@ -486,8 +486,8 @@ Item {
                 Text {
                     visible: pg.sectionModel.length === 0
                     text: Updates.available
-                        ? "No commit details available."
-                        : "You're up to date. Recent changes will appear here once loaded."
+                        ? I18n.tr("No commit details available.")
+                        : I18n.tr("You're up to date. Recent changes will appear here once loaded.")
                     color: Tokens.inkFaint; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall
                     topPadding: Tokens.s2
@@ -503,7 +503,7 @@ Item {
                 height: Tokens.cellH * 2 + Tokens.s5
                 title: "更新"; sub: "アップデート"
                 tate: "常に最新へ"
-                caption: "Ryoku tracks its channel; one command snapshots, pulls, and reloads."
+                caption: I18n.tr("Ryoku tracks its channel; one command snapshots, pulls, and reloads.")
                 readout: ["CHANNEL|main", "METHOD|ryoku update", "SAFETY|snapshot first", "SCOPE|whole system"]
                 code: "SYS-07"; seal: "更"; boxId: "updates.channel"; seed: 3; ditherFreq: 1.0
             }
@@ -554,8 +554,8 @@ Item {
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: pg.phase === "done" ? "Update complete"
-                        : (pg.label !== "" ? pg.label + "\u2026" : "Applying updates\u2026")
+                    text: pg.phase === "done" ? I18n.tr("Update complete")
+                        : (pg.label !== "" ? I18n.tr(pg.label) + "\u2026" : I18n.tr("Applying updates\u2026"))
                     color: Tokens.ink; font.family: Tokens.ui
                     font.pixelSize: Tokens.fRow; font.weight: Font.DemiBold
                 }
@@ -683,7 +683,7 @@ Item {
                     Text {
                         id: failTag
                         anchors.centerIn: parent
-                        text: "FAILED"
+                        text: I18n.tr("FAILED")
                         color: Tokens.inkOnBone; font.family: Tokens.ui
                         font.pixelSize: Tokens.fTiny; font.weight: Font.Medium
                         font.letterSpacing: Tokens.trackLabel
@@ -692,7 +692,7 @@ Item {
 
                 Text {
                     width: parent.width
-                    text: pg.label !== "" ? "Update failed while " + pg.label.toLowerCase() : "Update failed"
+                    text: pg.label !== "" ? I18n.tr("Update failed while ") + pg.label.toLowerCase() : I18n.tr("Update failed")
                     color: Tokens.ink; font.family: Tokens.ui
                     font.pixelSize: Tokens.fValue; font.weight: Font.DemiBold
                     wrapMode: Text.WordWrap
@@ -711,8 +711,8 @@ Item {
                 Text {
                     width: parent.width
                     text: pg.snapshot !== ""
-                        ? "The system was snapshotted before the update. Roll back to undo every change."
-                        : "Check the terminal for details, then try again."
+                        ? I18n.tr("The system was snapshotted before the update. Roll back to undo every change.")
+                        : I18n.tr("Check the terminal for details, then try again.")
                     color: Tokens.inkFaint; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall
                     lineHeight: 1.35
@@ -725,12 +725,12 @@ Item {
                     spacing: Tokens.s3
                     Btn {
                         visible: pg.snapshot !== ""
-                        text: "ROLL BACK"
+                        text: I18n.tr("ROLL BACK")
                         primary: true
                         onAct: pg.rollback()
                     }
                     Btn {
-                        text: "DISMISS"
+                        text: I18n.tr("DISMISS")
                         onAct: pg.dismiss()
                     }
                 }
@@ -825,9 +825,9 @@ Item {
         Text {
             anchors.left: parent.left; anchors.leftMargin: Tokens.s6
             anchors.verticalCenter: parent.verticalCenter
-            text: pg.phase === "running" ? "Update running"
-                : pg.phase === "error" ? "Update failed"
-                : pg.phase === "done" ? "Update complete"
+            text: pg.phase === "running" ? I18n.tr("Update running")
+                : pg.phase === "error" ? I18n.tr("Update failed")
+                : pg.phase === "done" ? I18n.tr("Update complete")
                 : (Updates.branch + (Updates.currentVersion !== "" ? ("  \u00b7  " + Updates.currentVersion) : ""))
             color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fMicro
         }
@@ -840,13 +840,13 @@ Item {
 
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "CHECK AGAIN"
+                text: I18n.tr("CHECK AGAIN")
                 onAct: Updates.check()
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: Updates.available
-                text: "UPDATE NOW"
+                text: I18n.tr("UPDATE NOW")
                 primary: true
                 onAct: pg.startUpdate()
             }

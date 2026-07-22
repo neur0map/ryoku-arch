@@ -1,4 +1,5 @@
 singleton Tokens Tokens.qml
+singleton I18n I18n.qml
 singleton Spans Spans.qml
 singleton Silhouette Silhouette.qml
 singleton DecorStore DecorStore.qml

@@ -1,0 +1,60 @@
+name: i18n
+
+# Keep the per-language translation files current without anyone editing them.
+# When a UI string changes (any .qml, or a hub schema label/desc/group), this
+# extracts the English source and translates ONLY the strings each language is
+# missing, then commits the result back. A developer writes English; the rest
+# is machine-filled here, and overrides/<lang>.json (human fixes) are preserved.
+#
+# It commits to the branch that was pushed, so translations flow to main through
+# the normal fast-forward, never triggering a publish on their own.
+
+on:
+  push:
+    branches:
+      - beta-18
+      - unstable-dev
+    paths:
+      - '**/*.qml'
+      - 'ryoku/hub/quickshell/schema/*.js'
+      - 'ryoku/ui/i18n-sync.py'
+      - 'ryoku/ui/translations/overrides/**'
+      - '.github/workflows/i18n.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: i18n-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  translate:
+    name: Regenerate translations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Extract English + translate missing strings
+        run: |
+          python3 ryoku/ui/i18n-sync.py extract
+          python3 ryoku/ui/i18n-sync.py sync
+
+      - name: Commit updated translations
+        run: |
+          if git diff --quiet -- ryoku/ui/translations; then
+            echo "Translations already current."
+            exit 0
+          fi
+          git config user.name "ryoku-i18n"
+          git config user.email "noreply@ryoku"
+          git add ryoku/ui/translations
+          git commit -m "[ryoku] i18n: regenerate translations"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

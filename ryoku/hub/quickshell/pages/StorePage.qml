@@ -258,18 +258,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "ADD-ONS"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("ADD-ONS"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Store"; color: Tokens.ink
+            text: I18n.tr("Store"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Browse and install shell plugins and extras bundles. Plugins add live surfaces (frame popouts, desktop widgets); bundles are curated sets of tools that install through a terminal. Managing what is already installed lives on Add-ons."
+            text: I18n.tr("Browse and install shell plugins and extras bundles. Plugins add live surfaces (frame popouts, desktop widgets); bundles are curated sets of tools that install through a terminal. Managing what is already installed lives on Add-ons.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -306,13 +306,13 @@ Item {
                 // an entry count is file-truth chrome, so mono (DESIGN.md section 2).
                 readonly property int n: pg.tab === "plugins" ? pg.catalogView.length : pg.bundlesView.length
                 text: n + (pg.tab === "plugins"
-                           ? (n === 1 ? " PLUGIN" : " PLUGINS")
-                           : (n === 1 ? " BUNDLE" : " BUNDLES"))
+                           ? (n === 1 ? I18n.tr(" PLUGIN") : I18n.tr(" PLUGINS"))
+                           : (n === 1 ? I18n.tr(" BUNDLE") : I18n.tr(" BUNDLES")))
                 color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: pg.refreshBusy ? "REFRESHING" : "REFRESH"
+                text: pg.refreshBusy ? I18n.tr("REFRESHING") : I18n.tr("REFRESH")
                 armed: !pg.refreshBusy
                 onAct: {
                     if (pg.tab === "plugins") {
@@ -387,8 +387,8 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: pg.query !== "" && pg.catalog.length > 0
-                        ? "nothing here matches \u201c" + pg.query + "\u201d"
-                        : "The plugin catalogue is loading, or unreachable."
+                        ? I18n.tr("nothing here matches \u201c") + pg.query + "\u201d"
+                        : I18n.tr("The plugin catalogue is loading, or unreachable.")
                     color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 }
             }
@@ -421,13 +421,13 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     horizontalAlignment: Text.AlignHCenter
-                    text: pg.extrasLoading ? "Loading the extras catalogue\u2026" : "Couldn't load the extras catalogue."
+                    text: pg.extrasLoading ? I18n.tr("Loading the extras catalogue\u2026") : I18n.tr("Couldn't load the extras catalogue.")
                     color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fBody
                 }
                 Btn {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: pg.extrasFailed
-                    text: "TRY AGAIN"
+                    text: I18n.tr("TRY AGAIN")
                     onAct: pg.extrasReload()
                 }
             }
@@ -477,7 +477,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 visible: !pg.extrasLoading && !pg.extrasFailed && pg.selectedId === "" && pg.bundlesView.length === 0
-                text: "nothing here matches \u201c" + pg.query + "\u201d"
+                text: I18n.tr("nothing here matches \u201c") + pg.query + "\u201d"
                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
             }
 
@@ -509,7 +509,7 @@ Item {
         Text {
             id: tt
             anchors.centerIn: parent
-            text: parent.label
+            text: I18n.tr(parent.label)
             color: parent.fg
             font.family: parent.tabular ? Tokens.mono : Tokens.ui
             font.pixelSize: parent.tabular ? Tokens.fTiny : 10
@@ -712,21 +712,21 @@ Item {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 visible: row.status === "deferred"
-                text: row.itemType === "plugin" ? "Plugins" : "Manual"
+                text: row.itemType === "plugin" ? "Plugins" : I18n.tr("Manual")
                 color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
             }
             Text {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 visible: row.busy
-                text: "WORKING"
+                text: I18n.tr("WORKING")
                 color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
             }
             Btn {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 visible: !row.busy && !row.here && row.status !== "deferred"
-                text: row.failed ? "RETRY" : "INSTALL"
+                text: row.failed ? I18n.tr("RETRY") : I18n.tr("INSTALL")
                 onAct: row.install()
             }
             Btn {
@@ -735,7 +735,7 @@ Item {
                 visible: !row.busy && row.here && (row.itemType === "package" || row.itemType === "nautilus-pack")
                 // remove is not danger and there is no red on the sheet to carry
                 // one; the verb is unambiguous on its own.
-                text: "REMOVE"
+                text: I18n.tr("REMOVE")
                 onAct: row.remove()
             }
         }
@@ -771,7 +771,7 @@ Item {
             Btn {
                 id: backBtn
                 anchors { left: parent.left; top: parent.top }
-                text: "\u2039  STORE"
+                text: I18n.tr("\u2039  STORE")
                 onAct: pg.pluginDetailOpen = false
             }
 
@@ -882,7 +882,7 @@ Item {
                             }
                             Tag {
                                 anchors.verticalCenter: parent.verticalCenter
-                                label: detail.plugin.official ? "OFFICIAL" : "COMMUNITY"
+                                label: detail.plugin.official ? I18n.tr("OFFICIAL") : I18n.tr("COMMUNITY")
                                 caps: true
                                 fg: detail.plugin.official ? Tokens.inkDim : Tokens.inkFaint
                             }
@@ -915,14 +915,14 @@ Item {
                             topPadding: Tokens.s1
                             spacing: Tokens.s2
                             Btn {
-                                text: detail.busy ? "WORKING" : (detail.installed ? "INSTALLED" : "INSTALL")
+                                text: detail.busy ? I18n.tr("WORKING") : (detail.installed ? I18n.tr("INSTALLED") : I18n.tr("INSTALL"))
                                 primary: !detail.installed && !detail.busy
                                 armed: !detail.installed && !detail.busy
                                 onAct: pg.pluginInstall(detail.plugin.id)
                             }
                             Btn {
                                 visible: detail.installed && !detail.busy
-                                text: "REMOVE"
+                                text: I18n.tr("REMOVE")
                                 onAct: pg.pluginRemove(detail.plugin.id)
                             }
                         }
@@ -940,7 +940,7 @@ Item {
 
                         Text {
                             visible: (detail.plugin.hosts || []).length > 0
-                            text: "PLACES WHERE IT LIVES"
+                            text: I18n.tr("PLACES WHERE IT LIVES")
                             color: Tokens.inkMuted
                             font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                             font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
@@ -952,8 +952,8 @@ Item {
                                 model: detail.plugin.hosts || []
                                 delegate: Tag {
                                     required property var modelData
-                                    label: modelData === "framePopout" ? "Frame popout"
-                                        : modelData === "desktopWidget" ? "Desktop widget" : modelData
+                                    label: modelData === "framePopout" ? I18n.tr("Frame popout")
+                                        : modelData === "desktopWidget" ? I18n.tr("Desktop widget") : modelData
                                     fg: Tokens.inkDim
                                 }
                             }
@@ -1031,7 +1031,7 @@ Item {
             Btn {
                 id: bbackBtn
                 anchors { left: parent.left; top: parent.top }
-                text: "\u2039  ALL BUNDLES"
+                text: I18n.tr("\u2039  ALL BUNDLES")
                 onAct: pg.closeBundle()
             }
 
@@ -1096,12 +1096,12 @@ Item {
                     Btn {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: bdetail.anyPackagePresent
-                        text: "UNINSTALL ALL"
+                        text: I18n.tr("UNINSTALL ALL")
                         onAct: { bdetail.arm(); pg.runTerminal(["ryoku-extras-install", "remove", "bundle", pg.selectedId]); }
                     }
                     Btn {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "INSTALL ALL"
+                        text: I18n.tr("INSTALL ALL")
                         primary: true
                         onAct: { bdetail.arm(); pg.runTerminal(["ryoku-extras-install", "install", "bundle", pg.selectedId]); }
                     }

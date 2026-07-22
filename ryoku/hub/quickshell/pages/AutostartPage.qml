@@ -73,18 +73,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "ADVANCED"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("ADVANCED"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Autostart"; color: Tokens.ink
+            text: I18n.tr("Autostart"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Commands Hyprland runs once at login, after the base Ryoku autostart (e.g. a tray applet or a sync client). Saved to your config; new commands start at your next login."
+            text: I18n.tr("Commands Hyprland runs once at login, after the base Ryoku autostart (e.g. a tray applet or a sync client). Saved to your config; new commands start at your next login.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -106,7 +106,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "COMMANDS"; color: Tokens.ink; font.family: Tokens.ui
+                text: I18n.tr("COMMANDS"); color: Tokens.ink; font.family: Tokens.ui
                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                 font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
@@ -122,12 +122,12 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 // an entry count is file-truth chrome, so mono (DESIGN.md section 2).
-                text: pg.cmdRows.length + (pg.cmdRows.length === 1 ? " ENTRY" : " ENTRIES")
+                text: pg.cmdRows.length + (pg.cmdRows.length === 1 ? I18n.tr(" ENTRY") : I18n.tr(" ENTRIES"))
                 color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "CLEAR ALL"
+                text: I18n.tr("CLEAR ALL")
                 armed: pg.cmdRows.length > 0
                 onAct: pg.clearAll()
             }
@@ -188,7 +188,7 @@ Item {
                         anchors.rightMargin: rowRect.gap
                         anchors.verticalCenter: parent.verticalCenter
                         tabular: true
-                        placeholder: "command to run"
+                        placeholder: I18n.tr("command to run")
                         text: rowRect.modelData.command
                         onCommitted: (v) => {
                             if (v !== rowRect.modelData.command)
@@ -213,6 +213,6 @@ Item {
     Empty {
         anchors.centerIn: flick
         visible: pg.ready && pg.cmdRows.length === 0
-        caption: "No autostart commands yet. Add one to get started."
+        caption: I18n.tr("No autostart commands yet. Add one to get started.")
     }
 }

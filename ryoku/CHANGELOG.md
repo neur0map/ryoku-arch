@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- `hyprland` + `system/hardware/power`: **clamshell mode -- close the lid without
+  sleeping when docked.** A new `modules/lid.lua` binds the laptop lid switch
+  (`bindl switch:Lid Switch`) to `ryoku-clamshell lid`, which blanks the internal
+  panel on close when an external display is attached and restores the layout on
+  open; autostart launches the `ryoku-clamshell` daemon that keeps the machine
+  awake on lid close while on AC power with an external display (macOS-style: both
+  are required, else it suspends). The suspend policy and the logind drop-in live
+  in `system/hardware/power/`.
 - `hyprland` + `shell/quickshell/ryolayer` + `system/hardware/audio`:
   **RyoLayer (`Super+G`): a transparent tool overlay over the desktop.** A
   board fades in over the compositor-blurred desktop, blur on a live slider

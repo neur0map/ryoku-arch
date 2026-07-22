@@ -10,9 +10,15 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user start hyprland-session.target")
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("command -v ryoku-monitor >/dev/null 2>&1 && ryoku-monitor autoscale")
+    -- Keyring default: no app ever prompts for a keyring password out of the box.
+    -- `keyring init` records the mode once and seeds a blank passwordless default
+    -- keyring for never-ask (idempotent; a no-op once a mode is chosen). Best
+    -- effort: an old ryoku without the subcommand just fails silently here.
+    hl.exec_cmd("command -v ryoku >/dev/null 2>&1 && ryoku keyring init")
     hl.exec_cmd("command -v ryoku-gpu >/dev/null 2>&1 && ryoku-gpu persist")
     hl.exec_cmd("ryoku-shell daemon")
     hl.exec_cmd("command -v ryoku-idle >/dev/null 2>&1 && ryoku-idle start")
+    hl.exec_cmd("command -v ryoku-clamshell >/dev/null 2>&1 && ryoku-clamshell daemon")
     hl.exec_cmd("command -v ryoku-leds >/dev/null 2>&1 && ryoku-leds apply")
     hl.exec_cmd("command -v ryoku-mic >/dev/null 2>&1 && ryoku-mic")
     hl.exec_cmd("command -v ryoku-eq >/dev/null 2>&1 && ryoku-eq apply")

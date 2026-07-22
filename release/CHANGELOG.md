@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- **`ryoku-desktop` ships the laptop clamshell policy.** The `ryoku-clamshell`
+  helper lands on `/usr/bin` via the `system/hardware/*/ryoku-*` glob, and the
+  logind drop-in `system/hardware/power/logind-ryoku-lid.conf` installs to
+  `/etc/systemd/logind.conf.d/10-ryoku-lid.conf`; the `.install` reloads
+  `systemd-logind` (session-safe) so the lid policy applies without a reboot.
+  Closing the lid on AC power with an external display no longer suspends.
 - **`ryoku-desktop` ships the decor art set to `/usr/share/ryoku/ryodecors`.** The
   `Decor` and `Placard` components render from `~/Pictures/ryodecors`; the package
   carries the shipped set so `ryoku doctor` can lay it there on update (the

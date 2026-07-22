@@ -555,18 +555,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "SYSTEM"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Keybinds"; color: Tokens.ink
+            text: I18n.tr("Keybinds"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Every desktop shortcut in one place. Apps sets what the launcher keys open (browser, terminal, editor, files, notes) and rebinds those keys; System rebinds the built-in shortcuts; Custom layers your own. Overlaps are flagged as you go."
+            text: I18n.tr("Every desktop shortcut in one place. Apps sets what the launcher keys open (browser, terminal, editor, files, notes) and rebinds those keys; System rebinds the built-in shortcuts; Custom layers your own. Overlaps are flagged as you go.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -577,7 +577,7 @@ Item {
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "操作"
-        index: "02"; label: "SYSTEM"
+        index: "02"; label: I18n.tr("SYSTEM")
         glyph: "meander"; glyph2: "torii"
     }
 
@@ -637,7 +637,7 @@ Item {
                 Text {
                     width: appsCol.width
                     wrapMode: Text.WordWrap
-                    text: "Pick what each launcher key opens, and rebind the key itself. The key runs the app through ryoku-app, so a swap takes effect on the next press -- no reload."
+                    text: I18n.tr("Pick what each launcher key opens, and rebind the key itself. The key runs the app through ryoku-app, so a swap takes effect on the next press -- no reload.")
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; lineHeight: 1.3
                 }
@@ -667,7 +667,7 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: Tokens.s2
                                 Text {
-                                    text: roleCard.modelData.label
+                                    text: I18n.tr(roleCard.modelData.label)
                                     color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                                     font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                                     font.capitalization: Font.AllUppercase
@@ -676,7 +676,7 @@ Item {
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: Math.min(implicitWidth, roleCard.width * 0.32)
-                                    text: roleCard.eff !== "" ? roleCard.eff : "not set"
+                                    text: roleCard.eff !== "" ? roleCard.eff : I18n.tr("not set")
                                     color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
                                     elide: Text.ElideRight
                                 }
@@ -759,7 +759,7 @@ Item {
                                     Text {
                                         id: chLbl
                                         anchors.centerIn: parent
-                                        text: chip.modelData.label
+                                        text: I18n.tr(chip.modelData.label)
                                         color: chip.sel ? Tokens.paper : Tokens.inkDim
                                         font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                                     }
@@ -778,7 +778,7 @@ Item {
                                 Text {
                                     id: brLbl
                                     anchors.centerIn: parent
-                                    text: "Browse\u2026"
+                                    text: I18n.tr("Browse\u2026")
                                     color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                                 }
                                 HoverHandler { id: brHov; cursorShape: Qt.PointingHandCursor }
@@ -954,7 +954,7 @@ Item {
                                     width: parent.width
                                     leftPadding: Tokens.s2
                                     bottomPadding: Tokens.s2
-                                    text: "Clashes with " + pg.conflictNameFor(bindWrap.combo)
+                                    text: I18n.tr("Clashes with ") + pg.conflictNameFor(bindWrap.combo)
                                     color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                                     elide: Text.ElideRight
                                 }
@@ -967,7 +967,7 @@ Item {
                 Text {
                     width: col.width
                     wrapMode: Text.WordWrap
-                    text: "Read live from Ryoku's binds plus your Hub custom shortcuts. Binds added by hand in ~/.config/hypr/user.lua do not appear here and are not conflict-checked, so add custom shortcuts in the Custom tab."
+                    text: I18n.tr("Read live from Ryoku's binds plus your Hub custom shortcuts. Binds added by hand in ~/.config/hypr/user.lua do not appear here and are not conflict-checked, so add custom shortcuts in the Custom tab.")
                     color: Tokens.inkFaint; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; lineHeight: 1.3
                 }
@@ -991,7 +991,7 @@ Item {
                 id: intro
                 anchors { left: parent.left; right: parent.right; top: parent.top }
                 wrapMode: Text.WordWrap
-                text: "Custom shortcuts layered over the ones Ryoku ships and kept in the Hub, so they show in the Shortcuts legend and get conflict-checked. Click record and press the combo -- even SUPER + Q is captured safely -- or type it the way Hyprland writes it, e.g. SUPER + J. Binds hand-written in ~/.config/hypr/user.lua never appear here and are not conflict-checked."
+                text: I18n.tr("Custom shortcuts layered over the ones Ryoku ships and kept in the Hub, so they show in the Shortcuts legend and get conflict-checked. Click record and press the combo -- even SUPER + Q is captured safely -- or type it the way Hyprland writes it, e.g. SUPER + J. Binds hand-written in ~/.config/hypr/user.lua never appear here and are not conflict-checked.")
                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 lineHeight: 1.3
             }
@@ -1012,7 +1012,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     Text {
-                        text: "SHORTCUTS"; color: Tokens.ink; font.family: Tokens.ui
+                        text: I18n.tr("SHORTCUTS"); color: Tokens.ink; font.family: Tokens.ui
                         font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                         font.letterSpacing: Tokens.trackMark
                         anchors.verticalCenter: parent.verticalCenter
@@ -1028,7 +1028,7 @@ Item {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         // an entry count is file-truth chrome, so mono.
-                        text: pg.customRows.length + (pg.customRows.length === 1 ? " BIND" : " BINDS")
+                        text: pg.customRows.length + (pg.customRows.length === 1 ? I18n.tr(" BIND") : I18n.tr(" BINDS"))
                         color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
                     }
                     IconBtn {
@@ -1179,7 +1179,7 @@ Item {
                                         height: parent.height
                                         visible: rowRect.needsValue
                                         tabular: true
-                                        placeholder: "command to run"
+                                        placeholder: I18n.tr("command to run")
                                         text: rowRect.modelData.value || ""
                                         onCommitted: (v) => {
                                             if (v !== (rowRect.modelData.value || ""))
@@ -1225,7 +1225,7 @@ Item {
             Text {
                 anchors.centerIn: flick
                 visible: pg.ready && pg.customRows.length === 0
-                text: "No custom shortcuts yet. Add one to bind a command or a window action."
+                text: I18n.tr("No custom shortcuts yet. Add one to bind a command or a window action.")
                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
             }
 
@@ -1243,7 +1243,7 @@ Item {
                 Picker {
                     id: picker
                     anchors.centerIn: parent
-                    title: "Action"
+                    title: I18n.tr("Action")
                     options: pg.labelsOf(pg.actionOpts)
                     current: {
                         if (editor.pickerRow < 0)
@@ -1306,8 +1306,8 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: pg.conflictCount > 0
-                    ? (pg.conflictCount + (pg.conflictCount === 1 ? " conflicting shortcut" : " conflicting shortcuts"))
-                    : (pg.dirtyCount > 0 ? "Unsaved changes" : "Saved")
+                    ? (pg.conflictCount + (pg.conflictCount === 1 ? I18n.tr(" conflicting shortcut") : I18n.tr(" conflicting shortcuts")))
+                    : (pg.dirtyCount > 0 ? I18n.tr("Unsaved changes") : I18n.tr("Saved"))
                 color: (pg.conflictCount > 0 || pg.dirtyCount > 0) ? Tokens.ink : Tokens.inkMuted
                 font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 font.weight: Font.Medium
@@ -1322,19 +1322,19 @@ Item {
             // tab-aware reset: clears rebinds on Shortcuts, custom binds on Custom.
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: pg.tab === "apps" ? "RESET APPS" : (pg.tab === "system" ? "RESET REBINDS" : "RESTORE DEFAULTS")
+                text: pg.tab === "apps" ? I18n.tr("RESET APPS") : (pg.tab === "system" ? I18n.tr("RESET REBINDS") : I18n.tr("RESTORE DEFAULTS"))
                 armed: pg.tab === "apps" ? pg.hasApps() : (pg.tab === "system" ? pg.hasRebinds() : pg.customRows.length > 0)
                 onAct: pg.tab === "apps" ? pg.clearApps() : (pg.tab === "system" ? pg.clearRebinds() : pg.clearAll())
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "REVERT"
+                text: I18n.tr("REVERT")
                 armed: pg.dirtyCount > 0
                 onAct: pg.revertAll()
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "SAVE"
+                text: I18n.tr("SAVE")
                 primary: true
                 armed: pg.dirtyCount > 0
                 onAct: pg.saveAll()
@@ -1417,7 +1417,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "PRESS YOUR SHORTCUT"
+                    text: I18n.tr("PRESS YOUR SHORTCUT")
                     color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                     font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 }
@@ -1425,12 +1425,12 @@ Item {
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
-                    text: "Hold your modifiers and tap the key. Esc cancels."
+                    text: I18n.tr("Hold your modifiers and tap the key. Esc cancels.")
                     color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 }
                 Btn {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "CANCEL"
+                    text: I18n.tr("CANCEL")
                     armed: true
                     onAct: pg.stopRecord(false, "")
                 }

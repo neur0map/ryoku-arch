@@ -53,18 +53,20 @@ ryoku_bootloader() {
   run arch-chroot /mnt systemctl enable sddm.service NetworkManager.service bluetooth.service rtkit-daemon.service
 }
 
-# finalize: runs after the AUR step. when limine-mkinitcpio-hook landed there,
-# its pacman hooks already rebuilt the menu in /boot/limine.conf: older
-# limine-entry-tool writes a standalone /+Ryoku UKI tree (our flat placeholder
-# is then clutter), 1.37+ adopts the placeholder as the tree root and nests
-# the "//<kernel>" entries under it (nothing to drop). either way entry 1
-# becomes a directory, and a directory can't autoboot, so default_entry moves
-# to the newest UKI (entry 2). offline installs (no hook) keep the flat entry
-# and default_entry: 1 untouched.
+# finalize: runs after the AUR step, when the limine hooks may have landed.
+# WHOLE DISK: the hooks rebuilt /boot/limine.conf -- older limine-entry-tool
+# writes a standalone /+Ryoku UKI tree (our flat placeholder is then clutter),
+# 1.37+ adopts the placeholder as the tree root and nests the "//<kernel>"
+# entries under it (nothing to drop). either way entry 1 becomes a directory,
+# which can't autoboot, so default_entry moves onto the newest UKI. offline (no
+# hook) keeps the flat entry + default_entry 1. ALONGSIDE is handled separately
+# (ryoku_bootloader_finalize_alongside): the same menu lives on the XBOOTLDR
+# /boot, plus the limine-entry-tool key pins + an in-chroot limine-update rerun.
 ryoku_bootloader_finalize() {
-  # alongside hand-writes limine.conf on the shared Windows ESP, not /boot; the
-  # UKI-tree promotion below only applies to wipe mode's /boot limine.conf.
-  [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]] && return 0
+  if [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]]; then
+    ryoku_bootloader_finalize_alongside
+    return 0
+  fi
   local conf=/mnt/boot/limine.conf
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
     log "DRYRUN: promote $conf to the tool-managed menu (when the generated tree exists)"
@@ -82,6 +84,55 @@ ryoku_bootloader_finalize() {
   fi
   # the hook's rewrite re-serialized the file; make sure Windows is still there.
   ryoku_windows_entry
+}
+
+# finalize, alongside: pin the two limine-entry-tool keys the branded, dedup-free
+# tree needs -- TARGET_OS_NAME (so limine-snapper-sync finds our entry to hang the
+# Snapshots submenu under) and FIND_BOOTLOADERS=no (so the tool does not re-add a
+# duplicate of the existing-OS chainload we hand-wrote as a fallback entry) -- in
+# /etc/default/limine, the only config the tool reads. then, when the hooks landed
+# in the AUR step, rerun limine-update in the chroot: with the /etc/kernel/cmdline
+# we seeded it regenerates the tool-managed tree in /boot/limine.conf, which we
+# autoboot + prune off the flat seed exactly like whole disk. offline / no hooks:
+# the flat seed stays at default_entry 1, still bootable. the static stage-1 hop
+# on the shared ESP is never touched.
+ryoku_bootloader_finalize_alongside() {
+  local defaults=/mnt/etc/default/limine conf=/mnt/boot/limine.conf
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    log "DRYRUN: pin TARGET_OS_NAME + FIND_BOOTLOADERS=no in $defaults, then (when limine-mkinitcpio-hook is installed) rerun limine-update in the chroot and repoint /boot/limine.conf off the flat seed; offline keeps the seed at default_entry 1"
+    return 0
+  fi
+  if [[ -f $defaults ]]; then
+    ryoku_limine_conf_set "$defaults" TARGET_OS_NAME '"Ryoku Linux"'
+    ryoku_limine_conf_set "$defaults" FIND_BOOTLOADERS no
+  fi
+  if chroot_has_pkg limine-mkinitcpio-hook; then
+    log "limine hooks landed: regenerating the tool-managed menu in /boot/limine.conf"
+    run arch-chroot /mnt limine-update
+    [[ -f $conf ]] || return 0
+    if grep -q '^/+' "$conf"; then
+      ryoku_boot_limine_promote "$conf"
+    elif grep -Eq '^[[:space:]]*//[^/]' "$conf"; then
+      ryoku_boot_limine_repoint "$conf"
+    fi
+  else
+    log "no limine-mkinitcpio-hook in the target (offline or AUR skipped): the flat /Ryoku Linux seed stays bootable at default_entry 1"
+  fi
+}
+
+# ryoku_limine_conf_set FILE KEY VALUE: set KEY=VALUE in a shell-style config,
+# replacing an existing assignment in place or appending one. VALUE is emitted
+# verbatim, so quote it in the caller when it must be quoted.
+ryoku_limine_conf_set() {
+  local file=$1 key=$2 value=$3 tmp
+  tmp=$(mktemp) || return 1
+  if grep -qE "^[[:space:]]*${key}=" "$file"; then
+    sed "s|^[[:space:]]*${key}=.*|${key}=${value}|" "$file" >"$tmp"
+  else
+    cat "$file" >"$tmp"
+    printf '%s=%s\n' "$key" "$value" >>"$tmp"
+  fi
+  mv "$tmp" "$file"
 }
 
 # ryoku_limine_autoboot CONF: point default_entry at the Limine entry-path
@@ -165,6 +216,13 @@ ryoku_boot_limine_repoint() {
 chroot_has() {
   [[ -n ${RYOKU_DRYRUN:-} ]] && return 1
   arch-chroot /mnt command -v "$1" >/dev/null 2>&1
+}
+
+# chroot_has_pkg: is pacman package $1 installed in the target? dry-run = false,
+# so an offline/base install takes the no-hooks path.
+chroot_has_pkg() {
+  [[ -n ${RYOKU_DRYRUN:-} ]] && return 1
+  arch-chroot /mnt pacman -Q "$1" >/dev/null 2>&1
 }
 
 # cmdline (without "quiet splash"; default.conf appends it): UUID root for
@@ -371,36 +429,59 @@ ryoku_boot_install_efi() {
   fi
 }
 
-# bootloader, alongside branch: the kernels already live on the XBOOTLDR /boot
-# (mkinitcpio wrote them there, wipe-mode /boot semantics). limine reads FAT only
-# (limine FAQ.md), so limine + its config go on the existing OS's SHARED ESP and
-# point at the kernels by the boot partition's FAT label (fslabel). we write ONLY
-# /EFI/ryoku/* (never another vendor's dir), and we tar the whole ESP first so a
-# mistake stays recoverable. 9.x cross-ESP chainload reboot-loops (limine#492) and
-# multi-ESP-per-disk is firmware-flaky, so this is the only bootable layout: one
-# ESP, ours beside the existing system's -- Windows, an old Ryoku, or any Linux.
+# bootloader, alongside branch: TWO-STAGE limine. the kernels live on our OWN
+# XBOOTLDR /boot (FAT label RYOKUBOOT); the existing OS keeps the SHARED ESP.
+# limine reads FAT only and resolves its config + boot()-relative paths ONLY on
+# the volume it was loaded from, so a tool-managed menu on the shared ESP panics
+# on boot()-relative kernel paths (proven). the working topology:
+#   stage 1 (shared ESP, /EFI/ryoku/* ONLY): a STATIC hop -- one efi_chainload
+#           entry to the second-stage limine, timeout 0. never regenerated.
+#   stage 2 (our XBOOTLDR /boot): the second-stage limine binary
+#           (/boot/ryoku-limine.efi) beside /boot/limine.conf, the ONE file
+#           limine-entry-tool manages here (branded menu, kernels, snapshots).
+# because stage 2 lives on the XBOOTLDR, boot() there is the XBOOTLDR, NEVER the
+# shared ESP: every cross-volume path to the existing OS is guid() explicit.
+# we write ONLY /EFI/ryoku/* on the shared ESP (never a foreign vendor dir) and
+# tar the whole ESP first so a mistake stays recoverable. this topology is
+# VM-proven; evidence at .superpowers/sdd/twostage-report.md.
 ryoku_bootloader_alongside() {
   log "building initramfs via mkinitcpio -P (kernels on the XBOOTLDR /boot)"
   run arch-chroot /mnt mkinitcpio -P
 
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
-    log "DRYRUN: would mount the existing OS's ESP at /mnt/efi, tar it to /var/backups/ryoku/, drop limine at /efi/EFI/ryoku/{BOOTX64.EFI,limine.conf} (fslabel(RYOKUBOOT) kernels, chainload the existing system), and register 'Ryoku' first in BootOrder; other vendors' dirs (e.g. /EFI/Microsoft) untouched"
+    log "DRYRUN: install the second-stage limine at /boot/ryoku-limine.efi + seed /boot/limine.conf (branding, fslabel(RYOKUBOOT) kernels, guid() existing-OS chainload), mount the existing OS's ESP at /mnt/efi, tar it to /var/backups/ryoku/, drop the STATIC stage-1 hop at /efi/EFI/ryoku/{BOOTX64.EFI,limine.conf} (timeout 0, efi_chainload -> fslabel(RYOKUBOOT):/ryoku-limine.efi), seed /etc/kernel/cmdline + a /efi fstab line, and register 'Ryoku' first in BootOrder; other vendors' dirs (e.g. /EFI/Microsoft) untouched"
     return 0
   fi
 
-  # re-probe the ESP as the source of truth (no env from the TUI): the shared ESP
-  # device, its kind, and the existing system's EFI binary to chainload.
-  local espinfo esp esp_kind esp_boot
+  # re-probe the shared ESP as the source of truth (no env from the TUI): its
+  # device, kind, and the existing system's EFI binary to chainload.
+  local espinfo esp esp_kind esp_boot esp_partuuid
   espinfo=$(ryoku_esp_scan "$RYOKU_DISK") \
     || die "alongside bootloader: no EFI System Partition on $RYOKU_DISK to share; refusing to install a bootloader with nowhere to land."
   read -r esp esp_kind esp_boot <<<"$espinfo"
   [[ $esp_boot == - ]] && esp_boot=none
 
+  # the shared ESP's GPT partition GUID: every stage-2 cross-volume path is
+  # guid(<this>):/... . an empty guid would silently un-boot the existing OS, so
+  # ASSERT it -- the VM run lost a boot to an empty identifier.
+  esp_partuuid=$(blkid -o value -s PARTUUID "$esp" 2>/dev/null || true)
+  [[ -n $esp_partuuid ]] || die "alongside bootloader: blkid found no PARTUUID for the shared ESP $esp; refusing to write guid()-addressed entries against an empty identifier."
+
+  # STAGE 2 on our XBOOTLDR /boot (already mounted): the second-stage limine +
+  # the tool-managed menu. touches only our own volume, so it precedes any write
+  # to the shared ESP.
+  log "installing the second-stage limine at /boot/ryoku-limine.efi + seeding /boot/limine.conf"
+  run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/boot/ryoku-limine.efi
+  ryoku_alongside_conf_text "$esp_kind" "$esp_boot" "$esp_partuuid" | write_file /mnt/boot/limine.conf
+  if [[ $esp_kind != windows && $esp_boot == none ]]; then
+    log "note: the existing $esp_kind system on the shared ESP has no chainloadable EFI binary; it stays bootable via the firmware boot menu only."
+  fi
+
   run mkdir -p /mnt/efi
   run mount "$esp" /mnt/efi
 
-  # BEFORE any write: back the ESP up to the new root, so a botched write to the
-  # existing OS's ESP is recoverable from the installed system.
+  # BEFORE any write to the shared ESP: back it up to the new root, so a botched
+  # write to the existing OS's ESP is recoverable from the installed system.
   local ts bak
   ts=$(date +%Y%m%d-%H%M%S)
   case $esp_kind in
@@ -411,14 +492,11 @@ ryoku_bootloader_alongside() {
   run_sh "tar -C /mnt/efi -cf /mnt/var/backups/ryoku/${bak} ."
   log "backed up the shared ESP ($esp, kind=$esp_kind) to /var/backups/ryoku/${bak}"
 
-  if [[ $esp_kind != windows && $esp_boot == none ]]; then
-    log "note: the existing $esp_kind system on the shared ESP has no chainloadable EFI binary; it stays bootable via the firmware boot menu only."
-  fi
-
-  # our loader + config in our OWN /EFI/ryoku dir; NEVER a foreign vendor's dir.
+  # STAGE 1 on the shared ESP: our loader + the static hop in our OWN /EFI/ryoku
+  # dir; NEVER a foreign vendor's dir.
   run mkdir -p /mnt/efi/EFI/ryoku
   run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/efi/EFI/ryoku/BOOTX64.EFI
-  ryoku_boot_alongside_conf "$esp_kind" "$esp_boot"
+  ryoku_stage1_hop_text | write_file /mnt/efi/EFI/ryoku/limine.conf
 
   # removable-path fallback only if there isn't one already: the existing OS's
   # own /EFI/BOOT/BOOTX64.EFI (if present) must survive untouched.
@@ -428,6 +506,14 @@ ryoku_bootloader_alongside() {
     run mkdir -p /mnt/efi/EFI/BOOT
     run cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/efi/EFI/BOOT/BOOTX64.EFI
   fi
+
+  # target plumbing the VM run proved necessary. /etc/default/limine already
+  # pins ESP_PATH=/boot (ryoku_boot_default_limine deployed it before this
+  # branch), so limine-entry-tool never autodetects the shared ESP once both
+  # FATs are in fstab; here we add the kernel cmdline file limine-update reads
+  # and the /efi mount.
+  ryoku_alongside_kernel_cmdline "$CMDLINE quiet splash"
+  ryoku_alongside_fstab_efi "$esp"
 
   # register 'Ryoku' first in BootOrder; the existing entry is left as-is. best
   # effort: firmware that rejects NVRAM writes still boots via the fallback above.
@@ -443,21 +529,37 @@ ryoku_bootloader_alongside() {
   run_sh 'rmdir /mnt/efi 2>/dev/null || true'
 }
 
-# limine.conf on the shared ESP, beside our BOOTX64.EFI: <EFI app path>/limine.conf
-# is searched first (limine CONFIG.md). the kernels live on a DIFFERENT partition
-# than the loader (the XBOOTLDR /boot), addressed by its FAT label: limine 12.4.0
-# does NOT resolve guid(<GPT-PARTUUID>) to a FAT volume (verified under OVMF),
-# fslabel is deterministic. the existing OS is chainloaded same-volume via boot(),
-# which sidesteps the 9.x cross-ESP reboot loop.
-ryoku_boot_alongside_conf() {
-  ryoku_alongside_conf_text "${1:-windows}" "${2:-none}" | write_file /mnt/efi/EFI/ryoku/limine.conf
+# ryoku_stage1_hop_text: the STATIC stage-1 hop written beside our BOOTX64.EFI on
+# the shared ESP (/EFI/ryoku/limine.conf). limine reads the config next to the
+# binary it loaded, so this is the first thing the shared-ESP loader sees. it is
+# NEVER regenerated by limine-entry-tool -- that tool owns the stage-2
+# /boot/limine.conf on the XBOOTLDR. one job: efi_chainload the second-stage
+# limine on our own boot volume (addressed by its FAT label), where the real menu
+# lives with correct binary-relative paths.
+ryoku_stage1_hop_text() {
+  local label=${RYOKU_ALONGSIDE_BOOT_LABEL:-RYOKUBOOT}
+  cat <<EOF
+# Ryoku stage-1 hop. STATIC -- do not edit: limine-entry-tool never regenerates
+# this file (it manages /boot/limine.conf on the $label volume). it only
+# chainloads the second-stage limine there, where the branded menu, kernels, and
+# Snapshots submenu live with correct binary-relative paths.
+timeout: 0
+default_entry: 1
+
+/Ryoku
+    protocol: efi_chainload
+    image_path: fslabel($label):/ryoku-limine.efi
+EOF
 }
 
-# ryoku_alongside_conf_text <esp_kind> <existing_boot>: the shared-ESP limine.conf
-# body -- pure (stdout only), so it is generator-testable. branding globals + our
-# linux entry, then the existing-system chainload entry.
+# ryoku_alongside_conf_text <esp_kind> <existing_boot> <esp_partuuid>: the STAGE-2
+# /boot/limine.conf body -- pure (stdout only), so it is generator-testable.
+# branding globals + our flat linux entry (fslabel(RYOKUBOOT) kernels,
+# offline-bootable), then the existing-system chainload entry. this file lives on
+# the XBOOTLDR, so boot() here is the XBOOTLDR: every path to the shared ESP is
+# guid() explicit, never boot():/EFI/... .
 ryoku_alongside_conf_text() {
-  local esp_kind=$1 esp_boot=$2 branding src="$RYOKU_REPO/system/boot/limine/limine.conf"
+  local esp_kind=$1 esp_boot=$2 esp_partuuid=$3 branding src="$RYOKU_REPO/system/boot/limine/limine.conf"
   local label=${RYOKU_ALONGSIDE_BOOT_LABEL:-RYOKUBOOT}
   if [[ -f $src ]]; then
     branding=$(sed '/^\/Ryoku Linux/,$d' "$src")
@@ -474,24 +576,24 @@ ryoku_alongside_conf_text() {
     cmdline: $CMDLINE quiet splash
     module_path: fslabel($label):/initramfs-linux.img
 EOF
-  ryoku_alongside_existing_entry "$esp_kind" "$esp_boot"
+  ryoku_alongside_existing_entry "$esp_kind" "$esp_boot" "$esp_partuuid"
 }
 
-# ryoku_alongside_existing_entry <esp_kind> <existing_boot>: the menu entry for the
-# OS that already owns the shared ESP, so it stays bootable after Ryoku takes the
-# boot order. boot():/ addresses the shared volume (a uuid() self-chainload panics
-# on limine 9.x+). Windows keeps its historical /Windows entry byte-for-byte; a
-# ryoku/linux neighbor gets a "(existing)" entry pointing at the binary the probe
-# found. no binary (existing_boot none) = no entry -- honestly, it is then
-# reachable only from the firmware boot menu.
+# ryoku_alongside_existing_entry <esp_kind> <existing_boot> <esp_partuuid>: the menu
+# entry for the OS that owns the shared ESP, so it stays bootable after Ryoku takes
+# the boot order. the shared ESP is a DIFFERENT volume than this stage-2 config, so
+# it is addressed by its partition GUID; a boot():/EFI/... here would hit the
+# XBOOTLDR, not the shared ESP. Windows keeps its /Windows title; a ryoku/linux
+# neighbor gets a "<Kind> (existing)" entry pointing at the binary the probe found.
+# no binary (existing_boot none) = no entry (reachable via the firmware menu only).
 ryoku_alongside_existing_entry() {
-  local esp_kind=$1 esp_boot=$2 title
+  local esp_kind=$1 esp_boot=$2 esp_partuuid=$3 title
   if [[ $esp_kind == windows ]]; then
-    cat <<'EOF'
+    cat <<EOF
 
 /Windows
-    protocol: efi
-    path: boot():/EFI/Microsoft/Boot/bootmgfw.efi
+    protocol: efi_chainload
+    image_path: guid($esp_partuuid):/EFI/Microsoft/Boot/bootmgfw.efi
     comment: Windows Boot Manager
 EOF
     return 0
@@ -504,10 +606,33 @@ EOF
   cat <<EOF
 
 /$title
-    protocol: efi
-    path: boot():$esp_boot
+    protocol: efi_chainload
+    image_path: guid($esp_partuuid):$esp_boot
     comment: existing $esp_kind install
 EOF
+}
+
+# ryoku_alongside_kernel_cmdline <cmdline> [target_root]: seed /etc/kernel/cmdline
+# with the exact cmdline the stage-2 seed entry boots. limine-update (run in
+# finalize once the hooks land) reads this to regenerate /boot/limine.conf; the
+# in-chroot regen fails without it (proven in the VM run).
+ryoku_alongside_kernel_cmdline() {
+  local cmdline=$1 root=${2:-/mnt}
+  run mkdir -p "$root/etc/kernel"
+  write_file "$root/etc/kernel/cmdline" <<<"$cmdline"
+}
+
+# ryoku_alongside_fstab_efi <esp_dev> [fstab]: add the shared ESP to the target
+# fstab at /efi, so the installed system can reach it and `ryoku doctor` can tell
+# this is an alongside box. ASSERT a non-empty fs UUID first: the VM run lost a
+# boot to an fstab line with an empty UUID, so an empty read is fatal, never
+# silent. nofail keeps a missing/foreign ESP from wedging boot (root + /boot are
+# on our own partitions).
+ryoku_alongside_fstab_efi() {
+  local esp=$1 fstab=${2:-/mnt/etc/fstab} uuid
+  uuid=$(blkid -o value -s UUID "$esp" 2>/dev/null || true)
+  [[ -n $uuid ]] || die "alongside bootloader: blkid found no filesystem UUID for the shared ESP $esp; refusing to append an empty-UUID /efi fstab line (a boot-losing mistake)."
+  printf 'UUID=%s\t/efi\tvfat\tdefaults,nofail,noatime\t0 2\n' "$uuid" >>"$fstab"
 }
 
 ryoku_builtin_default_limine() {

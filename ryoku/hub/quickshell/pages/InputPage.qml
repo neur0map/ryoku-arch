@@ -551,18 +551,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "SYSTEM"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Input"; color: Tokens.ink
+            text: I18n.tr("Input"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Keyboard layout and remaps, pointer and touchpad behaviour, and key repeat for the Hyprland session. Edits preview live; nothing is written until you save."
+            text: I18n.tr("Keyboard layout and remaps, pointer and touchpad behaviour, and key repeat for the Hyprland session. Edits preview live; nothing is written until you save.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -575,7 +575,7 @@ Item {
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "入力"
-        index: "02"; label: "SYSTEM"
+        index: "02"; label: I18n.tr("SYSTEM")
         glyph: "wave"; glyph2: "column"
     }
 
@@ -589,7 +589,7 @@ Item {
             left: parent.left; right: parent.right; top: head.bottom
             topMargin: Tokens.s5; rightMargin: Tokens.s3
         }
-        title: "KEYBOARD MAP"
+        title: I18n.tr("KEYBOARD MAP")
         titleColor: Tokens.sunDeep
 
         Row {
@@ -614,7 +614,7 @@ Item {
                 height: pinnedMap.height
                 title: "入力"; sub: "キーボード"
                 tate: "配列と再配置"
-                caption: "The layout, and the keys you taught new jobs. It answers live as you edit."
+                caption: I18n.tr("The layout, and the keys you taught new jobs. It answers live as you edit.")
                 code: "INPUT-02"; seal: "力"; seed: 4; ditherFreq: 1.0; boxId: "input.map"
             }
         }
@@ -642,7 +642,7 @@ Item {
             Section {
                 id: kbSect
                 width: parent.width
-                title: "KEYBOARD"
+                title: I18n.tr("KEYBOARD")
 
                 PickCell {
                     cellLabel: "Layout"
@@ -682,15 +682,15 @@ Item {
                 Setting {
                     path: "input.numlockByDefault"
                     ctl: "sw"
-                    label: "Numlock on at login"
-                    desc: "Start each session with the keypad typing digits."
+                    label: I18n.tr("Numlock on at login")
+                    desc: I18n.tr("Start each session with the keypad typing digits.")
                 }
                 Decor {
                     width: kbSect.span(12)
                     height: Tokens.cellH
                     title: "配列"; sub: "レイアウト"
                     tate: "指の地図"
-                    caption: "The map under your fingers -- the layout loaded, and the spare kept a chord away."
+                    caption: I18n.tr("The map under your fingers -- the layout loaded, and the spare kept a chord away.")
                     code: "LAYOUT"; seal: "列"; seed: 2; ditherFreq: 1.2; boxId: "input.keyboard"
                 }
             }
@@ -698,7 +698,7 @@ Item {
             Section {
                 id: krSect
                 width: parent.width
-                title: "KEY REMAPS"
+                title: I18n.tr("KEY REMAPS")
 
                 OptCell {
                     cellLabel: "Caps Lock"
@@ -734,8 +734,8 @@ Item {
                     height: Tokens.cellH
                     block: true
                     source: "hypr"
-                    label: "Extra options"
-                    desc: "Raw xkb options, comma separated. The pickers above manage their own."
+                    label: I18n.tr("Extra options")
+                    desc: I18n.tr("Raw xkb options, comma separated. The pickers above manage their own.")
                     value: ""
                     changed: pg.extraOptions(false) !== pg.extraOptions(true)
 
@@ -745,7 +745,7 @@ Item {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         tabular: true
-                        placeholder: "raw xkb options, comma separated"
+                        placeholder: I18n.tr("raw xkb options, comma separated")
                         text: pg.extraOptions(false)
                         onCommitted: (v) => pg.setExtra(v)
                         onFocusedChanged: if (!extraField.focused)
@@ -761,15 +761,15 @@ Item {
                     height: Tokens.cellH
                     controlWidth: 84
                     source: "vconsole"
-                    label: "Apply system-wide"
-                    desc: "Also set the login screen and TTY keymap via localectl."
+                    label: I18n.tr("Apply system-wide")
+                    desc: I18n.tr("Also set the login screen and TTY keymap via localectl.")
                     value: ""
                     changed: false
 
                     Btn {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "APPLY"
+                        text: I18n.tr("APPLY")
                         armed: pg.kbClean && !sysApplyProc.running
                         onAct: sysApplyProc.running = true
                     }
@@ -781,12 +781,12 @@ Item {
                     height: Tokens.cellH
                     controlWidth: 0
                     source: "vconsole"
-                    label: "Login screen and TTY"
+                    label: I18n.tr("Login screen and TTY")
                     value: pg.sysApplyState === "ok" ? "APPLIED"
                         : pg.sysApplyState === "err" ? "FAILED" : "READY"
-                    desc: pg.sysApplyState === "ok" ? "Applied to the login screen and console."
-                        : pg.sysApplyState === "err" ? "Not applied. Cancelled or failed."
-                        : "They keep their own keymap until you apply."
+                    desc: pg.sysApplyState === "ok" ? I18n.tr("Applied to the login screen and console.")
+                        : pg.sysApplyState === "err" ? I18n.tr("Not applied. Cancelled or failed.")
+                        : I18n.tr("They keep their own keymap until you apply.")
                     changed: false
                 }
                 Decor {
@@ -794,7 +794,7 @@ Item {
                     height: Tokens.cellH
                     title: "変換"; sub: "リマップ"
                     tate: "鍵の再定義"
-                    caption: "Every key can be taught a new job -- Caps made useful, modifiers swapped, a compose key at hand."
+                    caption: I18n.tr("Every key can be taught a new job -- Caps made useful, modifiers swapped, a compose key at hand.")
                     code: "REMAP"; seal: "変"; seed: 3; ditherFreq: 1.5; boxId: "input.remaps"
                 }
             }
@@ -802,58 +802,58 @@ Item {
             Section {
                 id: ptSect
                 width: parent.width
-                title: "POINTER"
+                title: I18n.tr("POINTER")
 
                 Setting {
                     path: "input.sensitivity"
                     ctl: "slid"; lo: -1; hi: 1; sc: 100; dec: 2
-                    label: "Sensitivity"
-                    desc: "Pointer speed offset; 0 is the device default."
+                    label: I18n.tr("Sensitivity")
+                    desc: I18n.tr("Pointer speed offset; 0 is the device default.")
                 }
                 Setting {
                     path: "input.mouseScrollFactor"
                     ctl: "slid"; lo: 0.2; hi: 3; sc: 10; dec: 1; unit: "×"
-                    label: "Scroll speed"
-                    desc: "Multiplier on each wheel notch."
+                    label: I18n.tr("Scroll speed")
+                    desc: I18n.tr("Multiplier on each wheel notch.")
                 }
                 Setting {
                     path: "input.followMouse"
                     ctl: "seg"; asInt: true
                     opts: [{ "key": 0, "label": "Off" }, { "key": 1, "label": "Normal" }, { "key": 2, "label": "Loose" }]
-                    label: "Follow mouse"
-                    desc: "How focus follows the pointer; Loose keeps typing put."
+                    label: I18n.tr("Follow mouse")
+                    desc: I18n.tr("How focus follows the pointer; Loose keeps typing put.")
                 }
                 Setting {
                     path: "input.leftHanded"
                     ctl: "sw"
-                    label: "Left-handed buttons"
-                    desc: "Swap the left and right mouse buttons."
+                    label: I18n.tr("Left-handed buttons")
+                    desc: I18n.tr("Swap the left and right mouse buttons.")
                 }
                 Setting {
                     path: "input.accelProfile"
                     ctl: "seg"
                     opts: [{ "key": "", "label": "Default" }, { "key": "flat", "label": "Flat" }, { "key": "adaptive", "label": "Adaptive" }]
-                    label: "Acceleration"
-                    desc: "Flat ties travel to the hand; Adaptive speeds quick moves."
+                    label: I18n.tr("Acceleration")
+                    desc: I18n.tr("Flat ties travel to the hand; Adaptive speeds quick moves.")
                 }
                 Setting {
                     path: "input.mouseNaturalScroll"
                     ctl: "sw"
-                    label: "Natural scroll"
-                    desc: "Roll the wheel up and the page moves up."
+                    label: I18n.tr("Natural scroll")
+                    desc: I18n.tr("Roll the wheel up and the page moves up.")
                 }
                 Setting {
                     path: "input.middleClickPaste"
                     ctl: "sw"
-                    label: "Middle-click pastes"
-                    desc: "Press the wheel to insert the last highlighted text."
+                    label: I18n.tr("Middle-click pastes")
+                    desc: I18n.tr("Press the wheel to insert the last highlighted text.")
                 }
                 Decor {
                     width: ptSect.span(8)
                     height: Tokens.cellH
                     title: "操作"; sub: "ポインタ"
                     tate: "手の記憶"
-                    caption: "The hand on the glass. Speed, acceleration, and the buttons under your fingers."
+                    caption: I18n.tr("The hand on the glass. Speed, acceleration, and the buttons under your fingers.")
                     code: "POINTER"; seal: "操"; seed: 21; ditherFreq: 1.4; boxId: "input.pointer"
                 }
             }
@@ -861,87 +861,87 @@ Item {
             Section {
                 id: tpSect
                 width: parent.width
-                title: "TOUCHPAD"
+                title: I18n.tr("TOUCHPAD")
 
                 Setting {
                     path: "input.naturalScroll"
                     ctl: "sw"
-                    label: "Natural scroll"
-                    desc: "Two fingers drag the content like a touchscreen."
+                    label: I18n.tr("Natural scroll")
+                    desc: I18n.tr("Two fingers drag the content like a touchscreen.")
                 }
                 Setting {
                     path: "input.tapToClick"
                     ctl: "sw"
-                    label: "Tap to click"
-                    desc: "A tap counts as a click; two fingers right, three middle."
+                    label: I18n.tr("Tap to click")
+                    desc: I18n.tr("A tap counts as a click; two fingers right, three middle.")
                 }
                 Setting {
                     path: "input.tapAndDrag"
                     ctl: "sw"
-                    label: "Tap and drag"
-                    desc: "Tap, then hold the finger down to drag what you tapped."
+                    label: I18n.tr("Tap and drag")
+                    desc: I18n.tr("Tap, then hold the finger down to drag what you tapped.")
                 }
                 Setting {
                     path: "input.disableWhileTyping"
                     ctl: "sw"
-                    label: "Disable while typing"
-                    desc: "Ignore the touchpad while you type so a palm cannot nudge it."
+                    label: I18n.tr("Disable while typing")
+                    desc: I18n.tr("Ignore the touchpad while you type so a palm cannot nudge it.")
                 }
                 Setting {
                     path: "input.clickfinger"
                     ctl: "sw"
-                    label: "Click by finger count"
-                    desc: "One finger clicks left, two right, three middle."
+                    label: I18n.tr("Click by finger count")
+                    desc: I18n.tr("One finger clicks left, two right, three middle.")
                 }
                 Setting {
                     path: "input.middleEmulation"
                     ctl: "sw"
-                    label: "Emulate middle click"
-                    desc: "Press left and right together for a middle click."
+                    label: I18n.tr("Emulate middle click")
+                    desc: I18n.tr("Press left and right together for a middle click.")
                 }
                 Setting {
                     path: "input.touchScrollFactor"
                     ctl: "slid"; lo: 0.2; hi: 3; sc: 10; dec: 1; unit: "×"
-                    label: "Scroll speed"
-                    desc: "Multiplier on two-finger scroll distance."
+                    label: I18n.tr("Scroll speed")
+                    desc: I18n.tr("Multiplier on two-finger scroll distance.")
                 }
                 Setting {
                     path: "input.workspaceSwipe"
                     ctl: "sw"
-                    label: "Swipe between workspaces"
-                    desc: "A horizontal swipe slides to the next workspace."
+                    label: I18n.tr("Swipe between workspaces")
+                    desc: I18n.tr("A horizontal swipe slides to the next workspace.")
                 }
                 Setting {
                     path: "input.swipeFingers"
                     ctl: "seg"; asInt: true; gate: pg.swipeOn
                     opts: [{ "key": 3, "label": "3" }, { "key": 4, "label": "4" }]
-                    label: "Swipe fingers"
-                    desc: "How many fingers count as a workspace swipe."
+                    label: I18n.tr("Swipe fingers")
+                    desc: I18n.tr("How many fingers count as a workspace swipe.")
                 }
                 Setting {
                     path: "input.swipeInvert"
                     ctl: "sw"; gate: pg.swipeOn
-                    label: "Natural swipe direction"
-                    desc: "The workspace row follows your fingers."
+                    label: I18n.tr("Natural swipe direction")
+                    desc: I18n.tr("The workspace row follows your fingers.")
                 }
                 Setting {
                     path: "input.swipeCreateNew"
                     ctl: "sw"; gate: pg.swipeOn
-                    label: "Swipe past the last workspace"
-                    desc: "Swiping past the end opens a fresh workspace instead of stopping."
+                    label: I18n.tr("Swipe past the last workspace")
+                    desc: I18n.tr("Swiping past the end opens a fresh workspace instead of stopping.")
                 }
                 Setting {
                     path: "input.swipeDistance"
                     ctl: "slid"; lo: 100; hi: 600; sc: 1; dec: 0; unit: "px"; gate: pg.swipeOn
-                    label: "Swipe distance"
-                    desc: "Finger travel for a full switch; lower flips sooner."
+                    label: I18n.tr("Swipe distance")
+                    desc: I18n.tr("Finger travel for a full switch; lower flips sooner.")
                 }
                 Decor {
                     width: tpSect.span(12)
                     height: Tokens.cellH
                     title: "触覚"; sub: "タッチパッド"
                     tate: "指の対話"
-                    caption: "The glass that reads your fingers -- taps, drags, and the swipe between worlds."
+                    caption: I18n.tr("The glass that reads your fingers -- taps, drags, and the swipe between worlds.")
                     code: "TOUCHPAD"; seal: "触"; seed: 6; ditherFreq: 0.9; boxId: "input.touchpad"
                 }
             }
@@ -949,25 +949,25 @@ Item {
             Section {
                 id: rpSect
                 width: parent.width
-                title: "KEY REPEAT"
+                title: I18n.tr("KEY REPEAT")
 
                 Setting {
                     path: "input.repeatRate"
                     ctl: "step"; lo: 1; hi: 100; stepBy: 1; unit: "/s"
-                    label: "Repeat rate"
-                    desc: "Characters per second while a key is held."
+                    label: I18n.tr("Repeat rate")
+                    desc: I18n.tr("Characters per second while a key is held.")
                 }
                 Setting {
                     path: "input.repeatDelay"
                     ctl: "step"; lo: 100; hi: 2000; stepBy: 50; unit: "ms"
-                    label: "Repeat delay"
-                    desc: "Pause before a held key starts repeating."
+                    label: I18n.tr("Repeat delay")
+                    desc: I18n.tr("Pause before a held key starts repeating.")
                 }
                 Decor {
                     width: rpSect.span(4)
                     height: Tokens.cellH
                     title: "連打"; sub: "リピート"
-                    caption: "How fast a held key repeats, and the pause before it starts."
+                    caption: I18n.tr("How fast a held key repeats, and the pause before it starts.")
                     code: "REPEAT"; seal: "連"; seed: 33; ditherFreq: 0.8; boxId: "input.repeat"
                 }
             }

@@ -554,7 +554,7 @@ Item {
             Text {
                 id: heroLabel
                 anchors.centerIn: parent
-                text: "EDIT HERO"
+                text: I18n.tr("EDIT HERO")
                 color: Tokens.ink
                 font.family: Tokens.ui
                 font.pixelSize: 10
@@ -638,7 +638,7 @@ Item {
 
     Btn {
         id: editBtn
-        text: pg.editing ? "DONE" : "EDIT"
+        text: pg.editing ? I18n.tr("DONE") : I18n.tr("EDIT")
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.rightMargin: Tokens.s6
@@ -675,7 +675,7 @@ Item {
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "·  SYSTEM DOSSIER"
+                    text: I18n.tr("·  SYSTEM DOSSIER")
                     color: Tokens.inkMuted
                     font.family: Tokens.ui
                     font.pixelSize: Tokens.fTiny
@@ -764,7 +764,7 @@ Item {
                         }
                     }
                     Text {
-                        text: SysInfo.sysPkgExplicit + " EXPLICIT · " + SysInfo.sysPkgAur + " AUR · " + SysInfo.sysPackages + " TOTAL"
+                        text: SysInfo.sysPkgExplicit + I18n.tr(" EXPLICIT · ") + SysInfo.sysPkgAur + I18n.tr(" AUR · ") + SysInfo.sysPackages + I18n.tr(" TOTAL")
                         color: Tokens.inkMuted
                         font.family: Tokens.mono
                         font.pixelSize: 10
@@ -823,7 +823,7 @@ Item {
                     Text {
                         anchors.right: parent.right
                         anchors.top: parent.top
-                        text: "No. " + pg.editionNo()
+                        text: I18n.tr("No. ") + pg.editionNo()
                         color: Tokens.inkDim
                         font.family: Tokens.mono
                         font.pixelSize: Tokens.fMicro
@@ -960,7 +960,7 @@ Item {
         Text {
             anchors.left: parent.left
             anchors.top: parent.top
-            text: "SIGNAL"
+            text: I18n.tr("SIGNAL")
             color: Tokens.inkMuted
             font.family: Tokens.ui
             font.pixelSize: Tokens.fMicro
@@ -970,7 +970,7 @@ Item {
         Text {
             anchors.right: parent.right
             anchors.top: parent.top
-            text: "LOAD " + LiveStats.load.toFixed(2)
+            text: I18n.tr("LOAD ") + LiveStats.load.toFixed(2)
             color: Tokens.inkDim
             font.family: Tokens.mono
             font.pixelSize: Tokens.fMicro

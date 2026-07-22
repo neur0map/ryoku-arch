@@ -90,6 +90,10 @@ Singleton {
     // JetBrains Mono) or `ryoku` (Ryoku-native: the frame swells to wrap square
     // grainy paper-black islands, Space Grotesk).
     property alias atollVariant:  adapter.atollVariant
+    // dyad = Jules3182's dual-edge bar (islands on the top AND bottom edge at
+    // once). dyadVariant: `faithful` (dark translucent capsules) or `ryoku`
+    // (paper-black square chips).
+    property alias dyadVariant:   adapter.dyadVariant
 
     // sidebars = the two "Aside" panels that blob-melt out of the left and right
     // screen edges, each summoned by hovering that side's top corner (or an IPC
@@ -187,6 +191,7 @@ Singleton {
             property real islandRadius: 0
             property string washiVariant: "ryoku"
             property string atollVariant: "ilyamiro"
+            property string dyadVariant: "faithful"
             property string fontFamily: "Space Grotesk"
             property real fontScale: 1.3
             property bool sidebarLeftEnabled: true

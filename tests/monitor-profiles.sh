@@ -63,7 +63,7 @@ has "$conf" 'mode = "2560x1440@144"' "apply did not keep the chosen LG mode"
 has "$conf" 'transform = 1' "apply dropped the transform"
 has "$conf" 'vrr = 1' "apply dropped vrr"
 has "$conf" 'position = "2560x0"' "apply dropped the position"
-has "$conf" 'output = "", mode = "highrr"' "apply omitted the hotplug catch-all"
+has "$conf" 'output = "", mode = "preferred"' "apply omitted the hotplug catch-all (preferred so a new link never errors)"
 grep -q 'highrr' <(grep 'DP-1' "$conf") && fail "DP-1 was written as highrr, not its explicit mode"
 # Colour management rides the explicit layout: cm is always written with its
 # implied bitdepth (srgb->8, wide/hdr->10), and sdrbrightness resets to 1
@@ -234,5 +234,24 @@ chk "$tmp/stuck.json"  "$tmp/none.lua" drift "settle missed an explicit 1080p pi
 sc 'hl.monitor({ output = "", mode = "highrr", position = "auto", scale = 1 })'
 printf '%s\n' 'hl.monitor({ output = "DP-1", mode = "800x600@60" })' >"$tmp/pin.lua"
 chk "$tmp/stuck.json"  "$tmp/pin.lua"  ok    "settle touched a monitors_user.lua-pinned output"
+
+# --- hotplug: a display already tuned in Ryoku Settings keeps its scale when a
+# NEW monitor is plugged in; only the new one is DPI-scaled (the "connecting a
+# monitor resets my other display" fix). eDP-1 is in the applied layout, DP-5 is
+# new; both sit at 1x but bucket to 1.6, so without the skip BOTH would rescale.
+cat >"$tmp/hotplug.json" <<'JSON'
+[
+  {"name":"eDP-1","make":"Acme","model":"PanelA","serial":"SA","width":2560,"height":1600,"refreshRate":60.0,"physicalWidth":301,"x":0,"y":0,"scale":1.0,"transform":0,"vrr":false,"disabled":false,"focused":true,"mirrorOf":"none","availableModes":["2560x1600@60.00Hz"]},
+  {"name":"DP-5","make":"Ext","model":"Mon","serial":"SE","width":2560,"height":1600,"refreshRate":60.0,"physicalWidth":301,"x":2560,"y":0,"scale":1.0,"transform":0,"vrr":false,"disabled":false,"focused":false,"mirrorOf":"none","availableModes":["2560x1600@60.00Hz"]}
+]
+JSON
+hpconf="$tmp/hotplug.lua"
+hpapplied="$tmp/hotplug-applied.json"
+echo '{"monitors":[{"id":"Acme|PanelA|SA","output":"eDP-1","mode":"2560x1600@60","position":"0x0","scale":1.0}]}' >"$hpapplied"
+hpout="$(RYOKU_MONITOR_JSON="$tmp/hotplug.json" RYOKU_MONITORS_CONF="$hpconf" \
+  RYOKU_MONITORS_DIR="$tmp/none-hp" RYOKU_MONITORS_APPLIED="$hpapplied" RYOKU_MONITOR_VM=0 "$mon" autoscale 2>&1)"
+grep -q 'DP-5 -> scale' <<<"$hpout" || fail "hotplug autoscale did not DPI-scale the new display DP-5: $hpout"
+grep -q 'eDP-1 -> scale' <<<"$hpout" && fail "hotplug autoscale reset the already-tuned eDP-1 (should preserve it): $hpout"
+has "$hpconf" 'output = "", mode = "preferred"' "autoscale wrote a highrr catch-all (a hotplugged link errors on highrr; want preferred)"
 
 echo "monitor-profiles: all checks passed"

@@ -11,9 +11,9 @@ Item {
     id: pg
     property var hub
 
-    readonly property string pTitle: "Shell"
-    readonly property string pEyebrow: "DESKTOP"
-    readonly property string pBlurb: "The frame, the bar, notifications, and the desktop visualiser."
+    readonly property string pTitle: I18n.tr("Shell")
+    readonly property string pEyebrow: I18n.tr("DESKTOP")
+    readonly property string pBlurb: I18n.tr("The frame, the bar, notifications, and the desktop visualiser.")
 
     SchemaPage {
         anchors.fill: parent

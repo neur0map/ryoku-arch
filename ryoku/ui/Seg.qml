@@ -27,7 +27,7 @@ Row {
             Text {
                 id: lab
                 anchors.centerIn: parent
-                text: parent.modelData
+                text: I18n.tr(parent.modelData)
                 color: parent.on ? Tokens.inkOnBone : Tokens.inkDim
                 font.family: Tokens.ui
                 font.pixelSize: 9

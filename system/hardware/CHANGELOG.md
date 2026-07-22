@@ -14,6 +14,21 @@
   with no behaviour change (empty/absent fields still render as `""`).
 
 ### Added
+- `power/ryoku-clamshell`: macOS-style clamshell (closed-lid) mode for laptops.
+  A laptop-only daemon (autostarted from Hyprland, like `ryoku-idle`) holds a
+  systemd `handle-lid-switch` inhibitor while the machine is on AC power AND an
+  external display is connected, so closing the lid keeps the session running on
+  the external instead of suspending; it drops the inhibitor (and suspends if the
+  lid is already shut) the moment either condition is lost. The `lid` subcommand,
+  driven by the Hyprland lid-switch bind (`hypr/modules/lid.lua`), blanks the
+  internal panel on close when an external is present and restores the layout on
+  open. Event-driven via `udevadm monitor` (power_supply + drm), no polling.
+- `power/logind-ryoku-lid.conf`: a logind drop-in (shipped by `ryoku-desktop` to
+  `/etc/systemd/logind.conf.d/10-ryoku-lid.conf`) that sets `HandleLidSwitch`,
+  `HandleLidSwitchExternalPower`, and `HandleLidSwitchDocked` all to `suspend`, so
+  logind suspends on lid close in every case and `ryoku-clamshell` is the sole
+  thing that keeps a closed lid awake -- power AND an external display, matching
+  macOS (the default `docked=ignore` would keep it awake on battery too).
 - `display/ryoku-monitor`: the Settings paths carry per-output colour management.
   `list` reports each monitor's `cm` (from Hyprland's `colorManagementPreset`,
   normalised to srgb/wide/hdr) and its SDR brightness; `apply`/`save`/`load` write
@@ -110,6 +125,14 @@
   proprietary modules otherwise.
 
 ### Fixed
+- `display/ryoku-monitor`: connecting a second monitor no longer throws Hyprland
+  errors or resets the display you already tuned. The hotplug catch-all brings an
+  unknown display up at `preferred` (always valid on an untrained link) instead of
+  `highrr` (which errored until the link resolved; autoscale + settle still raise
+  it to highrr afterwards). And the autoscale DPI pass now skips displays already
+  configured in Ryoku Settings (the applied layout), so plugging in a new screen
+  DPI-scales only the new one and leaves the existing display's chosen scale
+  alone (fixture-covered in `tests/monitor-profiles.sh`).
 - `audio/ryoku-eq`: the equalizer no longer splits the volume, and toggling it
   never silences or jumps audio that was already playing. Node volumes multiply
   along `app -> ryoku.eq.sink -> ryoku.eq.out -> hardware`, so enabling the EQ

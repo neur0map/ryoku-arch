@@ -35,7 +35,7 @@ Flow {
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {
-                    text: parent.parent.modelData
+                    text: I18n.tr(parent.parent.modelData)
                     color: parent.parent.on ? Tokens.inkOnBone : Tokens.inkDim
                     font.family: Tokens.ui
                     font.pixelSize: 10

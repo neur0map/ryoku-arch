@@ -481,4 +481,56 @@ grep -qF 'living install' <<<"$out" || fail "protection: reclaim did not name th
 check_living_ryoku "${pdisk}p2" "$RYOKU_SEED_SUM"
 echo "   living-install protection: partlabel-ryoku living btrfs never reclaimed even with the ack"
 
+# ==========================================================================
+# P1. two-stage bootloader target plumbing: the installed target must carry a
+# limine ESP_PATH=/boot pin, a NON-EMPTY /etc/kernel/cmdline, and an fstab /efi
+# line whose UUID is NON-EMPTY -- the VM run lost a boot to an empty-UUID line.
+# the finalize key pins (FIND_BOOTLOADERS=no, TARGET_OS_NAME) and the fail-closed
+# empty-UUID guard are exercised against an isolated temp target + the real ESP.
+# ==========================================================================
+echo "-- bootloader plumbing: ESP_PATH pin, kernel cmdline, fstab /efi UUID, fail-closed --"
+grep -qF 'ESP_PATH="/boot"' "$root/system/boot/limine/default.conf" \
+  || fail "plumbing: /etc/default/limine source does not pin ESP_PATH=/boot (limine-entry-tool would autodetect the shared ESP once both FATs are mounted)"
+
+make_disk 40G; bdisk=$DISK
+fake_windows "$bdisk" 12G
+fmt_win_esp "${bdisk}p1"                    # real vfat ESP -> a blkid UUID to seed
+tgt="$(mktemp -d)"
+mkdir -p "$tgt/etc/default" "$tgt/etc/kernel"
+: >"$tgt/etc/fstab"
+
+plumb="$(ROOT="$root" TGT="$tgt" ESP="${bdisk}p1" bash -c '
+  source "$ROOT/installation/backend/lib/common.sh"
+  source "$ROOT/installation/backend/lib/disk.sh"
+  source "$ROOT/installation/backend/lib/bootloader.sh"
+  export RYOKU_REPO="$ROOT" CMDLINE="root=UUID=deadbeef rootflags=subvol=@ rw"
+  ryoku_alongside_kernel_cmdline "$CMDLINE quiet splash" "$TGT"
+  ryoku_alongside_fstab_efi "$ESP" "$TGT/etc/fstab"
+  cp "$ROOT/system/boot/limine/default.conf" "$TGT/etc/default/limine"
+  ryoku_limine_conf_set "$TGT/etc/default/limine" FIND_BOOTLOADERS no
+  ryoku_limine_conf_set "$TGT/etc/default/limine" TARGET_OS_NAME "\"Ryoku Linux\""
+' 2>&1)" || fail "plumbing: writers failed: $plumb"
+
+[[ -s "$tgt/etc/kernel/cmdline" ]] || fail "plumbing: /etc/kernel/cmdline is empty (the in-chroot limine-update would fail)"
+grep -qF 'root=UUID=deadbeef' "$tgt/etc/kernel/cmdline" || fail "plumbing: /etc/kernel/cmdline missing the seed cmdline"
+
+efi_uuid="$(awk '$2=="/efi"{sub(/^UUID=/,"",$1); print $1}' "$tgt/etc/fstab")"
+[[ -n $efi_uuid ]] || fail "plumbing: fstab /efi line has an EMPTY UUID (the boot-losing bug)"
+grep -qE '^UUID=[^[:space:]]+[[:space:]]+/efi[[:space:]]+vfat' "$tgt/etc/fstab" \
+  || fail "plumbing: /efi fstab line is malformed: $(grep -F /efi "$tgt/etc/fstab")"
+
+grep -qxF 'FIND_BOOTLOADERS=no' "$tgt/etc/default/limine" || fail "plumbing: finalize did not set FIND_BOOTLOADERS=no (would re-add duplicate fallback entries)"
+grep -qxF 'TARGET_OS_NAME="Ryoku Linux"' "$tgt/etc/default/limine" || fail "plumbing: TARGET_OS_NAME not pinned to \"Ryoku Linux\""
+
+# fail-closed: an empty-UUID device (the unformatted MSR p2) must ABORT, never write.
+: >"$tgt/etc/fstab2"
+prc=0
+( source "$root/installation/backend/lib/common.sh"
+  source "$root/installation/backend/lib/bootloader.sh"
+  ryoku_alongside_fstab_efi "${bdisk}p2" "$tgt/etc/fstab2" ) >/dev/null 2>&1 || prc=$?
+[[ $prc -ne 0 ]] || fail "plumbing: fstab /efi seeding did NOT fail-close on an empty-UUID device"
+[[ -s "$tgt/etc/fstab2" ]] && fail "plumbing: fail-closed path still wrote an fstab line"
+rm -rf "$tgt"
+echo "   bootloader plumbing: ESP_PATH pinned, cmdline seeded, /efi UUID=$efi_uuid non-empty, FIND_BOOTLOADERS=no, fail-closed on empty UUID"
+
 echo "install-partition-alongside: all checks passed"

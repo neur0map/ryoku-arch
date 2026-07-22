@@ -87,6 +87,8 @@ func Run(args []string) error {
 		return runStatus(args[1:])
 	case "set":
 		return runSet(args[1:])
+	case "init":
+		return runInit(args[1:])
 	case "apply-pam":
 		return runApplyPAM(args[1:])
 	case "-h", "--help", "help":
@@ -100,6 +102,8 @@ func Run(args []string) error {
 const usage = `Usage: ryoku keyring <command>
 
   status [--json]              show the configured mode and keyring state
+  init                         first-login default: record the mode and seed the
+                               blank keyring never-ask needs (no-op once set)
   set <mode> [flags]           switch mode (unlock-on-login | never-ask | ask)
       --convert                convert an encrypted keyring (reads passwords on stdin)
       --reset                  back up the keyring files and start fresh

@@ -365,15 +365,41 @@ Item {
         }
     }
 
-    function grabExport(path, cb) {
-        if (!overlay.localSel) { cb(false); return; }
-        var scheduled = exportClip.grabToImage(function (result) {
+    function grabExport(path, cb, targetSize) {
+        overlay.grabExportTry(path, cb, targetSize || null, 0);
+    }
+    // Grab the clipped scene to a file. Two robustness measures for multi-monitor:
+    // wait until this overlay's screencopy has actually frozen (a second monitor
+    // can lag the anchor by a few frames, which otherwise grabbed an empty scene
+    // and failed the whole screenshot), and retry a transient grab/save failure
+    // instead of aborting. targetSize (logical) keeps mixed-scale slices aligned.
+    function grabExportTry(path, cb, targetSize, attempt) {
+        if (!overlay.localSel) { if (cb) cb(false); return; }
+        if (!overlay.ready && attempt < 25) { overlay.scheduleGrabRetry(path, cb, targetSize, attempt + 1); return; }
+        var handle = function (result) {
             var ok = false;
             try { ok = result ? result.saveToFile(path) : false; }
             catch (e) { console.log("ryoshot: saveToFile failed: " + e); }
-            if (cb) cb(ok);
-        });
-        if (!scheduled && cb) cb(false);
+            if (ok) { if (cb) cb(true); return; }
+            if (attempt < 25) { overlay.scheduleGrabRetry(path, cb, targetSize, attempt + 1); return; }
+            if (cb) cb(false);
+        };
+        var scheduled = targetSize ? exportClip.grabToImage(handle, targetSize)
+                                   : exportClip.grabToImage(handle);
+        if (!scheduled) {
+            if (attempt < 25) overlay.scheduleGrabRetry(path, cb, targetSize, attempt + 1);
+            else if (cb) cb(false);
+        }
+    }
+    function scheduleGrabRetry(path, cb, targetSize, attempt) {
+        grabRetry.fn = function () { overlay.grabExportTry(path, cb, targetSize, attempt); };
+        grabRetry.restart();
+    }
+    Timer {
+        id: grabRetry
+        interval: 60
+        property var fn: null
+        onTriggered: { var f = grabRetry.fn; grabRetry.fn = null; if (f) f(); }
     }
 
     MouseArea {

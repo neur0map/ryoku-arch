@@ -353,18 +353,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "DESKTOP"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("DESKTOP"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Desktop Widgets"; color: Tokens.ink
+            text: I18n.tr("Desktop Widgets"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "The clock, calendar and weather that float on your wallpaper, previewed live on the right. Pick a face, size, opacity and corner for each; nothing lands on the desktop until you save."
+            text: I18n.tr("The clock, calendar and weather that float on your wallpaper, previewed live on the right. Pick a face, size, opacity and corner for each; nothing lands on the desktop until you save.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -375,7 +375,7 @@ Item {
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "部品"
-        index: "03"; label: "DESKTOP"
+        index: "03"; label: I18n.tr("DESKTOP")
         glyph: "wave"; glyph2: "column"
     }
 
@@ -395,7 +395,7 @@ Item {
             height: 14
             Text {
                 anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-                text: "LIVE PREVIEW"; color: Tokens.inkMuted
+                text: I18n.tr("LIVE PREVIEW"); color: Tokens.inkMuted
                 font.family: Tokens.mono; font.pixelSize: Tokens.fTiny; font.letterSpacing: 1.4
             }
             Text {
@@ -414,7 +414,7 @@ Item {
 
             SpecimenCard {
                 width: parent.width; height: pvCards.cardH
-                title: "CLOCK"
+                title: I18n.tr("CLOCK")
                 on: pg.draft.clockEnabled === true
                 anchor: pg.draft.clockAnchor || "top-left"
                 userScale: pg.draft.clockScale || 1
@@ -437,7 +437,7 @@ Item {
             }
             SpecimenCard {
                 width: parent.width; height: pvCards.cardH
-                title: "CALENDAR"
+                title: I18n.tr("CALENDAR")
                 on: pg.draft.calEnabled === true
                 anchor: pg.draft.calAnchor || "bottom-right"
                 userScale: pg.draft.calScale || 1
@@ -457,7 +457,7 @@ Item {
             }
             SpecimenCard {
                 width: parent.width; height: pvCards.cardH
-                title: "WEATHER"
+                title: I18n.tr("WEATHER")
                 on: pg.draft.weatherEnabled === true
                 anchor: pg.draft.weatherAnchor || "top-right"
                 userScale: pg.draft.weatherScale || 1
@@ -548,8 +548,8 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: pg.dirty
-                    ? (pg.dirtyCount + (pg.dirtyCount === 1 ? " CHANGE" : " CHANGES") + " · PREVIEWING · NOT SAVED")
-                    : "SAVED · LIVE ON YOUR DESKTOP"
+                    ? (pg.dirtyCount + (pg.dirtyCount === 1 ? I18n.tr(" CHANGE") : I18n.tr(" CHANGES")) + I18n.tr(" · PREVIEWING · NOT SAVED"))
+                    : I18n.tr("SAVED · LIVE ON YOUR DESKTOP")
                 color: pg.dirty ? Tokens.ink : Tokens.inkMuted
                 font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                 font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
@@ -565,7 +565,7 @@ Item {
 
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "RESET TO DEFAULTS"
+                text: I18n.tr("RESET TO DEFAULTS")
                 onAct: pg.reset()
             }
             Rectangle {
@@ -574,13 +574,13 @@ Item {
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "REVERT"
+                text: I18n.tr("REVERT")
                 armed: pg.dirty
                 onAct: pg.revert()
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "SAVE"
+                text: I18n.tr("SAVE")
                 primary: true
                 armed: pg.dirty
                 onAct: pg.save()
@@ -602,7 +602,7 @@ Item {
         Picker {
             id: picker
             anchors.centerIn: parent
-            title: pg.pickRow ? pg.pickRow.label : ""
+            title: pg.pickRow ? I18n.tr(pg.pickRow.label) : ""
             options: pg.pickRow ? (pg.pickRow.opts || []) : []
             current: pg.pickRow ? String(pg.draft[pg.pickRow.key]) : ""
             onChose: (key) => {

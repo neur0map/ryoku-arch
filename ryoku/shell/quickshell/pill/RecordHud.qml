@@ -89,6 +89,7 @@ Item {
     }
     function startQuick() {
         Recorder.chooserOpen = false;
+        Recorder.pendingDiscord = Recorder.discordMode;
         if (Recorder.regionGeom !== "") {
             var a = ["--region", "--geometry", Recorder.regionGeom];
             if (hud.optDesktopAudio) a.push("--with-desktop-audio");
@@ -112,6 +113,7 @@ Item {
     // hidden) with the chooser's options and we drive the stop from the control bar.
     function startStudio() {
         Recorder.chooserOpen = false;
+        Recorder.pendingDiscord = false;
         Recorder.startStudio(hud.optDesktopAudio, hud.optMic, Recorder.regionGeom);
     }
 

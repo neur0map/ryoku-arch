@@ -70,22 +70,22 @@ Item {
         return t ? t.value : "";
     }
     readonly property string statusLine: {
-        var s = pg.renderName + " renders here";
+        var s = I18n.tr("%1 renders here").arg(pg.renderName);
         if (pg.liveOk)
-            s += "  ·  " + pg.liveTemp + "°C  ·  " + pg.liveUtil + "% GPU";
+            s += "  ·  " + pg.liveTemp + "°C  ·  " + pg.liveUtil + I18n.tr("% GPU");
         if (pg.thermalNow !== "")
-            s += "  ·  " + pg.thermalNow;
+            s += "  ·  " + I18n.tr(pg.thermalNow);
         return s;
     }
 
     readonly property string ptText: {
         switch (pg.caps.verdict) {
-        case "ready": return "Ready. " + pg.dgpuName + " is free for a VM to claim, and returns to the desktop when the VM stops.";
-        case "needs-relogin": return "Set up. Log out and back in once, then it is ready.";
-        case "needs-reboot": return "Your screen runs on " + pg.dgpuName + ". Switch to Hybrid GPU mode in the BIOS (look for GPU Mode, MUX, or Hybrid/Optimus) and reboot, so the built-in GPU drives the display and the discrete GPU is free.";
-        case "needs-setup": return "Not set up yet. Review the changes, then enable it below.";
-        case "incapable": return "This machine can't pass a GPU to a VM. Open the readiness checks below for why.";
-        default: return pg.capsError !== "" ? "Couldn't read your graphics hardware." : "Checking…";
+        case "ready": return I18n.tr("Ready. %1 is free for a VM to claim, and returns to the desktop when the VM stops.").arg(pg.dgpuName);
+        case "needs-relogin": return I18n.tr("Set up. Log out and back in once, then it is ready.");
+        case "needs-reboot": return I18n.tr("Your screen runs on %1. Switch to Hybrid GPU mode in the BIOS (look for GPU Mode, MUX, or Hybrid/Optimus) and reboot, so the built-in GPU drives the display and the discrete GPU is free.").arg(pg.dgpuName);
+        case "needs-setup": return I18n.tr("Not set up yet. Review the changes, then enable it below.");
+        case "incapable": return I18n.tr("This machine can't pass a GPU to a VM. Open the readiness checks below for why.");
+        default: return pg.capsError !== "" ? I18n.tr("Couldn't read your graphics hardware.") : I18n.tr("Checking…");
         }
     }
 
@@ -333,7 +333,7 @@ done
                 elide: Text.ElideRight
             }
             Text {
-                text: gr.gpu ? (Math.round(gr.gpu.vramMb / 1024) + "G · " + gr.gpu.driver) : ""
+                text: gr.gpu ? (Math.round(gr.gpu.vramMb / 1024) + I18n.tr("G · ") + gr.gpu.driver) : ""
                 color: Tokens.inkFaint
                 font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
             }
@@ -344,7 +344,7 @@ done
             spacing: Tokens.s1
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: gr.active ? "DISPLAY" : "FREE"
+                text: gr.active ? I18n.tr("DISPLAY") : I18n.tr("FREE")
                 color: gr.active ? Tokens.ink : Tokens.inkFaint
                 font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                 font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
@@ -388,7 +388,7 @@ done
                     font.pixelSize: Tokens.fMicro; anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {
-                    text: "GRAPHICS"; color: Tokens.inkMuted; font.family: Tokens.ui
+                    text: I18n.tr("GRAPHICS"); color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fTiny; font.weight: Font.Medium
                     font.letterSpacing: Tokens.trackMark
                     anchors.verticalCenter: parent.verticalCenter
@@ -403,20 +403,20 @@ done
                     spacing: Tokens.s1
                     anchors.verticalCenter: parent.verticalCenter
                     Text {
-                        text: "RENDERS ON"
+                        text: I18n.tr("RENDERS ON")
                         color: Tokens.inkMuted; font.family: Tokens.ui
                         font.pixelSize: Tokens.fTiny; font.weight: Font.Medium
                         font.letterSpacing: Tokens.trackLabel
                     }
                     Text {
                         width: parent.width
-                        text: card.renderGpu ? card.renderGpu.model : (card.failed ? "Unavailable" : "Detecting…")
+                        text: card.renderGpu ? card.renderGpu.model : (card.failed ? I18n.tr("Unavailable") : I18n.tr("Detecting…"))
                         color: Tokens.ink; font.family: Tokens.ui
                         font.pixelSize: Tokens.fValue; font.weight: Font.Light
                         elide: Text.ElideRight
                     }
                     Text {
-                        text: pg.liveOk ? (pg.liveTemp + "°C · " + pg.liveUtil + "% · draws here") : "the desktop draws here"
+                        text: pg.liveOk ? I18n.tr("%1°C · %2% · draws here").arg(pg.liveTemp).arg(pg.liveUtil) : I18n.tr("the desktop draws here")
                         color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                     }
                 }
@@ -434,13 +434,13 @@ done
                         anchors.centerIn: parent
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: card.renderGpu ? (Math.round(card.renderGpu.vramMb / 1024) + "G") : ""
+                            text: card.renderGpu ? (Math.round(card.renderGpu.vramMb / 1024) + I18n.tr("G")) : ""
                             color: Tokens.ink; font.family: Tokens.ui
                             font.pixelSize: Tokens.fRow; font.weight: Font.Light
                         }
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "VRAM"
+                            text: I18n.tr("VRAM")
                             color: Tokens.inkMuted; font.family: Tokens.ui
                             font.pixelSize: Tokens.fTiny; font.weight: Font.Medium
                             font.letterSpacing: Tokens.trackLabel
@@ -459,7 +459,7 @@ done
                     border.width: Tokens.border; border.color: Tokens.line
                     Text {
                         id: invText
-                        anchors.centerIn: parent; text: "INVENTORY"
+                        anchors.centerIn: parent; text: I18n.tr("INVENTORY")
                         color: Tokens.inkMuted; font.family: Tokens.ui
                         font.pixelSize: Tokens.fTiny; font.weight: Font.Medium
                         font.letterSpacing: Tokens.trackLabel
@@ -473,7 +473,7 @@ done
                 Text {
                     id: machineLabel
                     anchors.verticalCenter: parent.verticalCenter
-                    text: (card.caps.chassis === "laptop" ? "LAPTOP" : "DESKTOP") + (card.caps.cpu ? " · " + card.caps.cpu : "")
+                    text: I18n.tr(card.caps.chassis === "laptop" ? "LAPTOP" : "DESKTOP") + (card.caps.cpu ? " · " + card.caps.cpu : "")
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fTiny; font.weight: Font.Medium
                     font.letterSpacing: Tokens.trackLabel
@@ -499,7 +499,7 @@ done
 
             Text {
                 visible: card.caps.mux !== undefined && card.caps.mux !== "none"
-                text: "MUX " + (card.caps.mux ? card.caps.mux.replace("present-", "").toUpperCase() : "")
+                text: I18n.tr("MUX ") + (card.caps.mux ? card.caps.mux.replace("present-", "").toUpperCase() : "")
                 color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
             }
         }
@@ -515,11 +515,11 @@ done
         height: neededHeight
         block: tc.knd === "segment"
         controlWidth: Spans.inlineWidth(tc.knd === "toggle" ? "sw" : (tc.knd === "slider" ? "slid" : "seg"), tc.optCount, width)
-        label: pg.tag(tc.tunable.gpu) + " · " + (tc.tunable.label || "")
+        label: pg.tag(tc.tunable.gpu) + " · " + I18n.tr(tc.tunable.label || "")
         unit: tc.tunable.unit || ""
         value: tc.knd === "slider" ? String(Math.round(tc.tunable.current || 0))
             : (tc.knd === "toggle" ? (tc.tunable.value === "on" ? "ON" : "OFF") : "")
-        desc: tc.tunable.risk === "advanced" ? "Advanced · per session, can misbehave" : "Applies now, resets on reboot"
+        desc: tc.tunable.risk === "advanced" ? I18n.tr("Advanced · per session, can misbehave") : I18n.tr("Applies now, resets on reboot")
         source: tc.tunable.src || ""
         changed: false
 
@@ -574,18 +574,18 @@ done
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "SYSTEM"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "GPU"; color: Tokens.ink
+            text: I18n.tr("GPU"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "See your graphics hardware, choose which GPU the desktop renders on, and tune power and performance for this session. Passthrough (advanced) frees the discrete GPU so a virtual machine can own it."
+            text: I18n.tr("See your graphics hardware, choose which GPU the desktop renders on, and tune power and performance for this session. Passthrough (advanced) frees the discrete GPU so a virtual machine can own it.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -601,7 +601,7 @@ done
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "描画"
-        index: "02"; label: "SYSTEM"
+        index: "02"; label: I18n.tr("SYSTEM")
         glyph: "asanoha"; glyph2: "meander"
     }
 
@@ -630,7 +630,7 @@ done
                 width: parent.width; spacing: Tokens.s3
                 Text {
                     width: parent.width; wrapMode: Text.WordWrap
-                    text: "Couldn't read your graphics hardware."
+                    text: I18n.tr("Couldn't read your graphics hardware.")
                     color: Tokens.ink; font.family: Tokens.ui
                     font.pixelSize: Tokens.fBody; font.weight: Font.DemiBold
                 }
@@ -639,7 +639,7 @@ done
                     text: pg.capsError
                     color: Tokens.inkMuted; font.family: Tokens.mono; font.pixelSize: Tokens.fMicro
                 }
-                Btn { text: "Retry"; primary: true; onAct: pg.reload() }
+                Btn { text: I18n.tr("Retry"); primary: true; onAct: pg.reload() }
             }
         }
 
@@ -663,7 +663,7 @@ done
                 // ── RYOKU RENDERS ON ──
                 Section {
                     width: parent.width
-                    title: "RYOKU RENDERS ON"
+                    title: I18n.tr("RYOKU RENDERS ON")
 
                     Column {
                         width: parent.width
@@ -672,7 +672,7 @@ done
                             width: parent.width
                             Text {
                                 width: parent.width - segMode.width
-                                text: "Graphics mode"
+                                text: I18n.tr("Graphics mode")
                                 color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fRow
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -686,15 +686,15 @@ done
                         Text {
                             width: parent.width; wrapMode: Text.WordWrap
                             text: pg.mode === "hybrid"
-                                ? "Hybrid keeps the built-in GPU primary for battery; apps can still use " + pg.dgpuName + " on demand."
+                                ? I18n.tr("Hybrid keeps the built-in GPU primary for battery; apps can still use %1 on demand.").arg(pg.dgpuName)
                                 : (pg.mode === "performance"
-                                    ? "Performance pins " + pg.dgpuName + " as primary: fastest, more power draw."
-                                    : "Passthrough runs the desktop on the built-in GPU so " + pg.dgpuName + " is free for a VM.")
+                                    ? I18n.tr("Performance pins %1 as primary: fastest, more power draw.").arg(pg.dgpuName)
+                                    : I18n.tr("Passthrough runs the desktop on the built-in GPU so %1 is free for a VM.").arg(pg.dgpuName))
                             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                         }
                         Text {
                             width: parent.width
-                            text: "A change takes effect on your next login."
+                            text: I18n.tr("A change takes effect on your next login.")
                             color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                         }
                         Rectangle {
@@ -721,7 +721,7 @@ done
                 Section {
                     id: tuneSect
                     width: parent.width
-                    title: "TUNING · THIS SESSION"
+                    title: I18n.tr("TUNING · THIS SESSION")
 
                     // the per-session promise, said plainly and kept in view.
                     Row {
@@ -734,7 +734,7 @@ done
                         }
                         Text {
                             width: parent.width - 6 - Tokens.s2
-                            text: "Tuning is live and per session. Everything resets on reboot; there is nothing to save and nothing to undo but a reboot."
+                            text: I18n.tr("Tuning is live and per session. Everything resets on reboot; there is nothing to save and nothing to undo but a reboot.")
                             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                             wrapMode: Text.WordWrap
                         }
@@ -746,7 +746,7 @@ done
                         spacing: Tokens.s2
                         visible: (pg.tune || []).length > 0
                         Text {
-                            text: "PRESETS"
+                            text: I18n.tr("PRESETS")
                             color: Tokens.inkMuted; font.family: Tokens.ui
                             font.pixelSize: Tokens.fTiny; font.weight: Font.Medium
                             font.letterSpacing: Tokens.trackLabel
@@ -771,10 +771,10 @@ done
                                 }
                             }
                             Btn {
-                                text: "Save current…"
+                                text: I18n.tr("Save current…")
                                 onAct: pg.namingPreset = true
                             }
-                            Btn { text: "Reset all"; onAct: pg.tuneReset() }
+                            Btn { text: I18n.tr("Reset all"); onAct: pg.tuneReset() }
                         }
                         // inline name entry for a new custom preset.
                         Rectangle {
@@ -794,14 +794,14 @@ done
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
                                     visible: nameIn.text === ""
-                                    text: "Name this preset…"
+                                    text: I18n.tr("Name this preset…")
                                     color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: 13
                                 }
                             }
                             Btn {
                                 anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                                 anchors.rightMargin: Tokens.s2
-                                text: "Save"; primary: true; compact: true
+                                text: I18n.tr("Save"); primary: true; compact: true
                                 onAct: pg.savePreset(nameIn.text)
                             }
                         }
@@ -825,7 +825,7 @@ done
                     Text {
                         visible: (pg.tune || []).length === 0
                         width: parent.width; wrapMode: Text.WordWrap
-                        text: "Your graphics driver exposes no tunable knobs on this session. Everything here is read-only on this hardware."
+                        text: I18n.tr("Your graphics driver exposes no tunable knobs on this session. Everything here is read-only on this hardware.")
                         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                     }
 
@@ -845,7 +845,7 @@ done
                             }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: pg.showAdvanced ? "Hide advanced" : "Advanced · per session, can misbehave"
+                                text: pg.showAdvanced ? I18n.tr("Hide advanced") : I18n.tr("Advanced · per session, can misbehave")
                                 color: advHov.hovered ? Tokens.ink : Tokens.inkMuted
                                 font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                                 font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
@@ -869,7 +869,7 @@ done
                                     left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter
                                     leftMargin: Tokens.s3; rightMargin: Tokens.s3
                                 }
-                                text: "Overclocking, undervolting and fan control can freeze the GPU or the desktop. Every change is per session and clears on reboot; if the screen misbehaves, reboot to recover."
+                                text: I18n.tr("Overclocking, undervolting and fan control can freeze the GPU or the desktop. Every change is per session and clears on reboot; if the screen misbehaves, reboot to recover.")
                                 color: Tokens.inkOnBone; wrapMode: Text.WordWrap
                                 font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; font.weight: Font.Medium
                             }
@@ -898,7 +898,7 @@ done
 
                     Text {
                         width: parent.width; wrapMode: Text.WordWrap
-                        text: "Want deeper overclocking (voltage curves, fan curves)? Install LACT, a dedicated GPU control daemon."
+                        text: I18n.tr("Want deeper overclocking (voltage curves, fan curves)? Install LACT, a dedicated GPU control daemon.")
                         color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                     }
                 }
@@ -906,7 +906,7 @@ done
                 // ── GPU PASSTHROUGH · ADVANCED ──
                 Section {
                     width: parent.width
-                    title: "GPU PASSTHROUGH · ADVANCED"
+                    title: I18n.tr("GPU PASSTHROUGH · ADVANCED")
 
                     Column {
                         width: parent.width
@@ -914,7 +914,7 @@ done
 
                         Text {
                             width: parent.width; wrapMode: Text.WordWrap
-                            text: "Free " + pg.dgpuName + " from the desktop and bind it to vfio so a virtual machine can own it for near-native performance. This sets up the host only; you run the VM yourself (libvirt + Looking Glass). Everyday VMs in ryovm need none of this."
+                            text: I18n.tr("Free %1 from the desktop and bind it to vfio so a virtual machine can own it for near-native performance. This sets up the host only; you run the VM yourself (libvirt + Looking Glass). Everyday VMs in ryovm need none of this.").arg(pg.dgpuName)
                             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                         }
 
@@ -938,12 +938,12 @@ done
 
                         Btn {
                             visible: pg.caps.enabled === true
-                            text: "Disable passthrough"
+                            text: I18n.tr("Disable passthrough")
                             onAct: pg.act(["ryoku-hub", "gpu", "apply", "disable"])
                         }
                         Btn {
                             visible: pg.caps.enabled !== true && pg.caps.verdict !== "incapable" && !pg.planning && !pg.enabling
-                            text: "Review changes"
+                            text: I18n.tr("Review changes")
                             onAct: pg.reviewEnable()
                         }
 
@@ -971,17 +971,17 @@ done
                         Row {
                             visible: pg.planning
                             spacing: Tokens.s2
-                            Btn { text: "Enable passthrough"; primary: true; onAct: pg.enableInTerminal() }
-                            Btn { text: "Close"; onAct: { pg.planning = false; pg.planText = ""; } }
+                            Btn { text: I18n.tr("Enable passthrough"); primary: true; onAct: pg.enableInTerminal() }
+                            Btn { text: I18n.tr("Close"); onAct: { pg.planning = false; pg.planText = ""; } }
                         }
 
                         Text {
                             visible: pg.enabling
                             width: parent.width; wrapMode: Text.WordWrap
-                            text: "Setting up in a terminal window (it builds a kernel module, so it can take a few minutes). Click Recheck when it finishes."
+                            text: I18n.tr("Setting up in a terminal window (it builds a kernel module, so it can take a few minutes). Click Recheck when it finishes.")
                             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                         }
-                        Btn { visible: pg.enabling; text: "Recheck"; onAct: pg.recheck() }
+                        Btn { visible: pg.enabling; text: I18n.tr("Recheck"); onAct: pg.recheck() }
 
                         Item {
                             width: parent.width; height: 22
@@ -997,7 +997,7 @@ done
                                 }
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: pg.showChecks ? "Hide readiness checks" : "Readiness checks"
+                                    text: pg.showChecks ? I18n.tr("Hide readiness checks") : I18n.tr("Readiness checks")
                                     color: chkHov.hovered ? Tokens.ink : Tokens.inkMuted
                                     font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                                     font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
@@ -1035,7 +1035,7 @@ done
                                         Text {
                                             anchors.left: crdot.right; anchors.leftMargin: Tokens.s3
                                             anchors.verticalCenter: parent.verticalCenter
-                                            text: cr.modelData ? cr.modelData.label : ""
+                                            text: cr.modelData ? I18n.tr(cr.modelData.label) : ""
                                             color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                                         }
                                         Text {
@@ -1069,7 +1069,7 @@ done
                 radius: Tokens.radius; color: Tokens.bone
                 Text {
                     id: errTagLab
-                    anchors.centerIn: parent; text: "ERROR"
+                    anchors.centerIn: parent; text: I18n.tr("ERROR")
                     color: Tokens.inkOnBone; font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                     font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
                 }
@@ -1095,7 +1095,7 @@ done
             images: ["render.gif", "torus.gif", "sphere.gif", "cube.gif", "spring.gif"]
             title: "描画"; sub: "三次元"
             tate: "光と三角形"
-            caption: "The desktop, drawn in real time: geometry, light, and a few million triangles a frame."
+            caption: I18n.tr("The desktop, drawn in real time: geometry, light, and a few million triangles a frame.")
             readout: ["SHADING|per-pixel", "GEOMETRY|instanced", "SURFACES|composited", "REFRESH|adaptive"]
             code: "GPU-02"; seal: "描"; boxId: "gpu.render"; seed: 0; ditherFreq: 1.0
         }

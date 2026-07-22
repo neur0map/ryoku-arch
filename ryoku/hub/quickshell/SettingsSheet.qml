@@ -90,7 +90,7 @@ Item {
                     id: sect
                     required property string modelData
                     width: col.width
-                    title: modelData === "" ? "OTHER" : modelData
+                    title: I18n.tr(modelData === "" ? "OTHER" : modelData)
 
                     // bento: pack this group's declared spans into flush rows,
                     // so no row ends in dead space. minSpan keeps a cell usable
@@ -117,11 +117,11 @@ Item {
                             width: sect.span(sect.packed[index] || 4)
                             height: neededHeight
                             block: Spans.isBlock(r.ctl) || (r.ctl === "seg" && cell.optCount >= 3)
-                            footH: (r.ctl === "pick" || r.ctl === "text" || r.ctl === "image" || r.ctl === "location" || r.ctl === "color") ? 34 : 0
+                            footH: (r.ctl === "pick" || r.ctl === "text" || r.ctl === "image" || r.ctl === "location" || r.ctl === "color" || r.ctl === "action") ? 34 : 0
                             controlWidth: Spans.inlineWidth(r.ctl, optCount, width)
 
-                            label: r.label
-                            desc: r.desc || ""
+                            label: I18n.tr(r.label)
+                            desc: I18n.tr(r.desc || "")
                             unit: r.pct ? "%" : (r.unit || "")
                             value: (r.ctl === "text" || r.ctl === "seg" || r.ctl === "image" || r.ctl === "location" || r.ctl === "color") ? "" : sheet.shown(r)
                             def: sheet.shownDef(r)
@@ -143,11 +143,26 @@ Item {
                                     case "image": return imageC;
                                     case "location": return locationC;
                                     case "color": return colorC;
+                                    case "action": return actionC;
                                     default: return textC;
                                     }
                                 }
                             }
 
+                            // an action button (e.g. AI translation): runs a tool
+                            // for the current language in a terminal.
+                            Component {
+                                id: actionC
+                                Btn {
+                                    anchors { left: parent.left; bottom: parent.bottom }
+                                    text: I18n.tr(cell.r.actionLabel || "Generate")
+                                    onAct: {
+                                        if (cell.r.key === "i18nGenerate")
+                                            Quickshell.execDetached(["kitty", "--class", "ryoku-i18n", "-e", "sh", "-c",
+                                                "ryoku-i18n llm " + I18n.lang + "; echo; read -n1 -rsp 'Done. Press any key to close…'; echo"]);
+                                    }
+                                }
+                            }
                             Component {
                                 id: swC
                                 Sw {
@@ -488,7 +503,7 @@ Item {
         visible: sheet.rows.length === 0
         spacing: Tokens.s2
         Text {
-            text: "NO MATCH"
+            text: I18n.tr("NO MATCH")
             color: Tokens.inkDim
             font.family: Tokens.ui
             font.pixelSize: Tokens.fRow
@@ -496,7 +511,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
         }
         Text {
-            text: "nothing here matches “" + sheet.query + "”"
+            text: I18n.tr("nothing here matches “%1”").arg(sheet.query)
             color: Tokens.inkMuted
             font.family: Tokens.ui
             font.pixelSize: Tokens.fSmall

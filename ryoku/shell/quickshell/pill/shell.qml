@@ -49,6 +49,9 @@ ShellRoot {
     // coords), so the popout blob grows from that icon on whatever edge the bar
     // sits. set by togglePopoutAt from the bar's click.
     property real popoutCenter: 0
+    // dyad rides both edges: a tapped top module drops its popout from the top,
+    // a bottom module lifts it from the bottom (set per request from the y).
+    property string dyadPopoutEdge: "bottom"
 
     // media hover popout: the now-playing module drives this while hovered,
     // feeding its centre. distinct from the clicked `popout` above so hover
@@ -446,10 +449,12 @@ ShellRoot {
             readonly property real barBand: Config.barBandBase * s
             readonly property real barVisibleH: Math.max(0, Config.effectiveFrameBorder - 50) + barBand
             readonly property real washiZone: Math.max(0, Config.effectiveFrameBorder - 50) + 34 * s
-            readonly property real zone: delos ? Math.max(0, IslandDock.thickness) : (washi ? washiZone : barVisibleH)
+            // dyad reserves BOTH edges (islands top+bottom). 40*s is the island band;
+            // -12 lets Hyprland's gaps_out (18) tuck windows a few px under them.
+            readonly property real zone: delos ? Math.max(0, IslandDock.thickness) : (Config.barStyle === "dyad" ? Math.max(0, 40 * s - 12) : (washi ? washiZone : barVisibleH))
 
             screen: modelData
-            visible: rEdge === "top"
+            visible: rEdge === "top" || Config.barStyle === "dyad"
             color: "transparent"
             exclusionMode: ExclusionMode.Normal
             exclusiveZone: zone
@@ -475,11 +480,11 @@ ShellRoot {
             readonly property string barPos: Config.barEnabled ? (Config.barPosition === "bottom" ? "bottom" : "top") : ""
             readonly property bool delos: Config.barStyle === "delos"
             readonly property bool washi: Config.barEnabled && Config.barStyle === "washi"
-            readonly property string rEdge: delos ? IslandDock.edge : (washi ? "top" : barPos)
+            readonly property string rEdge: Config.barStyle === "dyad" ? "bottom" : (delos ? IslandDock.edge : (washi ? "top" : barPos))
             readonly property bool active: rEdge === "bottom" || rEdge === "left" || rEdge === "right"
             // a vertical band needs room for stacked content; floor it at 30.
             readonly property real minBand: rEdge === "left" || rEdge === "right" ? 30 : 0
-            readonly property real zone: delos ? Math.max(0, IslandDock.thickness) : (Math.max(0, Config.effectiveFrameBorder - 50) + Math.max(Config.barBandBase, minBand) * s)
+            readonly property real zone: delos ? Math.max(0, IslandDock.thickness) : (Config.barStyle === "dyad" ? Math.max(0, 40 * s - 12) : (Math.max(0, Config.effectiveFrameBorder - 50) + Math.max(Config.barBandBase, minBand) * s))
 
             screen: modelData
             visible: active
@@ -533,6 +538,14 @@ ShellRoot {
             // translucent pills and ryoku's square grainy paper chips alike, so
             // the only difference is the island surface, not the frame.
             readonly property bool atoll: Config.barStyle === "atoll"
+            // dyad: Jules3182's dual-edge floating-island bar -- islands ride the
+            // TOP and BOTTOM edges at once, so like atoll the frame never swells a
+            // band on either edge. It stays a thin border (frame on) or nothing
+            // (frame off); the islands float over it regardless.
+            readonly property bool dyad: Config.barStyle === "dyad"
+            // popouts follow the tapped module's edge under dyad; every other skin
+            // pins to the one bar edge.
+            readonly property string popoutEdge: overlay.dyad ? root.dyadPopoutEdge : overlay.barPos
             // inir/aurora/angel are flat frame-off bars ported from iNiR: the Bar
             // paints its own flush, full-width background (TUI / translucent glass /
             // brutalist) instead of riding the frame band, so the frame grows no
@@ -658,6 +671,8 @@ ShellRoot {
             // drawer region starts past the bar (x: bar.clampedWidth) and never
             // overlaps the taskbar with the dismiss surface.
             function inBarStrip(x, y) {
+                if (Config.barStyle === "dyad")
+                    return Config.barEnabled && (y < 42 * s || y >= height - 42 * s);
                 return Config.barEnabled
                     && x >= barMaskX && x < barMaskX + barMaskW
                     && y >= barMaskY && y < barMaskY + barMaskH;
@@ -679,6 +694,21 @@ ShellRoot {
                 y: overlay.barMaskY
                 width: (Config.barEnabled && !overlay.delos) ? overlay.barMaskW : 0
                 height: (Config.barEnabled && !overlay.delos) ? overlay.barMaskH : 0
+                // dyad rides both edges: cover the top AND bottom island strips
+                // (taller than one band -- the islands sit edgeM below the edge),
+                // so every island catches input whichever edge barPosition points at.
+                Region {
+                    x: 0
+                    y: 0
+                    width: Config.barStyle === "dyad" ? overlay.width : 0
+                    height: Config.barStyle === "dyad" ? 42 * overlay.s : 0
+                }
+                Region {
+                    x: 0
+                    y: overlay.height - 42 * overlay.s
+                    width: Config.barStyle === "dyad" ? overlay.width : 0
+                    height: Config.barStyle === "dyad" ? 42 * overlay.s : 0
+                }
                 Region { x: mixerPop.triggerX; y: mixerPop.triggerY; width: mixerPop.triggerW; height: mixerPop.triggerH }
                 Region { x: mixerPop.maskX; y: mixerPop.maskY; width: mixerPop.maskW; height: mixerPop.maskH }
                 Region { x: powerPop.triggerX; y: powerPop.triggerY; width: powerPop.triggerW; height: powerPop.triggerH }
@@ -814,8 +844,8 @@ ShellRoot {
                     anchors.margins: -50
                     group: blobGroup
                     radius: (overlay.nacre || !Config.frameEnabled) ? 0 : Config.frameRadius
-                    borderTop: overlay.nacre ? Config.frameBorder : ((overlay.barTop && !overlay.triptych && !overlay.delos && !overlay.flatBar && !overlay.washi && !overlay.atoll) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder)
-                    borderBottom: (overlay.barBottom && !overlay.delos && !overlay.flatBar) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
+                    borderTop: overlay.nacre ? Config.frameBorder : ((overlay.barTop && !overlay.triptych && !overlay.delos && !overlay.flatBar && !overlay.washi && !overlay.atoll && !overlay.dyad) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder)
+                    borderBottom: (overlay.barBottom && !overlay.delos && !overlay.flatBar && !overlay.dyad) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
                     borderLeft: (overlay.barLeft && !overlay.delos) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
                     borderRight: (overlay.barRight && !overlay.delos) ? (Config.effectiveFrameBorder + overlay.barBand) : Config.effectiveFrameBorder
                     opacity: Config.frameOpacity
@@ -878,7 +908,7 @@ ShellRoot {
                     // the bar modules it grows from. content insets above the band,
                     // so the bar only ever covers a popout's neck, never its body.
                     z: 1
-                    visible: Config.barEnabled && !overlay.monFullscreen && !overlay.delos && !overlay.washi
+                    visible: Config.barEnabled && !overlay.monFullscreen && !overlay.delos && !overlay.washi && Config.barStyle !== "dyad"
                     x: overlay.barMaskX
                     y: overlay.barMaskY
                     width: overlay.barMaskW
@@ -891,6 +921,21 @@ ShellRoot {
                     onHoverPopoutRequested: (name, center, hovered) => root.setHoverPopout(overlay.modelData.name, name, center, hovered)
                 }
 
+                // dyad: the dual-edge floating-island bar (ported from Jules3182).
+                // fills the overlay so islands ride the top AND bottom edges at
+                // once; taps open our popouts. gated on barStyle, so it is inert
+                // (and the normal bar shows) for every other skin.
+                DyadBar {
+                    id: dyadBar
+                    z: 1
+                    visible: Config.barStyle === "dyad" && !overlay.monFullscreen
+                    anchors.fill: parent
+                    s: overlay.s
+                    ryoku: Config.dyadVariant === "ryoku"
+                    onPopoutRequested: (name, centre) => { root.dyadPopoutEdge = centre.y < overlay.height / 2 ? "top" : "bottom"; root.togglePopoutAt(overlay.modelData.name, name, centre.x); }
+                    onHoverPopoutRequested: (name, centre, hovered) => { root.dyadPopoutEdge = centre.y < overlay.height / 2 ? "top" : "bottom"; root.setHoverPopout(overlay.modelData.name, name, centre.x, hovered); }
+                }
+
                 // mixer popout: on a side bar the volume status icon owns it --
                 // hovering that icon opens the mixer at its centre; on a
                 // top/bottom or absent bar it stays the left-centre frame
@@ -901,7 +946,7 @@ ShellRoot {
                     frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.barPos
+                    edge: overlay.popoutEdge
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
@@ -928,7 +973,7 @@ ShellRoot {
                     frameThickness: overlay.delos ? overlay.frameTopVisible : overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.delos ? "top" : overlay.barPos
+                    edge: overlay.delos ? "top" : overlay.popoutEdge
                     align: overlay.delos ? "end" : "center"
                     alongCenter: overlay.delos ? -1 : root.popoutCenter
                     hoverOpen: false
@@ -956,7 +1001,7 @@ ShellRoot {
                     frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.barPos
+                    edge: overlay.popoutEdge
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
@@ -980,7 +1025,7 @@ ShellRoot {
                     frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.barPos
+                    edge: overlay.popoutEdge
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
@@ -1006,7 +1051,7 @@ ShellRoot {
                     frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.barPos
+                    edge: overlay.popoutEdge
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
@@ -1032,7 +1077,7 @@ ShellRoot {
                     frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.barPos
+                    edge: overlay.popoutEdge
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
@@ -1054,7 +1099,7 @@ ShellRoot {
                     frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.barPos
+                    edge: overlay.popoutEdge
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
@@ -1080,7 +1125,7 @@ ShellRoot {
                     frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.barPos
+                    edge: overlay.popoutEdge
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
@@ -1108,7 +1153,7 @@ ShellRoot {
                     frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.barPos
+                    edge: overlay.popoutEdge
                     hoverOpen: false
                     closeDelay: 140  // hover-intent: crossing the border rim never flickers it shut
                     alongCenter: root.hoverPopoutCenter
@@ -1135,7 +1180,7 @@ ShellRoot {
                     frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.barPos
+                    edge: overlay.popoutEdge
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
@@ -1160,7 +1205,7 @@ ShellRoot {
                     frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.barPos
+                    edge: overlay.popoutEdge
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s
@@ -1185,7 +1230,7 @@ ShellRoot {
                     frameThickness: overlay.barVisibleH
                     radius: Config.frameRadius
                     smoothing: Config.frameSmoothing
-                    edge: overlay.barPos
+                    edge: overlay.popoutEdge
                     hoverOpen: false
                     alongCenter: root.popoutCenter
                     s: overlay.s

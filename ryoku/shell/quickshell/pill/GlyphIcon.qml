@@ -85,7 +85,8 @@ Item {
         "link": { d: "M9.5 14.5l5-5 M10.8 7.4l1.6-1.6a3.4 3.4 0 0 1 4.8 4.8l-1.6 1.6 M13.2 16.6l-1.6 1.6a3.4 3.4 0 0 1-4.8-4.8l1.6-1.6", fill: false },
         "remux": { d: "M16.5 3.5l4 4-4 4 M20.5 7.5H8.5a4 4 0 0 0-4 4 M7.5 20.5l-4-4 4-4 M3.5 16.5h12a4 4 0 0 0 4-4", fill: false },
         "scan": { d: "M3 7V4.5A1.5 1.5 0 0 1 4.5 3H7 M17 3h2.5A1.5 1.5 0 0 1 21 4.5V7 M21 17v2.5a1.5 1.5 0 0 1-1.5 1.5H17 M7 21H4.5A1.5 1.5 0 0 1 3 19.5V17 M3 12h18", fill: false },
-        "flip": { d: "M12 3v18 M10 8l-5 4 5 4V8z M14 8l5 4-5 4V8z", fill: false }
+        "flip": { d: "M12 3v18 M10 8l-5 4 5 4V8z M14 8l5 4-5 4V8z", fill: false },
+        "discord": { d: "M5.5 4.5H19A1.8 1.8 0 0 1 20.8 6.3V13.7A1.8 1.8 0 0 1 19 15.5H9.5L5.5 19V15.5A1.8 1.8 0 0 1 3.7 13.7V6.3A1.8 1.8 0 0 1 5.5 4.5Z M10 8.2L14.5 11L10 13.8Z", fill: false }
     })
 
     readonly property var g: glyphs[name] !== undefined ? glyphs[name] : ({ d: "", fill: false })

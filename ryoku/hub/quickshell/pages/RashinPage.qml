@@ -174,7 +174,7 @@ Item {
         Text {
             id: stampT
             anchors.centerIn: parent
-            text: stamp.label
+            text: I18n.tr(stamp.label)
             color: stamp.tint
             font.family: pg.fMono
             font.pixelSize: 9
@@ -247,7 +247,7 @@ Item {
             }
             Text {
                 width: parent.width
-                text: fc.desc; color: hx.inkDim; font.family: pg.fMono; font.pixelSize: 12
+                text: I18n.tr(fc.desc); color: hx.inkDim; font.family: pg.fMono; font.pixelSize: 12
                 wrapMode: Text.WordWrap; lineHeight: 1.25
             }
         }
@@ -296,7 +296,7 @@ Item {
         Text {
             id: btT
             anchors.centerIn: parent
-            text: bt.label; color: bt.primary ? hx.paper : hx.ink
+            text: I18n.tr(bt.label); color: bt.primary ? hx.paper : hx.ink
             font.family: pg.fMono; font.pixelSize: 11; font.letterSpacing: 2; font.weight: Font.Medium
         }
         MouseArea {
@@ -363,7 +363,7 @@ Item {
                     anchors { left: parent.left; bottom: parent.bottom; leftMargin: Tokens.s5; bottomMargin: Tokens.s4 }
                     spacing: 3
                     Text {
-                        text: "RYOKU RASHIN"; color: hx.ink; font.family: pg.fDisplay
+                        text: I18n.tr("RYOKU RASHIN"); color: hx.ink; font.family: pg.fDisplay
                         font.pixelSize: Math.round(Math.min(pg.bodyW * 0.05, 40))
                     }
                     Row {
@@ -373,7 +373,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Text {
-                            text: "THE SYSTEM NEEDLE"; color: hx.inkDim; font.family: pg.fMono
+                            text: I18n.tr("THE SYSTEM NEEDLE"); color: hx.inkDim; font.family: pg.fMono
                             font.pixelSize: 10; font.letterSpacing: 3
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -383,8 +383,8 @@ Item {
                 // live state stamp, top-right.
                 Stamp {
                     anchors { right: parent.right; top: parent.top; rightMargin: Tokens.s4; topMargin: Tokens.s4 }
-                    label: !pg.installed ? "NOT INSTALLED"
-                        : (pg.running ? "RUNNING" : (pg.daemonEnabled ? "STARTING" : "OFF"))
+                    label: !pg.installed ? I18n.tr("NOT INSTALLED")
+                        : (pg.running ? I18n.tr("RUNNING") : (pg.daemonEnabled ? I18n.tr("STARTING") : I18n.tr("OFF")))
                     tint: pg.running ? hx.teal : (pg.installed ? hx.inkDim : hx.redDeep)
                 }
             }
@@ -392,9 +392,9 @@ Item {
             // ── tagline ──────────────────────────────────────────────────────
             Text {
                 width: parent.width
-                text: "The optional local agent OS. A resident Hermes agent keeps a living map of this "
-                    + "machine \u2014 hardware, packages, every config beside the binary that owns it \u2014 so your "
-                    + "coding agents read the terrain instead of rediscovering it. Nothing ever leaves the box."
+                text: I18n.tr("The optional local agent OS. A resident Hermes agent keeps a living map of this ")
+                    + I18n.tr("machine \u2014 hardware, packages, every config beside the binary that owns it \u2014 so your ")
+                    + I18n.tr("coding agents read the terrain instead of rediscovering it. Nothing ever leaves the box.")
                 color: hx.ink; font.family: pg.fMono; font.pixelSize: 14
                 wrapMode: Text.WordWrap; lineHeight: 1.5
             }
@@ -422,16 +422,16 @@ Item {
                             spacing: Tokens.s2
                             Text { text: "羅針"; color: hx.ink; font.family: pg.fJp; font.pixelSize: 15; anchors.verticalCenter: parent.verticalCenter }
                             Text {
-                                text: "RASHIN SERVICE"; color: hx.ink; font.family: pg.fDisplay
+                                text: I18n.tr("RASHIN SERVICE"); color: hx.ink; font.family: pg.fDisplay
                                 font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter
                             }
                         }
                         Text {
                             width: parent.width
                             text: pg.installed
-                                ? (pg.running ? "Running \u00b7 127.0.0.1:3600"
-                                   : (pg.daemonEnabled ? "Enabled \u00b7 starting\u2026" : "Off \u00b7 switch on to start it with the desktop"))
-                                : "Not installed \u00b7 install ryoku-rashin"
+                                ? (pg.running ? I18n.tr("Running \u00b7 127.0.0.1:3600")
+                                   : (pg.daemonEnabled ? I18n.tr("Enabled \u00b7 starting\u2026") : I18n.tr("Off \u00b7 switch on to start it with the desktop")))
+                                : I18n.tr("Not installed \u00b7 install ryoku-rashin")
                             color: hx.inkDim; font.family: pg.fMono; font.pixelSize: 11; elide: Text.ElideRight
                         }
                     }
@@ -460,7 +460,7 @@ Item {
                             spacing: Tokens.s2
                             Text { text: "模型"; color: hx.red; font.family: pg.fJp; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
                             Text {
-                                text: "MODEL"; color: hx.inkDim; font.family: pg.fMono
+                                text: I18n.tr("MODEL"); color: hx.inkDim; font.family: pg.fMono
                                 font.pixelSize: 10; font.letterSpacing: 3; anchors.verticalCenter: parent.verticalCenter
                             }
                         }
@@ -474,8 +474,8 @@ Item {
                         Text {
                             width: parent.width
                             text: pg.hermesConfigured
-                                ? ("via " + (pg.hermesProvider || "hermes") + (pg.hermesVersion ? "  \u00b7  Hermes v" + pg.hermesVersion : ""))
-                                : (pg.hermesInstalled ? "run setup to choose a model" : "set up Hermes to choose a model")
+                                ? ("via " + (pg.hermesProvider || "hermes") + (pg.hermesVersion ? I18n.tr("  \u00b7  Hermes v") + pg.hermesVersion : ""))
+                                : (pg.hermesInstalled ? I18n.tr("run setup to choose a model") : I18n.tr("set up Hermes to choose a model"))
                             color: hx.inkDim; font.family: pg.fMono; font.pixelSize: 11; elide: Text.ElideRight
                         }
                     }
@@ -486,7 +486,7 @@ Item {
             Column {
                 width: parent.width
                 spacing: Tokens.s4
-                Head { kanji: "\u6a5f\u80fd"; title: "FUNCTIONS" }
+                Head { kanji: "\u6a5f\u80fd"; title: I18n.tr("FUNCTIONS") }
 
                 Grid {
                     id: fnGrid
@@ -498,29 +498,29 @@ Item {
 
                     FnCard {
                         width: fnGrid.cellW; index: "01"; kanji: "\u66f8\u5eab"; name: "VAULT"; accent: hx.teal
-                        desc: "The living map your agents read \u2014 every config beside the binary that owns it."
+                        desc: I18n.tr("The living map your agents read \u2014 every config beside the binary that owns it.")
                         stat: pg.vaultExists ? (pg.vaultFiles + " files") : ""
                     }
                     FnCard {
                         width: fnGrid.cellW; index: "02"; kanji: "\u8a18\u61b6"; name: "MEMORY"; accent: hx.orange
-                        desc: "What Hermes remembers, carried across every session."
+                        desc: I18n.tr("What Hermes remembers, carried across every session.")
                     }
                     FnCard {
                         width: fnGrid.cellW; index: "03"; kanji: "\u6280"; name: "SKILLS"; accent: hx.slate
-                        desc: "Toolsets Hermes wields on demand \u2014 search, files, the web, more."
+                        desc: I18n.tr("Toolsets Hermes wields on demand \u2014 search, files, the web, more.")
                     }
                     FnCard {
                         width: fnGrid.cellW; index: "04"; kanji: "\u4e94\u4eba\u8846"; name: "AGENTS"; accent: hx.tan
-                        desc: "Your coding agents, wired to one shared map of the machine."
+                        desc: I18n.tr("Your coding agents, wired to one shared map of the machine.")
                         stat: pg.agentsPresent > 0 ? pg.wiredSummary : ""
                     }
                     FnCard {
                         width: fnGrid.cellW; index: "05"; kanji: "\u5bfe\u8a71"; name: "CHAT"; accent: hx.red
-                        desc: "Talk to Hermes \u2014 in the dashboard, or run it in any terminal."
+                        desc: I18n.tr("Talk to Hermes \u2014 in the dashboard, or run it in any terminal.")
                     }
                     FnCard {
                         width: fnGrid.cellW; index: "06"; kanji: "\u7f85\u91dd"; name: "CODE"; accent: hx.teal
-                        desc: "prowl-agent code intelligence \u2014 cited answers over your repos."
+                        desc: I18n.tr("prowl-agent code intelligence \u2014 cited answers over your repos.")
                     }
                 }
             }
@@ -529,25 +529,25 @@ Item {
             Column {
                 width: parent.width
                 spacing: Tokens.s3
-                Head { kanji: "\u4f8b"; title: "TRY" }
-                TryRow { cmd: "hermes"; note: "chat in the vault, from any terminal" }
-                TryRow { cmd: "hermes gateway"; note: "connect Telegram / Discord / WhatsApp / Slack" }
-                TryRow { cmd: "hermes model"; note: "switch the default model" }
-                TryRow { cmd: "hermes tools"; note: "enable toolsets" }
-                TryRow { cmd: "prowl-agent overview"; note: "code intelligence on any repo" }
+                Head { kanji: "\u4f8b"; title: I18n.tr("TRY") }
+                TryRow { cmd: "hermes"; note: I18n.tr("chat in the vault, from any terminal") }
+                TryRow { cmd: "hermes gateway"; note: I18n.tr("connect Telegram / Discord / WhatsApp / Slack") }
+                TryRow { cmd: "hermes model"; note: I18n.tr("switch the default model") }
+                TryRow { cmd: "hermes tools"; note: I18n.tr("enable toolsets") }
+                TryRow { cmd: "prowl-agent overview"; note: I18n.tr("code intelligence on any repo") }
             }
 
             // ── SET UP + DASHBOARD: the controls ─────────────────────────────
             Column {
                 width: parent.width
                 spacing: Tokens.s4
-                Head { kanji: "\u8d77\u52d5"; title: "GET STARTED" }
+                Head { kanji: "\u8d77\u52d5"; title: I18n.tr("GET STARTED") }
 
                 Text {
                     width: parent.width
-                    text: "Set up Hermes once: it installs the agent if you don't have it, wires it to the "
-                        + "vault, and points your other coding agents at the same map. An existing Hermes install "
-                        + "is left untouched."
+                    text: I18n.tr("Set up Hermes once: it installs the agent if you don't have it, wires it to the ")
+                        + I18n.tr("vault, and points your other coding agents at the same map. An existing Hermes install ")
+                        + I18n.tr("is left untouched.")
                     color: hx.inkDim; font.family: pg.fMono; font.pixelSize: 12; wrapMode: Text.WordWrap; lineHeight: 1.4
                 }
 
@@ -555,13 +555,13 @@ Item {
                     width: parent.width
                     spacing: Tokens.s3
                     PosterBtn {
-                        label: pg.hermesConfigured ? "RE-RUN HERMES SETUP" : "SET UP HERMES AGENT"
+                        label: pg.hermesConfigured ? I18n.tr("RE-RUN HERMES SETUP") : I18n.tr("SET UP HERMES AGENT")
                         primary: !pg.hermesConfigured
                         on: pg.installed
                         onAct: pg.runSetup()
                     }
                     PosterBtn {
-                        label: "OPEN DASHBOARD"
+                        label: I18n.tr("OPEN DASHBOARD")
                         primary: pg.hermesConfigured
                         on: pg.installed
                         onAct: pg.openDashboard()
@@ -587,7 +587,7 @@ Item {
                 Rectangle { width: 8; height: 8; radius: 4; color: hx.red; anchors.verticalCenter: parent.verticalCenter }
                 Text {
                     width: parent.width - Tokens.s3 - 8
-                    text: "Everything runs on this machine. The daemon binds 127.0.0.1 only \u2014 nothing you do here leaves the box."
+                    text: I18n.tr("Everything runs on this machine. The daemon binds 127.0.0.1 only \u2014 nothing you do here leaves the box.")
                     color: hx.inkDim; font.family: pg.fMono; font.pixelSize: 11; wrapMode: Text.WordWrap
                     anchors.verticalCenter: parent.verticalCenter
                 }

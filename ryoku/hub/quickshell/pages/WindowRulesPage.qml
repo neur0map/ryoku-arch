@@ -158,18 +158,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "ADVANCED"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("ADVANCED"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Window Rules"; color: Tokens.ink
+            text: I18n.tr("Window Rules"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Custom rules layered over the ones Ryoku ships. Match a window by its class and/or title, then pick what to do: float a dialog, pin a video, force it opaque, and more. Changes apply when you save."
+            text: I18n.tr("Custom rules layered over the ones Ryoku ships. Match a window by its class and/or title, then pick what to do: float a dialog, pin a video, force it opaque, and more. Changes apply when you save.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -191,7 +191,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "RULES"; color: Tokens.ink; font.family: Tokens.ui
+                text: I18n.tr("RULES"); color: Tokens.ink; font.family: Tokens.ui
                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                 font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
@@ -207,12 +207,12 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 // an entry count is file-truth chrome, so mono (DESIGN.md section 2).
-                text: pg.ruleRows.length + (pg.ruleRows.length === 1 ? " RULE" : " RULES")
+                text: pg.ruleRows.length + (pg.ruleRows.length === 1 ? I18n.tr(" RULE") : I18n.tr(" RULES"))
                 color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "CLEAR ALL"
+                text: I18n.tr("CLEAR ALL")
                 armed: pg.ruleRows.length > 0
                 onAct: pg.clearAll()
             }
@@ -306,7 +306,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             width: matchRow.classW
                             tabular: true
-                            placeholder: "Match class"
+                            placeholder: I18n.tr("Match class")
                             text: rowRect.modelData["class"] || ""
                             onCommitted: (v) => {
                                 if (v !== (rowRect.modelData["class"] || ""))
@@ -321,7 +321,7 @@ Item {
                             anchors.right: removeBtn.left
                             anchors.rightMargin: rowRect.gap
                             anchors.verticalCenter: parent.verticalCenter
-                            placeholder: "Match title"
+                            placeholder: I18n.tr("Match title")
                             text: rowRect.modelData.title || ""
                             onCommitted: (v) => {
                                 if (v !== (rowRect.modelData.title || ""))
@@ -426,7 +426,7 @@ Item {
     Empty {
         anchors.centerIn: flick
         visible: pg.ready && pg.ruleRows.length === 0
-        caption: "No custom rules yet. Add one to override how a specific window opens."
+        caption: I18n.tr("No custom rules yet. Add one to override how a specific window opens.")
     }
 
     // ── the action catalogue overlay (Picker), shared across rows ──
@@ -442,7 +442,7 @@ Item {
         Picker {
             id: picker
             anchors.centerIn: parent
-            title: "Action"
+            title: I18n.tr("Action")
             options: pg.labelsOf(pg.actionOptions)
             current: {
                 if (pg.pickerRow < 0)

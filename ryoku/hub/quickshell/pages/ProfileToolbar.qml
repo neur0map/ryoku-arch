@@ -59,7 +59,7 @@ Rectangle {
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: "PRESET"
+            text: I18n.tr("PRESET")
             color: Tokens.inkDim
             font.family: Tokens.ui
             font.pixelSize: 9
@@ -81,27 +81,27 @@ Rectangle {
 
         Btn {
             anchors.verticalCenter: parent.verticalCenter
-            text: "IMPORT"
+            text: I18n.tr("IMPORT")
             onAct: bar.importProfile()
         }
         Btn {
             anchors.verticalCenter: parent.verticalCenter
-            text: "EXPORT PROFILE"
+            text: I18n.tr("EXPORT PROFILE")
             onAct: bar.exportProfile()
         }
         Btn {
             anchors.verticalCenter: parent.verticalCenter
-            text: "EXPORT IMAGE"
+            text: I18n.tr("EXPORT IMAGE")
             onAct: bar.exportImage()
         }
         Btn {
             anchors.verticalCenter: parent.verticalCenter
-            text: "RESET"
+            text: I18n.tr("RESET")
             onAct: bar.confirmingReset = true
         }
         Btn {
             anchors.verticalCenter: parent.verticalCenter
-            text: "DONE"
+            text: I18n.tr("DONE")
             primary: true
             onAct: bar.done()
         }
@@ -116,19 +116,19 @@ Rectangle {
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: "Reset to the stock plate? This clears your customization."
+            text: I18n.tr("Reset to the stock plate? This clears your customization.")
             color: Tokens.ink
             font.family: Tokens.ui
             font.pixelSize: 11
         }
         Btn {
             anchors.verticalCenter: parent.verticalCenter
-            text: "CANCEL"
+            text: I18n.tr("CANCEL")
             onAct: bar.confirmingReset = false
         }
         Btn {
             anchors.verticalCenter: parent.verticalCenter
-            text: "RESET"
+            text: I18n.tr("RESET")
             primary: true
             onAct: {
                 bar.confirmingReset = false;

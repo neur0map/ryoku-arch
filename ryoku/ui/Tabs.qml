@@ -41,7 +41,9 @@ Row {
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {
-                    text: plate.modelData.toUpperCase()
+                    // translate the display, emit the original value on tap so the
+                    // tab key still matches for filtering/selection.
+                    text: I18n.tr(plate.modelData).toUpperCase()
                     color: plate.on ? Tokens.inkOnBone : Tokens.inkDim
                     font.family: Tokens.ui
                     font.pixelSize: 11

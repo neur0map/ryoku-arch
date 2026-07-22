@@ -216,6 +216,66 @@ Item {
             TapHandler { onTapped: { Recorder.chooserOpen = true; root.requestClose(); } }
         }
 
+        // discord-quick toggle: shrink a Quick capture under 10MB for chat.
+        // drives Recorder.discordMode (persisted); the pre-record chooser latches
+        // it when Quick starts, and Studio is never compressed.
+        Rectangle {
+            width: parent.width
+            visible: !Recorder.active
+            implicitHeight: dcCol.implicitHeight + 16 * root.s
+            color: Theme.tileBg
+            border.width: 1
+            border.color: Theme.border
+
+            GlyphIcon {
+                id: dcIcon
+                anchors.left: parent.left
+                anchors.leftMargin: 9 * root.s
+                anchors.verticalCenter: parent.verticalCenter
+                width: 15 * root.s
+                height: 15 * root.s
+                name: "discord"
+                color: Recorder.discordMode ? Theme.brand : Theme.iconDim
+                stroke: 1.6
+            }
+
+            LinkToggle {
+                id: dcSwitch
+                anchors.right: parent.right
+                anchors.rightMargin: 9 * root.s
+                anchors.verticalCenter: parent.verticalCenter
+                s: root.s
+                on: Recorder.discordMode
+                onToggled: Recorder.discordMode = !Recorder.discordMode
+            }
+
+            Column {
+                id: dcCol
+                anchors.left: dcIcon.right
+                anchors.leftMargin: 9 * root.s
+                anchors.right: dcSwitch.left
+                anchors.rightMargin: 9 * root.s
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2 * root.s
+                Text {
+                    text: "Discord clip"
+                    color: Theme.cream
+                    font.family: Theme.font
+                    font.pixelSize: 12 * root.s
+                    font.weight: Font.DemiBold
+                }
+                Text {
+                    width: parent.width
+                    text: "Quick clips auto-compress to fit Discord (under 10 MB), keeping quality and sound. Studio stays full size."
+                    color: Theme.faint
+                    font.family: Theme.font
+                    font.pixelSize: 10 * root.s
+                    wrapMode: Text.WordWrap
+                    lineHeight: 1.15
+                }
+            }
+        }
+
         // empty state.
         Text {
             visible: recModel.count === 0 && !Recorder.active

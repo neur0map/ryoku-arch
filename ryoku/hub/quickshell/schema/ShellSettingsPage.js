@@ -60,6 +60,26 @@ var rows = [
     },
     {
         "tab": "global",
+        "group": "LANGUAGE",
+        "key": "language",
+        "label": "Language",
+        "desc": "The language for Ryoku's menus and settings; Auto follows your system locale",
+        "ctl": "chips",
+        "src": "shell",
+        "opts": ["Auto", "English", "Español", "Français", "Português", "Português (BR)"]
+    },
+    {
+        "tab": "global",
+        "group": "LANGUAGE",
+        "key": "i18nGenerate",
+        "label": "AI translation",
+        "desc": "Generate higher-quality translations, or a language Ryoku doesn't ship, with an LLM. Add your key in ~/.config/ryoku/i18n-llm.json, then Generate; results layer over the built-in translations for the selected language.",
+        "ctl": "action",
+        "actionLabel": "Generate with AI",
+        "src": "none"
+    },
+    {
+        "tab": "global",
         "group": "SURFACE",
         "key": "surfaceColor",
         "label": "Colour",
@@ -314,7 +334,8 @@ var rows = [
             "aurora",
             "angel",
             "washi",
-            "atoll"
+            "atoll",
+            "dyad"
         ]
     },
     {
@@ -342,6 +363,20 @@ var rows = [
         "src": "shell",
         "opts": [
             "ilyamiro",
+            "ryoku"
+        ]
+    },
+    {
+        "tab": "bar",
+        "group": "BAR",
+        "key": "dyadVariant",
+        "styles": ["dyad"],
+        "label": "Dyad look",
+        "desc": "Faithful to Jules3182's dark capsules, or Ryoku-native square grainy chips",
+        "ctl": "seg",
+        "src": "shell",
+        "opts": [
+            "faithful",
             "ryoku"
         ]
     },

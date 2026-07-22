@@ -5,6 +5,7 @@ import QtQuick.Controls
 import Quickshell.Io
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
+import "lib/arrange.js" as Arrange
 
 // Displays (SYSTEM). Detect every connected monitor, arrange them to scale on a
 // drag canvas (no coordinate math), and tune resolution, scale, rotation, colour
@@ -41,6 +42,11 @@ Item {
     property bool dragging: false
     property var frozen: ({ "k": 1, "ox": 0, "oy": 0 })
 
+    // the "main" display: the one at the global origin (0,0), Hyprland's primary
+    // reference corner (cursor home, XWayland primary). Derived on load and
+    // re-anchored by normalize(); "Set as main" re-bases the layout onto it.
+    property string mainName: ""
+
     // which catalogue overlay is open: "" | "mode" | "mirror".
     property string pickKind: ""
 
@@ -62,7 +68,15 @@ Item {
                         d.push(pg.clone(arr[i]));
                     pg.draft = d;
                     pg.monCount = d.length;
+                    pg.mainName = pg.deriveMain();
+                    // committed is the LIVE baseline (what Hyprland has now); a
+                    // gapped live layout stays the baseline so tidying it below
+                    // reads as a pending Apply, not a silent no-op.
                     pg.committed = JSON.stringify(pg.specsAll());
+                    // Hyprland cannot move the cursor across a gap, so a layout left
+                    // separated strands a display. Pull any detached display flush
+                    // so opening Displays proposes the fix.
+                    if (pg.tidyGaps()) pg.normalize();
                     if (pg.selected >= d.length)
                         pg.selected = 0;
                     pg.listFailed = false;
@@ -267,9 +281,25 @@ Item {
         pg.draft[i].y += dyLogical;
         pg.tick++;
     }
-    // on drop, snap this monitor's near edge to 0 or to any other monitor's near
-    // edge, far edge or near-edge-minus-this-footprint; threshold is zoom
-    // independent (about 22 screen px), then re-base the whole layout to origin.
+    // build the pure-geometry view arrange.js works on: logical footprints.
+    function monsView() {
+        var out = [];
+        for (var i = 0; i < pg.draft.length; i++) {
+            var m = pg.draft[i];
+            out.push({ name: m.name, x: m.x, y: m.y, w: pg.footW(m), h: pg.footH(m), disabled: m.disabled });
+        }
+        return out;
+    }
+    // write arranged x/y back onto the draft, matched by connector name.
+    function applyMons(mons) {
+        for (var i = 0; i < pg.draft.length; i++)
+            for (var j = 0; j < mons.length; j++)
+                if (mons[j].name === pg.draft[i].name) { pg.draft[i].x = mons[j].x; pg.draft[i].y = mons[j].y; break; }
+    }
+    // On drop, fine-snap this display's near edge to 0 or a neighbour's edges
+    // (zoom-independent ~22 screen px), then guarantee contiguity via the
+    // unit-tested arrange lib (Hyprland cannot cross a gap), then re-anchor on
+    // the main display.
     function endDrag(i) {
         if (i < 0 || i >= pg.draft.length) {
             pg.dragging = false;
@@ -288,24 +318,41 @@ Item {
         }
         m.x = Math.round(pg.nearestSnap(m.x, xs, th));
         m.y = Math.round(pg.nearestSnap(m.y, ys, th));
+        var mons = pg.monsView();
+        if (!Arrange.touchesAny(mons, i)) {
+            Arrange.attachFlush(mons, i);
+            pg.applyMons(mons);
+        }
         pg.normalize();
         pg.dragging = false;
         pg.tick++;
     }
-    function normalize() {
-        var minX = 1e9, minY = 1e9;
-        for (var i = 0; i < pg.draft.length; i++) {
-            if (pg.draft[i].disabled)
-                continue;
-            minX = Math.min(minX, pg.draft[i].x);
-            minY = Math.min(minY, pg.draft[i].y);
-        }
-        if (!isFinite(minX))
+    // ensure every enabled display is part of one connected block (no gaps).
+    function tidyGaps() {
+        var mons = pg.monsView();
+        var changed = Arrange.tidyGaps(mons);
+        if (changed)
+            pg.applyMons(mons);
+        return changed;
+    }
+    // the main display is the one at the global origin (fallback: top-left).
+    function deriveMain() {
+        return Arrange.deriveMain(pg.monsView());
+    }
+    function setMain(i) {
+        if (i < 0 || i >= pg.draft.length || pg.draft[i].disabled)
             return;
-        for (i = 0; i < pg.draft.length; i++) {
-            pg.draft[i].x -= minX;
-            pg.draft[i].y -= minY;
-        }
+        pg.mainName = pg.draft[i].name;
+        pg.normalize();
+        pg.tick++;
+    }
+    // re-base so the main display sits at the global origin (0,0), Hyprland's
+    // primary/reference corner; other displays keep their relative offsets
+    // (may go negative, which Hyprland accepts).
+    function normalize() {
+        var mons = pg.monsView();
+        Arrange.rebaseToMain(mons, pg.mainName);
+        pg.applyMons(mons);
     }
 
     // ── apply / profiles (backend unchanged) ────────────────────────────────
@@ -389,7 +436,7 @@ Item {
             spacing: Tokens.s2
             Rectangle { width: 4; height: 4; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
             Text {
-                text: parent.parent.label
+                text: I18n.tr(parent.parent.label)
                 color: Tokens.ink; font.family: Tokens.ui
                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                 font.letterSpacing: Tokens.trackMark
@@ -414,7 +461,7 @@ Item {
             id: rowCap
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            text: parent.label
+            text: I18n.tr(parent.label)
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
             font.letterSpacing: Tokens.trackLabel
@@ -439,7 +486,7 @@ Item {
                 font.pixelSize: Tokens.fMicro; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "SYSTEM"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: Tokens.fTiny; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -453,7 +500,7 @@ Item {
             Text {
                 id: title
                 anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                text: "Displays"; color: Tokens.ink
+                text: I18n.tr("Displays"); color: Tokens.ink
                 font.family: Tokens.display; font.pixelSize: Tokens.fTitle
             }
             // the page's utility actions sit beside the title, per DESIGN section
@@ -462,15 +509,15 @@ Item {
             Row {
                 anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                 spacing: Tokens.s2
-                Btn { text: "MIRROR"; armed: pg.monCount > 1; onAct: pg.quick("mirror") }
-                Btn { text: "EXTEND"; armed: pg.monCount > 1; onAct: pg.quick("extend") }
-                Btn { text: "DPI AUTO-SCALE"; armed: pg.monCount > 0; onAct: pg.quick("autoscale", "--no-profile") }
+                Btn { text: I18n.tr("MIRROR"); armed: pg.monCount > 1; onAct: pg.quick("mirror") }
+                Btn { text: I18n.tr("EXTEND"); armed: pg.monCount > 1; onAct: pg.quick("extend") }
+                Btn { text: I18n.tr("DPI AUTO-SCALE"); armed: pg.monCount > 0; onAct: pg.quick("autoscale", "--no-profile") }
             }
         }
 
         Text {
             width: Math.min(parent.width, 720)
-            text: "Detect connected displays, drag to arrange them to scale, and tune resolution, scale, rotation, colour (including HDR) and mirroring per monitor. Apply writes the layout to your live session and persists it; save a named profile to restore this arrangement when you plug the same displays in again."
+            text: I18n.tr("Detect connected displays, drag to arrange them to scale, and tune resolution, scale, rotation, colour (including HDR) and mirroring per monitor. Apply writes the layout to your live session and persists it; save a named profile to restore this arrangement when you plug the same displays in again.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -487,7 +534,7 @@ Item {
         Text {
             id: detected
             anchors.left: parent.left; anchors.top: parent.top
-            text: (pg.monCount === 1 ? "1 DISPLAY DETECTED" : pg.monCount + " DISPLAYS DETECTED")
+            text: (pg.monCount === 1 ? I18n.tr("1 DISPLAY DETECTED") : pg.monCount + I18n.tr(" DISPLAYS DETECTED"))
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
             font.letterSpacing: Tokens.trackLabel
@@ -523,10 +570,10 @@ Item {
                     readonly property bool live: tile.m ? !tile.m.disabled : true
 
                     visible: !!tile.m
-                    x: tile.m ? (tile.m.x * tile.v.k + tile.v.ox) : 0
-                    y: tile.m ? (tile.m.y * tile.v.k + tile.v.oy) : 0
-                    width: tile.m ? Math.max(36, pg.footW(tile.m) * tile.v.k) : 36
-                    height: tile.m ? Math.max(28, pg.footH(tile.m) * tile.v.k) : 28
+                    x: { void pg.tick; return tile.m ? (tile.m.x * tile.v.k + tile.v.ox) : 0; }
+                    y: { void pg.tick; return tile.m ? (tile.m.y * tile.v.k + tile.v.oy) : 0; }
+                    width: { void pg.tick; return tile.m ? Math.max(36, pg.footW(tile.m) * tile.v.k) : 36; }
+                    height: { void pg.tick; return tile.m ? Math.max(28, pg.footH(tile.m) * tile.v.k) : 28; }
                     radius: Tokens.radius
                     antialiasing: false
                     color: tile.on ? Tokens.tint10 : (th.hovered ? Tokens.tint5 : "transparent")
@@ -557,18 +604,28 @@ Item {
                             horizontalAlignment: Text.AlignHCenter
                             elide: Text.ElideRight
                             // a resolution spec reads as file-truth, so mono.
-                            text: tile.live ? (tile.m ? (tile.m.width + "\u00d7" + tile.m.height) : "") : "OFF"
+                            text: tile.live ? (tile.m ? (tile.m.width + "\u00d7" + tile.m.height) : "") : I18n.tr("OFF")
                             color: Tokens.inkMuted
                             font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
                         }
                         Text {
                             visible: tile.m ? (tile.m.mirror !== "") : false
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "MIRROR"
+                            text: I18n.tr("MIRROR")
                             color: Tokens.inkFaint
                             font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
                             font.letterSpacing: Tokens.trackLabel
                         }
+                    }
+
+                    // main-display marker: a corner tag, ink on the monochrome tile.
+                    Text {
+                        visible: tile.m ? (tile.m.name === pg.mainName && !tile.m.disabled) : false
+                        anchors.left: parent.left; anchors.top: parent.top; anchors.margins: Tokens.s2
+                        text: I18n.tr("MAIN")
+                        color: Tokens.ink; font.family: Tokens.ui
+                        font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
+                        font.letterSpacing: Tokens.trackMark
                     }
 
                     // target null: the page moves the tile from reported deltas so
@@ -611,9 +668,9 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter
-                    text: !pg.listed ? "Detecting displays\u2026"
-                        : pg.listFailed ? "Couldn't read your displays."
-                        : "No displays detected."
+                    text: !pg.listed ? I18n.tr("Detecting displays\u2026")
+                        : pg.listFailed ? I18n.tr("Couldn't read your displays.")
+                        : I18n.tr("No displays detected.")
                     color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fBody
                 }
                 Text {
@@ -622,13 +679,13 @@ Item {
                     visible: pg.listFailed
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
-                    text: "The ryoku-monitor helper looks out of date. Run 'ryoku deploy' (or update the desktop) and retry."
+                    text: I18n.tr("The ryoku-monitor helper looks out of date. Run 'ryoku deploy' (or update the desktop) and retry.")
                     color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 }
                 Btn {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: pg.listed
-                    text: "RETRY"
+                    text: I18n.tr("RETRY")
                     onAct: pg.reload()
                 }
             }
@@ -637,7 +694,7 @@ Item {
             Text {
                 anchors.left: parent.left; anchors.bottom: parent.bottom
                 anchors.margins: Tokens.s3
-                text: "DRAG A DISPLAY TO ARRANGE IT \u00b7 EDGES SNAP"
+                text: I18n.tr("DRAG A DISPLAY TO ARRANGE IT \u00b7 EDGES SNAP")
                 color: Tokens.inkFaint; font.family: Tokens.ui
                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                 font.letterSpacing: Tokens.trackLabel
@@ -664,7 +721,7 @@ Item {
                 // empty-selection placeholder: both per-monitor groups hide.
                 Text {
                     visible: !pg.sel
-                    text: "Select a display to configure it."
+                    text: I18n.tr("Select a display to configure it.")
                     color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 }
 
@@ -674,10 +731,30 @@ Item {
                     visible: !!pg.sel
                     spacing: Tokens.s3
 
-                    SectionHead { label: pg.sel ? pg.sel.name : "DISPLAY" }
+                    SectionHead { label: pg.sel ? pg.sel.name : I18n.tr("DISPLAY") }
+
+                    // the main (primary) display: put this screen at the global
+                    // origin so the cursor and new workspaces start here.
+                    CtlRow {
+                        label: I18n.tr("MAIN DISPLAY")
+                        Text {
+                            visible: { void pg.tick; return pg.sel ? pg.sel.name === pg.mainName : false; }
+                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            text: I18n.tr("MAIN"); color: Tokens.ink; font.family: Tokens.ui
+                            font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
+                            font.letterSpacing: Tokens.trackMark
+                        }
+                        Btn {
+                            visible: { void pg.tick; return pg.sel ? (pg.sel.name !== pg.mainName && !pg.sel.disabled) : false; }
+                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            text: I18n.tr("SET AS MAIN")
+                            armed: true
+                            onAct: pg.setMain(pg.selected)
+                        }
+                    }
 
                     CtlRow {
-                        label: "ENABLED"
+                        label: I18n.tr("ENABLED")
                         Sw {
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             on: { void pg.tick; return pg.sel ? !pg.sel.disabled : false; }
@@ -685,7 +762,7 @@ Item {
                         }
                     }
                     CtlRow {
-                        label: "RESOLUTION"
+                        label: I18n.tr("RESOLUTION")
                         PickBar {
                             anchors.left: parent.capItem.right; anchors.leftMargin: Tokens.s3
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
@@ -695,7 +772,7 @@ Item {
                         }
                     }
                     CtlRow {
-                        label: "SCALE"
+                        label: I18n.tr("SCALE")
                         Row {
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             spacing: Tokens.s2
@@ -719,7 +796,7 @@ Item {
                         }
                     }
                     CtlRow {
-                        label: "ROTATION"
+                        label: I18n.tr("ROTATION")
                         Seg {
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             options: ["0\u00b0", "90\u00b0", "180\u00b0", "270\u00b0"]
@@ -728,7 +805,7 @@ Item {
                         }
                     }
                     CtlRow {
-                        label: "ADAPTIVE SYNC"
+                        label: I18n.tr("ADAPTIVE SYNC")
                         Seg {
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             options: pg.vrrLabels
@@ -737,7 +814,7 @@ Item {
                         }
                     }
                     CtlRow {
-                        label: "COLOUR"
+                        label: I18n.tr("COLOUR")
                         Seg {
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             options: pg.cmLabels
@@ -748,7 +825,7 @@ Item {
                     // SDR brightness only bites in HDR (it maps SDR content into the
                     // HDR range); hidden otherwise so it never reads as a dead knob.
                     CtlRow {
-                        label: "SDR BRIGHTNESS"
+                        label: I18n.tr("SDR BRIGHTNESS")
                         visible: { void pg.tick; return pg.sel ? pg.sel.cm === "hdr" : false; }
                         Row {
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
@@ -770,7 +847,7 @@ Item {
                         }
                     }
                     CtlRow {
-                        label: "MIRROR OF"
+                        label: I18n.tr("MIRROR OF")
                         PickBar {
                             anchors.left: parent.capItem.right; anchors.leftMargin: Tokens.s3
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
@@ -789,10 +866,10 @@ Item {
                     visible: !!pg.sel
                     spacing: Tokens.s3
 
-                    SectionHead { label: "POSITION" }
+                    SectionHead { label: I18n.tr("POSITION") }
 
                     CtlRow {
-                        label: "X"
+                        label: I18n.tr("X")
                         Text {
                             id: unitX
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
@@ -811,7 +888,7 @@ Item {
                         }
                     }
                     CtlRow {
-                        label: "Y"
+                        label: I18n.tr("Y")
                         Text {
                             id: unitY
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
@@ -837,12 +914,12 @@ Item {
                     width: parent.width
                     spacing: Tokens.s3
 
-                    SectionHead { label: "PROFILES" }
+                    SectionHead { label: I18n.tr("PROFILES") }
 
                     Text {
                         width: parent.width
                         wrapMode: Text.WordWrap
-                        text: "Save this layout, keyed to the connected displays, so it returns automatically when you plug them in again."
+                        text: I18n.tr("Save this layout, keyed to the connected displays, so it returns automatically when you plug them in again.")
                         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                     }
 
@@ -852,14 +929,14 @@ Item {
                         Btn {
                             id: saveBtn
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            text: "SAVE"
+                            text: I18n.tr("SAVE")
                             onAct: pg.saveProfile(nameField.text)
                         }
                         Field {
                             id: nameField
                             anchors.left: parent.left; anchors.right: saveBtn.left; anchors.rightMargin: Tokens.s2
                             anchors.verticalCenter: parent.verticalCenter
-                            placeholder: "Profile name\u2026"
+                            placeholder: I18n.tr("Profile name\u2026")
                             onCommitted: (v) => pg.saveProfile(v)
                         }
                     }
@@ -902,7 +979,7 @@ Item {
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
                                         visible: prof.modelData.matches
-                                        text: "CONNECTED"
+                                        text: I18n.tr("CONNECTED")
                                         color: Tokens.inkMuted; font.family: Tokens.ui
                                         font.pixelSize: Tokens.fTiny; font.weight: Font.Medium
                                         font.letterSpacing: Tokens.trackLabel
@@ -916,7 +993,7 @@ Item {
 
                                     Btn {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: "APPLY"
+                                        text: I18n.tr("APPLY")
                                         onAct: pg.loadProfile(prof.modelData.name)
                                     }
                                     // a paired minus, not a trash icon: remove is
@@ -964,7 +1041,7 @@ Item {
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: pg.dirty ? "UNAPPLIED LAYOUT CHANGES" : "LAYOUT MATCHES YOUR DISPLAYS"
+                text: pg.dirty ? I18n.tr("UNAPPLIED LAYOUT CHANGES") : I18n.tr("LAYOUT MATCHES YOUR DISPLAYS")
                 color: pg.dirty ? Tokens.ink : Tokens.inkDim
                 font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                 font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
@@ -976,10 +1053,10 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             spacing: Tokens.s3
 
-            Btn { text: "REVERT"; armed: pg.dirty; onAct: pg.reload() }
+            Btn { text: I18n.tr("REVERT"); armed: pg.dirty; onAct: pg.reload() }
             // Apply writes to the live displays and re-commits the baseline; the
             // armed primary inverts to bone while dirty.
-            Btn { text: "APPLY"; primary: true; armed: pg.dirty; onAct: pg.apply() }
+            Btn { text: I18n.tr("APPLY"); primary: true; armed: pg.dirty; onAct: pg.apply() }
         }
 
         // marginalia dressing the empty bar centre between status and actions -- a dead margin. Ink only.
@@ -1004,7 +1081,7 @@ Item {
         Picker {
             id: picker
             anchors.centerIn: parent
-            title: pg.pickKind === "mode" ? "Resolution" : "Mirror of"
+            title: pg.pickKind === "mode" ? I18n.tr("Resolution") : I18n.tr("Mirror of")
             options: {
                 if (pg.pickKind === "mode")
                     return pg.sel ? pg.modeOptions(pg.sel).map(function (o) { return o.label; }) : [];

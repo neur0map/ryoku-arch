@@ -256,18 +256,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "ADVANCED"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("ADVANCED"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Performance"; color: Tokens.ink
+            text: I18n.tr("Performance"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Trade a little eye-candy, idle animation or resident memory for lower CPU, GPU and RAM use. Changes preview live; nothing is written until you save."
+            text: I18n.tr("Trade a little eye-candy, idle animation or resident memory for lower CPU, GPU and RAM use. Changes preview live; nothing is written until you save.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -278,7 +278,7 @@ Item {
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "性能"
-        index: "05"; label: "ADVANCED"
+        index: "05"; label: I18n.tr("ADVANCED")
         glyph: "column"; glyph2: "wave"
     }
 
@@ -323,8 +323,8 @@ Item {
                             width: sect.span(Spans.of("sw"))
                             height: Tokens.cellH
                             controlWidth: Spans.inlineWidth("sw", 0, width)
-                            label: cell.r.label
-                            desc: cell.r.desc
+                            label: I18n.tr(cell.r.label)
+                            desc: I18n.tr(cell.r.desc)
                             value: (pg.draft && pg.draft[cell.r.key]) ? "ON" : "OFF"
                             def: (pg.committed && pg.committed[cell.r.key]) ? "ON" : "OFF"
                             changed: !!(pg.draft && pg.committed) && pg.draft[cell.r.key] !== pg.committed[cell.r.key]
@@ -356,10 +356,10 @@ Item {
         width: Math.round((pg.width - 2 * Tokens.s6) * 0.32)
         code: "PERF-05"
         title: "\u75be\u98a8"
-        sub: "SWIFT AS THE WIND"
+        sub: I18n.tr("SWIFT AS THE WIND")
         chapter: "05"
-        label: "PERFORMANCE"
-        quote: "TRADE THE GLOW FOR THE SPEED."
+        label: I18n.tr("PERFORMANCE")
+        quote: I18n.tr("TRADE THE GLOW FOR THE SPEED.")
         seal: "\u75be"
         art: "hawk.png"
         seed: 4
@@ -418,8 +418,8 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: pg.dirtyCount > 0
-                    ? (pg.dirtyCount + (pg.dirtyCount === 1 ? " CHANGE" : " CHANGES") + " · PREVIEWING · NOT SAVED")
-                    : "SAVED · LIVE ON YOUR DESKTOP"
+                    ? (pg.dirtyCount + (pg.dirtyCount === 1 ? I18n.tr(" CHANGE") : I18n.tr(" CHANGES")) + I18n.tr(" · PREVIEWING · NOT SAVED"))
+                    : I18n.tr("SAVED · LIVE ON YOUR DESKTOP")
                 color: pg.dirtyCount > 0 ? Tokens.ink : Tokens.inkMuted
                 font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                 font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
@@ -435,7 +435,7 @@ Item {
 
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "RESET TO DEFAULTS"
+                text: I18n.tr("RESET TO DEFAULTS")
                 armed: pg.offDefaults
                 onAct: pg.reset()
             }
@@ -445,13 +445,13 @@ Item {
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "REVERT"
+                text: I18n.tr("REVERT")
                 armed: pg.dirtyCount > 0
                 onAct: pg.revert()
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "SAVE"
+                text: I18n.tr("SAVE")
                 primary: true
                 armed: pg.dirtyCount > 0
                 onAct: pg.save()

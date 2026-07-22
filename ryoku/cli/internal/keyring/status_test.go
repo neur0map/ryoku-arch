@@ -43,11 +43,11 @@ func TestStatusModeInference(t *testing.T) {
 	pam := filepath.Join(t.TempDir(), "sddm")
 	t.Setenv("RYOKU_PAM_FILE", pam)
 
-	// no config, no PAM lines -> ask.
+	// no config, no PAM lines -> never-ask (the no-prompt default).
 	os.WriteFile(pam, []byte(archSDDM), 0o644)
 	st := gatherStatus()
-	if st.Mode != ModeAsk || st.ModeSource != "inferred" {
-		t.Fatalf("bare stack should infer ask, got %q/%q", st.Mode, st.ModeSource)
+	if st.Mode != ModeNeverAsk || st.ModeSource != "inferred" {
+		t.Fatalf("bare stack should infer never-ask, got %q/%q", st.Mode, st.ModeSource)
 	}
 	if st.PamPresent {
 		t.Fatal("stock stack has no keyring lines")

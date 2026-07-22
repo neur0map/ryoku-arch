@@ -19,7 +19,8 @@ Singleton {
         { key: "aurora",    origin: "inir",      draw: "aurora",    what: "Translucent frame-off glass with a soft top sheen" },
         { key: "angel",     origin: "inir",      draw: "angel",     what: "Opaque brutalist panel, heavy base, bright inset top" },
         { key: "washi",     origin: "ricelin",   draw: "washi",     what: "A floating pill that warps in place into full surfaces" },
-        { key: "atoll",     origin: "ilyamiro",  draw: "atoll",     what: "Floating dark islands, a bright active chip, a startup cascade" }
+        { key: "atoll",     origin: "ilyamiro",  draw: "atoll",     what: "Floating dark islands, a bright active chip, a startup cascade" },
+        { key: "dyad",      origin: "jules3182", draw: "dyad",      what: "Floating islands riding both the top and bottom edges at once" }
     ]
 
     function pill(c, x, y, w, h, r) {
@@ -157,6 +158,23 @@ Singleton {
             c.fillStyle = fg; c.fillRect(cx - 9, cy - 2, 18, 4);
             c.fillStyle = dim; pill(c, W - 30, cy - 6, 27, 12, 4); c.fill();
             c.fillStyle = fg; for (i = 0; i < 3; i++) { dot(c, W - 24 + i * 7, cy, 1.6); c.fill(); }
+        } else if (kind === "dyad") {
+            // Jules3182's dual-edge floating islands: dark panels ride the top
+            // AND bottom edges at once. Top: launcher chip, centred clock, a
+            // status cluster; bottom: a stats island, workspaces, now-playing.
+            var dty = 7, dby = H - 7;
+            c.fillStyle = dim; pill(c, 3, dty - 5, 16, 10, 4); c.fill();
+            c.fillStyle = fg; pill(c, 6, dty - 2, 6, 4, 2); c.fill();
+            c.fillStyle = dim; pill(c, cx - 14, dty - 5, 28, 10, 4); c.fill();
+            c.fillStyle = fg; c.fillRect(cx - 8, dty - 1, 16, 2);
+            c.fillStyle = dim; pill(c, W - 26, dty - 5, 23, 10, 4); c.fill();
+            c.fillStyle = fg; for (i = 0; i < 3; i++) { dot(c, W - 20 + i * 6, dty, 1.5); c.fill(); }
+            c.fillStyle = dim; pill(c, 3, dby - 5, 22, 10, 4); c.fill();
+            c.fillStyle = fg; for (i = 0; i < 3; i++) c.fillRect(6 + i * 6, dby - 2, 3, 4);
+            c.fillStyle = dim; pill(c, cx - 12, dby - 5, 24, 10, 4); c.fill();
+            c.fillStyle = fg; for (i = 0; i < 3; i++) { dot(c, cx - 6 + i * 6, dby, 1.6); c.fill(); }
+            c.fillStyle = dim; pill(c, W - 26, dby - 5, 23, 10, 4); c.fill();
+            c.fillStyle = fg; c.fillRect(W - 22, dby - 1, 15, 2);
         }
     }
 }

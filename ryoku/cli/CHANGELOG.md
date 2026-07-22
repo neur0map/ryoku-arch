@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- **The keyring never prompts out of the box.** The default policy is now
+  `never-ask` (a blank, passwordless default keyring) instead of `ask`: an
+  unconfigured box with no PAM wiring infers `never-ask`, and a new
+  `ryoku keyring init` (run from the Hyprland autostart at first login) records
+  the mode and seeds the blank keyring, so no libsecret app (browser, editor, SSH
+  agent) ever asks for a keyring password, and it persists across reboots. `init`
+  is idempotent (a no-op once a mode is chosen) and non-destructive (a
+  pre-existing password-protected keyring is left intact; it records the policy
+  and points at `set never-ask --reset`). `internal/keyring/init.go`,
+  `TestInit*`, `TestStatusModeInference`.
 - **`ryoku keyring` chooses how the GNOME keyring unlocks at sign-in.** Three
   modes: `unlock-on-login` (PAM unlocks the login keyring with the login password
   at sign-in, encrypted at rest, silent), `never-ask` (a blank plaintext default

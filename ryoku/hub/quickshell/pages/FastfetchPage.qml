@@ -336,13 +336,13 @@ Item {
 
     FileDialog {
         id: imageDlg
-        title: "Choose a logo image"
+        title: I18n.tr("Choose a logo image")
         nameFilters: ["Images (*.svg *.png *.jpg *.jpeg *.webp)", "All files (*)"]
         onAccepted: pg.importLogo("" + imageDlg.selectedFile, "image")
     }
     FileDialog {
         id: asciiDlg
-        title: "Choose an ASCII art file"
+        title: I18n.tr("Choose an ASCII art file")
         nameFilters: ["Text (*.txt *.ascii *.art)", "All files (*)"]
         onAccepted: pg.importLogo("" + asciiDlg.selectedFile, "ascii")
     }
@@ -361,7 +361,7 @@ Item {
             spacing: Tokens.s2
             Rectangle { width: 4; height: 4; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
             Text {
-                text: parent.parent.label
+                text: I18n.tr(parent.parent.label)
                 color: Tokens.ink; font.family: Tokens.ui
                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                 font.letterSpacing: Tokens.trackMark
@@ -389,7 +389,7 @@ Item {
         height: 30
         Text {
             anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-            text: nr.label
+            text: I18n.tr(nr.label)
             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
             font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
             font.capitalization: Font.AllUppercase
@@ -463,7 +463,7 @@ Item {
                 font.pixelSize: Tokens.fMicro; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "DESKTOP"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("DESKTOP"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: Tokens.fTiny; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -477,7 +477,7 @@ Item {
             Text {
                 id: title
                 anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                text: "Fastfetch"; color: Tokens.ink
+                text: I18n.tr("Fastfetch"); color: Tokens.ink
                 font.family: Tokens.display; font.pixelSize: Tokens.fTitle
             }
             // the page's one utility action (section 8): open the raw config the
@@ -485,7 +485,7 @@ Item {
             Btn {
                 id: editBtn
                 anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                text: "EDIT CONFIG"
+                text: I18n.tr("EDIT CONFIG")
                 onAct: pg.openConfig()
 
                 HoverHandler { id: editHov; cursorShape: Qt.PointingHandCursor }
@@ -493,7 +493,7 @@ Item {
                     id: editTip
                     visible: editHov.hovered
                     delay: 300
-                    text: "Opens the fastfetch readout config (config.jsonc) directly. Yours; the Hub writes your changes here too."
+                    text: I18n.tr("Opens the fastfetch readout config (config.jsonc) directly. Yours; the Hub writes your changes here too.")
                     contentItem: Text {
                         width: 260
                         text: editTip.text
@@ -510,7 +510,7 @@ Item {
 
         Text {
             width: Math.min(parent.width, 720)
-            text: "The branded terminal readout: pick the emblem (an image, ASCII art, or a built-in), choose what shows, reorder and rename the rows, and edit the tagline, with a live preview."
+            text: I18n.tr("The branded terminal readout: pick the emblem (an image, ASCII art, or a built-in), choose what shows, reorder and rename the rows, and edit the tagline, with a live preview.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -539,7 +539,7 @@ Item {
                 id: pvLabel
                 anchors.left: parent.left; anchors.top: parent.top
                 anchors.leftMargin: Tokens.s4; anchors.topMargin: Tokens.s4
-                text: "READOUT PREVIEW"
+                text: I18n.tr("READOUT PREVIEW")
                 color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                 font.letterSpacing: Tokens.trackMark
@@ -603,7 +603,7 @@ Item {
                                 border.color: Tokens.line
                                 Text {
                                     anchors.centerIn: parent
-                                    text: pg.model.logo.kind === "ascii" ? "TXT" : "\uf303"
+                                    text: pg.model.logo.kind === "ascii" ? I18n.tr("TXT") : "\uf303"
                                     color: Tokens.inkFaint
                                     font.family: Tokens.mono
                                     font.pixelSize: pg.model.logo.kind === "builtin" ? 30 : 12
@@ -655,14 +655,14 @@ Item {
                 Btn {
                     anchors.left: parent.left; anchors.leftMargin: Tokens.s4
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "PREVIEW IN TERMINAL"
+                    text: I18n.tr("PREVIEW IN TERMINAL")
                     onAct: pg.previewInTerminal()
                 }
                 Text {
                     anchors.right: parent.right; anchors.rightMargin: Tokens.s4
                     anchors.verticalCenter: parent.verticalCenter
                     visible: pg.model.logo.kind === "image"
-                    text: "kitty shows the real logo"
+                    text: I18n.tr("kitty shows the real logo")
                     color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 }
             }
@@ -689,7 +689,7 @@ Item {
                     width: parent.width
                     spacing: Tokens.s3
 
-                    SectionHead { label: "EMBLEM" }
+                    SectionHead { label: I18n.tr("EMBLEM") }
 
                     Seg {
                         options: ["Image", "ASCII", "Built-in", "None"]
@@ -736,13 +736,13 @@ Item {
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "YOUR IMAGE"; color: Tokens.inkMuted
+                                        text: I18n.tr("YOUR IMAGE"); color: Tokens.inkMuted
                                         font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                                         font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
                                     }
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "browse or drop"; color: Tokens.inkFaint
+                                        text: I18n.tr("browse or drop"); color: Tokens.inkFaint
                                         font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                                     }
                                 }
@@ -793,7 +793,7 @@ Item {
                         visible: pg.model.logo.kind === "ascii"
                         Btn {
                             anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                            text: "CHOOSE .TXT"; onAct: asciiDlg.open()
+                            text: I18n.tr("CHOOSE .TXT"); onAct: asciiDlg.open()
                         }
                     }
 
@@ -804,7 +804,7 @@ Item {
                         Btn {
                             id: openFileBtn
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            text: "OPEN FILE"; onAct: pg.openLogoFile()
+                            text: I18n.tr("OPEN FILE"); onAct: pg.openLogoFile()
                         }
                         Text {
                             anchors.left: parent.left; anchors.right: openFileBtn.left; anchors.rightMargin: Tokens.s3
@@ -826,27 +826,27 @@ Item {
                             visible: pg.model.logo.kind === "image"
                             Text {
                                 anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                                text: "SIZE"; color: Tokens.inkMuted; font.family: Tokens.ui
+                                text: I18n.tr("SIZE"); color: Tokens.inkMuted; font.family: Tokens.ui
                                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                                 font.letterSpacing: Tokens.trackLabel; font.capitalization: Font.AllUppercase
                             }
                             Btn {
                                 anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                                text: "AUTO FIT"; onAct: pg.autoFit()
+                                text: I18n.tr("AUTO FIT"); onAct: pg.autoFit()
                             }
                         }
                         NumRow {
-                            label: "Width"; unit: "col"; from: 0; to: 80
+                            label: I18n.tr("Width"); unit: "col"; from: 0; to: 80
                             value: pg.model.logo.width
                             onModified: (v) => pg.setLogo("width", v)
                         }
                         NumRow {
-                            label: "Height"; unit: "col"; from: 0; to: 60
+                            label: I18n.tr("Height"); unit: "col"; from: 0; to: 60
                             value: pg.model.logo.height
                             onModified: (v) => pg.setLogo("height", v)
                         }
                         NumRow {
-                            label: "Pad"; unit: "col"; from: 0; to: 20
+                            label: I18n.tr("Pad"); unit: "col"; from: 0; to: 20
                             value: pg.model.logo.padding
                             onModified: (v) => pg.setLogo("padding", v)
                         }
@@ -856,7 +856,7 @@ Item {
                         width: Math.min(parent.width, 560)
                         wrapMode: Text.WordWrap
                         visible: pg.model.logo.kind === "image"
-                        text: "Pick a ready emblem, or drop your own (PNG, JPG, WEBP; an SVG is rasterized to PNG on import). Square art reads best; it draws with the kitty graphics protocol in kitty, chafa elsewhere. Size is in terminal character cells."
+                        text: I18n.tr("Pick a ready emblem, or drop your own (PNG, JPG, WEBP; an SVG is rasterized to PNG on import). Square art reads best; it draws with the kitty graphics protocol in kitty, chafa elsewhere. Size is in terminal character cells.")
                         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                     }
                 }
@@ -866,7 +866,7 @@ Item {
                     width: parent.width
                     spacing: Tokens.s3
 
-                    SectionHead { label: "ACCENT" }
+                    SectionHead { label: I18n.tr("ACCENT") }
 
                     // the readout accent is a colour the user is choosing, so its
                     // swatch is a specimen (section 1): it is allowed to be itself.
@@ -875,7 +875,7 @@ Item {
                         height: 30
                         Text {
                             anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                            text: "READOUT ACCENT"
+                            text: I18n.tr("READOUT ACCENT")
                             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                             font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
                         }
@@ -921,7 +921,7 @@ Item {
                             spacing: Tokens.s2
                             Rectangle { width: 4; height: 4; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
                             Text {
-                                text: "INFO"; color: Tokens.ink; font.family: Tokens.ui
+                                text: I18n.tr("INFO"); color: Tokens.ink; font.family: Tokens.ui
                                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                                 font.letterSpacing: Tokens.trackMark
                                 anchors.verticalCenter: parent.verticalCenter
@@ -1054,7 +1054,7 @@ Item {
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: pg.dirty ? "Unsaved changes" : "Saved \u00b7 config.jsonc"
+                text: pg.dirty ? I18n.tr("Unsaved changes") : I18n.tr("Saved \u00b7 config.jsonc")
                 color: pg.dirty ? Tokens.ink : Tokens.inkMuted
                 font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; font.weight: Font.Medium
             }
@@ -1064,9 +1064,9 @@ Item {
             anchors.right: parent.right; anchors.rightMargin: Tokens.s6
             anchors.verticalCenter: parent.verticalCenter
             spacing: Tokens.s3
-            Btn { text: "REVERT"; armed: pg.dirty; onAct: pg.revert() }
+            Btn { text: I18n.tr("REVERT"); armed: pg.dirty; onAct: pg.revert() }
             // the armed primary inverts to bone while dirty; Save writes config.jsonc.
-            Btn { text: "SAVE"; primary: true; armed: pg.dirty; onAct: pg.save() }
+            Btn { text: I18n.tr("SAVE"); primary: true; armed: pg.dirty; onAct: pg.save() }
         }
     }
 
@@ -1084,7 +1084,7 @@ Item {
         Picker {
             id: addPicker
             anchors.centerIn: parent
-            title: "Add a row"
+            title: I18n.tr("Add a row")
             options: pg.addLabels()
             current: ""
             onChose: (label) => { pg.addFromLabel(label); pg.addOpen = false; }

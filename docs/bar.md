@@ -13,7 +13,7 @@ Ryoku Settings drives the bar through `Config`:
 - `barEnabled` on/off; `barPosition` is **top** or **bottom** (left/right were
   dropped, so anything but `bottom` reads as top).
 - `barStyle` the skin. `noctalia` and `caelestia` are carried from the credited
-  reference shells; `aegis`, `stele`, `triptych`, `delos` and `nacre` are Ryoku's own; `inir` / `aurora` / `angel` are flat frame-off skins ported from snowarch's iNiR; `washi` is the floating warping pill ported from Gakuseei's Ricelin (which Ryoku forked from); and `atoll` is the floating multi-island bar ported from ilyamiro's nixos-configuration:
+  reference shells; `aegis`, `stele`, `triptych`, `delos` and `nacre` are Ryoku's own; `inir` / `aurora` / `angel` are flat frame-off skins ported from snowarch's iNiR; `washi` is the floating warping pill ported from Gakuseei's Ricelin (which Ryoku forked from); `atoll` is the floating multi-island bar ported from ilyamiro's nixos-configuration; and `dyad` is the dual-edge floating-island bar ported from Jules3182's dotfiles:
   - **`noctalia`** fully rounded capsule modules in a row; dot workspaces whose
     active dot widens into an accent lozenge with its number; the stacked clock.
   - **`caelestia`** the numbered workspace cell strip inside one container pill
@@ -58,6 +58,16 @@ Ryoku Settings drives the bar through `Config`:
     an hourly weather sun-arc, the 10-band EQ music player, the liquid-fill system
     cards, the battery ring with session controls, and the volume orb. Frame-off,
     so the islands float and the frame edge does not swell.
+  - **`dyad`** Jules3182's dual-edge floating-island bar, ported frame-off: dark
+    islands ride the top AND bottom screen edges at once. Top: a launcher chip,
+    the focused window title, a centred day/time/date, and calendar / clipboard /
+    weather / network / bluetooth / volume / power. Bottom: live CPU / RAM / GPU /
+    net throughput, the occupied-workspace grid, and now-playing. Every module
+    taps our own popouts, grown from the module's own edge. `dyadVariant` picks
+    the surface: `faithful` (dark translucent capsules, the reference) or `ryoku`
+    (grainy paper-black square chips, bone ink, Space Grotesk). Frame-off like
+    atoll, so the islands float and neither edge swells; both strips reserve their
+    band so windows tuck under the islands rather than behind them.
 - `barHeight` and `fontScale` size it. Everything scales off `s =
   monitor.height / 1080 x fontScale` (clamped 0.7-1.6). The band the frame swells
   by is `barBand = barHeight x s`; modules size against `moduleSpan =

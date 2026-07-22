@@ -210,7 +210,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: sh.label; color: Tokens.ink; font.family: Tokens.ui
+                text: I18n.tr(sh.label); color: Tokens.ink; font.family: Tokens.ui
                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                 font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
@@ -244,18 +244,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "SYSTEM"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Dictation"; color: Tokens.ink
+            text: I18n.tr("Dictation"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Switch voice typing on, pick a speech-to-text engine and model, download models in place, and add an API key for the cloud engine."
+            text: I18n.tr("Switch voice typing on, pick a speech-to-text engine and model, download models in place, and add an API key for the cloud engine.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -282,7 +282,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
-                text: "Voxtype isn't installed"
+                text: I18n.tr("Voxtype isn't installed")
                 color: Tokens.ink
                 font.family: Tokens.ui; font.pixelSize: Tokens.fRow; font.weight: Font.DemiBold
             }
@@ -290,14 +290,14 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
-                text: "Voice dictation needs the voxtype-bin package. GlazePKG opens a terminal to confirm the install, and this page fills in once it finishes."
+                text: I18n.tr("Voice dictation needs the voxtype-bin package. GlazePKG opens a terminal to confirm the install, and this page fills in once it finishes.")
                 color: Tokens.inkMuted
                 font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
             }
             Text {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
-                text: "About 600 MB for the engine and runtimes, before any model."
+                text: I18n.tr("About 600 MB for the engine and runtimes, before any model.")
                 color: Tokens.inkFaint
                 font.family: Tokens.mono; font.pixelSize: Tokens.fMicro
             }
@@ -307,7 +307,7 @@ Item {
                 Btn {
                     id: installBtn
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Install Voxtype"
+                    text: I18n.tr("Install Voxtype")
                     primary: true
                     onAct: pg.installVoxtype()
                 }
@@ -357,14 +357,14 @@ Item {
                     width: parent.width
                     spacing: Tokens.s3
 
-                    SectionHead { width: parent.width; label: "DICTATION" }
+                    SectionHead { width: parent.width; label: I18n.tr("DICTATION") }
 
                     Item {
                         width: Math.min(parent.width, 460)
                         height: Tokens.rowH
                         Text {
                             anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                            text: "Voice typing"
+                            text: I18n.tr("Voice typing")
                             color: Tokens.ink
                             font.family: Tokens.ui; font.pixelSize: Tokens.fRow
                         }
@@ -381,10 +381,10 @@ Item {
                         width: parent.width
                         wrapMode: Text.WordWrap
                         text: (pg.voiceOn || pg.usable)
-                            ? "Tap Super+` to dictate into whatever app has focus; tap again to stop. The pill grows a live mic wave while you speak."
+                            ? I18n.tr("Tap Super+` to dictate into whatever app has focus; tap again to stop. The pill grows a live mic wave while you speak.")
                             : (pg.sel && pg.sel.cloud
-                                ? "Add an API key below before you can switch this on."
-                                : "Download a model below before you can switch this on.")
+                                ? I18n.tr("Add an API key below before you can switch this on.")
+                                : I18n.tr("Download a model below before you can switch this on."))
                         // calm guidance recedes to inkMuted; a call-to-action (you
                         // must download/add a key first) brightens to ink, since
                         // there is no colour to raise the alarm with.
@@ -398,7 +398,7 @@ Item {
                     width: parent.width
                     spacing: Tokens.s3
 
-                    SectionHead { width: parent.width; label: "ENGINE & MODEL" }
+                    SectionHead { width: parent.width; label: I18n.tr("ENGINE & MODEL") }
 
                     Column {
                         width: parent.width
@@ -442,7 +442,7 @@ Item {
                                         width: parent.width
                                         spacing: Tokens.s2
                                         Text {
-                                            text: card.modelData.label
+                                            text: I18n.tr(card.modelData.label)
                                             color: card.active ? Tokens.ink : Tokens.inkDim
                                             font.family: Tokens.ui
                                             font.pixelSize: Tokens.fBody
@@ -452,9 +452,9 @@ Item {
                                             anchors.verticalCenter: parent.verticalCenter
                                             // provider . size . status is file-truth chrome, so mono.
                                             text: card.modelData.provider + "  \u00b7  " + card.modelData.size
-                                                + (card.busy ? "  \u00b7  downloading\u2026"
+                                                + (card.busy ? I18n.tr("  \u00b7  downloading\u2026")
                                                     : (card.modelData.cloud ? ""
-                                                        : (card.modelData.present ? "  \u00b7  downloaded" : "  \u00b7  not downloaded")))
+                                                        : (card.modelData.present ? I18n.tr("  \u00b7  downloaded") : I18n.tr("  \u00b7  not downloaded"))))
                                             color: (card.busy || (!card.modelData.cloud && !card.modelData.present)) ? Tokens.ink : Tokens.inkFaint
                                             font.family: Tokens.mono
                                             font.pixelSize: Tokens.fTiny
@@ -588,14 +588,14 @@ Item {
                     visible: pg.needsKey
                     spacing: Tokens.s3
 
-                    SectionHead { width: parent.width; label: "API KEY" }
+                    SectionHead { width: parent.width; label: I18n.tr("API KEY") }
 
                     Text {
                         width: parent.width
                         wrapMode: Text.WordWrap
                         text: pg.keyOnFile
-                            ? "A key is saved. Enter a new one to replace it."
-                            : "This cloud engine needs an API key. It is stored locally in your Voxtype config."
+                            ? I18n.tr("A key is saved. Enter a new one to replace it.")
+                            : I18n.tr("This cloud engine needs an API key. It is stored locally in your Voxtype config.")
                         // a saved key is a settled state (recedes); a missing key is
                         // the call to action (brightens).
                         color: pg.keyOnFile ? Tokens.inkMuted : Tokens.ink
@@ -609,7 +609,7 @@ Item {
                         Btn {
                             id: saveKeyBtn
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            text: "Save key"
+                            text: I18n.tr("Save key")
                             primary: true
                             onAct: { pg.saveKey(keyInput.text); keyInput.text = ""; }
                         }
@@ -647,7 +647,7 @@ Item {
                                     anchors.fill: parent
                                     verticalAlignment: Text.AlignVCenter
                                     visible: keyInput.text.length === 0
-                                    text: "OpenAI API key"
+                                    text: I18n.tr("OpenAI API key")
                                     color: Tokens.inkMuted
                                     font: keyInput.font
                                     elide: Text.ElideRight
@@ -669,17 +669,17 @@ Item {
                     width: parent.width
                     spacing: Tokens.s3
 
-                    SectionHead { width: parent.width; label: "PACKAGE" }
+                    SectionHead { width: parent.width; label: I18n.tr("PACKAGE") }
 
                     Text {
                         width: parent.width
                         wrapMode: Text.WordWrap
-                        text: "Voxtype is installed (voxtype-bin). Removing it uninstalls the package; your engine choice and downloaded models stay on disk."
+                        text: I18n.tr("Voxtype is installed (voxtype-bin). Removing it uninstalls the package; your engine choice and downloaded models stay on disk.")
                         color: Tokens.inkMuted
                         font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                     }
                     Btn {
-                        text: "Remove Voxtype"
+                        text: I18n.tr("Remove Voxtype")
                         onAct: pg.removeVoxtype()
                     }
                 }
@@ -707,7 +707,7 @@ Item {
                         Text {
                             id: errTagLab
                             anchors.centerIn: parent
-                            text: "ERROR"
+                            text: I18n.tr("ERROR")
                             color: Tokens.inkOnBone
                             font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                             font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
@@ -734,7 +734,7 @@ Item {
                     title: "\u97f3\u58f0"
                     sub: "\u30dc\u30a4\u30b9"
                     tate: "\u58f0\u3092\u6587\u5b57\u306b"
-                    caption: "Speak, and the words land in whatever app has focus."
+                    caption: I18n.tr("Speak, and the words land in whatever app has focus.")
                     code: "VOICE-02"
                     seal: "\u58f0"
                     seed: 8
@@ -760,10 +760,10 @@ Item {
         visible: pg.width - width - Tokens.s7 >= 460
         code: "MIC-02"
         title: "\u30de\u30a4\u30af"
-        sub: "RIBBON \u00b7 1938"
+        sub: I18n.tr("RIBBON \u00b7 1938")
         chapter: "02"
-        label: "SYSTEM"
-        quote: "SPEAK, AND IT LISTENS."
+        label: I18n.tr("SYSTEM")
+        quote: I18n.tr("SPEAK, AND IT LISTENS.")
         seal: "\u97f3"
         art: "mic.png"
     }

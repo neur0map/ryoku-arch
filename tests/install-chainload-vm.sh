@@ -1,21 +1,25 @@
 #!/usr/bin/env bash
-# REAL QEMU+OVMF boot test for the alongside boot chain (bootloader.sh). Two
-# failures hide behind unit tests: the P0 dual-boot panic ("efi: Failed to open
-# image", a uuid() chainload to Limine's OWN boot volume) and the fact that
-# Limine 12.4.0 will NOT resolve guid(<GPT-PARTUUID>) to a FAT volume under OVMF
-# (see the matrix in .superpowers/sdd/diskesp-hw-report.md) -- so the real
-# limine.conf addresses kernels by FAT label. This boots the REAL generated conf
-# under real Limine + edk2 OVMF and proves BOTH menu legs:
+# REAL QEMU+OVMF boot test for the alongside TWO-STAGE limine chain (bootloader.sh).
+# The design (VM-proven; evidence at .superpowers/sdd/twostage-report.md) is: a
+# STATIC stage-1 hop beside our BOOTX64.EFI on the shared ESP chainloads a
+# second-stage limine on our own XBOOTLDR /boot (FAT label RYOKUBOOT), where the
+# tool-managed menu lives with correct binary-relative paths. Two failure classes
+# hide behind unit tests; both are proven here under real Limine + edk2 OVMF:
 #
-#   1. GENERATOR (static): ryoku_boot_alongside_conf emits the Windows entry as
-#      boot(): (protocol efi, same-volume) and the kernel as fslabel(RYOKUBOOT).
-#   2. RYOKU (live): Limine loads a kernel by fslabel(RYOKUBOOT) off the XBOOTLDR
-#      /boot -- a DIFFERENT volume than the loader. Success = the kernel runs (it
-#      VFS-panics with no root, which is past volume resolution + handoff).
-#   3. WINDOWS CHAINLOAD (live): the /Windows entry chainloads boot():/EFI/
-#      Microsoft/Boot/bootmgfw.efi. bootmgfw is a stub Limine that boots a marker
-#      kernel, so if boot(): OPENED the image the kernel runs; the bug would panic
-#      with "Failed to open image" and never reach it.
+#   1. GENERATOR (static): ryoku_stage1_hop_text emits a timeout-0 efi_chainload to
+#      fslabel(RYOKUBOOT):/ryoku-limine.efi and nothing else; ryoku_alongside_conf_text
+#      emits the kernel by fslabel(RYOKUBOOT) and the existing OS by guid(<ESP PARTUUID>)
+#      efi_chainload -- never a boot():/EFI cross-volume path (boot() on the XBOOTLDR
+#      is NOT the shared ESP).
+#   2. TWO-STAGE RYOKU (live): OVMF -> stage-1 hop -> second-stage limine on the
+#      XBOOTLDR -> kernel by fslabel(RYOKUBOOT). Limine 12.4.0 will NOT resolve a
+#      guid(<GPT-PARTUUID>) KERNEL path to a FAT volume under OVMF (see the matrix in
+#      .superpowers/sdd/diskesp-hw-report.md), so kernels stay addressed by FAT label.
+#   3. WINDOWS CHAINLOAD (live): the second-stage limine's /Windows entry chainloads
+#      guid(<ESP PARTUUID>):/EFI/Microsoft/Boot/bootmgfw.efi -- a genuine cross-volume
+#      efi_chainload (XBOOTLDR -> shared ESP). bootmgfw is a stub Limine that boots a
+#      marker kernel, so a failure to resolve guid() or open the image would panic
+#      instead of ever reaching the kernel.
 #
 # a Linux kernel with console=ttyS0 is the headless marker: Limine renders to the
 # GOP, not serial, but the kernel it hands off to prints to ttyS0 (QEMU -serial).
@@ -105,36 +109,43 @@ run_qemu() {
 KERNEL_RAN='Unable to mount root|Kernel panic|Linux version'
 LIMINE_FAILED='Failed to open (image|volume)|Failed to load'
 
-# ── build the fixture disk: ESP (ef00) + XBOOTLDR (ea00, FAT label RYOKUBOOT) ──
+# ── build the fixture disk: ESP (ef00, label ESP) + XBOOTLDR (ea00, RYOKUBOOT) ──
 truncate -s 220M "$img"
 sgdisk -n 1:2048:+80M -t 1:ef00 -c 1:"EFI system partition" \
        -n 2:0:0       -t 2:ea00 -c 2:ryokuboot "$img" >/dev/null
 attach
 mkfs.vfat -F32 -n ESP "$esp" >/dev/null 2>&1
 mkfs.vfat -F32 -n "$LABEL" "$xboot" >/dev/null 2>&1
+esp_partuuid="$(blkid -o value -s PARTUUID "$esp")"
+detach
+[[ -n $esp_partuuid ]] || fail "could not read the shared ESP PARTUUID for the guid() chainload"
 
-# 1. GENERATOR: the real ryoku_boot_alongside_conf output (dry-run prints it).
-gen="$(
-  RYOKU_DRYRUN=1 RYOKU_REPO=/nonexistent CMDLINE="root=UUID=test rw" ESP_DEV="$xboot" bash -c '
-    source "'"$root"'/installation/backend/lib/common.sh"
-    source "'"$root"'/installation/backend/lib/disk.sh"
-    source "'"$root"'/installation/backend/lib/bootloader.sh"
-    ryoku_boot_alongside_conf
-  '
-)"
-grep -qF 'path: boot():/EFI/Microsoft/Boot/bootmgfw.efi' <<<"$gen" \
-  || fail "generator: Windows entry is not the same-volume boot(): form"
-grep -qF 'protocol: efi_chainload' <<<"$gen" \
-  && fail "generator: Windows entry uses efi_chainload (uuid cross-volume) -- would panic"
-grep -qF "kernel_path: fslabel($LABEL):/vmlinuz-linux" <<<"$gen" \
-  || fail "generator: kernel is not addressed by fslabel($LABEL)"
-echo "  generator: Windows -> boot():, kernel -> fslabel($LABEL) [ok]"
+# 1. GENERATOR: the real two-stage output (dry-run prints it; no disk needed).
+hop="$(RYOKU_REPO=/nonexistent CMDLINE='root=UUID=test rw' ROOT="$root" bash -c '
+  source "$ROOT/installation/backend/lib/common.sh"
+  source "$ROOT/installation/backend/lib/disk.sh"
+  source "$ROOT/installation/backend/lib/bootloader.sh"
+  ryoku_stage1_hop_text')"
+gen="$(RYOKU_REPO=/nonexistent CMDLINE='root=UUID=test rw' ROOT="$root" PU="$esp_partuuid" bash -c '
+  source "$ROOT/installation/backend/lib/common.sh"
+  source "$ROOT/installation/backend/lib/disk.sh"
+  source "$ROOT/installation/backend/lib/bootloader.sh"
+  ryoku_alongside_conf_text windows /EFI/Microsoft/Boot/bootmgfw.efi "$PU"')"
+grep -qxF 'timeout: 0' <<<"$hop" || fail "generator: stage-1 hop is not timeout 0"
+grep -qF "image_path: fslabel($LABEL):/ryoku-limine.efi" <<<"$hop" || fail "generator: stage-1 hop does not chainload the second-stage limine by fslabel($LABEL)"
+grep -qF "kernel_path: fslabel($LABEL):/vmlinuz-linux" <<<"$gen" || fail "generator: stage-2 kernel is not addressed by fslabel($LABEL)"
+grep -qF "image_path: guid($esp_partuuid):/EFI/Microsoft/Boot/bootmgfw.efi" <<<"$gen" || fail "generator: stage-2 Windows is not a guid() efi_chainload"
+grep -qF 'boot():/EFI' <<<"$gen" && fail "generator: stage-2 conf used a boot():/EFI cross-volume path"
+echo "  generator: hop -> fslabel($LABEL) second stage; stage-2 kernel fslabel, Windows guid() [ok]"
 
-# stage the kernel on both volumes + the stub "Windows" bootmgfw + fallback loader.
-put "$xboot" vmlinuz-linux "$KERNEL"
-put "$esp" vmlinuz-linux "$KERNEL"
-put "$esp" EFI/Microsoft/Boot/bootmgfw.efi "$LIMINE"
-put "$esp" EFI/BOOT/BOOTX64.EFI "$LIMINE"
+# ── stage the binaries for the live boot chain ──
+attach
+put "$xboot" ryoku-limine.efi "$LIMINE"               # the second-stage limine
+put "$xboot" vmlinuz-linux "$KERNEL"                  # the Ryoku kernel (fslabel target)
+put "$esp" EFI/BOOT/BOOTX64.EFI "$LIMINE"             # the OVMF-booted stage-1 limine
+put "$esp" EFI/Microsoft/Boot/bootmgfw.efi "$LIMINE"  # stub "Windows" (a limine)
+put "$esp" vmlinuz-linux "$KERNEL"                    # marker kernel for the stub
+# the stub bootmgfw boots the marker kernel from its own (ESP) volume via boot().
 put "$esp" EFI/Microsoft/Boot/limine.conf - <<'EOF'
 timeout: 0
 default_entry: 1
@@ -146,8 +157,17 @@ default_entry: 1
 EOF
 detach
 
-# 2. RYOKU: Limine loads the kernel by fslabel(RYOKUBOOT) off the XBOOTLDR.
-set_boot_conf <<EOF
+# 2. TWO-STAGE RYOKU: OVMF -> hop (ESP) -> second-stage limine (XBOOTLDR) -> kernel.
+attach
+put "$esp" EFI/BOOT/limine.conf - <<EOF
+timeout: 0
+default_entry: 1
+
+/Ryoku
+    protocol: efi_chainload
+    image_path: fslabel($LABEL):/ryoku-limine.efi
+EOF
+put "$xboot" limine.conf - <<EOF
 timeout: 0
 default_entry: 1
 verbose: yes
@@ -157,26 +177,31 @@ verbose: yes
     kernel_path: fslabel($LABEL):/vmlinuz-linux
     cmdline: console=ttyS0 RYOKU_FSLABEL_OK panic=-1
 EOF
+detach
 outA="$(run_qemu)"
-grep -qiE "$LIMINE_FAILED" <<<"$outA" && fail "ryoku entry: Limine could not open the kernel by fslabel() -- $(grep -iE "$LIMINE_FAILED" <<<"$outA" | head -1)"
-grep -qiE "$KERNEL_RAN" <<<"$outA" || fail "ryoku entry: the kernel never ran (fslabel($LABEL) did not resolve); serial tail: $(tail -c 300 <<<"$outA")"
-echo "  ryoku entry: kernel booted from fslabel($LABEL) [ok]"
+grep -qiE "$LIMINE_FAILED" <<<"$outA" && fail "two-stage ryoku: Limine could not resolve the chain -- $(grep -iE "$LIMINE_FAILED" <<<"$outA" | head -1)"
+grep -qiE "$KERNEL_RAN" <<<"$outA" || fail "two-stage ryoku: the kernel never ran (hop -> second stage -> fslabel($LABEL) did not complete); serial tail: $(tail -c 300 <<<"$outA")"
+echo "  two-stage ryoku: hop -> XBOOTLDR limine -> kernel by fslabel($LABEL) [ok]"
 
-# 3. WINDOWS CHAINLOAD: the real boot(): /Windows entry opens the stub bootmgfw.
-set_boot_conf <<'EOF'
+# 3. WINDOWS CHAINLOAD: the second-stage limine chainloads the stub bootmgfw by
+# guid(<ESP PARTUUID>) -- a genuine XBOOTLDR -> shared-ESP cross-volume efi_chainload.
+# the hop at ESP EFI/BOOT/limine.conf from leg 2 stays; only the XBOOTLDR menu changes.
+attach
+put "$xboot" limine.conf - <<EOF
 timeout: 0
 default_entry: 1
 verbose: yes
 
 /Windows
-    comment: Boot into Windows
-    protocol: efi
-    path: boot():/EFI/Microsoft/Boot/bootmgfw.efi
+    protocol: efi_chainload
+    image_path: guid($esp_partuuid):/EFI/Microsoft/Boot/bootmgfw.efi
+    comment: Windows Boot Manager
 EOF
+detach
 outB="$(run_qemu)"
-grep -qiE 'Failed to open image' <<<"$outB" && fail "windows chainload: PANIC 'Failed to open image' -- the bug is back"
-grep -qiE "$LIMINE_FAILED" <<<"$outB" && fail "windows chainload: Limine could not open the stub -- $(grep -iE "$LIMINE_FAILED" <<<"$outB" | head -1)"
-grep -qiE "$KERNEL_RAN" <<<"$outB" || fail "windows chainload: boot():/ never handed off to the stub; serial tail: $(tail -c 300 <<<"$outB")"
-echo "  windows chainload: boot():/ opened the stub, no panic [ok]"
+grep -qiE 'Failed to open image' <<<"$outB" && fail "windows chainload: PANIC 'Failed to open image' -- the guid() cross-volume chainload broke"
+grep -qiE "$LIMINE_FAILED" <<<"$outB" && fail "windows chainload: Limine could not resolve guid($esp_partuuid) to the shared ESP -- $(grep -iE "$LIMINE_FAILED" <<<"$outB" | head -1)"
+grep -qiE "$KERNEL_RAN" <<<"$outB" || fail "windows chainload: the guid() chainload never handed off to the stub; serial tail: $(tail -c 300 <<<"$outB")"
+echo "  windows chainload: guid($esp_partuuid) opened the stub cross-volume, no panic [ok]"
 
 echo "install-chainload-vm: all checks passed"

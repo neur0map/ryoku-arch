@@ -16,6 +16,8 @@
 /ryoku/shell/plugin/dist/
 /release/repo/out/
 *.iso
+__pycache__/
+*.pyc
 
 # Isolated worktrees
 /.worktrees/

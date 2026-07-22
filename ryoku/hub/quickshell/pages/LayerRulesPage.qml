@@ -116,18 +116,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "ADVANCED"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("ADVANCED"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Layer Rules"; color: Tokens.ink
+            text: I18n.tr("Layer Rules"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Fine-tune layer-shell surfaces (the bar, launcher, notifications) by namespace: blur or dim them, drop their animations, or show them above the lockscreen. Applied on Save, not live; a namespace that matches nothing has no effect."
+            text: I18n.tr("Fine-tune layer-shell surfaces (the bar, launcher, notifications) by namespace: blur or dim them, drop their animations, or show them above the lockscreen. Applied on Save, not live; a namespace that matches nothing has no effect.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -149,7 +149,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "RULES"; color: Tokens.ink; font.family: Tokens.ui
+                text: I18n.tr("RULES"); color: Tokens.ink; font.family: Tokens.ui
                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                 font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
@@ -165,13 +165,13 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 // an entry count is file-truth chrome, so mono (DESIGN.md section 2).
-                text: pg.rules.length + (pg.rules.length === 1 ? " ENTRY" : " ENTRIES")
+                text: pg.rules.length + (pg.rules.length === 1 ? I18n.tr(" ENTRY") : I18n.tr(" ENTRIES"))
                 color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
                 // wipes every rule; Revert (shell action bar) is the only undo.
-                text: "CLEAR ALL"
+                text: I18n.tr("CLEAR ALL")
                 armed: pg.rules.length > 0
                 onAct: pg.clearAll()
             }
@@ -256,7 +256,7 @@ Item {
                                     anchors.rightMargin: Tokens.s2
                                     anchors.verticalCenter: parent.verticalCenter
                                     tabular: true
-                                    placeholder: "namespace  (e.g. launcher, overview, bar)"
+                                    placeholder: I18n.tr("namespace  (e.g. launcher, overview, bar)")
                                     text: rowItem.modelData.namespace || ""
                                     onCommitted: (v) => {
                                         if (v !== (rowItem.modelData.namespace || ""))
@@ -293,7 +293,7 @@ Item {
 
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: "ALPHA"
+                                    text: I18n.tr("ALPHA")
                                     color: Tokens.inkMuted; font.family: Tokens.ui
                                     font.pixelSize: Tokens.fTiny; font.weight: Font.Medium
                                     font.letterSpacing: Tokens.trackLabel
@@ -320,6 +320,6 @@ Item {
     Empty {
         anchors.centerIn: flick
         visible: pg.ready && pg.rules.length === 0
-        caption: "No custom layer rules yet. Add one to get started."
+        caption: I18n.tr("No custom layer rules yet. Add one to get started.")
     }
 }

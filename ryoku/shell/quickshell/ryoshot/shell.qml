@@ -370,37 +370,36 @@ ShellRoot {
     }
 
     function seamStitch(path, after) {
-        var slices = [];
+        var screens = [];
         for (var i = 0; i < overlays.length; i++) {
             var s = overlays[i].modelData;
-            var inter = Coords.intersectRect(globalSel, { x: s.x, y: s.y, width: s.width, height: s.height });
-            if (!inter) continue;
-            slices.push({
-                win: overlays[i],
-                tmp: "/tmp/ryoshot-seam-" + i + ".png",
-                ox: Math.round(s.x + inter.x - globalSel.x),
-                oy: Math.round(s.y + inter.y - globalSel.y)
-            });
+            screens.push({ x: s.x, y: s.y, width: s.width, height: s.height });
         }
-        if (slices.length === 0) { if (after) after(false); return; }
-        if (slices.length === 1) { slices[0].win.grabExport(path, after); return; }
-        var done = 0, okAll = true;
-        for (var j = 0; j < slices.length; j++) {
-            (function (sl) {
-                sl.win.grabExport(sl.tmp, function (ok) {
+        var plan = Coords.stitchPlan(globalSel, screens);
+        if (plan.slices.length === 0) { if (after) after(false); return; }
+        // one screen: grab it straight, at native resolution (crisp, no stitch).
+        if (plan.slices.length === 1) { overlays[plan.slices[0].screen].grabExport(path, after); return; }
+        // spanning: grab each slice at its LOGICAL size so mixed-scale monitors
+        // land on one logical canvas without a HiDPI slice overflowing the seam.
+        var parts = [], done = 0, okAll = true;
+        for (var j = 0; j < plan.slices.length; j++) {
+            (function (sl, idx) {
+                var tmp = "/tmp/ryoshot-seam-" + idx + ".png";
+                parts.push({ tmp: tmp, ox: sl.ox, oy: sl.oy });
+                overlays[sl.screen].grabExport(tmp, function (ok) {
                     if (!ok) okAll = false;
                     done += 1;
-                    if (done === slices.length) compositeSlices(slices, path, okAll, after);
-                });
-            })(slices[j]);
+                    if (done === plan.slices.length) root.compositeSlices(parts, plan.canvas, path, okAll, after);
+                }, Qt.size(Math.round(sl.local.w), Math.round(sl.local.h)));
+            })(plan.slices[j], j);
         }
     }
 
-    function compositeSlices(slices, path, okAll, after) {
+    function compositeSlices(parts, canvas, path, okAll, after) {
         if (!okAll) { console.log("ryoshot: seam-stitch slice grab failed"); if (after) after(false); return; }
-        var args = ["magick", "-size", Math.round(globalSel.w) + "x" + Math.round(globalSel.h), "xc:black"];
-        for (var i = 0; i < slices.length; i++)
-            args = args.concat([slices[i].tmp, "-geometry", "+" + slices[i].ox + "+" + slices[i].oy, "-composite"]);
+        var args = ["magick", "-size", canvas.w + "x" + canvas.h, "xc:black"];
+        for (var i = 0; i < parts.length; i++)
+            args = args.concat([parts[i].tmp, "-geometry", "+" + parts[i].ox + "+" + parts[i].oy, "-composite"]);
         args.push(path);
         stitchProc.runWith(args, after);
     }
@@ -731,7 +730,7 @@ ShellRoot {
 
             Component.onCompleted: root.overlays.push(win)
 
-            function grabExport(path, cb) { ov.grabExport(path, cb); }
+            function grabExport(path, cb, targetSize) { ov.grabExport(path, cb, targetSize); }
             function grabToolbar(path, cb) {
                 var sched = toolbar.grabToImage(function (r) {
                     var ok = false;

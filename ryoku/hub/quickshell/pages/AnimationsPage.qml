@@ -250,7 +250,7 @@ Item {
         property var opts: []
         property string current: ""
         property string ph: "select"
-        property string heading: "Select"
+        property string heading: I18n.tr("Select")
         signal picked(string key)
         signal activated()
         width: 132; height: Tokens.ctlH; radius: Tokens.radius
@@ -417,12 +417,12 @@ Item {
         Text {
             id: pvLabel
             anchors { left: parent.left; leftMargin: Tokens.s4; top: parent.top; topMargin: Tokens.s3 }
-            text: "PREVIEW"; color: Tokens.inkDim
+            text: I18n.tr("PREVIEW"); color: Tokens.inkDim
             font.family: Tokens.mono; font.pixelSize: Tokens.fMicro; font.letterSpacing: Tokens.trackMark
         }
         Text {
             anchors { right: parent.right; rightMargin: Tokens.s4; verticalCenter: pvLabel.verticalCenter }
-            text: "tap to replay"; color: Tokens.inkFaint
+            text: I18n.tr("tap to replay"); color: Tokens.inkFaint
             font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
         }
 
@@ -431,10 +431,10 @@ Item {
             anchors { left: parent.left; leftMargin: Tokens.s4; verticalCenter: parent.verticalCenter; verticalCenterOffset: Tokens.s2 }
             width: mv.leftW - Tokens.s4
             spacing: 2
-            Text { text: "CURVE"; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fMicro; font.letterSpacing: Tokens.trackMark }
+            Text { text: I18n.tr("CURVE"); color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fMicro; font.letterSpacing: Tokens.trackMark }
             Text {
                 width: parent.width
-                text: mv.label.length ? mv.label : "curve"
+                text: mv.label.length ? I18n.tr(mv.label) : "curve"
                 color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fBody; font.weight: Font.Medium; elide: Text.ElideRight
             }
             Text { text: mv.dur + " ms"; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny }
@@ -482,11 +482,11 @@ Item {
             }
             Text {
                 anchors { left: parent.left; top: parent.top; topMargin: mv.trackY + Tokens.s2 }
-                text: "START"; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fMicro; font.letterSpacing: Tokens.trackMark
+                text: I18n.tr("START"); color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fMicro; font.letterSpacing: Tokens.trackMark
             }
             Text {
                 anchors { right: parent.right; top: parent.top; topMargin: mv.trackY + Tokens.s2 }
-                text: "SETTLE"; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fMicro; font.letterSpacing: Tokens.trackMark
+                text: I18n.tr("SETTLE"); color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fMicro; font.letterSpacing: Tokens.trackMark
             }
         }
 
@@ -513,15 +513,15 @@ Item {
             Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
             Text { text: "力"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: Tokens.fMicro; anchors.verticalCenter: parent.verticalCenter }
             Text {
-                text: "DESKTOP"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("DESKTOP"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: Tokens.fTiny; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
-        Text { text: "Animations"; color: Tokens.ink; font.family: Tokens.display; font.pixelSize: Tokens.fTitle }
+        Text { text: I18n.tr("Animations"); color: Tokens.ink; font.family: Tokens.display; font.pixelSize: Tokens.fTitle }
         Text {
             width: Math.min(parent.width, 720)
-            text: "How the desktop moves. Pick a feel and watch it live, set the flash on the window that takes focus, and fine-tune any single animation under Advanced."
+            text: I18n.tr("How the desktop moves. Pick a feel and watch it live, set the flash on the window that takes focus, and fine-tune any single animation under Advanced.")
             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
         Item { width: 1; height: Tokens.s1 }
@@ -546,7 +546,7 @@ Item {
             Section {
                 id: gsec
                 width: col.width
-                title: "MOTION"
+                title: I18n.tr("MOTION")
                 visible: pg.gVisible || pg.cVisible
 
                 Column {
@@ -562,8 +562,8 @@ Item {
                             width: gsec.span(Spans.of("sw", 0))
                             controlWidth: 54
                             visible: pg.hit("animations master switch desktop motion")
-                            label: "Animations"
-                            desc: "Master switch for desktop motion; off, everything snaps into place"
+                            label: I18n.tr("Animations")
+                            desc: I18n.tr("Master switch for desktop motion; off, everything snaps into place")
                             unit: ""
                             value: pg.hv("appearance.animations") ? "ON" : "OFF"
                             def: pg.cv("appearance.animations") ? "ON" : "OFF"
@@ -583,7 +583,7 @@ Item {
                                 anchors.left: parent.left
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: Math.max(180, parent.width - newBtn.width - delBtn.width - 2 * Tokens.s2)
-                                heading: "Curve"
+                                heading: I18n.tr("Curve")
                                 ph: "no curves"
                                 opts: pg.curveNames()
                                 current: pg.selectedCurve
@@ -595,14 +595,14 @@ Item {
                                 anchors.right: delBtn.left
                                 anchors.rightMargin: Tokens.s2
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: "NEW"
+                                text: I18n.tr("NEW")
                                 onAct: pg.addCurve()
                             }
                             Btn {
                                 id: delBtn
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: pg.selectedIsCustom ? "DELETE" : "RESET"
+                                text: pg.selectedIsCustom ? I18n.tr("DELETE") : I18n.tr("RESET")
                                 armed: pg.selectedIsCustom || pg.selectedHasOverride
                                 onAct: pg.resetCurve(pg.selectedCurve)
                             }
@@ -616,7 +616,7 @@ Item {
                         Text {
                             id: feelLabel
                             anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-                            text: "FEEL"; color: Tokens.inkFaint
+                            text: I18n.tr("FEEL"); color: Tokens.inkFaint
                             font.family: Tokens.mono; font.pixelSize: Tokens.fMicro; font.letterSpacing: Tokens.trackMark
                         }
                         Row {
@@ -648,7 +648,7 @@ Item {
                         }
                         Text {
                             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                            text: "a one-tap starting point"; color: Tokens.inkFaint
+                            text: I18n.tr("a one-tap starting point"); color: Tokens.inkFaint
                             font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                         }
                     }
@@ -685,12 +685,12 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: Tokens.s3
 
-                            Text { text: "Fine-tune the handles."; color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
-                            Text { text: "P1   " + bez.x0.toFixed(2) + ", " + bez.y0.toFixed(2); color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: Tokens.fSmall }
-                            Text { text: "P2   " + bez.x1.toFixed(2) + ", " + bez.y1.toFixed(2); color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: Tokens.fSmall }
+                            Text { text: I18n.tr("Fine-tune the handles."); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                            Text { text: I18n.tr("P1   ") + bez.x0.toFixed(2) + ", " + bez.y0.toFixed(2); color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: Tokens.fSmall }
+                            Text { text: I18n.tr("P2   ") + bez.x1.toFixed(2) + ", " + bez.y1.toFixed(2); color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: Tokens.fSmall }
                             Text {
                                 width: 200
-                                text: "Presets set the shape; drag to fine-tune. Curves are shared by name, and Advanced animations reference them."
+                                text: I18n.tr("Presets set the shape; drag to fine-tune. Curves are shared by name, and Advanced animations reference them.")
                                 color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                             }
                         }
@@ -703,7 +703,7 @@ Item {
                             title: "\u6ed1\u3089\u304b"
                             sub: "\u30a4\u30fc\u30ba"
                             tate: "\u306a\u3081\u3089\u304b\u306b"
-                            caption: "Every motion here rides an easing curve, so nothing on the desktop just snaps into place."
+                            caption: I18n.tr("Every motion here rides an easing curve, so nothing on the desktop just snaps into place.")
                             code: "MOVE-02"; seal: "\u52d5"; boxId: "anim.motion"
                         }
                     }
@@ -714,7 +714,7 @@ Item {
             Section {
                 id: fsec
                 width: col.width
-                title: "FOCUS FLASH"
+                title: I18n.tr("FOCUS FLASH")
                 visible: pg.fVisible
 
                 readonly property bool ffOn: !!pg.hv("plugins.hyprfocus.enabled")
@@ -724,8 +724,8 @@ Item {
                     width: fsec.span(Spans.of("sw", 0))
                     controlWidth: 54
                     visible: pg.hit("animate the focused window enabled")
-                    label: "Animate the focused window"
-                    desc: "Short effect on the window that takes focus; applies on Save only"
+                    label: I18n.tr("Animate the focused window")
+                    desc: I18n.tr("Short effect on the window that takes focus; applies on Save only")
                     value: fsec.ffOn ? "ON" : "OFF"
                     def: pg.cv("plugins.hyprfocus.enabled") ? "ON" : "OFF"
                     changed: pg.chg("plugins.hyprfocus.enabled")
@@ -740,8 +740,8 @@ Item {
                     width: fsec.span(Spans.of("seg", 3))
                     controlWidth: 52 * 3
                     visible: fsec.ffOn && pg.hit("style flash bounce slide")
-                    label: "Style"
-                    desc: "Flash dips opacity, Bounce shrinks and springs, Slide nudges it"
+                    label: I18n.tr("Style")
+                    desc: I18n.tr("Flash dips opacity, Bounce shrinks and springs, Slide nudges it")
                     value: pg.cap(fsec.ffMode)
                     def: pg.cap(String(pg.cv("plugins.hyprfocus.mode")))
                     changed: pg.chg("plugins.hyprfocus.mode")
@@ -759,8 +759,8 @@ Item {
                     width: parent.width
                     controlWidth: Math.round(width * 0.42)
                     visible: fsec.ffOn && fsec.ffMode === "flash" && pg.hit("flash opacity")
-                    label: "Flash opacity"
-                    desc: "Opacity the flash dips to, lower is deeper; Flash style only"
+                    label: I18n.tr("Flash opacity")
+                    desc: I18n.tr("Opacity the flash dips to, lower is deeper; Flash style only")
                     unit: "%"
                     value: String(Math.round((Number(pg.hv("plugins.hyprfocus.opacity")) || 0) * 100))
                     def: String(Math.round((Number(pg.cv("plugins.hyprfocus.opacity")) || 0) * 100))
@@ -778,8 +778,8 @@ Item {
                     width: parent.width
                     controlWidth: Math.round(width * 0.42)
                     visible: fsec.ffOn && fsec.ffMode === "bounce" && pg.hit("bounce strength")
-                    label: "Bounce strength"
-                    desc: "Scale the window shrinks to, lower bounces harder; Bounce style only"
+                    label: I18n.tr("Bounce strength")
+                    desc: I18n.tr("Scale the window shrinks to, lower bounces harder; Bounce style only")
                     unit: "%"
                     value: String(Math.round((Number(pg.hv("plugins.hyprfocus.bounce")) || 0) * 100))
                     def: String(Math.round((Number(pg.cv("plugins.hyprfocus.bounce")) || 0) * 100))
@@ -797,8 +797,8 @@ Item {
                     width: parent.width
                     controlWidth: 58
                     visible: fsec.ffOn && fsec.ffMode === "slide" && pg.hit("slide height")
-                    label: "Slide height"
-                    desc: "How far the window hops, in pixels; Slide style only"
+                    label: I18n.tr("Slide height")
+                    desc: I18n.tr("How far the window hops, in pixels; Slide style only")
                     unit: "px"
                     value: String(Math.round(Number(pg.hv("plugins.hyprfocus.slide")) || 0))
                     def: String(Math.round(Number(pg.cv("plugins.hyprfocus.slide")) || 0))
@@ -814,7 +814,7 @@ Item {
                 Text {
                     width: parent.width
                     visible: fsec.ffOn
-                    text: "Briefly flashes, bounces, or slides a window when it gains focus. Applies on Save."
+                    text: I18n.tr("Briefly flashes, bounces, or slides a window when it gains focus. Applies on Save.")
                     color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                 }
             }
@@ -823,7 +823,7 @@ Item {
             Section {
                 id: asec
                 width: col.width
-                title: "ADVANCED"
+                title: I18n.tr("ADVANCED")
                 visible: pg.aVisible
 
                 Column {
@@ -833,13 +833,13 @@ Item {
 
                     Text {
                         width: parent.width
-                        text: "Per-animation control, for when a feel isn't enough. Each row is one desktop animation: turn it off, change its speed, its curve, or its style."
+                        text: I18n.tr("Per-animation control, for when a feel isn't enough. Each row is one desktop animation: turn it off, change its speed, its curve, or its style.")
                         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                     }
 
                     Text {
                         visible: pg.liveAnims.length === 0
-                        text: "No tunable animations reported."
+                        text: I18n.tr("No tunable animations reported.")
                         color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                     }
 
@@ -890,7 +890,7 @@ Item {
                                     id: styleP
                                     anchors.verticalCenter: parent.verticalCenter
                                     visible: ar.styleOpts.length > 0
-                                    heading: "Style"; ph: "style"
+                                    heading: I18n.tr("Style"); ph: "style"
                                     opts: ar.styleOpts
                                     current: String(ar.it.style || "")
                                     onActivated: pg.openPicker("Style", styleP.opts, styleP.current, function (k) { styleP.picked(k); })
@@ -899,7 +899,7 @@ Item {
                                 MiniPick {
                                     id: bezP
                                     anchors.verticalCenter: parent.verticalCenter
-                                    heading: "Curve"; ph: "curve"
+                                    heading: I18n.tr("Curve"); ph: "curve"
                                     opts: pg.curveNames()
                                     current: String(ar.it.bezier || "")
                                     onActivated: pg.openPicker("Curve", bezP.opts, bezP.current, function (k) { bezP.picked(k); })
@@ -920,12 +920,12 @@ Item {
         spacing: Tokens.s2
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "NO MATCH"; color: Tokens.inkDim; font.family: Tokens.ui
+            text: I18n.tr("NO MATCH"); color: Tokens.inkDim; font.family: Tokens.ui
             font.pixelSize: Tokens.fSmall; font.letterSpacing: 2
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "nothing here matches “" + pg.query + "”"
+            text: I18n.tr("nothing here matches “") + pg.query + "”"
             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
         }
     }
@@ -973,7 +973,7 @@ Item {
                     Item { width: parent.width - pkTitle.width - pkCount.width; height: 1 }
                     Text {
                         id: pkCount
-                        text: (pk.opts ? pk.opts.length : 0) + " ENTRIES"
+                        text: (pk.opts ? pk.opts.length : 0) + I18n.tr(" ENTRIES")
                         color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
                     }
                 }
@@ -996,7 +996,7 @@ Item {
                                 Behavior on color { ColorAnimation { duration: Tokens.snap } }
                                 Text {
                                     anchors { left: parent.left; leftMargin: Tokens.s2; right: dot.left; rightMargin: Tokens.s2; verticalCenter: parent.verticalCenter }
-                                    text: modelData.label
+                                    text: I18n.tr(modelData.label)
                                     elide: Text.ElideRight
                                     color: rh.hovered ? Tokens.inkOnBone : (modelData.key === pk.current ? Tokens.ink : Tokens.inkDim)
                                     font.family: Tokens.ui; font.pixelSize: Tokens.fSmall

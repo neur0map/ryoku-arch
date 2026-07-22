@@ -186,18 +186,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "ADD-ONS"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("ADD-ONS"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "Installed"; color: Tokens.ink
+            text: I18n.tr("Installed"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "The shell plugins you have installed. Open one to tune its options, choose where it sits, enable or remove it. Changes apply to your desktop live; browse and install more from the Store."
+            text: I18n.tr("The shell plugins you have installed. Open one to tune its options, choose where it sits, enable or remove it. Changes apply to your desktop live; browse and install more from the Store.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -208,7 +208,7 @@ Item {
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "拡張"
-        index: "04"; label: "ADD-ONS"
+        index: "04"; label: I18n.tr("ADD-ONS")
         glyph: "asanoha"; glyph2: "meander"
     }
 
@@ -259,7 +259,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     Text {
-                        text: "PLUGINS"; color: Tokens.ink; font.family: Tokens.ui
+                        text: I18n.tr("PLUGINS"); color: Tokens.ink; font.family: Tokens.ui
                         font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                         font.letterSpacing: Tokens.trackMark
                         anchors.verticalCenter: parent.verticalCenter
@@ -275,7 +275,7 @@ Item {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         // an entry count is file-truth chrome, so mono.
-                        text: pg.plugins.length + (pg.plugins.length === 1 ? " PLUGIN" : " PLUGINS")
+                        text: pg.plugins.length + (pg.plugins.length === 1 ? I18n.tr(" PLUGIN") : I18n.tr(" PLUGINS"))
                         color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
                     }
                     // re-scan installed plugins (installs happen in the Store).
@@ -376,7 +376,7 @@ Item {
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
                                     visible: card.upd !== ""
-                                    text: "UPDATE " + card.upd
+                                    text: I18n.tr("UPDATE ") + card.upd
                                     color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
                                 }
 
@@ -392,7 +392,7 @@ Item {
                                     Text {
                                         id: pip
                                         anchors.centerIn: parent
-                                        text: card.on ? "ON" : "OFF"
+                                        text: card.on ? I18n.tr("ON") : I18n.tr("OFF")
                                         color: card.on ? Tokens.inkOnBone : Tokens.inkFaint
                                         font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
                                         font.weight: Font.Medium; font.letterSpacing: 0.6
@@ -414,14 +414,14 @@ Item {
             Text {
                 anchors.centerIn: flick
                 visible: pg.loaded && pg.plugins.length === 0
-                text: "No add-ons installed. Open the Store to browse and install."
+                text: I18n.tr("No add-ons installed. Open the Store to browse and install.")
                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
             }
             // no-results state, when a search filters everything out.
             Text {
                 anchors.centerIn: flick
                 visible: pg.plugins.length > 0 && pg.shown.length === 0
-                text: "No add-ons match your search."
+                text: I18n.tr("No add-ons match your search.")
                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
             }
 
@@ -435,7 +435,7 @@ Item {
                 visible: pg.loaded && pg.shown.length > 0 && pg.query.trim() === "" && height > 140
                 title: "拡張"; sub: "アドオン"
                 tate: "力を継ぎ足す"
-                caption: "Plugins extend the shell: live surfaces you install from the Store."
+                caption: I18n.tr("Plugins extend the shell: live surfaces you install from the Store.")
                 readout: ["SOURCE|plugins.json", "APPLY|live", "SITS|frame · desktop", "SCOPE|per-plugin"]
                 code: "ADDON-04"; seal: "拡"; boxId: "addons.installed"; seed: 5; ditherFreq: 1.0
             }
@@ -486,14 +486,14 @@ Item {
                     Btn {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: detail.upd !== ""
-                        text: pg.busyId === detail.sel.id ? "UPDATING" : ("UPDATE " + detail.upd)
+                        text: pg.busyId === detail.sel.id ? I18n.tr("UPDATING") : (I18n.tr("UPDATE ") + detail.upd)
                         armed: pg.busyId === ""
                         onAct: pg.install(detail.sel.id)
                     }
                     // Remove: destructive, so it arms the confirm plate first.
                     Btn {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "REMOVE"
+                        text: I18n.tr("REMOVE")
                         onAct: pg.confirmRemove = true
                     }
                 }
@@ -549,7 +549,7 @@ Item {
                                 spacing: Tokens.s2
                                 Rectangle { width: 4; height: 4; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
                                 Text {
-                                    text: "PLACEMENT"; color: Tokens.ink; font.family: Tokens.ui
+                                    text: I18n.tr("PLACEMENT"); color: Tokens.ink; font.family: Tokens.ui
                                     font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                                     font.letterSpacing: Tokens.trackMark
                                     anchors.verticalCenter: parent.verticalCenter
@@ -568,7 +568,7 @@ Item {
                             width: parent.width; height: 30
                             Text {
                                 anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                                text: "Enabled"
+                                text: I18n.tr("Enabled")
                                 color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fBody
                             }
                             Sw {
@@ -584,7 +584,7 @@ Item {
                             visible: detail.hosts.length > 1
                             Text {
                                 anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                                text: "Show as"
+                                text: I18n.tr("Show as")
                                 color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fBody
                             }
                             Seg {
@@ -653,7 +653,7 @@ Item {
 
                                 Text {
                                     anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 10
-                                    text: "LIVE PLACEMENT"
+                                    text: I18n.tr("LIVE PLACEMENT")
                                     color: Tokens.inkFaint; font.family: Tokens.mono
                                     font.pixelSize: Tokens.fTiny; font.weight: Font.Medium
                                     font.letterSpacing: 2
@@ -748,7 +748,7 @@ Item {
                         Text {
                             width: parent.width
                             visible: detail.enabled && detail.host === "desktopWidget"
-                            text: "Desktop widgets are moved, resized and hidden on the wallpaper. Drag the tile, or right-click it for its menu."
+                            text: I18n.tr("Desktop widgets are moved, resized and hidden on the wallpaper. Drag the tile, or right-click it for its menu.")
                             color: Tokens.inkMuted; font.family: Tokens.ui
                             font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                         }
@@ -768,7 +768,7 @@ Item {
                                 spacing: Tokens.s2
                                 Rectangle { width: 4; height: 4; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
                                 Text {
-                                    text: "SETTINGS"; color: Tokens.ink; font.family: Tokens.ui
+                                    text: I18n.tr("SETTINGS"); color: Tokens.ink; font.family: Tokens.ui
                                     font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                                     font.letterSpacing: Tokens.trackMark
                                     anchors.verticalCenter: parent.verticalCenter
@@ -1055,7 +1055,7 @@ Item {
                                             anchors.right: parent.right; anchors.rightMargin: 9
                                             anchors.verticalCenter: parent.verticalCenter
                                             elide: Text.ElideLeft
-                                            text: ci.cur.length === 0 ? "Choose image\u2026" : ci.cur.replace(/^.*\//, "")
+                                            text: ci.cur.length === 0 ? I18n.tr("Choose image\u2026") : ci.cur.replace(/^.*\//, "")
                                             color: ci.cur.length === 0 ? Tokens.inkMuted : Tokens.ink
                                             font.family: ci.cur.length === 0 ? Tokens.ui : Tokens.mono
                                             font.pixelSize: ci.cur.length === 0 ? 12 : 11
@@ -1065,7 +1065,7 @@ Item {
                                     }
                                     FileDialog {
                                         id: ciDlg
-                                        title: "Choose an image"
+                                        title: I18n.tr("Choose an image")
                                         nameFilters: ["Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp)", "All files (*)"]
                                         onAccepted: form._set(ci.field.key, "" + ciDlg.selectedFile)
                                     }
@@ -1078,7 +1078,7 @@ Item {
                     Text {
                         width: parent.width
                         visible: detail.schema.length === 0
-                        text: "This add-on has no configurable settings."
+                        text: I18n.tr("This add-on has no configurable settings.")
                         color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                     }
                 }
@@ -1118,7 +1118,7 @@ Item {
 
                 Text {
                     width: parent.width
-                    text: "Remove " + (pg.sel && pg.sel.manifest && pg.sel.manifest.name
+                    text: I18n.tr("Remove ") + (pg.sel && pg.sel.manifest && pg.sel.manifest.name
                         ? pg.sel.manifest.name : (pg.sel ? pg.sel.id : "add-on")) + "?"
                     color: Tokens.inkOnBone; font.family: Tokens.ui
                     font.pixelSize: Tokens.fValue; font.weight: Font.Medium
@@ -1126,7 +1126,7 @@ Item {
                 }
                 Text {
                     width: parent.width
-                    text: "This deletes the add-on and its settings from your desktop. You can reinstall it from the Store."
+                    text: I18n.tr("This deletes the add-on and its settings from your desktop. You can reinstall it from the Store.")
                     color: Tokens.inkOnBoneDim; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
                 }
@@ -1142,7 +1142,7 @@ Item {
                         Text {
                             id: cancelT
                             anchors.centerIn: parent
-                            text: "CANCEL"; color: Tokens.inkOnBone
+                            text: I18n.tr("CANCEL"); color: Tokens.inkOnBone
                             font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                             font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
                         }
@@ -1157,7 +1157,7 @@ Item {
                         Text {
                             id: rmT
                             anchors.centerIn: parent
-                            text: "REMOVE"; color: Tokens.bone
+                            text: I18n.tr("REMOVE"); color: Tokens.bone
                             font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
                             font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
                         }

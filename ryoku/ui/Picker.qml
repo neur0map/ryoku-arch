@@ -32,7 +32,7 @@ Rectangle {
         Row {
             width: parent.width
             Text {
-                text: pick.title.toUpperCase()
+                text: I18n.tr(pick.title).toUpperCase()
                 color: Tokens.ink
                 font.family: Tokens.ui
                 font.pixelSize: 10
@@ -95,7 +95,7 @@ Rectangle {
                         Behavior on color { ColorAnimation { duration: 70 } }
                         Text {
                             anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
-                            text: parent.modelData
+                            text: I18n.tr(parent.modelData)
                             color: rh.hovered ? Tokens.inkOnBone : (pick.current === parent.modelData ? Tokens.ink : Tokens.inkDim)
                             font.family: Tokens.ui
                             font.pixelSize: 13

@@ -57,7 +57,7 @@ Item {
                     font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {
-                    text: page.eyebrow; color: Tokens.inkMuted; font.family: Tokens.ui
+                    text: I18n.tr(page.eyebrow); color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -91,7 +91,7 @@ Item {
         Text {
             visible: page.blurb !== ""
             width: Math.min(parent.width, 720)
-            text: page.blurb
+            text: I18n.tr(page.blurb)
             color: Tokens.inkMuted
             font.family: Tokens.ui
             font.pixelSize: Tokens.fBody

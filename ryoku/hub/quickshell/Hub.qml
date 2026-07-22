@@ -298,7 +298,7 @@ Rectangle {
         "frameRadius": 9, "roundness": 10, "frameBorder": 59, "frameEnabled": true,
         "frameSmoothing": 8, "frameOpacity": 1, "grainStrength": 0.09, "shadowStrength": 0.63, "shadowSize": 12,
         "surfaceColor": "#0f1115", "osdRadius": 28, "osdOpacity": 1,
-        "barEnabled": true, "barPosition": "top", "barStyle": "noctalia", "barHeight": 30, "washiVariant": "ryoku", "atollVariant": "ilyamiro",
+        "barEnabled": true, "barPosition": "top", "barStyle": "noctalia", "barHeight": 30, "washiVariant": "ryoku", "atollVariant": "ilyamiro", "dyadVariant": "faithful",
         "barShowTitle": true, "barShowMedia": true, "barShowStatus": true,
         "barOccupiedWorkspaces": true, "islandEdge": "top", "islandAlong": -1,
         "islandHidden": false, "islandModules": ["workspaces", "clock", "date", "media"],
@@ -311,7 +311,8 @@ Rectangle {
         "reflection": 0.1, "idleWave": true, "style": "bars", "shape": "rounded",
         "position": "bottom", "mirror": false, "segments": 10, "fps": 30,
         "adaptive": true, "smoothing": 0.5, "gain": 1.0, "peaks": false,
-        "markText": "力", "markImage": "", "markTint": true, "name": "Ryoku"
+        "markText": "力", "markImage": "", "markTint": true, "name": "Ryoku",
+        "language": "Auto"
     })
 
     // key -> source file, derived from the schema so it cannot drift.
@@ -362,6 +363,10 @@ Rectangle {
         if (files.viz) vizFV.writeAdapter();
         if (files.brand) brandFV.writeAdapter();
         hub.committed = JSON.parse(JSON.stringify(hub.draft));
+        // language rides the normal Save: the file it just wrote (shell.json) is
+        // watched by every Ryoku surface's shared I18n, so the whole desktop
+        // retranslates. Set it here too so this window switches deterministically.
+        if (files.shell) I18n.configLang = hub.committed.language || "Auto";
         if (hub.hyprChanges().length) {
             hyprSave.command = ["ryoku-hub", "hypr", "save", JSON.stringify(hub.hyprDraft)];
             hyprSave.running = true;
@@ -421,6 +426,7 @@ Rectangle {
         onLoaded: hub.rebase()
         JsonAdapter {
             id: shellA
+            property string language: "Auto"
             property real frameRadius: 9
             property real roundness: 10
             property real frameBorder: 59
@@ -449,6 +455,7 @@ Rectangle {
             property var barLayoutRight: []
             property string washiVariant: "ryoku"
             property string atollVariant: "ilyamiro"
+            property string dyadVariant: "faithful"
             property string islandEdge: "top"
             property real islandAlong: -1
             property bool islandHidden: false
@@ -675,7 +682,7 @@ Rectangle {
                 id: searchField
                 width: parent.width
                 toolbar: true
-                placeholder: "Search settings…"
+                placeholder: I18n.tr("Search settings…")
                 onEdited: (t) => hub.query = t
             }
         }
@@ -779,7 +786,7 @@ Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                                 Text {
-                                    text: grp.modelData.name; color: grp.activeGroup ? Tokens.inkDim : Tokens.inkFaint
+                                    text: I18n.tr(grp.modelData.name); color: grp.activeGroup ? Tokens.inkDim : Tokens.inkFaint
                                     font.family: Tokens.ui; font.pixelSize: 9
                                     font.weight: Font.Medium; font.letterSpacing: 2
                                     anchors.verticalCenter: parent.verticalCenter
@@ -833,7 +840,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
                                     Text {
-                                        text: navItem.modelData.name
+                                        text: I18n.tr(navItem.modelData.name)
                                         color: navItem.sel ? Tokens.inkOnBone : Tokens.inkDim
                                         font.family: Tokens.ui; font.pixelSize: 14
                                         anchors.verticalCenter: parent.verticalCenter
@@ -876,7 +883,7 @@ Rectangle {
                             width: parent.width - Tokens.s3 * 2 - 24
                             spacing: 1
                             Text {
-                                text: resItem.modelData.label
+                                text: I18n.tr(resItem.modelData.label)
                                 color: Tokens.inkDim
                                 font.family: Tokens.ui; font.pixelSize: 13
                                 width: parent.width; elide: Text.ElideRight
@@ -988,12 +995,12 @@ Rectangle {
                 Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
                 Text { text: "力"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
                 Text {
-                    text: hub.groupFor(hub.section); color: Tokens.inkMuted
+                    text: I18n.tr(hub.groupFor(hub.section)); color: Tokens.inkMuted
                     font.family: Tokens.ui; font.pixelSize: 9; font.weight: Font.Medium
                     font.letterSpacing: Tokens.trackMark; anchors.verticalCenter: parent.verticalCenter
                 }
             }
-            Text { text: hub.nameFor(hub.section); color: Tokens.ink; font.family: Tokens.display; font.pixelSize: Tokens.fTitle }
+            Text { text: I18n.tr(hub.nameFor(hub.section)); color: Tokens.ink; font.family: Tokens.display; font.pixelSize: Tokens.fTitle }
             Item { width: 1; height: Tokens.s4 }
             Text {
                 text: "PORTING IN PROGRESS"; color: Tokens.inkDim; font.family: Tokens.ui

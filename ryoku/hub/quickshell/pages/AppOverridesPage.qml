@@ -109,18 +109,18 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "ADVANCED"; color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("ADVANCED"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
         Text {
-            text: "App Overrides"; color: Tokens.ink
+            text: I18n.tr("App Overrides"); color: Tokens.ink
             font.family: Tokens.display; font.pixelSize: Tokens.fTitle
         }
         Text {
             width: Math.min(parent.width, 720)
-            text: "Give one app its own look, layered on top of the global Appearance. Add it (or pick from an open window), match it by its window class and an optional title, then override only what you want: everything left on Inherit keeps following the global. Changes apply as a Hyprland window rule when you save. Example: make a browser fully opaque, or a terminal square-cornered."
+            text: I18n.tr("Give one app its own look, layered on top of the global Appearance. Add it (or pick from an open window), match it by its window class and an optional title, then override only what you want: everything left on Inherit keeps following the global. Changes apply as a Hyprland window rule when you save. Example: make a browser fully opaque, or a terminal square-cornered.")
             color: Tokens.inkMuted; font.family: Tokens.ui
             font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
         }
@@ -142,7 +142,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: "APPS"; color: Tokens.ink; font.family: Tokens.ui
+                text: I18n.tr("APPS"); color: Tokens.ink; font.family: Tokens.ui
                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                 font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
@@ -158,7 +158,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 // an entry count is file-truth chrome, so mono (DESIGN.md section 2).
-                text: pg.overrides.length + (pg.overrides.length === 1 ? " APP" : " APPS")
+                text: pg.overrides.length + (pg.overrides.length === 1 ? I18n.tr(" APP") : I18n.tr(" APPS"))
                 color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
             }
             // a fire-once action wearing a button: opens the catalogue of open
@@ -167,12 +167,12 @@ Item {
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: pg.openClasses.length > 0
-                text: "FROM WINDOW"
+                text: I18n.tr("FROM WINDOW")
                 onAct: appPick.show()
             }
             Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "CLEAR ALL"
+                text: I18n.tr("CLEAR ALL")
                 armed: pg.overrides.length > 0
                 onAct: pg.clearAll()
             }
@@ -255,7 +255,7 @@ Item {
                                 width: parent.classW
                                 // a window class is a config match string, so mono.
                                 tabular: true
-                                placeholder: "Match class (e.g. kitty)"
+                                placeholder: I18n.tr("Match class (e.g. kitty)")
                                 text: card.clsVal
                                 onCommitted: (v) => {
                                     if (v !== card.clsVal)
@@ -269,7 +269,7 @@ Item {
                                 anchors.rightMargin: parent.gap
                                 anchors.verticalCenter: parent.verticalCenter
                                 tabular: true
-                                placeholder: "Match title (optional)"
+                                placeholder: I18n.tr("Match title (optional)")
                                 text: card.titleVal
                                 onCommitted: (v) => {
                                     if (v !== card.titleVal)
@@ -294,35 +294,35 @@ Item {
                             width: parent.width
                             spacing: Tokens.s1
                             Text {
-                                text: "LOOK"; color: Tokens.ink; font.family: Tokens.ui
+                                text: I18n.tr("LOOK"); color: Tokens.ink; font.family: Tokens.ui
                                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                                 font.letterSpacing: Tokens.trackMark
                             }
                             Text {
                                 width: parent.width
                                 wrapMode: Text.WordWrap
-                                text: "Inherit follows the global Appearance. Switch to Custom to set this app's own value."
+                                text: I18n.tr("Inherit follows the global Appearance. Switch to Custom to set this app's own value.")
                                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: 12
                             }
                         }
 
                         OvNum {
                             width: parent.width
-                            label: "Opacity"
+                            label: I18n.tr("Opacity")
                             value: card.opacityVal
                             from: 0.2; to: 1.0; percent: true; customDefault: 0.9
                             onChanged: (v) => pg.patch(card.index, "opacity", v)
                         }
                         OvNum {
                             width: parent.width
-                            label: "Corners"
+                            label: I18n.tr("Corners")
                             value: card.roundingVal
                             from: 0; to: 24; customDefault: 8
                             onChanged: (v) => pg.patch(card.index, "rounding", Math.round(v))
                         }
                         OvNum {
                             width: parent.width
-                            label: "Border"
+                            label: I18n.tr("Border")
                             value: card.borderVal
                             from: 0; to: 8; customDefault: 2
                             onChanged: (v) => pg.patch(card.index, "borderSize", Math.round(v))
@@ -334,49 +334,49 @@ Item {
                             width: parent.width
                             spacing: Tokens.s1
                             Text {
-                                text: "EFFECTS"; color: Tokens.ink; font.family: Tokens.ui
+                                text: I18n.tr("EFFECTS"); color: Tokens.ink; font.family: Tokens.ui
                                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                                 font.letterSpacing: Tokens.trackMark
                             }
                             Text {
                                 width: parent.width
                                 wrapMode: Text.WordWrap
-                                text: "Inherit follows the global. Off forces the effect off for this app. Force opaque removes transparency entirely (overrides Opacity)."
+                                text: I18n.tr("Inherit follows the global. Off forces the effect off for this app. Force opaque removes transparency entirely (overrides Opacity).")
                                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: 12
                             }
                         }
 
                         OvChoice {
                             width: parent.width
-                            label: "Blur"
+                            label: I18n.tr("Blur")
                             value: card.modelData.blur || "inherit"
                             altKey: "off"; altLabel: "Off"
                             onChose: (k) => pg.patch(card.index, "blur", k)
                         }
                         OvChoice {
                             width: parent.width
-                            label: "Shadow"
+                            label: I18n.tr("Shadow")
                             value: card.modelData.shadow || "inherit"
                             altKey: "off"; altLabel: "Off"
                             onChose: (k) => pg.patch(card.index, "shadow", k)
                         }
                         OvChoice {
                             width: parent.width
-                            label: "Dim inactive"
+                            label: I18n.tr("Dim inactive")
                             value: card.modelData.dim || "inherit"
                             altKey: "off"; altLabel: "Off"
                             onChose: (k) => pg.patch(card.index, "dim", k)
                         }
                         OvChoice {
                             width: parent.width
-                            label: "Animations"
+                            label: I18n.tr("Animations")
                             value: card.modelData.anim || "inherit"
                             altKey: "off"; altLabel: "Off"
                             onChose: (k) => pg.patch(card.index, "anim", k)
                         }
                         OvChoice {
                             width: parent.width
-                            label: "Force opaque"
+                            label: I18n.tr("Force opaque")
                             value: card.modelData.opaque || "inherit"
                             altKey: "on"; altLabel: "On"
                             onChose: (k) => pg.patch(card.index, "opaque", k)
@@ -391,7 +391,7 @@ Item {
     Empty {
         anchors.centerIn: flick
         visible: pg.ready && pg.overrides.length === 0
-        caption: "No app overrides yet. Add one, or pick an open window, to give it its own opacity, corners, blur, and more."
+        caption: I18n.tr("No app overrides yet. Add one, or pick an open window, to give it its own opacity, corners, blur, and more.")
     }
 
     // ── the open-window catalogue overlay (paperRaised + lineStrong, per spec) ──
@@ -413,7 +413,7 @@ Item {
         Picker {
             id: pk
             anchors.centerIn: parent
-            title: "OPEN WINDOWS"
+            title: I18n.tr("OPEN WINDOWS")
             options: pg.openClasses
             current: ""
             onChose: (k) => { pg.addApp(k); appPick.hide(); }
@@ -446,7 +446,7 @@ Item {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             width: 92
-            text: ov.label
+            text: I18n.tr(ov.label)
             color: Tokens.inkDim
             font.family: Tokens.ui
             font.pixelSize: Tokens.fSmall
@@ -520,7 +520,7 @@ Item {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             width: 92
-            text: oc.label
+            text: I18n.tr(oc.label)
             color: Tokens.inkDim
             font.family: Tokens.ui
             font.pixelSize: Tokens.fSmall

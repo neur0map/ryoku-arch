@@ -3,6 +3,34 @@
 ## Unreleased
 
 ### Added
+- **The recorder sidebar gains a Discord toggle: a Quick capture auto-shrinks to
+  fit a chat.** With it on, a finished Quick recording is re-encoded to a
+  best-effort 10MB or under by a two-pass x264 pass that keeps the native
+  resolution and the audio, so the clip drops straight into Discord. It only
+  touches Quick captures (Studio stays full quality for the editor), leaves a
+  clip already under the limit untouched, retries with a smaller budget if a
+  pass overshoots, and replaces the file in place once the smaller result is
+  verified. The toggle lives in the sidebar Recording deck with a one-line
+  summary; the bitrate split (video budget from duration and target size, audio
+  scaled down only when the budget is tight) follows iNiR's compress-discord
+  approach (`hyprland/scripts/ryoku-cmd-discord-compress`, `pill/DeckRecord.qml`,
+  `pill/Singletons/Recorder.qml`, `pill/RecordHud.qml`, `pill/GlyphIcon.qml`).
+
+- **A dual-edge floating-island bar (`dyad`), ported from Jules3182's dotfiles.**
+  Islands ride the top AND bottom screen edges at once: the top carries the 力
+  logo (opens the app launcher), the focused window title, a centred day / time
+  / date, and
+  calendar / clipboard / weather / network / bluetooth / volume / power; the
+  bottom carries live CPU / RAM / GPU / net throughput, the occupied-workspace
+  grid, and now-playing. Two surfaces via `dyadVariant`: `faithful` (dark
+  translucent capsules, the reference) and `ryoku` (grainy paper-black square
+  chips, bone ink, Space Grotesk). The frame stays a thin hairline on both edges
+  (frame on or off) and both strips reserve their band, so windows tuck under the
+  islands instead of behind them; every module taps our own popouts (grown from
+  the module's own edge) and reads our own singletons, with SysStats gaining
+  kernel-native GPU-busy and network-throughput readings. Selectable from
+  Settings' bar-style gallery with its own look toggle (`pill/DyadBar.qml`,
+  `pill/shell.qml`, `pill/Singletons/Config.qml`, `pill/Singletons/SysStats.qml`).
 - **The Super+Tab overview reads the scrolling layout and takes a right-click to
   enter a workspace.** Each workspace cell now maps its windows against their
   bounding box unioned with the monitor viewport, not the viewport alone: a normal
@@ -72,6 +100,15 @@
   in place (`quickshell/ryolayer/Board.qml`, `quickshell/ryolayer/shell.qml`).
 
 ### Fixed
+- **Screenshots work across two monitors again.** ryoshot stitched a spanning
+  capture from per-monitor grabs taken at each monitor's device pixels, so on a
+  mixed-scale multi-head setup the HiDPI slice came out oversized and the seam
+  landed wrong. Each slice is now grabbed at its logical size onto one logical
+  canvas (`lib/coords.js` `stitchPlan`, unit-tested in `lib/coords.test.mjs`),
+  and the grab waits for each overlay's screencopy to freeze and retries a
+  transient miss instead of aborting the whole shot -- a second monitor that
+  froze a few frames late no longer breaks the capture (`ryoshot/shell.qml`,
+  `ryoshot/Overlay.qml`).
 - **The atoll Thickness control resizes the islands across its whole range, not
   just the top third.** atoll floored its band at the islands' minimum height, so
   the lower half of the Thickness slider (18 to ~34) all mapped to that one floor:

@@ -54,8 +54,8 @@ Item {
         Text {
             anchors.verticalCenter: parent.verticalCenter
             text: bar.dirty > 0
-                  ? bar.dirty + (bar.dirty === 1 ? " CHANGE" : " CHANGES") + " · PREVIEWING · NOT SAVED"
-                  : bar.cleanText
+                  ? (bar.dirty === 1 ? I18n.tr("%1 CHANGE · PREVIEWING · NOT SAVED") : I18n.tr("%1 CHANGES · PREVIEWING · NOT SAVED")).arg(bar.dirty)
+                  : I18n.tr(bar.cleanText)
             color: bar.dirty > 0 ? Tokens.ink : Tokens.inkDim
             font.family: Tokens.ui
             font.pixelSize: 11
@@ -79,13 +79,13 @@ Item {
         anchors.rightMargin: Tokens.s6
         spacing: Tokens.s3
 
-        Btn { text: "RESET TO DEFAULTS"; onAct: bar.reset() }
+        Btn { text: I18n.tr("RESET TO DEFAULTS"); onAct: bar.reset() }
         Rectangle {
             width: 1; height: 22
             color: Tokens.line
             anchors.verticalCenter: parent.verticalCenter
         }
-        Btn { text: "REVERT"; armed: bar.dirty > 0; onAct: bar.reverted() }
-        Btn { text: "SAVE"; primary: true; armed: bar.dirty > 0; onAct: bar.saved() }
+        Btn { text: I18n.tr("REVERT"); armed: bar.dirty > 0; onAct: bar.reverted() }
+        Btn { text: I18n.tr("SAVE"); primary: true; armed: bar.dirty > 0; onAct: bar.saved() }
     }
 }

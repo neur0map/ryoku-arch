@@ -27,9 +27,9 @@ Item {
 
     property var hub
 
-    readonly property string pTitle: "Appearance"
-    readonly property string pEyebrow: "DESKTOP"
-    readonly property string pBlurb: "Windows, borders, cursor, wallpaper, and comfort, applied to your desktop as you make them."
+    readonly property string pTitle: I18n.tr("Appearance")
+    readonly property string pEyebrow: I18n.tr("DESKTOP")
+    readonly property string pBlurb: I18n.tr("Windows, borders, cursor, wallpaper, and comfort, applied to your desktop as you make them.")
 
     // ── the hypr draft, flattened to the schema keys the sheet reads ────────
     // draft/committed are dotted-path reads off the shell's whole-document hypr
@@ -615,7 +615,7 @@ Item {
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: card.active ? "ACTIVE" : "INSTALLED"
+                    text: card.active ? I18n.tr("ACTIVE") : I18n.tr("INSTALLED")
                     color: card.active ? Tokens.ink : Tokens.inkMuted
                     font.family: Tokens.mono
                     font.pixelSize: Tokens.fTiny
@@ -636,7 +636,7 @@ Item {
                 Text {
                     id: liveTag
                     anchors.centerIn: parent
-                    text: "LIVE"
+                    text: I18n.tr("LIVE")
                     color: Tokens.ink
                     font.family: Tokens.mono
                     font.pixelSize: Tokens.fTiny
@@ -675,7 +675,7 @@ Item {
                 spacing: Tokens.s2
                 Text {
                     visible: card.compat === "older" || card.compat === "newer"
-                    text: card.compat === "older" ? "OLDER RYOKU" : "NEWER RYOKU"
+                    text: card.compat === "older" ? I18n.tr("OLDER RYOKU") : I18n.tr("NEWER RYOKU")
                     color: Tokens.inkFaint
                     font.family: Tokens.mono
                     font.pixelSize: Tokens.fTiny
@@ -698,7 +698,7 @@ Item {
     // animation (the dirty heartbeat), so a wait reads as a static tracked word,
     // not a spinner; it swaps out the moment data lands.
     component Tick: Text {
-        text: "LOADING"
+        text: I18n.tr("LOADING")
         color: Tokens.inkMuted
         font.family: Tokens.ui
         font.pixelSize: Tokens.fMicro
@@ -779,7 +779,7 @@ Item {
                     id: sect
                     required property string modelData
                     width: col.width
-                    title: modelData === "" ? "OTHER" : modelData
+                    title: modelData === "" ? I18n.tr("OTHER") : modelData
 
                     // bento: flush rows, no ragged right edge (same packer as
                     // the shared sheet).
@@ -808,7 +808,7 @@ Item {
                             block: cell.foot || Spans.isBlock(r.ctl) || r.ctl === "layoutdemo" || (r.ctl === "seg" && cell.optCount >= 3)
                             controlWidth: sheet.reserve(r.ctl, optCount, width)
 
-                            label: r.label
+                            label: I18n.tr(r.label)
                             desc: r.desc || ""
                             unit: r.pct ? "%" : (r.unit || "")
                             value: sheet.shown(r)
@@ -967,12 +967,12 @@ Item {
             visible: sheet.rows.length === 0
             spacing: Tokens.s2
             Text {
-                text: "NO MATCH"; color: Tokens.inkDim; font.family: Tokens.ui
+                text: I18n.tr("NO MATCH"); color: Tokens.inkDim; font.family: Tokens.ui
                 font.pixelSize: Tokens.fRow; font.letterSpacing: 2
                 anchors.horizontalCenter: parent.horizontalCenter
             }
             Text {
-                text: "nothing here matches: " + sheet.query
+                text: I18n.tr("nothing here matches: ") + sheet.query
                 color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                 anchors.horizontalCenter: parent.horizontalCenter
             }
@@ -1090,13 +1090,13 @@ Item {
                     visible: pg.tab === "Theme"
                     width: parent.width
                     spacing: Tokens.s3
-                    SectionHead { width: parent.width; title: "THEME PALETTE" }
+                    SectionHead { width: parent.width; title: I18n.tr("THEME PALETTE") }
                     Row {
                         spacing: Tokens.s3
                         Column {
                             spacing: Tokens.s1
                             Text {
-                                text: "COLOURS"
+                                text: I18n.tr("COLOURS")
                                 color: Tokens.inkMuted
                                 font.family: Tokens.ui
                                 font.pixelSize: Tokens.fMicro
@@ -1104,7 +1104,7 @@ Item {
                                 font.letterSpacing: Tokens.trackLabel
                             }
                             Text {
-                                text: pg.scheme === "custom" ? "Custom" : (pg.scheme.charAt(0).toUpperCase() + pg.scheme.slice(1))
+                                text: pg.scheme === "custom" ? I18n.tr("Custom") : (pg.scheme.charAt(0).toUpperCase() + pg.scheme.slice(1))
                                 color: Tokens.ink
                                 font.family: Tokens.ui
                                 font.pixelSize: Tokens.fValue
@@ -1122,10 +1122,10 @@ Item {
                         width: Math.min(parent.width, 620)
                         wrapMode: Text.WordWrap
                         text: pg.scheme === "light" || pg.scheme === "dark"
-                            ? "A fixed " + pg.scheme + " palette, kept across wallpaper changes."
+                            ? I18n.tr("A fixed ") + pg.scheme + I18n.tr(" palette, kept across wallpaper changes.")
                             : pg.scheme === "custom"
-                              ? "A fixed palette is set. Pick Follow, Light, or Dark to change it."
-                              : "Colours are derived from your wallpaper and update when it changes."
+                              ? I18n.tr("A fixed palette is set. Pick Follow, Light, or Dark to change it.")
+                              : I18n.tr("Colours are derived from your wallpaper and update when it changes.")
                         color: Tokens.inkMuted
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fSmall
@@ -1138,7 +1138,7 @@ Item {
                             width: Math.max(0, parent.width - appsSw.width - Tokens.s3)
                             spacing: Tokens.s1
                             Text {
-                                text: "THEME APPS"
+                                text: I18n.tr("THEME APPS")
                                 color: Tokens.inkMuted
                                 font.family: Tokens.ui
                                 font.pixelSize: Tokens.fMicro
@@ -1148,7 +1148,7 @@ Item {
                             Text {
                                 width: parent.width
                                 wrapMode: Text.WordWrap
-                                text: "Extend the palette past the shell into GTK and GUI apps, so Files, text editors, and other desktop apps recolour to match. Off keeps them stock."
+                                text: I18n.tr("Extend the palette past the shell into GTK and GUI apps, so Files, text editors, and other desktop apps recolour to match. Off keeps them stock.")
                                 color: Tokens.inkMuted
                                 font.family: Tokens.ui
                                 font.pixelSize: Tokens.fSmall
@@ -1172,11 +1172,11 @@ Item {
                     visible: pg.tab === "Theme" && pg.scheme !== "follow"
                     width: parent.width
                     spacing: Tokens.s3
-                    SectionHead { width: parent.width; title: "BORDER COLOURS" }
+                    SectionHead { width: parent.width; title: I18n.tr("BORDER COLOURS") }
                     Text {
                         width: Math.min(parent.width, 620)
                         wrapMode: Text.WordWrap
-                        text: "The window frame colours a fixed palette uses; Follow takes the wallpaper's accent instead. Click a swatch to pick, or type a hex."
+                        text: I18n.tr("The window frame colours a fixed palette uses; Follow takes the wallpaper's accent instead. Click a swatch to pick, or type a hex.")
                         color: Tokens.inkMuted
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fSmall
@@ -1188,7 +1188,7 @@ Item {
                             width: (parent.width - Tokens.s4) / 2
                             spacing: Tokens.s1
                             Text {
-                                text: "ACTIVE WINDOW"
+                                text: I18n.tr("ACTIVE WINDOW")
                                 color: Tokens.inkMuted; font.family: Tokens.ui
                                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                                 font.letterSpacing: Tokens.trackLabel
@@ -1203,7 +1203,7 @@ Item {
                             width: (parent.width - Tokens.s4) / 2
                             spacing: Tokens.s1
                             Text {
-                                text: "INACTIVE WINDOW"
+                                text: I18n.tr("INACTIVE WINDOW")
                                 color: Tokens.inkMuted; font.family: Tokens.ui
                                 font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
                                 font.letterSpacing: Tokens.trackLabel
@@ -1221,7 +1221,7 @@ Item {
                     visible: pg.tab === "Theme"
                     width: parent.width
                     spacing: Tokens.s3
-                    SectionHead { width: parent.width; title: "RYOKU DEFAULT" }
+                    SectionHead { width: parent.width; title: I18n.tr("RYOKU DEFAULT") }
                     Row {
                         width: parent.width
                         spacing: Tokens.s3
@@ -1229,7 +1229,7 @@ Item {
                             width: Math.max(0, parent.width - ryokuBtn.width - Tokens.s3)
                             anchors.verticalCenter: parent.verticalCenter
                             wrapMode: Text.WordWrap
-                            text: "Reset the whole desktop to the Ryoku signature: the stele bar, square corners, Space Grotesk, and the grainy mono palette."
+                            text: I18n.tr("Reset the whole desktop to the Ryoku signature: the stele bar, square corners, Space Grotesk, and the grainy mono palette.")
                             color: Tokens.inkMuted
                             font.family: Tokens.ui
                             font.pixelSize: Tokens.fSmall
@@ -1237,7 +1237,7 @@ Item {
                         Btn {
                             id: ryokuBtn
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "APPLY RYOKU THEME"
+                            text: I18n.tr("APPLY RYOKU THEME")
                             primary: true
                             onAct: pg.applyRyokuTheme()
                         }
@@ -1248,7 +1248,7 @@ Item {
                     visible: pg.tab === "Theme"
                     width: parent.width
                     spacing: Tokens.s3
-                    SectionHead { width: parent.width; title: "WALLPAPER" }
+                    SectionHead { width: parent.width; title: I18n.tr("WALLPAPER") }
                     Row {
                         width: parent.width
                         spacing: Tokens.s3
@@ -1256,7 +1256,7 @@ Item {
                             width: Math.max(0, parent.width - shuffleBtn.width - Tokens.s3)
                             anchors.verticalCenter: parent.verticalCenter
                             wrapMode: Text.WordWrap
-                            text: "Pick a wallpaper to retheme the desktop. The palette (borders, accents) follows it."
+                            text: I18n.tr("Pick a wallpaper to retheme the desktop. The palette (borders, accents) follows it.")
                             color: Tokens.inkMuted
                             font.family: Tokens.ui
                             font.pixelSize: Tokens.fSmall
@@ -1264,7 +1264,7 @@ Item {
                         Btn {
                             id: shuffleBtn
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "SHUFFLE"
+                            text: I18n.tr("SHUFFLE")
                             onAct: wallNextProc.running = true
                         }
                     }
@@ -1308,7 +1308,7 @@ Item {
                     }
                     Text {
                         visible: pg.wallpapers.length === 0
-                        text: "No wallpapers in ~/Pictures/Wallpapers."
+                        text: I18n.tr("No wallpapers in ~/Pictures/Wallpapers.")
                         color: Tokens.inkFaint
                         font.family: Tokens.ui
                         font.pixelSize: Tokens.fSmall
@@ -1336,13 +1336,13 @@ Item {
                 Section {
                     id: backSect
                     width: parent.width
-                    title: "BACKLIGHT"
+                    title: I18n.tr("BACKLIGHT")
                     Cell {
                         width: backSect.span(6)
                         controlWidth: Math.round(width * 0.42)
-                        label: "Brightness"; unit: "%"
+                        label: I18n.tr("Brightness"); unit: "%"
                         value: String(pg.brightness < 0 ? 100 : pg.brightness)
-                        desc: "Hardware backlight, applied at once, floors at 5% to stay visible."
+                        desc: I18n.tr("Hardware backlight, applied at once, floors at 5% to stay visible.")
                         source: ""
                         changed: false
                         Slid {
@@ -1358,13 +1358,13 @@ Item {
                 Section {
                     id: nightSect
                     width: parent.width
-                    title: "NIGHT LIGHT"
+                    title: I18n.tr("NIGHT LIGHT")
                     Cell {
                         width: nightSect.span(4)
                         controlWidth: 54
-                        label: "Warm the screen"
+                        label: I18n.tr("Warm the screen")
                         value: pg.nightOn ? "ON" : "OFF"
-                        desc: "Cuts blue light for the evening, stays on across sessions."
+                        desc: I18n.tr("Cuts blue light for the evening, stays on across sessions.")
                         source: ""
                         changed: false
                         Sw {
@@ -1377,9 +1377,9 @@ Item {
                     Cell {
                         width: nightSect.span(6)
                         controlWidth: Math.round(width * 0.42)
-                        label: "Temperature"; unit: "K"
+                        label: I18n.tr("Temperature"); unit: "K"
                         value: String(pg.nightTemp)
-                        desc: "Lower Kelvin is warmer, saved only while the light is on."
+                        desc: I18n.tr("Lower Kelvin is warmer, saved only while the light is on.")
                         source: ""
                         changed: false
                         Slid {
@@ -1440,9 +1440,9 @@ Item {
 
                         Row {
                             spacing: Tokens.s3
-                            Btn { text: "SAVE CURRENT SETUP"; primary: true; armed: !pg.capturing; onAct: { pg.capturing = true; preflightProc.running = true; } }
-                            Btn { text: "IMPORT"; onAct: riceImportPicker.open() }
-                            Btn { text: "RESTORE ORIGINAL"; armed: pg.hasActiveRice; onAct: pg.restoreOriginal() }
+                            Btn { text: I18n.tr("SAVE CURRENT SETUP"); primary: true; armed: !pg.capturing; onAct: { pg.capturing = true; preflightProc.running = true; } }
+                            Btn { text: I18n.tr("IMPORT"); onAct: riceImportPicker.open() }
+                            Btn { text: I18n.tr("RESTORE ORIGINAL"); armed: pg.hasActiveRice; onAct: pg.restoreOriginal() }
                         }
 
                         Rectangle {
@@ -1462,19 +1462,19 @@ Item {
                                     id: nameField
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: Math.max(0, parent.width - saveNow.width - cancelNow.width - Tokens.s2 * 2)
-                                    placeholder: "Name this rice (for example, My Setup)"
+                                    placeholder: I18n.tr("Name this rice (for example, My Setup)")
                                     onCommitted: (v) => pg.capture(v)
                                 }
                                 Btn {
                                     id: saveNow
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: "SAVE"; primary: true
+                                    text: I18n.tr("SAVE"); primary: true
                                     onAct: pg.capture(nameField.text)
                                 }
                                 Btn {
                                     id: cancelNow
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: "CANCEL"
+                                    text: I18n.tr("CANCEL")
                                     onAct: { pg.capturing = false; nameField.clear(); }
                                 }
                             }
@@ -1498,7 +1498,7 @@ Item {
                             visible: !pg.capturing
                             width: parent.width
                             wrapMode: Text.WordWrap
-                            text: "Save your whole desktop look, windows, bar, colours, wallpaper, and cursor, as a rice. Switch between looks anytime, and restore your original in one click."
+                            text: I18n.tr("Save your whole desktop look, windows, bar, colours, wallpaper, and cursor, as a rice. Switch between looks anytime, and restore your original in one click.")
                             color: Tokens.inkMuted
                             font.family: Tokens.ui
                             font.pixelSize: Tokens.fSmall
@@ -1516,7 +1516,7 @@ Item {
                             topPadding: Tokens.s5
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "No rices yet"
+                                text: I18n.tr("No rices yet")
                                 color: Tokens.ink
                                 font.family: Tokens.ui
                                 font.pixelSize: Tokens.fRow
@@ -1524,7 +1524,7 @@ Item {
                             Text {
                                 width: parent.width
                                 horizontalAlignment: Text.AlignHCenter
-                                text: "Tune your desktop the way you like, then Save current setup to make your first rice, or Browse the store for one to install."
+                                text: I18n.tr("Tune your desktop the way you like, then Save current setup to make your first rice, or Browse the store for one to install.")
                                 color: Tokens.inkMuted
                                 font.family: Tokens.ui
                                 font.pixelSize: Tokens.fSmall
@@ -1558,7 +1558,7 @@ Item {
                         Text {
                             width: parent.width
                             wrapMode: Text.WordWrap
-                            text: "Install a rice from the community store, then apply it from My rices. A rice built for a different Ryoku version still applies; it is reconciled to yours."
+                            text: I18n.tr("Install a rice from the community store, then apply it from My rices. A rice built for a different Ryoku version still applies; it is reconciled to yours.")
                             color: Tokens.inkMuted
                             font.family: Tokens.ui
                             font.pixelSize: Tokens.fSmall
@@ -1577,7 +1577,7 @@ Item {
                             Text {
                                 width: parent.width
                                 horizontalAlignment: Text.AlignHCenter
-                                text: pg.catalogError ? "Couldn't reach the rice store." : "No rices in the store yet."
+                                text: pg.catalogError ? I18n.tr("Couldn't reach the rice store.") : I18n.tr("No rices in the store yet.")
                                 color: Tokens.inkMuted
                                 font.family: Tokens.ui
                                 font.pixelSize: Tokens.fSmall
@@ -1585,7 +1585,7 @@ Item {
                             }
                             Btn {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "TRY AGAIN"
+                                text: I18n.tr("TRY AGAIN")
                                 onAct: pg.loadCatalog()
                             }
                         }
@@ -1674,7 +1674,7 @@ Item {
                             }
                             Text {
                                 width: parent.width
-                                text: "Changes " + detailCol.changeSummary()
+                                text: I18n.tr("Changes ") + detailCol.changeSummary()
                                 color: Tokens.inkFaint
                                 font.family: Tokens.mono
                                 font.pixelSize: Tokens.fTiny
@@ -1725,7 +1725,7 @@ Item {
                             Text {
                                 id: liveDetailTag
                                 anchors.centerIn: parent
-                                text: "LIVE WALLPAPER"
+                                text: I18n.tr("LIVE WALLPAPER")
                                 color: Tokens.ink
                                 font.family: Tokens.mono
                                 font.pixelSize: Tokens.fTiny
@@ -1751,7 +1751,7 @@ Item {
                         width: parent.width
                         spacing: Tokens.s2
                         Text {
-                            text: "WHAT IT TOUCHES"
+                            text: I18n.tr("WHAT IT TOUCHES")
                             color: Tokens.inkMuted
                             font.family: Tokens.ui
                             font.pixelSize: Tokens.fMicro
@@ -1768,7 +1768,7 @@ Item {
                                 opacity: trow.modelData.provided ? 1 : 0.45
                                 Text {
                                     width: parent.width
-                                    text: trow.modelData.label
+                                    text: I18n.tr(trow.modelData.label)
                                     color: Tokens.inkDim
                                     font.family: Tokens.ui
                                     font.pixelSize: Tokens.fSmall
@@ -1777,7 +1777,7 @@ Item {
                                 }
                                 Text {
                                     width: parent.width
-                                    text: trow.modelData.path + (trow.modelData.provided ? "" : "  (unchanged)")
+                                    text: trow.modelData.path + (trow.modelData.provided ? "" : I18n.tr("  (unchanged)"))
                                     color: Tokens.inkFaint
                                     font.family: Tokens.mono
                                     font.pixelSize: Tokens.fTiny
@@ -1795,7 +1795,7 @@ Item {
                         width: parent.width
                         spacing: Tokens.s2
                         Text {
-                            text: "ALSO SETS \u00b7 TAP TO EXCLUDE"
+                            text: I18n.tr("ALSO SETS \u00b7 TAP TO EXCLUDE")
                             color: Tokens.inkMuted
                             font.family: Tokens.ui
                             font.pixelSize: Tokens.fMicro
@@ -1844,16 +1844,16 @@ Item {
                         width: parent.width
                         spacing: Tokens.s3
                         Btn {
-                            text: detailCol.rice.active ? "APPLIED" : "APPLY THIS RICE"
+                            text: detailCol.rice.active ? I18n.tr("APPLIED") : I18n.tr("APPLY THIS RICE")
                             primary: true
                             armed: !detailCol.rice.active
                             onAct: pg.applyRice(pg.selectedSlug, detailCol.chosenLayers())
                         }
-                        Btn { text: "DUPLICATE"; onAct: pg.forkRice(pg.selectedSlug) }
-                        Btn { text: "SET WALLPAPER"; onAct: riceWallPicker.open() }
-                        Btn { text: "VIEW CONFIG"; onAct: configViewer.show(pg.configText) }
-                        Btn { text: "EXPORT"; onAct: riceExportPicker.open() }
-                        Btn { text: "DELETE"; onAct: pg.delRice(pg.selectedSlug) }
+                        Btn { text: I18n.tr("DUPLICATE"); onAct: pg.forkRice(pg.selectedSlug) }
+                        Btn { text: I18n.tr("SET WALLPAPER"); onAct: riceWallPicker.open() }
+                        Btn { text: I18n.tr("VIEW CONFIG"); onAct: configViewer.show(pg.configText) }
+                        Btn { text: I18n.tr("EXPORT"); onAct: riceExportPicker.open() }
+                        Btn { text: I18n.tr("DELETE"); onAct: pg.delRice(pg.selectedSlug) }
                     }
 
                     Column {
@@ -1861,7 +1861,7 @@ Item {
                         width: parent.width
                         spacing: Tokens.s2
                         Text {
-                            text: "EXPORTED TO"
+                            text: I18n.tr("EXPORTED TO")
                             color: Tokens.inkMuted
                             font.family: Tokens.ui
                             font.pixelSize: Tokens.fMicro
@@ -1876,7 +1876,7 @@ Item {
                             font.pixelSize: Tokens.fSmall
                             elide: Text.ElideMiddle
                         }
-                        Btn { text: "SHOW IN FILES"; onAct: pg.revealPath(pg.exportedTo) }
+                        Btn { text: I18n.tr("SHOW IN FILES"); onAct: pg.revealPath(pg.exportedTo) }
                     }
                 }
             }
@@ -1898,7 +1898,7 @@ Item {
         Picker {
             id: picker
             anchors.centerIn: parent
-            title: "CURSOR THEME"
+            title: I18n.tr("CURSOR THEME")
             options: pg.cursorThemes
             current: pg.hub ? String(pg.hub.hyprVal("cursor.theme")) : ""
             onChose: (k) => { pg.setKey("cursor.theme", k); cursorPick.visible = false; }
@@ -1910,7 +1910,7 @@ Item {
     // overlay covers the whole page, not just the sheet.
     PickFile {
         id: imgPicker
-        title: "Choose a border image"
+        title: I18n.tr("Choose a border image")
         onPicked: (p) => { pg.setKey("plugins.imgborders.image", p); imgPicker.active = false; }
         onCanceled: imgPicker.active = false
     }
@@ -1923,21 +1923,21 @@ Item {
         visible: pg.tab === "Borders" && !pg.searching && pg.draft["plugins.imgborders.enabled"] === true
         anchors { right: parent.right; bottom: parent.bottom; margins: Tokens.s2 }
         z: 60
-        text: "CHOOSE BORDER IMAGE"
+        text: I18n.tr("CHOOSE BORDER IMAGE")
         onAct: imgPicker.open()
     }
 
     // a rice's wallpaper
     PickFile {
         id: riceWallPicker
-        title: "Set this rice's wallpaper"
+        title: I18n.tr("Set this rice's wallpaper")
         onPicked: (p) => { pg.setwall(("" + p).replace("file://", "")); riceWallPicker.active = false; }
         onCanceled: riceWallPicker.active = false
     }
     // a rice export target (folders only)
     PickFile {
         id: riceExportPicker
-        title: "Export to a folder"
+        title: I18n.tr("Export to a folder")
         foldersOnly: true
         startFolder: "file://" + pg.home
         onPicked: (p) => { pg.exportRice(("" + p).replace("file://", "")); riceExportPicker.active = false; }
@@ -1946,7 +1946,7 @@ Item {
     // a shared/exported rice folder to install (folders only)
     PickFile {
         id: riceImportPicker
-        title: "Import a rice folder"
+        title: I18n.tr("Import a rice folder")
         foldersOnly: true
         startFolder: "file://" + pg.home
         onPicked: (p) => { pg.importRiceFolder(("" + p).replace("file://", "")); riceImportPicker.active = false; }
@@ -1974,7 +1974,7 @@ Item {
             Text {
                 id: cvTitle
                 anchors { left: parent.left; top: parent.top; leftMargin: Tokens.s5; topMargin: Tokens.s4 }
-                text: "RICE CONFIG"
+                text: I18n.tr("RICE CONFIG")
                 color: Tokens.ink
                 font.family: Tokens.ui
                 font.pixelSize: Tokens.fMicro

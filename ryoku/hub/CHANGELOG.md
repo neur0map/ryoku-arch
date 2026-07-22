@@ -3,6 +3,33 @@
 ## Unreleased
 
 ### Added
+- **Displays page: live drag, no cursor-trapping gaps, and a main display.** The
+  arrangement canvas now moves each display tile live under the cursor (it only
+  jumped to the drop point before). Dropping a display always snaps it flush to a
+  neighbour, and a layout opened with a gap is tidied at once -- Hyprland cannot
+  move the cursor across a gap, so a separated layout stranded a screen. A new
+  "Set as main" control (and a MAIN tile badge) puts a display at the global
+  origin, Hyprland's primary / cursor-home corner. The contiguity and main
+  geometry live in a unit-tested `pages/lib/arrange.js` (`pages/DisplaysPage.qml`,
+  `pages/lib/arrange.test.mjs`, `schema/DisplaysPage.js`).
+- **The `dyad` dual-edge bar is selectable from Settings, and Jules3182 is
+  credited.** The bar-style gallery gains `dyad` (Jules3182's dual-edge
+  floating-island bar) with its own "Dyad look" toggle -- faithful dark capsules
+  or Ryoku-native grainy paper chips -- and the Credits page lists Jules3182's
+  dotfiles beside the other bar sources (`schema/ShellSettingsPage.js`, `Hub.qml`,
+  `pages/CreditsPage.qml`).
+- **Multi-language UI with self-maintaining translations.** Ryoku surfaces read
+  through one `I18n` singleton (`Ryoku.Ui`): `I18n.tr("English")` returns the
+  current language or the English key as a fallback, so a partly-translated UI is
+  never broken. Language comes from `~/.config/ryoku/i18n.json` (default `auto`,
+  which follows the OS locale) and switching it retranslates every open surface
+  live. Wrapping the schema renderer (`SettingsSheet`) translates every settings
+  page's labels and descriptions at once; the GPU page is wrapped too. Translation
+  files are generated, never hand-edited: `ryoku/ui/i18n-sync.py` extracts English
+  and machine-translates only the strings each language is missing (keyless, so it
+  runs in CI), with `overrides/<lang>.json` preserving human fixes; a workflow
+  regenerates and commits them on every update. First languages: Spanish, French,
+  Portuguese, and Brazilian Portuguese.
 - **The Lockscreen page gains an "At sign-in" keyring section.** A compact
   hairline card above the skin gallery, in the page's own bespoke language: a
   three-mode chip row (Unlock at sign-in / Never ask / Ask each time) over a live

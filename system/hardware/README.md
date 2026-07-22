@@ -30,6 +30,17 @@ in the machine.
     type, battery presence, and lid switches. It is shared by GPU and idle policy.
   - `ryoku-idle` Starts `hypridle` only on laptops, using Ryoku's dim/lock/DPMS/
     suspend timeouts.
+  - `ryoku-clamshell` macOS-style clamshell for laptops: a daemon that holds a
+    systemd `handle-lid-switch` inhibitor while on AC power with an external
+    display, so closing the lid keeps the session on the external instead of
+    suspending (and suspends when either is lost with the lid already shut), plus
+    a `lid` subcommand the Hyprland lid-switch bind calls to blank the internal
+    panel on close and restore it on open. Autostarted like `ryoku-idle`; a
+    desktop start exits at once.
+  - `logind-ryoku-lid.conf` The logind drop-in (installed to
+    `/etc/systemd/logind.conf.d/10-ryoku-lid.conf`) that makes logind suspend on
+    lid close in every case, so `ryoku-clamshell` is the only thing that keeps a
+    closed lid awake, and only on AC power with an external display.
 - `leds/`
   - `ryoku-leds` Applies the current wallust accent color to OpenRGB-compatible
     keyboards and attached lighting devices. It is best-effort: missing OpenRGB,

@@ -67,6 +67,22 @@ pinned_outputs() {
     | sed -E 's/.*"([^"]*)".*/\1/' | grep -v '^$' || true
 }
 
+# connector names of currently-connected displays the last applied layout (Ryoku
+# Settings Apply) already configured, matched by hardware identity. A hotplug
+# autoscale skips these in the DPI pass, so plugging in a new monitor never
+# resets a display you already tuned. Empty when nothing was applied.
+known_output_names() {
+  [[ -f $applied_layout ]] || return 0
+  local ids
+  ids="$(jq -c '[ .monitors[].id ]' "$applied_layout" 2>/dev/null || echo '[]')"
+  [[ -n $ids && $ids != '[]' ]] || return 0
+  monitors_json | jq -r --argjson known "$ids" '
+    .[] | . as $m
+    | (($m.make // "") + "|" + ($m.model // "") + "|" + ($m.serial // "")) as $id
+    | select(($known | index($id)) != null)
+    | $m.name' 2>/dev/null || true
+}
+
 require_hyprctl() {
   # fixtures (tests) skip the live compositor.
   [[ -n ${RYOKU_MONITOR_JSON:-} ]] && return 0
@@ -185,8 +201,11 @@ write_monitors_conf() {
     printf '%s\n' "-- agrees (>=2x), else 1 (Wayland scales native apps fractionally itself)."
     printf 'hl.env("GDK_SCALE", "%s")\n' "$gdk"
     printf '\n'
-    printf '%s\n' "-- Catch-all for monitors not listed above (hotplug-friendly, safe 1x default)."
-    printf '%s\n' 'hl.monitor({ output = "", mode = "highrr", position = "auto", scale = 1 })'
+    printf '%s\n' "-- Catch-all for monitors not listed above. A hotplugged display comes up at"
+    printf '%s\n' "-- its preferred mode (always valid on an untrained link, unlike highrr, which"
+    printf '%s\n' "-- errors until the link resolves; autoscale + settle then raise it to highrr),"
+    printf '%s\n' "-- placed to the right at 1x, never mirrored."
+    printf '%s\n' 'hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })'
   } >"$monitors_conf"
 }
 
@@ -302,6 +321,11 @@ cmd_autoscale() {
   fi
   local pinned
   pinned="$(pinned_outputs)"
+  # a display already tuned in Ryoku Settings (present in the applied layout) keeps
+  # its scale when another monitor hotplugs; only genuinely new displays are
+  # DPI-scaled, so connecting a monitor never resets the one you already set up.
+  local known
+  known="$(known_output_names 2>/dev/null || true)"
   # two passes. first, apply each monitor's DPI scale: Hyprland snaps a
   # requested scale to the nearest one that yields whole logical pixels (e.g.
   # 1.5 on a 2560 panel -> 1.6), so the accepted scale is only known once
@@ -310,6 +334,7 @@ cmd_autoscale() {
   while IFS='|' read -r name mode _ wanted current; do
     [[ -n $name ]] || continue
     grep -qxF "$name" <<<"$pinned" && continue
+    grep -qxF "$name" <<<"$known" && continue
     if awk -v a="$current" -v b="$wanted" 'BEGIN { exit (a == b) ? 1 : 0 }'; then
       apply_monitor "output = \"$name\", mode = \"$mode\", scale = $wanted"
       echo "ryoku-monitor: $name -> scale $wanted"
@@ -507,8 +532,10 @@ write_monitors_explicit() {
     printf '%s\n' "-- agrees at >=2x, else 1)."
     printf 'hl.env("GDK_SCALE", "%s")\n' "$gdk"
     printf '\n'
-    printf '%s\n' "-- Catch-all for monitors not listed above (hotplug-friendly, safe 1x default)."
-    printf '%s\n' 'hl.monitor({ output = "", mode = "highrr", position = "auto", scale = 1 })'
+    printf '%s\n' "-- Catch-all for monitors not listed above. A hotplugged display comes up at"
+    printf '%s\n' "-- its preferred mode (always valid on an untrained link; autoscale + settle"
+    printf '%s\n' "-- then raise it to highrr), placed to the right at 1x, never mirrored."
+    printf '%s\n' 'hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })'
   } >"$monitors_conf"
 }
 
