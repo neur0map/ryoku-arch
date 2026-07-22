@@ -13,12 +13,27 @@
 # install still completes (user bootstraps later). runs after the bootloader
 # step while /mnt is still mounted; emits no @@RYOKU_STEP.
 
+# boot menu integrity: these AUR packages own the Limine boot menu (the UKI hook +
+# snapshot sync behind the tool-managed /boot/limine.conf). the VM run proved yay's
+# single end-of-run batch lets one dead download wedge the whole set, so these MUST
+# install first, each time-bounded. aur.packages still carries them so the offline
+# mirror builds them too; this list just front-runs them.
+CRITICAL=(limine-mkinitcpio-hook limine-snapper-sync)
+
+# ryoku_aur_is_critical PKG: is PKG in the boot-critical set (installed first,
+# so it is dropped from the best-effort remainder batch).
+ryoku_aur_is_critical() {
+  local p=$1 c
+  for c in "${CRITICAL[@]}"; do [[ $p == "$c" ]] && return 0; done
+  return 1
+}
+
 ryoku_aur() {
   local u=$RYOKU_USERNAME
   local aur_file="$RYOKU_REPO/system/packages/aur.packages"
 
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
-    log "DRYRUN: bootstrap yay and install the AUR set from $aur_file as $u"
+    log "DRYRUN: bootstrap yay, install boot-critical (${CRITICAL[*]}) first under per-package timeouts, then the rest of $aur_file best-effort under a global timeout, as $u"
     return 0
   fi
   if [[ -n ${RYOKU_SKIP_AUR:-} ]]; then
@@ -83,10 +98,31 @@ else
 fi
 command -v yay >/dev/null
 BOOTSTRAP
-    log "AUR: installing ${pkgs[*]}"
-    arch-chroot /mnt runuser -u "$u" -- env "HOME=/home/$u" "USER=$u" "LOGNAME=$u" \
-      yay -S --noconfirm --needed "${pkgs[@]}" \
-      || log "AUR: warning, some packages did not build (continuing)"
+    # boot-critical FIRST, each in its OWN time-bounded transaction. the VM run
+    # proved yay's single end-of-run batch lets one dead download (voxtype's) wedge
+    # forever, so the limine hooks below never landed and the box booted with no
+    # tool-managed menu. front-run them, each bounded, so one hung build can't
+    # starve the others.
+    local crit rest=()
+    for crit in "${CRITICAL[@]}"; do
+      log "AUR: installing boot-critical $crit (<= 25 min)"
+      if ! arch-chroot /mnt runuser -u "$u" -- env "HOME=/home/$u" "USER=$u" "LOGNAME=$u" \
+        timeout 1500 yay -S --noconfirm --needed "$crit"; then
+        log "AUR: WARNING, boot-critical $crit timed out or failed to build and was skipped; the boot menu integration may be incomplete ('ryoku doctor' converges it once online). Continuing."
+      fi
+    done
+    # everything else in one best-effort, globally time-bounded batch. the
+    # criticals are dropped from it (already handled); a stall here cannot hold
+    # the install hostage.
+    for crit in "${pkgs[@]}"; do
+      ryoku_aur_is_critical "$crit" || rest+=("$crit")
+    done
+    if (( ${#rest[@]} )); then
+      log "AUR: installing the remaining ${#rest[@]} package(s): ${rest[*]} (<= 40 min)"
+      arch-chroot /mnt runuser -u "$u" -- env "HOME=/home/$u" "USER=$u" "LOGNAME=$u" \
+        timeout 2400 yay -S --noconfirm --needed "${rest[@]}" \
+        || log "AUR: WARNING, some of these timed out or did not build and were skipped: ${rest[*]} (continuing; install them later with yay)"
+    fi
   else
     log "AUR: warning, yay bootstrap failed; the AUR set was not installed"
   fi
