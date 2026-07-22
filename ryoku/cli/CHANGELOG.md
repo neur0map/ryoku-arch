@@ -16,6 +16,13 @@
   `pam_gnome_keyring` in `/etc/pam.d/sddm`. `$RYOKU_PAM_FILE` overrides the PAM
   path so tests and the sandbox never touch the real stack
   (`internal/keyring/`, `TestApplyPAMText*`, `TestSet*`, `TestE2EKeyringLifecycle`).
+- **`doctor` watches the keyring policy for drift.** `keyring unlock policy`
+  records the inferred mode when none is set and points the default keyring at
+  `login` for unlock-on-login (safe, user-side); it only warns -- never edits the
+  root file or rekeys a keyring -- when `/etc/pam.d/sddm` disagrees with the mode
+  (with the exact `sudo ryoku keyring apply-pam <mode>` fix), when autologin
+  conflicts with unlock-on-login, or when never-ask still finds an encrypted
+  keyring (`internal/doctor/reconcile_keyring.go`, `TestReconcileKeyring*`).
 - **`materialize` overlays `~/.config/ryoku/user_edits` after the base.** A
   regular file in the overlay wins at its mirrored `~/.config` path; the base is
   laid in full first, so fixes and new files still land, and an empty overlay is a

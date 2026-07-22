@@ -188,7 +188,8 @@ a finding never aborts the update.
 
 Current reconcilers (in `ryoku/cli/internal/doctor/`): swap kept out of snapshots,
 snapper config consistency, stale pacman lock, the ryoku package channel + keyring,
-desktop session components, Hyprland config integrity (revalidates and repairs the
+desktop session components, the keyring unlock policy (how the GNOME keyring
+unlocks at sign-in; see `ryoku keyring`), Hyprland config integrity (revalidates and repairs the
 generated monitors.lua/gpu.lua drop-ins so a corrupt one cannot strand the desktop
 in emergency mode), the shell daemon, failed services, btrfs device health, display
 backlight (catches a missing interface, missing brightnessctl, or a hybrid-GPU

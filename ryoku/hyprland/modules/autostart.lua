@@ -1,4 +1,8 @@
 hl.on("hyprland.start", function()
+    -- Start the GNOME keyring's secrets + pkcs11 agents before anything that
+    -- might ask for a stored secret. Idempotent: if PAM already started it at
+    -- login (unlock-on-login mode), this just re-prints its env and exits.
+    hl.exec_cmd("gnome-keyring-daemon --start --components=secrets,pkcs11")
     hl.exec_cmd("hyprctl setcursor Bibata-Modern-Ice 24")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface color-scheme prefer-dark")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark")

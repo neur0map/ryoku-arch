@@ -114,6 +114,7 @@ func reconcilers() []reconciler {
 		{"Material Symbols icon font", reconcileIconFont},
 		{"shell config schema", reconcileShellConfig},
 		{"user edits overlay", reconcileUserEditsAdopt},
+		{"keyring unlock policy", reconcileKeyring},
 		{"SDDM greeter theme", reconcileGreeterTheme},
 		{"fastfetch readout emblem", reconcileFastfetchEmblem},
 		{"brand mark image", reconcileBrandLogo},
