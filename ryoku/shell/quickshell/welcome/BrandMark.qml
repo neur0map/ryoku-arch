@@ -1,19 +1,21 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Qt5Compat.GraphicalEffects
+import Ryoku.Ui.Singletons
 import "Singletons"
 
 // The desktop brand seal, 力 by default. Users swap it globally (their own
 // glyph/text, or an image) from Ryoku Settings -> Shell -> Global; stored in
 // ~/.config/ryoku/brand.json. Ryoku's own apps (the Hub, ryo* apps) never use
-// this and keep the 力 brand. Drop-in for the old
-// `Text { text: "力"; font.family: Theme.fontJp; color: Theme.brand }` seal:
+// this and keep the 力 brand. The mark is one of the accent's three sanctioned
+// homes (frame, 力, art), so it defaults to the brand sun. Drop-in for the old
+// `Text { text: "力"; font.family: Tokens.jp; color: Tokens.sun }` seal:
 // pass the old pixelSize as `size` and the old colour as `color`.
 Item {
     id: mark
 
     property real size: 13
-    property color color: Theme.brand
+    property color color: Tokens.sun
     property int weight: Font.Medium
     // recolour a single-colour image mark to `color` (matches the tinted 力
     // idiom); off shows a full-colour logo as-is. no effect in text mode.
@@ -33,7 +35,7 @@ Item {
         anchors.centerIn: parent
         text: Theme.mark
         color: mark.color
-        font.family: Theme.fontJp
+        font.family: Tokens.jp
         font.weight: mark.weight
         font.pixelSize: mark.size
     }

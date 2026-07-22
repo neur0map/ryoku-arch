@@ -1,24 +1,29 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell.Io
+import Ryoku.Ui
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// The first-run walkthrough: a five-step guided tour over the Greek-noir threshold
-// art. Left half is the constant chrome (brand lockup, progress) laid over the art;
+// The first-run walkthrough: a five-step guided tour over the threshold art.
+// Left half is the constant chrome (brand lockup, progress) laid over the art;
 // the right half carries the current step (header + body) and the tour navigation.
+// Paper and ink throughout: the scrims are the paper flooding over the art, the
+// grain is the matte, and the only accent is the 力 mark and the art's own sun.
 // Shown once on first login (autostart guards a state flag), and dismissible any
 // time (Escape / Skip / close) -- the daemon marks it seen after this window exits.
 Rectangle {
     id: root
 
-    color: Theme.bgBot
+    color: Tokens.paper
     focus: true
     implicitWidth: 1180
     implicitHeight: 760
-    function ink(a) { return Qt.rgba(15 / 255, 12 / 255, 7 / 255, a); }
+    // the paper flooding back over the art, at a given depth.
+    function scrim(a) { return Qt.rgba(Tokens.paper.r, Tokens.paper.g, Tokens.paper.b, a); }
 
     readonly property var steps: [
-        { "eyebrow": "Welcome",          "title": "Welcome to " + Theme.brandName,     "subtitle": Theme.mark + " \u00b7 a hand-built Greek-noir desktop on Arch and Hyprland.", "next": "Take the tour" },
+        { "eyebrow": "Welcome",          "title": "Welcome to " + Theme.brandName,     "subtitle": Theme.mark + " \u00b7 a hand-built paper-and-ink desktop on Arch and Hyprland.", "next": "Take the tour" },
         { "eyebrow": "Getting around",   "title": "The keys that matter", "subtitle": "Six shortcuts open almost everything.",                              "next": "Next" },
         { "eyebrow": "Where things live","title": "Know your desktop",    "subtitle": "Four surfaces, and how to summon each one.",                          "next": "Next" },
         { "eyebrow": "Make it yours",    "title": "A few quick choices",  "subtitle": "Set the essentials now; the rest waits in Settings.",                 "next": "Next" },
@@ -58,10 +63,10 @@ Rectangle {
         anchors.fill: parent
         gradient: Gradient {
             orientation: Gradient.Horizontal
-            GradientStop { position: 0.0;  color: root.ink(0) }
-            GradientStop { position: 0.42; color: root.ink(0) }
-            GradientStop { position: 0.62; color: root.ink(0.74) }
-            GradientStop { position: 1.0;  color: root.ink(0.92) }
+            GradientStop { position: 0.0;  color: root.scrim(0) }
+            GradientStop { position: 0.42; color: root.scrim(0) }
+            GradientStop { position: 0.62; color: root.scrim(0.74) }
+            GradientStop { position: 1.0;  color: root.scrim(0.92) }
         }
     }
 
@@ -69,10 +74,10 @@ Rectangle {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.0;  color: root.ink(0.34) }
-            GradientStop { position: 0.16; color: root.ink(0) }
-            GradientStop { position: 0.74; color: root.ink(0) }
-            GradientStop { position: 1.0;  color: root.ink(0.72) }
+            GradientStop { position: 0.0;  color: root.scrim(0.34) }
+            GradientStop { position: 0.16; color: root.scrim(0) }
+            GradientStop { position: 0.74; color: root.scrim(0) }
+            GradientStop { position: 1.0;  color: root.scrim(0.72) }
         }
     }
 
@@ -85,21 +90,23 @@ Rectangle {
         anchors.topMargin: 34
         spacing: 13
 
-        Item {
+        // the seal: a hairline plate, the mark in the brand sun. The accent may
+        // name the brand (frame, 力, art); it never floods a surface, so the
+        // plate itself stays paper.
+        Rectangle {
             width: 42
             height: 42
             anchors.verticalCenter: parent.verticalCenter
+            radius: Tokens.radius
+            color: "transparent"
+            border.width: Tokens.border
+            border.color: Tokens.line
 
-            Rectangle { x: 4; y: 4; width: 42; height: 42; color: Theme.shadow; antialiasing: false }
-            Rectangle {
-                anchors.fill: parent
-                color: Theme.brand
-                BrandMark {
-                    anchors.centerIn: parent
-                    size: 24
-                    color: Theme.onAccent
-                    weight: Font.Bold
-                }
+            BrandMark {
+                anchors.centerIn: parent
+                size: 24
+                color: Tokens.sun
+                weight: Font.Bold
             }
         }
 
@@ -108,18 +115,18 @@ Rectangle {
             spacing: 3
             Text {
                 text: Theme.brandName.toUpperCase()
-                color: Theme.bright
-                font.family: Theme.mono
-                font.pixelSize: 17
-                font.weight: Font.Bold
-                font.letterSpacing: 3.5
+                color: Tokens.ink
+                font.family: Tokens.ui
+                font.pixelSize: 16
+                font.weight: Font.DemiBold
+                font.letterSpacing: Tokens.trackMark
             }
             Text {
                 text: "FIRST LIGHT"
-                color: Theme.dim
-                font.family: Theme.mono
-                font.pixelSize: 9
-                font.letterSpacing: 2.6
+                color: Tokens.inkFaint
+                font.family: Tokens.mono
+                font.pixelSize: Tokens.fTiny
+                font.letterSpacing: Tokens.trackMark
             }
         }
     }
@@ -133,35 +140,37 @@ Rectangle {
         anchors.bottomMargin: 40
         spacing: 14
 
+        // square registration ticks, one per step: the current one is the long
+        // ink bar, visited ones keep faint ink, unvisited stay hairline ghosts.
         Row {
-            spacing: 9
+            spacing: 8
             Repeater {
                 model: root.steps.length
                 delegate: Rectangle {
-                    id: dot
+                    id: tick
                     required property int index
                     readonly property bool active: root.step === index
                     readonly property bool done: index < root.step
-                    width: active ? 26 : 9
-                    height: 9
-                    radius: 4.5
-                    color: active ? Theme.brand : (done ? Theme.emberDeep : Theme.faint)
+                    width: active ? 26 : 10
+                    height: 3
+                    color: active ? Tokens.ink : (done ? Tokens.inkFaint : Tokens.lineSoft)
                     anchors.verticalCenter: parent.verticalCenter
-                    Behavior on width { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
-                    Behavior on color { ColorAnimation { duration: Theme.medium } }
+                    Behavior on width { NumberAnimation { duration: Motion.move; easing.type: Motion.ease } }
+                    Behavior on color { ColorAnimation { duration: Motion.flap } }
 
-                    HoverHandler { id: dh; cursorShape: Qt.PointingHandCursor }
-                    TapHandler { onTapped: root.goTo(dot.index) }
+                    // a taller hit area than a 3px bar: pad the handlers out.
+                    HoverHandler { cursorShape: Qt.PointingHandCursor; margin: 6 }
+                    TapHandler { margin: 6; onTapped: root.goTo(tick.index) }
                 }
             }
         }
 
         Text {
             text: ("0" + (root.step + 1)).slice(-2) + "  /  0" + root.steps.length
-            color: Theme.dim
-            font.family: Theme.mono
-            font.pixelSize: 11
-            font.letterSpacing: 2
+            color: Tokens.inkFaint
+            font.family: Tokens.mono
+            font.pixelSize: Tokens.fMicro
+            font.letterSpacing: Tokens.trackLabel
         }
     }
 
@@ -185,7 +194,7 @@ Rectangle {
             anchors.bottom: nav.top
             anchors.bottomMargin: 24
             opacity: 0
-            transform: Translate { id: slide; y: 16 }
+            transform: Translate { id: slide; y: 12 }
 
             Column {
                 id: header
@@ -200,9 +209,9 @@ Rectangle {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     text: root.steps[root.step].title
-                    color: Theme.bright
-                    font.family: Theme.display
-                    font.pixelSize: root.step === 0 ? 42 : 31
+                    color: Tokens.ink
+                    font.family: Tokens.display
+                    font.pixelSize: root.step === 0 ? Tokens.fTitle : Tokens.fHero
                     font.weight: Font.DemiBold
                     wrapMode: Text.WordWrap
                     lineHeight: 0.98
@@ -212,9 +221,9 @@ Rectangle {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     text: root.steps[root.step].subtitle
-                    color: Theme.subtle
-                    font.family: Theme.font
-                    font.pixelSize: 15
+                    color: Tokens.inkDim
+                    font.family: Tokens.ui
+                    font.pixelSize: Tokens.fRow
                     wrapMode: Text.WordWrap
                     lineHeight: 1.3
                 }
@@ -291,16 +300,20 @@ Rectangle {
     Component { id: cCustomize; StepCustomize {} }
     Component { id: cReady;     StepReady {} }
 
-    // reveal the step content on every change.
+    // reveal the step content on every change. Mechanical: a short settle, no
+    // drift; reduced motion collapses it to a cut via the Motion gate.
     SequentialAnimation {
         id: reveal
         PropertyAction { target: content; property: "opacity"; value: 0 }
-        PropertyAction { target: slide; property: "y"; value: 16 }
+        PropertyAction { target: slide; property: "y"; value: 12 }
         ParallelAnimation {
-            NumberAnimation { target: content; property: "opacity"; to: 1; duration: Theme.medium; easing.type: Theme.ease }
-            NumberAnimation { target: slide; property: "y"; to: 0; duration: Theme.slow; easing.type: Theme.ease }
+            NumberAnimation { target: content; property: "opacity"; to: 1; duration: Motion.swap; easing.type: Motion.ease }
+            NumberAnimation { target: slide; property: "y"; to: 0; duration: Motion.swap; easing.type: Motion.ease }
         }
     }
     onStepChanged: reveal.restart()
     Component.onCompleted: reveal.restart()
+
+    // the matte: one grain layer, topmost over everything.
+    Grain { anchors.fill: parent }
 }

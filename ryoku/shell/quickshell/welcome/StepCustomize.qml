@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Ryoku.Ui.Singletons
 import "Singletons"
 
 // Step 4 body: a few genuinely-wired quick choices, each through the same path the
@@ -22,10 +23,12 @@ Flickable {
 
     readonly property string cfgPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/shell.json"
 
+    // seeds mirror the shipped signature defaults (stele, square) and only show
+    // until syncFromDisk reads the live state.
     property string barPosition: "top"
-    property string barStyle: "noctalia"
-    property real frameRadius: 9
-    property real windowRounding: 8
+    property string barStyle: "stele"
+    property real frameRadius: 0
+    property real windowRounding: 0
 
     // read the current shell values so the controls open on the live state.
     function syncFromDisk() {
@@ -110,14 +113,8 @@ Flickable {
             width: parent.width
             spacing: 12
 
-            Text {
-                text: "Wallpaper"
-                color: Theme.dim
-                font.family: Theme.mono
-                font.pixelSize: 11
-                font.letterSpacing: 2.4
-                font.capitalization: Font.AllUppercase
-            }
+            GroupMark { width: parent.width; text: "Wallpaper" }
+
             Row {
                 width: parent.width
                 spacing: 16
@@ -132,9 +129,9 @@ Flickable {
                     anchors.verticalCenter: parent.verticalCenter
                     wrapMode: Text.WordWrap
                     text: "Roll a new wallpaper \u2014 the whole desktop rethemes. Your palette follows it."
-                    color: Theme.subtle
-                    font.family: Theme.font
-                    font.pixelSize: 13
+                    color: Tokens.inkMuted
+                    font.family: Tokens.ui
+                    font.pixelSize: Tokens.fSmall
                     lineHeight: 1.25
                 }
             }
@@ -144,14 +141,9 @@ Flickable {
         Column {
             width: parent.width
             spacing: 12
-            Text {
-                text: "Bar position"
-                color: Theme.dim
-                font.family: Theme.mono
-                font.pixelSize: 11
-                font.letterSpacing: 2.4
-                font.capitalization: Font.AllUppercase
-            }
+
+            GroupMark { width: parent.width; text: "Bar position" }
+
             ChipRow {
                 width: parent.width
                 model: [{ "key": "top", "label": "Top" }, { "key": "bottom", "label": "Bottom" }]
@@ -164,14 +156,9 @@ Flickable {
         Column {
             width: parent.width
             spacing: 12
-            Text {
-                text: "Bar skin"
-                color: Theme.dim
-                font.family: Theme.mono
-                font.pixelSize: 11
-                font.letterSpacing: 2.4
-                font.capitalization: Font.AllUppercase
-            }
+
+            GroupMark { width: parent.width; text: "Bar skin" }
+
             ChipRow {
                 width: parent.width
                 model: [
@@ -192,14 +179,9 @@ Flickable {
         Column {
             width: parent.width
             spacing: 14
-            Text {
-                text: "Roundness"
-                color: Theme.dim
-                font.family: Theme.mono
-                font.pixelSize: 11
-                font.letterSpacing: 2.4
-                font.capitalization: Font.AllUppercase
-            }
+
+            GroupMark { width: parent.width; text: "Roundness" }
+
             SliderRow {
                 width: parent.width
                 label: "Shell frame"
@@ -223,15 +205,15 @@ Flickable {
         Row {
             width: parent.width
             spacing: 10
-            Rectangle { width: 14; height: 1.5; color: Theme.gold; anchors.verticalCenter: hint.verticalCenter }
+            Rectangle { width: 14; height: 1; color: Tokens.lineStrong; anchors.verticalCenter: hint.verticalCenter }
             Text {
                 id: hint
                 width: col.width - 24
                 wrapMode: Text.WordWrap
                 text: "Every other knob \u2014 sidebars, widgets, colours \u2014 waits for you in Settings \u2192 Shell."
-                color: Theme.dim
-                font.family: Theme.font
-                font.pixelSize: 13
+                color: Tokens.inkFaint
+                font.family: Tokens.ui
+                font.pixelSize: Tokens.fSmall
             }
         }
     }

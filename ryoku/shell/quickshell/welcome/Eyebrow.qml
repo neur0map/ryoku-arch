@@ -1,30 +1,29 @@
 import QtQuick
-import "Singletons"
+import Ryoku.Ui.Singletons
 
-// Editorial kicker, the website's `.eyebrow`: a short vermillion tick, then a mono
-// uppercase label, optionally led by a 力 mark. Sits above a Fraunces heading.
+// Editorial kicker above a Fraunces heading: a hairline tick, the 力 mark, then
+// a tracked Space Grotesk label. The mark may carry the brand sun (frame, 力,
+// art are the accent's only homes); the rest is ink.
 Row {
     id: eye
 
     property string text: ""
     property bool mark: true
-    property color tick: Theme.sun
-    property color labelColor: Theme.dim
 
     spacing: 10
 
     Rectangle {
         anchors.verticalCenter: parent.verticalCenter
-        width: 22
-        height: 1.5
-        color: eye.tick
+        width: 18
+        height: 1
+        color: Tokens.lineStrong
     }
 
     BrandMark {
         visible: eye.mark
         anchors.verticalCenter: parent.verticalCenter
         size: 12
-        color: eye.tick
+        color: Tokens.sun
         weight: Font.Bold
         opacity: 0.9
     }
@@ -32,11 +31,11 @@ Row {
     Text {
         anchors.verticalCenter: parent.verticalCenter
         text: eye.text
-        color: eye.labelColor
-        font.family: Theme.mono
+        color: Tokens.inkMuted
+        font.family: Tokens.ui
         font.pixelSize: 10
-        font.weight: Font.DemiBold
-        font.letterSpacing: 3.2
+        font.weight: Font.Medium
+        font.letterSpacing: Tokens.trackMark
         font.capitalization: Font.AllUppercase
     }
 }

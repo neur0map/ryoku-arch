@@ -1,13 +1,15 @@
-pragma ComponentBehavior: Bound
 import QtQuick
+import Ryoku.Ui
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// The ambient frame the whole walkthrough sits in: the fal.ai Greek-noir threshold
-// art (marble columns woven with torii receding to the red sun), a warm-black tint
-// to marry it to the canvas, an edge vignette, and editorial corner ticks. The art
-// is generated at dev time and committed (art/welcome-bg.png); the running target
-// has no generation dependency. Content scrims live in Welcome.qml so each step can
-// tune how much art shows through.
+// The ambient frame the whole walkthrough sits in: the threshold art (marble
+// columns woven with torii receding to the red sun -- art manufactures its own
+// accent, the one place colour lives), a black wash to seat it on the paper, an
+// edge vignette that melts it into the window edge, and registration ticks. The
+// art is generated at dev time and committed (art/welcome-bg.png); the running
+// target has no generation dependency. Content scrims live in Welcome.qml so
+// each step can tune how much art shows through.
 Item {
     id: backdrop
 
@@ -20,18 +22,18 @@ Item {
         asynchronous: true
         smooth: true
         opacity: status === Image.Ready ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: Theme.slow; easing.type: Theme.ease } }
+        Behavior on opacity { NumberAnimation { duration: Motion.swap; easing.type: Motion.ease } }
     }
 
-    // marry the plate to the near-black canvas: a faint warm-black wash over all.
+    // seat the plate on the paper: a faint pure-black wash over all.
     Rectangle {
         anchors.fill: parent
-        color: Theme.bgBot
+        color: Tokens.paper
         opacity: 0.18
     }
 
-    // edge vignette: darken the corners so content holds the eye and the plate melts
-    // into the window edge.
+    // edge vignette: darken the corners so content holds the eye and the plate
+    // melts into the paper at the window edge.
     Canvas {
         anchors.fill: parent
         onWidthChanged: requestPaint()
@@ -48,41 +50,10 @@ Item {
         }
     }
 
-    // editorial corner ticks: a light registration frame around the window.
-    Repeater {
-        model: 4
-        Item {
-            id: tick
-            required property int index
-            readonly property bool onLeft: index % 2 === 0
-            readonly property bool onTop: index < 2
-            readonly property real len: 22
-            width: len
-            height: len
-            anchors.left: onLeft ? parent.left : undefined
-            anchors.right: onLeft ? undefined : parent.right
-            anchors.top: onTop ? parent.top : undefined
-            anchors.bottom: onTop ? undefined : parent.bottom
-            anchors.margins: 16
-
-            Rectangle {
-                width: tick.len
-                height: 1.5
-                color: Theme.line
-                anchors.top: tick.onTop ? parent.top : undefined
-                anchors.bottom: tick.onTop ? undefined : parent.bottom
-                anchors.left: tick.onLeft ? parent.left : undefined
-                anchors.right: tick.onLeft ? undefined : parent.right
-            }
-            Rectangle {
-                width: 1.5
-                height: tick.len
-                color: Theme.line
-                anchors.top: tick.onTop ? parent.top : undefined
-                anchors.bottom: tick.onTop ? undefined : parent.bottom
-                anchors.left: tick.onLeft ? parent.left : undefined
-                anchors.right: tick.onLeft ? undefined : parent.right
-            }
-        }
+    // registration ticks bracketing the sheet, the house corner vocabulary.
+    Ticks {
+        anchors.margins: 16
+        arm: 22
+        color: Tokens.line
     }
 }

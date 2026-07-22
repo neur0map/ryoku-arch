@@ -1,11 +1,14 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// A wrapping row of single-select chips. Unlike a fixed segmented control it holds
-// two choices or six without crowding, and wraps to a second line on a narrow
-// column. `model` is a list of { key, label }; the selected chip carries the ember
-// accent.
+// A wrapping row of single-select chips, the house Chips vocabulary: the
+// selected chip inverts to a bone plate (emphasis is inversion, never an accent
+// fill). Unlike the fixed segmented control it holds two choices or seven
+// without crowding, and wraps on a narrow column. `model` is a list of
+// { key, label }, kept over Ryoku.Ui's Chips because the tour's keys are not
+// their labels ("noctalia" / "Noctalia").
 Flow {
     id: chips
 
@@ -13,7 +16,7 @@ Flow {
     property string current: ""
     signal selected(string key)
 
-    spacing: 8
+    spacing: 5
 
     Repeater {
         model: chips.model
@@ -23,24 +26,24 @@ Flow {
             required property var modelData
             readonly property bool on: chips.current === chip.modelData.key
 
-            implicitWidth: t.implicitWidth + 26
-            height: 32
-            radius: Theme.radius
-            color: chip.on ? Theme.keyTop : (h.hovered ? Theme.surfaceLo : "transparent")
-            border.width: 1
-            border.color: chip.on ? Theme.ember : (h.hovered ? Theme.cream : Theme.line)
-            Behavior on color { ColorAnimation { duration: Theme.quick } }
-            Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+            implicitWidth: t.implicitWidth + 18
+            height: 24
+            radius: Tokens.radius
+            color: chip.on ? Tokens.bone : (h.hovered ? Tokens.tint10 : "transparent")
+            border.width: Tokens.border
+            border.color: h.hovered && !chip.on ? Tokens.lineStrong : Tokens.line
+            Behavior on color { ColorAnimation { duration: Motion.snap } }
+            Behavior on border.color { ColorAnimation { duration: Motion.snap } }
 
             Text {
                 id: t
                 anchors.centerIn: parent
                 text: chip.modelData.label
-                color: chip.on ? Theme.bright : (h.hovered ? Theme.cream : Theme.dim)
-                font.family: Theme.font
-                font.pixelSize: 12
-                font.weight: chip.on ? Font.DemiBold : Font.Medium
-                Behavior on color { ColorAnimation { duration: Theme.quick } }
+                color: chip.on ? Tokens.inkOnBone : Tokens.inkDim
+                font.family: Tokens.ui
+                font.pixelSize: 10
+                font.weight: Font.Medium
+                Behavior on color { ColorAnimation { duration: Motion.snap } }
             }
 
             HoverHandler { id: h; cursorShape: Qt.PointingHandCursor }

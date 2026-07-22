@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Ryoku.Ui.Singletons
 import "Singletons"
 
 // Step 5 body: the send-off. A short recap, a jump into Ryoku Settings, and a
@@ -16,9 +17,9 @@ Column {
         wrapMode: Text.WordWrap
         text: "That's the tour. The desktop is yours now \u2014 explore, break things, tune them "
             + "back. Nothing here is locked."
-        color: Theme.cream
-        font.family: Theme.font
-        font.pixelSize: 15
+        color: Tokens.inkDim
+        font.family: Tokens.ui
+        font.pixelSize: Tokens.fRow
         lineHeight: 1.35
     }
 
@@ -39,16 +40,16 @@ Column {
                 width: step.width
                 spacing: 12
 
-                Rectangle { width: 16; height: 1.5; color: Theme.sun; anchors.verticalCenter: label.verticalCenter }
+                Rectangle { width: 16; height: 1; color: Tokens.lineStrong; anchors.verticalCenter: label.verticalCenter }
 
                 Text {
                     id: label
                     width: tick.width - 28
                     wrapMode: Text.WordWrap
                     text: tick.modelData
-                    color: Theme.subtle
-                    font.family: Theme.font
-                    font.pixelSize: 14
+                    color: Tokens.inkMuted
+                    font.family: Tokens.ui
+                    font.pixelSize: Tokens.fBody
                 }
             }
         }

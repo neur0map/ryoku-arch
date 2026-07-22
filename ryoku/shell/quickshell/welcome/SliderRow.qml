@@ -1,11 +1,13 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// Labeled slider with a live readout: ember-filled track, round knob. `moved` fires
-// continuously and drives the readout/knob (the owner holds the value); `released`
-// fires once when the drag ends, so the owner commits the change exactly once (a
-// file write or a compositor reload), never per-pixel.
+// Labeled slider with a live readout, the house Slid vocabulary: a hairline
+// track, an ink fill, a square ink handle -- no round knob, no accent gradient.
+// `moved` fires continuously and drives the readout/handle (the owner holds the
+// value); `released` fires once when the drag ends, so the owner commits the
+// change exactly once (a file write or a compositor reload), never per-pixel.
 Item {
     id: root
 
@@ -19,15 +21,13 @@ Item {
     signal released(real value)
 
     implicitWidth: 320
-    implicitHeight: 46
+    implicitHeight: 42
 
-    readonly property real knobR: 9
-    readonly property real trackX: knobR
-    readonly property real trackW: Math.max(1, slot.width - 2 * knobR)
+    readonly property real handleW: 6
     readonly property real frac: to > from ? Math.max(0, Math.min(1, (value - from) / (to - from))) : 0
 
     function valueAt(px) {
-        var tt = Math.max(0, Math.min(1, (px - trackX) / trackW));
+        var tt = Math.max(0, Math.min(1, px / Math.max(1, slot.width)));
         var v = from + tt * (to - from);
         if (step > 0)
             v = Math.round(v / step) * step;
@@ -39,19 +39,20 @@ Item {
         anchors.left: parent.left
         anchors.top: parent.top
         text: root.label
-        color: Theme.cream
-        font.family: Theme.font
-        font.pixelSize: 13
+        color: Tokens.inkDim
+        font.family: Tokens.ui
+        font.pixelSize: Tokens.fSmall
         font.weight: Font.Medium
     }
 
+    // the readout is language (a numeral a human reads), so Space Grotesk.
     Text {
         anchors.right: parent.right
         anchors.baseline: lbl.baseline
         text: Math.round(root.value) + (root.unit.length ? (" " + root.unit) : "")
-        color: Theme.bright
-        font.family: Theme.mono
-        font.pixelSize: 12
+        color: Tokens.ink
+        font.family: Tokens.ui
+        font.pixelSize: Tokens.fSmall
         font.weight: Font.DemiBold
     }
 
@@ -60,44 +61,32 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: 22
+        height: 20
 
         Rectangle {
-            id: track
-            x: root.trackX
-            width: root.trackW
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width
             height: 4
-            radius: Theme.radius
-            anchors.verticalCenter: parent.verticalCenter
-            color: Theme.surfaceLo
-            border.width: 1
-            border.color: Theme.line
-
-            Rectangle {
-                width: root.frac * parent.width
-                height: parent.height
-                radius: parent.radius
-                gradient: Gradient {
-                    orientation: Gradient.Horizontal
-                    GradientStop { position: 0.0; color: Theme.emberDeep }
-                    GradientStop { position: 1.0; color: Theme.ember }
-                }
-            }
+            color: "transparent"
+            border.width: Tokens.border
+            border.color: ma.containsMouse || ma.pressed ? Tokens.lineStrong : Tokens.line
+            antialiasing: false
+            Behavior on border.color { ColorAnimation { duration: Motion.snap } }
         }
-
         Rectangle {
-            id: knob
-            width: root.knobR * 2
-            height: root.knobR * 2
-            radius: width / 2
-            x: root.trackX + root.frac * root.trackW - root.knobR
             anchors.verticalCenter: parent.verticalCenter
-            color: ma.pressed || ma.containsMouse ? Theme.bright : Theme.cream
-            border.width: 2
-            border.color: Theme.ember
-            scale: ma.pressed ? 1.14 : 1
-            Behavior on color { ColorAnimation { duration: Theme.quick } }
-            Behavior on scale { NumberAnimation { duration: Theme.quick; easing.type: Theme.ease } }
+            width: root.frac * parent.width
+            height: 4
+            color: Tokens.ink
+            antialiasing: false
+        }
+        Rectangle {
+            x: Math.min(parent.width - root.handleW, Math.max(0, root.frac * parent.width - root.handleW / 2))
+            anchors.verticalCenter: parent.verticalCenter
+            width: root.handleW
+            height: 17
+            color: Tokens.ink
+            antialiasing: false
         }
 
         MouseArea {
