@@ -434,15 +434,17 @@ ryoku_partition_alongside() {
   log "boot=$ESP_DEV (new ryoku-boot XBOOTLDR, /boot) root partition=$ROOT_PART"
 }
 
-# ryoku_reclaim_leftovers deletes partitions whose GPT partlabel is EXACTLY
-# 'ryoku' or 'ryokuboot' and that are not mounted: leftovers of a previous
-# failed alongside run that would otherwise eat the free region and stack up on
-# every retry. GATED: reclaim (a destructive delete) runs ONLY when
-# RYOKU_RECLAIM_LEFTOVERS=1 -- the TUI sets it after the typed ERASE ack on the
-# Review screen. without the ack, finding such partitions is fatal (they might
-# be a healthy COMPLETED Ryoku install, not a leftover): die listing them and
-# the two ways forward rather than delete anything. only our own exact labels,
-# only when unmounted; any other partition (and a still-mounted one) is untouched.
+# ryoku_reclaim_leftovers deletes partitions that are VERIFIED failed-alongside
+# debris (ryoku_is_leftover: GPT partlabel exactly ryoku/ryokuboot AND not a
+# living system) and not mounted: leftovers of a previous failed run that would
+# otherwise eat the free region and stack up on every retry. GATED: reclaim (a
+# destructive delete) runs ONLY when RYOKU_RECLAIM_LEFTOVERS=1 -- the TUI sets it
+# after the typed ERASE ack on the Review screen. without the ack, finding such
+# debris is fatal: die listing it and the two ways forward rather than delete
+# anything. a LIVING install (an @/etc btrfs, a kernel-bearing boot vfat) is NEVER
+# reclaimed -- not even with the ack -- and a partition we cannot read is kept
+# too (fail-closed). only our own exact labels, only verified debris, only when
+# unmounted; anything else is untouched.
 ryoku_reclaim_leftovers() {
   local disk=$1 p lbl mnt num info list
   local -a dnums=() dinfo=()
@@ -457,6 +459,12 @@ ryoku_reclaim_leftovers() {
     mnt=$(lsblk -nrpo MOUNTPOINT "$p" 2>/dev/null | awk 'NF' | head -n1)
     if [[ -n $mnt ]]; then
       log "leaving $p alone: labeled '$lbl' but mounted at $mnt (not a leftover)"
+      continue
+    fi
+    # living-install guard (defense in depth, same test the probe applies): a
+    # real existing OS carrying our label is NOT debris, even with the ack.
+    if ! ryoku_is_leftover "$p"; then
+      log "leaving $p alone: labeled '$lbl' but it holds a living install (or could not be inspected); never reclaimed"
       continue
     fi
     num=$(part_num "$p")
