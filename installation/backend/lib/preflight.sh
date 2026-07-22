@@ -28,9 +28,9 @@ ryoku_preflight() {
     log "preflight: would require the repo payload at $RYOKU_REPO and a working DNS resolver before any disk write"
     if [[ ${RYOKU_DISK_STRATEGY:-} == alongside ]]; then
       if [[ -n ${RYOKU_RESIZE_PART:-} ]]; then
-        log "preflight: would also require GPT + a shared Windows ESP, the shrink tool for ${RYOKU_RESIZE_PART}'s filesystem, and RYOKU_RESIZE_TAKE_MIB >= $(( (2 + $(ryoku_min_root_gib)) * 1024 )); the freed region is checked after the carve"
+        log "preflight: would also require GPT + a shared usable ESP (Windows, Ryoku, or another Linux), the shrink tool for ${RYOKU_RESIZE_PART}'s filesystem, and RYOKU_RESIZE_TAKE_MIB >= $(( (2 + $(ryoku_min_root_gib)) * 1024 )); the freed region is checked after the carve"
       else
-        log "preflight: would also require GPT, exactly one EF00 ESP holding /EFI/Microsoft with >= 8 MiB free, a free region >= $(( 2 + $(ryoku_min_root_gib) ))GiB, and warn on any BitLocker neighbor"
+        log "preflight: would also require GPT, exactly one usable EF00 ESP with >= 8 MiB free, a free region >= $(( 2 + $(ryoku_min_root_gib) ))GiB, and warn on any BitLocker neighbor"
       fi
     fi
     log "preflight: ok (profile=$RYOKU_PROFILE, strategy=$RYOKU_DISK_STRATEGY, encrypt=${RYOKU_ENCRYPT:-0})"
@@ -82,19 +82,22 @@ ryoku_preflight() {
 }
 
 # ryoku_require_shared_esp: the gates common to every alongside-family install
-# (plain alongside AND carve). A GPT disk with exactly one ESP, and that ESP is
-# Windows' with >= 8 MiB free for the Limine loader we land beside its own. Sets
-# RYOKU_PF_WESP. Fail closed: this writes to a user's Windows disk exactly once.
+# (plain alongside AND carve). A GPT disk with exactly one ESP, and that ESP
+# usable to share - Windows', an existing Ryoku's, or another Linux's, judged by
+# the same ryoku_esp_scan the probe and the bootloader use - with >= 8 MiB free
+# for the Limine loader we land beside the existing one. Sets RYOKU_PF_WESP and
+# RYOKU_PF_ESP_KIND. Fail closed: this writes to a user's only disk exactly once.
 ryoku_require_shared_esp() {
-  local disk=$RYOKU_DISK pttype ef_count wesp tmpd avail_kib=0
+  local disk=$RYOKU_DISK pttype ef_count espinfo wesp kind tmpd avail_kib=0
   pttype=$(blkid -o value -s PTTYPE "$disk" 2>/dev/null || true)
   [[ $pttype == gpt ]] || die "alongside needs a GPT disk; $disk has '${pttype:-no}' partition table. Use whole-disk, or convert to GPT."
 
-  # exactly one EF00 on the disk, and it must be Windows' (holds /EFI/Microsoft).
-  # multiple ESPs per disk are firmware-flaky; we share Windows' single ESP.
+  # exactly one EF00 on the disk: multiple ESPs per disk are firmware-flaky; we
+  # share the existing single ESP whoever owns it.
   ef_count=$(sgdisk -p "$disk" 2>/dev/null | awk '$6=="EF00"' | wc -l)
-  (( ef_count == 1 )) || die "alongside expects exactly one EFI System Partition on $disk (found $ef_count). Ryoku shares Windows' single ESP; refusing a multi-ESP disk."
-  wesp=$(ryoku_windows_esp "$disk") || die "no Windows ESP found on $disk (no EF00 partition holding /EFI/Microsoft). alongside shares Windows' ESP; install Windows first, or use whole-disk."
+  (( ef_count == 1 )) || die "alongside expects exactly one EFI System Partition on $disk (found $ef_count). Ryoku shares the existing single ESP; refusing a multi-ESP disk."
+  espinfo=$(ryoku_esp_scan "$disk") || die "no usable EFI System Partition on $disk. alongside shares the existing ESP; use whole-disk instead."
+  read -r wesp kind _ <<<"$espinfo"
 
   # limine is < 1 MiB, but demand 8 MiB headroom on the shared ESP.
   tmpd=$(mktemp -d)
@@ -104,8 +107,9 @@ ryoku_require_shared_esp() {
   fi
   rmdir "$tmpd" 2>/dev/null || true
   [[ $avail_kib =~ ^[0-9]+$ ]] || avail_kib=0
-  (( avail_kib >= 8192 )) || die "Windows ESP $wesp has ${avail_kib} KiB free; alongside needs >= 8 MiB there for the Limine loader. Free space on the ESP, or use whole-disk."
+  (( avail_kib >= 8192 )) || die "the shared ESP $wesp has ${avail_kib} KiB free; alongside needs >= 8 MiB there for the Limine loader. Free space on the ESP, or use whole-disk."
   RYOKU_PF_WESP=$wesp
+  RYOKU_PF_ESP_KIND=$kind
 }
 
 # ryoku_bitlocker_warn <disk>: a BitLocker neighbour is not blocking (the user may
@@ -123,9 +127,9 @@ ryoku_preflight_alongside() {
   ryoku_require_shared_esp
   need_gib=$(( 2 + $(ryoku_min_root_gib) ))
   region_mib=$(ryoku_free_regions "$disk" | sort -k3,3 -nr | awk 'NR==1{print $3+0}')
-  (( region_mib >= need_gib * 1024 )) || die "no unallocated region >= ${need_gib}GiB on $disk (largest is $(( region_mib / 1024 ))GiB). Shrink a Windows partition first, then retry."
+  (( region_mib >= need_gib * 1024 )) || die "no unallocated region >= ${need_gib}GiB on $disk (largest is $(( region_mib / 1024 ))GiB). Shrink a partition first, then retry."
   ryoku_bitlocker_warn "$disk"
-  log "preflight alongside: GPT ok, Windows ESP $RYOKU_PF_WESP (>= 8 MiB free), free region $(( region_mib / 1024 ))GiB >= ${need_gib}GiB"
+  log "preflight alongside: GPT ok, shared ESP $RYOKU_PF_WESP ($RYOKU_PF_ESP_KIND, >= 8 MiB free), free region $(( region_mib / 1024 ))GiB >= ${need_gib}GiB"
 }
 
 # carve preflight: the shared ESP gates PLUS the shrink tool for the selected
@@ -150,5 +154,5 @@ ryoku_preflight_resize() {
   need_gib=$(( 2 + $(ryoku_min_root_gib) ))
   { [[ $take =~ ^[0-9]+$ ]] && (( take >= need_gib * 1024 )); } || die "RYOKU_RESIZE_TAKE_MIB='${take}' must free at least ${need_gib} GiB (2 GiB boot + $(ryoku_min_root_gib) GiB root) for Ryoku."
   ryoku_bitlocker_warn "$disk"
-  log "preflight carve: GPT ok, Windows ESP $RYOKU_PF_WESP, will carve ${take} MiB out of $part ($fstype) with $tool"
+  log "preflight carve: GPT ok, shared ESP $RYOKU_PF_WESP ($RYOKU_PF_ESP_KIND), will carve ${take} MiB out of $part ($fstype) with $tool"
 }
