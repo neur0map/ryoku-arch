@@ -73,7 +73,7 @@ var rows = [
         "group": "LANGUAGE",
         "key": "i18nGenerate",
         "label": "AI translation",
-        "desc": "Generate higher-quality translations, or a language Ryoku doesn't ship, with an LLM. Add your key in ~/.config/ryoku/i18n-llm.json, then Generate; results layer over the built-in translations for the selected language.",
+        "desc": "Generate higher-quality translations, or a language Ryoku doesn't ship, with an LLM. Ryoku creates ~/.config/ryoku/i18n-llm.json on login; paste your Anthropic (console.anthropic.com) or OpenAI (platform.openai.com/api-keys) key into it, then Generate. Results layer over the built-in translations for the selected language.",
         "ctl": "action",
         "actionLabel": "Generate with AI",
         "src": "none"
