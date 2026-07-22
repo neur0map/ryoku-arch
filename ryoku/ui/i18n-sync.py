@@ -81,7 +81,12 @@ def extract_keys():
         for f in files:
             if not f.endswith(".qml"):
                 continue
-            text = open(os.path.join(root, f), encoding="utf-8", errors="ignore").read()
+            # vendored Qt imports are symlinks into /usr/lib/qt6; on a runner
+            # without Qt they dangle, so skip anything that won't open.
+            try:
+                text = open(os.path.join(root, f), encoding="utf-8", errors="ignore").read()
+            except OSError:
+                continue
             for _, body in TR_CALL.findall(text):
                 s = _unescape(body).strip()
                 if s:
