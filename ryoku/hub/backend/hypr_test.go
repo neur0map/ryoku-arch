@@ -574,6 +574,7 @@ func TestGenPluginsDefaultsAreEmpty(t *testing.T) {
 // can't abort settings.lua. The old hl.get_loaded_plugins guard (which does not
 // exist in the real hl API and broke the whole config) must never be emitted.
 func TestGenPluginsDynamicCursors(t *testing.T) {
+	t.Setenv("HOME", t.TempDir()) // hermetic: no checkout ~/.local plugin, so /usr/lib
 	o := defaultOverrides()
 	o.Plugins.DynamicCursors.Enabled = true
 	out := genLua(o, true)
@@ -622,6 +623,7 @@ func TestGenPluginsHyprbarsButtons(t *testing.T) {
 // upstream commit renamed these, but our package builds the 0.55.4-matched
 // commit, so these are the ones that must be emitted.
 func TestGenPluginsHyprfocusKeys(t *testing.T) {
+	t.Setenv("HOME", t.TempDir()) // hermetic: no checkout ~/.local plugin, so /usr/lib
 	o := defaultOverrides()
 	o.Plugins.Hyprfocus.Enabled = true
 	o.Plugins.Hyprfocus.Mode = "bounce"
@@ -664,6 +666,29 @@ func TestGenPluginsImgborders(t *testing.T) {
 	want := `hl.config({ plugin = { imgborders = { enabled = true, image = "/home/x/b.png", sizes = "8,8,8,8", insets = "0,0,0,0", scale = 1.0, smooth = true, blur = false } } })`
 	if !strings.Contains(out, want) {
 		t.Errorf("missing %q:\n%s", want, out)
+	}
+}
+
+// pluginSoPath prefers a checkout's ~/.local .so over the packaged /usr/lib one,
+// so `ryoku update` on a dev/tester box loads what deploy.sh just built.
+func TestGenPluginsPrefersUserPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	so := filepath.Join(home, ".local", "lib", "hyprland", "plugins", "dynamic-cursors.so")
+	if err := os.MkdirAll(filepath.Dir(so), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(so, []byte{0}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	o := defaultOverrides()
+	o.Plugins.DynamicCursors.Enabled = true
+	out := genLua(o, true)
+	if !strings.Contains(out, `hl.plugin.load("`+so+`")`) {
+		t.Errorf("expected user-path load %q:\n%s", so, out)
+	}
+	if strings.Contains(out, "/usr/lib/hyprland/plugins/dynamic-cursors.so") {
+		t.Errorf("must not fall back to /usr/lib when the user .so exists:\n%s", out)
 	}
 }
 

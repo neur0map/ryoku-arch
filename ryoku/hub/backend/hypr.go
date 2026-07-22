@@ -773,6 +773,24 @@ func genLua(o Overrides, follow bool) string {
 // Hyprland compositor plugin .so files. genPlugins loads them by absolute path.
 const pluginDir = "/usr/lib/hyprland/plugins"
 
+// pluginSoPath resolves where a compositor plugin .so actually lives for the box
+// generating this settings.lua. A packaged install ships them in pluginDir
+// (/usr/lib, root-owned); a dev/tester checkout has no root, so deploy.sh builds
+// them under ~/.local/lib/hyprland/plugins instead. Prefer that user path when
+// the .so is present (so a checkout loads what deploy.sh just built), else fall
+// back to the packaged path. deploy.sh re-emits settings.lua after building, so
+// the baked path stays true on a checkout.
+func pluginSoPath(soName string) string {
+	name := soName + ".so"
+	if home, err := os.UserHomeDir(); err == nil {
+		user := filepath.Join(home, ".local", "lib", "hyprland", "plugins", name)
+		if fi, err := os.Stat(user); err == nil && !fi.IsDir() {
+			return user
+		}
+	}
+	return pluginDir + "/" + name
+}
+
 // genPlugins renders the optional Hyprland compositor plugins the user enabled:
 // per plugin, an hl.plugin.load of its shipped .so plus its hl.config, all inside
 // a pcall so a missing or ABI-mismatched .so degrades to "off" instead of
@@ -884,7 +902,7 @@ func genPlugins(o Overrides) string {
 func genPluginBlock(soName, section string, opts []string, extra string) string {
 	var b strings.Builder
 	b.WriteString("pcall(function()\n")
-	fmt.Fprintf(&b, "  hl.plugin.load(%s)\n", luaStr(pluginDir+"/"+soName+".so"))
+	fmt.Fprintf(&b, "  hl.plugin.load(%s)\n", luaStr(pluginSoPath(soName)))
 	fmt.Fprintf(&b, "  hl.config({ plugin = { %s = { %s } } })\n", section, strings.Join(opts, ", "))
 	if extra != "" {
 		b.WriteString(extra)
