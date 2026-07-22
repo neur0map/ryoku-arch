@@ -155,16 +155,30 @@ depends=(
   'noto-fonts-cjk'
   'noto-fonts-emoji'
   'ttf-material-symbols-variable'
+  # ── feature tools promoted from optdepends to hard depends ────────────────
+  # An optdepend never installs on `pacman -Syu`, so on a packaged box
+  # (`ryoku update`) or a shell-installer box these advertised, always-on
+  # features were silently dead, while the ISO had them (it pacstraps
+  # system/packages/base.packages). Hard depends make the ISO, `ryoku update`,
+  # and the shell installer converge on one desktop: the single source of truth.
+  'tesseract'            # OCR text grab (pill Super+D)
+  'tesseract-data-eng'   # English OCR language data
+  'zbar'                 # QR-code scanning (pill Super+D)
+  'gpu-screen-recorder'  # hardware-encoded screen recording (pill Super+U, ryomotion)
+  'wf-recorder'          # multi-GPU capture fallback (pill Super+U)
+  'hyprsunset'           # night-light colour temperature (pill Super+U)
+  'wtype'                # voice-dictation typing on Wayland (Voxtype)
+  'openrgb'              # keyboard/LED accent sync (ryoku-leds, autostart)
+  'libqalculate'         # calculator backend (launcher Super+Space)
+  'songrec'              # Recognize Music (launcher)
+  'upower'               # battery + power status (pill/bar battery indicator)
+  # external-monitor brightness over DDC/CI: the pill DISPLAY faders and the
+  # XF86MonBrightness keys drive external displays through `ddcutil setvcp`.
+  # was base.packages-only, so it never reached update/shell boxes (the pill
+  # faders were silently dead there); a hard depend fixes every path.
+  'ddcutil'
 )
 optdepends=(
-  'tesseract: OCR text grab (pill Super+D)'
-  'tesseract-data-eng: English OCR language data'
-  'zbar: QR code scanning (pill Super+D)'
-  'gpu-screen-recorder: pill Super+U screen recording (hardware-encoded)'
-  'wf-recorder: Ryoku Motion recording + pill Super+U multi-GPU capture'
-  'hyprsunset: night-light color temperature (pill Super+U)'
-  'openrgb: keyboard and LED accent sync via ryoku-leds'
-  'wtype: voice-dictation typing on Wayland (Voxtype)'
   'chromium: web browser'
   'qemu-desktop: GPU-passthrough VM (Ryoku Settings > GPU)'
   'libvirt: VM management for the passthrough VM'
@@ -344,6 +358,12 @@ package() {
   install -Dm755 "$_repo/ryoku/shell/quickshell/plugins/ryoku-plugins-place" \
     "$pkgdir/usr/bin/ryoku-plugins-place"
 
+  # AI UI translation (Ryoku Settings > Shell > Language > Generate with AI):
+  # the Hub button runs `ryoku-i18n llm <lang>` and Hyprland autostart runs
+  # `ryoku-i18n ensure`, which seeds ~/.config/ryoku/i18n-llm.json for the
+  # user's API key and machine-translates the UI to their language.
+  install -Dm755 "$_repo/ryoku/ui/i18n-sync.py" "$pkgdir/usr/bin/ryoku-i18n"
+
   # Nautilus stash actions: a nautilus-python extension that adds the deck's
   # install/compress/LocalSend actions to the file-manager right-click menu.
   # Loaded for every user from the system extensions dir, so it needs no
@@ -356,6 +376,14 @@ package() {
   # so `ryoku-gpu install-udev` is never needed on an installed system.
   install -Dm644 "$_repo/system/hardware/gpu/90-ryoku-gpu.rules" \
     "$pkgdir/usr/lib/udev/rules.d/90-ryoku-gpu.rules"
+
+  # external-monitor brightness over DDC/CI (pill DISPLAY faders + the
+  # XF86MonBrightness keys via ryoku-cmd-brightness): load i2c-dev so ddcutil
+  # can open /dev/i2c-*, and grant the active-session user access (uaccess).
+  install -Dm644 "$_repo/system/hardware/ddc/ryoku-i2c.conf" \
+    "$pkgdir/etc/modules-load.d/ryoku-i2c.conf"
+  install -Dm644 "$_repo/system/hardware/ddc/60-ryoku-i2c.rules" \
+    "$pkgdir/usr/lib/udev/rules.d/60-ryoku-i2c.rules"
 
   # Game Mode wifi power-save: a polkit rule authorizes the privileged helper
   # (ryoku-wifi-powersave, installed to /usr/bin by the hardware glob above)

@@ -2,7 +2,25 @@
 
 ## Unreleased
 
+### Fixed
+- **Desktop feature tools now reach every box, not just the ISO.** `ddcutil`,
+  `gpu-screen-recorder`, `wf-recorder`, `hyprsunset`, `wtype`, `tesseract`,
+  `tesseract-data-eng`, `zbar`, `songrec`, `libqalculate`, `openrgb` and `upower`
+  lived only in `system/packages/base.packages` (ISO pacstrap) or `optdepends`, so
+  a packaged box on `ryoku update` and a shell-installer box never got them: the
+  recorder, night light, dictation, OCR/QR, calculator, LED sync, battery readout
+  and external-monitor (DDC/CI) brightness were silently dead. They are now hard
+  `ryoku-desktop` depends, so the ISO, `ryoku update` and the shell installer
+  converge. `tests/shell-tool-availability.sh` gained a reach check (every
+  official-repo feature tool must be a hard depend) so the drift cannot recur.
+
 ### Added
+- **`ryoku-desktop` ships DDC/CI i2c access and the `ryoku-i18n` tool.** The
+  `system/hardware/ddc/` module-load (`/etc/modules-load.d/ryoku-i2c.conf`, loads
+  `i2c-dev`) and udev rule (`/usr/lib/udev/rules.d/60-ryoku-i2c.rules`, `uaccess`)
+  let `ddcutil` drive external-monitor brightness with no group setup; and
+  `ryoku/ui/i18n-sync.py` installs as `/usr/bin/ryoku-i18n` for the Hub's
+  Language > Generate with AI button and the autostart key-file seed.
 - **`ryoku-desktop` ships the laptop clamshell policy.** The `ryoku-clamshell`
   helper lands on `/usr/bin` via the `system/hardware/*/ryoku-*` glob, and the
   logind drop-in `system/hardware/power/logind-ryoku-lid.conf` installs to
