@@ -14,7 +14,6 @@
 # exits 0 (so a non-root CI job stays green). run: sudo bash "$0".
 set -euo pipefail
 
-here="$(cd "$(dirname "$0")" && pwd)"
 fail() { echo "FAIL: $1" >&2; exit 1; }
 skip() { echo "install-swapfile: SKIP ($1)"; exit 0; }
 
