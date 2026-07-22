@@ -184,6 +184,19 @@ grep -qE "^part ${disk}p2 2 ext4 [^ ]+ [0-9]+ [0-9-]+ [0-9]+ yes " <<<"$probe" |
 grep -qx "verdict ok" <<<"$probe" || fail "probe resize: verdict not ok: $probe"
 echo "   probe resize: ext4 part line + verdict ok match the frozen format"
 
+# 1b. ext4 with a stale fsck stamp: any root that has been MOUNTED since its
+# last check makes resize2fs -P refuse, which is every real user's ext4. The
+# probe must fall back to the used-blocks estimate and still offer the shrink
+# (the carve itself runs e2fsck -fy and the real resize2fs enforces the true
+# minimum). Mount+write+unmount ages the stamp exactly like a booted system.
+mnt=$(mktemp -d)
+mount "${disk}p2" "$mnt" && date > "$mnt/aged" && umount "$mnt"; rmdir "$mnt"
+resize2fs -P "${disk}p2" >/dev/null 2>&1 && fail "precondition: resize2fs -P should refuse a mounted-since-check ext4"
+probe="$(probe_resize "$disk")"
+grep -qE "^part ${disk}p2 2 ext4 [^ ]+ [0-9]+ [0-9]+ [0-9]+ yes ext4 \(estimated" <<<"$probe" \
+  || fail "probe resize: stale-stamp ext4 not shrinkable via the estimate: $probe"
+echo "   probe resize: stale fsck stamp falls back to the used-blocks estimate"
+
 # ==========================================================================
 # 2. ntfs carve
 # ==========================================================================

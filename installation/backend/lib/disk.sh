@@ -874,11 +874,20 @@ ryoku_part_shrink_info() {
         blkcount=$(dumpe2fs -h "$dev" 2>/dev/null | sed -n 's/^Block count:[[:space:]]*//p' | head -n1)
         freeblk=$(dumpe2fs -h "$dev" 2>/dev/null | sed -n 's/^Free blocks:[[:space:]]*//p' | head -n1)
         mblocks=$(resize2fs -P "$dev" 2>/dev/null | sed -n 's/.*:[[:space:]]*//p' | head -n1)
+        [[ $blkcount =~ ^[0-9]+$ && $freeblk =~ ^[0-9]+$ && $bs =~ ^[0-9]+$ ]] \
+          && used=$(( (blkcount - freeblk) * bs / 1048576 ))
         if [[ $bs =~ ^[0-9]+$ && $mblocks =~ ^[0-9]+$ ]]; then
           min=$(( (mblocks * bs + 1048575) / 1048576 ))
           min=$(( min + (min + 9) / 10 ))
-          [[ $blkcount =~ ^[0-9]+$ && $freeblk =~ ^[0-9]+$ ]] && used=$(( (blkcount - freeblk) * bs / 1048576 ))
           if (( min < size_mib )); then shrink=yes; reason="${fstype}"; else reason="${fstype} already near its minimum size"; fi
+        elif (( used >= 0 )); then
+          # resize2fs -P refuses any fs without a FRESH fsck stamp, which is
+          # every root that has been mounted since its last check - so estimate
+          # the floor from used blocks with a fatter margin. The carve itself
+          # runs e2fsck -fy first and the real resize2fs still enforces the
+          # true minimum, so this coarser probe number only shapes the slider.
+          min=$(( used + (used + 4) / 5 + 512 ))
+          if (( min < size_mib )); then shrink=yes; reason="${fstype} (estimated; verified before any change)"; else reason="${fstype} already near its minimum size"; fi
         else
           reason="${fstype} minimum size could not be estimated"
         fi
