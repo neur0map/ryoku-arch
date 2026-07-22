@@ -23,5 +23,19 @@ var rows = [
             "R1999*",
             "<any"
         ]
+    },
+    {
+        "tab": "",
+        "group": "OTHER",
+        "key": "",
+        "label": "At sign-in (keyring)",
+        "desc": "How the GNOME keyring unlocks your saved passwords and secrets at sign-in: unlock on login, never ask, or ask each time. keyring secrets passwords unlock sign-in",
+        "ctl": "chips",
+        "src": "~/.config/ryoku/keyring.json (mode) and /etc/pam.d/sddm (pam_gnome_keyring). Managed by `ryoku keyring set`; $RYOKU_PAM_FILE overrides the PAM path for tests.",
+        "opts": [
+            "unlock-on-login",
+            "never-ask",
+            "ask"
+        ]
     }
 ];

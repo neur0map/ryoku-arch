@@ -3,6 +3,18 @@
 ## Unreleased
 
 ### Added
+- **The Lockscreen page gains an "At sign-in" keyring section.** A compact
+  hairline card above the skin gallery, in the page's own bespoke language: a
+  three-mode chip row (Unlock at sign-in / Never ask / Ask each time) over a live
+  status line read from `ryoku keyring status --json` (keyring format, the
+  daemon, and the caveats -- an encrypted keyring that only unlocks if its
+  password is your login password, the autologin conflict). Picking a mode runs
+  `ryoku keyring set <mode>` (pkexec pops polkit for the root PAM half, the same
+  UX as applying a skin). When a mode is blocked by an encrypted keyring, an
+  inline password field converts it (`--convert --password-stdin`, the secret
+  fed through stdin, never argv) or "Start fresh" resets it after a confirm. New
+  schema search entries surface it under keyring, secrets, passwords, unlock, and
+  sign-in (`pages/LockscreenPage.qml`, `schema/LockscreenPage.js`).
 - **The Displays page gains per-monitor colour management, including HDR.** Each
   display gets a COLOUR control (sRGB / Wide / HDR) beside Adaptive sync; picking
   HDR reveals an SDR brightness stepper (1.0x-2.0x) that lifts SDR content into

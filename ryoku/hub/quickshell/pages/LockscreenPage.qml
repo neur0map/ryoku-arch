@@ -58,7 +58,80 @@ Item {
     readonly property string pChevron: "M6 9.5l6 6 6 -6"
     readonly property string pRefresh: "M21 12a9 9 0 1 1 -2.6 -6.4 M21 3v5h-5"
 
-    Component.onCompleted: pg.reload()
+    // ── sign-in keyring state (`ryoku keyring status --json`) ───────────────
+    // A separate concern from the skin gallery: how the GNOME keyring unlocks at
+    // sign-in. Read live so the section reflects PAM/keyring reality, applied
+    // through `ryoku keyring set` (which pops polkit for the root PAM half, the
+    // same UX as applying a skin reskins the greeter).
+    property string kmode: ""
+    property bool kdaemon: false
+    property string kdefName: ""
+    property string kdefFormat: ""      // encrypted · plaintext · absent
+    property var knotes: []
+    property bool kloading: true
+    property string kerror: ""
+    property string kpending: ""        // mode being applied, "" idle
+    property string kconvertFor: ""     // "" hidden, else the mode awaiting a password
+    property bool kconfirmReset: false
+    property string kstdin: ""          // password piped to the next set, never argv
+    // never-ask needs a blank keyring; an encrypted one blocks the switch until
+    // the user converts it or starts fresh.
+    readonly property bool kNeverAskBlocked: pg.kdefFormat === "encrypted"
+
+    readonly property string kStatusLine: {
+        if (pg.kloading)
+            return "Checking\u2026";
+        var parts = [];
+        if (pg.kdefFormat === "encrypted")
+            parts.push("your keyring is password-protected");
+        else if (pg.kdefFormat === "plaintext")
+            parts.push("your keyring is unlocked, no password");
+        else if (pg.kdefFormat === "absent")
+            parts.push("no keyring created yet");
+        parts.push(pg.kdaemon ? "keyring agent running" : "keyring agent not running");
+        return parts.join("  \u00b7  ");
+    }
+
+    Component.onCompleted: { pg.reload(); pg.kreload(); }
+
+    function kreload() {
+        kstatusProc.running = true;
+    }
+    // pick a mode. never-ask on an encrypted keyring reveals the convert/reset
+    // row instead of failing; anything else applies straight away.
+    function kchoose(mode) {
+        if (mode === pg.kmode || pg.kpending !== "")
+            return;
+        pg.kerror = "";
+        pg.kconvertFor = "";
+        pg.kconfirmReset = false;
+        if (mode === "never-ask" && pg.kNeverAskBlocked) {
+            pg.kconvertFor = "never-ask";
+            return;
+        }
+        pg.kstdin = "";
+        pg.kpending = mode;
+        ksetProc.command = ["ryoku", "keyring", "set", mode];
+        ksetProc.running = true;
+    }
+    function kconvert(pw) {
+        if (pw.length === 0 || pg.kpending !== "")
+            return;
+        pg.kerror = "";
+        pg.kstdin = pw + "\n";
+        pg.kpending = pg.kconvertFor;
+        ksetProc.command = ["ryoku", "keyring", "set", pg.kconvertFor, "--convert", "--password-stdin"];
+        ksetProc.running = true;
+    }
+    function kreset() {
+        if (pg.kpending !== "")
+            return;
+        pg.kerror = "";
+        pg.kstdin = "";
+        pg.kpending = pg.kconvertFor;
+        ksetProc.command = ["ryoku", "keyring", "set", pg.kconvertFor, "--reset"];
+        ksetProc.running = true;
+    }
 
     function reload() {
         pg.listMode = "";
@@ -206,6 +279,53 @@ Item {
     }
     Timer { id: statusClear; interval: 3500; onTriggered: pg.status = "" }
 
+    // ── sign-in keyring backend ─────────────────────────────────────────────
+    Process {
+        id: kstatusProc
+        command: ["ryoku", "keyring", "status", "--json"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var o = JSON.parse(this.text);
+                    pg.kmode = o.mode || "";
+                    pg.kdaemon = o.daemon_alive === true;
+                    pg.knotes = o.notes || [];
+                    var def = null;
+                    var ks = o.keyrings || [];
+                    for (var i = 0; i < ks.length; i++)
+                        if (ks[i].role === "default")
+                            def = ks[i];
+                    pg.kdefName = def ? def.name : "";
+                    pg.kdefFormat = def ? def.format : "";
+                } catch (e) {
+                    pg.kerror = "Couldn't read the keyring status.";
+                }
+                pg.kloading = false;
+            }
+        }
+    }
+    Process {
+        id: ksetProc
+        stdinEnabled: true
+        stderr: StdioCollector { id: ksetErr }
+        onStarted: {
+            if (pg.kstdin.length > 0) {
+                write(pg.kstdin);
+                pg.kstdin = "";
+            }
+        }
+        onExited: (code) => {
+            pg.kpending = "";
+            if (code !== 0) {
+                pg.kerror = ksetErr.text.trim() || ("exit " + code);
+            } else {
+                pg.kconvertFor = "";
+                pg.kconfirmReset = false;
+            }
+            pg.kreload();
+        }
+    }
+
     // ── head: eyebrow, Fraunces title + refresh, blurb, error line ──────────
     Column {
         id: head
@@ -340,12 +460,147 @@ Item {
         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fBody
     }
 
+    // ── "At sign-in": the keyring unlock mode, a compact hairline card ───────
+    Rectangle {
+        id: signin
+        anchors { left: parent.left; right: parent.right; top: head.bottom }
+        anchors.leftMargin: Tokens.s6
+        anchors.rightMargin: Tokens.s6
+        anchors.topMargin: Tokens.s4
+        implicitHeight: signinCol.implicitHeight + Tokens.s4 * 2
+        height: implicitHeight
+        radius: Tokens.radius
+        color: "transparent"
+        border.width: Tokens.border
+        border.color: Tokens.line
+
+        Column {
+            id: signinCol
+            anchors { left: parent.left; right: parent.right; top: parent.top }
+            anchors.leftMargin: Tokens.s4
+            anchors.rightMargin: Tokens.s4
+            anchors.topMargin: Tokens.s4
+            spacing: Tokens.s2
+
+            Row {
+                width: parent.width
+                spacing: Tokens.s2
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "At sign-in"
+                    color: Tokens.ink; font.family: Tokens.ui
+                    font.pixelSize: Tokens.fRow; font.weight: Font.DemiBold
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - x
+                    text: "How the keyring unlocks your saved passwords and secrets."
+                    color: Tokens.inkMuted; font.family: Tokens.ui
+                    font.pixelSize: Tokens.fSmall; elide: Text.ElideRight
+                }
+            }
+
+            // three-mode chip row.
+            Row {
+                topPadding: Tokens.s1
+                spacing: Tokens.s2
+                Chip { label: "Unlock at sign-in"; mode: "unlock-on-login" }
+                Chip { label: "Never ask"; mode: "never-ask" }
+                Chip { label: "Ask each time"; mode: "ask" }
+            }
+
+            // live status line + caveats from `ryoku keyring status`.
+            Text {
+                width: parent.width
+                topPadding: Tokens.s1
+                text: pg.kStatusLine
+                color: Tokens.inkDim; font.family: Tokens.ui
+                font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
+            }
+            Text {
+                width: parent.width
+                visible: pg.knotes.length > 0 && pg.kconvertFor === ""
+                text: pg.knotes.join("\n")
+                color: Tokens.inkMuted; font.family: Tokens.ui
+                font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
+                lineHeight: 1.3
+            }
+
+            // blocked path: convert with a password, or start fresh (backs up).
+            Column {
+                width: parent.width
+                visible: pg.kconvertFor !== ""
+                topPadding: Tokens.s2
+                spacing: Tokens.s2
+                Text {
+                    width: parent.width
+                    text: "That keyring is locked with a password. Enter it to switch it to no-password, or start fresh (your old keyring is backed up, never deleted)."
+                    color: Tokens.inkMuted; font.family: Tokens.ui
+                    font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
+                }
+                Row {
+                    spacing: Tokens.s2
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 240; height: Tokens.ctlH + 4
+                        radius: Tokens.radius; color: "transparent"
+                        border.width: Tokens.border
+                        border.color: kpwField.activeFocus ? Tokens.ink : Tokens.line
+                        Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
+                        TextInput {
+                            id: kpwField
+                            anchors.fill: parent
+                            anchors.leftMargin: Tokens.s3
+                            anchors.rightMargin: Tokens.s3
+                            verticalAlignment: TextInput.AlignVCenter
+                            color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            echoMode: TextInput.Password
+                            selectByMouse: true
+                            selectionColor: Tokens.ink
+                            selectedTextColor: Tokens.inkOnBone
+                            onAccepted: pg.kconvert(text)
+                            Text {
+                                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                                visible: kpwField.text.length === 0
+                                text: "Current keyring password"
+                                color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            }
+                        }
+                    }
+                    Btn {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "CONVERT"; compact: true
+                        armed: pg.kpending === "" && kpwField.text.length > 0
+                        onAct: pg.kconvert(kpwField.text)
+                    }
+                    Btn {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: pg.kconfirmReset ? "CONFIRM \u2014 START FRESH" : "START FRESH (KEEPS A BACKUP)"
+                        compact: true
+                        armed: pg.kpending === ""
+                        onAct: { if (pg.kconfirmReset) pg.kreset(); else pg.kconfirmReset = true; }
+                    }
+                }
+            }
+
+            // errors in the page's voice: brightest ink, never red.
+            Text {
+                width: parent.width
+                visible: pg.kerror !== ""
+                topPadding: Tokens.s1
+                text: pg.kerror
+                color: Tokens.ink; font.family: Tokens.ui
+                font.pixelSize: Tokens.fSmall; font.weight: Font.Medium; wrapMode: Text.WordWrap
+            }
+        }
+    }
+
     // ── the gallery grid ────────────────────────────────────────────────────
     Flickable {
         id: flick
         anchors {
             left: parent.left; right: parent.right
-            top: head.bottom; bottom: parent.bottom
+            top: signin.bottom; bottom: parent.bottom
             leftMargin: Tokens.s6; rightMargin: Tokens.s6
             topMargin: Tokens.s4; bottomMargin: Tokens.s6
         }
@@ -416,6 +671,47 @@ Item {
                 PathSvg { path: g.path }
             }
         }
+    }
+
+    // ── one sign-in mode chip ───────────────────────────────────────────────
+    // same grammar as a tile: selected = ink border + tint10 fill + a dot.
+    component Chip: Rectangle {
+        id: chip
+        property string label: ""
+        property string mode: ""
+        readonly property bool on: pg.kmode === chip.mode
+        readonly property bool busy: pg.kpending === chip.mode
+        implicitWidth: chLab.implicitWidth + Tokens.s4 * 2
+        height: Tokens.ctlH + 4
+        radius: Tokens.radius
+        color: chip.on ? Tokens.tint10 : (chHover.hovered ? Tokens.tint5 : "transparent")
+        border.width: Tokens.border
+        border.color: chip.on ? Tokens.ink : (chHover.hovered ? Tokens.lineStrong : Tokens.line)
+        opacity: (pg.kpending !== "" && !chip.busy) ? 0.4 : 1
+        Behavior on color { ColorAnimation { duration: Tokens.snap } }
+        Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
+        Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
+
+        Row {
+            id: chLab
+            anchors.centerIn: parent
+            spacing: Tokens.s1
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: chip.on
+                width: 5; height: 5; radius: 2.5; color: Tokens.ink
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: chip.busy ? (chip.label + "\u2026") : chip.label
+                color: chip.on ? Tokens.ink : Tokens.inkMuted
+                font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                font.weight: chip.on ? Font.DemiBold : Font.Medium
+            }
+        }
+
+        HoverHandler { id: chHover; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: pg.kchoose(chip.mode) }
     }
 
     // ── one lock-skin tile ──────────────────────────────────────────────────
