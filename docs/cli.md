@@ -127,6 +127,31 @@ found: /usr/share/ryoku/config`) because that path only exists once the package
 is installed; use `ryoku deploy` there instead. To point it at a base tree
 yourself, set `RYOKU_CONFIG_BASE`.
 
+## Keyring
+
+### `ryoku keyring`
+
+Chooses how the GNOME keyring unlocks your saved passwords and secrets at
+sign-in, so browsers and apps stop prompting on every launch. Three modes:
+
+- `unlock-on-login` PAM unlocks (or creates) the login keyring with your login
+  password at sign-in; the store stays encrypted at rest and the desktop never
+  prompts. The default keyring points at `login`.
+- `never-ask` the default keyring is blank (stored in plaintext), so it is
+  already unlocked. The only silent option under SDDM autologin, where there is
+  no login password for PAM to reuse.
+- `ask` the store stays locked until an app asks, and gnome-keyring prompts then.
+
+`ryoku keyring status [--json]` reports the configured (or, when unset, inferred)
+mode, whether `/etc/pam.d/sddm` carries `pam_gnome_keyring`, whether autologin is
+configured, whether the keyring daemon is running, and each keyring file's format
+(encrypted, plaintext, or absent). `ryoku keyring set <mode>` records the choice
+in `~/.config/ryoku/keyring.json`, converges the keyring files over D-Bus, and
+escalates the root PAM edit through `pkexec` (`--convert` rekeys an encrypted
+keyring, reading passwords on stdin; `--reset` backs the files up and starts
+fresh). The Hub's Lockscreen page drives all of this; `ryoku doctor` watches for
+drift. `$RYOKU_PAM_FILE` overrides the PAM path for tests.
+
 ## Developer-only commands
 
 ### `ryoku deploy`

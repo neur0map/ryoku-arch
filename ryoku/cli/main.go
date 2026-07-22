@@ -24,6 +24,7 @@ import (
 	"os"
 
 	"ryoku-cli/internal/doctor"
+	"ryoku-cli/internal/keyring"
 	"ryoku-cli/internal/sys"
 	"ryoku-cli/internal/updater"
 )
@@ -57,6 +58,8 @@ func main() {
 		err = cmdRecovery(os.Args[2:])
 	case "doctor":
 		err = doctor.Run(os.Args[2:])
+	case "keyring":
+		err = keyring.Run(os.Args[2:])
 	case "-h", "--help", "help", "":
 		usage()
 	default:
@@ -81,6 +84,7 @@ func usage() {
   deploy         DEV ONLY: deploy from a repo checkout (RYOKU_REPO)
   recovery       last resort: reset to main and redeploy (overwrites configs)
   doctor         run convergent reconcilers (idempotent stateful fixes)
+  keyring        show or set how the GNOME keyring unlocks at sign-in
 `)
 }
 

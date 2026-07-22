@@ -3,6 +3,19 @@
 ## Unreleased
 
 ### Added
+- **`ryoku keyring` chooses how the GNOME keyring unlocks at sign-in.** Three
+  modes: `unlock-on-login` (PAM unlocks the login keyring with the login password
+  at sign-in, encrypted at rest, silent), `never-ask` (a blank plaintext default
+  keyring that never prompts, the only silent option under SDDM autologin), and
+  `ask` (locked until an app asks). `status [--json]` reports the configured (or
+  inferred) mode, the PAM state, autologin, the daemon, and each keyring file's
+  encrypted/plaintext/absent format for the Hub; `set <mode> [--convert|--reset]
+  [--password-stdin]` runs the user-side state machine over the keyring files via
+  gnome-keyring's D-Bus interface (godbus, vendored) and escalates the privileged
+  PAM half through `pkexec`; `apply-pam <mode>` idempotently wires or strips
+  `pam_gnome_keyring` in `/etc/pam.d/sddm`. `$RYOKU_PAM_FILE` overrides the PAM
+  path so tests and the sandbox never touch the real stack
+  (`internal/keyring/`, `TestApplyPAMText*`, `TestSet*`, `TestE2EKeyringLifecycle`).
 - **`materialize` overlays `~/.config/ryoku/user_edits` after the base.** A
   regular file in the overlay wins at its mirrored `~/.config` path; the base is
   laid in full first, so fixes and new files still land, and an empty overlay is a
