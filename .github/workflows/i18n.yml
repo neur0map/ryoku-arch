@@ -57,4 +57,12 @@ jobs:
           git config user.email "noreply@ryoku"
           git add ryoku/ui/translations
           git commit -m "[ryoku] i18n: regenerate translations"
+          # the version-bump job pushes to this same ref on every push, so our
+          # push can lose the race. rebase onto whatever landed and retry; the
+          # translations commit only touches ryoku/ui/translations, so it never
+          # conflicts with the bump.
+          for _ in 1 2 3; do
+            git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
           git push origin "HEAD:${GITHUB_REF_NAME}"
