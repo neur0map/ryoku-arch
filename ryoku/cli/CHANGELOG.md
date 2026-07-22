@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fixed
+- **`ryoku doctor` stops nagging about the `.pacnew` files it creates itself.** The
+  `.pacnew` check is now a reconciler: it auto-clears provably-safe pending configs
+  -- a `.pacnew` byte-identical to the live file, and `pacman.conf` whose live copy
+  differs only by Ryoku's appended `[ryoku]` repo stanza -- and reports only genuine
+  conflicts for `pacdiff`. It never overwrites a user-modified config.
+
 ### Added
 - **The keyring never prompts out of the box.** The default policy is now
   `never-ask` (a blank, passwordless default keyring) instead of `ask`: an

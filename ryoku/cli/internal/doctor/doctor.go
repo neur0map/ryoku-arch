@@ -2,6 +2,7 @@ package doctor
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -2059,14 +2060,114 @@ func reconcileBtrfsHealth(_ bool) recResult {
 
 // ---- reconciler: pending .pacnew config --------------------------------------
 
-func reconcilePacnew(_ bool) recResult {
+// pacnewOutcome classifies one .pacnew against its live file. pure, so the
+// resolve decision is unit-testable without root or a real /etc.
+type pacnewOutcome int
+
+const (
+	pacnewIdentical pacnewOutcome = iota // bytes match: pacman's new default is already in place
+	pacnewRyokuOnly                      // differs only by Ryoku's deterministic [ryoku] repo stanza
+	pacnewConflict                       // a real merge only a human should make
+)
+
+// classifyPacnew decides whether a .pacnew is safe to drop. identical bytes mean
+// the packaged default already equals the live file (the flagged edit was
+// reverted, or the bump was metadata-only). the [ryoku] repo stanza the
+// installer appends to pacman.conf is Ryoku's own deterministic addition, not a
+// user edit: a live pacman.conf that equals the .pacnew once that stanza is
+// stripped carries nothing to merge. anything else is a genuine conflict left
+// for the user + pacdiff.
+func classifyPacnew(livePath string, live, pacnew []byte) pacnewOutcome {
+	if bytes.Equal(live, pacnew) {
+		return pacnewIdentical
+	}
+	if filepath.Base(livePath) == "pacman.conf" &&
+		bytes.Equal(trimTrailing(stripRyokuRepoStanza(live)), trimTrailing(pacnew)) {
+		return pacnewRyokuOnly
+	}
+	return pacnewConflict
+}
+
+// stripRyokuRepoStanza removes the `[ryoku]` section (and a single blank
+// separator before it) the installer appends to pacman.conf, so what remains is
+// the base config pacman ships. a later section header ends the stanza, so a
+// user's edits after [ryoku] survive the comparison.
+func stripRyokuRepoStanza(conf []byte) []byte {
+	lines := strings.Split(string(conf), "\n")
+	out := make([]string, 0, len(lines))
+	inRyoku := false
+	for _, l := range lines {
+		t := strings.TrimSpace(l)
+		if t == "[ryoku]" {
+			inRyoku = true
+			for len(out) > 0 && strings.TrimSpace(out[len(out)-1]) == "" {
+				out = out[:len(out)-1]
+			}
+			continue
+		}
+		if inRyoku {
+			if strings.HasPrefix(t, "[") && strings.HasSuffix(t, "]") {
+				inRyoku = false // a new section begins; keep it
+			} else {
+				continue // still inside the [ryoku] stanza
+			}
+		}
+		out = append(out, l)
+	}
+	return []byte(strings.Join(out, "\n"))
+}
+
+// trimTrailing drops trailing whitespace/newlines so a lone trailing-newline
+// difference never reads as a conflict.
+func trimTrailing(b []byte) []byte { return bytes.TrimRight(b, " \t\r\n") }
+
+// reconcilePacnew resolves the .pacnew files pacman drops when it upgrades a
+// package whose tracked /etc file the install (or a later edit) changed. it
+// auto-clears only the provably safe ones -- a .pacnew identical to the live
+// file, or a pacman.conf whose sole diff is the [ryoku] repo stanza the
+// installer appends -- and never overwrites a user-modified base config with the
+// packaged default. genuine merges are reported for `sudo pacdiff`. idempotent:
+// once the safe ones are gone a re-run only sees (and reports) the conflicts.
+func reconcilePacnew(checkOnly bool) recResult {
 	out, _ := sys.RunOut("find", "/etc", "-name", "*.pacnew")
 	files := nonEmptyLines(out)
 	if len(files) == 0 {
 		return okRes("no pending config updates")
 	}
-	return warnRes("%d pending config update(s) (.pacnew)", len(files)).
-		withFix("review and merge with `sudo pacdiff` (from pacman-contrib)")
+	resolved, conflicts := 0, 0
+	for _, pacnew := range files {
+		live := strings.TrimSuffix(pacnew, ".pacnew")
+		lb, lerr := os.ReadFile(live)
+		pb, perr := os.ReadFile(pacnew)
+		if lerr != nil || perr != nil || classifyPacnew(live, lb, pb) == pacnewConflict {
+			conflicts++
+			continue
+		}
+		if checkOnly {
+			resolved++
+			continue
+		}
+		if err := sys.Sudo("rm", "-f", pacnew); err != nil {
+			conflicts++
+			continue
+		}
+		resolved++
+	}
+	if conflicts == 0 {
+		if checkOnly {
+			return wouldRes("%d pending .pacnew are safe to drop (identical to the live config or only the [ryoku] repo addition)", resolved)
+		}
+		return fixedRes("cleared %d safe .pacnew (identical to the live config or only the [ryoku] repo addition)", resolved)
+	}
+	msg := warnRes("%d pending config update(s) (.pacnew) need review", conflicts)
+	if resolved > 0 {
+		verb := "cleared"
+		if checkOnly {
+			verb = "safe to drop"
+		}
+		msg = warnRes("%d pending config update(s) (.pacnew) need review (%d %s)", conflicts, resolved, verb)
+	}
+	return msg.withFix("review and merge with `sudo pacdiff` (from pacman-contrib)")
 }
 
 // ---- reconciler: orphaned packages -------------------------------------------
