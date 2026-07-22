@@ -580,6 +580,7 @@ func renderApps() {
 	}
 	b, err := os.ReadFile(filepath.Join(cache, "wallust", "colors.json"))
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "renderApps: no palette to theme apps from: %v\n", err)
 		return
 	}
 	var pal map[string]string
@@ -607,11 +608,28 @@ func renderApps() {
 		cfgBase = filepath.Join(os.Getenv("HOME"), ".config")
 	}
 	matugenDir := filepath.Join(cfgBase, "matugen")
+	for _, d := range []string{
+		filepath.Join(cfgBase, "kitty"),
+		filepath.Join(cache, "wallust"),
+		filepath.Join(cfgBase, "btop", "themes"),
+		filepath.Join(cfgBase, "qt6ct", "colors"),
+		filepath.Join(cfgBase, "gtk-3.0"),
+		filepath.Join(cfgBase, "gtk-4.0"),
+	} {
+		_ = os.MkdirAll(d, 0o755)
+	}
 	// core surface (terminal, frame, monitor, Qt) always tracks the palette.
-	_ = exec.Command("matugen", "-c", filepath.Join(matugenDir, "config.toml"), "json", cpath).Run()
+	// Surface matugen failures (missing binary, unreadable template) rather than
+	// swallowing them: a silent failure here reads to the user as "matugen was
+	// enabled but generated no GTK or Qt themes, and I could not tell why."
+	if out, err := exec.Command("matugen", "-c", filepath.Join(matugenDir, "config.toml"), "json", cpath).CombinedOutput(); err != nil {
+		fmt.Fprintf(os.Stderr, "matugen config.toml: %v: %s\n", err, out)
+	}
 	// GTK / GUI apps only when "Theme apps" is on; else revert them to stock.
 	if themeAppsEnabled() {
-		_ = exec.Command("matugen", "-c", filepath.Join(matugenDir, "apps.toml"), "json", cpath).Run()
+		if out, err := exec.Command("matugen", "-c", filepath.Join(matugenDir, "apps.toml"), "json", cpath).CombinedOutput(); err != nil {
+			fmt.Fprintf(os.Stderr, "matugen apps.toml: %v: %s\n", err, out)
+		}
 	} else {
 		blankGtk(cfgBase)
 	}

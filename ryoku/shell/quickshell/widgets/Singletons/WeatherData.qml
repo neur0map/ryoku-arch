@@ -36,6 +36,9 @@ Singleton {
     property real lat: 0
     property real lon: 0
     property bool located: false
+    // set true once construction finishes; the cache FileView's initial
+    // blockLoading load fires before ipProc/wxProc exist, so loadLoc must wait.
+    property bool ready: false
 
     function fetchWeather() {
         if (!root.located || wxProc.running)
@@ -59,26 +62,37 @@ Singleton {
         root.available = true;
     }
 
-    function writeLoc() {
-        locCache.setText(JSON.stringify({ city: root.city, lat: root.lat, lon: root.lon }));
+    // load the resolved location from the shared cache the pill authoritatively
+    // writes (keyed by the explicit weatherLocation), so a location change in
+    // Settings reaches the desktop weather widget live and across restarts.
+    function loadLoc() {
+        if (!root.ready)
+            return;
+        var c = Model.parseJson(locCache.text());
+        if (!c || typeof c.lat !== "number" || typeof c.lon !== "number")
+            return;
+        if (root.located && c.lat === root.lat && c.lon === root.lon)
+            return;
+        root.city = c.city || "";
+        root.lat = c.lat;
+        root.lon = c.lon;
+        root.located = true;
+        root.fetchWeather();
     }
 
     onUnitChanged: fetchWeather();
 
     Component.onCompleted: {
-        var c = Model.parseJson(locCache.text());
-        if (c && typeof c.lat === "number" && typeof c.lon === "number") {
-            root.city = c.city || "";
-            root.lat = c.lat;
-            root.lon = c.lon;
-            root.located = true;
-            root.fetchWeather();
-        } else {
+        root.ready = true;
+        root.loadLoc();
+        // no cache yet (fresh profile): locate by IP for this session. The pill
+        // owns the shared cache and is its only writer, so the widget never
+        // clobbers the explicit-location resolution.
+        if (!root.located)
             ipProc.running = true;
-        }
     }
 
-    // state dir may not exist on a fresh profile -- mkdir before writeLoc.
+    // ensure the shared state dir exists (the pill writes weather-loc.json here).
     Process {
         command: ["mkdir", "-p", root.stateDir]
         running: true
@@ -88,7 +102,10 @@ Singleton {
         id: locCache
         path: root.stateDir + "/weather-loc.json"
         blockLoading: true
+        watchChanges: true
         printErrors: false
+        onFileChanged: reload()
+        onLoaded: root.loadLoc()
     }
 
     Process {
@@ -102,7 +119,6 @@ Singleton {
                     root.lat = loc.lat;
                     root.lon = loc.lon;
                     root.located = true;
-                    root.writeLoc();
                     root.fetchWeather();
                 }
             }
