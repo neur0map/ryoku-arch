@@ -7,6 +7,13 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("gsettings set org.gnome.desktop.interface color-scheme prefer-dark")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface font-name 'Space Grotesk 11'")
+    -- Import the Wayland/session env into the systemd --user manager and the
+    -- D-Bus activation environment BEFORE the session target starts. Without
+    -- it, a user service gated on that env fails: hyprpolkitagent declares
+    -- ConditionEnvironment=WAYLAND_DISPLAY, so a bare `systemctl --user start`
+    -- never satisfied the condition and the polkit agent came up failed (the
+    -- doctor "hyprpolkitagent.service failed" out of the box).
+    hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE XDG_SESSION_TYPE")
     hl.exec_cmd("systemctl --user start hyprland-session.target")
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("command -v ryoku-monitor >/dev/null 2>&1 && ryoku-monitor autoscale")
@@ -32,6 +39,10 @@ hl.on("hyprland.start", function()
     -- the user service once, and starts it unless you turned dictation off in the
     -- Hub. The shell then drives it with `voxtype record` on the Super+` tap.
     hl.exec_cmd("command -v voxtype >/dev/null 2>&1 && command -v ryoku-hub >/dev/null 2>&1 && ryoku-hub voxtype ensure >/dev/null 2>&1")
+    -- AI UI translation: seed ~/.config/ryoku/i18n-llm.json (empty key) so the
+    -- file exists for the user to paste an API key into; idempotent, a no-op if
+    -- present. The Hub's Language > "Generate with AI" then reads it.
+    hl.exec_cmd("command -v ryoku-i18n >/dev/null 2>&1 && ryoku-i18n ensure >/dev/null 2>&1")
     -- First-login welcome walkthrough: show the guided tour once, then mark it
     -- seen so it never returns. The flag lives in state (not config), so it needs
     -- no doctor reconciler. The seen-check lives in Lua because Hyprland's exec

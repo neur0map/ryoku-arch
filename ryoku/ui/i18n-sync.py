@@ -8,6 +8,10 @@ schema label/desc/group). This tool does the rest:
   sync     for each target language, translate ONLY the strings it is missing
            (keeping what is already translated and any human overrides), so a
            normal update translates a handful of new strings, never the file.
+  llm      generate translations via a user-configured LLM (higher quality, or
+           a language Ryoku doesn't ship) -> ~/.config/ryoku/i18n/<lang>.json
+  ensure   create ~/.config/ryoku/i18n-llm.json from a template if absent, so
+           the user has a key file to fill in
 
 Backend is Google's keyless endpoint, so this runs in CI or locally with no
 secret. Placeholders (%1, %2, ...) are shielded so they survive translation, and
@@ -236,6 +240,32 @@ def _cfg_home():
 LLM_CFG = os.path.join(_cfg_home(), "ryoku", "i18n-llm.json")
 GEN_DIR = os.path.join(_cfg_home(), "ryoku", "i18n")
 
+LLM_CFG_TEMPLATE = {
+    "_help": ("Paste your API key into \"key\". provider is \"anthropic\" or "
+              "\"openai\". Anthropic keys: https://console.anthropic.com/ , "
+              "OpenAI keys: https://platform.openai.com/api-keys ."),
+    "provider": "anthropic",
+    "key": "",
+    "model": "claude-sonnet-5",
+}
+
+
+def seed_llm_cfg():
+    """Create the LLM key file from the template if absent. Idempotent."""
+    if os.path.exists(LLM_CFG):
+        return False
+    os.makedirs(os.path.dirname(LLM_CFG), exist_ok=True)
+    with open(LLM_CFG, "w", encoding="utf-8") as fh:
+        json.dump(LLM_CFG_TEMPLATE, fh, ensure_ascii=False, indent=2)
+        fh.write("\n")
+    os.chmod(LLM_CFG, 0o600)
+    return True
+
+
+def cmd_ensure():
+    seed_llm_cfg()
+    return 0
+
 
 def llm_call(cfg, prompt):
     provider = cfg.get("provider", "anthropic")
@@ -264,11 +294,13 @@ def _extract_json(text):
 
 
 def cmd_llm(langs):
-    if not os.path.exists(LLM_CFG):
-        print(f"llm: configure a key first at {LLM_CFG} "
-              '({"provider":"anthropic","key":"...","model":"..."})', file=sys.stderr)
-        return 1
+    seed_llm_cfg()
     cfg = load_json(LLM_CFG)
+    if not cfg.get("key"):
+        print(f"llm: no API key set. Edit {LLM_CFG} and paste your "
+              "Anthropic or OpenAI key into the \"key\" field, then try again.",
+              file=sys.stderr)
+        return 1
     en = load_json(os.path.join(TRANS, "en.json"))
     if not en:
         cmd_extract(); en = load_json(os.path.join(TRANS, "en.json"))
@@ -296,9 +328,11 @@ def cmd_llm(langs):
 
 def main():
     args = sys.argv[1:]
-    if not args or args[0] not in ("extract", "sync", "llm"):
+    if not args or args[0] not in ("extract", "sync", "llm", "ensure"):
         print(__doc__)
         return 2
+    if args[0] == "ensure":
+        return cmd_ensure()
     if args[0] == "extract":
         cmd_extract()
         return 0
