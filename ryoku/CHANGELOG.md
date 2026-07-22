@@ -2,7 +2,29 @@
 
 ## Unreleased
 
+### Fixed
+- **Multi-monitor: switching to a workspace on another monitor no longer drags
+  its windows to the focused monitor.** `scripts/ryoku-workspace` dropped the
+  `workspace.move({ monitor = "current" })` that pulled the target workspace onto
+  the active monitor before focusing it; it now just focuses the workspace, which
+  already moves focus to the monitor that owns it (single-monitor unaffected).
+- **`hyprpolkitagent.service` no longer fails out of the box.** `modules/autostart`
+  imports `WAYLAND_DISPLAY` (and the session env) into the systemd user manager
+  with `dbus-update-activation-environment --systemd` before starting the session,
+  so hyprpolkitagent's `ConditionEnvironment=WAYLAND_DISPLAY` is satisfied, and
+  `shell/systemd/user/hyprland-session.target` now Wants/After
+  `graphical-session.target` so it is actually activated.
+- **`ui/Seg` no longer clips long translated option labels.** Each segment sizes
+  to its own text and the group wraps to a second line when its slot is narrow
+  (Portuguese `Padrão|Plano|Adaptativo`, `arredondado|plano`); short sets unchanged.
+
 ### Added
+- **Brightness keys work on laptops AND desktop monitors.** New
+  `scripts/ryoku-cmd-brightness`, bound to `XF86MonBrightnessUp`/`Down` in
+  `modules/binds`, drives the laptop backlight through `brightnessctl` and every
+  external monitor through `ddcutil` (DDC/CI) at once, so brightness is not
+  laptop-only. `modules/autostart` also seeds the AI-translation key file
+  (`ryoku-i18n ensure`).
 - `hyprland` + `system/hardware/power`: **clamshell mode -- close the lid without
   sleeping when docked.** A new `modules/lid.lua` binds the laptop lid switch
   (`bindl switch:Lid Switch`) to `ryoku-clamshell lid`, which blanks the internal

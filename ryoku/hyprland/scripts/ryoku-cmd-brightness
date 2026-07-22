@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Brightness up/down for both the laptop panel and external monitors.
+#
+#   ryoku-cmd-brightness +5   raise 5%
+#   ryoku-cmd-brightness -5   lower 5%
+#
+# The laptop backlight goes through brightnessctl (/sys/class/backlight);
+# external desktop monitors go through DDC/CI (ddcutil setvcp 10). Both run so a
+# laptop docked to an external screen dims everything at once.
+set -euo pipefail
+
+delta=${1:?usage: ryoku-cmd-brightness <+N|-N>}
+sign=${delta:0:1}
+mag=${delta#[-+]}
+
+case "$sign" in
+  +|-) ;;
+  *) echo "usage: ryoku-cmd-brightness <+N|-N>" >&2; exit 2 ;;
+esac
+
+# Laptop panel: only if a backlight device is present.
+if compgen -G "/sys/class/backlight/*" >/dev/null; then
+  if [[ $sign == "+" ]]; then
+    brightnessctl set "${mag}%+" >/dev/null 2>&1 || true
+  else
+    brightnessctl set "${mag}%-" >/dev/null 2>&1 || true
+  fi
+fi
+
+# External monitors over DDC/CI. Always attempted, never fatal.
+if command -v ddcutil >/dev/null 2>&1; then
+  lock="${XDG_RUNTIME_DIR:-/tmp}/ryoku-brightness-ddc.lock"
+  (
+    flock -n 9 || exit 0
+    while read -r bus; do
+      [[ -n $bus ]] || continue
+      ddcutil --bus "$bus" --noverify setvcp 10 "$sign" "$mag" >/dev/null 2>&1 &
+    done < <(ddcutil detect --brief 2>/dev/null | sed -n 's|.*/dev/i2c-\([0-9]\+\).*|\1|p')
+    wait
+  ) 9>"$lock" || true
+fi

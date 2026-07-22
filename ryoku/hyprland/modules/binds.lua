@@ -91,3 +91,7 @@ hl.bind(K("XF86AudioMute"),        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDI
 hl.bind(K("XF86AudioPlay"),        hl.dsp.exec_cmd("playerctl play-pause"),                           { locked = true })
 hl.bind(K("XF86AudioNext"),        hl.dsp.exec_cmd("playerctl next"),                                 { locked = true })
 hl.bind(K("XF86AudioPrev"),        hl.dsp.exec_cmd("playerctl previous"),                             { locked = true })
+
+-- Brightness keys (laptop backlight + external DDC monitors)
+hl.bind(K("XF86MonBrightnessUp"),   hl.dsp.exec_cmd("ryoku-cmd-brightness +5"), { locked = true, repeating = true })
+hl.bind(K("XF86MonBrightnessDown"), hl.dsp.exec_cmd("ryoku-cmd-brightness -5"), { locked = true, repeating = true })
