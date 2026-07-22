@@ -184,18 +184,20 @@ grep -qE "^part ${disk}p2 2 ext4 [^ ]+ [0-9]+ [0-9-]+ [0-9]+ yes " <<<"$probe" |
 grep -qx "verdict ok" <<<"$probe" || fail "probe resize: verdict not ok: $probe"
 echo "   probe resize: ext4 part line + verdict ok match the frozen format"
 
-# 1b. ext4 with a stale fsck stamp: any root that has been MOUNTED since its
-# last check makes resize2fs -P refuse, which is every real user's ext4. The
-# probe must fall back to the used-blocks estimate and still offer the shrink
-# (the carve itself runs e2fsck -fy and the real resize2fs enforces the true
-# minimum). Mount+write+unmount ages the stamp exactly like a booted system.
-mnt=$(mktemp -d)
-mount "${disk}p2" "$mnt" && date > "$mnt/aged" && umount "$mnt"; rmdir "$mnt"
-resize2fs -P "${disk}p2" >/dev/null 2>&1 && fail "precondition: resize2fs -P should refuse a mounted-since-check ext4"
-probe="$(probe_resize "$disk")"
+# 1b. resize2fs -P refusal falls back to the used-blocks estimate. Real systems
+# hit this on any root e2fsck has not freshly blessed (crash orphans, aged
+# stamps - the vanilla-Arch VM disk reproduced it live). The trigger conditions
+# are e2fsprogs-version folklore, so the test shims resize2fs to refuse and
+# proves OUR fallback: still shrinkable, reason says it is an estimate, and the
+# carve path (which runs the real e2fsck + resize2fs) stays the enforcer.
+shimdir=$(mktemp -d)
+printf '#!/bin/sh\necho "Please run e2fsck -f first." >&2\nexit 1\n' > "$shimdir/resize2fs"
+chmod +x "$shimdir/resize2fs"
+probe="$(PATH="$shimdir:$PATH" probe_resize "$disk")"
+rm -rf "$shimdir"
 grep -qE "^part ${disk}p2 2 ext4 [^ ]+ [0-9]+ [0-9]+ [0-9]+ yes ext4 \(estimated" <<<"$probe" \
-  || fail "probe resize: stale-stamp ext4 not shrinkable via the estimate: $probe"
-echo "   probe resize: stale fsck stamp falls back to the used-blocks estimate"
+  || fail "probe resize: refused resize2fs did not fall back to the estimate: $probe"
+echo "   probe resize: a refusing resize2fs falls back to the used-blocks estimate"
 
 # ==========================================================================
 # 2. ntfs carve
