@@ -198,6 +198,53 @@ else
   say "skipping Ryoku.Blobs plugin (cmake/ninja not found)"
 fi
 
+# Build the optional Hyprland compositor plugins (dynamic-cursors, hyprbars,
+# hyprfocus, hyprglass, imgborders) against the running Hyprland and drop the
+# .so files under the user plugin path the generated settings.lua loads from
+# (no root, the way the QML modules above deploy). They are ABI-locked to the
+# compositor, so rebuild only when its version changed since the last build or a
+# .so is missing. Toolchain-gated: skip cleanly when makepkg or the Hyprland
+# headers are absent (a plain config deploy still works; packaged installs get
+# these from [ryoku] as ryoku-desktop deps). A plugin that fails to build is
+# skipped, never fatal: its toggle degrades to off (settings.lua guards the load
+# in a pcall). Build artifacts stay in a tmp/cache dir, so the checkout is clean.
+hplugins="$HOME/.local/lib/hyprland/plugins"
+if command -v makepkg >/dev/null 2>&1 && pkg-config --exists hyprland 2>/dev/null; then
+  _hv="$(pkg-config --modversion hyprland)"
+  _stamp="$hplugins/.hyprland-version"
+  _prev="$(cat "$_stamp" 2>/dev/null || true)"
+  _srccache="$HOME/.cache/ryoku/hypr-plugins-src"
+  mkdir -p "$hplugins" "$_srccache"
+  _built=0
+  # "<package dir>:<space-separated .so basenames it yields>" (see each package()).
+  for _entry in "hypr-dynamic-cursors:dynamic-cursors" \
+                "ryoku-hypr-plugins:hyprbars hyprfocus" \
+                "hyprglass:hyprglass" "imgborders:imgborders"; do
+    _dir="${_entry%%:*}"; _sos="${_entry#*:}"
+    _need=0
+    [[ "$_prev" != "$_hv" ]] && _need=1
+    for _so in $_sos; do [[ -f "$hplugins/$_so.so" ]] || _need=1; done
+    (( _need )) || continue
+    say "building Hyprland plugin $_dir (Hyprland $_hv)"
+    _tmp="$(mktemp -d)"
+    if ( cd "$here/../../release/packages/$_dir" &&
+         env BUILDDIR="$_tmp/b" SRCDEST="$_srccache" PKGDEST="$_tmp" \
+             makepkg -f --nodeps --noconfirm >"$_tmp/log" 2>&1 ); then
+      for _pkg in "$_tmp"/*.pkg.tar.*; do
+        [[ -e "$_pkg" ]] && bsdtar -xf "$_pkg" -C "$_tmp" usr/lib/hyprland/plugins 2>/dev/null || true
+      done
+      cp -f "$_tmp"/usr/lib/hyprland/plugins/*.so "$hplugins/" 2>/dev/null && _built=1 || true
+    else
+      say "  $_dir failed to build against Hyprland $_hv; skipping (its toggle stays off)"
+    fi
+    rm -rf "$_tmp"
+  done
+  printf '%s\n' "$_hv" > "$_stamp"
+  (( _built )) && say "installed Hyprland compositor plugins -> $hplugins" || true
+else
+  say "skipping Hyprland compositor plugins (makepkg or Hyprland headers not found)"
+fi
+
 # Install the Ryoku.Ui QML module: the design system every surface imports --
 # the shell's configs, the Hub and the first-party apps. Pure QML, a plain copy.
 # Note the import path only reaches `qs` when the daemon launches it; a Hub
@@ -340,6 +387,13 @@ else
   rm -f "$_iconroot/icon-theme.cache" 2>/dev/null || true
 fi
 command -v systemctl >/dev/null 2>&1 && systemctl --user daemon-reload 2>/dev/null || true
+
+# Re-emit settings.lua from hypr.json through the freshly built ryoku-hub, so a
+# genLua change (like the compositor-plugin load path above) reaches an existing
+# box on `ryoku update` with no manual Hub save. Derived from hypr.json (the
+# editable truth), so idempotent; guarded, since a box may have no overrides yet.
+# Runs before overlay_user_edits so a user_edits/hypr/settings.lua still wins.
+"$bindir/ryoku-hub" hypr get >/dev/null 2>&1 || true
 
 # User overrides win over the base just laid, for hypr and every other surface.
 overlay_user_edits
