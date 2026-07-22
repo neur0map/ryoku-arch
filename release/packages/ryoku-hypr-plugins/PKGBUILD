@@ -10,7 +10,10 @@
 # Hyprland plugins are ABI-locked to the compositor. prepare() reads the build
 # host's Hyprland version and checks out the matching commit from upstream's
 # hyprpm.toml (the same map hyprpm uses), so a [ryoku] rebuild always builds
-# against whatever Hyprland it ships, with no manual commit bumps.
+# against whatever Hyprland it ships, with no manual commit bumps. When that map
+# has no pin for the shipped Hyprland yet, prepare() falls back to the
+# default-branch HEAD (as hyprpm does) rather than failing, so a Hyprland release
+# outpacing the pin table can't abort the whole [ryoku] publish.
 #
 # (hyprscrolling is intentionally not built here: the scrolling layout moved into
 # Hyprland core in 0.54, so the Hub configures it through the core `scrolling`
@@ -33,9 +36,15 @@ prepare() {
   hv="$(pkg-config --modversion hyprland)"
   # hyprpm.toml lines: ["<hyprland-commit>", "<plugin-commit>"], # <version>
   commit="$(grep -F "$hv" hyprpm.toml | grep -oE '[0-9a-f]{40}' | sed -n 2p)"
-  [[ -n "$commit" ]] || { echo "PKGBUILD: no hyprpm.toml pin for Hyprland $hv" >&2; return 1; }
-  echo "PKGBUILD: hyprland-plugins -> $commit (Hyprland $hv)"
-  git checkout -q "$commit"
+  if [[ -n "$commit" ]]; then
+    echo "PKGBUILD: hyprland-plugins -> $commit (Hyprland $hv)"
+    git checkout -q "$commit"
+  else
+    # no pin for this Hyprland yet: build the fetched default-branch HEAD, as
+    # hyprpm does when no pin matches (upstream keeps HEAD on the latest
+    # Hyprland). failing here would abort the whole [ryoku] publish under set -e.
+    echo "PKGBUILD: no hyprpm.toml pin for Hyprland $hv; building hyprland-plugins HEAD" >&2
+  fi
 }
 
 build() {
