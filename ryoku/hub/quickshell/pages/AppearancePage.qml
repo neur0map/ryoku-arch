@@ -1553,7 +1553,7 @@ Item {
                                     required property var modelData
                                     text: modelData.name
                                     primary: (pg.matugenCfg.schemeType || "scheme-tonal-spot") === modelData.id
-                                    onClicked: {
+                                    onAct: {
                                         var c = Object.assign({}, pg.matugenCfg);
                                         c.schemeType = modelData.id;
                                         pg.saveMatugen(c);
@@ -1707,10 +1707,10 @@ Item {
                                 required property var modelData
                                 width: Math.floor((matugenCol.width - Tokens.s3) / 2) - 2
                                 height: 50
-                                color: Tokens.shadeCard
-                                border.color: Tokens.shadeLine
+                                color: Tokens.paperLift
+                                border.color: Tokens.line
                                 border.width: 1
-                                radius: Tokens.r1
+                                radius: Tokens.radius
 
                                 Row {
                                     anchors.fill: parent
@@ -1750,7 +1750,7 @@ Item {
                     Btn {
                         text: I18n.tr("APPLY PALETTE & RENDER TEMPLATES")
                         primary: true
-                        onClicked: pg.applyMatugen()
+                        onAct: pg.applyMatugen()
                     }
                 }
             }
