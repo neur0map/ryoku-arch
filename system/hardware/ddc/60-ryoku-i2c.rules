@@ -1,0 +1,3 @@
+# Grant the active-session user access to /dev/i2c-* so ddcutil (brightness over
+# DDC/CI) works without adding users to the i2c group.
+SUBSYSTEM=="i2c-dev", GROUP="i2c", MODE="0660", TAG+="uaccess"

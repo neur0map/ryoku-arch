@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+- `ddc/`: external-monitor brightness over DDC/CI. `ryoku-i2c.conf` loads the
+  `i2c-dev` module (`/etc/modules-load.d/`) so `ddcutil` can open `/dev/i2c-*`, and
+  `60-ryoku-i2c.rules` grants the active-session user access (`uaccess`, no group
+  setup). Drives the pill DISPLAY faders and the new `XF86MonBrightness` keys
+  (`ryoku-cmd-brightness`). Shipped to `/etc` + `/usr/lib/udev` by `ryoku-desktop`.
+
 ### Security
 - `display/ryoku-monitor`: `apply_specs` now renders monitor string fields
   (`output`, `mode`, `position`, `mirror`) through jq's `@json`, which emits a
