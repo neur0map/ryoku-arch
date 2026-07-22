@@ -27,9 +27,9 @@ deliberate in how it looks and moves.
 
 <div align="center">
 
-<img src="docs/media/desktop.webp" alt="The Ryoku desktop" width="960" />
+<img src="docs/media/profile.webp" alt="The Ryoku Hub, a live system dossier" width="960" />
 
-<sub>The Ryoku desktop. Screenshots are real; the poster art is generated.</sub>
+<sub>The Ryoku Hub, a live system dossier. Screenshots are real; the poster art is generated.</sub>
 
 <p>
   <a href="https://youtu.be/kx7VW4Mg0m4">
@@ -71,22 +71,22 @@ One motion language across every surface, retinted live from your wallpaper.
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/media/launcher.webp" alt="Launcher" width="100%" /><br />
-      <sub><b>Launcher.</b> Apps, commands, calculator, files, and Ryotunes radio behind one search.</sub>
+      <img src="docs/media/desktop.webp" alt="The desktop" width="100%" /><br />
+      <sub><b>The desktop.</b> Fastfetch, the widget layer, and a live wallpaper under the blob frame.</sub>
     </td>
     <td width="50%">
-      <img src="docs/media/control-deck.webp" alt="Control Deck" width="100%" /><br />
-      <sub><b>Control Deck.</b> Stash, tools, game mode, and capture, reachable in one place.</sub>
+      <img src="docs/media/launcher.webp" alt="Launcher" width="100%" /><br />
+      <sub><b>Launcher.</b> Apps, commands, calculator, files, and Ryotunes radio behind one search.</sub>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/media/appearance.webp" alt="Appearance" width="100%" /><br />
-      <sub><b>Appearance.</b> The whole desktop retints from the wallpaper.</sub>
+      <img src="docs/media/controls.webp" alt="Control Deck" width="100%" /><br />
+      <sub><b>Control Deck.</b> Dials, notes, quick toggles, game mode, and capture in one place.</sub>
     </td>
     <td width="50%">
-      <img src="docs/media/terminals.webp" alt="Terminals" width="100%" /><br />
-      <sub><b>Tooling.</b> GlazePKG across every package manager, plus a live system monitor.</sub>
+      <img src="docs/media/batgirl.webp" alt="A full rice" width="100%" /><br />
+      <sub><b>One wallpaper.</b> The bar, widgets, and frame all retint from it.</sub>
     </td>
   </tr>
 </table>
