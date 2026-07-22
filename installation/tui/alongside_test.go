@@ -162,8 +162,11 @@ func TestReviewCopyRyokuEsp(t *testing.T) {
 	if strings.Contains(body, "ERASING") {
 		t.Fatal("alongside must never print the whole-branch ERASING line")
 	}
-	if !strings.Contains(body, "shared existing ESP") || !strings.Contains(body, "Ryoku (existing)") {
+	if !strings.Contains(body, "shared existing ESP") {
 		t.Fatalf("missing shared-ESP boot line: %q", body)
+	}
+	if strings.Contains(body, "entry in the boot menu") {
+		t.Fatal("no chainload entry exists, so the boot line must not promise one")
 	}
 	if !strings.Contains(body, "firmware menu only") {
 		t.Fatal("existing_boot none must surface the honest caveat")

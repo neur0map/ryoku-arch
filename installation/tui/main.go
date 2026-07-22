@@ -2778,9 +2778,12 @@ func (m model) reviewBody(w int) string {
 		if m.espKind == "ryoku" {
 			existing = "Ryoku"
 		}
-		lines = append(lines, fg(cSub, "boot       ")+fg(cText, "shared existing ESP (backed up first) + "+existing+" (existing) entry in the boot menu"))
 		if m.existingBoot == "none" {
-			lines = append(lines, fg(cYell, "           the existing system stays bootable via the firmware menu only (no chainload entry found)"))
+			lines = append(lines,
+				fg(cSub, "boot       ")+fg(cText, "shared existing ESP (backed up first)"),
+				fg(cYell, "           the existing system stays bootable via the firmware menu only (no chainload entry found)"))
+		} else {
+			lines = append(lines, fg(cSub, "boot       ")+fg(cText, "shared existing ESP (backed up first) + "+existing+" (existing) entry in the boot menu"))
 		}
 	}
 	if len(m.reclaim) > 0 {
