@@ -46,7 +46,11 @@
   compositor, so each PKGBUILD's `prepare()` reads the build host's Hyprland
   version and checks out the matching plugin commit from upstream's `hyprpm.toml`
   (the same version map `hyprpm` uses); a rebuild always tracks whatever Hyprland
-  the repo ships, with no manual commit bumps.
+  the repo ships, with no manual commit bumps. If upstream's map has no pin for
+  the shipped Hyprland yet (its pins can lag the distro), `prepare()` falls back
+  to the plugin's default-branch HEAD (as `hyprpm` does) instead of failing, so a
+  Hyprland release that outpaces a plugin's pin table can't abort the `[ryoku]`
+  publish over one optional plugin.
   `ryoku-desktop` depends on all four (pinned to its own version), so they reach
   installed machines through `ryoku update` and a toggle never faces a missing
   `.so`. The publish workflow installs the plugin build deps (hyprland,
