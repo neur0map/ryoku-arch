@@ -22,6 +22,58 @@ type matugenConfig struct {
 	Templates        map[string]bool `json:"templates"`        // app -> bool
 }
 
+func hexToRGB(hex string) (int, int, int) {
+	hex = strings.TrimPrefix(hex, "#")
+	if len(hex) == 6 {
+		r, _ := strconv.ParseInt(hex[0:2], 16, 64)
+		g, _ := strconv.ParseInt(hex[2:4], 16, 64)
+		b, _ := strconv.ParseInt(hex[4:6], 16, 64)
+		return int(r), int(g), int(b)
+	}
+	return 0, 0, 0
+}
+
+func paletteCarrier(pal map[string]string) map[string]any {
+	c := map[string]any{}
+	put := func(name, hex string) {
+		if hex == "" {
+			return
+		}
+		stripped := strings.TrimPrefix(hex, "#")
+		r, g, b := hexToRGB(hex)
+		colorObj := map[string]any{
+			"hex":          hex,
+			"hex_stripped": stripped,
+			"red":          strconv.Itoa(r),
+			"green":        strconv.Itoa(g),
+			"blue":         strconv.Itoa(b),
+			"rgb":          fmt.Sprintf("%d, %d, %d", r, g, b),
+		}
+		entry := map[string]any{
+			"default":      colorObj,
+			"dark":         colorObj,
+			"light":        colorObj,
+			"hex":          hex,
+			"hex_stripped": stripped,
+			"red":          strconv.Itoa(r),
+			"green":        strconv.Itoa(g),
+			"blue":         strconv.Itoa(b),
+			"rgb":          fmt.Sprintf("%d, %d, %d", r, g, b),
+		}
+		c[name] = entry
+	}
+	for k, v := range pal {
+		put(k, v)
+		put(k+"_argb", "#ff"+strings.TrimPrefix(v, "#"))
+	}
+	if fg, ok := pal["foreground"]; ok {
+		put("cursor", fg)
+	} else if onSurf, ok := pal["on_surface"]; ok {
+		put("cursor", onSurf)
+	}
+	return c
+}
+
 func defaultMatugenConfig() matugenConfig {
 	return matugenConfig{
 		Engine:           "wallust",
@@ -115,21 +167,16 @@ func generateMatugenTheme(imgPath string) error {
 	if imgPath == "" || !isFile(imgPath) {
 		return fmt.Errorf("no valid wallpaper image found at %q", imgPath)
 	}
-
-	// Prepare CLI args for matugen
 	cliArgs := []string{
 		"image", imgPath,
 		"-t", cfg.SchemeType,
 		"-m", cfg.Mode,
-		"--contrast", strconv.FormatFloat(cfg.Contrast, 'f', 2, 64),
 		"--lightness-dark", strconv.FormatFloat(cfg.LightnessDark, 'f', 2, 64),
 		"--lightness-light", strconv.FormatFloat(cfg.LightnessLight, 'f', 2, 64),
 		"--source-color-index", strconv.Itoa(cfg.SourceColorIndex),
+		"--prefer", cfg.Prefer,
 		"--json", "hex",
 		"--dry-run",
-	}
-	if cfg.Prefer != "" {
-		cliArgs = append(cliArgs, "--prefer", cfg.Prefer)
 	}
 
 	out, err := exec.Command("matugen", cliArgs...).CombinedOutput()
@@ -147,29 +194,39 @@ func generateMatugenTheme(imgPath string) error {
 	// Extract colors map from Matugen output JSON
 	colorsObj, ok := m3Data["colors"].(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid matugen json format")
+		return fmt.Errorf("invalid matugen json format: missing colors key")
 	}
 
 	palette := map[string]string{}
-	// Extract dark scheme or light scheme colors
-	var schemeColors map[string]any
-	if darkMap, ok := colorsObj["dark"].(map[string]any); ok && cfg.Mode != "light" {
-		schemeColors = darkMap
-	} else if lightMap, ok := colorsObj["light"].(map[string]any); ok {
-		schemeColors = lightMap
+	modeKey := cfg.Mode
+	if modeKey == "smart" || modeKey == "" {
+		modeKey = "dark"
 	}
 
-	if schemeColors == nil {
-		return fmt.Errorf("no scheme colors found in matugen output")
-	}
-
-	// Extract hex string for each color key
-	for k, v := range schemeColors {
-		if cMap, ok := v.(map[string]any); ok {
-			if hexVal, ok := cMap["hex"].(string); ok {
-				palette[k] = hexVal
+	for k, v := range colorsObj {
+		colorPropMap, ok := v.(map[string]any)
+		if !ok {
+			continue
+		}
+		var hexVal string
+		for _, m := range []string{modeKey, "default", "dark", "light"} {
+			if modeMap, ok := colorPropMap[m].(map[string]any); ok {
+				if h, ok := modeMap["color"].(string); ok && h != "" {
+					hexVal = h
+					break
+				} else if h, ok := modeMap["hex"].(string); ok && h != "" {
+					hexVal = h
+					break
+				}
 			}
 		}
+		if hexVal != "" {
+			palette[k] = hexVal
+		}
+	}
+
+	if len(palette) == 0 {
+		return fmt.Errorf("no colors extracted from matugen output")
 	}
 
 	// Map Material 3 colors to Ryoku base16 / wallust expected keys (color0..color15, background, foreground, etc.)
@@ -211,12 +268,17 @@ func generateMatugenTheme(imgPath string) error {
 		"color15":    getHex("on_primary_container", fg),
 	}
 
+	// Also add all M3 colors to wallustMap so templates can use both Material 3 roles and base16
+	for k, v := range palette {
+		wallustMap[k] = v
+	}
+
 	// Write wallust cache colors.json for Quickshell & desktop
 	_ = os.MkdirAll(wallustCacheDir(), 0o755)
 	_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(wallustMap), 0o644)
 
-	// Render Matugen app templates
-	renderApps(wallustMap)
+	// Build active apps.toml filtered by user toggles in cfg.Templates
+	renderActiveTemplates(cfg, wallustMap)
 
 	// Trigger live updates
 	_ = exec.Command("hyprctl", "reload", "config-only").Run()
@@ -224,4 +286,95 @@ func generateMatugenTheme(imgPath string) error {
 	nudgeGtk()
 
 	return nil
+}
+
+// renderActiveTemplates generates matugen configs for enabled templates
+func renderActiveTemplates(cfg matugenConfig, pal map[string]string) {
+	matugenDir := filepath.Join(configHome(), "matugen")
+	cacheDir := filepath.Join(cacheHome(), "ryoku")
+	_ = os.MkdirAll(cacheDir, 0o755)
+
+	// Ensure all target output directories exist
+	home := os.Getenv("HOME")
+	dataHome := os.Getenv("XDG_DATA_HOME")
+	if dataHome == "" {
+		dataHome = filepath.Join(home, ".local", "share")
+	}
+
+	targetDirs := []string{
+		filepath.Join(configHome(), "kitty"),
+		filepath.Join(cacheHome(), "wallust"),
+		filepath.Join(configHome(), "btop", "themes"),
+		filepath.Join(configHome(), "qt6ct", "colors"),
+		filepath.Join(configHome(), "gtk-3.0"),
+		filepath.Join(configHome(), "gtk-4.0"),
+		filepath.Join(configHome(), "vesktop", "themes"),
+		filepath.Join(configHome(), "equibop", "themes"),
+		filepath.Join(configHome(), "obs-studio", "themes"),
+		filepath.Join(configHome(), "zed", "themes"),
+		filepath.Join(configHome(), "heroic", "store", "styles"),
+		filepath.Join(dataHome, "TelegramDesktop", "tdata"),
+		filepath.Join(home, ".steam", "steam", "steamui", "skins", "Material-Theme", "css", "main", "colors"),
+		filepath.Join(configHome(), "cava"),
+		filepath.Join(configHome(), "ghostty"),
+		filepath.Join(configHome(), "micro", "colorschemes"),
+		filepath.Join(cacheHome(), "matugen"),
+	}
+	for _, d := range targetDirs {
+		_ = os.MkdirAll(d, 0o755)
+	}
+
+	carrierPath := filepath.Join(cacheDir, "matugen-carrier.json")
+	carrier := map[string]any{"colors": paletteCarrier(pal)}
+	if err := atomicWrite(carrierPath, mustJSON(carrier), 0o644); err != nil {
+		return
+	}
+	// Always render core surface
+	runMatugen(filepath.Join(matugenDir, "config.toml"), carrierPath)
+
+	// Filter apps.toml entries based on cfg.Templates
+	appsTomlPath := filepath.Join(matugenDir, "apps.toml")
+	b, err := os.ReadFile(appsTomlPath)
+	if err != nil {
+		return
+	}
+
+	// Write filtered apps.toml to cache and execute
+	lines := strings.Split(string(b), "\n")
+	var activeLines []string
+	currentApp := ""
+	includeBlock := true
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "[templates.") {
+			appName := strings.TrimSuffix(strings.TrimPrefix(trimmed, "[templates."), "]")
+			// map appName to cfg.Templates key (e.g. gtk3/gtk4 -> gtk, vesktop/equibop -> discord)
+			groupKey := appName
+			switch appName {
+			case "gtk3", "gtk4":
+				groupKey = "gtk"
+			case "vesktop", "equibop":
+				groupKey = "discord"
+			}
+			currentApp = groupKey
+			if enabled, ok := cfg.Templates[groupKey]; ok {
+				includeBlock = enabled
+			} else {
+				includeBlock = true
+			}
+		}
+		if includeBlock {
+			activeLines = append(activeLines, line)
+		}
+		if trimmed == "" {
+			currentApp = ""
+		}
+		_ = currentApp
+	}
+
+	activeAppsToml := filepath.Join(cacheDir, "active-apps.toml")
+	_ = os.WriteFile(activeAppsToml, []byte(strings.Join(activeLines, "\n")), 0o644)
+
+	runMatugen(activeAppsToml, carrierPath)
 }

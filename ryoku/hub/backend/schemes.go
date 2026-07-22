@@ -91,21 +91,6 @@ func blankGtk() {
 	}
 }
 
-// paletteCarrier shapes the palette into matugen's json input: each colour as
-// colors.<name>.default.hex, plus a colors.<name>_argb.default.hex variant
-// (#aarrggbb) for Qt's palette roles, plus cursor mirrored from the foreground.
-func paletteCarrier(pal map[string]string) map[string]any {
-	c := map[string]any{}
-	put := func(name, hex string) {
-		c[name] = map[string]any{"default": map[string]any{"hex": hex}}
-	}
-	for k, v := range pal {
-		put(k, v)
-		put(k+"_argb", "#ff"+strings.TrimPrefix(v, "#"))
-	}
-	put("cursor", pal["foreground"])
-	return c
-}
 
 // currentScheme reports the active palette mode for the UI: light/dark when a
 // curated preset is locked, follow when colours track the wallpaper, custom when
