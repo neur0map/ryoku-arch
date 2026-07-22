@@ -228,7 +228,7 @@ func TestDiskSummary(t *testing.T) {
 	}{
 		{"empty", diskLayout{}, "empty"},
 		{"windows", diskLayout{windows: true, freeG: 190, parts: []part{{}, {}, {}, {}}}, "Windows + 3 more · 190 GiB free"},
-		{"ryoku full", diskLayout{parts: []part{{reclaim: true}}}, "ryoku · full"},
+		{"ryoku full", diskLayout{parts: []part{{dev: "ryoku", size: 900}}}, "ryoku · full"},
 		{"generic", diskLayout{freeG: 10, parts: []part{{dev: "DATA", size: 500}}}, "DATA · 10 GiB free"},
 	}
 	for _, c := range cases {
@@ -352,18 +352,37 @@ func TestCarveBlockReasonHonesty(t *testing.T) {
 	}
 }
 
-// carve never runs on a previous-Ryoku disk: the reclaim path owns it, so the
-// carve UI stays off even though the probe reports a shrinkable btrfs.
-func TestCarveDefersToReclaim(t *testing.T) {
+// leftovers and a living carve target coexist: the carve UI stays on (a shrinkable
+// partition drives it) while the leftovers render as their own dimmed freed
+// segments -- never conflated with the kept/carved partitions.
+func TestCarveCoexistsWithReclaim(t *testing.T) {
 	m := model{
 		picks: map[string]string{"disk": "alongside"}, gpt: true, diskG: 1024, freeG: 0, carvePart: -1,
-		reclaim:     []part{{dev: "previous Ryoku", size: 900}},
-		resizeParts: []resizePart{{dev: "/dev/sda3", fs: "btrfs", label: "ryoku", sizeMiB: 900 * 1024, minMiB: 490 * 1024, shrinkable: true}},
+		reclaim:     []part{{dev: "previous Ryoku", size: 8, status: "reclaim"}},
+		reclaimG:    8,
+		resizeParts: []resizePart{{dev: "/dev/sda3", fs: "ntfs", label: "", sizeMiB: 900 * 1024, minMiB: 200 * 1024, shrinkable: true}},
 	}
-	if m.carveUI() {
-		t.Fatal("reclaimable leftovers must keep the carve UI off")
+	if !m.carveUI() {
+		t.Fatal("a shrinkable partition must keep the carve UI on even with leftovers present")
 	}
-	if m.carving() {
-		t.Fatal("must not carve when reclaim owns the disk")
+	// the leftover shows as a dimmed reclaimed segment, distinct from the carve target.
+	var reclaimSegs int
+	for _, s := range m.existingSegs() {
+		if s.status == "reclaim" {
+			reclaimSegs++
+		}
+	}
+	if reclaimSegs != 1 {
+		t.Fatalf("want 1 reclaimed segment, got %d", reclaimSegs)
+	}
+	// and a reclaim row is listed so the user sees it will be freed.
+	var reclaimRows int
+	for _, r := range m.layoutRows() {
+		if r.kind == "reclaim" {
+			reclaimRows++
+		}
+	}
+	if reclaimRows != 1 {
+		t.Fatalf("want 1 reclaim row, got %d", reclaimRows)
 	}
 }

@@ -365,6 +365,9 @@ type diskLayout struct {
 	windows      bool   // an NTFS partition is present (a Windows install)
 	gpt          bool   // GPT label (alongside requires it)
 	bitlocker    bool   // a BitLocker-encrypted partition is present (recovery-key warning)
+	espKind      string // windows|ryoku|linux for the disk's EF00 ESP ("" when none/older backend)
+	existingBoot string // the existing OS's chainloadable EFI binary, or "none" ("" when absent)
+	leftovers    []part // verified failed-install debris the backend reclaims (freed space)
 }
 
 // sysDiskLayout reads the existing partitions and largest free region of a disk.
@@ -396,15 +399,9 @@ func sysDiskLayout(disk string) diskLayout {
 				dl.bitlocker = true // locked NTFS: booting Windows via Ryoku will demand the recovery key
 			}
 			p := part{size: gib, fs: fs, mount: "-", flags: "-", status: "keep"}
-			lbl := strings.TrimSpace(r["PARTLABEL"])
 			switch {
-			case lbl == "ryoku" || lbl == "ryokuboot":
-				// Leftover of a prior failed Ryoku run: the backend reclaims (frees)
-				// these before measuring space, so mark them reclaimable. A ryokuboot
-				// leftover is an ESP, so this must win over the ESP case below.
-				p.reclaim, p.dev, p.flags = true, "previous Ryoku", "-"
 			case strings.EqualFold(r["PARTTYPE"], espTypeGUID):
-				p.dev, p.fs, p.mount, p.flags = "EFI (Windows)", "fat32", "-", "esp"
+				p.dev, p.fs, p.mount, p.flags = "EFI System", "fat32", "-", "esp"
 			case fs == "ntfs":
 				p.dev, p.mount = winLabel(r["PARTLABEL"]), "Windows"
 				dl.windows = true
@@ -417,6 +414,7 @@ func sysDiskLayout(disk string) diskLayout {
 	pr := probeAlongside(disk)
 	dl.freeG, dl.regionStart, dl.regionEnd = pr.freeG, pr.regionStart, pr.regionEnd
 	dl.probeVerdict, dl.probeMessage = pr.verdict, pr.message
+	dl.espKind, dl.existingBoot, dl.leftovers = pr.espKind, pr.existingBoot, pr.leftovers
 	return dl
 }
 
@@ -442,11 +440,13 @@ func partLabel(lbl, fs string) string {
 // the exact cause (no ESP, no GPT, no region, probe failure) reaches the user
 // instead of a generic "not enough space". The backend (sfdisk) is the single
 // source of truth for free space; the TUI renders what it says and hands the
-// chosen region's sectors back at install time (RYOKU_REGION_START/END).
 type probeResult struct {
 	freeG                  int
 	regionStart, regionEnd int64
 	verdict, message       string
+	espKind                string // esp_kind: windows|ryoku|linux ("" when no ESP or older backend)
+	existingBoot           string // existing_boot: the existing OS's EFI binary, or "none" ("" when absent)
+	leftovers              []part // one per verified failed-install partition to reclaim (freed)
 }
 
 func probeAlongside(disk string) probeResult {
@@ -471,6 +471,16 @@ func probeAlongside(disk string) probeResult {
 			if m := parseI64(f[3]); m > bestMiB {
 				bestMiB, r.regionStart, r.regionEnd = m, parseI64(f[1]), parseI64(f[2])
 			}
+		case len(f) >= 2 && f[0] == "esp_kind":
+			r.espKind = f[1]
+		case len(f) >= 2 && f[0] == "existing_boot":
+			r.existingBoot = f[1]
+		case len(f) == 4 && f[0] == "leftover":
+			// leftover <dev> <partlabel> <sizeMiB>: verified debris the backend frees.
+			r.leftovers = append(r.leftovers, part{
+				dev: "previous Ryoku", fs: f[2], size: gibRound(parseI64(f[3])),
+				reclaim: true, status: "reclaim",
+			})
 		case len(f) >= 2 && f[0] == "verdict":
 			r.verdict = f[1]
 		case f[0] == "message":
@@ -588,16 +598,14 @@ func diskSummary(dl diskLayout) string {
 }
 
 // diskPrimary names the headline occupant: Windows when NTFS is present, a
-// previous Ryoku when its leftover partitions are, otherwise the biggest
-// partition's label.
+// previous Ryoku when the probe flagged failed-install debris, otherwise the
+// biggest partition's label.
 func diskPrimary(dl diskLayout) string {
 	if dl.windows {
 		return "Windows"
 	}
-	for _, p := range dl.parts {
-		if p.reclaim {
-			return "ryoku"
-		}
+	if len(dl.leftovers) > 0 {
+		return "ryoku"
 	}
 	big := dl.parts[0]
 	for _, p := range dl.parts[1:] {

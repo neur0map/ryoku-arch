@@ -302,6 +302,7 @@ type picker struct {
 	query     string
 	searching bool
 	numbered  bool
+	disabled  map[string]bool // item keys that render dimmed and refuse to commit
 }
 
 func newPicker(items []item, numbered bool) picker {
@@ -351,7 +352,9 @@ func (p *picker) update(key string) (bool, int) {
 			p.refilter()
 		case "enter":
 			if len(p.matches) > 0 {
-				return true, p.matches[p.cursor]
+				if idx := p.matches[p.cursor]; !p.disabled[p.items[idx].key] {
+					return true, idx
+				}
 			}
 		case "backspace":
 			if len(p.query) > 0 {
@@ -392,12 +395,16 @@ func (p *picker) update(key string) (bool, int) {
 		p.searching = true
 	case "enter":
 		if len(p.matches) > 0 {
-			return true, p.matches[p.cursor]
+			if idx := p.matches[p.cursor]; !p.disabled[p.items[idx].key] {
+				return true, idx
+			}
 		}
 	default:
 		if p.numbered && len(key) == 1 && key[0] >= '1' && key[0] <= '9' {
 			if n := int(key[0] - '1'); n < len(p.matches) {
-				return true, p.matches[n]
+				if idx := p.matches[n]; !p.disabled[p.items[idx].key] {
+					return true, idx
+				}
 			}
 		}
 	}
@@ -422,9 +429,13 @@ func (p picker) view(w, phase int) string {
 			}
 		}
 		var left string
-		if sel {
+		dis := p.disabled[it.key]
+		switch {
+		case dis:
+			left = "  " + fg(cDim, num) + fg(cDim, it.label)
+		case sel:
 			left = bold(gradColor(float64(phase)/float64(smallW-1)), gSelCur) + fg(cDim, num) + bold(cText, it.label)
-		} else {
+		default:
 			left = "  " + fg(cDim, num) + fg(cSub, it.label)
 		}
 		gut := 2 + dw(num)
@@ -588,16 +599,35 @@ func diskStrategiesFor(dl diskLayout) []item {
 		return []item{{"whole", "Use the whole disk", "blank disk · auto-layout"}}
 	}
 	whole := item{"whole", "Erase whole disk", "wipe & auto-layout"}
+	var along item
 	if dl.windows {
-		return []item{
-			{"alongside", "Install alongside Windows", "keep Windows · use free space"},
-			whole,
-		}
+		along = item{"alongside", "Install alongside Windows", "keep Windows · use free space"}
+	} else {
+		along = item{"alongside", "Install alongside (keep existing OS)", "shrink a partition · use free space"}
 	}
-	return []item{
-		{"alongside", "Install alongside", "keep existing partitions · use free space"},
-		whole,
+	// A hard blocker (no ESP, no GPT) is shown inline on the dimmed option instead
+	// of letting a pick dead-end at the layout step.
+	if reason := alongsideBlockReason(dl); reason != "" {
+		along.hint = "unavailable — " + reason
 	}
+	return []item{along, whole}
+}
+
+// alongsideBlockReason is why alongside cannot run on dl at all, or "" when it
+// can. It mirrors the layout step's hard blocks (a GPT disk with a usable EFI
+// system partition) so the strategy list can dim the option with its cause
+// rather than accept the pick and strand the user at the layout step.
+func alongsideBlockReason(dl diskLayout) string {
+	if !dl.gpt {
+		return "needs a GPT disk"
+	}
+	switch dl.probeVerdict {
+	case "no-esp":
+		return "no EFI system partition"
+	case "error":
+		return "disk probe failed"
+	}
+	return ""
 }
 
 // WIRE: real list from `lsblk -dpno NAME,SIZE,MODEL,TRAN,ROTA`; size via blockdev.
@@ -673,7 +703,7 @@ type part struct {
 
 func partColor(p part) color.Color {
 	switch {
-	case p.status == "free":
+	case p.status == "free", p.status == "reclaim":
 		return cDim
 	case strings.Contains(p.flags, "esp"):
 		return cBlue
@@ -783,6 +813,8 @@ type model struct {
 	freeG                      int    // largest contiguous free region (GiB) for alongside (excludes reclaimG)
 	regionStart, regionEnd     int64  // that region's first/last sector, from the probe (exported at install)
 	probeVerdict, probeMessage string // alongside probe verdict + human cause (rendered as the block reason)
+	espKind                    string // windows|ryoku|linux for the shared ESP (drives the review boot line)
+	existingBoot               string // existing OS's chainloadable EFI binary, or "none" (review caveat)
 	// carve (in-installer resize): resizeParts is the backend's per-partition
 	// shrinkability report; when non-empty on an alongside disk the layout page
 	// offers the carve picker. carvePart indexes the chosen partition to shrink
@@ -853,12 +885,19 @@ func (m *model) loadStep() {
 	switch s.kind {
 	case kSelect:
 		items := s.items
+		var disabled map[string]bool
 		if s.key == "disk" {
-			// strategies depend on what is actually on the picked disk; the
-			// static step list was built before any disk was chosen.
-			items = diskStrategiesFor(sysDiskLayout(m.diskDev))
+			// strategies depend on what is actually on the picked disk; the static
+			// step list was built before any disk was chosen. A hard-blocked
+			// alongside is offered dimmed and non-committable, with its cause inline.
+			dl := sysDiskLayout(m.diskDev)
+			items = diskStrategiesFor(dl)
+			if alongsideBlockReason(dl) != "" {
+				disabled = map[string]bool{"alongside": true}
+			}
 		}
 		m.pick = newPicker(items, s.numbered)
+		m.pick.disabled = disabled
 		m.pick.height = m.listRows()
 	case kPartition:
 		m.diskG = m.diskTotal
@@ -870,32 +909,30 @@ func (m *model) loadStep() {
 		m.gpt, m.bitlocker = dl.gpt, dl.bitlocker
 		m.resizeParts, m.carvePart, m.carveTakeMiB = nil, -1, 0
 		if m.picks["disk"] == "alongside" {
-			// Split real partitions: genuine keeps stay put and occupy space;
-			// leftover ryoku/ryokuboot partitions get reclaimed (freed), so their
-			// GiB counts toward usable space instead of against it.
-			m.kept, m.reclaim, m.reclaimG, m.freeG = nil, nil, 0, dl.freeG
+			// Kept = every real partition (the existing OS stays); reclaim = the
+			// probe's verified failed-install debris, whose GiB the backend frees
+			// and folds into usable space.
+			m.kept, m.freeG = dl.parts, dl.freeG
+			m.reclaim, m.reclaimG = nil, 0
 			m.regionStart, m.regionEnd = dl.regionStart, dl.regionEnd
 			m.probeVerdict, m.probeMessage = dl.probeVerdict, dl.probeMessage
-			for _, p := range dl.parts {
-				if p.reclaim {
-					m.reclaim = append(m.reclaim, p)
-					m.reclaimG += p.size
-				} else {
-					m.kept = append(m.kept, p)
-				}
+			m.espKind, m.existingBoot = dl.espKind, dl.existingBoot
+			for _, p := range dl.leftovers {
+				m.reclaim = append(m.reclaim, p)
+				m.reclaimG += p.size
 			}
-			// The resize probe drives the carve picker. When the existing gap is too
-			// small to install into (the fully-allocated disk that only offered wipe),
-			// pre-select the largest partition we can shrink so carve is the obvious
-			// path rather than a dead end.
+			// The resize probe drives the carve picker. When neither the existing gap
+			// nor the reclaimable debris covers the install, pre-select the largest
+			// partition we can shrink so carve is the obvious path, not a dead end.
 			m.resizeParts = probeResize(m.diskDev)
-			if len(m.reclaim) == 0 && m.freeG < minRootGiB+alongsideBootGiB {
+			if m.freeG+m.reclaimG < minRootGiB+alongsideBootGiB {
 				m.selectDefaultCarve()
 			}
 		} else {
 			m.kept, m.reclaim, m.reclaimG, m.freeG = nil, nil, 0, 0
 			m.regionStart, m.regionEnd = 0, 0
 			m.probeVerdict, m.probeMessage = "", ""
+			m.espKind, m.existingBoot = "", ""
 		}
 		m.clampSwapToLayout() // keep default swap within the layout (backend-consistent)
 	case kPass:
@@ -1492,11 +1529,11 @@ func (m model) carveablePart(p resizePart) bool {
 }
 
 // carveUI reports whether the layout page shows the carve picker: an alongside
-// install with a shrinkability report to drive it. When the disk holds leftover
-// Ryoku partitions the reclaim path owns it (freeing them is cleaner than
-// shrinking a live filesystem), so carve stays out of the way.
+// install with a shrinkability report to drive it. Verified leftovers no longer
+// suppress it -- they render as their own freed segments while the carve picker
+// still shrinks a living partition beside them.
 func (m model) carveUI() bool {
-	return m.picks["disk"] == "alongside" && len(m.reclaim) == 0 && len(m.resizeParts) > 0
+	return m.picks["disk"] == "alongside" && len(m.resizeParts) > 0
 }
 
 // carving reports whether a partition is currently selected to be shrunk.
@@ -1625,11 +1662,12 @@ func (m model) layoutRows() []lrow {
 		for i, k := range m.kept {
 			rows = append(rows, lrow{"keep", fmt.Sprintf("keep%d", i), k.dev, "", "keep"})
 		}
-		// Leftover Ryoku partitions are shown as reclaimed (freed), not kept, so the
-		// user sees they will be removed and their space folded into the new root.
-		for i, r := range m.reclaim {
-			rows = append(rows, lrow{"reclaim", fmt.Sprintf("reclaim%d", i), r.dev, "previous Ryoku, will be freed", "reclaim"})
-		}
+	}
+	// Verified leftovers show as reclaimed (freed), never kept, so the user sees
+	// they will be removed and their space folded into the new root -- alongside
+	// the carve picker or the kept list, whichever the disk offers.
+	for i, r := range m.reclaim {
+		rows = append(rows, lrow{"reclaim", fmt.Sprintf("reclaim%d", i), r.dev, "previous Ryoku, will be freed", "reclaim"})
 	}
 	if m.picks["disk"] != "alongside" {
 		rows = append(rows, lrow{"size", "esp", "ESP size", "/boot · fat32", "required"}) // alongside boot is a fixed 2 GiB XBOOTLDR
@@ -1881,6 +1919,11 @@ func (m model) existingSegs() []part {
 			dev: p.name(), size: gibRound(p.sizeMiB), fs: p.fs,
 			used: gibRound(p.usedMiB), flags: flags, status: "keep",
 		})
+	}
+	// Verified leftovers show as their own dimmed freed segments, kept distinct
+	// from the living partitions above and from the trailing free region.
+	for _, r := range m.reclaim {
+		segs = append(segs, part{dev: r.dev, size: r.size, status: "reclaim"})
 	}
 	if m.freeG > 0 {
 		segs = append(segs, part{dev: "free", size: m.freeG, status: "free"})
@@ -2730,8 +2773,18 @@ func (m model) reviewBody(w int) string {
 	if len(m.kept) > 0 {
 		lines = append(lines, fg(cSub, "kept       ")+fg(cYell, fmt.Sprintf("%d existing partition(s)", len(m.kept))))
 	}
+	if strat == "alongside" && (m.espKind == "ryoku" || m.espKind == "linux") {
+		existing := "Linux"
+		if m.espKind == "ryoku" {
+			existing = "Ryoku"
+		}
+		lines = append(lines, fg(cSub, "boot       ")+fg(cText, "shared existing ESP (backed up first) + "+existing+" (existing) entry in the boot menu"))
+		if m.existingBoot == "none" {
+			lines = append(lines, fg(cYell, "           the existing system stays bootable via the firmware menu only (no chainload entry found)"))
+		}
+	}
 	if len(m.reclaim) > 0 {
-		lines = append(lines, fg(cSub, "reclaim    ")+fg(cRed, fmt.Sprintf("%d previous Ryoku partition(s) (%dG freed)", len(m.reclaim), m.reclaimG)))
+		lines = append(lines, fg(cSub, "reclaim    ")+fg(cRed, fmt.Sprintf("%d leftover partition(s) (%dG) from a failed prior install", len(m.reclaim), m.reclaimG)))
 	}
 	// Typed-ERASE sub-stage: a destructive step (whole-disk wipe, or freeing the
 	// leftover Ryoku partitions on alongside) blocks the install handoff behind a
@@ -2751,7 +2804,7 @@ func (m model) reviewBody(w int) string {
 	case strat == "alongside" && len(m.reclaim) > 0:
 		lines = append(lines,
 			"",
-			bold(cRed, fmt.Sprintf("⚠ reclaiming %d previous Ryoku partition(s) (%dG); your other OS is untouched", len(m.reclaim), m.reclaimG)),
+			bold(cRed, fmt.Sprintf("⚠ reclaiming %d leftover partition(s) (%dG) from a failed prior install", len(m.reclaim), m.reclaimG)),
 		)
 		lines = append(lines, m.eraseAckLines()...)
 	}
@@ -2910,6 +2963,16 @@ func (m model) footer() string {
 		switch {
 		case m.layoutRows()[m.lsel].kind == "keep", m.layoutRows()[m.lsel].kind == "reclaim":
 			parts = []string{keyHint("↑↓", "move"), keyHint("tab", "done"), keyHint("esc", "back")}
+		case m.layoutRows()[m.lsel].kind == "carve":
+			// The ±big hint tracks the handler: it only fires once this row is the
+			// active carve target, so advertise it only then.
+			parts = []string{keyHint("←/→", "carve")}
+			if m.carving() && carveIndex(m.layoutRows()[m.lsel].key) == m.carvePart {
+				parts = append(parts, keyHint("shift", "±big"))
+			}
+			parts = append(parts, keyHint("↑↓", "move"), keyHint("tab", "done"), keyHint("esc", "back"))
+		case m.layoutRows()[m.lsel].kind == "region":
+			parts = []string{keyHint("enter", "use"), keyHint("↑↓", "move"), keyHint("tab", "done"), keyHint("esc", "back")}
 		case m.layoutRows()[m.lsel].kind == "size":
 			parts = []string{keyHint("←/→", "adjust"), keyHint("shift", "±big"), keyHint("↑↓", "move"), keyHint("tab", "done"), keyHint("esc", "back")}
 		default:
