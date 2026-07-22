@@ -590,15 +590,182 @@ ryoku_windows_esp() {
   printf '%s\n' "$found"
 }
 
+# ryoku_btrfs_has_system <partdev>: does the btrfs on <partdev> carry a living
+# system -- an @ subvolume that actually holds /etc? mounts the TOP volume
+# (subvolid=5) read-only so @ is visible even when the fs default subvol is @
+# itself; never writes; always unmounts. exit: 0 living, 1 verified empty (no
+# @/etc), 2 could-not-inspect. callers treat 2 as "keep" (fail-closed).
+ryoku_btrfs_has_system() {
+  local dev=$1 tmpd rc=2
+  tmpd=$(mktemp -d) || return 2
+  if mount -o ro,subvolid=5 "$dev" "$tmpd" 2>/dev/null; then
+    if [[ -d $tmpd/@/etc ]]; then rc=0; else rc=1; fi
+    umount "$tmpd" 2>/dev/null || true
+  fi
+  rmdir "$tmpd" 2>/dev/null || true
+  return $rc
+}
+
+# ryoku_vfat_has_boot <partdev>: does the vfat on <partdev> hold anything that
+# makes it a live boot volume -- a kernel (vmlinuz*) or an EFI tree? read-only
+# mount, always unmounted. exit: 0 has boot content, 1 verified empty/kernel-less,
+# 2 could-not-inspect (treated as "keep").
+ryoku_vfat_has_boot() {
+  local dev=$1 tmpd rc=2 hit
+  tmpd=$(mktemp -d) || return 2
+  if mount -o ro "$dev" "$tmpd" 2>/dev/null; then
+    hit=$(find "$tmpd" -maxdepth 2 \( -iname 'vmlinuz*' -o -iname 'initramfs*' -o -ipath '*/efi/*' \) -print -quit 2>/dev/null || true)
+    if [[ -n $hit ]]; then rc=0; else rc=1; fi
+    umount "$tmpd" 2>/dev/null || true
+  fi
+  rmdir "$tmpd" 2>/dev/null || true
+  return $rc
+}
+
+# ryoku_is_leftover <partdev>: 0 only when <partdev> is VERIFIED failed-alongside
+# debris we may reclaim -- GPT partlabel exactly ryoku/ryokuboot AND not a living
+# system: ryokuboot with no fs or an empty/kernel-less vfat; ryoku with no fs or a
+# btrfs lacking an @/etc install. a living install (or any partition we cannot
+# read) is NEVER a leftover -> return 1 (keep). this is the single test the probe
+# and the reclaim step both apply, so the disk is judged identically in both.
+ryoku_is_leftover() {
+  local dev=$1 lbl fstype rc
+  lbl=$(lsblk -dno PARTLABEL "$dev" 2>/dev/null || true)
+  [[ $lbl == ryoku || $lbl == ryokuboot ]] || return 1
+  fstype=$(blkid -o value -s TYPE "$dev" 2>/dev/null || true)
+  if [[ $lbl == ryokuboot ]]; then
+    [[ -z $fstype ]] && return 0
+    [[ $fstype == vfat ]] || return 1
+    ryoku_vfat_has_boot "$dev"; rc=$?
+    [[ $rc -eq 1 ]] && return 0
+    return 1
+  fi
+  [[ -z $fstype ]] && return 0
+  [[ $fstype == btrfs ]] || return 1
+  ryoku_btrfs_has_system "$dev"; rc=$?
+  [[ $rc -eq 1 ]] && return 0
+  return 1
+}
+
+# ryoku_disk_os_kind <disk>: name the existing OS by its living root filesystem
+# when the ESP itself is ambiguous. a btrfs @/etc install labeled 'ryoku' is
+# ryoku; any other living root (labeled btrfs, or ext with /etc) is linux; a disk
+# with no recognizable install prints nothing and returns 1.
+ryoku_disk_os_kind() {
+  local disk=$1 p fstype lbl rc tmpd linux_found=""
+  while IFS= read -r p; do
+    [[ -n $p ]] || continue
+    fstype=$(blkid -o value -s TYPE "$p" 2>/dev/null || true)
+    case $fstype in
+      btrfs)
+        ryoku_btrfs_has_system "$p"; rc=$?
+        if [[ $rc -eq 0 ]]; then
+          lbl=$(blkid -o value -s LABEL "$p" 2>/dev/null || true)
+          [[ -n $lbl ]] || lbl=$(lsblk -dno PARTLABEL "$p" 2>/dev/null || true)
+          if [[ ${lbl,,} == ryoku ]]; then printf 'ryoku\n'; return 0; fi
+          linux_found=1
+        fi
+        ;;
+      ext4|ext3|ext2)
+        tmpd=$(mktemp -d) || continue
+        if mount -o ro "$p" "$tmpd" 2>/dev/null; then
+          [[ -d $tmpd/etc ]] && linux_found=1
+          umount "$tmpd" 2>/dev/null || true
+        fi
+        rmdir "$tmpd" 2>/dev/null || true
+        ;;
+    esac
+  done < <(ryoku_partitions "$disk")
+  [[ -n $linux_found ]] && { printf 'linux\n'; return 0; }
+  return 1
+}
+
+# ryoku_esp_scan <disk>: classify the EF00 ESP we would share and name the EFI
+# binary of the existing system to chainload. prefers a Windows ESP if any; else
+# the ESP's own bootloader markers decide (limine/ryoku, then a foreign vendor
+# dir), and an empty/ambiguous ESP is classified by the disk's living root fs.
+# prints "<dev> <windows|ryoku|linux> <existing_boot|->" (existing_boot '-' means
+# nothing bootable to chainload); returns 1 when the disk has no EF00 ESP.
+ryoku_esp_scan() {
+  local disk=$1 p typ tmpd kind boot v out="" firstout=""
+  tmpd=$(mktemp -d) || return 1
+  while IFS= read -r p; do
+    [[ -n $p ]] || continue
+    typ=$(lsblk -dno PARTTYPE "$p" 2>/dev/null || true)
+    [[ ${typ,,} == c12a7328-f81f-11d2-ba4b-00a0c93ec93b ]] || continue
+    mount -o ro "$p" "$tmpd" 2>/dev/null || continue
+    kind=""; boot="-"
+    if [[ -d $tmpd/EFI/Microsoft ]]; then
+      kind=windows
+      [[ -f $tmpd/EFI/Microsoft/Boot/bootmgfw.efi ]] && boot=/EFI/Microsoft/Boot/bootmgfw.efi
+    elif [[ -f $tmpd/limine.conf || -f $tmpd/EFI/limine/limine_x64.efi ]]; then
+      kind=ryoku
+      if [[ -f $tmpd/EFI/limine/limine_x64.efi ]]; then boot=/EFI/limine/limine_x64.efi
+      elif [[ -f $tmpd/EFI/BOOT/BOOTX64.EFI ]]; then boot=/EFI/BOOT/BOOTX64.EFI; fi
+    else
+      v=$(find "$tmpd/EFI" -mindepth 2 -maxdepth 2 -iname '*.efi' \
+            ! -ipath '*/EFI/Microsoft/*' ! -ipath '*/EFI/BOOT/*' -printf '/EFI/%P\n' 2>/dev/null | sort | head -n1 || true)
+      if [[ -n $v ]]; then
+        kind=linux; boot=$v
+      else
+        kind=$(ryoku_disk_os_kind "$disk" || true)
+        [[ -n $kind ]] || kind=linux
+        [[ -f $tmpd/EFI/BOOT/BOOTX64.EFI ]] && boot=/EFI/BOOT/BOOTX64.EFI
+      fi
+    fi
+    umount "$tmpd" 2>/dev/null || true
+    if [[ $kind == windows ]]; then out="$p $kind $boot"; break; fi
+    [[ -n $firstout ]] || firstout="$p $kind $boot"
+  done < <(ryoku_partitions "$disk")
+  rmdir "$tmpd" 2>/dev/null || true
+  [[ -n $out ]] || out=$firstout
+  [[ -n $out ]] || return 1
+  printf '%s\n' "$out"
+}
+
+# ryoku_emit_leftovers <disk>: one `leftover <dev> <partlabel> <sizeMiB>` line per
+# VERIFIED failed-alongside debris partition (ryoku_is_leftover). read-only.
+ryoku_emit_leftovers() {
+  local disk=$1 p lbl sz
+  while IFS= read -r p; do
+    [[ -n $p ]] || continue
+    lbl=$(lsblk -dno PARTLABEL "$p" 2>/dev/null || true)
+    [[ $lbl == ryoku || $lbl == ryokuboot ]] || continue
+    ryoku_is_leftover "$p" || continue
+    sz=$(( $(blockdev --getsize64 "$p" 2>/dev/null || echo 0) / 1048576 ))
+    printf 'leftover %s %s %s\n' "$p" "$lbl" "$sz"
+  done < <(ryoku_partitions "$disk")
+}
+
+# ryoku_any_shrinkable <disk>: 0 when at least one partition can give up space
+# (ryoku_part_shrink_info reports 'yes'). used by the alongside verdict: a fully
+# allocated disk still qualifies when a partition is carveable.
+ryoku_any_shrinkable() {
+  local disk=$1 p fstype size_mib info
+  while IFS= read -r p; do
+    [[ -n $p ]] || continue
+    fstype=$(blkid -o value -s TYPE "$p" 2>/dev/null || true)
+    size_mib=$(( $(blockdev --getsize64 "$p" 2>/dev/null || echo 0) / 1048576 ))
+    info=$(ryoku_part_shrink_info "$p" "$fstype" "$size_mib")
+    [[ $(awk '{print $3}' <<<"$info") == yes ]] && return 0
+  done < <(ryoku_partitions "$disk")
+  return 1
+}
+
 # ryoku_probe_alongside <disk>: read-only report the TUI renders. machine lines:
 #   sectorsize <bytes>
-#   esp <device>                 Windows' ESP (the one we share)
-#   region <start> <end> <mib>   zero or more, largest first
+#   esp_kind windows|ryoku|linux    kind of the ESP we would share (when one exists)
+#   existing_boot <path>|none       EFI binary of the existing system to chainload
+#   esp <device>                    the ESP we share (any kind, not just Windows')
+#   region <start> <end> <mib>      zero or more, largest first
+#   leftover <dev> <label> <mib>    zero or more, VERIFIED failed-run debris only
 #   verdict ok|none|no-gpt|no-esp|error
-#   message <text>               present on every non-ok verdict
-# the TUI stops computing free space itself: one source of truth lives here.
+#   message <text>                  present on every non-ok verdict
+# lines are ADDED, never reordered, so the TUI's keyword parser stays stable.
+# verdict is ok whenever a usable ESP exists AND there is somewhere to put us --
+# a free region OR a shrinkable partition (the carve path); one source of truth.
 ryoku_probe_alongside() {
-  local disk=$1 pttype ss esp regions need
+  local disk=$1 pttype ss regions espinfo esp esp_kind esp_boot shrinkable=no
   [[ -b $disk ]] || { printf 'verdict error\nmessage %s is not a block device\n' "$disk"; return 0; }
   pttype=$(blkid -o value -s PTTYPE "$disk" 2>/dev/null || true)
   if [[ $pttype != gpt ]]; then
@@ -607,26 +774,30 @@ ryoku_probe_alongside() {
   fi
   ss=$(blockdev --getss "$disk" 2>/dev/null || echo 512)
   printf 'sectorsize %s\n' "$ss"
-  if esp=$(ryoku_windows_esp "$disk"); then
+  if espinfo=$(ryoku_esp_scan "$disk"); then
+    read -r esp esp_kind esp_boot <<<"$espinfo"
+    printf 'esp_kind %s\n' "$esp_kind"
+    [[ $esp_boot == - ]] && esp_boot=none
+    printf 'existing_boot %s\n' "$esp_boot"
     printf 'esp %s\n' "$esp"
   else
-    printf 'verdict no-esp\nmessage no Windows ESP found on %s (no EF00 partition holding /EFI/Microsoft). alongside shares Windows'\'' ESP; install Windows first, or use whole-disk.\n' "$disk"
+    printf 'verdict no-esp\nmessage no EFI System Partition (EF00) found on %s; alongside needs an existing ESP to share. Use whole-disk, or create an ESP first.\n' "$disk"
     return 0
   fi
-  need=$(( 2 + $(ryoku_min_root_gib) ))
-  # a table sfdisk can't read is NOT a free-space problem: say so, so the user
-  # is not sent to shrink Windows over an unreadable/failed probe.
+  # a table sfdisk can't read is NOT a free-space problem: say so.
   if ! sfdisk --json "$disk" >/dev/null 2>&1; then
     printf 'verdict error\nmessage could not read the partition table on %s (sfdisk failed); the disk may be unreadable or lack a usable GPT. This is not a free-space problem.\n' "$disk"
     return 0
   fi
   regions=$(ryoku_free_regions "$disk" | sort -k3,3 -nr)
-  if [[ -z $regions ]]; then
-    printf 'verdict none\nmessage no unallocated region >= %d GiB on %s; shrink a Windows partition first, then retry.\n' "$need" "$disk"
-    return 0
+  [[ -n $regions ]] && printf '%s\n' "$regions" | while read -r s e m; do printf 'region %s %s %s\n' "$s" "$e" "$m"; done
+  ryoku_emit_leftovers "$disk"
+  [[ -z $regions ]] && ryoku_any_shrinkable "$disk" && shrinkable=yes
+  if [[ -n $regions || $shrinkable == yes ]]; then
+    printf 'verdict ok\n'
+  else
+    printf 'verdict none\nmessage no unallocated region and no shrinkable partition on %s; free space by shrinking an existing partition, then retry.\n' "$disk"
   fi
-  printf '%s\n' "$regions" | while read -r s e m; do printf 'region %s %s %s\n' "$s" "$e" "$m"; done
-  printf 'verdict ok\n'
 }
 
 # ryoku_human_to_mib <value>: convert a btrfs-style size ("144.00MiB", "1.17GiB",
