@@ -43,6 +43,7 @@ on:
       - 'tests/install-chainload-vm.sh'
       - 'tests/install-disk-teardown.sh'
       - 'tests/install-dns.sh'
+      - 'tests/install-swapfile.sh'
       - '.github/workflows/install-backend-tests.yml'
   push:
     branches:
@@ -63,6 +64,7 @@ on:
       - 'tests/install-chainload-vm.sh'
       - 'tests/install-disk-teardown.sh'
       - 'tests/install-dns.sh'
+      - 'tests/install-swapfile.sh'
       - '.github/workflows/install-backend-tests.yml'
   workflow_dispatch:
 
@@ -140,6 +142,10 @@ jobs:
       - name: Carve space out of ntfs/ext4/btrfs partitions on a loop device
         shell: bash
         run: sudo bash tests/install-resize.sh
+
+      - name: Btrfs @swap swapfile activation
+        shell: bash
+        run: sudo bash tests/install-swapfile.sh
 
   tui:
     name: Installer TUI unit tests (go test)
