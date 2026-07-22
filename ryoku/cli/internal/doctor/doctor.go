@@ -100,6 +100,7 @@ func reconcilers() []reconciler {
 		{"snapper configuration", reconcileSnapper},
 		{"limine boot menu layout", reconcileLimineLayout},
 		{"limine boot entry", reconcileLimineBootEntry},
+		{"alongside boot entry", reconcileAlongsideBootEntry},
 		{"limine UKI boot tree", reconcileLimineUKITree},
 		{"limine autoboot", reconcileLimineAutoboot},
 		{"limine snapshot sync", reconcileLimineOSName},
