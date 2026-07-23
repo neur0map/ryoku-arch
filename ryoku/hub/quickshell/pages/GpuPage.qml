@@ -574,7 +574,7 @@ done
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("DEVICES"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -601,7 +601,7 @@ done
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "描画"
-        index: "02"; label: I18n.tr("SYSTEM")
+        index: "02"; label: I18n.tr("DEVICES")
         glyph: "asanoha"; glyph2: "meander"
     }
 

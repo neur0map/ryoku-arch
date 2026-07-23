@@ -463,7 +463,7 @@ Item {
                 font.pixelSize: Tokens.fMicro; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: I18n.tr("DESKTOP"); color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("TOOLS"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: Tokens.fTiny; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }

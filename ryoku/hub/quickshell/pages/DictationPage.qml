@@ -244,7 +244,7 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("TOOLS"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -761,8 +761,8 @@ Item {
         code: "MIC-02"
         title: "\u30de\u30a4\u30af"
         sub: I18n.tr("RIBBON \u00b7 1938")
-        chapter: "02"
-        label: I18n.tr("SYSTEM")
+        chapter: "05"
+        label: I18n.tr("TOOLS")
         quote: I18n.tr("SPEAK, AND IT LISTENS.")
         seal: "\u97f3"
         art: "mic.png"
