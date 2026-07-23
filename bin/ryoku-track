@@ -9,6 +9,7 @@
 set -euo pipefail
 
 REPO="$HOME/ryoku-arch"
+REPO_URL="https://github.com/neur0map/ryoku-arch.git"
 say() { printf '\n==> %s\n' "$*"; }
 
 say "This turns your box into an unstable-dev tracker so you get unstable-dev changes. Use at your own risk."
@@ -16,15 +17,14 @@ say "This turns your box into an unstable-dev tracker so you get unstable-dev ch
 say "Installing build tools and matugen"
 sudo pacman -S --needed --noconfirm git go cmake ninja qt6-shadertools wayland base-devel matugen
 
-FORK_URL="https://github.com/raellx22/ryoku-arch.git"
 say "Fetching the Ryoku source on unstable-dev into $REPO"
 if [[ -d $REPO/.git ]]; then
-  git -C "$REPO" remote set-url origin "$FORK_URL" 2>/dev/null || true
+  git -C "$REPO" remote set-url origin "$REPO_URL" 2>/dev/null || true
   git -C "$REPO" fetch origin unstable-dev
   git -C "$REPO" checkout unstable-dev
   git -C "$REPO" reset --hard origin/unstable-dev
 else
-  git clone -b unstable-dev "$FORK_URL" "$REPO"
+  git clone -b unstable-dev "$REPO_URL" "$REPO"
 fi
 
 say "Setting the update channel to unstable-dev"
