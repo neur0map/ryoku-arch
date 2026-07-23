@@ -32,6 +32,22 @@ func resolveWallDaemon() (cli, start string) {
 	return "awww", "awww-daemon"
 }
 
+func findHubBin() string {
+	if p, err := exec.LookPath("ryoku-hub"); err == nil {
+		return p
+	}
+	home := os.Getenv("HOME")
+	for _, cand := range []string{
+		filepath.Join(home, ".local", "bin", "ryoku-hub"),
+		"/usr/local/bin/ryoku-hub",
+		"/usr/bin/ryoku-hub",
+	} {
+		if _, err := os.Stat(cand); err == nil {
+			return cand
+		}
+	}
+	return "ryoku-hub"
+}
 func wallDir() string   { return filepath.Join(os.Getenv("HOME"), "Pictures", "Wallpapers") }
 func liveDir() string   { return filepath.Join(os.Getenv("HOME"), "Pictures", "livewalls") }
 func wallState() string { return filepath.Join(stateDir(), "ryoku-wallpaper") }
@@ -546,8 +562,8 @@ func (d *daemon) paintWorker() {
 			continue
 		}
 		// fixed-palette theme (Ryoku Settings) owns the colours: change the image
-		// but keep the locked palette, don't re-derive.
-		if themePaletteLocked() {
+		// but keep the locked palette, don't re-derive, unless matugen engine is active.
+		if themePaletteLocked() && !isMatugenEngine() {
 			continue
 		}
 		// wallust reads an image, so a video is themed off one extracted frame.
@@ -558,7 +574,9 @@ func (d *daemon) paintWorker() {
 			}
 		}
 		if isMatugenEngine() {
-			_ = exec.Command("ryoku-hub", "hypr", "matugen", "apply", src).Run()
+			if out, err := exec.Command(findHubBin(), "hypr", "matugen", "apply", src).CombinedOutput(); err != nil {
+				fmt.Fprintf(os.Stderr, "paintWorker matugen apply: %v: %s\n", err, out)
+			}
 		} else {
 			_ = exec.Command("wallust", append([]string{"run", src}, tuneArgs()...)...).Run()
 			renderApps()
@@ -576,7 +594,9 @@ func (d *daemon) paintWorker() {
 // same engine the fixed schemes drive, so follow-the-wallpaper mode retints the
 // whole suite and not just the shell, kitty, and borders.
 func renderApps() {
-	_ = exec.Command("ryoku-hub", "hypr", "matugen", "render-apps").Run()
+	if out, err := exec.Command(findHubBin(), "hypr", "matugen", "render-apps").CombinedOutput(); err != nil {
+		fmt.Fprintf(os.Stderr, "renderApps matugen: %v: %s\n", err, out)
+	}
 }
 
 // themeAppsEnabled reports whether the palette should reach GTK / GUI apps.

@@ -184,6 +184,18 @@ func generateMatugenTheme(imgPath string) error {
 		}
 	}
 	if imgPath == "" || !isFile(imgPath) {
+		wallDir := filepath.Join(os.Getenv("HOME"), "Pictures", "Wallpapers")
+		entries, err := os.ReadDir(wallDir)
+		if err == nil {
+			for _, e := range entries {
+				if !e.IsDir() && (strings.HasSuffix(e.Name(), ".png") || strings.HasSuffix(e.Name(), ".jpg") || strings.HasSuffix(e.Name(), ".jpeg") || strings.HasSuffix(e.Name(), ".webp")) {
+					imgPath = filepath.Join(wallDir, e.Name())
+					break
+				}
+			}
+		}
+	}
+	if imgPath == "" || !isFile(imgPath) {
 		return fmt.Errorf("no valid wallpaper image found at %q", imgPath)
 	}
 	cliArgs := []string{
@@ -370,43 +382,42 @@ func renderActiveTemplates(cfg matugenConfig, pal map[string]string) {
 	}
 
 	// Write filtered apps.toml to cache and execute
-	lines := strings.Split(string(b), "\n")
-	var activeLines []string
-	currentApp := ""
-	includeBlock := true
+	content := string(b)
+	sections := strings.Split(content, "\n[")
+	var activeSections []string
 
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
+	for i, sec := range sections {
+		secStr := sec
+		if i > 0 {
+			secStr = "[" + sec
+		}
+		trimmed := strings.TrimSpace(secStr)
+		if strings.HasPrefix(trimmed, "[config]") || strings.HasPrefix(trimmed, "[config\n") {
+			activeSections = append(activeSections, secStr)
+			continue
+		}
 		if strings.HasPrefix(trimmed, "[templates.") {
-			appName := strings.TrimSuffix(strings.TrimPrefix(trimmed, "[templates."), "]")
-			// map appName to cfg.Templates key (e.g. gtk3/gtk4 -> gtk, vesktop/equibop -> discord)
-			groupKey := appName
-			switch appName {
-			case "gtk3", "gtk4":
-				groupKey = "gtk"
-			case "qt5ct":
-				groupKey = "qt5"
-			case "vesktop", "equibop":
-				groupKey = "discord"
+			headerEnd := strings.Index(trimmed, "]")
+			if headerEnd > 11 {
+				appName := trimmed[11:headerEnd]
+				groupKey := appName
+				switch appName {
+				case "gtk3", "gtk4":
+					groupKey = "gtk"
+				case "qt5ct":
+					groupKey = "qt5"
+				case "vesktop", "equibop":
+					groupKey = "discord"
+				}
+				if enabled, ok := cfg.Templates[groupKey]; !ok || enabled {
+					activeSections = append(activeSections, secStr)
+				}
 			}
-			currentApp = groupKey
-			if enabled, ok := cfg.Templates[groupKey]; ok {
-				includeBlock = enabled
-			} else {
-				includeBlock = true
-			}
 		}
-		if includeBlock {
-			activeLines = append(activeLines, line)
-		}
-		if trimmed == "" {
-			currentApp = ""
-		}
-		_ = currentApp
 	}
 
 	activeAppsToml := filepath.Join(cacheDir, "active-apps.toml")
-	_ = os.WriteFile(activeAppsToml, []byte(strings.Join(activeLines, "\n")), 0o644)
+	_ = os.WriteFile(activeAppsToml, []byte(strings.Join(activeSections, "\n")), 0o644)
 
 	runMatugen(activeAppsToml, carrierPath)
 }
