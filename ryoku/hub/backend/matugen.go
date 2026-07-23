@@ -149,9 +149,14 @@ func runMatugenCmd(args []string) error {
 		if err := saveMatugenConfig(cfg); err != nil {
 			return err
 		}
-		// Apply matugen color generation if engine is matugen
+		// Apply live so a settings change (scheme, per-app toggle) takes hold at
+		// once. Matugen re-derives the whole palette from the wallpaper; wallust
+		// keeps its current colors.json and just re-fans it through the (possibly
+		// newly toggled) templates.
 		if cfg.Engine == "matugen" {
 			_ = generateMatugenTheme("")
+		} else if pal := readPalette(filepath.Join(wallustCacheDir(), "colors.json")); pal != nil {
+			renderActiveTemplates(cfg, pal)
 		}
 		return nil
 	case "apply":
@@ -197,6 +202,18 @@ func generateMatugenTheme(imgPath string) error {
 	}
 	if imgPath == "" || !isFile(imgPath) {
 		return fmt.Errorf("no valid wallpaper image found at %q", imgPath)
+	}
+	// matugen decodes still images only. A live/video wallpaper (.webm/.mp4)
+	// must be sampled to one frame first, exactly as the shell's paint path does;
+	// otherwise matugen panics ("not recognized as an image format") and the
+	// whole apply -- colors.json, every app template, and the folder-recolor
+	// post_hook -- silently no-ops.
+	if isVideoWallpaper(imgPath) {
+		frame := videoStill(imgPath)
+		if frame == "" {
+			return fmt.Errorf("could not sample a still frame from live wallpaper %q", imgPath)
+		}
+		imgPath = frame
 	}
 	cliArgs := []string{
 		"image", imgPath,
@@ -329,6 +346,29 @@ func generateMatugenTheme(imgPath string) error {
 	nudgeGtk()
 
 	return nil
+}
+
+// isVideoWallpaper reports whether p is a live/video wallpaper matugen cannot read.
+func isVideoWallpaper(p string) bool {
+	switch strings.ToLower(filepath.Ext(p)) {
+	case ".mp4", ".webm", ".mkv", ".mov":
+		return true
+	}
+	return false
+}
+
+// videoStill samples one frame from a live wallpaper so matugen has an image to
+// extract a palette from. Returns "" when ffmpeg is absent or fails, so the
+// caller reports a clean error instead of crashing matugen.
+func videoStill(video string) string {
+	out := filepath.Join(cacheHome(), "ryoku", "matugen-frame.png")
+	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+		return ""
+	}
+	if err := exec.Command("ffmpeg", "-y", "-ss", "1", "-i", video, "-frames:v", "1", out).Run(); err != nil || !isFile(out) {
+		return ""
+	}
+	return out
 }
 
 // renderActiveTemplates generates matugen configs for enabled templates
