@@ -558,7 +558,7 @@ func (d *daemon) paintWorker() {
 			}
 		}
 		if isMatugenEngine() {
-			_ = exec.Command("ryoku-hub", "hypr", "matugen", "apply").Run()
+			_ = exec.Command("ryoku-hub", "hypr", "matugen", "apply", src).Run()
 		} else {
 			_ = exec.Command("wallust", append([]string{"run", src}, tuneArgs()...)...).Run()
 			renderApps()
@@ -576,65 +576,7 @@ func (d *daemon) paintWorker() {
 // same engine the fixed schemes drive, so follow-the-wallpaper mode retints the
 // whole suite and not just the shell, kitty, and borders.
 func renderApps() {
-	cache := os.Getenv("XDG_CACHE_HOME")
-	if cache == "" {
-		cache = filepath.Join(os.Getenv("HOME"), ".cache")
-	}
-	b, err := os.ReadFile(filepath.Join(cache, "wallust", "colors.json"))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "renderApps: no palette to theme apps from: %v\n", err)
-		return
-	}
-	var pal map[string]string
-	if json.Unmarshal(b, &pal) != nil {
-		return
-	}
-	cols := map[string]any{}
-	for k, v := range pal {
-		cols[k] = map[string]any{"default": map[string]any{"hex": v}}
-		cols[k+"_argb"] = map[string]any{"default": map[string]any{"hex": "#ff" + strings.TrimPrefix(v, "#")}}
-	}
-	cols["cursor"] = map[string]any{"default": map[string]any{"hex": pal["foreground"]}}
-	carrier, err := json.Marshal(map[string]any{"colors": cols})
-	if err != nil {
-		return
-	}
-	dir := filepath.Join(cache, "ryoku")
-	_ = os.MkdirAll(dir, 0o755)
-	cpath := filepath.Join(dir, "matugen-carrier.json")
-	if os.WriteFile(cpath, carrier, 0o644) != nil {
-		return
-	}
-	cfgBase := os.Getenv("XDG_CONFIG_HOME")
-	if cfgBase == "" {
-		cfgBase = filepath.Join(os.Getenv("HOME"), ".config")
-	}
-	matugenDir := filepath.Join(cfgBase, "matugen")
-	for _, d := range []string{
-		filepath.Join(cfgBase, "kitty"),
-		filepath.Join(cache, "wallust"),
-		filepath.Join(cfgBase, "btop", "themes"),
-		filepath.Join(cfgBase, "qt6ct", "colors"),
-		filepath.Join(cfgBase, "gtk-3.0"),
-		filepath.Join(cfgBase, "gtk-4.0"),
-	} {
-		_ = os.MkdirAll(d, 0o755)
-	}
-	// core surface (terminal, frame, monitor, Qt) always tracks the palette.
-	// Surface matugen failures (missing binary, unreadable template) rather than
-	// swallowing them: a silent failure here reads to the user as "matugen was
-	// enabled but generated no GTK or Qt themes, and I could not tell why."
-	if out, err := exec.Command("matugen", "-c", filepath.Join(matugenDir, "config.toml"), "json", cpath).CombinedOutput(); err != nil {
-		fmt.Fprintf(os.Stderr, "matugen config.toml: %v: %s\n", err, out)
-	}
-	// GTK / GUI apps only when "Theme apps" is on; else revert them to stock.
-	if themeAppsEnabled() {
-		if out, err := exec.Command("matugen", "-c", filepath.Join(matugenDir, "apps.toml"), "json", cpath).CombinedOutput(); err != nil {
-			fmt.Fprintf(os.Stderr, "matugen apps.toml: %v: %s\n", err, out)
-		}
-	} else {
-		blankGtk(cfgBase)
-	}
+	_ = exec.Command("ryoku-hub", "hypr", "matugen", "render-apps").Run()
 }
 
 // themeAppsEnabled reports whether the palette should reach GTK / GUI apps.

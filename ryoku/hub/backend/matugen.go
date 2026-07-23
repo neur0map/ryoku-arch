@@ -160,6 +160,13 @@ func runMatugenCmd(args []string) error {
 			imgPath = args[1]
 		}
 		return generateMatugenTheme(imgPath)
+	case "render-apps":
+		pal := readPalette(filepath.Join(wallustCacheDir(), "colors.json"))
+		if pal != nil {
+			cfg := loadMatugenConfig()
+			renderActiveTemplates(cfg, pal)
+		}
+		return nil
 	default:
 		return fmt.Errorf("unknown matugen subcommand %q", args[0])
 	}
