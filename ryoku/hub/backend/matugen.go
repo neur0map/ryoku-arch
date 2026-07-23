@@ -67,6 +67,57 @@ func paletteCarrier(pal map[string]string) map[string]any {
 		put(k, v)
 		put(k+"_argb", "#ff"+strings.TrimPrefix(v, "#"))
 	}
+	// Wallust ships a base16 palette, but the app templates (discord, steam, zed,
+	// ghostty, obs, telegram, heroic, micro, cava, papirus) speak Material 3 role
+	// names. Map base16 -> M3 roles so those templates resolve on the wallust
+	// engine too -- otherwise one unresolved role aborts the whole matugen render
+	// and every app (Hyprland borders, GTK/Nautilus, kitty, ...) freezes on the
+	// last theme. Only fill roles the palette did not already define, so a real
+	// matugen M3 palette is never overwritten.
+	pick := func(keys ...string) string {
+		for _, k := range keys {
+			if v := pal[k]; v != "" {
+				return v
+			}
+		}
+		return ""
+	}
+	accent := pick("color4", "foreground")
+	bg := pick("background", "color0")
+	fg := pick("foreground", "color15", "color7")
+	dim := pick("color0", "background")
+	muted := pick("color8", "color0")
+	subtle := pick("color7", "foreground")
+	roles := map[string]string{
+		"primary": accent, "on_primary": bg, "primary_container": accent,
+		"on_primary_container": fg, "primary_fixed": accent, "primary_fixed_dim": accent,
+		"inverse_primary": accent,
+		"secondary": pick("color6", "color4"), "on_secondary": bg,
+		"secondary_container": dim, "on_secondary_container": fg,
+		"secondary_fixed": pick("color6", "color4"), "secondary_fixed_dim": pick("color6", "color4"),
+		"tertiary": pick("color5", "color2"), "on_tertiary": bg,
+		"tertiary_container": dim, "on_tertiary_container": fg,
+		"on_primary_fixed": bg, "on_primary_fixed_variant": bg,
+		"on_secondary_fixed": bg, "on_secondary_fixed_variant": bg,
+		"tertiary_fixed": pick("color5", "color2"), "tertiary_fixed_dim": pick("color5", "color2"),
+		"on_tertiary_fixed": bg, "on_tertiary_fixed_variant": bg, "surface_tint": accent,
+		"surface": bg, "on_surface": fg, "on_surface_variant": subtle, "on_background": fg,
+		"surface_dim": dim, "surface_bright": muted, "surface_variant": dim,
+		"surface_container": dim, "surface_container_lowest": bg, "surface_container_low": dim,
+		"surface_container_high": muted, "surface_container_highest": muted,
+		"error": pick("color1", "color9"), "on_error": bg,
+		"error_container": pick("color1", "color9"), "on_error_container": fg,
+		"outline": muted, "outline_variant": dim,
+		"inverse_surface": fg, "inverse_on_surface": bg,
+		"scrim": "#000000", "shadow": "#000000",
+	}
+	for name, hex := range roles {
+		if _, ok := c[name]; ok || hex == "" {
+			continue
+		}
+		put(name, hex)
+		put(name+"_argb", "#ff"+strings.TrimPrefix(hex, "#"))
+	}
 	if fg, ok := pal["foreground"]; ok {
 		put("cursor", fg)
 	} else if onSurf, ok := pal["on_surface"]; ok {

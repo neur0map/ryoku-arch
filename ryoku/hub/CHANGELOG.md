@@ -11,6 +11,15 @@
   scheme reloads its palette), replacing the stale Matugen palette instead of
   re-fanning it. A same-engine change (per-app toggle) keeps the fast re-fan
   path (`backend/matugen.go`).
+- **Wallust themes every app again (Nautilus, Discord, Steam, ghostty, ...),
+  not just the shell.** The Material 3 app templates use M3 role names
+  (`primary`, `surface`, `on_surface`, ...) that only exist under the Matugen
+  engine; on Wallust the render carrier held base16 only, so the first
+  unresolved role aborted the *whole* matugen render and every GTK/Qt app froze
+  on its last theme -- most visibly Nautilus keeping a light background after a
+  light Matugen theme. The carrier now maps base16 -> the M3 roles, so the
+  templates resolve on Wallust too and the app suite re-themes with the
+  wallpaper (`backend/matugen.go`).
 - **Theme tab leads with Wallust; Matugen is an opt-in "advanced" section, and
   each app has a button to its template.** The Wallust/Matugen picker no longer
   sits at the top as a co-equal choice: Wallust (the default) drives the palette,
