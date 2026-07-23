@@ -3,6 +3,36 @@
 ## Unreleased
 
 ### Fixed
+- **Theme tab: palette changes go through Save instead of silent auto-apply.**
+  The engine (Wallust / Matugen), scheme, Material 3 tuning, Ryoku interface and
+  per-app toggles applied the instant you touched them and never lit the action
+  bar, so the Save button stayed greyed and the edits felt lost -- unlike every
+  other page in the Hub. They now stage into a draft that raises the shared Save
+  (and Revert): pick freely, then commit in one click, and Revert or an unsaved
+  quit drops the staged edits. Staging also stops the contrast slider re-running
+  matugen on every drag frame (`Hub.qml` gains `pageDirty` + `savePage` /
+  `revertPage`; `pages/AppearancePage.qml`).
+- **Matugen (Material 3) is merge-ready: live wallpapers, real app theming, and
+  the panel folded into Theme.** The Material 3 engine now samples a still frame
+  from a live/video wallpaper before running matugen (it panicked on a `.webm`,
+  silently aborting the whole apply -- shell, apps, and the folder recolour), and
+  a scheme or per-app change now re-fans the palette live on the wallust engine
+  too, not only matugen. The standalone Matugen tab is gone: its controls live
+  under Appearance > Theme, engine-first (Wallust / Matugen), with the wallpaper
+  gallery dropped for room and the app list trimmed to the templates that are
+  actually toggleable plus a note that terminal, borders and Qt6 always follow and
+  Discord, Telegram, OBS, Zed, Steam and Heroic need the theme picked inside the
+  app once. The wallpaper->folder-colour post_hook the PR's older `config.toml`
+  had dropped is restored (`backend/matugen.go`, `pages/AppearancePage.qml`).
+- **Matugen: the visualiser, folder icons and window border follow the wallpaper
+  even with Ryoku Interface set to Original.** Those three read
+  `~/.cache/wallust/colors.json` directly (no `followWallpaper` gate), so writing
+  the monochrome palette to that file when Ryoku Interface was Original dragged
+  them mono too, though the toggle only promises to keep the Hub, pill and widgets
+  mono. Matugen now always writes the wallpaper's Material 3 palette to
+  `colors.json` and keeps the shell mono through `followWallpaper` alone, so on the
+  Matugen engine those accents track the wallpaper on both settings while the
+  chrome still honours the toggle (`backend/matugen.go`).
 - **Rices > Browse gains a Refresh button.** The community-store grid fetched its
   catalogue only once per Hub session (`showBrowse` pulled it only while empty),
   so a rice newly added to `ryoku-extras` never appeared without reopening the

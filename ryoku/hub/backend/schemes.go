@@ -42,30 +42,8 @@ func writePalette(pal map[string]string) {
 // only .hex resolves in this mode, so Qt's ARGB roles read the pre-formatted
 // *_argb keys the carrier carries beside the plain colours.
 func renderApps(pal map[string]string) {
-	carrier := map[string]any{"colors": paletteCarrier(pal)}
-	cacheDir := filepath.Join(cacheHome(), "ryoku")
-	_ = os.MkdirAll(cacheDir, 0o755)
-	carrierPath := filepath.Join(cacheDir, "matugen-carrier.json")
-	if err := atomicWrite(carrierPath, mustJSON(carrier), 0o644); err != nil {
-		return
-	}
-	for _, dir := range []string{
-		filepath.Join(configHome(), "kitty"),
-		filepath.Join(cacheHome(), "wallust"),
-		filepath.Join(configHome(), "btop", "themes"),
-		filepath.Join(configHome(), "qt6ct", "colors"),
-		filepath.Join(configHome(), "gtk-3.0"),
-		filepath.Join(configHome(), "gtk-4.0"),
-	} {
-		_ = os.MkdirAll(dir, 0o755)
-	}
-	matugenDir := filepath.Join(configHome(), "matugen")
-	runMatugen(filepath.Join(matugenDir, "config.toml"), carrierPath)
-	if themeAppsOn(loadThemeState()) {
-		runMatugen(filepath.Join(matugenDir, "apps.toml"), carrierPath)
-	} else {
-		blankGtk()
-	}
+	cfg := loadMatugenConfig()
+	renderActiveTemplates(cfg, pal)
 }
 
 func runMatugen(cfg, carrier string) {
@@ -91,21 +69,6 @@ func blankGtk() {
 	}
 }
 
-// paletteCarrier shapes the palette into matugen's json input: each colour as
-// colors.<name>.default.hex, plus a colors.<name>_argb.default.hex variant
-// (#aarrggbb) for Qt's palette roles, plus cursor mirrored from the foreground.
-func paletteCarrier(pal map[string]string) map[string]any {
-	c := map[string]any{}
-	put := func(name, hex string) {
-		c[name] = map[string]any{"default": map[string]any{"hex": hex}}
-	}
-	for k, v := range pal {
-		put(k, v)
-		put(k+"_argb", "#ff"+strings.TrimPrefix(v, "#"))
-	}
-	put("cursor", pal["foreground"])
-	return c
-}
 
 // currentScheme reports the active palette mode for the UI: light/dark when a
 // curated preset is locked, follow when colours track the wallpaper, custom when
