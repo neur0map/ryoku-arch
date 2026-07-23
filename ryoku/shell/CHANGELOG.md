@@ -35,11 +35,12 @@
   folder colour and builds a ~300K icon theme in
   `~/.local/share/icons/ryoku-folders` that inherits Papirus-Dark and overrides
   only the folder icons with Papirus's matching colour set, so it needs no root
-  and never `.pacnew`s the packaged theme. Autostart selects it; the wallpaper
-  daemon (`ipc/wallpaper.go`) and the Hub scheme path (`hub/backend/schemes.go`)
-  rebuild it after matugen. The helper flips the icon-theme name (briefly, via
-  the Papirus-Dark parent) so running GTK apps like Nautilus re-read it and
-  recolor live, no reopen.
+  and never `.pacnew`s the packaged theme. Autostart selects it, and a matugen
+  `post_hook` (`shell/matugen/config.toml`) reruns it on every palette change,
+  so both follow-wallpaper and fixed-scheme paths retint folders with no daemon
+  wiring. The helper flips the icon-theme name (briefly, via the Papirus-Dark
+  parent) so running GTK apps like Nautilus re-read it and recolor live, no
+  reopen.
 
 - **The recorder sidebar gains a Discord toggle: a Quick capture auto-shrinks to
   fit a chat.** With it on, a finished Quick recording is re-encoded to a
