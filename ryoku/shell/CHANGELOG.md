@@ -32,15 +32,14 @@
 - **Folder icons follow the wallpaper.** Every palette change now retints the
   file-manager folders to the same accent the shell and GTK use. A helper
   (`hyprland/scripts/ryoku-cmd-folders`) maps the accent to the nearest Papirus
-  folder colour and builds a ~300K icon theme in
-  `~/.local/share/icons/ryoku-folders` that inherits Papirus-Dark and overrides
-  only the folder icons with Papirus's matching colour set, so it needs no root
-  and never `.pacnew`s the packaged theme. Autostart selects it, and a matugen
-  `post_hook` (`shell/matugen/config.toml`) reruns it on every palette change,
-  so both follow-wallpaper and fixed-scheme paths retint folders with no daemon
-  wiring. The helper flips the icon-theme name (briefly, via the Papirus-Dark
-  parent) so running GTK apps like Nautilus re-read it and recolor live, no
-  reopen.
+  folder colour and builds a ~300K icon theme under `~/.local/share/icons` that
+  inherits Papirus-Dark and overrides only the folder icons with Papirus's
+  matching colour set, so it needs no root and never `.pacnew`s the packaged
+  theme. A matugen `post_hook` (`shell/matugen/config.toml`) reruns it on every
+  palette change, so both follow-wallpaper and fixed-scheme paths retint folders
+  with no daemon wiring. Each run writes a freshly-named copy and selects it, so
+  running GTK apps (Nautilus, Thunar) load the new colours in one step and
+  recolor live -- no reopen, no wrong-colour flash, no stale icon cache.
 
 - **The recorder sidebar gains a Discord toggle: a Quick capture auto-shrinks to
   fit a chat.** With it on, a finished Quick recording is re-encoded to a
