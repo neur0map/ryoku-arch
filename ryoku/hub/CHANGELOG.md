@@ -3,6 +3,18 @@
 ## Unreleased
 
 ### Fixed
+- **Matugen (Material 3) is merge-ready: live wallpapers, real app theming, and
+  the panel folded into Theme.** The Material 3 engine now samples a still frame
+  from a live/video wallpaper before running matugen (it panicked on a `.webm`,
+  silently aborting the whole apply -- shell, apps, and the folder recolour), and
+  a scheme or per-app change now re-fans the palette live on the wallust engine
+  too, not only matugen. The standalone Matugen tab is gone: its controls live
+  under Appearance > Theme, engine-first (Wallust / Matugen), with the wallpaper
+  gallery dropped for room and the app list trimmed to the templates that are
+  actually toggleable plus a note that terminal, borders and Qt6 always follow and
+  Discord, Telegram, OBS, Zed, Steam and Heroic need the theme picked inside the
+  app once. The wallpaper->folder-colour post_hook the PR's older `config.toml`
+  had dropped is restored (`backend/matugen.go`, `pages/AppearancePage.qml`).
 - **Rices > Browse gains a Refresh button.** The community-store grid fetched its
   catalogue only once per Hub session (`showBrowse` pulled it only while empty),
   so a rice newly added to `ryoku-extras` never appeared without reopening the

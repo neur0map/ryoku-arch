@@ -156,7 +156,7 @@ Item {
     }
 
     property string tab: "Windows"
-    readonly property var tabs: ["Windows", "Effects", "Borders", "Cursor", "Theme", "Matugen", "Comfort", "Rices"]
+    readonly property var tabs: ["Windows", "Effects", "Borders", "Cursor", "Theme", "Comfort", "Rices"]
     readonly property bool settingsTab: pg.tab === "Windows" || pg.tab === "Effects" || pg.tab === "Borders" || pg.tab === "Cursor"
     readonly property bool searching: pg.hub ? (pg.hub.query || "") !== "" : false
 
@@ -247,9 +247,6 @@ Item {
         matugenSetProc.command = ["ryoku-hub", "hypr", "matugen", "set", JSON.stringify(cfg)];
         matugenSetProc.running = true;
     }
-    function applyMatugen() {
-        matugenApplyProc.running = true;
-    }
 
     Process {
         id: matugenGetProc
@@ -265,50 +262,7 @@ Item {
         }
     }
     Process { id: matugenSetProc; stdout: StdioCollector { onStreamFinished: refreshMatugen() } }
-    Process { id: matugenApplyProc; command: ["ryoku-hub", "hypr", "matugen", "apply"]; stdout: StdioCollector { onStreamFinished: refreshMatugen() } }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // Wallpaper: pick one to retheme via the wallust palette (ryoku-shell), the
-    // same path the shell's quick strip uses. Instant, no Save.
-    // ════════════════════════════════════════════════════════════════════════
-    readonly property string wpDir: pg.home + "/Pictures/Wallpapers"
-    readonly property string wpState: (Quickshell.env("XDG_STATE_HOME") || (pg.home + "/.local/state")) + "/ryoku-wallpaper"
-    property var wallpapers: []
-    property string currentWall: ""
-
-    function refreshWalls() { wallListProc.running = true; wallStateProc.running = true; }
-    function applyWall(p) {
-        pg.currentWall = p;
-        wallApplyProc.command = ["ryoku-shell", "wallpaper", "set", p];
-        wallApplyProc.running = true;
-    }
-    Process {
-        id: wallListProc
-        command: ["sh", "-c", "find \"$1\" -maxdepth 1 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \\) -printf '%T@\\t%p\\n' | sort -rn", "_", pg.wpDir]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var lines = this.text.split("\n"), out = [];
-                for (var i = 0; i < lines.length; i++) {
-                    var t = lines[i].indexOf("\t");
-                    if (t < 1) continue;
-                    var p = lines[i].substring(t + 1);
-                    out.push({ "path": p, "name": p.substring(p.lastIndexOf("/") + 1) });
-                }
-                pg.wallpapers = out;
-            }
-        }
-    }
-    Process {
-        id: wallStateProc
-        command: ["sh", "-c", "cat \"$1\" 2>/dev/null || true", "_", pg.wpState]
-        stdout: StdioCollector { onStreamFinished: pg.currentWall = this.text.trim() }
-    }
-    Process { id: wallApplyProc; stdout: StdioCollector { onStreamFinished: wallStateProc.running = true } }
-    Process {
-        id: wallNextProc
-        command: ["ryoku-shell", "wallpaper", "next"]
-        stdout: StdioCollector { onStreamFinished: wallStateProc.running = true }
-    }
 
     // ════════════════════════════════════════════════════════════════════════
     // Comfort: backlight and night light, applied at once via the shipped tools.
@@ -543,13 +497,12 @@ Item {
 
     // lazy refresh, matching the old page's onGroupChanged wiring.
     onTabChanged: {
-        if (pg.tab === "Theme") { pg.refreshWalls(); schemeQueryProc.running = true; themeAppsQueryProc.running = true; }
-        else if (pg.tab === "Matugen") pg.refreshMatugen();
+        if (pg.tab === "Theme") { schemeQueryProc.running = true; themeAppsQueryProc.running = true; pg.refreshMatugen(); }
         else if (pg.tab === "Comfort") pg.refreshComfort();
         else if (pg.tab === "Borders") schemeQueryProc.running = true;
         else if (pg.tab === "Rices") pg.reloadRices();
     }
-    Component.onCompleted: { pg.refreshWalls(); pg.refreshComfort(); pg.reloadRices(); pg.refreshMatugen(); }
+    Component.onCompleted: { pg.refreshComfort(); pg.reloadRices(); pg.refreshMatugen(); }
 
     // ════════════════════════════════════════════════════════════════════════
     // small shared pieces
@@ -1132,232 +1085,225 @@ Item {
                 width: wallView.width - Tokens.s3
                 spacing: Tokens.s5
 
+                // ── COLOUR ENGINE ──
                 Column {
-                    visible: pg.tab === "Theme"
                     width: parent.width
                     spacing: Tokens.s3
-                    SectionHead { width: parent.width; title: I18n.tr("THEME PALETTE") }
-                    Row {
-                        spacing: Tokens.s3
-                        Column {
-                            spacing: Tokens.s1
-                            Text {
-                                text: I18n.tr("COLOURS")
-                                color: Tokens.inkMuted
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fMicro
-                                font.weight: Font.Medium
-                                font.letterSpacing: Tokens.trackLabel
-                            }
-                            Text {
-                                text: pg.scheme === "custom" ? I18n.tr("Custom") : (pg.scheme.charAt(0).toUpperCase() + pg.scheme.slice(1))
-                                color: Tokens.ink
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fValue
-                                font.weight: Font.Light
-                            }
-                        }
-                        Seg {
-                            anchors.verticalCenter: parent.verticalCenter
-                            options: ["FOLLOW", "LIGHT", "DARK"]
-                            current: pg.scheme.toUpperCase()
-                            onChose: (k) => pg.setScheme(k.toLowerCase())
-                        }
-                    }
-                    Text {
-                        width: Math.min(parent.width, 620)
-                        wrapMode: Text.WordWrap
-                        text: pg.scheme === "light" || pg.scheme === "dark"
-                            ? I18n.tr("A fixed ") + pg.scheme + I18n.tr(" palette, kept across wallpaper changes.")
-                            : pg.scheme === "custom"
-                              ? I18n.tr("A fixed palette is set. Pick Follow, Light, or Dark to change it.")
-                              : I18n.tr("Colours are derived from your wallpaper and update when it changes.")
-                        color: Tokens.inkMuted
-                        font.family: Tokens.ui
-                        font.pixelSize: Tokens.fSmall
-                    }
+                    SectionHead { width: parent.width; title: I18n.tr("COLOUR ENGINE") }
                     Row {
                         width: parent.width
-                        spacing: Tokens.s3
-                        topPadding: Tokens.s2
+                        spacing: Tokens.s4
                         Column {
-                            width: Math.max(0, parent.width - appsSw.width - Tokens.s3)
+                            width: Math.max(0, parent.width - engineSeg.width - Tokens.s4)
                             spacing: Tokens.s1
                             Text {
-                                text: I18n.tr("THEME APPS")
-                                color: Tokens.inkMuted
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fMicro
-                                font.weight: Font.Medium
-                                font.letterSpacing: Tokens.trackLabel
+                                text: (pg.matugenCfg.engine || "wallust") === "matugen" ? I18n.tr("Matugen (Material 3)") : I18n.tr("Wallust (base16)")
+                                color: Tokens.ink; font.family: Tokens.ui
+                                font.pixelSize: Tokens.fValue; font.weight: Font.Light
                             }
                             Text {
                                 width: parent.width
                                 wrapMode: Text.WordWrap
-                                text: I18n.tr("Extend the palette past the shell into GTK and GUI apps, so Files, text editors, and other desktop apps recolour to match. Off keeps them stock.")
-                                color: Tokens.inkMuted
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fSmall
+                                text: I18n.tr("Wallust extracts a pywal base16 palette; Matugen derives a Material 3 (Material You) palette. Both follow your wallpaper.")
+                                color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                             }
                         }
-                        Sw {
-                            id: appsSw
+                        Seg {
+                            id: engineSeg
                             anchors.verticalCenter: parent.verticalCenter
-                            on: pg.themeApps
-                            onToggled: (v) => pg.setThemeApps(v)
+                            options: ["WALLUST", "MATUGEN"]
+                            current: (pg.matugenCfg.engine || "wallust").toUpperCase()
+                            onChose: (k) => { var c = Object.assign({}, pg.matugenCfg); c.engine = k.toLowerCase(); pg.saveMatugen(c); }
                         }
                     }
                 }
 
-                // Border colours: the fixed frame colours, sitting right under
-                // the scheme that decides whether they apply. Shown only when a
-                // fixed palette is set (Follow derives borders from the wallpaper),
-                // so the whole "what colour are my borders" question lives here,
-                // not split between this scheme and a separate Borders tab.
+                // ── THEME PALETTE: how the colours are derived (engine-aware) ──
                 Column {
-                    visible: pg.tab === "Theme" && pg.scheme !== "follow"
+                    width: parent.width
+                    spacing: Tokens.s3
+                    SectionHead { width: parent.width; title: I18n.tr("THEME PALETTE") }
+
+                    // Wallust: follow the wallpaper, or lock light/dark.
+                    Column {
+                        visible: (pg.matugenCfg.engine || "wallust") !== "matugen"
+                        width: parent.width
+                        spacing: Tokens.s2
+                        Row {
+                            spacing: Tokens.s3
+                            Column {
+                                spacing: Tokens.s1
+                                Text { text: I18n.tr("COLOURS"); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel }
+                                Text { text: pg.scheme === "custom" ? I18n.tr("Custom") : (pg.scheme.charAt(0).toUpperCase() + pg.scheme.slice(1)); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fValue; font.weight: Font.Light }
+                            }
+                            Seg { anchors.verticalCenter: parent.verticalCenter; options: ["FOLLOW", "LIGHT", "DARK"]; current: pg.scheme.toUpperCase(); onChose: (k) => pg.setScheme(k.toLowerCase()) }
+                        }
+                        Text {
+                            width: Math.min(parent.width, 620)
+                            wrapMode: Text.WordWrap
+                            text: pg.scheme === "light" || pg.scheme === "dark" ? I18n.tr("A fixed ") + pg.scheme + I18n.tr(" palette, kept across wallpaper changes.") : pg.scheme === "custom" ? I18n.tr("A fixed palette is set. Pick Follow, Light, or Dark to change it.") : I18n.tr("Colours are derived from your wallpaper and update when it changes.")
+                            color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                        }
+                    }
+
+                    // Matugen: Material 3 algorithm + mode.
+                    Column {
+                        visible: (pg.matugenCfg.engine || "wallust") === "matugen"
+                        width: parent.width
+                        spacing: Tokens.s3
+                        Column {
+                            width: parent.width
+                            spacing: Tokens.s2
+                            Text { text: I18n.tr("ALGORITHM"); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel }
+                            Flow {
+                                width: parent.width
+                                spacing: Tokens.s2
+                                property var schemeList: [ { id: "scheme-tonal-spot", name: "Tonal Spot" }, { id: "scheme-expressive", name: "Expressive" }, { id: "scheme-vibrant", name: "Vibrant" }, { id: "scheme-content", name: "Content" }, { id: "scheme-fidelity", name: "Fidelity" }, { id: "scheme-fruit-salad", name: "Fruit Salad" }, { id: "scheme-rainbow", name: "Rainbow" }, { id: "scheme-neutral", name: "Neutral" }, { id: "scheme-monochrome", name: "Monochrome" }, { id: "scheme-smart", name: "Smart" } ]
+                                Repeater {
+                                    model: parent.schemeList
+                                    Btn { required property var modelData; text: modelData.name; primary: (pg.matugenCfg.schemeType || "scheme-tonal-spot") === modelData.id; onAct: { var c = Object.assign({}, pg.matugenCfg); c.schemeType = modelData.id; pg.saveMatugen(c); } }
+                                }
+                            }
+                        }
+                        Row {
+                            spacing: Tokens.s3
+                            Column {
+                                spacing: Tokens.s1
+                                Text { text: I18n.tr("MODE"); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel }
+                                Text { text: (pg.matugenCfg.mode || "dark").toUpperCase(); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fValue; font.weight: Font.Light }
+                            }
+                            Seg { anchors.verticalCenter: parent.verticalCenter; options: ["DARK", "LIGHT", "SMART"]; current: (pg.matugenCfg.mode || "dark").toUpperCase(); onChose: (k) => { var c = Object.assign({}, pg.matugenCfg); c.mode = k.toLowerCase(); pg.saveMatugen(c); } }
+                        }
+                    }
+                }
+
+                // ── PALETTE TUNING (Matugen) ──
+                Column {
+                    visible: (pg.matugenCfg.engine || "wallust") === "matugen"
+                    width: parent.width
+                    spacing: Tokens.s4
+                    SectionHead { width: parent.width; title: I18n.tr("PALETTE TUNING") }
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s3
+                        Column {
+                            width: 220
+                            spacing: Tokens.s1
+                            Text { text: I18n.tr("CONTRAST"); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.letterSpacing: Tokens.trackLabel }
+                            Text { text: String(pg.matugenCfg.contrast || 0.0); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fBody }
+                        }
+                        Slid { width: parent.width - 230; anchors.verticalCenter: parent.verticalCenter; from: -1.0; to: 1.0; value: pg.matugenCfg.contrast || 0.0; onModified: (v) => { var c = Object.assign({}, pg.matugenCfg); c.contrast = Math.round(v * 100) / 100; pg.saveMatugen(c); } }
+                    }
+                    Column {
+                        width: parent.width
+                        spacing: Tokens.s2
+                        Text { text: I18n.tr("COLOUR SOURCE"); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.letterSpacing: Tokens.trackLabel }
+                        Seg { options: ["SATURATION", "LIGHTNESS", "DARKNESS", "CLOSEST"]; current: (pg.matugenCfg.prefer || "saturation") === "closest-to-fallback" ? "CLOSEST" : (pg.matugenCfg.prefer || "saturation").toUpperCase(); onChose: (k) => { var c = Object.assign({}, pg.matugenCfg); c.prefer = k === "CLOSEST" ? "closest-to-fallback" : k.toLowerCase(); pg.saveMatugen(c); } }
+                    }
+                }
+
+                // ── BORDER COLOURS: a fixed (non-follow) wallust palette only ──
+                Column {
+                    visible: (pg.matugenCfg.engine || "wallust") !== "matugen" && pg.scheme !== "follow"
                     width: parent.width
                     spacing: Tokens.s3
                     SectionHead { width: parent.width; title: I18n.tr("BORDER COLOURS") }
-                    Text {
-                        width: Math.min(parent.width, 620)
-                        wrapMode: Text.WordWrap
-                        text: I18n.tr("The window frame colours a fixed palette uses; Follow takes the wallpaper's accent instead. Click a swatch to pick, or type a hex.")
-                        color: Tokens.inkMuted
-                        font.family: Tokens.ui
-                        font.pixelSize: Tokens.fSmall
-                    }
+                    Text { width: Math.min(parent.width, 620); wrapMode: Text.WordWrap; text: I18n.tr("The window frame colours a fixed palette uses; Follow takes the wallpaper's accent instead. Click a swatch to pick, or type a hex."); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
                     Row {
                         width: parent.width
                         spacing: Tokens.s4
                         Column {
                             width: (parent.width - Tokens.s4) / 2
                             spacing: Tokens.s1
-                            Text {
-                                text: I18n.tr("ACTIVE WINDOW")
-                                color: Tokens.inkMuted; font.family: Tokens.ui
-                                font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
-                                font.letterSpacing: Tokens.trackLabel
-                            }
-                            ColorField {
-                                width: parent.width
-                                value: pg.hub ? String(pg.hub.hyprVal("appearance.activeBorder") || "") : ""
-                                onChosen: (v) => pg.setKey("appearance.activeBorder", v)
-                            }
+                            Text { text: I18n.tr("ACTIVE WINDOW"); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel }
+                            ColorField { width: parent.width; value: pg.hub ? String(pg.hub.hyprVal("appearance.activeBorder") || "") : ""; onChosen: (v) => pg.setKey("appearance.activeBorder", v) }
                         }
                         Column {
                             width: (parent.width - Tokens.s4) / 2
                             spacing: Tokens.s1
-                            Text {
-                                text: I18n.tr("INACTIVE WINDOW")
-                                color: Tokens.inkMuted; font.family: Tokens.ui
-                                font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
-                                font.letterSpacing: Tokens.trackLabel
-                            }
-                            ColorField {
-                                width: parent.width
-                                value: pg.hub ? String(pg.hub.hyprVal("appearance.inactiveBorder") || "") : ""
-                                onChosen: (v) => pg.setKey("appearance.inactiveBorder", v)
-                            }
+                            Text { text: I18n.tr("INACTIVE WINDOW"); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel }
+                            ColorField { width: parent.width; value: pg.hub ? String(pg.hub.hyprVal("appearance.inactiveBorder") || "") : ""; onChosen: (v) => pg.setKey("appearance.inactiveBorder", v) }
                         }
                     }
                 }
 
+                // ── RYOKU INTERFACE: keep signature mono, or recolour it (Matugen) ──
                 Column {
-                    visible: pg.tab === "Theme"
+                    visible: (pg.matugenCfg.engine || "wallust") === "matugen"
+                    width: parent.width
+                    spacing: Tokens.s3
+                    SectionHead { width: parent.width; title: I18n.tr("RYOKU INTERFACE") }
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s4
+                        Column {
+                            width: Math.max(0, parent.width - ryokuUiSeg.width - Tokens.s4)
+                            spacing: Tokens.s1
+                            Text { text: pg.matugenCfg.themeRyokuApps ? I18n.tr("Material 3 palette") : I18n.tr("Signature monochrome"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fBody; font.weight: Font.Medium }
+                            Text { width: parent.width; wrapMode: Text.WordWrap; text: I18n.tr("Original keeps Ryoku's grainy monochrome look for the Hub, pill and widgets. Matugen recolours Ryoku's own UI with the Material 3 palette."); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                        }
+                        Seg { id: ryokuUiSeg; anchors.verticalCenter: parent.verticalCenter; options: ["ORIGINAL", "MATUGEN"]; current: pg.matugenCfg.themeRyokuApps ? "MATUGEN" : "ORIGINAL"; onChose: (k) => { var c = Object.assign({}, pg.matugenCfg); c.themeRyokuApps = (k === "MATUGEN"); pg.saveMatugen(c); } }
+                    }
+                }
+
+                // ── THEME APPS: extend the palette beyond the shell ──
+                Column {
+                    width: parent.width
+                    spacing: Tokens.s3
+                    SectionHead { width: parent.width; title: I18n.tr("THEME APPS") }
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s3
+                        Column {
+                            width: Math.max(0, parent.width - appsSw.width - Tokens.s3)
+                            spacing: Tokens.s1
+                            Text { text: I18n.tr("EXTEND THE PALETTE"); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel }
+                            Text { width: parent.width; wrapMode: Text.WordWrap; text: I18n.tr("Recolour GTK and other apps to match, beyond the shell. Off keeps them stock."); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                        }
+                        Sw { id: appsSw; anchors.verticalCenter: parent.verticalCenter; on: pg.themeApps; onToggled: (v) => pg.setThemeApps(v) }
+                    }
+                    Column {
+                        visible: pg.themeApps
+                        width: parent.width
+                        spacing: Tokens.s2
+                        Flow {
+                            width: parent.width
+                            spacing: Tokens.s3
+                            property var appList: [ { id: "gtk", name: "GTK 3 & 4" }, { id: "qt5", name: "Qt5 (qt5ct)" }, { id: "cava", name: "Cava" }, { id: "ghostty", name: "Ghostty" }, { id: "micro", name: "micro" }, { id: "papirus", name: "Papirus folders" }, { id: "discord", name: "Discord (Vesktop)" }, { id: "telegram", name: "Telegram" }, { id: "obs", name: "OBS Studio" }, { id: "zed", name: "Zed" }, { id: "steam", name: "Steam" }, { id: "heroic", name: "Heroic" } ]
+                            Repeater {
+                                model: parent.appList
+                                Rectangle {
+                                    required property var modelData
+                                    width: Math.floor((wallCol.width - Tokens.s3) / 2) - 2
+                                    height: 46
+                                    color: Tokens.paperLift
+                                    border.color: Tokens.line
+                                    border.width: 1
+                                    radius: Tokens.radius
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.margins: Tokens.s3
+                                        spacing: Tokens.s2
+                                        Text { width: parent.width - appSw.width - Tokens.s2; anchors.verticalCenter: parent.verticalCenter; text: modelData.name; color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; elide: Text.ElideRight }
+                                        Sw { id: appSw; anchors.verticalCenter: parent.verticalCenter; on: pg.matugenCfg.templates ? pg.matugenCfg.templates[modelData.id] !== false : true; onToggled: (v) => { var c = JSON.parse(JSON.stringify(pg.matugenCfg)); if (!c.templates) c.templates = {}; c.templates[modelData.id] = v; pg.saveMatugen(c); } }
+                                    }
+                                }
+                            }
+                        }
+                        Text { width: Math.min(parent.width, 620); wrapMode: Text.WordWrap; text: I18n.tr("Terminal, window borders, system monitor and Qt6 always follow the palette. Discord, Telegram, OBS, Zed, Steam and Heroic also need the theme picked inside the app once."); color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                    }
+                }
+
+                // ── RYOKU DEFAULT ──
+                Column {
                     width: parent.width
                     spacing: Tokens.s3
                     SectionHead { width: parent.width; title: I18n.tr("RYOKU DEFAULT") }
                     Row {
                         width: parent.width
                         spacing: Tokens.s3
-                        Text {
-                            width: Math.max(0, parent.width - ryokuBtn.width - Tokens.s3)
-                            anchors.verticalCenter: parent.verticalCenter
-                            wrapMode: Text.WordWrap
-                            text: I18n.tr("Reset the whole desktop to the Ryoku signature: the stele bar, square corners, Space Grotesk, and the grainy mono palette.")
-                            color: Tokens.inkMuted
-                            font.family: Tokens.ui
-                            font.pixelSize: Tokens.fSmall
-                        }
-                        Btn {
-                            id: ryokuBtn
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: I18n.tr("APPLY RYOKU THEME")
-                            primary: true
-                            onAct: pg.applyRyokuTheme()
-                        }
-                    }
-                }
-
-                Column {
-                    visible: pg.tab === "Theme"
-                    width: parent.width
-                    spacing: Tokens.s3
-                    SectionHead { width: parent.width; title: I18n.tr("WALLPAPER") }
-                    Row {
-                        width: parent.width
-                        spacing: Tokens.s3
-                        Text {
-                            width: Math.max(0, parent.width - shuffleBtn.width - Tokens.s3)
-                            anchors.verticalCenter: parent.verticalCenter
-                            wrapMode: Text.WordWrap
-                            text: I18n.tr("Pick a wallpaper to retheme the desktop. The palette (borders, accents) follows it.")
-                            color: Tokens.inkMuted
-                            font.family: Tokens.ui
-                            font.pixelSize: Tokens.fSmall
-                        }
-                        Btn {
-                            id: shuffleBtn
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: I18n.tr("SHUFFLE")
-                            onAct: wallNextProc.running = true
-                        }
-                    }
-                    Flow {
-                        width: parent.width
-                        spacing: Tokens.s3
-                        Repeater {
-                            model: pg.wallpapers
-                            delegate: Rectangle {
-                                id: wp
-                                required property var modelData
-                                readonly property bool active: pg.currentWall === wp.modelData.path
-                                width: 172; height: 104
-                                radius: Tokens.radius
-                                color: "transparent"
-                                border.width: wp.active ? 2 : Tokens.border
-                                border.color: wp.active ? Tokens.ink : (wpHov.hovered ? Tokens.lineStrong : Tokens.line)
-                                clip: true
-                                scale: wpHov.hovered ? 1.02 : 1
-                                Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
-                                Behavior on scale { NumberAnimation { duration: Tokens.snap; easing.type: Tokens.easeSnap } }
-                                Image {
-                                    anchors.fill: parent
-                                    anchors.margins: 2
-                                    source: "file://" + wp.modelData.path
-                                    fillMode: Image.PreserveAspectCrop
-                                    sourceSize.width: 360
-                                    sourceSize.height: 220
-                                    asynchronous: true
-                                    cache: false
-                                }
-                                Rectangle {
-                                    visible: wp.active
-                                    anchors { top: parent.top; right: parent.right; margins: Tokens.s1 }
-                                    width: 8; height: 8; radius: 4; color: Tokens.ink
-                                }
-                                HoverHandler { id: wpHov; cursorShape: Qt.PointingHandCursor }
-                                TapHandler { onTapped: pg.applyWall(wp.modelData.path) }
-                            }
-                        }
-                    }
-                    Text {
-                        visible: pg.wallpapers.length === 0
-                        text: I18n.tr("No wallpapers in ~/Pictures/Wallpapers.")
-                        color: Tokens.inkFaint
-                        font.family: Tokens.ui
-                        font.pixelSize: Tokens.fSmall
+                        Text { width: Math.max(0, parent.width - ryokuBtn.width - Tokens.s3); anchors.verticalCenter: parent.verticalCenter; wrapMode: Text.WordWrap; text: I18n.tr("Reset the whole desktop to the Ryoku signature: the stele bar, square corners, Space Grotesk, and the grainy mono palette."); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                        Btn { id: ryokuBtn; anchors.verticalCenter: parent.verticalCenter; text: I18n.tr("APPLY RYOKU THEME"); primary: true; onAct: pg.applyRyokuTheme() }
                     }
                 }
             }
@@ -1446,345 +1392,6 @@ Item {
                     color: Tokens.ink
                     font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall
-                }
-            }
-        }
-        // ── Matugen: Material 3 Color Engine & Templates ──
-        Flickable {
-            id: matugenView
-            anchors.fill: parent
-            visible: pg.tab === "Matugen" && !pg.searching
-            contentWidth: width
-            contentHeight: matugenCol.height + Tokens.s5
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-            ScrollBar.vertical: ScrollRail { policy: ScrollBar.AsNeeded }
-
-            Column {
-                id: matugenCol
-                width: matugenView.width - Tokens.s3
-                spacing: Tokens.s5
-
-                // SECTION 1: COLOR ENGINE SELECTION
-                Column {
-                    width: parent.width
-                    spacing: Tokens.s3
-                    SectionHead { width: parent.width; title: I18n.tr("COLOR ENGINE") }
-                    Row {
-                        width: parent.width
-                        spacing: Tokens.s4
-                        Column {
-                            width: Math.min(parent.width - 240, 480)
-                            spacing: Tokens.s1
-                            Text {
-                                text: I18n.tr("ACTIVE ENGINE")
-                                color: Tokens.inkMuted
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fMicro
-                                font.weight: Font.Medium
-                                font.letterSpacing: Tokens.trackLabel
-                            }
-                            Text {
-                                text: (pg.matugenCfg.engine || "wallust") === "matugen" ? I18n.tr("Matugen (Material 3)") : I18n.tr("Wallust (Pywal Classic)")
-                                color: Tokens.ink
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fValue
-                                font.weight: Font.Light
-                            }
-                            Text {
-                                width: parent.width
-                                wrapMode: Text.WordWrap
-                                text: I18n.tr("Wallust extracts pywal base16 palettes. Matugen generates Material 3 (Material You) color schemes and templates.")
-                                color: Tokens.inkMuted
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fSmall
-                            }
-                        }
-                        Seg {
-                            anchors.verticalCenter: parent.verticalCenter
-                            options: ["WALLUST", "MATUGEN"]
-                            current: (pg.matugenCfg.engine || "wallust").toUpperCase()
-                            onChose: (k) => {
-                                var c = Object.assign({}, pg.matugenCfg);
-                                c.engine = k.toLowerCase();
-                                pg.saveMatugen(c);
-                            }
-                        }
-                    }
-                    Row {
-                        width: parent.width
-                        spacing: Tokens.s4
-                        visible: (pg.matugenCfg.engine || "wallust") === "matugen"
-                        Column {
-                            width: Math.min(parent.width - 240, 480)
-                            spacing: Tokens.s1
-                            Text {
-                                text: I18n.tr("RYOKU APPS & SHELL PALETTE")
-                                color: Tokens.inkMuted
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fMicro
-                                font.weight: Font.Medium
-                                font.letterSpacing: Tokens.trackLabel
-                            }
-                            Text {
-                                text: pg.matugenCfg.themeRyokuApps ? I18n.tr("Matugen Palette") : I18n.tr("Ryoku Signature Style")
-                                color: Tokens.ink
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fBody
-                                font.weight: Font.Medium
-                            }
-                            Text {
-                                width: parent.width
-                                wrapMode: Text.WordWrap
-                                text: I18n.tr("OFF preserves Ryoku's original monochrome instrument look for Hub, Pill & Widgets. ON applies Matugen colors across Ryoku's own UI.")
-                                color: Tokens.inkMuted
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fSmall
-                            }
-                        }
-                        Seg {
-                            id: segRyokuStyle
-                            anchors.verticalCenter: parent.verticalCenter
-                            options: ["ORIGINAL", "MATUGEN"]
-                            current: pg.matugenCfg.themeRyokuApps ? "MATUGEN" : "ORIGINAL"
-                            onChose: (k) => {
-                                var c = Object.assign({}, pg.matugenCfg);
-                                c.themeRyokuApps = (k === "MATUGEN");
-                                pg.saveMatugen(c);
-                            }
-                        }
-                    }
-                }
-
-                // SECTION 2: MATERIAL 3 SCHEME & MODE
-                Column {
-                    visible: (pg.matugenCfg.engine || "wallust") === "matugen"
-                    width: parent.width
-                    spacing: Tokens.s3
-                    SectionHead { width: parent.width; title: I18n.tr("MATERIAL 3 PALETTE SCHEME") }
-
-                    // Scheme Type Buttons
-                    Column {
-                        width: parent.width
-                        spacing: Tokens.s2
-                        Text {
-                            text: I18n.tr("ALGORITHM")
-                            color: Tokens.inkMuted
-                            font.family: Tokens.ui
-                            font.pixelSize: Tokens.fMicro
-                            font.weight: Font.Medium
-                            font.letterSpacing: Tokens.trackLabel
-                        }
-                        Flow {
-                            width: parent.width
-                            spacing: Tokens.s2
-                            property var schemeList: [
-                                { id: "scheme-tonal-spot", name: "Tonal Spot" },
-                                { id: "scheme-expressive", name: "Expressive" },
-                                { id: "scheme-vibrant", name: "Vibrant" },
-                                { id: "scheme-content", name: "Content" },
-                                { id: "scheme-fidelity", name: "Fidelity" },
-                                { id: "scheme-fruit-salad", name: "Fruit Salad" },
-                                { id: "scheme-rainbow", name: "Rainbow" },
-                                { id: "scheme-neutral", name: "Neutral" },
-                                { id: "scheme-monochrome", name: "Monochrome" },
-                                { id: "scheme-smart", name: "Smart" }
-                            ]
-                            Repeater {
-                                model: parent.schemeList
-                                Btn {
-                                    required property var modelData
-                                    text: modelData.name
-                                    primary: (pg.matugenCfg.schemeType || "scheme-tonal-spot") === modelData.id
-                                    onAct: {
-                                        var c = Object.assign({}, pg.matugenCfg);
-                                        c.schemeType = modelData.id;
-                                        pg.saveMatugen(c);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Mode Selection
-                    Row {
-                        width: parent.width
-                        spacing: Tokens.s4
-                        Column {
-                            width: Math.min(parent.width - 240, 480)
-                            spacing: Tokens.s1
-                            Text {
-                                text: I18n.tr("COLOR MODE")
-                                color: Tokens.inkMuted
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fMicro
-                                font.weight: Font.Medium
-                                font.letterSpacing: Tokens.trackLabel
-                            }
-                            Text {
-                                text: (pg.matugenCfg.mode || "dark").toUpperCase()
-                                color: Tokens.ink
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fValue
-                                font.weight: Font.Light
-                            }
-                        }
-                        Seg {
-                            anchors.verticalCenter: parent.verticalCenter
-                            options: ["DARK", "LIGHT", "SMART"]
-                            current: (pg.matugenCfg.mode || "dark").toUpperCase()
-                            onChose: (k) => {
-                                var c = Object.assign({}, pg.matugenCfg);
-                                c.mode = k.toLowerCase();
-                                pg.saveMatugen(c);
-                            }
-                        }
-                    }
-                }
-
-                // SECTION 3: FINE TUNING (CONTRAST & LIGHTNESS)
-                Column {
-                    visible: (pg.matugenCfg.engine || "wallust") === "matugen"
-                    width: parent.width
-                    spacing: Tokens.s4
-                    SectionHead { width: parent.width; title: I18n.tr("PALETTE TUNING") }
-
-                    // Contrast Slider
-                    Row {
-                        width: parent.width
-                        spacing: Tokens.s3
-                        Column {
-                            width: 220
-                            spacing: Tokens.s1
-                            Text {
-                                text: I18n.tr("CONTRAST")
-                                color: Tokens.inkMuted
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fMicro
-                                font.letterSpacing: Tokens.trackLabel
-                            }
-                            Text {
-                                text: String(pg.matugenCfg.contrast || 0.0)
-                                color: Tokens.ink
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fBody
-                            }
-                        }
-                        Slid {
-                            width: parent.width - 230
-                            anchors.verticalCenter: parent.verticalCenter
-                            from: -1.0; to: 1.0
-                            value: pg.matugenCfg.contrast || 0.0
-                            onModified: (v) => {
-                                var c = Object.assign({}, pg.matugenCfg);
-                                c.contrast = Math.round(v * 100) / 100;
-                                pg.saveMatugen(c);
-                            }
-                        }
-                    }
-
-                    // Extraction Preference
-                    Column {
-                        width: parent.width
-                        spacing: Tokens.s2
-                        Text {
-                            text: I18n.tr("COLOR PREFERENCE")
-                            color: Tokens.inkMuted
-                            font.family: Tokens.ui
-                            font.pixelSize: Tokens.fMicro
-                            font.letterSpacing: Tokens.trackLabel
-                        }
-                        Seg {
-                            options: ["SATURATION", "LIGHTNESS", "DARKNESS", "CLOSEST"]
-                            current: (pg.matugenCfg.prefer || "saturation") === "closest-to-fallback" ? "CLOSEST" : (pg.matugenCfg.prefer || "saturation").toUpperCase()
-                            onChose: (k) => {
-                                var c = Object.assign({}, pg.matugenCfg);
-                                c.prefer = k === "CLOSEST" ? "closest-to-fallback" : k.toLowerCase();
-                                pg.saveMatugen(c);
-                            }
-                        }
-                    }
-                }
-
-                // SECTION 4: APPLICATION TEMPLATES TOGGLES
-                Column {
-                    visible: (pg.matugenCfg.engine || "wallust") === "matugen"
-                    width: parent.width
-                    spacing: Tokens.s3
-                    SectionHead { width: parent.width; title: I18n.tr("APPLICATION TEMPLATES") }
-
-                    Flow {
-                        width: parent.width
-                        spacing: Tokens.s3
-                        property var appList: [
-                            { id: "btop", name: "Btop System Monitor" },
-                            { id: "qt", name: "Qt6 / Qt6ct Toolkit" },
-                            { id: "qt5", name: "Qt5 / Qt5ct Toolkit" },
-                            { id: "gtk", name: "GTK 3 & GTK 4" },
-                            { id: "discord", name: "Discord (Vesktop / Equibop)" },
-                            { id: "obs", name: "OBS Studio" },
-                            { id: "zed", name: "Zed Editor" },
-                            { id: "heroic", name: "Heroic Games Launcher" },
-                            { id: "hyprland", name: "Hyprland Frame & Borders" },
-                            { id: "telegram", name: "Telegram Desktop" },
-                            { id: "steam", name: "Steam Client" },
-                            { id: "kitty", name: "Kitty Terminal" },
-                            { id: "cava", name: "Cava Visualizer" },
-                            { id: "ghostty", name: "Ghostty Terminal" },
-                            { id: "micro", name: "Micro Text Editor" },
-                            { id: "papirus", name: "Papirus Icon Folders" }
-                        ]
-                        Repeater {
-                            model: parent.appList
-                            Rectangle {
-                                required property var modelData
-                                width: Math.floor((matugenCol.width - Tokens.s3) / 2) - 2
-                                height: 50
-                                color: Tokens.paperLift
-                                border.color: Tokens.line
-                                border.width: 1
-                                radius: Tokens.radius
-
-                                Row {
-                                    anchors.fill: parent
-                                    anchors.margins: Tokens.s3
-                                    spacing: Tokens.s2
-                                    Text {
-                                        width: parent.width - swApp.width - Tokens.s2
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: modelData.name
-                                        color: Tokens.ink
-                                        font.family: Tokens.ui
-                                        font.pixelSize: Tokens.fSmall
-                                        elide: Text.ElideRight
-                                    }
-                                    Sw {
-                                        id: swApp
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        on: pg.matugenCfg.templates ? pg.matugenCfg.templates[modelData.id] !== false : true
-                                        onToggled: (v) => {
-                                            var c = JSON.parse(JSON.stringify(pg.matugenCfg));
-                                            if (!c.templates) c.templates = {};
-                                            c.templates[modelData.id] = v;
-                                            pg.saveMatugen(c);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // SECTION 5: ACTION BUTTONS
-                Row {
-                    visible: (pg.matugenCfg.engine || "wallust") === "matugen"
-                    width: parent.width
-                    spacing: Tokens.s3
-                    Btn {
-                        text: I18n.tr("APPLY PALETTE & RENDER TEMPLATES")
-                        primary: true
-                        onAct: pg.applyMatugen()
-                    }
                 }
             }
         }
