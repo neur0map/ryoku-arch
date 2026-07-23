@@ -23,6 +23,10 @@ output_path = "~/.config/btop/themes/ryoku.theme"
 [templates.qt6ct]
 input_path = "~/.config/matugen/templates/qt6ct-colors.conf"
 output_path = "~/.config/qt6ct/colors/ryoku.conf"
+
+[templates.kdeglobals]
+input_path = "~/.config/matugen/templates/kdeglobals"
+output_path = "~/.config/kdeglobals"
 # Once the palette is fanned out, retint the file-manager folder icons to the
 # same accent: ryoku-cmd-folders rebuilds the Papirus-Dark overlay and nudges
 # running GTK apps to reload. Riding matugen's post_hook fires it on every

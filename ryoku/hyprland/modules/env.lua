@@ -23,7 +23,7 @@ hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 -- must never leave the file manager unable to open.
 hl.env("GSK_RENDERER", "gl")
 
-hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
+hl.env("QT_QPA_PLATFORMTHEME", "qt6ct;qt5ct")
 
 -- Shared QML modules (Ryoku.Ui, Ryoku.PluginKit, Ryoku.Blobs) live in
 -- /usr/lib/qt6/qml on an installed system, which Qt finds on its own. A
