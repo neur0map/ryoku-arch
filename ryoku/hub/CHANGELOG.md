@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Fixed
+- **Theme tab leads with Wallust; Matugen is an opt-in "advanced" section, and
+  each app has a button to its template.** The Wallust/Matugen picker no longer
+  sits at the top as a co-equal choice: Wallust (the default) drives the palette,
+  and the Material You (Matugen) engine plus its algorithm, mode and tuning now
+  live under a collapsed "MATERIAL YOU (ADVANCED)" toggle, so the Material 3 look
+  reads as opt-in. In Theme Apps each app gained a folder button that opens its
+  template under `~/.config/matugen/templates`. The folder-icon recolour also
+  tints muted wallpapers instead of dropping to grey, so a low-saturation accent
+  still reads as a colour (`pages/AppearancePage.qml`,
+  `hyprland/scripts/ryoku-cmd-folders`).
 - **Theme tab: palette changes go through Save instead of silent auto-apply.**
   The engine (Wallust / Matugen), scheme, Material 3 tuning, Ryoku interface and
   per-app toggles applied the instant you touched them and never lit the action

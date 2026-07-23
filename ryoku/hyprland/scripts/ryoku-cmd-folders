@@ -34,7 +34,9 @@ if [ -n "$accent" ]; then
     mx=(r>g?(r>b?r:b):(g>b?g:b)); mn=(r<g?(r<b?r:b):(g<b?g:b)); d=mx-mn
     if(d==0) h=0; else if(mx==r) h=(g-b)/d; else if(mx==g) h=(b-r)/d+2; else h=(r-g)/d+4
     h*=60; if(h<0) h+=360; s=(mx==0?0:d/mx)
-    print (s<0.18)?"grey":(h<15||h>=345)?"red":(h<45)?"orange":(h<70)?"yellow":(h<165)?"green":(h<195)?"teal":(h<215)?"cyan":(h<255)?"blue":(h<290)?"violet":(h<330)?"magenta":"pink"
+    # near-greyscale accents (s < 0.10) stay grey; anything with perceptible hue
+    # tints, so a muted (but not colourless) wallpaper still picks a folder colour.
+    print (s<0.10)?"grey":(h<15||h>=345)?"red":(h<45)?"orange":(h<70)?"yellow":(h<165)?"green":(h<195)?"teal":(h<215)?"cyan":(h<255)?"blue":(h<290)?"violet":(h<330)?"magenta":"pink"
   }')
   [ -e "$src/folder-$color.svg" ] || color=blue
 fi
