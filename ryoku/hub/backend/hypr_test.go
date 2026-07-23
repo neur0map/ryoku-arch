@@ -321,15 +321,50 @@ func TestGenMotionWobble(t *testing.T) {
 	o := defaultOverrides()
 	o.Appearance.WobblyWindows = true
 	on := genMotion(o, false)
-	if !strings.Contains(on, `hl.curve("ryokuWobble"`) {
-		t.Errorf("wobble must define its curve:\n%s", on)
+	if !strings.Contains(on, `hl.curve("ryokuWobbleDrag"`) {
+		t.Errorf("wobble must define its private curve:\n%s", on)
 	}
-	if !strings.Contains(on, `hl.animation({ leaf = "windowsMove", enabled = true, speed = 5, bezier = "ryokuWobble" })`) {
-		t.Errorf("wobble must drive windowsMove:\n%s", on)
+	if !strings.Contains(on, `hl.animation({ leaf = "windowsMove", enabled = true, speed = 5, bezier = "ryokuWobbleDrag" })`) {
+		t.Errorf("wobble must drive windowsMove with its private curve:\n%s", on)
+	}
+	// it must not reuse the Animations page's shared curve name, whose editor can
+	// reshape and override it.
+	if strings.Contains(on, `bezier = "ryokuWobble"`) {
+		t.Errorf("wobble must not bind the shared ryokuWobble name:\n%s", on)
 	}
 	off := genMotion(defaultOverrides(), true)
 	if !strings.Contains(off, `leaf = "windowsMove", enabled = true, speed = 3.2, bezier = "ryokuSettle"`) {
 		t.Errorf("preview must reset windowsMove when wobble is off:\n%s", off)
+	}
+}
+
+// the Animations page must not be able to clobber the wobble: genAnimBlock drops a
+// stored copy of the toggle's reserved curve, and yields the windowsMove leaf to
+// the toggle while it is on. This is the reported bug, where reshaping the shared
+// curve to the flat "Snappy" feel flattened the spring.
+func TestWobbleSurvivesAnimOverrides(t *testing.T) {
+	o := defaultOverrides()
+	o.Appearance.WobblyWindows = true
+	o.Anim.Curves = []AnimCurve{{Name: "ryokuWobbleDrag", X0: 0.3, Y0: 0, X1: 0.1, Y1: 1}}
+	o.Anim.Items = []AnimItem{{Leaf: "windowsMove", Enabled: true, Speed: 3, Bezier: "ryokuSettle"}}
+	out := genLua(o, true)
+	if strings.Contains(out, `hl.curve("ryokuWobbleDrag", { type = "bezier", points = { { 0.3, 0`) {
+		t.Errorf("a stored reshape of the reserved wobble curve must be dropped:\n%s", out)
+	}
+	if !strings.Contains(out, `hl.curve("ryokuWobbleDrag", { type = "bezier", points = { { 0.34, 1.56 }`) {
+		t.Errorf("the toggle's overshoot curve must survive:\n%s", out)
+	}
+	if strings.Contains(out, `leaf = "windowsMove", enabled = true, speed = 3.0, bezier = "ryokuSettle"`) {
+		t.Errorf("a stored windowsMove override must yield to the wobble toggle:\n%s", out)
+	}
+	if !strings.Contains(out, `leaf = "windowsMove", enabled = true, speed = 5, bezier = "ryokuWobbleDrag" }`) {
+		t.Errorf("windowsMove must keep the toggle's spring binding:\n%s", out)
+	}
+	// with the toggle off, the Animations page owns windowsMove again.
+	o.Appearance.WobblyWindows = false
+	off := genLua(o, true)
+	if !strings.Contains(off, `leaf = "windowsMove", enabled = true, speed = 3.0, bezier = "ryokuSettle"`) {
+		t.Errorf("wobble off: the stored windowsMove override must apply:\n%s", off)
 	}
 }
 

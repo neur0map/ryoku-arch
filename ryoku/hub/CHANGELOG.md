@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Fixed
+- **Wobbly windows actually wobble again.** The Effects toggle bound windowsMove
+  to a curve named `ryokuWobble`, but the Animations page's curve editor edits a
+  curve of that same name and stores it, and the store is emitted after the
+  toggle's line; once that copy had been reshaped (the flat "Snappy" feel, in the
+  reported case) it overwrote the overshoot, so dragged windows just slid with no
+  spring. The toggle now owns a private `ryokuWobbleDrag` curve that `genAnimBlock`
+  refuses to re-emit, and it keeps the windowsMove leaf to itself while it is on,
+  so turning it on always springs. Verified live: windowsMove resolves to the
+  overshoot curve, not the flattened one (`backend/hypr.go`, `backend/hypr_test.go`).
 - **Liquid glass no longer greys out app content.** The frosted backdrop hyprglass
   draws behind a window shows through the window's own translucency, and its
   per-theme defaults dim bright regions (adaptive_dim 0.4) and desaturate

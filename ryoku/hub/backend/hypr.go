@@ -1616,10 +1616,20 @@ func genAnimBlock(o Overrides) string {
 		if strings.TrimSpace(c.Name) == "" {
 			continue
 		}
+		// the Wobbly-windows toggle owns wobbleCurveName; refuse a stored copy so
+		// reshaping it in the Animations page can't override the toggle's overshoot.
+		if c.Name == wobbleCurveName {
+			continue
+		}
 		fmt.Fprintf(&b, "hl.curve(%s, { type = \"bezier\", points = { { %s, %s }, { %s, %s } } })\n",
 			luaStr(c.Name), luaNum(c.X0), luaNum(c.Y0), luaNum(c.X1), luaNum(c.Y1))
 	}
 	for _, it := range o.Anim.Items {
+		// while Wobbly windows is on it owns windowsMove; skip a stored override so
+		// the Animations page can't clobber the toggle's spring binding.
+		if o.Appearance.WobblyWindows && it.Leaf == "windowsMove" {
+			continue
+		}
 		if a := genAnimItem(it); a != "" {
 			b.WriteString(a)
 		}
@@ -1640,10 +1650,18 @@ func genGesture(o Overrides) string {
 	return fmt.Sprintf("hl.gesture({ fingers = %d, direction = \"horizontal\", action = \"workspace\" })\n", n)
 }
 
+// wobbleCurveName is the Wobbly-windows toggle's own curve, deliberately NOT one
+// of the Animations page's editable names. That page seeds its curve editor from
+// the live curve list and stores any reshape in Anim.Curves, which genAnimBlock
+// emits after genMotion; while the toggle reused the shared "ryokuWobble", a user
+// who reshaped it (e.g. to the flat "Snappy" feel) silently overrode the overshoot
+// and the wobble died. genAnimBlock refuses to re-emit this reserved name.
+const wobbleCurveName = "ryokuWobbleDrag"
+
 // wobbleCurve = an easeOutBack overshoot: a moved window shoots a touch past its
 // mark and springs back, so a dragged float trails the cursor and settles with a
 // little wobble. only emitted when the toggle is on.
-const wobbleCurve = "hl.curve(\"ryokuWobble\", { type = \"bezier\", points = { { 0.34, 1.56 }, { 0.64, 1 } } })\n"
+const wobbleCurve = "hl.curve(\"" + wobbleCurveName + "\", { type = \"bezier\", points = { { 0.34, 1.56 }, { 0.64, 1 } } })\n"
 
 // genMotion: the window-motion toggles the Look tab owns (spring drag, open and
 // close style), kept out of the diff-based hl.config so wobble can define its own
@@ -1655,7 +1673,7 @@ func genMotion(o Overrides, full bool) string {
 	switch {
 	case a.WobblyWindows:
 		b.WriteString(wobbleCurve)
-		b.WriteString("hl.animation({ leaf = \"windowsMove\", enabled = true, speed = 5, bezier = \"ryokuWobble\" })\n")
+		fmt.Fprintf(&b, "hl.animation({ leaf = \"windowsMove\", enabled = true, speed = 5, bezier = %s })\n", luaStr(wobbleCurveName))
 	case full:
 		// reset the drag back to the base windows feel for the preview.
 		b.WriteString("hl.animation({ leaf = \"windowsMove\", enabled = true, speed = 3.2, bezier = \"ryokuSettle\" })\n")
