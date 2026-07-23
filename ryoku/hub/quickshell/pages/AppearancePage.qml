@@ -957,7 +957,7 @@ Item {
                         }
                         Seg {
                             anchors.verticalCenter: parent.verticalCenter
-                            options: ["FOLLOW", "LIGHT", "DARK"]
+                            options: ["FOLLOW", "LIGHT", "DARK", "MONO"]
                             current: pg.scheme.toUpperCase()
                             onChose: (k) => pg.setScheme(k.toLowerCase())
                         }
@@ -965,10 +965,10 @@ Item {
                     Text {
                         width: Math.min(parent.width, 620)
                         wrapMode: Text.WordWrap
-                        text: pg.scheme === "light" || pg.scheme === "dark"
+                        text: pg.scheme === "light" || pg.scheme === "dark" || pg.scheme === "mono"
                             ? I18n.tr("A fixed ") + pg.scheme + I18n.tr(" palette, kept across wallpaper changes.")
                             : pg.scheme === "custom"
-                              ? I18n.tr("A fixed palette is set. Pick Follow, Light, or Dark to change it.")
+                              ? I18n.tr("A fixed palette is set. Pick Follow, Light, Dark, or Mono to change it.")
                               : I18n.tr("Colours are derived from your wallpaper and update when it changes.")
                         color: Tokens.inkMuted
                         font.family: Tokens.ui
