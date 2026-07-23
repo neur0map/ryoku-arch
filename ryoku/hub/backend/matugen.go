@@ -19,6 +19,7 @@ type matugenConfig struct {
 	LightnessLight   float64         `json:"lightnessLight"`   // -1.0 to 1.0
 	Prefer           string          `json:"prefer"`           // "dominant" or "vibrant"
 	SourceColorIndex int             `json:"sourceColorIndex"` // 0..4
+	ThemeRyokuApps   bool            `json:"themeRyokuApps"`   // theme Ryoku's native shell & apps
 	Templates        map[string]bool `json:"templates"`        // app -> bool
 }
 
@@ -84,7 +85,14 @@ func defaultMatugenConfig() matugenConfig {
 		LightnessLight:   0.0,
 		Prefer:           "saturation",
 		SourceColorIndex: 0,
+		ThemeRyokuApps:   false,
 		Templates: map[string]bool{
+			"btop":     true,
+			"qt":       true,
+			"qt5":      true,
+			"gtk":      true,
+			"discord":  true,
+			"obs":      true,
 			"zed":      true,
 			"heroic":   true,
 			"hyprland": true,
@@ -147,7 +155,11 @@ func runMatugenCmd(args []string) error {
 		}
 		return nil
 	case "apply":
-		return generateMatugenTheme("")
+		imgPath := ""
+		if len(args) > 1 {
+			imgPath = args[1]
+		}
+		return generateMatugenTheme(imgPath)
 	default:
 		return fmt.Errorf("unknown matugen subcommand %q", args[0])
 	}
@@ -273,9 +285,15 @@ func generateMatugenTheme(imgPath string) error {
 		wallustMap[k] = v
 	}
 
-	// Write wallust cache colors.json for Quickshell & desktop
+	// Write wallust cache colors.json for Quickshell & desktop based on user choice
 	_ = os.MkdirAll(wallustCacheDir(), 0o755)
-	_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(wallustMap), 0o644)
+	if cfg.ThemeRyokuApps {
+		_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(wallustMap), 0o644)
+	} else {
+		if monoPal, err := loadScheme("mono"); err == nil {
+			_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(monoPal), 0o644)
+		}
+	}
 
 	// Build active apps.toml filtered by user toggles in cfg.Templates
 	renderActiveTemplates(cfg, wallustMap)
@@ -304,10 +322,9 @@ func renderActiveTemplates(cfg matugenConfig, pal map[string]string) {
 	targetDirs := []string{
 		filepath.Join(configHome(), "kitty"),
 		filepath.Join(cacheHome(), "wallust"),
-		filepath.Join(configHome(), "btop", "themes"),
 		filepath.Join(configHome(), "qt6ct", "colors"),
+		filepath.Join(configHome(), "qt5ct", "colors"),
 		filepath.Join(configHome(), "gtk-3.0"),
-		filepath.Join(configHome(), "gtk-4.0"),
 		filepath.Join(configHome(), "vesktop", "themes"),
 		filepath.Join(configHome(), "equibop", "themes"),
 		filepath.Join(configHome(), "obs-studio", "themes"),
@@ -354,6 +371,8 @@ func renderActiveTemplates(cfg matugenConfig, pal map[string]string) {
 			switch appName {
 			case "gtk3", "gtk4":
 				groupKey = "gtk"
+			case "qt5ct":
+				groupKey = "qt5"
 			case "vesktop", "equibop":
 				groupKey = "discord"
 			}

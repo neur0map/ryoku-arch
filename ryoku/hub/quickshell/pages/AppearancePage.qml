@@ -1511,6 +1511,49 @@ Item {
                             }
                         }
                     }
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s4
+                        visible: (pg.matugenCfg.engine || "wallust") === "matugen"
+                        Column {
+                            width: Math.min(parent.width - 240, 480)
+                            spacing: Tokens.s1
+                            Text {
+                                text: I18n.tr("RYOKU APPS & SHELL PALETTE")
+                                color: Tokens.inkMuted
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fMicro
+                                font.weight: Font.Medium
+                                font.letterSpacing: Tokens.trackLabel
+                            }
+                            Text {
+                                text: pg.matugenCfg.themeRyokuApps ? I18n.tr("Matugen Palette") : I18n.tr("Ryoku Signature Style")
+                                color: Tokens.ink
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fBody
+                                font.weight: Font.Medium
+                            }
+                            Text {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: I18n.tr("OFF preserves Ryoku's original monochrome instrument look for Hub, Pill & Widgets. ON applies Matugen colors across Ryoku's own UI.")
+                                color: Tokens.inkMuted
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fSmall
+                            }
+                        }
+                        Seg {
+                            id: segRyokuStyle
+                            anchors.verticalCenter: parent.verticalCenter
+                            options: ["ORIGINAL", "MATUGEN"]
+                            current: pg.matugenCfg.themeRyokuApps ? "MATUGEN" : "ORIGINAL"
+                            onChose: (k) => {
+                                var c = Object.assign({}, pg.matugenCfg);
+                                c.themeRyokuApps = (k === "MATUGEN");
+                                pg.saveMatugen(c);
+                            }
+                        }
+                    }
                 }
 
                 // SECTION 2: MATERIAL 3 SCHEME & MODE
@@ -1641,28 +1684,17 @@ Item {
                     }
 
                     // Extraction Preference
-                    Row {
+                    Column {
                         width: parent.width
-                        spacing: Tokens.s4
-                        Column {
-                            width: Math.min(parent.width - 240, 480)
-                            spacing: Tokens.s1
-                            Text {
-                                text: I18n.tr("COLOR PREFERENCE")
-                                color: Tokens.inkMuted
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fMicro
-                                font.letterSpacing: Tokens.trackLabel
-                            }
-                            Text {
-                                text: (pg.matugenCfg.prefer || "dominant").toUpperCase()
-                                color: Tokens.ink
-                                font.family: Tokens.ui
-                                font.pixelSize: Tokens.fBody
-                            }
+                        spacing: Tokens.s2
+                        Text {
+                            text: I18n.tr("COLOR PREFERENCE")
+                            color: Tokens.inkMuted
+                            font.family: Tokens.ui
+                            font.pixelSize: Tokens.fMicro
+                            font.letterSpacing: Tokens.trackLabel
                         }
                         Seg {
-                            anchors.verticalCenter: parent.verticalCenter
                             options: ["SATURATION", "LIGHTNESS", "DARKNESS", "CLOSEST"]
                             current: (pg.matugenCfg.prefer || "saturation") === "closest-to-fallback" ? "CLOSEST" : (pg.matugenCfg.prefer || "saturation").toUpperCase()
                             onChose: (k) => {
@@ -1686,7 +1718,8 @@ Item {
                         spacing: Tokens.s3
                         property var appList: [
                             { id: "btop", name: "Btop System Monitor" },
-                            { id: "qt", name: "Qt6ct Toolkit" },
+                            { id: "qt", name: "Qt6 / Qt6ct Toolkit" },
+                            { id: "qt5", name: "Qt5 / Qt5ct Toolkit" },
                             { id: "gtk", name: "GTK 3 & GTK 4" },
                             { id: "discord", name: "Discord (Vesktop / Equibop)" },
                             { id: "obs", name: "OBS Studio" },
