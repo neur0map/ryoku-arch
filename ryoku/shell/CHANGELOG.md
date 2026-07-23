@@ -3,6 +3,22 @@
 ## Unreleased
 
 ### Fixed
+- **Workspaces, Super+Esc power, and every shell surface work again after a
+  Hyprland restart mid-session.** `ipc/daemon.go` read `HYPRLAND_INSTANCE_SIGNATURE`
+  once at launch and never refreshed it, and the daemon can outlive its compositor
+  (a checkout `deploy.sh` starts it detached with `setsid`; a relogin or crash
+  brings up a new Hyprland under a new signature). The stale daemon kept the dead
+  instance's signature and the new login's daemon exited on "a daemon is already
+  running", so the incumbent stayed in charge and supervised every Quickshell
+  child (`qsEnv` inherits its env) against the dead Hyprland IPC socket: the
+  workspace indicator froze (no events; its `hyprctl activeworkspace` fallback hit
+  the dead socket too) and every monitor-aware command (power, launcher, mixer,
+  ...) resolved no active monitor. The daemon now reports its launch-time instance
+  over a `signature` command, and a starting daemon takes over an incumbent bound
+  to a different instance -- quit it, wait for the socket to free, rebind -- so the
+  login-time daemon always wins and reconnects the shell to the live compositor. A
+  same-session double-start still refuses (`shouldTakeOver`, `daemonSignature`,
+  `quitStaleDaemon`; covered by `TestShouldTakeOver`, `TestSignatureCommand`).
 - **The screen recorder captures the microphone out of the box.**
   `pill/RecordHud.qml` defaulted `optMic` to false, so a Quick capture recorded no
   voice; it now defaults on (desktop audio stays opt-in) and the pre-record chooser

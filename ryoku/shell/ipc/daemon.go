@@ -119,7 +119,21 @@ func runDaemon() error {
 	path := sockPath()
 	if c, err := net.DialTimeout("unix", path, 300*time.Millisecond); err == nil {
 		c.Close()
-		return fmt.Errorf("a daemon is already running at %s", path)
+		// A daemon is already listening. Take over only a stale one: an
+		// incumbent left from a previous Hyprland instance, whose
+		// HYPRLAND_INSTANCE_SIGNATURE differs from this session's. A stale
+		// daemon supervises its quickshell children against the dead compositor
+		// socket, so workspaces freeze and every monitor-aware command (power,
+		// launcher, ...) fails; the fresh login-time daemon must displace it and
+		// rebind the shell to the live session. A same-session incumbent, an
+		// older one that cannot report its signature, or our own missing
+		// signature are left alone, so a genuine double-start still refuses.
+		mySig := os.Getenv("HYPRLAND_INSTANCE_SIGNATURE")
+		incSig, ok := daemonSignature(path)
+		if !shouldTakeOver(mySig, incSig, ok) {
+			return fmt.Errorf("a daemon is already running at %s", path)
+		}
+		quitStaleDaemon(path)
 	}
 	_ = os.Remove(path)
 	// The control socket drives session-scoped actions; keep it owner-only so a
@@ -171,6 +185,61 @@ func runDaemon() error {
 			}
 		}
 		go d.handle(conn)
+	}
+}
+
+// shouldTakeOver reports whether a daemon starting now should displace the
+// incumbent already listening on the control socket. It takes over only a
+// provably stale incumbent: one that reported a Hyprland instance signature
+// (ok) different from this session's (mySig). A same-session incumbent, an
+// unidentified one (an older binary that cannot answer, ok=false), or our own
+// missing signature (mySig=="") all leave the incumbent in place, so a genuine
+// double-start still refuses to run.
+func shouldTakeOver(mySig, incSig string, ok bool) bool {
+	return ok && mySig != "" && incSig != mySig
+}
+
+// daemonSignature asks the daemon at path for the Hyprland instance signature it
+// was launched under. ok is false when the query fails or the reply is an error
+// (an older daemon that predates the signature command), so the caller treats
+// the incumbent as unidentified and does not displace it. An empty signature
+// from a current daemon is a valid answer (ok=true, sig="").
+func daemonSignature(path string) (sig string, ok bool) {
+	conn, err := net.DialTimeout("unix", path, 300*time.Millisecond)
+	if err != nil {
+		return "", false
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(time.Second))
+	if _, err := fmt.Fprintln(conn, "signature"); err != nil {
+		return "", false
+	}
+	buf := make([]byte, 4096)
+	n, _ := conn.Read(buf)
+	resp := strings.TrimSpace(string(buf[:n]))
+	if strings.HasPrefix(resp, "err ") {
+		return "", false
+	}
+	return resp, true
+}
+
+// quitStaleDaemon tells the incumbent to quit and waits, bounded, for it to
+// release the control socket so this daemon can bind. The incumbent reaps its
+// own supervised quickshell children on quit, so the takeover strands no process
+// holding a single-instance lock.
+func quitStaleDaemon(path string) {
+	if conn, err := net.DialTimeout("unix", path, 300*time.Millisecond); err == nil {
+		_ = conn.SetDeadline(time.Now().Add(time.Second))
+		fmt.Fprintln(conn, "quit")
+		conn.Close()
+	}
+	for range 30 {
+		conn, err := net.DialTimeout("unix", path, 100*time.Millisecond)
+		if err != nil {
+			return
+		}
+		conn.Close()
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -558,6 +627,11 @@ func (d *daemon) dispatch(line string) string {
 		return d.status()
 	case "ping":
 		return "ok"
+	case "signature":
+		// The Hyprland instance this daemon was launched under. A newly starting
+		// daemon reads it to tell a stale incumbent (a previous session's) from
+		// a same-session double-start before it takes over the control socket.
+		return os.Getenv("HYPRLAND_INSTANCE_SIGNATURE")
 	case "quit":
 		d.signalQuit()
 		return "ok"
