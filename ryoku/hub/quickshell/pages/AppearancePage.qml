@@ -155,9 +155,9 @@ Item {
         return true;
     }
 
-    property string tab: "Windows"
-    readonly property var tabs: ["Windows", "Effects", "Borders", "Cursor", "Theme", "Comfort", "Rices"]
-    readonly property bool settingsTab: pg.tab === "Windows" || pg.tab === "Effects" || pg.tab === "Borders" || pg.tab === "Cursor"
+    property string tab: "Theme"
+    readonly property var tabs: ["Theme", "Cursor", "Comfort", "Rices"]
+    readonly property bool settingsTab: pg.tab === "Cursor"
     readonly property bool searching: pg.hub ? (pg.hub.query || "") !== "" : false
 
     readonly property string home: Quickshell.env("HOME") || ""
