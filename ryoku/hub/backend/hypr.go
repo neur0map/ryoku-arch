@@ -791,6 +791,20 @@ func pluginSoPath(soName string) string {
 	return pluginDir + "/" + name
 }
 
+// hyprglassCharacter is the edge optics of each hyprglass built-in preset -- the
+// fields the Hub's four sliders don't expose (refraction, chromatic dispersion,
+// fresnel edge glow, specular highlight, center lens). genPlugins emits these as
+// plain plugin config instead of naming a default_preset, so the picked look
+// survives a cold plugin load (see the note there). Mirrored from upstream
+// release/packages/hyprglass BuiltInPresets.hpp; clear and subtle share optics
+// there (they differed only in blur, which the Hub now drives as a slider).
+var hyprglassCharacter = map[string][]string{
+	"clear":         {"refraction_strength = 0.3", "chromatic_aberration = 0.2", "fresnel_strength = 0.3", "specular_strength = 0.4"},
+	"subtle":        {"refraction_strength = 0.3", "chromatic_aberration = 0.2", "fresnel_strength = 0.3", "specular_strength = 0.4"},
+	"high_contrast": {"refraction_strength = 1.2", "chromatic_aberration = 0.25", "fresnel_strength = 0.3", "specular_strength = 0.8", "lens_distortion = 0.5"},
+	"glass":         {"refraction_strength = 8.0", "chromatic_aberration = 0.5", "fresnel_strength = 0.4", "specular_strength = 0.8", "lens_distortion = 0.3"},
+}
+
 // genPlugins renders the optional Hyprland compositor plugins the user enabled:
 // per plugin, an hl.plugin.load of its shipped .so plus its hl.config, all inside
 // a pcall so a missing or ABI-mismatched .so degrades to "off" instead of
@@ -852,15 +866,29 @@ func genPlugins(o Overrides) string {
 	}
 
 	if hg := p.Hyprglass; hg.Enabled {
+		// hyprglass resolves each setting preset -> theme -> global -> hardcoded, and
+		// its built-in presets set the effect fields directly, so a named
+		// default_preset would beat the Hub's sliders (leaving them dead) and the
+		// stock "clear" forces blur to 0 (near-invisible). It also exposes a Lua
+		// preset() API, but that namespace isn't populated in the same reload pass
+		// hl.plugin.load runs in, so a cold first load silently drops it ("Unknown
+		// default_preset") until a second reload. So leave default_preset unset and
+		// emit everything as plain config: the picked look's edge optics (refraction
+		// / dispersion / lens, which the sliders don't cover) plus the four exposed
+		// knobs, all as global values that win the chain and apply on the first load.
 		opts := []string{
 			"enabled = 1",
-			fmt.Sprintf("default_preset = %s", luaStr(hg.Preset)),
+			fmt.Sprintf("default_theme = %s", luaStr(hg.Theme)),
 			fmt.Sprintf("blur_strength = %s", luaNum(hg.BlurStrength)),
 			fmt.Sprintf("glass_opacity = %s", luaNum(hg.Opacity)),
 			fmt.Sprintf("tint_color = 0x%s", luaHex8(hg.Tint)),
 			fmt.Sprintf("brightness = %s", luaNum(hg.Brightness)),
-			fmt.Sprintf("default_theme = %s", luaStr(hg.Theme)),
 		}
+		char, ok := hyprglassCharacter[hg.Preset]
+		if !ok {
+			char = hyprglassCharacter["clear"]
+		}
+		opts = append(opts, char...)
 		b.WriteString(genPluginBlock("hyprglass", "hyprglass", opts, ""))
 	}
 

@@ -643,16 +643,30 @@ func TestGenPluginsHyprfocusKeys(t *testing.T) {
 	}
 }
 
-// hyprglass: tint is a 0x ARGB literal, preset and float knobs pass through.
+// hyprglass: no named default_preset (a built-in would win the resolution chain
+// and leave the sliders dead, and the Lua preset() API drops on a cold load).
+// Instead the picked look's edge optics plus the four exposed knobs are emitted
+// as plain global config, which cold-loads and wins the chain. tint is a 0x ARGB
+// literal; the "glass" look carries the strong refraction / dispersion / lens.
 func TestGenPluginsHyprglass(t *testing.T) {
 	o := defaultOverrides()
 	o.Plugins.Hyprglass.Enabled = true
+	o.Plugins.Hyprglass.Preset = "glass"
+	o.Plugins.Hyprglass.BlurStrength = 3.5
+	o.Plugins.Hyprglass.Opacity = 0.8
+	o.Plugins.Hyprglass.Tint = "112233ff"
+	o.Plugins.Hyprglass.Brightness = 0.9
+	o.Plugins.Hyprglass.Theme = "light"
 	out := genLua(o, true)
-	for _, want := range []string{
-		`hl.config({ plugin = { hyprglass = { enabled = 1, default_preset = "clear", blur_strength = 2.0, glass_opacity = 1.0, tint_color = 0x8899aa22, brightness = 1.0, default_theme = "dark" } } })`,
-	} {
-		if !strings.Contains(out, want) {
-			t.Errorf("missing %q:\n%s", want, out)
+	want := `hl.config({ plugin = { hyprglass = { enabled = 1, default_theme = "light", blur_strength = 3.5, glass_opacity = 0.8, tint_color = 0x112233ff, brightness = 0.9, refraction_strength = 8.0, chromatic_aberration = 0.5, fresnel_strength = 0.4, specular_strength = 0.8, lens_distortion = 0.3 } } })`
+	if !strings.Contains(out, want) {
+		t.Errorf("missing %q:\n%s", want, out)
+	}
+	// a named preset or the Lua preset() API would kill the sliders or drop on a
+	// cold load -- neither must appear.
+	for _, not := range []string{"default_preset", "hl.plugin.hyprglass.preset", "inherits"} {
+		if strings.Contains(out, not) {
+			t.Errorf("stale preset mechanism %q emitted:\n%s", not, out)
 		}
 	}
 }

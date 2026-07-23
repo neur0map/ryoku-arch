@@ -3,6 +3,19 @@
 ## Unreleased
 
 ### Fixed
+- **Liquid glass windows: the options now take effect, and the look shows the
+  first time you enable it.** hyprglass resolves every setting through a preset
+  before falling back to plain config, and its built-in looks
+  (clear/subtle/high_contrast/glass) pin each field, so naming one as
+  `default_preset` (as the Hub did) let it win and left the Blur, Opacity, Tint and
+  Brightness sliders inert; the stock "clear" even pins blur to 0, so turning glass
+  on read as a no-op. The plugin's Lua `preset()` API could not save it either: its
+  namespace is not live in the reload that loads the plugin, so a cold first enable
+  dropped the look (an "Unknown default_preset" toast) until a second reload.
+  `backend/hypr.go` now names no preset and emits the picked look's edge optics
+  (refraction, dispersion, lens) with the four sliders as plain plugin config,
+  which wins the resolution chain and applies on the first load. Verified live on
+  Hyprland 0.55.4 (`backend/hypr_test.go`).
 - **Rices > Browse gains a Refresh button.** The community-store grid fetched its
   catalogue only once per Hub session (`showBrowse` pulled it only while empty),
   so a rice newly added to `ryoku-extras` never appeared without reopening the
