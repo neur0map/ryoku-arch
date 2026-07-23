@@ -2,65 +2,55 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 
 // The one place Ryoku's look is defined. Everything that draws imports this;
 // nothing hardcodes a hex, a size or a duration.
 //
-// Paper and ink are sampled off the reference sheet, not invented: the black is
-// #000000 carrying grain at +/-8 levels (the grain is what makes it read matte,
-// not a lifted black), and the ink is a warm bone at 73% luminance. A pure white
-// ink glows and kills the matte.
-//
-// The ramp is contrast-solved against the paper, not eyeballed. Ratios are in
-// the comments; nothing here sits below 4.5:1, so any text is legible at any
-// tier. If you add a tier, solve it -- do not guess a hex.
+// Dynamically watches theme.json and colors.json so when Matugen/wallust app
+// theming is enabled, Ryoku apps (Hub, Ryowalls, etc.) seamlessly adopt the palette.
 Singleton {
     id: t
 
+    readonly property bool matchWallpaper: themeAdapter.followWallpaper
+
+    // ── default signature constants ──────────────────────────────────────
+    readonly property color defaultPaper: "#000000"
+    readonly property color defaultPaperLift: "#0a0a0a"
+    readonly property color defaultInk: "#cdc4ba"
+    readonly property color defaultInkDim: "#b0a9a0"
+    readonly property color defaultInkMuted: "#958f87"
+    readonly property color defaultInkFaint: "#7a756e"
+
     // ── paper ────────────────────────────────────────────────────────────
-    readonly property color paper: "#000000"
-    readonly property color paperLift: "#0a0a0a"   // a raised block, barely
+    readonly property color paper: matchWallpaper ? wallustAdapter.background : defaultPaper
+    readonly property color paperLift: matchWallpaper ? wallustAdapter.color0 : defaultPaperLift
 
     // ── ink, on paper ────────────────────────────────────────────────────
-    readonly property color ink: "#cdc4ba"       // 12.0:1  values, titles, fills
-    readonly property color inkDim: "#b0a9a0"    //  9.0:1  nav, body, unselected labels
-    readonly property color inkMuted: "#958f87"  //  6.6:1  descriptions, cell labels
-    readonly property color inkFaint: "#7a756e"  //  4.6:1  source tags, counts, struck defaults
+    readonly property color ink: matchWallpaper ? wallustAdapter.foreground : defaultInk
+    readonly property color inkDim: matchWallpaper ? wallustAdapter.color7 : defaultInkDim
+    readonly property color inkMuted: matchWallpaper ? wallustAdapter.color8 : defaultInkMuted
+    readonly property color inkFaint: matchWallpaper ? wallustAdapter.color8 : defaultInkFaint
 
     // ── bone stock (inverted) ────────────────────────────────────────────
-    // Inversion is the emphasis mechanism -- the job colour does elsewhere.
-    // The stock flips exactly: the ink becomes the paper, no third value.
-    // Bone carries at most TWO ink levels: 50% black on bone measures 3.9:1
-    // and fails AA, so there is no third tier to reach for. Keep bone simple.
-    readonly property color bone: t.ink
+    readonly property color bone: matchWallpaper ? (wallustAdapter.color4.hsvValue > 0.01 ? wallustAdapter.color4 : t.ink) : t.ink
     readonly property color inkOnBone: "#000000"                 // 12.0:1
     readonly property color inkOnBoneDim: Qt.rgba(0, 0, 0, 0.62) //  5.4:1
     readonly property color lineOnBone: Qt.rgba(0, 0, 0, 0.26)
 
     // ── hairlines and tints ──────────────────────────────────────────────
-    readonly property color line: Qt.rgba(205 / 255, 196 / 255, 186 / 255, 0.26)
-    readonly property color lineSoft: Qt.rgba(205 / 255, 196 / 255, 186 / 255, 0.13)
-    readonly property color lineStrong: Qt.rgba(205 / 255, 196 / 255, 186 / 255, 0.42)
-    readonly property color tint5: Qt.rgba(205 / 255, 196 / 255, 186 / 255, 0.05)   // surface hover
-    readonly property color tint10: Qt.rgba(205 / 255, 196 / 255, 186 / 255, 0.10)  // control hover
-    readonly property color tint16: Qt.rgba(205 / 255, 196 / 255, 186 / 255, 0.16)  // pressed
+    readonly property color line: Qt.rgba(t.ink.r, t.ink.g, t.ink.b, 0.26)
+    readonly property color lineSoft: Qt.rgba(t.ink.r, t.ink.g, t.ink.b, 0.13)
+    readonly property color lineStrong: Qt.rgba(t.ink.r, t.ink.g, t.ink.b, 0.42)
+    readonly property color tint5: Qt.rgba(t.ink.r, t.ink.g, t.ink.b, 0.05)   // surface hover
+    readonly property color tint10: Qt.rgba(t.ink.r, t.ink.g, t.ink.b, 0.10)  // control hover
+    readonly property color tint16: Qt.rgba(t.ink.r, t.ink.g, t.ink.b, 0.16)  // pressed
 
     // ── colour ───────────────────────────────────────────────────────────
-    // There is none in app chrome. Not for errors, not for destructive verbs:
-    // a destructive confirm is a bone plate and an unambiguous word, which the
-    // hazard-label reference proves reads as more serious, not less. The two
-    // exceptions are data, not decoration -- art manufactures its own sun, and
-    // a colour swatch's job is to be its colour. `sun` is here so art and the
-    // frame can name the brand; no app surface may fill with it.
-    readonly property color sun: "#e2342a"
-    readonly property color sunDeep: "#b81f19"
+    readonly property color sun: matchWallpaper ? (wallustAdapter.color1.hsvValue > 0.01 ? wallustAdapter.color1 : "#e2342a") : "#e2342a"
+    readonly property color sunDeep: matchWallpaper ? (wallustAdapter.color9.hsvValue > 0.01 ? wallustAdapter.color9 : "#b81f19") : "#b81f19"
 
     // ── type ─────────────────────────────────────────────────────────────
-    // Fraunces carries display. Space Grotesk carries everything a human reads
-    // as language -- labels, values, numerals, body. Space Mono is demoted to
-    // what is genuinely tabular: config keys, ranges, defaults, file paths,
-    // ids. Setting the whole UI in mono is what made an earlier pass read as a
-    // terminal instead of a printed instrument.
     readonly property string display: "Fraunces"
     readonly property string ui: "Space Grotesk"
     readonly property string mono: "SpaceMono Nerd Font"
@@ -88,9 +78,6 @@ Singleton {
     readonly property int s7: 48
 
     // ── geometry ─────────────────────────────────────────────────────────
-    // A hair of rounding, not a pill. Only true circles (status dots, toggle
-    // knobs) are round. Depth is a hairline; a shadow is only allowed where
-    // something genuinely floats over something else (a popup, a drawer).
     readonly property int radius: 2
     readonly property real border: 1
     readonly property int rowH: 48
@@ -99,9 +86,6 @@ Singleton {
     readonly property int ctlH: 26
 
     // ── motion ───────────────────────────────────────────────────────────
-    // Mechanical. A machine snaps; it does not drift. The shell's Motion
-    // singleton runs 300-500ms with spring overshoot, which is right for a
-    // blob melting and wrong for a control answering a click.
     readonly property int snap: 90     // hover, press, state flip
     readonly property int move: 170    // a selector travelling
     readonly property int swap: 210    // content exchanging
@@ -110,7 +94,48 @@ Singleton {
     readonly property int easeSnap: Easing.OutQuad
 
     // ── grain ────────────────────────────────────────────────────────────
-    // The sandpaper. 0.055 read as pitch black from a metre away; 0.10 keeps
-    // the speckle visible, which is what makes #000 read matte instead of void.
     readonly property real grainOpacity: 0.10
+
+    // ── Dynamic theme & wallust palette readers ──────────────────────────
+    FileView {
+        id: themeFile
+        path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/theme.json"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+
+        JsonAdapter {
+            id: themeAdapter
+            property bool followWallpaper: false
+        }
+    }
+
+    FileView {
+        id: wallustFile
+        path: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/wallust/colors.json"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+
+        JsonAdapter {
+            id: wallustAdapter
+            property color background: "#000000"
+            property color foreground: "#cdc4ba"
+            property color color0: "#0a0a0a"
+            property color color1: "#e2342a"
+            property color color2: "#7a756e"
+            property color color3: "#958f87"
+            property color color4: "#b0a9a0"
+            property color color5: "#8a857c"
+            property color color6: "#a89f95"
+            property color color7: "#b0a9a0"
+            property color color8: "#958f87"
+            property color color9: "#b81f19"
+            property color color10: "#b0a9a0"
+            property color color14: "#958f87"
+            property color color15: "#cdc4ba"
+        }
+    }
 }

@@ -360,7 +360,7 @@ Rectangle {
             if (draft[k] === undefined || committed[k] === undefined) continue;
             if (JSON.stringify(draft[k]) !== JSON.stringify(committed[k])) n++;
         }
-        return n + hub.hyprChanges().length;
+        return n + hub.hyprChanges().length + (hub.pageDirty ? 1 : 0);
     }
     function save() {
         var files = {};
@@ -384,11 +384,13 @@ Rectangle {
             hyprSave.running = true;
             hub.hyprCommitted = JSON.parse(JSON.stringify(hub.hyprDraft));
         }
+        hub.savePage();
     }
     function revert() {
         hub.draft = JSON.parse(JSON.stringify(hub.committed));
         hub.hyprDraft = JSON.parse(JSON.stringify(hub.hyprCommitted));
         if (hub.hyprLoaded) { hyprRestore.command = ["ryoku-hub", "hypr", "restore"]; hyprRestore.running = true; }
+        hub.revertPage();
     }
     function resetDefaults() {
         hub.pristine = false;
@@ -546,6 +548,14 @@ Rectangle {
     property var hyprDraft: ({})
     property var hyprDefaults: ({})
     property bool hyprLoaded: false
+
+    // A bespoke page (e.g. Appearance > Theme) that owns its own edits can route
+    // them through the shared action bar: it raises pageDirty while it holds
+    // staged changes (lighting Save), and Save/Revert emit these so the page
+    // applies or drops them in lockstep with everything else.
+    property bool pageDirty: false
+    signal savePage()
+    signal revertPage()
 
     Process {
         id: hyprGet

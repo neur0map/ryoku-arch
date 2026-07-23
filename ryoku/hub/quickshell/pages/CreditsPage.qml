@@ -46,7 +46,9 @@ Item {
         { "name": "povargg",      "url": "https://github.com/povargg" },
         { "name": "godspeed1709", "url": "https://github.com/godspeed1709" },
         { "name": "VortexVirus",  "url": "https://github.com/VortexVirus" },
-        { "name": "Lowingx",      "url": "https://github.com/Lowingx" }
+        { "name": "Lowingx",      "url": "https://github.com/Lowingx" },
+        { "name": "ΛVΛLON",       "url": "https://github.com/Aval0n-01" },
+        { "name": "JaviBOT96",    "url": "https://github.com/JaviBOT96" }
     ]
 
     // the ink ramp, for the colophon specimen. ratios are the measured AA

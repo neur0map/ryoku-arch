@@ -321,50 +321,15 @@ func TestGenMotionWobble(t *testing.T) {
 	o := defaultOverrides()
 	o.Appearance.WobblyWindows = true
 	on := genMotion(o, false)
-	if !strings.Contains(on, `hl.curve("ryokuWobbleDrag"`) {
-		t.Errorf("wobble must define its private curve:\n%s", on)
+	if !strings.Contains(on, `hl.curve("ryokuWobble"`) {
+		t.Errorf("wobble must define its curve:\n%s", on)
 	}
-	if !strings.Contains(on, `hl.animation({ leaf = "windowsMove", enabled = true, speed = 5, bezier = "ryokuWobbleDrag" })`) {
-		t.Errorf("wobble must drive windowsMove with its private curve:\n%s", on)
-	}
-	// it must not reuse the Animations page's shared curve name, whose editor can
-	// reshape and override it.
-	if strings.Contains(on, `bezier = "ryokuWobble"`) {
-		t.Errorf("wobble must not bind the shared ryokuWobble name:\n%s", on)
+	if !strings.Contains(on, `hl.animation({ leaf = "windowsMove", enabled = true, speed = 5, bezier = "ryokuWobble" })`) {
+		t.Errorf("wobble must drive windowsMove:\n%s", on)
 	}
 	off := genMotion(defaultOverrides(), true)
 	if !strings.Contains(off, `leaf = "windowsMove", enabled = true, speed = 3.2, bezier = "ryokuSettle"`) {
 		t.Errorf("preview must reset windowsMove when wobble is off:\n%s", off)
-	}
-}
-
-// the Animations page must not be able to clobber the wobble: genAnimBlock drops a
-// stored copy of the toggle's reserved curve, and yields the windowsMove leaf to
-// the toggle while it is on. This is the reported bug, where reshaping the shared
-// curve to the flat "Snappy" feel flattened the spring.
-func TestWobbleSurvivesAnimOverrides(t *testing.T) {
-	o := defaultOverrides()
-	o.Appearance.WobblyWindows = true
-	o.Anim.Curves = []AnimCurve{{Name: "ryokuWobbleDrag", X0: 0.3, Y0: 0, X1: 0.1, Y1: 1}}
-	o.Anim.Items = []AnimItem{{Leaf: "windowsMove", Enabled: true, Speed: 3, Bezier: "ryokuSettle"}}
-	out := genLua(o, true)
-	if strings.Contains(out, `hl.curve("ryokuWobbleDrag", { type = "bezier", points = { { 0.3, 0`) {
-		t.Errorf("a stored reshape of the reserved wobble curve must be dropped:\n%s", out)
-	}
-	if !strings.Contains(out, `hl.curve("ryokuWobbleDrag", { type = "bezier", points = { { 0.34, 1.56 }`) {
-		t.Errorf("the toggle's overshoot curve must survive:\n%s", out)
-	}
-	if strings.Contains(out, `leaf = "windowsMove", enabled = true, speed = 3.0, bezier = "ryokuSettle"`) {
-		t.Errorf("a stored windowsMove override must yield to the wobble toggle:\n%s", out)
-	}
-	if !strings.Contains(out, `leaf = "windowsMove", enabled = true, speed = 5, bezier = "ryokuWobbleDrag" }`) {
-		t.Errorf("windowsMove must keep the toggle's spring binding:\n%s", out)
-	}
-	// with the toggle off, the Animations page owns windowsMove again.
-	o.Appearance.WobblyWindows = false
-	off := genLua(o, true)
-	if !strings.Contains(off, `leaf = "windowsMove", enabled = true, speed = 3.0, bezier = "ryokuSettle"`) {
-		t.Errorf("wobble off: the stored windowsMove override must apply:\n%s", off)
 	}
 }
 
@@ -678,38 +643,16 @@ func TestGenPluginsHyprfocusKeys(t *testing.T) {
 	}
 }
 
-// hyprglass: no named default_preset (a built-in would win the resolution chain
-// and leave the sliders dead, and the Lua preset() API drops on a cold load).
-// The picked look's edge optics plus the four exposed knobs emit as plain global
-// config, and the tone map is pinned neutral so the frosted backdrop never dims
-// or greys the app content showing through a window's own translucency. tint is a
-// 0x ARGB literal; the "glass" look carries the strong refraction / lens.
+// hyprglass: tint is a 0x ARGB literal, preset and float knobs pass through.
 func TestGenPluginsHyprglass(t *testing.T) {
 	o := defaultOverrides()
 	o.Plugins.Hyprglass.Enabled = true
-	o.Plugins.Hyprglass.Preset = "glass"
-	o.Plugins.Hyprglass.BlurStrength = 3.5
-	o.Plugins.Hyprglass.Opacity = 0.8
-	o.Plugins.Hyprglass.Tint = "112233ff"
-	o.Plugins.Hyprglass.Brightness = 0.9
-	o.Plugins.Hyprglass.Theme = "light"
 	out := genLua(o, true)
-	want := `hl.config({ plugin = { hyprglass = { enabled = 1, default_theme = "light", blur_strength = 3.5, glass_opacity = 0.8, tint_color = 0x112233ff, brightness = 0.9, saturation = 1.0, contrast = 1.0, vibrancy = 0.0, adaptive_dim = 0.0, adaptive_boost = 0.0, refraction_strength = 8.0, chromatic_aberration = 0.5, fresnel_strength = 0.4, specular_strength = 0.8, lens_distortion = 0.3 } } })`
-	if !strings.Contains(out, want) {
-		t.Errorf("missing %q:\n%s", want, out)
-	}
-	// content must not be dimmed or greyed: the luminance dimmer and desaturation
-	// are pinned neutral regardless of the picked look's theme defaults.
-	for _, safe := range []string{"adaptive_dim = 0.0", "adaptive_boost = 0.0", "saturation = 1.0"} {
-		if !strings.Contains(out, safe) {
-			t.Errorf("content-safe tone map missing %q:\n%s", safe, out)
-		}
-	}
-	// a named preset or the Lua preset() API would kill the sliders or drop on a
-	// cold load -- neither must appear.
-	for _, not := range []string{"default_preset", "hl.plugin.hyprglass.preset", "inherits"} {
-		if strings.Contains(out, not) {
-			t.Errorf("stale preset mechanism %q emitted:\n%s", not, out)
+	for _, want := range []string{
+		`hl.config({ plugin = { hyprglass = { enabled = 1, default_preset = "clear", blur_strength = 2.0, glass_opacity = 1.0, tint_color = 0x8899aa22, brightness = 1.0, default_theme = "dark" } } })`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q:\n%s", want, out)
 		}
 	}
 }

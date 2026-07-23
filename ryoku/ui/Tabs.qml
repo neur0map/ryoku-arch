@@ -20,7 +20,7 @@ Row {
             required property string modelData
             readonly property bool on: tabs.current === modelData
 
-            width: lab.implicitWidth + 30
+            width: lab.implicitWidth + (tabs.options.length > 6 ? 16 : 26)
             height: 34
             radius: Tokens.radius
             color: on ? Tokens.bone : (th.hovered ? Tokens.tint5 : "transparent")

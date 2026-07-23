@@ -605,6 +605,8 @@ func runHypr(args []string) error {
 			return printJSON(map[string]bool{"themeApps": currentThemeApps()})
 		}
 		return applyThemeApps(args[1] == "on" || args[1] == "true")
+	case "matugen":
+		return runMatugenCmd(args[1:])
 	default:
 		return fmt.Errorf("unknown hypr subcommand: %s", args[0])
 	}
@@ -791,20 +793,6 @@ func pluginSoPath(soName string) string {
 	return pluginDir + "/" + name
 }
 
-// hyprglassCharacter is the edge optics of each hyprglass built-in preset -- the
-// fields the Hub's four sliders don't expose (refraction, chromatic dispersion,
-// fresnel edge glow, specular highlight, center lens). genPlugins emits these as
-// plain plugin config instead of naming a default_preset, so the picked look
-// survives a cold plugin load (see the note there). Mirrored from upstream
-// release/packages/hyprglass BuiltInPresets.hpp; clear and subtle share optics
-// there (they differed only in blur, which the Hub now drives as a slider).
-var hyprglassCharacter = map[string][]string{
-	"clear":         {"refraction_strength = 0.3", "chromatic_aberration = 0.2", "fresnel_strength = 0.3", "specular_strength = 0.4"},
-	"subtle":        {"refraction_strength = 0.3", "chromatic_aberration = 0.2", "fresnel_strength = 0.3", "specular_strength = 0.4"},
-	"high_contrast": {"refraction_strength = 1.2", "chromatic_aberration = 0.25", "fresnel_strength = 0.3", "specular_strength = 0.8", "lens_distortion = 0.5"},
-	"glass":         {"refraction_strength = 8.0", "chromatic_aberration = 0.5", "fresnel_strength = 0.4", "specular_strength = 0.8", "lens_distortion = 0.3"},
-}
-
 // genPlugins renders the optional Hyprland compositor plugins the user enabled:
 // per plugin, an hl.plugin.load of its shipped .so plus its hl.config, all inside
 // a pcall so a missing or ABI-mismatched .so degrades to "off" instead of
@@ -866,40 +854,15 @@ func genPlugins(o Overrides) string {
 	}
 
 	if hg := p.Hyprglass; hg.Enabled {
-		// hyprglass resolves each setting preset -> theme -> global -> hardcoded, and
-		// its built-in presets set the effect fields directly, so a named
-		// default_preset would beat the Hub's sliders (leaving them dead) and the
-		// stock "clear" forces blur to 0 (near-invisible). It also exposes a Lua
-		// preset() API, but that namespace isn't populated in the same reload pass
-		// hl.plugin.load runs in, so a cold first load silently drops it ("Unknown
-		// default_preset") until a second reload. So leave default_preset unset and
-		// emit everything as plain config: the picked look's edge optics (refraction
-		// / dispersion / lens, which the sliders don't cover) plus the four exposed
-		// knobs, all as global values that win the chain and apply on the first load.
 		opts := []string{
 			"enabled = 1",
-			fmt.Sprintf("default_theme = %s", luaStr(hg.Theme)),
+			fmt.Sprintf("default_preset = %s", luaStr(hg.Preset)),
 			fmt.Sprintf("blur_strength = %s", luaNum(hg.BlurStrength)),
 			fmt.Sprintf("glass_opacity = %s", luaNum(hg.Opacity)),
 			fmt.Sprintf("tint_color = 0x%s", luaHex8(hg.Tint)),
 			fmt.Sprintf("brightness = %s", luaNum(hg.Brightness)),
-			// Neutral tone map: keep the frosted blur and edge optics, but do not
-			// dim, desaturate or flatten the backdrop. hyprglass' per-theme defaults
-			// dim bright regions (adaptive_dim 0.4) and desaturate (saturation 0.8),
-			// and that backdrop shows through a window's own translucency as a grey
-			// wash over its images, video and text. Zeroed so glass never greys app
-			// content; brightness stays the user's knob.
-			"saturation = 1.0",
-			"contrast = 1.0",
-			"vibrancy = 0.0",
-			"adaptive_dim = 0.0",
-			"adaptive_boost = 0.0",
+			fmt.Sprintf("default_theme = %s", luaStr(hg.Theme)),
 		}
-		char, ok := hyprglassCharacter[hg.Preset]
-		if !ok {
-			char = hyprglassCharacter["clear"]
-		}
-		opts = append(opts, char...)
 		b.WriteString(genPluginBlock("hyprglass", "hyprglass", opts, ""))
 	}
 
@@ -1616,20 +1579,10 @@ func genAnimBlock(o Overrides) string {
 		if strings.TrimSpace(c.Name) == "" {
 			continue
 		}
-		// the Wobbly-windows toggle owns wobbleCurveName; refuse a stored copy so
-		// reshaping it in the Animations page can't override the toggle's overshoot.
-		if c.Name == wobbleCurveName {
-			continue
-		}
 		fmt.Fprintf(&b, "hl.curve(%s, { type = \"bezier\", points = { { %s, %s }, { %s, %s } } })\n",
 			luaStr(c.Name), luaNum(c.X0), luaNum(c.Y0), luaNum(c.X1), luaNum(c.Y1))
 	}
 	for _, it := range o.Anim.Items {
-		// while Wobbly windows is on it owns windowsMove; skip a stored override so
-		// the Animations page can't clobber the toggle's spring binding.
-		if o.Appearance.WobblyWindows && it.Leaf == "windowsMove" {
-			continue
-		}
 		if a := genAnimItem(it); a != "" {
 			b.WriteString(a)
 		}
@@ -1650,18 +1603,10 @@ func genGesture(o Overrides) string {
 	return fmt.Sprintf("hl.gesture({ fingers = %d, direction = \"horizontal\", action = \"workspace\" })\n", n)
 }
 
-// wobbleCurveName is the Wobbly-windows toggle's own curve, deliberately NOT one
-// of the Animations page's editable names. That page seeds its curve editor from
-// the live curve list and stores any reshape in Anim.Curves, which genAnimBlock
-// emits after genMotion; while the toggle reused the shared "ryokuWobble", a user
-// who reshaped it (e.g. to the flat "Snappy" feel) silently overrode the overshoot
-// and the wobble died. genAnimBlock refuses to re-emit this reserved name.
-const wobbleCurveName = "ryokuWobbleDrag"
-
 // wobbleCurve = an easeOutBack overshoot: a moved window shoots a touch past its
 // mark and springs back, so a dragged float trails the cursor and settles with a
 // little wobble. only emitted when the toggle is on.
-const wobbleCurve = "hl.curve(\"" + wobbleCurveName + "\", { type = \"bezier\", points = { { 0.34, 1.56 }, { 0.64, 1 } } })\n"
+const wobbleCurve = "hl.curve(\"ryokuWobble\", { type = \"bezier\", points = { { 0.34, 1.56 }, { 0.64, 1 } } })\n"
 
 // genMotion: the window-motion toggles the Look tab owns (spring drag, open and
 // close style), kept out of the diff-based hl.config so wobble can define its own
@@ -1673,7 +1618,7 @@ func genMotion(o Overrides, full bool) string {
 	switch {
 	case a.WobblyWindows:
 		b.WriteString(wobbleCurve)
-		fmt.Fprintf(&b, "hl.animation({ leaf = \"windowsMove\", enabled = true, speed = 5, bezier = %s })\n", luaStr(wobbleCurveName))
+		b.WriteString("hl.animation({ leaf = \"windowsMove\", enabled = true, speed = 5, bezier = \"ryokuWobble\" })\n")
 	case full:
 		// reset the drag back to the base windows feel for the preview.
 		b.WriteString("hl.animation({ leaf = \"windowsMove\", enabled = true, speed = 3.2, bezier = \"ryokuSettle\" })\n")

@@ -3,6 +3,63 @@
 ## Unreleased
 
 ### Fixed
+- **Switching the engine back to Wallust actually reverts now.** Turning the
+  Material You toggle off only re-fanned the Matugen colours still sitting in
+  `colors.json`, so the desktop stayed on the M3 palette -- the switch looked
+  like a no-op. It now re-derives: the change back to Wallust re-applies the
+  current scheme (follow re-runs Wallust on the wallpaper, a fixed light/dark
+  scheme reloads its palette), replacing the stale Matugen palette instead of
+  re-fanning it. A same-engine change (per-app toggle) keeps the fast re-fan
+  path (`backend/matugen.go`).
+- **Wallust themes every app again (Nautilus, Discord, Steam, ghostty, ...),
+  not just the shell.** The Material 3 app templates use M3 role names
+  (`primary`, `surface`, `on_surface`, ...) that only exist under the Matugen
+  engine; on Wallust the render carrier held base16 only, so the first
+  unresolved role aborted the *whole* matugen render and every GTK/Qt app froze
+  on its last theme -- most visibly Nautilus keeping a light background after a
+  light Matugen theme. The carrier now maps base16 -> the M3 roles, so the
+  templates resolve on Wallust too and the app suite re-themes with the
+  wallpaper (`backend/matugen.go`).
+- **Theme tab leads with Wallust; Matugen is an opt-in "advanced" section, and
+  each app has a button to its template.** The Wallust/Matugen picker no longer
+  sits at the top as a co-equal choice: Wallust (the default) drives the palette,
+  and the Material You (Matugen) engine plus its algorithm, mode and tuning now
+  live under a collapsed "MATERIAL YOU (ADVANCED)" toggle, so the Material 3 look
+  reads as opt-in. In Theme Apps each app gained a folder button that opens its
+  template under `~/.config/matugen/templates`. The folder-icon recolour also
+  tints muted wallpapers instead of dropping to grey, so a low-saturation accent
+  still reads as a colour (`pages/AppearancePage.qml`,
+  `hyprland/scripts/ryoku-cmd-folders`).
+- **Theme tab: palette changes go through Save instead of silent auto-apply.**
+  The engine (Wallust / Matugen), scheme, Material 3 tuning, Ryoku interface and
+  per-app toggles applied the instant you touched them and never lit the action
+  bar, so the Save button stayed greyed and the edits felt lost -- unlike every
+  other page in the Hub. They now stage into a draft that raises the shared Save
+  (and Revert): pick freely, then commit in one click, and Revert or an unsaved
+  quit drops the staged edits. Staging also stops the contrast slider re-running
+  matugen on every drag frame (`Hub.qml` gains `pageDirty` + `savePage` /
+  `revertPage`; `pages/AppearancePage.qml`).
+- **Matugen (Material 3) is merge-ready: live wallpapers, real app theming, and
+  the panel folded into Theme.** The Material 3 engine now samples a still frame
+  from a live/video wallpaper before running matugen (it panicked on a `.webm`,
+  silently aborting the whole apply -- shell, apps, and the folder recolour), and
+  a scheme or per-app change now re-fans the palette live on the wallust engine
+  too, not only matugen. The standalone Matugen tab is gone: its controls live
+  under Appearance > Theme, engine-first (Wallust / Matugen), with the wallpaper
+  gallery dropped for room and the app list trimmed to the templates that are
+  actually toggleable plus a note that terminal, borders and Qt6 always follow and
+  Discord, Telegram, OBS, Zed, Steam and Heroic need the theme picked inside the
+  app once. The wallpaper->folder-colour post_hook the PR's older `config.toml`
+  had dropped is restored (`backend/matugen.go`, `pages/AppearancePage.qml`).
+- **Matugen: the visualiser, folder icons and window border follow the wallpaper
+  even with Ryoku Interface set to Original.** Those three read
+  `~/.cache/wallust/colors.json` directly (no `followWallpaper` gate), so writing
+  the monochrome palette to that file when Ryoku Interface was Original dragged
+  them mono too, though the toggle only promises to keep the Hub, pill and widgets
+  mono. Matugen now always writes the wallpaper's Material 3 palette to
+  `colors.json` and keeps the shell mono through `followWallpaper` alone, so on the
+  Matugen engine those accents track the wallpaper on both settings while the
+  chrome still honours the toggle (`backend/matugen.go`).
 - **The theme scheme control shows the mode you are actually on.** The palette
   offers Follow, Light, Dark and now Mono; the fourth was missing, so a desktop
   on the Mono palette (the Ryoku default) lit no segment and the control read as
@@ -21,37 +78,6 @@
   write failed silently and every reopen came back with Advanced off, the deep
   knobs re-hidden. Added the key with a round-trip test (`backend/config.go`,
   `backend/config_test.go`).
-- **Wobbly windows actually wobble again.** The Effects toggle bound windowsMove
-  to a curve named `ryokuWobble`, but the Animations page's curve editor edits a
-  curve of that same name and stores it, and the store is emitted after the
-  toggle's line; once that copy had been reshaped (the flat "Snappy" feel, in the
-  reported case) it overwrote the overshoot, so dragged windows just slid with no
-  spring. The toggle now owns a private `ryokuWobbleDrag` curve that `genAnimBlock`
-  refuses to re-emit, and it keeps the windowsMove leaf to itself while it is on,
-  so turning it on always springs. Verified live: windowsMove resolves to the
-  overshoot curve, not the flattened one (`backend/hypr.go`, `backend/hypr_test.go`).
-- **Liquid glass no longer greys out app content.** The frosted backdrop hyprglass
-  draws behind a window shows through the window's own translucency, and its
-  per-theme defaults dim bright regions (adaptive_dim 0.4) and desaturate
-  (saturation 0.8), so images, video and text under any transparency picked up a
-  grey, washed-out film. `backend/hypr.go` now pins the tone map neutral
-  (saturation/contrast 1.0, adaptive dim/boost and vibrancy 0) so the glass keeps
-  its blur and edge refraction but never dims or greys what is behind it;
-  brightness stays the user's slider. Measured 28-37% brighter content behind the
-  glass, verified live on Hyprland 0.55.4 (`backend/hypr_test.go`).
-- **Liquid glass windows: the options now take effect, and the look shows the
-  first time you enable it.** hyprglass resolves every setting through a preset
-  before falling back to plain config, and its built-in looks
-  (clear/subtle/high_contrast/glass) pin each field, so naming one as
-  `default_preset` (as the Hub did) let it win and left the Blur, Opacity, Tint and
-  Brightness sliders inert; the stock "clear" even pins blur to 0, so turning glass
-  on read as a no-op. The plugin's Lua `preset()` API could not save it either: its
-  namespace is not live in the reload that loads the plugin, so a cold first enable
-  dropped the look (an "Unknown default_preset" toast) until a second reload.
-  `backend/hypr.go` now names no preset and emits the picked look's edge optics
-  (refraction, dispersion, lens) with the four sliders as plain plugin config,
-  which wins the resolution chain and applies on the first load. Verified live on
-  Hyprland 0.55.4 (`backend/hypr_test.go`).
 - **Rices > Browse gains a Refresh button.** The community-store grid fetched its
   catalogue only once per Hub session (`showBrowse` pulled it only while empty),
   so a rice newly added to `ryoku-extras` never appeared without reopening the

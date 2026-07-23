@@ -9,21 +9,22 @@
 set -euo pipefail
 
 REPO="$HOME/ryoku-arch"
+REPO_URL="https://github.com/neur0map/ryoku-arch.git"
 say() { printf '\n==> %s\n' "$*"; }
 
 say "This turns your box into an unstable-dev tracker so you get unstable-dev changes. Use at your own risk."
 
-say "Installing build tools"
-sudo pacman -S --needed --noconfirm git go cmake ninja qt6-shadertools wayland base-devel
+say "Installing build tools and matugen"
+sudo pacman -S --needed --noconfirm git go cmake ninja qt6-shadertools wayland base-devel matugen
 
 say "Fetching the Ryoku source on unstable-dev into $REPO"
 if [[ -d $REPO/.git ]]; then
+  git -C "$REPO" remote set-url origin "$REPO_URL" 2>/dev/null || true
   git -C "$REPO" fetch origin unstable-dev
   git -C "$REPO" checkout unstable-dev
   git -C "$REPO" reset --hard origin/unstable-dev
 else
-  git clone https://github.com/neur0map/ryoku-arch "$REPO"
-  git -C "$REPO" checkout unstable-dev
+  git clone -b unstable-dev "$REPO_URL" "$REPO"
 fi
 
 say "Setting the update channel to unstable-dev"
@@ -32,6 +33,9 @@ echo 'RYOKU_CHANNEL=unstable-dev' >"$HOME/.config/environment.d/ryoku.conf"
 
 say "Building and deploying the desktop from the checkout"
 bash "$REPO/ryoku/shell/deploy.sh"
+pkill -9 -x ryoku-shell 2>/dev/null || true
+pkill -f "quickshell.*hub" 2>/dev/null || true
+nohup "$HOME/.local/bin/ryoku-shell" daemon >/dev/null 2>&1 &
 
 # environment.d misses the graphical session on some display managers, so set the
 # channel in the session too; user.lua survives updates.
