@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Tint the folder icons to the wallpaper accent. Builds a small icon theme in
+# ~/.local/share/icons/ryoku-folders that inherits Papirus-Dark and overrides
+# only the folder icons with Papirus's matching colour set. Root-free, ~300K,
+# and never touches the packaged theme. The accent (arg, else wallust's color4,
+# the same colour the shell and GTK use) picks the nearest Papirus folder
+# colour. Run at login and on every palette change.
+set -u
+
+pap=/usr/share/icons/Papirus
+src=$pap/64x64/places
+[ -d "$src" ] || exit 0
+
+accent=${1:-}
+if [ -z "$accent" ]; then
+  cfg=${XDG_CACHE_HOME:-$HOME/.cache}/wallust/colors.json
+  accent=$(sed -n 's/.*"color4"[^"]*"\(#[0-9A-Fa-f]\{6\}\)".*/\1/p' "$cfg" 2>/dev/null | head -1)
+fi
+
+color=blue
+if [ -n "$accent" ]; then
+  color=$(awk -v c="$accent" 'BEGIN{
+    r=strtonum("0x" substr(c,2,2))/255; g=strtonum("0x" substr(c,4,2))/255; b=strtonum("0x" substr(c,6,2))/255
+    mx=(r>g?(r>b?r:b):(g>b?g:b)); mn=(r<g?(r<b?r:b):(g<b?g:b)); d=mx-mn
+    if(d==0) h=0; else if(mx==r) h=(g-b)/d; else if(mx==g) h=(b-r)/d+2; else h=(r-g)/d+4
+    h*=60; if(h<0) h+=360; s=(mx==0?0:d/mx)
+    print (s<0.18)?"grey":(h<15||h>=345)?"red":(h<45)?"orange":(h<70)?"yellow":(h<165)?"green":(h<195)?"teal":(h<215)?"cyan":(h<255)?"blue":(h<290)?"violet":(h<330)?"magenta":"pink"
+  }')
+  [ -e "$src/folder-$color.svg" ] || color=blue
+fi
+
+ov=${XDG_DATA_HOME:-$HOME/.local/share}/icons/ryoku-folders
+tmp=$ov.new
+rm -rf "$tmp"; mkdir -p "$tmp/places"
+for f in "$src/folder-$color.svg" "$src"/folder-"$color"-*.svg "$src"/user-"$color"-*.svg; do
+  [ -e "$f" ] || continue
+  b=$(basename "$f"); d=${b/-$color-/-}; d=${d/-$color./.}
+  cp -L "$f" "$tmp/places/$d"
+done
+cat > "$tmp/index.theme" <<'EOF'
+[Icon Theme]
+Name=Ryoku Folders
+Inherits=Papirus-Dark
+Directories=places
+
+[places]
+Size=64
+MinSize=8
+MaxSize=512
+Type=Scalable
+Context=Places
+EOF
+rm -rf "$ov"; mv "$tmp" "$ov"
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -qf "$ov" 2>/dev/null
+exit 0

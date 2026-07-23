@@ -29,6 +29,17 @@
   once (`launcher/Singletons/Weather.qml`, `widgets/Singletons/WeatherData.qml`).
 
 ### Added
+- **Folder icons follow the wallpaper.** Every palette change now retints the
+  file-manager folders to the same accent the shell and GTK use. A helper
+  (`hyprland/scripts/ryoku-cmd-folders`) maps the accent to the nearest Papirus
+  folder colour and builds a ~300K icon theme in
+  `~/.local/share/icons/ryoku-folders` that inherits Papirus-Dark and overrides
+  only the folder icons with Papirus's matching colour set, so it needs no root
+  and never `.pacnew`s the packaged theme. Autostart selects it; the wallpaper
+  daemon (`ipc/wallpaper.go`) and the Hub scheme path (`hub/backend/schemes.go`)
+  rebuild it after matugen. GTK4 and Qt file managers show the new colour on the
+  next window they open (a toolkit limit); the desktop tracks it live.
+
 - **The recorder sidebar gains a Discord toggle: a Quick capture auto-shrinks to
   fit a chat.** With it on, a finished Quick recording is re-encoded to a
   best-effort 10MB or under by a two-pass x264 pass that keeps the native
