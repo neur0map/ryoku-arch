@@ -52,4 +52,14 @@ Context=Places
 EOF
 rm -rf "$ov"; mv "$tmp" "$ov"
 command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -qf "$ov" 2>/dev/null
+
+# Force running GTK apps to re-read the theme. A same-name content change is
+# ignored and Nautilus stays resident (closing its window never reloads), so a
+# name flip is the only reliable signal. Flip via the parent so only the folders
+# blink, not every icon.
+if command -v gsettings >/dev/null 2>&1; then
+  gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark' 2>/dev/null
+  sleep 0.3
+  gsettings set org.gnome.desktop.interface icon-theme 'ryoku-folders' 2>/dev/null
+fi
 exit 0
