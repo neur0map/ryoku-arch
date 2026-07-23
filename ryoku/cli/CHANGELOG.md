@@ -3,6 +3,18 @@
 ## Unreleased
 
 ### Fixed
+- **`ryoku doctor` heals a shell daemon left on a dead Hyprland instance.** A
+  daemon that outlived its compositor (a relogin or crash brings up a new
+  Hyprland; the daemon runs detached and kept the old signature) still answers
+  ping, so the daemon check passed it as healthy while workspaces stayed frozen
+  and the power menu and every monitor-aware keybind did nothing. The check now
+  compares the daemon's Hyprland instance (a new `ryoku-shell signature` command)
+  against the live session and, on a mismatch, restarts the daemon against the
+  live compositor -- quit it (it reaps its own quickshell children), then start a
+  fresh one bound to this session. A daemon it cannot identify (an older binary)
+  or one already on the live instance is left alone (`internal/doctor/doctor.go`
+  `reconcileShellDaemon`/`daemonIsStale`, covered by `TestDaemonIsStale`,
+  `TestReconcileShellDaemonStale`).
 - **`ryoku doctor` stops nagging about the `.pacnew` files it creates itself.** The
   `.pacnew` check is now a reconciler: it auto-clears provably-safe pending configs
   -- a `.pacnew` byte-identical to the live file, and `pacman.conf` whose live copy

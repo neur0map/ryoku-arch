@@ -7,6 +7,10 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("gsettings set org.gnome.desktop.interface color-scheme prefer-dark")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface font-name 'Space Grotesk 11'")
+    -- Folder icons follow the wallpaper accent: ryoku-cmd-folders builds a small
+    -- Papirus-Dark overlay under ~/.local/share/icons tinted to the palette and
+    -- selects it. Rebuilt on every palette change by the shell's matugen hook.
+    hl.exec_cmd("command -v ryoku-cmd-folders >/dev/null 2>&1 && ryoku-cmd-folders")
     -- Import the Wayland/session env into the systemd --user manager and the
     -- D-Bus activation environment BEFORE the session target starts. Without
     -- it, a user service gated on that env fails: hyprpolkitagent declares

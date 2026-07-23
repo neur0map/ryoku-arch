@@ -3,6 +3,22 @@
 ## Unreleased
 
 ### Fixed
+- **Workspaces, Super+Esc power, and every shell surface work again after a
+  Hyprland restart mid-session.** `ipc/daemon.go` read `HYPRLAND_INSTANCE_SIGNATURE`
+  once at launch and never refreshed it, and the daemon can outlive its compositor
+  (a checkout `deploy.sh` starts it detached with `setsid`; a relogin or crash
+  brings up a new Hyprland under a new signature). The stale daemon kept the dead
+  instance's signature and the new login's daemon exited on "a daemon is already
+  running", so the incumbent stayed in charge and supervised every Quickshell
+  child (`qsEnv` inherits its env) against the dead Hyprland IPC socket: the
+  workspace indicator froze (no events; its `hyprctl activeworkspace` fallback hit
+  the dead socket too) and every monitor-aware command (power, launcher, mixer,
+  ...) resolved no active monitor. The daemon now reports its launch-time instance
+  over a `signature` command, and a starting daemon takes over an incumbent bound
+  to a different instance -- quit it, wait for the socket to free, rebind -- so the
+  login-time daemon always wins and reconnects the shell to the live compositor. A
+  same-session double-start still refuses (`shouldTakeOver`, `daemonSignature`,
+  `quitStaleDaemon`; covered by `TestShouldTakeOver`, `TestSignatureCommand`).
 - **The screen recorder captures the microphone out of the box.**
   `pill/RecordHud.qml` defaulted `optMic` to false, so a Quick capture recorded no
   voice; it now defaults on (desktop audio stays opt-in) and the pre-record chooser
@@ -29,6 +45,18 @@
   once (`launcher/Singletons/Weather.qml`, `widgets/Singletons/WeatherData.qml`).
 
 ### Added
+- **Folder icons follow the wallpaper.** Every palette change now retints the
+  file-manager folders to the same accent the shell and GTK use. A helper
+  (`hyprland/scripts/ryoku-cmd-folders`) maps the accent to the nearest Papirus
+  folder colour and builds a ~300K icon theme under `~/.local/share/icons` that
+  inherits Papirus-Dark and overrides only the folder icons with Papirus's
+  matching colour set, so it needs no root and never `.pacnew`s the packaged
+  theme. A matugen `post_hook` (`shell/matugen/config.toml`) reruns it on every
+  palette change, so both follow-wallpaper and fixed-scheme paths retint folders
+  with no daemon wiring. Each run writes a freshly-named copy and selects it, so
+  running GTK apps (Nautilus, Thunar) load the new colours in one step and
+  recolor live -- no reopen, no wrong-colour flash, no stale icon cache.
+
 - **The recorder sidebar gains a Discord toggle: a Quick capture auto-shrinks to
   fit a chat.** With it on, a finished Quick recording is re-encoded to a
   best-effort 10MB or under by a two-pass x264 pass that keeps the native
