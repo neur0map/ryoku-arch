@@ -11,6 +11,7 @@ import "schema/DesktopPage.js" as DesktopSchema
 import "schema/AppearancePage.js" as AppearanceSchema
 import "schema/WindowsPage.js" as WindowsSchema
 import "schema/InputPage.js" as InputSchema
+import "schema/CursorPage.js" as CursorSchema
 import "schema/KeybindsPage.js" as KeybindsSchema
 import "schema/DisplaysPage.js" as DisplaysSchema
 import "schema/GpuPage.js" as GpuSchema
@@ -68,7 +69,7 @@ Rectangle {
         { name: "OVERVIEW", items: [ { key: "profile", name: "Profile" } ] },
         { name: "DEVICES", items: [
             { key: "displays", name: "Displays" }, { key: "connections", name: "Connections" },
-            { key: "input", name: "Input" }, { key: "gpu", name: "GPU" } ] },
+            { key: "input", name: "Input" }, { key: "cursor", name: "Cursor" }, { key: "gpu", name: "GPU" } ] },
         { name: "DESKTOP", items: [
             { key: "windows", name: "Windows" }, { key: "appearance", name: "Appearance" }, { key: "bar", name: "Bar", wired: true }, { key: "frame", name: "Frame", wired: true }, { key: "desktop", name: "Desktop", wired: true },
             { key: "animations", name: "Animations" }, { key: "lockscreen", name: "Lockscreen" },
@@ -93,7 +94,7 @@ Rectangle {
     // is the texture, and every gloss is the real word, never decoration:
     // 外観 = appearance, 接続 = connections, 描画 = rendering (GPU), and so on.
     readonly property var jpName: ({
-        "profile": "横顔", "displays": "画面", "input": "入力", "keybinds": "操作",
+        "profile": "横顔", "displays": "画面", "input": "入力", "cursor": "矢印", "keybinds": "操作",
         "connections": "接続", "gpu": "描画", "recording": "録画", "dictation": "音声",
         "windows": "窓", "appearance": "外観", "bar": "帯", "frame": "枠", "desktop": "卓上", "launcher": "起動", "fastfetch": "情報",
         "widgets": "部品", "lockscreen": "施錠", "animations": "動き", "store": "商店",
@@ -111,12 +112,13 @@ Rectangle {
         "displays": "monitor screen resolution refresh scale rotation arrange mirror hidpi dual second external multiple",
         "connections": "wifi wi-fi wireless bluetooth network hotspot tether internet ethernet pair pairing device",
         "input": "keyboard mouse touchpad pointer trackpad sensitivity scroll layout dvorak remap capslock repeat gesture",
+        "cursor": "cursor pointer mouse arrow theme size hide idle timeout motion dynamic rotate tilt stretch shake magnify",
         "keybinds": "shortcuts hotkeys binds keys browser terminal editor files launch super",
         "gpu": "graphics nvidia amd vram passthrough vfio rendering hybrid performance",
         "recording": "screen record capture video screencast screenshot fps codec framerate",
         "dictation": "voice typing speech transcribe whisper microphone stt",
         "windows": "window windows rounding corners softness gaps border borders thickness colour tiling dwindle master scrolling layout opacity transparency transparent dim blur shadow glow glass wobble wobbly title bar titlebar float snap resize animation",
-        "appearance": "cursor pointer theme palette accent color colour wallpaper background rice scheme dark light night bluelight comfort brightness backlight",
+        "appearance": "theme palette accent color colour wallpaper background rice scheme dark light night bluelight comfort brightness backlight",
         "bar": "bar panel taskbar move reposition position island sidebar clusters band skins noctalia caelestia aegis stele content layout",
         "frame": "frame shape roundness surface colour opacity grain noise shadow notifications osd toast font text language type",
         "desktop": "desktop visualizer visualiser spectrum weather brand logo mark name widget board wallpaper",
@@ -145,7 +147,7 @@ Rectangle {
     readonly property var searchIndex: {
         var srcs = {
             "bar": BarSchema.rows, "frame": FrameSchema.rows, "desktop": DesktopSchema.rows, "appearance": AppearanceSchema.rows, "windows": WindowsSchema.rows,
-            "input": InputSchema.rows, "keybinds": KeybindsSchema.rows,
+            "input": InputSchema.rows, "cursor": CursorSchema.rows, "keybinds": KeybindsSchema.rows,
             "displays": DisplaysSchema.rows, "gpu": GpuSchema.rows,
             "recording": RecordingSchema.rows, "dictation": DictationSchema.rows,
             "launcher": LauncherSchema.rows, "fastfetch": FastfetchSchema.rows,
@@ -263,7 +265,7 @@ Rectangle {
     // `framed` pages keep the rail + bottom action bar; `ledger` pages also get
     // the right write-ledger column. Everything else is full-bleed.
     readonly property var framedSet: ({
-        "bar": true, "frame": true, "desktop": true, "appearance": true, "windows": true, "input": true, "animations": true,
+        "bar": true, "frame": true, "desktop": true, "appearance": true, "windows": true, "input": true, "cursor": true, "animations": true,
         "windowrules": true, "appoverrides": true, "layerrules": true,
         "autostart": true, "environment": true
     })
@@ -292,7 +294,7 @@ Rectangle {
         return false;
     }
     function pageFile(s) {
-        var map = { "windows": "WindowsPage", "profile": "ProfilePage", "bar": "BarPage", "frame": "FramePage", "desktop": "DesktopPage", "environment": "EnvironmentPage", "autostart": "AutostartPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "appearance": "AppearancePage", "input": "InputPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "rashin": "RashinPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "store": "StorePage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
+        var map = { "windows": "WindowsPage", "profile": "ProfilePage", "bar": "BarPage", "frame": "FramePage", "desktop": "DesktopPage", "environment": "EnvironmentPage", "autostart": "AutostartPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "appearance": "AppearancePage", "input": "InputPage", "cursor": "CursorPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "rashin": "RashinPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "store": "StorePage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
         return map[s] ? Qt.resolvedUrl("pages/" + map[s] + ".qml") : "";
     }
     function openPick(r) { picker.openFor(r); }
