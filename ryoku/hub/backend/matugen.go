@@ -287,14 +287,20 @@ func generateMatugenTheme(imgPath string) error {
 
 	// Write wallust cache colors.json for Quickshell & desktop based on user choice
 	_ = os.MkdirAll(wallustCacheDir(), 0o755)
+	st := loadThemeState()
 	if cfg.ThemeRyokuApps {
 		_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(wallustMap), 0o644)
+		st.FollowWallpaper = true
+		st.Scheme = ""
+		saveThemeState(st)
 	} else {
 		if monoPal, err := loadScheme("mono"); err == nil {
 			_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(monoPal), 0o644)
 		}
+		st.FollowWallpaper = false
+		st.Scheme = "mono"
+		saveThemeState(st)
 	}
-
 	// Build active apps.toml filtered by user toggles in cfg.Templates
 	renderActiveTemplates(cfg, wallustMap)
 
