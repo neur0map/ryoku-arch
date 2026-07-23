@@ -555,7 +555,7 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("APPS & KEYS"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -577,7 +577,7 @@ Item {
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "操作"
-        index: "02"; label: I18n.tr("SYSTEM")
+        index: "04"; label: I18n.tr("APPS & KEYS")
         glyph: "meander"; glyph2: "torii"
     }
 

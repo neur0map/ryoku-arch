@@ -208,7 +208,7 @@ Item {
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "拡張"
-        index: "04"; label: I18n.tr("ADD-ONS")
+        index: "07"; label: I18n.tr("ADD-ONS")
         glyph: "asanoha"; glyph2: "meander"
     }
 

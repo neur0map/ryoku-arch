@@ -256,7 +256,7 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: I18n.tr("ADVANCED"); color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -278,7 +278,7 @@ Item {
         anchors { right: parent.right; top: head.top }
         anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s1
         kana: "性能"
-        index: "05"; label: I18n.tr("ADVANCED")
+        index: "06"; label: I18n.tr("SYSTEM")
         glyph: "column"; glyph2: "wave"
     }
 
@@ -357,8 +357,8 @@ Item {
         code: "PERF-05"
         title: "\u75be\u98a8"
         sub: I18n.tr("SWIFT AS THE WIND")
-        chapter: "05"
-        label: I18n.tr("PERFORMANCE")
+        chapter: "06"
+        label: I18n.tr("SYSTEM")
         quote: I18n.tr("TRADE THE GLOW FOR THE SPEED.")
         seal: "\u75be"
         art: "hawk.png"

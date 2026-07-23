@@ -7,7 +7,6 @@ import Quickshell
 import Quickshell.Io
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
-import "../schema/AppearancePage.js" as Schema
 import ".."
 
 // Appearance (DESIGN.md, DESKTOP). The system look and feel, ported to the
@@ -29,152 +28,15 @@ Item {
 
     readonly property string pTitle: I18n.tr("Appearance")
     readonly property string pEyebrow: I18n.tr("DESKTOP")
-    readonly property string pBlurb: I18n.tr("Windows, borders, cursor, wallpaper, and comfort, applied to your desktop as you make them.")
+    readonly property string pBlurb: I18n.tr("The palette and scheme, wallpaper, comfort, and rices, applied to your desktop as you make them.")
 
-    // ── the hypr draft, flattened to the schema keys the sheet reads ────────
-    // draft/committed are dotted-path reads off the shell's whole-document hypr
-    // store; only the real hypr keys are pulled (the Wallpaper/Comfort rows have
-    // no hypr home and are driven by their own tools below).
-    readonly property var draft: {
-        var d = {};
-        if (pg.hub) {
-            for (var i = 0; i < Schema.rows.length; i++) {
-                var k = Schema.rows[i].key;
-                if (k && /^(appearance|plugins|cursor|dwindle|master)\./.test(k))
-                    d[k] = pg.hub.hyprVal(k);
-            }
-        }
-        return d;
-    }
-    readonly property var committed: {
-        var d = {};
-        if (pg.hub) {
-            for (var i = 0; i < Schema.rows.length; i++) {
-                var k = Schema.rows[i].key;
-                if (k && /^(appearance|plugins|cursor|dwindle|master)\./.test(k))
-                    d[k] = pg.hub.hyprCommittedVal(k);
-            }
-        }
-        return d;
-    }
     function setKey(k, v) { if (pg.hub) pg.hub.hyprEdit(k, v); }
 
-    // the sheet-fed schema: Look/Borders/Cursor only, gated exactly as the old
-    // page gated its rows (a parent toggle hides its dependents), with the
-    // cursor theme promoted to a catalogue pick over the scanned icon sets.
-    readonly property var settingsSchema: {
-        var d = pg.draft;
-        var out = [];
-        for (var i = 0; i < Schema.rows.length; i++) {
-            var r = Schema.rows[i];
-            if (r.tab !== "Windows" && r.tab !== "Effects" && r.tab !== "Borders" && r.tab !== "Cursor")
-                continue;
-            if (!pg.gateOk(r.key, d))
-                continue;
-            if (r.key === "cursor.theme")
-                out.push({ tab: r.tab, group: r.group, key: r.key, label: r.label,
-                           desc: r.desc, ctl: "pick", src: "hypr", opts: pg.cursorThemes });
-            else
-                out.push({ tab: r.tab, group: r.group, key: r.key, label: r.label,
-                           desc: r.desc, ctl: r.ctl, src: "hypr", opts: r.opts,
-                           lo: r.lo, hi: r.hi, unit: r.unit, pct: r.pct });
-        }
-        return out;
-    }
-
-    // the per-row visibility the old page expressed with inline `visible:`.
-    // blurEnabled/shadowEnabled deliberately do NOT gate their siblings.
-    function gateOk(key, d) {
-        switch (key) {
-        case "plugins.hyprscrolling.columnWidth":
-        case "plugins.hyprscrolling.followFocus":
-            return d["appearance.layout"] === "scrolling";
-        case "plugins.hyprbars.height":
-        case "plugins.hyprbars.textSize":
-        case "plugins.hyprbars.blur":
-        case "plugins.hyprbars.buttons":
-            return d["plugins.hyprbars.enabled"] === true;
-        case "appearance.dimStrength":
-            return d["appearance.dimInactive"] === true;
-        case "appearance.wobblyWindows":
-        case "appearance.windowStyle":
-            return d["appearance.animations"] === true;
-        case "appearance.glowRange":
-        case "appearance.glowColor":
-            return d["appearance.glowEnabled"] === true;
-        case "plugins.hyprglass.preset":
-        case "plugins.hyprglass.blurStrength":
-        case "plugins.hyprglass.opacity":
-        case "plugins.hyprglass.brightness":
-        case "plugins.hyprglass.theme":
-        case "plugins.hyprglass.tint":
-            return d["plugins.hyprglass.enabled"] === true;
-        case "appearance.activeBorder":
-        case "appearance.inactiveBorder":
-            return pg.scheme !== "follow";
-        case "appearance.borderAngleSpeed":
-            return d["appearance.animatedBorder"] === true;
-        case "plugins.imgborders.image":
-        case "plugins.imgborders.scale":
-        case "plugins.imgborders.smooth":
-        case "plugins.imgborders.blur":
-        case "plugins.imgborders.sizes":
-        case "plugins.imgborders.insets":
-            return d["plugins.imgborders.enabled"] === true;
-        case "plugins.dynamicCursors.mode":
-        case "plugins.dynamicCursors.shake":
-            return d["plugins.dynamicCursors.enabled"] === true;
-        case "appearance.blurContrast":
-        case "appearance.blurBrightness":
-        case "appearance.blurSpecial":
-        case "appearance.blurPopups":
-        case "appearance.blurIgnoreOpacity":
-        case "appearance.blurNewOptimizations":
-        case "appearance.blurVibrancyDarkness":
-            return d["appearance.blurEnabled"] === true;
-        case "appearance.shadowSharp":
-        case "appearance.shadowScale":
-        case "appearance.shadowColor":
-            return d["appearance.shadowEnabled"] === true;
-        case "dwindle.preserveSplit":
-        case "dwindle.smartSplit":
-        case "dwindle.smartResizing":
-        case "dwindle.defaultSplitRatio":
-        case "dwindle.forceSplit":
-        case "dwindle.useActiveForSplits":
-            return d["appearance.layout"] === "dwindle";
-        case "master.mfact":
-        case "master.newStatus":
-        case "master.newOnTop":
-        case "master.orientation":
-        case "master.smartResizing":
-            return d["appearance.layout"] === "master";
-        case "plugins.dynamicCursors.magnify":
-            return d["plugins.dynamicCursors.enabled"] === true && d["plugins.dynamicCursors.shake"] === true;
-        }
-        return true;
-    }
-
-    property string tab: "Windows"
-    readonly property var tabs: ["Windows", "Effects", "Borders", "Cursor", "Theme", "Comfort", "Rices"]
-    readonly property bool settingsTab: pg.tab === "Windows" || pg.tab === "Effects" || pg.tab === "Borders" || pg.tab === "Cursor"
+    property string tab: "Theme"
+    readonly property var tabs: ["Theme", "Comfort", "Rices"]
     readonly property bool searching: pg.hub ? (pg.hub.query || "") !== "" : false
 
     readonly property string home: Quickshell.env("HOME") || ""
-
-    // ════════════════════════════════════════════════════════════════════════
-    // Cursor: the theme list is scanned at runtime, so it is a catalogue pick,
-    // not an enum. The size/idle/hide/motion rows ride the settings sheet.
-    // ════════════════════════════════════════════════════════════════════════
-    property var cursorThemes: []
-    Process {
-        id: cursorsProc
-        command: ["ryoku-hub", "hypr", "cursors"]
-        running: true
-        stdout: StdioCollector {
-            onStreamFinished: { try { pg.cursorThemes = JSON.parse(this.text); } catch (e) {} }
-        }
-    }
 
     // ════════════════════════════════════════════════════════════════════════
     // Theme palette: engine, scheme, Material 3 tuning, app reach. Every control
@@ -1085,23 +947,6 @@ Item {
         id: content
         anchors { left: parent.left; right: parent.right; top: head.bottom; bottom: parent.bottom; topMargin: Tokens.s5 }
 
-        // ── Look / Borders / Cursor: the live Hyprland draft ──
-        Sheet {
-            id: sheet
-            anchors.fill: parent
-            visible: pg.settingsTab || pg.searching
-            schema: pg.settingsSchema
-            draft: pg.draft
-            defaults: pg.committed
-            tab: pg.settingsTab ? pg.tab : "Windows"
-            query: pg.hub ? (pg.hub.query || "") : ""
-            onEdited: (k, v) => pg.setKey(k, v)
-            onPickRequested: (r) => {
-                if (r.key === "cursor.theme") cursorPick.show();
-                else if (pg.hub) pg.hub.openPick(r);
-            }
-        }
-
         // ── Wallpaper: theme scheme + the wallpaper gallery ──
         Flickable {
             id: wallView
@@ -1131,12 +976,12 @@ Item {
                             Text { text: I18n.tr("COLOURS"); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel }
                             Text { text: pg.scheme === "custom" ? I18n.tr("Custom") : (pg.scheme.charAt(0).toUpperCase() + pg.scheme.slice(1)); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fValue; font.weight: Font.Light }
                         }
-                        Seg { anchors.verticalCenter: parent.verticalCenter; options: ["FOLLOW", "LIGHT", "DARK"]; current: pg.scheme.toUpperCase(); onChose: (k) => pg.setScheme(k.toLowerCase()) }
+                        Seg { anchors.verticalCenter: parent.verticalCenter; options: ["FOLLOW", "LIGHT", "DARK", "MONO"]; current: pg.scheme.toUpperCase(); onChose: (k) => pg.setScheme(k.toLowerCase()) }
                     }
                     Text {
                         width: Math.min(parent.width, 620)
                         wrapMode: Text.WordWrap
-                        text: pg.scheme === "light" || pg.scheme === "dark" ? I18n.tr("A fixed ") + pg.scheme + I18n.tr(" palette, kept across wallpaper changes.") : pg.scheme === "custom" ? I18n.tr("A fixed palette is set. Pick Follow, Light, or Dark to change it.") : I18n.tr("Colours are derived from your wallpaper and update when it changes; Follow also tints the window frame.")
+                        text: pg.scheme === "light" || pg.scheme === "dark" || pg.scheme === "mono" ? I18n.tr("A fixed ") + pg.scheme + I18n.tr(" palette, kept across wallpaper changes.") : pg.scheme === "custom" ? I18n.tr("A fixed palette is set. Pick Follow, Light, Dark, or Mono to change it.") : I18n.tr("Colours are derived from your wallpaper and update when it changes; Follow also tints the window frame.")
                         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                     }
                 }
@@ -1891,46 +1736,6 @@ Item {
     // ════════════════════════════════════════════════════════════════════════
     // overlays (paperLift + lineStrong, no shadow), one z-plane above the page
     // ════════════════════════════════════════════════════════════════════════
-
-    // cursor theme catalogue
-    Item {
-        id: cursorPick
-        anchors.fill: parent
-        visible: false
-        z: 200
-        function show() { visible = true; picker.open(); }
-        MouseArea { anchors.fill: parent; onClicked: cursorPick.visible = false }
-        Picker {
-            id: picker
-            anchors.centerIn: parent
-            title: I18n.tr("CURSOR THEME")
-            options: pg.cursorThemes
-            current: pg.hub ? String(pg.hub.hyprVal("cursor.theme")) : ""
-            onChose: (k) => { pg.setKey("cursor.theme", k); cursorPick.visible = false; }
-            onDismissed: cursorPick.visible = false
-        }
-    }
-
-    // image-border image (Borders / IMAGE BORDER); hoisted to page level so its
-    // overlay covers the whole page, not just the sheet.
-    PickFile {
-        id: imgPicker
-        title: I18n.tr("Choose a border image")
-        onPicked: (p) => { pg.setKey("plugins.imgborders.image", p); imgPicker.active = false; }
-        onCanceled: imgPicker.active = false
-    }
-    // a hidden trigger the image-border cell reaches through onPickRequested is
-    // impossible via the sheet, so IMAGE BORDER's picker is opened from a small
-    // affordance rendered over its cell. The cell edits the path as text; this
-    // button lets the user browse instead.
-    Btn {
-        id: chooseImageBtn
-        visible: pg.tab === "Borders" && !pg.searching && pg.draft["plugins.imgborders.enabled"] === true
-        anchors { right: parent.right; bottom: parent.bottom; margins: Tokens.s2 }
-        z: 60
-        text: I18n.tr("CHOOSE BORDER IMAGE")
-        onAct: imgPicker.open()
-    }
 
     // a rice's wallpaper
     PickFile {

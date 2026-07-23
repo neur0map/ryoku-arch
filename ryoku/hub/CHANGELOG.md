@@ -60,6 +60,24 @@
   `colors.json` and keeps the shell mono through `followWallpaper` alone, so on the
   Matugen engine those accents track the wallpaper on both settings while the
   chrome still honours the toggle (`backend/matugen.go`).
+- **The theme scheme control shows the mode you are actually on.** The palette
+  offers Follow, Light, Dark and now Mono; the fourth was missing, so a desktop
+  on the Mono palette (the Ryoku default) lit no segment and the control read as
+  if nothing was selected. Mono is now a first-class option, and its blurb no
+  longer claims it tracks the wallpaper (`pages/AppearancePage.qml`).
+- **Every page's section eyebrow matches the rail again.** Pages hard-code the
+  "you are here" group above their title, and the task-oriented regroup had left
+  fifteen of them stale: Input, GPU, Displays and Connections claimed SYSTEM
+  while they live under Devices; Keybinds, Window Rules, App Overrides and Layer
+  Rules pointed at the retired ADVANCED group instead of Apps & Keys; Recording,
+  Dictation and Fastfetch were not Tools; and Autostart, Environment and
+  Performance were not System. Their section register numbers were corrected too
+  (`pages/*.qml`).
+- **The Advanced settings switch stays where you left it.** It persisted through
+  `ryoku-hub config set advanced`, but the config CLI never knew that key, so the
+  write failed silently and every reopen came back with Advanced off, the deep
+  knobs re-hidden. Added the key with a round-trip test (`backend/config.go`,
+  `backend/config_test.go`).
 - **Rices > Browse gains a Refresh button.** The community-store grid fetched its
   catalogue only once per Hub session (`showBrowse` pulled it only while empty),
   so a rice newly added to `ryoku-extras` never appeared without reopening the
@@ -163,6 +181,28 @@
   描画 watermark, no bespoke card (`GpuPage.qml`, `gputune.go`, `gpupreset.go`).
 
 ### Changed
+- **The DESKTOP section is rebuilt around objects, so each thing has one home.**
+  Window settings were scattered across Appearance (Windows/Effects/Borders
+  tabs), the Shell page, and Animations; now every window setting lives on one
+  **Windows** page with clean tabs (Layout, Look, Borders, Motion). The old
+  catch-all Shell page split into three object pages that match how you think
+  about the desktop: **Bar** (the panel, clusters, island, sidebars), **Frame**
+  (shape, surface, shadow, notifications) and **Desktop** (brand, weather, the
+  visualiser). The pointer left Appearance for its own **Cursor** page under
+  Devices, next to Input, its theme catalogue intact. Appearance is trimmed to
+  what it is really about (theme, comfort, rices), and the sheet machinery its
+  moved tabs no longer needed is gone (199 lines). The rail is reordered so
+  related pages sit together and "Desktop Widgets" reads as "Widgets" beside its
+  Desktop sibling (`Hub.qml`, `pages/WindowsPage.qml`, `pages/BarPage.qml`,
+  `pages/FramePage.qml`, `pages/DesktopPage.qml`, `pages/CursorPage.qml`,
+  `pages/AppearancePage.qml`).
+- **Progressive disclosure: one Advanced switch calms every settings page.** A
+  global toggle in the rail hides the deep, rarely-touched knobs behind it: blur
+  and shadow sub-tuning, dwindle and master internals, the visualiser's spectrum
+  and motion, per-style bar variants, frame grain and edge melt. The default view
+  shows the settings you actually reach for; search still finds a hidden knob, and
+  flipping the switch reveals them all in place (`SchemaPage.qml`,
+  `SettingsSheet.qml`, `Hub.qml`, and the page schemas).
 - **Ryoku Settings reorganized around how you look for a setting, not how it is
   implemented.** The rail is regrouped into task-oriented sections -- OVERVIEW,
   DEVICES (displays, connections, input, GPU), DESKTOP (appearance, shell,

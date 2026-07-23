@@ -197,7 +197,7 @@ Item {
                 font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter
             }
             Text {
-                text: I18n.tr("SYSTEM"); color: Tokens.inkMuted; font.family: Tokens.ui
+                text: I18n.tr("TOOLS"); color: Tokens.inkMuted; font.family: Tokens.ui
                 font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -487,8 +487,8 @@ Item {
         title: "\u9332\u753b"
         sub: I18n.tr("ON THE RECORD")
         motto: I18n.tr("Without creativity and obsession, everything is boring.")
-        chapter: "02"
-        label: I18n.tr("SYSTEM")
+        chapter: "05"
+        label: I18n.tr("TOOLS")
         quote: I18n.tr("THE SCREEN REMEMBERS EVERYTHING.")
         seal: "\u9332"
         art: "camera.png"

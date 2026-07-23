@@ -19,6 +19,7 @@ type Config struct {
 type UIConfig struct {
 	Section        string `toml:"section"`
 	UpdateInterval string `toml:"update_interval"`
+	Advanced       string `toml:"advanced"`
 }
 
 func defaultConfig() Config {
@@ -72,6 +73,8 @@ func configGet(key string) (string, bool) {
 		return c.UI.Section, true
 	case "update_interval":
 		return c.UI.UpdateInterval, true
+	case "advanced":
+		return c.UI.Advanced, true
 	}
 	return "", false
 }
@@ -83,6 +86,8 @@ func configSet(key, value string) error {
 		c.UI.Section = value
 	case "update_interval":
 		c.UI.UpdateInterval = value
+	case "advanced":
+		c.UI.Advanced = value
 	default:
 		return fmt.Errorf("unknown config key: %s", key)
 	}

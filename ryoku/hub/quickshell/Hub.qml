@@ -5,9 +5,13 @@ import Quickshell
 import Quickshell.Io
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
-import "schema/ShellSettingsPage.js" as ShellSchema
+import "schema/BarPage.js" as BarSchema
+import "schema/FramePage.js" as FrameSchema
+import "schema/DesktopPage.js" as DesktopSchema
 import "schema/AppearancePage.js" as AppearanceSchema
+import "schema/WindowsPage.js" as WindowsSchema
 import "schema/InputPage.js" as InputSchema
+import "schema/CursorPage.js" as CursorSchema
 import "schema/KeybindsPage.js" as KeybindsSchema
 import "schema/DisplaysPage.js" as DisplaysSchema
 import "schema/GpuPage.js" as GpuSchema
@@ -46,11 +50,17 @@ Rectangle {
     focus: true
 
     // ── which page ───────────────────────────────────────────────────────
-    property string section: "shell"
-    // remember the last section so a reopen lands where you left, not on Shell.
+    property string section: "windows"
+    // remember the last section so a reopen lands where you left, not the default.
     // Read once at startup by `sectionGet` below; written here on every change.
     onSectionChanged: Quickshell.execDetached(["ryoku-hub", "config", "set", "section", hub.section])
     property string query: ""
+
+    // progressive disclosure: one global Advanced switch (in the rail) reveals the
+    // deep knobs across every schema page. persisted like `section`, restored at
+    // startup by `advancedGet` below.
+    property bool advanced: false
+    onAdvancedChanged: Quickshell.execDetached(["ryoku-hub", "config", "set", "advanced", hub.advanced ? "1" : "0"])
 
     // The full catalogue. `wired` marks the pages whose content and
     // persistence are ported; the rest render an honest porting plate rather
@@ -59,11 +69,11 @@ Rectangle {
         { name: "OVERVIEW", items: [ { key: "profile", name: "Profile" } ] },
         { name: "DEVICES", items: [
             { key: "displays", name: "Displays" }, { key: "connections", name: "Connections" },
-            { key: "input", name: "Input" }, { key: "gpu", name: "GPU" } ] },
+            { key: "input", name: "Input" }, { key: "cursor", name: "Cursor" }, { key: "gpu", name: "GPU" } ] },
         { name: "DESKTOP", items: [
-            { key: "appearance", name: "Appearance" }, { key: "shell", name: "Shell", wired: true },
-            { key: "animations", name: "Animations" }, { key: "lockscreen", name: "Lockscreen" },
-            { key: "launcher", name: "App Launcher" }, { key: "widgets", name: "Desktop Widgets" } ] },
+            { key: "windows", name: "Windows" }, { key: "appearance", name: "Appearance" }, { key: "bar", name: "Bar", wired: true }, { key: "frame", name: "Frame", wired: true }, { key: "desktop", name: "Desktop", wired: true },
+            { key: "widgets", name: "Widgets" }, { key: "animations", name: "Animations" },
+            { key: "lockscreen", name: "Lockscreen" }, { key: "launcher", name: "App Launcher" } ] },
         { name: "APPS & KEYS", items: [
             { key: "keybinds", name: "Keybinds" }, { key: "windowrules", name: "Window Rules" },
             { key: "appoverrides", name: "App Overrides" }, { key: "layerrules", name: "Layer Rules" } ] },
@@ -84,9 +94,9 @@ Rectangle {
     // is the texture, and every gloss is the real word, never decoration:
     // 外観 = appearance, 接続 = connections, 描画 = rendering (GPU), and so on.
     readonly property var jpName: ({
-        "profile": "横顔", "displays": "画面", "input": "入力", "keybinds": "操作",
+        "profile": "横顔", "displays": "画面", "input": "入力", "cursor": "矢印", "keybinds": "操作",
         "connections": "接続", "gpu": "描画", "recording": "録画", "dictation": "音声",
-        "appearance": "外観", "shell": "外殻", "launcher": "起動", "fastfetch": "情報",
+        "windows": "窓", "appearance": "外観", "bar": "帯", "frame": "枠", "desktop": "卓上", "launcher": "起動", "fastfetch": "情報",
         "widgets": "部品", "lockscreen": "施錠", "animations": "動き", "store": "商店",
         "addons": "拡張", "windowrules": "規則", "appoverrides": "上書", "layerrules": "階層",
         "autostart": "自動", "environment": "環境", "performance": "性能", "rashin": "羅針",
@@ -102,12 +112,16 @@ Rectangle {
         "displays": "monitor screen resolution refresh scale rotation arrange mirror hidpi dual second external multiple",
         "connections": "wifi wi-fi wireless bluetooth network hotspot tether internet ethernet pair pairing device",
         "input": "keyboard mouse touchpad pointer trackpad sensitivity scroll layout dvorak remap capslock repeat gesture",
+        "cursor": "cursor pointer mouse arrow theme size hide idle timeout motion dynamic rotate tilt stretch shake magnify",
         "keybinds": "shortcuts hotkeys binds keys browser terminal editor files launch super",
         "gpu": "graphics nvidia amd vram passthrough vfio rendering hybrid performance",
         "recording": "screen record capture video screencast screenshot fps codec framerate",
         "dictation": "voice typing speech transcribe whisper microphone stt",
-        "appearance": "windows rounding corners gaps border accent color colour titlebar blur transparency transparent opacity dim shadow glow glass tiling cursor wallpaper background theme nightlight bluelight comfort brightness backlight rice dark",
-        "shell": "bar panel taskbar move reposition position notification osd toast frame font grain noise visualizer visualiser weather island sidebar brand logo mark surface",
+        "windows": "window windows rounding corners softness gaps border borders thickness colour tiling dwindle master scrolling layout opacity transparency transparent dim blur shadow glow glass wobble wobbly title bar titlebar float snap resize animation",
+        "appearance": "theme palette accent color colour wallpaper background rice scheme dark light night bluelight comfort brightness backlight",
+        "bar": "bar panel taskbar move reposition position island sidebar clusters band skins noctalia caelestia aegis stele content layout",
+        "frame": "frame shape roundness surface colour opacity grain noise shadow notifications osd toast font text language type",
+        "desktop": "desktop visualizer visualiser spectrum weather brand logo mark name widget board wallpaper",
         "launcher": "launcher spotlight command palette greeting weather home",
         "fastfetch": "fetch neofetch terminal system info logo ascii emblem readout",
         "widgets": "desktop widget clock calendar weather face overlay wallpaper",
@@ -132,8 +146,8 @@ Rectangle {
     // anywhere. Ranking is fuzzy: exact word > substring > subsequence.
     readonly property var searchIndex: {
         var srcs = {
-            "shell": ShellSchema.rows, "appearance": AppearanceSchema.rows,
-            "input": InputSchema.rows, "keybinds": KeybindsSchema.rows,
+            "bar": BarSchema.rows, "frame": FrameSchema.rows, "desktop": DesktopSchema.rows, "appearance": AppearanceSchema.rows, "windows": WindowsSchema.rows,
+            "input": InputSchema.rows, "cursor": CursorSchema.rows, "keybinds": KeybindsSchema.rows,
             "displays": DisplaysSchema.rows, "gpu": GpuSchema.rows,
             "recording": RecordingSchema.rows, "dictation": DictationSchema.rows,
             "launcher": LauncherSchema.rows, "fastfetch": FastfetchSchema.rows,
@@ -251,16 +265,13 @@ Rectangle {
     // `framed` pages keep the rail + bottom action bar; `ledger` pages also get
     // the right write-ledger column. Everything else is full-bleed.
     readonly property var framedSet: ({
-        "shell": true, "appearance": true, "input": true, "animations": true,
+        "bar": true, "frame": true, "desktop": true, "appearance": true, "windows": true, "input": true, "cursor": true, "animations": true,
         "windowrules": true, "appoverrides": true, "layerrules": true,
         "autostart": true, "environment": true
     })
-    readonly property var ledgerSet: ({ "shell": true, "appearance": true })
+    readonly property var ledgerSet: ({ "bar": true, "frame": true, "desktop": true, "appearance": true, "windows": true })
 
-    readonly property var pageMeta: ({
-        "shell": { title: "Shell", eyebrow: "DESKTOP",
-                   blurb: "The frame, the bar, notifications, and the desktop visualiser." }
-    })
+    readonly property var pageMeta: ({})
     function metaFor(s) {
         return hub.pageMeta[s] || { title: hub.nameFor(s), eyebrow: hub.groupFor(s), blurb: "" };
     }
@@ -283,7 +294,7 @@ Rectangle {
         return false;
     }
     function pageFile(s) {
-        var map = { "profile": "ProfilePage", "shell": "ShellPage", "environment": "EnvironmentPage", "autostart": "AutostartPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "appearance": "AppearancePage", "input": "InputPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "rashin": "RashinPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "store": "StorePage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
+        var map = { "windows": "WindowsPage", "profile": "ProfilePage", "bar": "BarPage", "frame": "FramePage", "desktop": "DesktopPage", "environment": "EnvironmentPage", "autostart": "AutostartPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "appearance": "AppearancePage", "input": "InputPage", "cursor": "CursorPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "rashin": "RashinPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "store": "StorePage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
         return map[s] ? Qt.resolvedUrl("pages/" + map[s] + ".qml") : "";
     }
     function openPick(r) { picker.openFor(r); }
@@ -318,8 +329,9 @@ Rectangle {
     // key -> source file, derived from the schema so it cannot drift.
     readonly property var srcOf: {
         var m = {};
-        for (var i = 0; i < ShellSchema.rows.length; i++) {
-            var r = ShellSchema.rows[i];
+        var rows = BarSchema.rows.concat(FrameSchema.rows).concat(DesktopSchema.rows);
+        for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
             if (r.src && r.src !== "none") m[r.key] = r.src;
         }
         return m;
@@ -415,6 +427,14 @@ Rectangle {
                 var s = this.text.trim();
                 if (s && hub.pageFile(s) !== "") hub.section = s;
             }
+        }
+    }
+    Process {
+        id: advancedGet
+        command: ["ryoku-hub", "config", "get", "advanced"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: { if (this.text.trim() === "1") hub.advanced = true; }
         }
     }
 
@@ -694,6 +714,25 @@ Rectangle {
                 toolbar: true
                 placeholder: I18n.tr("Search settings…")
                 onEdited: (t) => hub.query = t
+            }
+            // progressive disclosure: one global switch reveals the deep knobs on
+            // every schema page (SettingsSheet filters rows tagged `adv`). Kept in
+            // the rail so it is one control, not one per page.
+            Item {
+                width: parent.width
+                height: Tokens.ctlH
+                Text {
+                    anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                    text: I18n.tr("Advanced settings")
+                    color: hub.advanced ? Tokens.ink : Tokens.inkMuted
+                    font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                    font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
+                }
+                Sw {
+                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                    on: hub.advanced
+                    onToggled: (v) => hub.advanced = v
+                }
             }
         }
 
