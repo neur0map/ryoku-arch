@@ -37,8 +37,9 @@
   only the folder icons with Papirus's matching colour set, so it needs no root
   and never `.pacnew`s the packaged theme. Autostart selects it; the wallpaper
   daemon (`ipc/wallpaper.go`) and the Hub scheme path (`hub/backend/schemes.go`)
-  rebuild it after matugen. GTK4 and Qt file managers show the new colour on the
-  next window they open (a toolkit limit); the desktop tracks it live.
+  rebuild it after matugen. The helper flips the icon-theme name (briefly, via
+  the Papirus-Dark parent) so running GTK apps like Nautilus re-read it and
+  recolor live, no reopen.
 
 - **The recorder sidebar gains a Discord toggle: a Quick capture auto-shrinks to
   fit a chat.** With it on, a finished Quick recording is re-encoded to a
