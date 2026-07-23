@@ -15,6 +15,15 @@
   Discord, Telegram, OBS, Zed, Steam and Heroic need the theme picked inside the
   app once. The wallpaper->folder-colour post_hook the PR's older `config.toml`
   had dropped is restored (`backend/matugen.go`, `pages/AppearancePage.qml`).
+- **Matugen: the visualiser, folder icons and window border follow the wallpaper
+  even with Ryoku Interface set to Original.** Those three read
+  `~/.cache/wallust/colors.json` directly (no `followWallpaper` gate), so writing
+  the monochrome palette to that file when Ryoku Interface was Original dragged
+  them mono too, though the toggle only promises to keep the Hub, pill and widgets
+  mono. Matugen now always writes the wallpaper's Material 3 palette to
+  `colors.json` and keeps the shell mono through `followWallpaper` alone, so on the
+  Matugen engine those accents track the wallpaper on both settings while the
+  chrome still honours the toggle (`backend/matugen.go`).
 - **Rices > Browse gains a Refresh button.** The community-store grid fetched its
   catalogue only once per Hub session (`showBrowse` pulled it only while empty),
   so a rice newly added to `ryoku-extras` never appeared without reopening the

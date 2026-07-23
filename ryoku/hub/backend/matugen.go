@@ -321,22 +321,23 @@ func generateMatugenTheme(imgPath string) error {
 		wallustMap[k] = v
 	}
 
-	// Write wallust cache colors.json for Quickshell & desktop based on user choice
+	// colors.json always carries the wallpaper's Material 3 palette, so the
+	// pieces that follow the wallpaper irrespective of the shell's own look --
+	// the visualiser, the folder-icon accent and the Hyprland window border --
+	// track it on both "Ryoku Interface" settings. The Hub, pill and widgets
+	// read it only when FollowWallpaper is on; with it off they fall back to
+	// their signature monochrome constants (Tokens/Theme), so "Original" keeps
+	// the shell mono while the accents still follow the wallpaper.
 	_ = os.MkdirAll(wallustCacheDir(), 0o755)
+	_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(wallustMap), 0o644)
 	st := loadThemeState()
+	st.FollowWallpaper = cfg.ThemeRyokuApps
 	if cfg.ThemeRyokuApps {
-		_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(wallustMap), 0o644)
-		st.FollowWallpaper = true
 		st.Scheme = ""
-		saveThemeState(st)
 	} else {
-		if monoPal, err := loadScheme("mono"); err == nil {
-			_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(monoPal), 0o644)
-		}
-		st.FollowWallpaper = false
 		st.Scheme = "mono"
-		saveThemeState(st)
 	}
+	saveThemeState(st)
 	// Build active apps.toml filtered by user toggles in cfg.Templates
 	renderActiveTemplates(cfg, wallustMap)
 
