@@ -61,8 +61,7 @@ var rows = [{
         "ctl": "step",
         "src": "shell",
         "lo": 1.0,
-        "hi": 60.0
-    },{
+        "hi": 60.0, "adv": true },{
         "tab": "Surface",
         "group": "SURFACE",
         "key": "surfaceColor",
@@ -93,8 +92,7 @@ var rows = [{
         "lo": 0.0,
         "hi": 0.2,
         "unit": "%",
-        "pct": true
-    },{
+        "pct": true, "adv": true },{
         "tab": "Surface",
         "group": "SHADOW",
         "key": "shadowStrength",
@@ -116,8 +114,7 @@ var rows = [{
         "src": "shell",
         "lo": 0.0,
         "hi": 80.0,
-        "unit": "px"
-    },{
+        "unit": "px", "adv": true },{
         "tab": "Notifications",
         "group": "NOTIFICATIONS",
         "key": "osdRadius",
@@ -127,8 +124,7 @@ var rows = [{
         "src": "shell",
         "lo": 0.0,
         "hi": 40.0,
-        "unit": "px"
-    },{
+        "unit": "px", "adv": true },{
         "tab": "Notifications",
         "group": "NOTIFICATIONS",
         "key": "osdOpacity",
@@ -139,8 +135,7 @@ var rows = [{
         "lo": 0.2,
         "hi": 1.0,
         "unit": "%",
-        "pct": true
-    },{
+        "pct": true, "adv": true },{
         "tab": "Global",
         "group": "LANGUAGE",
         "key": "language",
@@ -157,8 +152,7 @@ var rows = [{
         "desc": "Generate higher-quality translations, or a language Ryoku doesn't ship, with an LLM. Ryoku creates ~/.config/ryoku/i18n-llm.json on login; paste your Anthropic (console.anthropic.com) or OpenAI (platform.openai.com/api-keys) key into it, then Generate. Results layer over the built-in translations for the selected language.",
         "ctl": "action",
         "actionLabel": "Generate with AI",
-        "src": "none"
-    },{
+        "src": "none", "adv": true },{
         "tab": "Global",
         "group": "TEXT",
         "key": "fontFamily",

@@ -137,6 +137,28 @@
   描画 watermark, no bespoke card (`GpuPage.qml`, `gputune.go`, `gpupreset.go`).
 
 ### Changed
+- **The DESKTOP section is rebuilt around objects, so each thing has one home.**
+  Window settings were scattered across Appearance (Windows/Effects/Borders
+  tabs), the Shell page, and Animations; now every window setting lives on one
+  **Windows** page with clean tabs (Layout, Look, Borders, Motion). The old
+  catch-all Shell page split into three object pages that match how you think
+  about the desktop: **Bar** (the panel, clusters, island, sidebars), **Frame**
+  (shape, surface, shadow, notifications) and **Desktop** (brand, weather, the
+  visualiser). The pointer left Appearance for its own **Cursor** page under
+  Devices, next to Input, its theme catalogue intact. Appearance is trimmed to
+  what it is really about (theme, comfort, rices), and the sheet machinery its
+  moved tabs no longer needed is gone (199 lines). The rail is reordered so
+  related pages sit together and "Desktop Widgets" reads as "Widgets" beside its
+  Desktop sibling (`Hub.qml`, `pages/WindowsPage.qml`, `pages/BarPage.qml`,
+  `pages/FramePage.qml`, `pages/DesktopPage.qml`, `pages/CursorPage.qml`,
+  `pages/AppearancePage.qml`).
+- **Progressive disclosure: one Advanced switch calms every settings page.** A
+  global toggle in the rail hides the deep, rarely-touched knobs behind it: blur
+  and shadow sub-tuning, dwindle and master internals, the visualiser's spectrum
+  and motion, per-style bar variants, frame grain and edge melt. The default view
+  shows the settings you actually reach for; search still finds a hidden knob, and
+  flipping the switch reveals them all in place (`SchemaPage.qml`,
+  `SettingsSheet.qml`, `Hub.qml`, and the page schemas).
 - **Ryoku Settings reorganized around how you look for a setting, not how it is
   implemented.** The rail is regrouped into task-oriented sections -- OVERVIEW,
   DEVICES (displays, connections, input, GPU), DESKTOP (appearance, shell,

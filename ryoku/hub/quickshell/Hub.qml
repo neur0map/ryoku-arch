@@ -72,8 +72,8 @@ Rectangle {
             { key: "input", name: "Input" }, { key: "cursor", name: "Cursor" }, { key: "gpu", name: "GPU" } ] },
         { name: "DESKTOP", items: [
             { key: "windows", name: "Windows" }, { key: "appearance", name: "Appearance" }, { key: "bar", name: "Bar", wired: true }, { key: "frame", name: "Frame", wired: true }, { key: "desktop", name: "Desktop", wired: true },
-            { key: "animations", name: "Animations" }, { key: "lockscreen", name: "Lockscreen" },
-            { key: "launcher", name: "App Launcher" }, { key: "widgets", name: "Desktop Widgets" } ] },
+            { key: "widgets", name: "Widgets" }, { key: "animations", name: "Animations" },
+            { key: "lockscreen", name: "Lockscreen" }, { key: "launcher", name: "App Launcher" } ] },
         { name: "APPS & KEYS", items: [
             { key: "keybinds", name: "Keybinds" }, { key: "windowrules", name: "Window Rules" },
             { key: "appoverrides", name: "App Overrides" }, { key: "layerrules", name: "Layer Rules" } ] },

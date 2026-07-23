@@ -67,8 +67,7 @@ var rows = [{
         "opts": [
             "ryoku",
             "ricelin"
-        ]
-    },{
+        ], "adv": true },{
         "tab": "Bar",
         "group": "BAR",
         "key": "atollVariant",
@@ -80,8 +79,7 @@ var rows = [{
         "opts": [
             "ilyamiro",
             "ryoku"
-        ]
-    },{
+        ], "adv": true },{
         "tab": "Bar",
         "group": "BAR",
         "key": "dyadVariant",
@@ -93,8 +91,7 @@ var rows = [{
         "opts": [
             "faithful",
             "ryoku"
-        ]
-    },{
+        ], "adv": true },{
         "tab": "Bar",
         "group": "BAR",
         "key": "barHeight",
@@ -141,8 +138,7 @@ var rows = [{
         "label": "Special workspace cue",
         "desc": "Flag a Hyprland scratchpad while one is open",
         "ctl": "sw",
-        "src": "shell"
-    },{
+        "src": "shell", "adv": true },{
         "tab": "Bar",
         "group": "CONTENT",
         "key": "barShowStatus",
@@ -199,8 +195,7 @@ var rows = [{
             "status",
             "tray",
             "power"
-        ]
-    },{
+        ], "adv": true },{
         "tab": "Bar",
         "group": "LAYOUT (band skins: noctalia, caelestia, aegis, stele)",
         "key": "barLayoutCentre",
@@ -222,8 +217,7 @@ var rows = [{
             "status",
             "tray",
             "power"
-        ]
-    },{
+        ], "adv": true },{
         "tab": "Bar",
         "group": "LAYOUT (band skins: noctalia, caelestia, aegis, stele)",
         "key": "barLayoutRight",
@@ -245,8 +239,7 @@ var rows = [{
             "status",
             "tray",
             "power"
-        ]
-    },{
+        ], "adv": true },{
         "tab": "Island",
         "group": "ISLAND",
         "key": "islandRadius",
@@ -340,8 +333,7 @@ var rows = [{
         "label": "Open on hover",
         "desc": "Open a sidebar on hover instead of a click",
         "ctl": "sw",
-        "src": "shell"
-    },{
+        "src": "shell", "adv": true },{
         "tab": "Sidebars",
         "group": "SIZE",
         "key": "sidebarWidth",
@@ -351,8 +343,7 @@ var rows = [{
         "src": "shell",
         "lo": 240.0,
         "hi": 520.0,
-        "unit": "px"
-    },{
+        "unit": "px", "adv": true },{
         "tab": "Sidebars",
         "group": "SIZE",
         "key": "sidebarCornerSize",
@@ -362,6 +353,5 @@ var rows = [{
         "src": "shell",
         "lo": 16.0,
         "hi": 80.0,
-        "unit": "px"
-    }
+        "unit": "px", "adv": true }
 ];
