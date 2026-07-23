@@ -633,8 +633,6 @@ func renderApps() {
 	} else {
 		blankGtk(cfgBase)
 	}
-	// Folder icons follow the same accent as the shell and GTK.
-	_ = exec.Command("ryoku-cmd-folders").Run()
 }
 
 // themeAppsEnabled reports whether the palette should reach GTK / GUI apps.
