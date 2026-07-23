@@ -883,6 +883,17 @@ func genPlugins(o Overrides) string {
 			fmt.Sprintf("glass_opacity = %s", luaNum(hg.Opacity)),
 			fmt.Sprintf("tint_color = 0x%s", luaHex8(hg.Tint)),
 			fmt.Sprintf("brightness = %s", luaNum(hg.Brightness)),
+			// Neutral tone map: keep the frosted blur and edge optics, but do not
+			// dim, desaturate or flatten the backdrop. hyprglass' per-theme defaults
+			// dim bright regions (adaptive_dim 0.4) and desaturate (saturation 0.8),
+			// and that backdrop shows through a window's own translucency as a grey
+			// wash over its images, video and text. Zeroed so glass never greys app
+			// content; brightness stays the user's knob.
+			"saturation = 1.0",
+			"contrast = 1.0",
+			"vibrancy = 0.0",
+			"adaptive_dim = 0.0",
+			"adaptive_boost = 0.0",
 		}
 		char, ok := hyprglassCharacter[hg.Preset]
 		if !ok {

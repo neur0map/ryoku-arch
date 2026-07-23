@@ -645,9 +645,10 @@ func TestGenPluginsHyprfocusKeys(t *testing.T) {
 
 // hyprglass: no named default_preset (a built-in would win the resolution chain
 // and leave the sliders dead, and the Lua preset() API drops on a cold load).
-// Instead the picked look's edge optics plus the four exposed knobs are emitted
-// as plain global config, which cold-loads and wins the chain. tint is a 0x ARGB
-// literal; the "glass" look carries the strong refraction / dispersion / lens.
+// The picked look's edge optics plus the four exposed knobs emit as plain global
+// config, and the tone map is pinned neutral so the frosted backdrop never dims
+// or greys the app content showing through a window's own translucency. tint is a
+// 0x ARGB literal; the "glass" look carries the strong refraction / lens.
 func TestGenPluginsHyprglass(t *testing.T) {
 	o := defaultOverrides()
 	o.Plugins.Hyprglass.Enabled = true
@@ -658,9 +659,16 @@ func TestGenPluginsHyprglass(t *testing.T) {
 	o.Plugins.Hyprglass.Brightness = 0.9
 	o.Plugins.Hyprglass.Theme = "light"
 	out := genLua(o, true)
-	want := `hl.config({ plugin = { hyprglass = { enabled = 1, default_theme = "light", blur_strength = 3.5, glass_opacity = 0.8, tint_color = 0x112233ff, brightness = 0.9, refraction_strength = 8.0, chromatic_aberration = 0.5, fresnel_strength = 0.4, specular_strength = 0.8, lens_distortion = 0.3 } } })`
+	want := `hl.config({ plugin = { hyprglass = { enabled = 1, default_theme = "light", blur_strength = 3.5, glass_opacity = 0.8, tint_color = 0x112233ff, brightness = 0.9, saturation = 1.0, contrast = 1.0, vibrancy = 0.0, adaptive_dim = 0.0, adaptive_boost = 0.0, refraction_strength = 8.0, chromatic_aberration = 0.5, fresnel_strength = 0.4, specular_strength = 0.8, lens_distortion = 0.3 } } })`
 	if !strings.Contains(out, want) {
 		t.Errorf("missing %q:\n%s", want, out)
+	}
+	// content must not be dimmed or greyed: the luminance dimmer and desaturation
+	// are pinned neutral regardless of the picked look's theme defaults.
+	for _, safe := range []string{"adaptive_dim = 0.0", "adaptive_boost = 0.0", "saturation = 1.0"} {
+		if !strings.Contains(out, safe) {
+			t.Errorf("content-safe tone map missing %q:\n%s", safe, out)
+		}
 	}
 	// a named preset or the Lua preset() API would kill the sliders or drop on a
 	// cold load -- neither must appear.

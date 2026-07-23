@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Fixed
+- **Liquid glass no longer greys out app content.** The frosted backdrop hyprglass
+  draws behind a window shows through the window's own translucency, and its
+  per-theme defaults dim bright regions (adaptive_dim 0.4) and desaturate
+  (saturation 0.8), so images, video and text under any transparency picked up a
+  grey, washed-out film. `backend/hypr.go` now pins the tone map neutral
+  (saturation/contrast 1.0, adaptive dim/boost and vibrancy 0) so the glass keeps
+  its blur and edge refraction but never dims or greys what is behind it;
+  brightness stays the user's slider. Measured 28-37% brighter content behind the
+  glass, verified live on Hyprland 0.55.4 (`backend/hypr_test.go`).
 - **Liquid glass windows: the options now take effect, and the look shows the
   first time you enable it.** hyprglass resolves every setting through a preset
   before falling back to plain config, and its built-in looks
