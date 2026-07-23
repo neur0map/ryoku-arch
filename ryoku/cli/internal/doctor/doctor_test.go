@@ -180,6 +180,67 @@ func TestReconcileShellDaemonOutsideSession(t *testing.T) {
 	}
 }
 
+func TestDaemonIsStale(t *testing.T) {
+	cases := []struct {
+		name      string
+		live, sig string
+		ok        bool
+		want      bool
+	}{
+		{"bound to a dead instance", "live", "dead", true, true},
+		{"bound to the live instance", "live", "live", true, false},
+		{"signature unavailable (old daemon)", "live", "", false, false},
+	}
+	for _, c := range cases {
+		if got := daemonIsStale(c.live, c.sig, c.ok); got != c.want {
+			t.Errorf("%s: daemonIsStale(%q, %q, %v) = %v, want %v", c.name, c.live, c.sig, c.ok, got, c.want)
+		}
+	}
+}
+
+// A reachable daemon pinned to a previous Hyprland instance must be flagged for a
+// restart, not passed as healthy -- the frozen-workspaces / dead-power bug.
+func TestReconcileShellDaemonStale(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_RUNTIME_DIR", dir)
+	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "live-instance")
+
+	// a fake ryoku-shell on PATH so the reconciler clears its install check;
+	// check-only mode never executes it (it only detects and reports).
+	bin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bin, "ryoku-shell"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	ln, err := net.Listen("unix", filepath.Join(dir, "ryoku-shell.sock"))
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			b := make([]byte, 64)
+			n, _ := c.Read(b)
+			switch strings.TrimSpace(string(b[:n])) {
+			case "ping":
+				fmt.Fprintln(c, "ok")
+			case "signature":
+				fmt.Fprintln(c, "stale-instance") // a different instance than live
+			}
+			c.Close()
+		}
+	}()
+
+	if r := reconcileShellDaemon(true); r.status != recWouldFix { // check-only: detect, don't restart
+		t.Fatalf("a reachable-but-stale daemon must be flagged (todo), got %q: %s", r.status.label(), r.detail)
+	}
+}
+
 func TestHyprLuaSane(t *testing.T) {
 	cases := []struct {
 		name string

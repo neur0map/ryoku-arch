@@ -1710,7 +1710,30 @@ func reconcileShellDaemon(checkOnly bool) recResult {
 			withFix("redeploy the shell: `ryoku update` (or ryoku/shell/deploy.sh from a checkout)")
 	}
 	if shellDaemonReachable() {
-		return okRes("shell daemon reachable")
+		// A reachable daemon can still be stale. One left over from a previous
+		// Hyprland instance -- it survived a relogin or crash (deploy starts it
+		// detached, and it need not die with the compositor) -- keeps answering
+		// ping, but it and every quickshell child it supervises stay pinned to
+		// the dead instance's IPC socket: the workspace indicator freezes and
+		// power (any monitor-aware command) resolves no monitor. Compare the
+		// daemon's instance to this live session and restart a mismatch.
+		sig, ok := shellDaemonSignature()
+		if !daemonIsStale(os.Getenv("HYPRLAND_INSTANCE_SIGNATURE"), sig, ok) {
+			return okRes("shell daemon reachable")
+		}
+		if checkOnly {
+			return wouldRes("shell daemon is bound to a previous Hyprland instance; workspaces and the power menu are dead").
+				withFix("ryoku doctor restarts the daemon against the live session")
+		}
+		if err := restartShellDaemon(); err != nil {
+			return failRes("shell daemon is stale and could not be restarted: %v", err).
+				withFix("`ryoku-shell quit`, then `ryoku-shell daemon` in a terminal")
+		}
+		if waitDaemonReachable(5 * time.Second) {
+			return fixedRes("shell daemon was bound to a dead Hyprland instance; restarted it against the live session")
+		}
+		return failRes("restarted the stale shell daemon but it did not come back").
+			withFix("run `ryoku-shell daemon` in a terminal to see why it exits")
 	}
 	if checkOnly {
 		return wouldRes("shell daemon is down; the shell, keybinds and panels are dead").
@@ -1732,11 +1755,7 @@ func reconcileShellDaemon(checkOnly bool) recResult {
 // the connection; a hung daemon accepts but never replies, so the read is
 // bounded.
 func shellDaemonReachable() bool {
-	dir := os.Getenv("XDG_RUNTIME_DIR")
-	if dir == "" {
-		dir = "/tmp"
-	}
-	conn, err := net.DialTimeout("unix", filepath.Join(dir, "ryoku-shell.sock"), time.Second)
+	conn, err := net.DialTimeout("unix", shellSockPath(), time.Second)
 	if err != nil {
 		return false
 	}
@@ -1781,6 +1800,73 @@ func waitDaemonReachable(d time.Duration) bool {
 		}
 		if time.Now().After(deadline) {
 			return false
+		}
+		time.Sleep(150 * time.Millisecond)
+	}
+}
+
+// shellSockPath is the shell daemon's control socket -- the one the keybinds and
+// quickshell components dial.
+func shellSockPath() string {
+	dir := os.Getenv("XDG_RUNTIME_DIR")
+	if dir == "" {
+		dir = "/tmp"
+	}
+	return filepath.Join(dir, "ryoku-shell.sock")
+}
+
+// shellDaemonSignature asks the running daemon which Hyprland instance it was
+// launched under (the `signature` command). ok is false when the query fails or
+// the daemon predates the command, so a "can't tell" is never read as stale.
+func shellDaemonSignature() (sig string, ok bool) {
+	conn, err := net.DialTimeout("unix", shellSockPath(), time.Second)
+	if err != nil {
+		return "", false
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(2 * time.Second))
+	if _, err := fmt.Fprintln(conn, "signature"); err != nil {
+		return "", false
+	}
+	buf := make([]byte, 4096)
+	n, _ := conn.Read(buf)
+	resp := strings.TrimSpace(string(buf[:n]))
+	if resp == "" || strings.HasPrefix(resp, "err ") {
+		return "", false
+	}
+	return resp, true
+}
+
+// daemonIsStale reports whether a reachable daemon is bound to a different
+// Hyprland instance than this session (live), from the signature it reported and
+// whether that report was usable (ok). "can't tell" (ok=false) is never stale,
+// so doctor never restarts a daemon it could not identify.
+func daemonIsStale(live, sig string, ok bool) bool {
+	return ok && sig != live
+}
+
+// restartShellDaemon replaces a stale daemon with one bound to the live session:
+// quit the incumbent (so it reaps its own quickshell children and frees the
+// socket), then start a fresh daemon, which inherits doctor's live
+// HYPRLAND_INSTANCE_SIGNATURE and passes it to every component it supervises.
+func restartShellDaemon() error {
+	quitShellDaemon()
+	return startShellDaemon()
+}
+
+// quitShellDaemon sends the daemon a quit and waits, bounded, for the control
+// socket to go quiet, so the fresh daemon binds without racing the old one's
+// teardown.
+func quitShellDaemon() {
+	if conn, err := net.DialTimeout("unix", shellSockPath(), time.Second); err == nil {
+		_ = conn.SetDeadline(time.Now().Add(2 * time.Second))
+		fmt.Fprintln(conn, "quit")
+		conn.Close()
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if !shellDaemonReachable() {
+			return
 		}
 		time.Sleep(150 * time.Millisecond)
 	}
