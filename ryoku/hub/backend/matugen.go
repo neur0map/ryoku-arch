@@ -146,15 +146,20 @@ func runMatugenCmd(args []string) error {
 		if err := json.Unmarshal([]byte(args[1]), &cfg); err != nil {
 			return err
 		}
+		prev := loadMatugenConfig()
 		if err := saveMatugenConfig(cfg); err != nil {
 			return err
 		}
-		// Apply live so a settings change (scheme, per-app toggle) takes hold at
-		// once. Matugen re-derives the whole palette from the wallpaper; wallust
-		// keeps its current colors.json and just re-fans it through the (possibly
-		// newly toggled) templates.
+		// Apply live so a settings change takes hold at once. Matugen re-derives
+		// the whole palette from the wallpaper. Switching *back* to wallust must
+		// re-derive too: re-apply the current scheme (follow re-runs wallust on
+		// the wallpaper, a fixed scheme reloads its palette) so the stale matugen
+		// colors.json is replaced -- not just re-fanned through the templates. A
+		// same-engine wallust change (per-app toggle) keeps the fast re-fan path.
 		if cfg.Engine == "matugen" {
 			_ = generateMatugenTheme("")
+		} else if prev.Engine == "matugen" {
+			_ = applyScheme(currentScheme())
 		} else if pal := readPalette(filepath.Join(wallustCacheDir(), "colors.json")); pal != nil {
 			renderActiveTemplates(cfg, pal)
 		}

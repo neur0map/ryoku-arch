@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Fixed
+- **Switching the engine back to Wallust actually reverts now.** Turning the
+  Material You toggle off only re-fanned the Matugen colours still sitting in
+  `colors.json`, so the desktop stayed on the M3 palette -- the switch looked
+  like a no-op. It now re-derives: the change back to Wallust re-applies the
+  current scheme (follow re-runs Wallust on the wallpaper, a fixed light/dark
+  scheme reloads its palette), replacing the stale Matugen palette instead of
+  re-fanning it. A same-engine change (per-app toggle) keeps the fast re-fan
+  path (`backend/matugen.go`).
 - **Theme tab leads with Wallust; Matugen is an opt-in "advanced" section, and
   each app has a button to its template.** The Wallust/Matugen picker no longer
   sits at the top as a co-equal choice: Wallust (the default) drives the palette,
