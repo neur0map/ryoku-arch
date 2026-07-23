@@ -5,7 +5,9 @@ import Quickshell
 import Quickshell.Io
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
-import "schema/ShellSettingsPage.js" as ShellSchema
+import "schema/BarPage.js" as BarSchema
+import "schema/FramePage.js" as FrameSchema
+import "schema/DesktopPage.js" as DesktopSchema
 import "schema/AppearancePage.js" as AppearanceSchema
 import "schema/WindowsPage.js" as WindowsSchema
 import "schema/InputPage.js" as InputSchema
@@ -47,8 +49,8 @@ Rectangle {
     focus: true
 
     // ── which page ───────────────────────────────────────────────────────
-    property string section: "shell"
-    // remember the last section so a reopen lands where you left, not on Shell.
+    property string section: "windows"
+    // remember the last section so a reopen lands where you left, not the default.
     // Read once at startup by `sectionGet` below; written here on every change.
     onSectionChanged: Quickshell.execDetached(["ryoku-hub", "config", "set", "section", hub.section])
     property string query: ""
@@ -68,7 +70,7 @@ Rectangle {
             { key: "displays", name: "Displays" }, { key: "connections", name: "Connections" },
             { key: "input", name: "Input" }, { key: "gpu", name: "GPU" } ] },
         { name: "DESKTOP", items: [
-            { key: "windows", name: "Windows" }, { key: "appearance", name: "Appearance" }, { key: "shell", name: "Shell", wired: true },
+            { key: "windows", name: "Windows" }, { key: "appearance", name: "Appearance" }, { key: "bar", name: "Bar", wired: true }, { key: "frame", name: "Frame", wired: true }, { key: "desktop", name: "Desktop", wired: true },
             { key: "animations", name: "Animations" }, { key: "lockscreen", name: "Lockscreen" },
             { key: "launcher", name: "App Launcher" }, { key: "widgets", name: "Desktop Widgets" } ] },
         { name: "APPS & KEYS", items: [
@@ -93,7 +95,7 @@ Rectangle {
     readonly property var jpName: ({
         "profile": "横顔", "displays": "画面", "input": "入力", "keybinds": "操作",
         "connections": "接続", "gpu": "描画", "recording": "録画", "dictation": "音声",
-        "windows": "窓", "appearance": "外観", "shell": "外殻", "launcher": "起動", "fastfetch": "情報",
+        "windows": "窓", "appearance": "外観", "bar": "帯", "frame": "枠", "desktop": "卓上", "launcher": "起動", "fastfetch": "情報",
         "widgets": "部品", "lockscreen": "施錠", "animations": "動き", "store": "商店",
         "addons": "拡張", "windowrules": "規則", "appoverrides": "上書", "layerrules": "階層",
         "autostart": "自動", "environment": "環境", "performance": "性能", "rashin": "羅針",
@@ -115,7 +117,9 @@ Rectangle {
         "dictation": "voice typing speech transcribe whisper microphone stt",
         "windows": "window windows rounding corners softness gaps border borders thickness colour tiling dwindle master scrolling layout opacity transparency transparent dim blur shadow glow glass wobble wobbly title bar titlebar float snap resize animation",
         "appearance": "cursor pointer theme palette accent color colour wallpaper background rice scheme dark light night bluelight comfort brightness backlight",
-        "shell": "bar panel taskbar move reposition position notification osd toast frame font grain noise visualizer visualiser weather island sidebar brand logo mark surface",
+        "bar": "bar panel taskbar move reposition position island sidebar clusters band skins noctalia caelestia aegis stele content layout",
+        "frame": "frame shape roundness surface colour opacity grain noise shadow notifications osd toast font text language type",
+        "desktop": "desktop visualizer visualiser spectrum weather brand logo mark name widget board wallpaper",
         "launcher": "launcher spotlight command palette greeting weather home",
         "fastfetch": "fetch neofetch terminal system info logo ascii emblem readout",
         "widgets": "desktop widget clock calendar weather face overlay wallpaper",
@@ -140,7 +144,7 @@ Rectangle {
     // anywhere. Ranking is fuzzy: exact word > substring > subsequence.
     readonly property var searchIndex: {
         var srcs = {
-            "shell": ShellSchema.rows, "appearance": AppearanceSchema.rows, "windows": WindowsSchema.rows,
+            "bar": BarSchema.rows, "frame": FrameSchema.rows, "desktop": DesktopSchema.rows, "appearance": AppearanceSchema.rows, "windows": WindowsSchema.rows,
             "input": InputSchema.rows, "keybinds": KeybindsSchema.rows,
             "displays": DisplaysSchema.rows, "gpu": GpuSchema.rows,
             "recording": RecordingSchema.rows, "dictation": DictationSchema.rows,
@@ -259,16 +263,13 @@ Rectangle {
     // `framed` pages keep the rail + bottom action bar; `ledger` pages also get
     // the right write-ledger column. Everything else is full-bleed.
     readonly property var framedSet: ({
-        "shell": true, "appearance": true, "windows": true, "input": true, "animations": true,
+        "bar": true, "frame": true, "desktop": true, "appearance": true, "windows": true, "input": true, "animations": true,
         "windowrules": true, "appoverrides": true, "layerrules": true,
         "autostart": true, "environment": true
     })
-    readonly property var ledgerSet: ({ "shell": true, "appearance": true, "windows": true })
+    readonly property var ledgerSet: ({ "bar": true, "frame": true, "desktop": true, "appearance": true, "windows": true })
 
-    readonly property var pageMeta: ({
-        "shell": { title: "Shell", eyebrow: "DESKTOP",
-                   blurb: "The frame, the bar, notifications, and the desktop visualiser." }
-    })
+    readonly property var pageMeta: ({})
     function metaFor(s) {
         return hub.pageMeta[s] || { title: hub.nameFor(s), eyebrow: hub.groupFor(s), blurb: "" };
     }
@@ -291,7 +292,7 @@ Rectangle {
         return false;
     }
     function pageFile(s) {
-        var map = { "windows": "WindowsPage", "profile": "ProfilePage", "shell": "ShellPage", "environment": "EnvironmentPage", "autostart": "AutostartPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "appearance": "AppearancePage", "input": "InputPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "rashin": "RashinPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "store": "StorePage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
+        var map = { "windows": "WindowsPage", "profile": "ProfilePage", "bar": "BarPage", "frame": "FramePage", "desktop": "DesktopPage", "environment": "EnvironmentPage", "autostart": "AutostartPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "appearance": "AppearancePage", "input": "InputPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "rashin": "RashinPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "store": "StorePage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
         return map[s] ? Qt.resolvedUrl("pages/" + map[s] + ".qml") : "";
     }
     function openPick(r) { picker.openFor(r); }
@@ -326,8 +327,9 @@ Rectangle {
     // key -> source file, derived from the schema so it cannot drift.
     readonly property var srcOf: {
         var m = {};
-        for (var i = 0; i < ShellSchema.rows.length; i++) {
-            var r = ShellSchema.rows[i];
+        var rows = BarSchema.rows.concat(FrameSchema.rows).concat(DesktopSchema.rows);
+        for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
             if (r.src && r.src !== "none") m[r.key] = r.src;
         }
         return m;
