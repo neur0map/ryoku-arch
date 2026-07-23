@@ -1564,6 +1564,15 @@ Item {
                             font.pixelSize: Tokens.fSmall
                         }
 
+                        Row {
+                            spacing: Tokens.s3
+                            Btn {
+                                text: pg.catalogLoading ? I18n.tr("REFRESHING") : I18n.tr("REFRESH")
+                                armed: !pg.catalogLoading
+                                onAct: pg.loadCatalog()
+                            }
+                        }
+
                         Tick {
                             visible: pg.catalogLoading
                             anchors.horizontalCenter: parent.horizontalCenter
