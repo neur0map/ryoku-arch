@@ -177,52 +177,45 @@ Item {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Theme palette scheme: follow the wallpaper, or lock light/dark. Instant,
-    // via `ryoku-hub hypr scheme`; never touches the hypr draft or Save.
+    // Theme palette: engine, scheme, Material 3 tuning, app reach. Every control
+    // here STAGES into a draft; nothing is written until Save (applyTheme), and
+    // Revert drops the staged edits -- the shared action bar drives it through
+    // hub.pageDirty / savePage / revertPage, exactly like the rest of the Hub.
     // ════════════════════════════════════════════════════════════════════════
     property string scheme: "follow"
-    function setScheme(k) {
-        pg.scheme = k;
-        schemeApplyProc.command = ["ryoku-hub", "hypr", "scheme", k];
-        schemeApplyProc.running = true;
-    }
+    property string schemeCommitted: "follow"
+    function setScheme(k) { pg.scheme = k; }
     Process {
         id: schemeQueryProc
         command: ["ryoku-hub", "hypr", "scheme"]
         running: true
         stdout: StdioCollector {
-            onStreamFinished: { try { pg.scheme = JSON.parse(this.text).scheme || "follow"; } catch (e) {} }
+            onStreamFinished: { try { var s = JSON.parse(this.text).scheme || "follow"; pg.schemeCommitted = s; pg.scheme = s; } catch (e) {} }
         }
     }
-    Process { id: schemeApplyProc; stdout: StdioCollector { onStreamFinished: schemeQueryProc.running = true } }
+    Process { id: schemeApplyProc }
 
-    // Theme apps: extend the palette to GTK / GUI apps (theme.json themeApps),
-    // instant via `ryoku-hub hypr theme-apps`. Governs the reach past the shell
-    // (Files, editors, GTK apps); the shell, terminal, borders and Qt always
-    // track the palette. Sits under the scheme, the same instant-apply family.
+    // Theme apps: extend the palette to GTK / GUI apps (theme.json themeApps).
     property bool themeApps: true
-    function setThemeApps(v) {
-        pg.themeApps = v;
-        themeAppsApplyProc.command = ["ryoku-hub", "hypr", "theme-apps", v ? "on" : "off"];
-        themeAppsApplyProc.running = true;
-    }
+    property bool themeAppsCommitted: true
+    function setThemeApps(v) { pg.themeApps = v; }
     Process {
         id: themeAppsQueryProc
         command: ["ryoku-hub", "hypr", "theme-apps"]
         running: true
         stdout: StdioCollector {
-            onStreamFinished: { try { pg.themeApps = JSON.parse(this.text).themeApps !== false; } catch (e) {} }
+            onStreamFinished: { try { var t = JSON.parse(this.text).themeApps !== false; pg.themeAppsCommitted = t; pg.themeApps = t; } catch (e) {} }
         }
     }
-    Process { id: themeAppsApplyProc; stdout: StdioCollector { onStreamFinished: themeAppsQueryProc.running = true } }
+    Process { id: themeAppsApplyProc }
 
-    // Ryoku default: reset the whole desktop to the shipped signature (stele
-    // bar, square corners, Space Grotesk, grainy mono) in one click, via
-    // `ryoku-hub hypr ryoku-theme`. Instant and live, like the scheme apply.
+    // Ryoku default: reset the whole desktop to the shipped signature in one
+    // click, via `ryoku-hub hypr ryoku-theme`. A distinct one-shot reset.
     function applyRyokuTheme() { ryokuThemeProc.running = true; }
-    Process { id: ryokuThemeProc; command: ["ryoku-hub", "hypr", "ryoku-theme"]; stdout: StdioCollector { onStreamFinished: schemeQueryProc.running = true } }
+    Process { id: ryokuThemeProc; command: ["ryoku-hub", "hypr", "ryoku-theme"]; stdout: StdioCollector { onStreamFinished: { schemeQueryProc.running = true; themeAppsQueryProc.running = true; pg.refreshMatugen(); } } }
+
     // ════════════════════════════════════════════════════════════════════════
-    // Matugen Material 3 Configuration State
+    // Matugen Material 3 config, staged like the scheme above.
     // ════════════════════════════════════════════════════════════════════════
     property var matugenCfg: ({
         "engine": "wallust",
@@ -240,12 +233,47 @@ Item {
             "micro": true, "papirus": true
         }
     })
+    property var matugenCommitted: ({})
+    property bool themeLoaded: false
+    readonly property bool themeDirty: pg.themeLoaded && (
+           pg.scheme !== pg.schemeCommitted
+        || pg.themeApps !== pg.themeAppsCommitted
+        || JSON.stringify(pg.matugenCfg) !== JSON.stringify(pg.matugenCommitted))
+    onThemeDirtyChanged: if (pg.hub) pg.hub.pageDirty = pg.themeDirty
+    Connections {
+        target: pg.hub
+        ignoreUnknownSignals: true
+        function onSavePage() { pg.applyTheme(); }
+        function onRevertPage() { pg.revertTheme(); }
+    }
 
     function refreshMatugen() { matugenGetProc.running = true; }
-    function saveMatugen(cfg) {
-        pg.matugenCfg = cfg;
-        matugenSetProc.command = ["ryoku-hub", "hypr", "matugen", "set", JSON.stringify(cfg)];
-        matugenSetProc.running = true;
+    function saveMatugen(cfg) { pg.matugenCfg = cfg; }
+
+    // Apply everything staged, in one commit (the shared Save calls this via
+    // hub.savePage); each surface only fires if it actually changed.
+    function applyTheme() {
+        if (JSON.stringify(pg.matugenCfg) !== JSON.stringify(pg.matugenCommitted)) {
+            matugenSetProc.command = ["ryoku-hub", "hypr", "matugen", "set", JSON.stringify(pg.matugenCfg)];
+            matugenSetProc.running = true;
+            pg.matugenCommitted = JSON.parse(JSON.stringify(pg.matugenCfg));
+        }
+        if (pg.scheme !== pg.schemeCommitted) {
+            schemeApplyProc.command = ["ryoku-hub", "hypr", "scheme", pg.scheme];
+            schemeApplyProc.running = true;
+            pg.schemeCommitted = pg.scheme;
+        }
+        if (pg.themeApps !== pg.themeAppsCommitted) {
+            themeAppsApplyProc.command = ["ryoku-hub", "hypr", "theme-apps", pg.themeApps ? "on" : "off"];
+            themeAppsApplyProc.running = true;
+            pg.themeAppsCommitted = pg.themeApps;
+        }
+    }
+    // Drop staged edits (the shared Revert calls this via hub.revertPage).
+    function revertTheme() {
+        pg.matugenCfg = JSON.parse(JSON.stringify(pg.matugenCommitted));
+        pg.scheme = pg.schemeCommitted;
+        pg.themeApps = pg.themeAppsCommitted;
     }
 
     Process {
@@ -256,12 +284,16 @@ Item {
             onStreamFinished: {
                 try {
                     var parsed = JSON.parse(this.text);
-                    if (parsed) pg.matugenCfg = parsed;
+                    if (parsed) {
+                        pg.matugenCommitted = parsed;
+                        pg.matugenCfg = JSON.parse(JSON.stringify(parsed));
+                        pg.themeLoaded = true;
+                    }
                 } catch(e) {}
             }
         }
     }
-    Process { id: matugenSetProc; stdout: StdioCollector { onStreamFinished: refreshMatugen() } }
+    Process { id: matugenSetProc }
 
 
     // ════════════════════════════════════════════════════════════════════════
@@ -497,9 +529,7 @@ Item {
 
     // lazy refresh, matching the old page's onGroupChanged wiring.
     onTabChanged: {
-        if (pg.tab === "Theme") { schemeQueryProc.running = true; themeAppsQueryProc.running = true; pg.refreshMatugen(); }
-        else if (pg.tab === "Comfort") pg.refreshComfort();
-        else if (pg.tab === "Borders") schemeQueryProc.running = true;
+        if (pg.tab === "Comfort") pg.refreshComfort();
         else if (pg.tab === "Rices") pg.reloadRices();
     }
     Component.onCompleted: { pg.refreshComfort(); pg.reloadRices(); pg.refreshMatugen(); }

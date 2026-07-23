@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Fixed
+- **Theme tab: palette changes go through Save instead of silent auto-apply.**
+  The engine (Wallust / Matugen), scheme, Material 3 tuning, Ryoku interface and
+  per-app toggles applied the instant you touched them and never lit the action
+  bar, so the Save button stayed greyed and the edits felt lost -- unlike every
+  other page in the Hub. They now stage into a draft that raises the shared Save
+  (and Revert): pick freely, then commit in one click, and Revert or an unsaved
+  quit drops the staged edits. Staging also stops the contrast slider re-running
+  matugen on every drag frame (`Hub.qml` gains `pageDirty` + `savePage` /
+  `revertPage`; `pages/AppearancePage.qml`).
 - **Matugen (Material 3) is merge-ready: live wallpapers, real app theming, and
   the panel folded into Theme.** The Material 3 engine now samples a still frame
   from a live/video wallpaper before running matugen (it panicked on a `.webm`,
