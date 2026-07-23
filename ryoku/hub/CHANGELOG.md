@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Fixed
+- **Rices > Browse gains a Refresh button.** The community-store grid fetched its
+  catalogue only once per Hub session (`showBrowse` pulled it only while empty),
+  so a rice newly added to `ryoku-extras` never appeared without reopening the
+  Hub, and the sole re-pull was the empty-state "Try again". A Refresh button now
+  re-runs `ryoku-hub rice catalog` (already network-first with CDN-busting),
+  matching the Add-ons store and Lockscreen (`pages/AppearancePage.qml`).
 - **Matugen (fixed-scheme path): pre-create the template output dirs.**
   `backend/schemes.go` (`renderApps`) makes the output dirs before matugen runs so
   its "folder doesn't exist" warnings stay out of the log (matugen already
