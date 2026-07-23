@@ -66,6 +66,8 @@ func renderApps(pal map[string]string) {
 	} else {
 		blankGtk()
 	}
+	// Folder icons follow the same accent the palette gives the shell and GTK.
+	_ = exec.Command("ryoku-cmd-folders", pal["color4"]).Run()
 }
 
 func runMatugen(cfg, carrier string) {
