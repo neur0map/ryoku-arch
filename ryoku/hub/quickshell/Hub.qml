@@ -52,6 +52,12 @@ Rectangle {
     onSectionChanged: Quickshell.execDetached(["ryoku-hub", "config", "set", "section", hub.section])
     property string query: ""
 
+    // progressive disclosure: one global Advanced switch (in the rail) reveals the
+    // deep knobs across every schema page. persisted like `section`, restored at
+    // startup by `advancedGet` below.
+    property bool advanced: false
+    onAdvancedChanged: Quickshell.execDetached(["ryoku-hub", "config", "set", "advanced", hub.advanced ? "1" : "0"])
+
     // The full catalogue. `wired` marks the pages whose content and
     // persistence are ported; the rest render an honest porting plate rather
     // than a settings page that cannot save.
@@ -415,6 +421,14 @@ Rectangle {
             }
         }
     }
+    Process {
+        id: advancedGet
+        command: ["ryoku-hub", "config", "get", "advanced"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: { if (this.text.trim() === "1") hub.advanced = true; }
+        }
+    }
 
     property string cfgDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku"
 
@@ -684,6 +698,25 @@ Rectangle {
                 toolbar: true
                 placeholder: I18n.tr("Search settings…")
                 onEdited: (t) => hub.query = t
+            }
+            // progressive disclosure: one global switch reveals the deep knobs on
+            // every schema page (SettingsSheet filters rows tagged `adv`). Kept in
+            // the rail so it is one control, not one per page.
+            Item {
+                width: parent.width
+                height: Tokens.ctlH
+                Text {
+                    anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                    text: I18n.tr("Advanced settings")
+                    color: hub.advanced ? Tokens.ink : Tokens.inkMuted
+                    font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                    font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
+                }
+                Sw {
+                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                    on: hub.advanced
+                    onToggled: (v) => hub.advanced = v
+                }
             }
         }
 

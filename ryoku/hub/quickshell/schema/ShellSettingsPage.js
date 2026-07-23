@@ -736,6 +736,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "SPECTRUM",
+        "adv": true,
         "key": "bars",
         "label": "Bars",
         "desc": "How many bars the spectrum is cut into",
@@ -747,6 +748,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "SPECTRUM",
+        "adv": true,
         "key": "segments",
         "label": "Segments",
         "desc": "How many segments a bar is cut into",
@@ -758,6 +760,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "SPECTRUM",
+        "adv": true,
         "key": "peaks",
         "label": "Peak caps",
         "desc": "Hold a mark at each bar's peak",
@@ -767,6 +770,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "SPECTRUM",
+        "adv": true,
         "key": "height",
         "label": "Height",
         "desc": "How tall the spectrum stands",
@@ -780,6 +784,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "SPECTRUM",
+        "adv": true,
         "key": "thickness",
         "label": "Bar width",
         "desc": "How wide each bar is against its gap",
@@ -793,6 +798,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "SPECTRUM",
+        "adv": true,
         "key": "bloom",
         "label": "Bloom",
         "desc": "How much the spectrum glows",
@@ -806,6 +812,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "SPECTRUM",
+        "adv": true,
         "key": "reflection",
         "label": "Reflection",
         "desc": "How much of the spectrum mirrors below it",
@@ -819,6 +826,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "MOTION",
+        "adv": true,
         "key": "smoothing",
         "label": "Smoothing",
         "desc": "How much motion is smoothed between frames",
@@ -832,6 +840,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "MOTION",
+        "adv": true,
         "key": "gain",
         "label": "Sensitivity",
         "desc": "Input sensitivity",
@@ -845,6 +854,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "MOTION",
+        "adv": true,
         "key": "fps",
         "label": "Frame rate",
         "desc": "How often the spectrum redraws",
@@ -859,6 +869,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "MOTION",
+        "adv": true,
         "key": "adaptive",
         "label": "Adaptive quality",
         "desc": "Drop the frame rate when nothing is playing",
@@ -868,6 +879,7 @@ var rows = [
     {
         "tab": "visualizer",
         "group": "MOTION",
+        "adv": true,
         "key": "idleWave",
         "label": "Idle wave",
         "desc": "Keep a slow wave moving when nothing is playing",

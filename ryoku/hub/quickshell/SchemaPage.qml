@@ -24,6 +24,7 @@ Item {
     property string query: ""
     property alias tab: sheet.tab
     property alias styleKey: sheet.styleKey
+    property alias advanced: sheet.advanced
     default property alias extras: extraSlot.data
     property var pendingImageRow: null
 

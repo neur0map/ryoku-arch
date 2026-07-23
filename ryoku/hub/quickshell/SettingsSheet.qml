@@ -24,6 +24,10 @@ Item {
     // only while draft[styleKey] is in it, so each bar style exposes just the
     // settings its bar actually reads. reads draft (replaced on edit) so it is live.
     property string styleKey: ""
+    // progressive disclosure: rows tagged `adv: true` are the deep knobs, hidden
+    // until Advanced is on. search still reaches them (the query branch ignores
+    // this), so nothing is ever truly buried.
+    property bool advanced: false
 
     signal edited(string key, var value)
 
@@ -32,6 +36,7 @@ Item {
         return schema.filter(function (r) {
             if (sheet.styleKey !== "" && r.styles && sheet.draft
                 && r.styles.indexOf(sheet.draft[sheet.styleKey]) < 0) return false;
+            if (r.adv && !sheet.advanced && query === "") return false;
             if (r.tab !== sheet.tab && query === "") return false;
             if (query === "") return true;
             return (r.label + " " + (r.desc || "") + " " + r.key).toLowerCase().indexOf(q) >= 0;

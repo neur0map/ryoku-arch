@@ -25,6 +25,7 @@ Item {
         eyebrow: pg.pEyebrow
         blurb: pg.pBlurb
         query: pg.hub ? pg.hub.query : ""
+        advanced: pg.hub ? pg.hub.advanced : false
         onEdited: (k, v) => { if (pg.hub) pg.hub.edit(k, v); }
         onPickRequested: (r) => { if (pg.hub) pg.hub.openPick(r); }
     }
