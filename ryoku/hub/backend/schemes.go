@@ -69,17 +69,16 @@ func blankGtk() {
 	}
 }
 
-
 // currentScheme reports the active palette mode for the UI: light/dark when a
 // curated preset is locked, follow when colours track the wallpaper, custom when
 // a theme owns its own fixed palette.
 func currentScheme() string {
 	st := loadThemeState()
-	if st.Scheme == "light" || st.Scheme == "dark" || st.Scheme == "mono" {
-		return st.Scheme
-	}
 	if st.FollowWallpaper {
 		return "follow"
+	}
+	if st.Scheme == "light" || st.Scheme == "dark" || st.Scheme == "mono" {
+		return st.Scheme
 	}
 	return "custom"
 }
@@ -169,7 +168,7 @@ func nudgeGtk() {
 // ~/.config/ryoku/theme.json.
 type themeState struct {
 	FollowWallpaper bool   `json:"followWallpaper"`
-	Scheme          string `json:"scheme,omitempty"`
+	Scheme          string `json:"scheme"`
 	ThemeApps       *bool  `json:"themeApps,omitempty"`
 }
 
