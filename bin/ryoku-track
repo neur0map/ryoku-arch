@@ -13,8 +13,8 @@ say() { printf '\n==> %s\n' "$*"; }
 
 say "This turns your box into an unstable-dev tracker so you get unstable-dev changes. Use at your own risk."
 
-say "Installing build tools"
-sudo pacman -S --needed --noconfirm git go cmake ninja qt6-shadertools wayland base-devel
+say "Installing build tools and matugen"
+sudo pacman -S --needed --noconfirm git go cmake ninja qt6-shadertools wayland base-devel matugen
 
 say "Fetching the Ryoku source on unstable-dev into $REPO"
 if [[ -d $REPO/.git ]]; then
@@ -32,6 +32,9 @@ echo 'RYOKU_CHANNEL=unstable-dev' >"$HOME/.config/environment.d/ryoku.conf"
 
 say "Building and deploying the desktop from the checkout"
 bash "$REPO/ryoku/shell/deploy.sh"
+pkill -9 -x ryoku-shell 2>/dev/null || true
+pkill -f "quickshell.*hub" 2>/dev/null || true
+nohup "$HOME/.local/bin/ryoku-shell" daemon >/dev/null 2>&1 &
 
 # environment.d misses the graphical session on some display managers, so set the
 # channel in the session too; user.lua survives updates.
