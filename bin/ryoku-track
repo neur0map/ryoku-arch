@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# ryoku track: point a Ryoku box at an update channel and make `ryoku update`
+# follow it. It installs the build tools, clones/updates the repo, checks out the
+# channel branch, records the channel, and rebuilds + redeploys the desktop from
+# the checkout. Non-destructive: your user_edits overlay and Hub settings survive
+# (deploy re-applies them). `ryoku recovery` is the heavy factory reset to main.
+#
+#   main          the stable channel everyone runs (packages)
+#   unstable-dev  the bleeding edge, rebuilt from source (at your own risk)
+#
+#   curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/bin/ryoku-track | bash -s -- unstable-dev
+set -euo pipefail
+
+CHANNEL="${1:-unstable-dev}"
+case "$CHANNEL" in
+  main | unstable-dev) ;;
+  -h | --help)
+    sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+    echo "usage: ryoku track <main|unstable-dev>"
+    exit 0
+    ;;
+  *) echo "ryoku-track: unknown channel '$CHANNEL' (use: main or unstable-dev)" >&2; exit 1 ;;
+esac
+
+REPO="$HOME/ryoku-arch"
+REPO_URL="${RYOKU_TRACK_URL:-https://github.com/neur0map/ryoku-arch.git}"
+say() { printf '\n==> %s\n' "$*"; }
+
+if [[ $CHANNEL == unstable-dev ]]; then
+  say "Switching this box to unstable-dev, the bleeding edge rebuilt from source. Use at your own risk."
+else
+  say "Switching this box to main, the stable channel, tracked from source."
+fi
+
+say "Installing build tools and matugen"
+sudo pacman -S --needed --noconfirm git go cmake ninja qt6-shadertools wayland base-devel matugen
+
+say "Fetching the Ryoku source ($CHANNEL) into $REPO"
+if [[ -d $REPO/.git ]]; then
+  # Never hijack an unrelated repo that happens to sit at ~/ryoku-arch: the reset
+  # below is destructive, so bail unless origin already points at a ryoku-arch
+  # remote (an official clone or a fork).
+  cur=$(git -C "$REPO" remote get-url origin 2>/dev/null || true)
+  case "$cur" in
+    *ryoku-arch*) ;;
+    *) echo "ryoku-track: $REPO is a git repo but its origin ($cur) is not ryoku-arch; move it aside and re-run." >&2; exit 1 ;;
+  esac
+  git -C "$REPO" remote set-url origin "$REPO_URL" 2>/dev/null || true
+  git -C "$REPO" fetch origin "$CHANNEL"
+  git -C "$REPO" checkout "$CHANNEL"
+  git -C "$REPO" reset --hard "origin/$CHANNEL"
+else
+  git clone -b "$CHANNEL" "$REPO_URL" "$REPO"
+fi
+
+say "Setting the update channel to $CHANNEL"
+mkdir -p "$HOME/.config/environment.d"
+printf 'RYOKU_CHANNEL=%s\n' "$CHANNEL" >"$HOME/.config/environment.d/ryoku.conf"
+
+say "Building and deploying the desktop from the checkout"
+bash "$REPO/ryoku/shell/deploy.sh"
+pkill -9 -x ryoku-shell 2>/dev/null || true
+pkill -f "quickshell.*hub" 2>/dev/null || true
+nohup "$HOME/.local/bin/ryoku-shell" daemon >/dev/null 2>&1 &
+
+# environment.d misses the graphical session on some display managers, so set the
+# channel in the session too; user.lua survives updates. Replace any existing
+# RYOKU_CHANNEL line so a channel switch never leaves a stale one behind.
+ulua="$HOME/.config/hypr/user.lua"
+line="hl.env(\"RYOKU_CHANNEL\", \"$CHANNEL\")"
+touch "$ulua"
+grep -v 'hl.env("RYOKU_CHANNEL"' "$ulua" >"$ulua.tmp" 2>/dev/null || true
+printf '%s\n' "$line" >>"$ulua.tmp"
+mv "$ulua.tmp" "$ulua"
+
+say "Done. Log out and back in, then:  ryoku status  (should say $CHANNEL)."
+cat <<EOF
+
+Every update after: ryoku update. Full reset to stable main: ryoku recovery.
+Keep no local edits in $REPO (ryoku update resets it to origin/$CHANNEL).
+If ryoku status still shows the old channel, reboot so the session picks it up.
+EOF
