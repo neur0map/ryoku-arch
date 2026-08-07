@@ -1,0 +1,51 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"ryoku-cli/internal/sys"
+)
+
+// where the track script lives, for boxes with no local checkout (a packaged
+// install switching onto a dev channel). Always the main copy: the stable script
+// moves a box in either direction, so a packaged main box can still reach it.
+const trackURL = "https://raw.githubusercontent.com/neur0map/ryoku-arch/main/bin/ryoku-track"
+
+// the two channels a box can track: the stable branch everyone runs and the
+// bleeding edge rebuilt from source.
+var trackChannels = map[string]bool{"main": true, "unstable-dev": true}
+
+// cmdTrack points the box at an update channel (main or unstable-dev) so
+// `ryoku update` follows it. It hands off to bin/ryoku-track, preferring a local
+// checkout's copy and otherwise fetching the canonical one. The script does the
+// real work (build tools, checkout, channel, redeploy) and does not lean on this
+// binary, so switching still works from a packaged install with no checkout.
+func cmdTrack(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("usage: ryoku track <main|unstable-dev>")
+	}
+	ch := args[0]
+	if !trackChannels[ch] {
+		return fmt.Errorf("unknown channel %q (use: main or unstable-dev)", ch)
+	}
+	if repo := sys.ResolveRepo(); repo != "" {
+		if script := filepath.Join(repo, "bin", "ryoku-track"); sys.Exists(script) {
+			return sys.Run("bash", append([]string{script}, args...)...)
+		}
+	}
+
+	if !sys.Has("curl") {
+		return fmt.Errorf("no local track script and curl is missing; run it by hand:\n  curl -fsSL %s | bash -s -- %s", trackURL, ch)
+	}
+	tmp, err := os.CreateTemp("", "ryoku-track-*.sh")
+	if err != nil {
+		return err
+	}
+	tmp.Close()
+	defer os.Remove(tmp.Name())
+	if err := sys.Run("curl", "-fsSL", trackURL, "-o", tmp.Name()); err != nil {
+		return fmt.Errorf("fetch track script from %s: %w", trackURL, err)
+	}
+	return sys.Run("bash", append([]string{tmp.Name()}, args...)...)
+}
