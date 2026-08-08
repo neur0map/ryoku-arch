@@ -2052,3 +2052,40 @@ func TestStripLegacyStyleKnobs(t *testing.T) {
 		t.Fatal("garbage must error, not silently rewrite")
 	}
 }
+
+// keyboard.lua is user-owned, so materialize never repairs it, and hyprland.lua
+// used to hard-require it: a torn one wedged the whole config into emergency
+// mode with no way back (a snapshot restores /, not ~/.config on /home).
+// doctor must reseed it like any other drop-in.
+func TestReconcileHyprlandConfigRepairsCorruptKeyboard(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("PATH", "")
+
+	hypr := filepath.Join(home, ".config", "hypr")
+	if err := os.MkdirAll(hypr, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write := func(name, body string) {
+		if err := os.WriteFile(filepath.Join(hypr, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("hyprland.lua", "pcall(require, \"keyboard\")\n")
+	write("keyboard.lua", "hl.config({ input = { kb_layout = \"u") // truncated mid-write
+
+	if r := reconcileHyprlandConfig(false); r.status != recFixed {
+		t.Fatalf("fix: status=%s detail=%q, want fixed", r.status.label(), r.detail)
+	}
+	b, err := os.ReadFile(filepath.Join(hypr, "keyboard.lua"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hyprLuaSane(string(b)) {
+		t.Fatalf("keyboard.lua not parseable after repair: %q", b)
+	}
+	if !strings.Contains(string(b), "kb_layout") {
+		t.Fatalf("reseeded keyboard.lua must still set a layout, got %q", b)
+	}
+}

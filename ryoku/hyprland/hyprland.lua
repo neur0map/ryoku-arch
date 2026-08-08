@@ -17,7 +17,11 @@ local function optional(mod)
 end
 
 require("modules.env")
-require("keyboard")
+-- keyboard.lua is user-owned and seeded once, so an update never repairs it. a
+-- hard require made a torn one fail the whole config: emergency mode, black
+-- outputs, and a login loop no snapshot fixed, since ~/.config rides /home.
+-- degrade to Hyprland's default layout instead; ryoku doctor reseeds the file.
+optional("keyboard")
 -- hardware drop-ins, written at runtime: ryoku-gpu emits gpu.lua, ryoku-monitor
 -- emits monitors.lua, both rewritten on a hotplug or GPU reset. ryoku doctor
 -- repairs a corrupt one, autoscale regenerates it next login.

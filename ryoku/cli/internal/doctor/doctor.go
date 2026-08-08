@@ -2471,6 +2471,22 @@ func hyprDropins() []hyprDropin {
 			seed: "-- Reset by ryoku doctor after a corrupt write. Hyprland picks its own GPU;\n" +
 				"-- run `ryoku-gpu persist` to re-pin the primary on a multi-GPU machine.\n",
 		},
+		{
+			// user-owned and seeded once, so materialize never repairs it. no
+			// generator to re-run: reseed the default layout and let the user
+			// re-pick in settings (input).
+			name:     "keyboard.lua",
+			needLive: false,
+			seed: "-- Reset by ryoku doctor after a corrupt write. Re-pick your layout in\n" +
+				"-- ryoku settings (input), or edit this file; see the wiki for variants.\n" +
+				"hl.config({\n" +
+				"    input = {\n" +
+				"        kb_layout = \"us\",\n" +
+				"        kb_variant = \"\",\n" +
+				"        kb_options = \"\",\n" +
+				"    },\n" +
+				"})\n",
+		},
 	}
 }
 
