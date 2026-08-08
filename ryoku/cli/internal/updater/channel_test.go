@@ -263,6 +263,7 @@ func TestChannelUpdateDeploysWithoutFastForwardWhenDirty(t *testing.T) {
 	if err := os.Chmod(filepath.Join(work, "ryoku", "shell", "deploy.sh"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	writeFile(t, filepath.Join(work, "README"), "clean\n")
 	mustGit(t, work, "add", "-A")
 	mustGit(t, work, "commit", "-m", "seed with deploy stub")
 	mustGit(t, work, "push", "origin", "main")
@@ -272,7 +273,7 @@ func TestChannelUpdateDeploysWithoutFastForwardWhenDirty(t *testing.T) {
 	mustGit(t, "", "clone", origin, other)
 	commitPush(t, other, "feature", "x\n", "add feature", "main")
 
-	writeFile(t, filepath.Join(work, "README"), "dirty\n") // uncommitted change
+	writeFile(t, filepath.Join(work, "README"), "dirty\n") // uncommitted edit to a tracked file
 
 	t.Setenv("RYOKU_REPO", work)
 	t.Setenv("RYOKU_CHANNEL", "main")
@@ -541,5 +542,54 @@ func TestUpdateClearsBehindOnDevBranch(t *testing.T) {
 	}
 	if r.Available || r.Behind != 0 || len(r.Updates) != 0 {
 		t.Errorf("after update want up to date, got available=%v behind=%d updates=%d", r.Available, r.Behind, len(r.Updates))
+	}
+}
+
+// Regression: a checkout with untracked files (build output, an app dir copied
+// in from another branch) still fast-forwards. Treating those as "dirty" pinned
+// real boxes to an old commit while `ryoku update` reported success.
+func TestSyncChannelFastForwardsPastUntrackedFiles(t *testing.T) {
+	root := t.TempDir()
+	origin := filepath.Join(root, "origin.git")
+	work := filepath.Join(root, "work")
+	mustGit(t, "", "init", "--bare", "-b", "main", origin)
+	mustGit(t, "", "clone", origin, work)
+	commitPush(t, work, "README", "one\n", "first commit", "main")
+
+	other := filepath.Join(root, "other")
+	mustGit(t, "", "clone", origin, other)
+	commitPush(t, other, "f1", "x\n", "upstream commit", "main")
+	mustGit(t, work, "fetch", "origin", "main")
+	want := strings.TrimSpace(mustGit(t, work, "rev-parse", "refs/remotes/origin/main"))
+
+	writeFile(t, filepath.Join(work, "scratch", "build.out"), "junk\n")
+
+	if err := syncChannel(work, "main"); err != nil {
+		t.Fatalf("syncChannel: %v", err)
+	}
+	if head := strings.TrimSpace(mustGit(t, work, "rev-parse", "HEAD")); head != want {
+		t.Errorf("HEAD = %s, want %s: untracked files must not block the fast-forward", head, want)
+	}
+}
+
+// An untracked file the incoming commits also add is a real conflict: it must
+// fail loudly rather than skip the update in silence.
+func TestSyncChannelErrorsOnUntrackedCollision(t *testing.T) {
+	root := t.TempDir()
+	origin := filepath.Join(root, "origin.git")
+	work := filepath.Join(root, "work")
+	mustGit(t, "", "init", "--bare", "-b", "main", origin)
+	mustGit(t, "", "clone", origin, work)
+	commitPush(t, work, "README", "one\n", "first commit", "main")
+
+	other := filepath.Join(root, "other")
+	mustGit(t, "", "clone", origin, other)
+	commitPush(t, other, "app/new.qml", "upstream\n", "add app", "main")
+	mustGit(t, work, "fetch", "origin", "main")
+
+	writeFile(t, filepath.Join(work, "app", "new.qml"), "mine\n")
+
+	if err := syncChannel(work, "main"); err == nil {
+		t.Fatal("syncChannel: err=nil, want an error when an untracked file collides")
 	}
 }
