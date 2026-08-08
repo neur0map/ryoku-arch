@@ -3,12 +3,78 @@ package doctor
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"ryoku-cli/internal/sys"
 )
+
+var (
+	uuidRE = regexp.MustCompile(`(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b`)
+	ipv4RE = regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`)
+	macRE  = regexp.MustCompile(`(?i)\b[0-9a-f]{2}(?::[0-9a-f]{2}){5}\b`)
+)
+
+// anonymize removes identifying information while keeping diagnostic data
+// useful to maintainers.
+func anonymize(s string) string {
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		s = strings.ReplaceAll(s, home, "HOME")
+	}
+
+	if user := os.Getenv("USER"); user != "" {
+		s = strings.ReplaceAll(s, "/home/"+user, "HOME")
+		s = strings.ReplaceAll(s, user, "USER")
+	}
+
+	// Machine/session identifiers.
+	s = uuidRE.ReplaceAllString(s, "UUID")
+	s = macRE.ReplaceAllString(s, "MAC")
+
+	// IP addresses are generally unnecessary for diagnosing desktop bugs.
+	s = ipv4RE.ReplaceAllString(s, "IP")
+
+	return s
+}
+
+var diagnosticPackages = []string{
+	"ryoku",
+	"ryoku-shell",
+	"quickshell",
+	"hyprland",
+	"xdg-desktop-portal-hyprland",
+	"limine",
+	"snapper",
+	"nvidia",
+	"nvidia-utils",
+	"pipewire",
+	"wireplumber",
+	"qt6-base",
+}
+
+func packageVersions(packages []string) map[string]string {
+	versions := make(map[string]string, len(packages))
+
+	for _, pkg := range packages {
+		out, err := exec.Command("pacman", "-Q", pkg).Output()
+		if err != nil {
+			versions[pkg] = "<not installed>"
+			continue
+		}
+
+		fields := strings.Fields(string(out))
+		if len(fields) >= 2 {
+			versions[pkg] = fields[1]
+		} else {
+			versions[pkg] = "<unknown>"
+		}
+	}
+
+	return versions
+}
 
 // ---- diagnostic report -------------------------------------------------------
 
@@ -35,7 +101,7 @@ func writeReport(override string, findings []finding) (string, error) {
 // system state + recent error logs, no secrets.
 func gatherReport(findings []finding) string {
 	var b strings.Builder
-	line := func(f string, a ...any) { fmt.Fprintf(&b, f+"\n", a...) }
+	line := func(f string, a ...any) { fmt.Fprintf(&b, anonymize(fmt.Sprintf(f, a...))+"\n") }
 	section := func(title string) { line("\n## %s", title) }
 	cmd := func(name string, args ...string) {
 		line("$ %s %s", name, strings.Join(args, " "))
@@ -72,10 +138,23 @@ func gatherReport(findings []finding) string {
 	line("/etc/conf.d/snapper:\n%s", readFileSafe("/etc/conf.d/snapper"))
 
 	section("packages")
+
+	line("checked packages:")
+	for _, pkg := range diagnosticPackages {
+		line("  - %s", pkg)
+	}
+
+	line("")
+	line("installed versions:")
+
+	versions := packageVersions(diagnosticPackages)
+	for _, pkg := range diagnosticPackages {
+		line("  %-32s %s", pkg, versions[pkg])
+	}
+
+	line("")
 	cmd("pacman", "-Qtdq")
 	cmd("pacman", "-Dk")
-	line(".pacnew files:\n%s", captureOut("find", "/etc", "-name", "*.pacnew"))
-	line("pacman.log (tail):\n%s", tailLines(readFileSafe("/var/log/pacman.log"), 25))
 
 	section("services")
 	cmd("systemctl", "--failed", "--no-legend", "--plain")
