@@ -33,7 +33,7 @@
   refused before anything runs; Secure Boot is read from the
   SecureBoot/SetupMode efivars and, when enforcing, forces the NVIDIA
   toggle off and locked (unsigned DKMS modules are rejected at boot while
-  nouveau gets blacklisted: black screen), with the way out named in the
+  nouveau gets denylisted: black screen), with the way out named in the
   plan and at verify time; Manjaro requires typed consent in the TUI, is
   refused under `--yes`, and `RYOKU_ALLOW_MANJARO=1` overrides both.
 - DE coexistence: GNOME/KDE/Cinnamon/Xfce are detected, never uninstalled,

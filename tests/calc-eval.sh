@@ -55,7 +55,7 @@ assert_eq "10 % 3"      "1"    "modulo"
 assert_eq "2^10"         "1024" "caret power"
 assert_eq "2**10"        "1024" "double-star power still works"
 
-# Math whitelist.
+# Math allowlist.
 assert_eq "sqrt(16)"     "4"    "sqrt"
 assert_eq "sin(0)"       "0"    "sin"
 assert_eq "cos(0)"       "1"    "cos"
@@ -79,14 +79,14 @@ assert_eq "15% of 200"   "30"   "X% of Y"
 assert_eq "200 + 10%"    "220"  "additive percentage adds 10 percent of 200"
 assert_eq "50%"          "0.5"  "bare percentage"
 
-# The 'print nothing on error' contract: unknown names, non-whitelisted calls,
+# The 'print nothing on error' contract: unknown names, non-allowlisted calls,
 # strings, imports, and plain text MUST print nothing and exit 0.
 assert_eq ""             ""     "empty prints nothing"
 assert_eq "firefox"      ""     "app name prints nothing"
 assert_eq "sqrt"         ""     "bare function name prints nothing"
 assert_eq "eval('1+1')"  ""     "eval() call is rejected"
 assert_eq "__import__('os')" "" "dunder import is rejected"
-assert_eq "open('x')"    ""     "open() is not whitelisted"
+assert_eq "open('x')"    ""     "open() is not allowlisted"
 assert_eq "'a'+'b'"      ""     "string concat is rejected"
 assert_eq "1+"           ""     "syntax error prints nothing"
 

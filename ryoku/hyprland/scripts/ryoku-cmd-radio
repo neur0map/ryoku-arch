@@ -117,6 +117,7 @@ cmd_status() {
 		'{on:$on,station:$station,label:$label,live:$live,fellBack:$fellBack,art:$art,aside:$aside}'
 }
 
+# shellcheck disable=SC2120  # --aside arrives through the with_lock indirection
 do_stop() { # [--aside]
 	local pgid station label
 	pgid="$(state_get pgid)"

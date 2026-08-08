@@ -68,7 +68,7 @@ followed) beats niri beats sway, then KDE (`kxkbrc`,
 Safety gates: non-systemd systems (Artix and friends) are refused outright.
 With Secure Boot enforcing, the NVIDIA toggle is forced off and locked,
 because Arch kernels reject unsigned DKMS modules and the driver script
-blacklists nouveau; sign with sbctl or disable Secure Boot, then re-run.
+denylists nouveau; sign with sbctl or disable Secure Boot, then re-run.
 Manjaro requires a typed acknowledgement in the TUI and is refused under
 `--yes` unless `RYOKU_ALLOW_MANJARO=1` is set.
 
