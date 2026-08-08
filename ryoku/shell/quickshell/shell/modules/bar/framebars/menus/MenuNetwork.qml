@@ -1,0 +1,480 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import "../.." as Pill
+import shell.services
+import "../../../../components"
+
+// Network entry (contract 06 sec 2.6): a RevealerRow whose inert action button
+// carries the connection-status icon and whose label reports the current link;
+// the reveal opens three sections in service order (no client sort): the Active
+// Network with a Disconnect action, the WireGuard tunnels with connect /
+// disconnect / delete / import, and the Available Networks with a per-AP
+// password form and Connect. All state comes from the Go `network` topic via the
+// Network singleton (NetworkManager over D-Bus in the daemon); QML never shells
+// out. Reveal drives the wifi scan cadence (immediate, 30s loop, 15s "Scanning…"
+// clear) and collapses on menu close.
+//
+// Divergence recorded (contract 00 divergence type 1): the reference opens a GTK
+// FileDialog for WireGuard import; Quickshell has no file dialog, so import uses
+// an inline path entry that feeds the same `nmcli connection import` the
+// reference runs. The available list dedupes by SSID (one row per network, first
+// in service order) and excludes the connected SSID, matching the reference
+// DynamicBox keyed by SSID.
+Item {
+    id: root
+
+    property real s: 1
+    property bool open: false
+
+    property bool scanning: false
+
+    implicitHeight: row.implicitHeight
+
+    // Detail-page mode: hosted as a sidebar page, the list arrives already
+    // revealed and the scan starts as if the drawer had been clicked.
+    property bool pageMode: false
+    function forceReveal() {
+        if (!row.revealed) {
+            row.revealed = true;
+            root.scanning = true;
+            Network.refresh();
+            scanClear.restart();
+        }
+    }
+    onOpenChanged: {
+        Network.setVpnPolling(root, root.open);
+        if (!root.open)
+            row.revealed = false;
+        else if (root.pageMode)
+            root.forceReveal();
+    }
+    Component.onCompleted: Network.setVpnPolling(root, root.open)
+    Component.onDestruction: Network.setVpnPolling(root, false)
+
+    // Available networks: service order, one row per SSID, connected SSID
+    // removed (the reference filters the current SSID and keys the list by SSID).
+    readonly property var availableNets: {
+        var seen = ({});
+        var out = [];
+        var aps = Network.accessPoints;
+        for (var i = 0; i < aps.length; i++) {
+            var ap = aps[i];
+            if (!ap || !ap.ssid || ap.ssid === Network.activeSsid)
+                continue;
+            if (seen[ap.ssid])
+                continue;
+            seen[ap.ssid] = true;
+            out.push(ap);
+        }
+        return out;
+    }
+    onAvailableNetsChanged: if (root.availableNets.length > 0) root.scanning = false
+
+    function wifiIcon(strength) {
+        var v = strength || 0;
+        return v > 75 ? "signal_wifi_4_bar"
+            : v > 50 ? "network_wifi_3_bar"
+            : v > 25 ? "network_wifi_2_bar"
+            : v > 0 ? "network_wifi_1_bar"
+            : "signal_wifi_0_bar";
+    }
+    function secured(ap) {
+        return ap && ap.security && ap.security !== "None";
+    }
+
+    readonly property string statusIcon: Network.kind === "ethernet" ? "lan"
+        : Network.kind === "wifi" ? root.wifiIcon(Network.wifi.strength)
+        : Network.wifiRadio ? "signal_wifi_off" : "wifi_off"
+    readonly property string statusLabel: {
+        var base;
+        if (Network.kind === "ethernet")
+            base = qsTr("Wired");
+        else if (Network.kind === "wifi")
+            base = Network.activeSsid.length > 0 ? Network.activeSsid : qsTr("Wi-Fi Connected");
+        else if (Network.wifiConnectivity === "Connecting")
+            base = qsTr("Connecting…");
+        else
+            base = qsTr("Not Connected");
+        return Network.vpnActive ? base + qsTr(" (+WG)") : base;
+    }
+
+    // A full-width primary-accent action button (the reference .ok-button-primary),
+    // reused for Disconnect / Connect / Delete.
+    component PrimaryButton: MenuButton {
+        id: pb
+        property alias text: pbLabel.text
+        selected: true
+        minH: pbLabel.implicitHeight + pb.pad * 2
+        Text {
+            id: pbLabel
+            anchors.fill: parent
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            color: pb.contentColor
+            font.family: Theme.fontPrimary
+            font.pixelSize: Theme.fontMd
+            font.weight: Font.Bold
+        }
+    }
+
+    // A centered 18px variant-tone section header (.label-large-bold-variant).
+    component SectionLabel: Text {
+        width: parent ? parent.width : 0
+        horizontalAlignment: Text.AlignHCenter
+        color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
+        font.family: Theme.fontPrimary
+        font.pixelSize: Theme.fontLg
+        font.weight: Font.Bold
+    }
+
+    // A centered 16px empty/status line (.label-medium).
+    component EmptyLabel: Text {
+        width: parent ? parent.width : 0
+        horizontalAlignment: Text.AlignHCenter
+        color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurface)
+        font.family: Theme.fontPrimary
+        font.pixelSize: Theme.fontMd
+    }
+
+    // The wifi scan cadence is tied to the reveal (contract 06 sec 4): an
+    // immediate scan on open, a 30s re-scan loop while open, and a 15s ceiling on
+    // the "Scanning…" label (cleared earlier when results arrive, above).
+    Timer {
+        id: rescan
+        interval: 30000
+        repeat: true
+        running: row.revealed
+        onTriggered: Network.refresh()
+    }
+    Timer {
+        id: scanClear
+        interval: 15000
+        onTriggered: root.scanning = false
+    }
+
+    RevealerRow {
+        id: row
+        width: root.width
+        actionIconName: root.statusIcon
+        actionSensitive: false
+
+        middle: RevealerRowLabel {
+            anchors.fill: parent
+            label: root.statusLabel
+        }
+
+        onToggled: revealed => {
+            if (revealed) {
+                root.scanning = true;
+                Network.refresh();
+                scanClear.restart();
+            } else {
+                root.scanning = false;
+                scanClear.stop();
+            }
+        }
+
+        Column {
+            width: parent.width
+            spacing: 10
+
+            // 1. Active Network -----------------------------------------------
+            Column {
+                width: parent.width
+                spacing: 10
+                visible: Network.wifiPresent && Network.activeSsid.length > 0
+
+                SectionLabel { text: qsTr("Active Network") }
+
+                RevealerButton {
+                    width: parent.width
+                    iconName: root.wifiIcon(Network.wifi.strength)
+                    label: Network.activeSsid
+
+                    PrimaryButton {
+                        width: parent.width
+                        text: qsTr("Disconnect")
+                        onClicked: Network.disconnectWifi()
+                    }
+                }
+            }
+
+            // 2. Wireguard Connections ---------------------------------------
+            Column {
+                width: parent.width
+                spacing: 10
+
+                Item {
+                    width: parent.width
+                    height: Math.max(wgTitle.implicitHeight, wgAdd.implicitHeight)
+                    SectionLabel {
+                        id: wgTitle
+                        anchors.centerIn: parent
+                        width: parent.width
+                        text: qsTr("Wireguard Connections")
+                    }
+                    MenuButton {
+                        id: wgAdd
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        minW: Theme.iconSm + wgAdd.pad * 2
+                        minH: Theme.iconSm + wgAdd.pad * 2
+                        onClicked: wgImport.expanded = !wgImport.expanded
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            font.pixelSize: Theme.iconSm
+                            text: "add"
+                            color: wgAdd.contentColor
+                        }
+                    }
+                }
+
+                // Inline import path entry (divergence: no Quickshell file dialog).
+                Column {
+                    id: wgImport
+                    property bool expanded: false
+                    width: parent.width
+                    spacing: 8
+                    visible: wgImport.expanded
+                    height: visible ? implicitHeight : 0
+
+                    Rectangle {
+                        width: parent.width
+                        height: wgPath.implicitHeight + Theme.paddingSm * 2
+                        radius: Theme.radiusWidget
+                        color: "transparent"
+                        border.width: Theme.borderWidth
+                        border.color: Theme.outline
+                        TextInput {
+                            id: wgPath
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.leftMargin: Theme.paddingMd
+                            anchors.rightMargin: Theme.paddingMd
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurface)
+                            font.family: Theme.fontPrimary
+                            font.pixelSize: Theme.fontSm
+                            clip: true
+                            onAccepted: if (text.length > 0) { Network.wgImport(text); text = ""; wgImport.expanded = false; }
+                            Text {
+                                anchors.fill: parent
+                                verticalAlignment: Text.AlignVCenter
+                                text: qsTr("Path to .conf")
+                                color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
+                                font: wgPath.font
+                                visible: wgPath.text.length === 0 && !wgPath.activeFocus
+                            }
+                        }
+                    }
+                    PrimaryButton {
+                        width: parent.width
+                        text: qsTr("Import")
+                        onClicked: if (wgPath.text.length > 0) { Network.wgImport(wgPath.text); wgPath.text = ""; wgImport.expanded = false; }
+                    }
+                }
+
+                EmptyLabel {
+                    text: qsTr("No Available WG Connections")
+                    visible: Network.wgTunnels.length === 0
+                }
+
+                ListView {
+                    width: parent.width
+                    height: count > 0 ? Math.min(Math.max(contentHeight, 64 * root.s), 300 * root.s) : 0
+                    clip: true
+                    spacing: 10
+                    model: row.revealed ? Network.wgTunnels : []
+                    cacheBuffer: Math.max(0, height)
+                    boundsBehavior: Flickable.StopAtBounds
+                    delegate: wgRowComponent
+                }
+            }
+
+            // 3. Available Networks ------------------------------------------
+            Column {
+                width: parent.width
+                spacing: 10
+                visible: Network.wifiPresent
+
+                SectionLabel { text: qsTr("Available Networks") }
+
+                EmptyLabel {
+                    text: qsTr("No Available Networks")
+                    visible: root.availableNets.length === 0 && !root.scanning
+                }
+
+                ListView {
+                    width: parent.width
+                    height: count > 0 ? Math.min(Math.max(contentHeight, 64 * root.s), 440 * root.s) : 0
+                    clip: true
+                    spacing: 10
+                    model: row.revealed ? root.availableNets : []
+                    cacheBuffer: Math.max(0, height)
+                    boundsBehavior: Flickable.StopAtBounds
+                    delegate: availNetComponent
+                }
+
+                EmptyLabel {
+                    text: qsTr("Scanning…")
+                    visible: root.scanning
+                }
+            }
+        }
+    }
+
+    // A WireGuard tunnel row: collapsed to a key glyph (only while active) plus
+    // its name, expanded to the actions valid for its state.
+    Component {
+        id: wgRowComponent
+
+        RevealerButton {
+            id: wgRow
+            required property var modelData
+            readonly property var tun: wgRow.modelData
+
+            width: parent.width
+            iconName: wgRow.tun.active ? "vpn_key" : ""
+            label: wgRow.tun.name
+
+            Column {
+                width: parent.width
+                spacing: 8
+
+                PrimaryButton {
+                    width: parent.width
+                    visible: !wgRow.tun.active
+                    text: qsTr("Connect")
+                    onClicked: Network.wgActivate(wgRow.tun.uuid)
+                }
+                PrimaryButton {
+                    width: parent.width
+                    visible: wgRow.tun.active
+                    text: qsTr("Disconnect")
+                    onClicked: Network.wgDeactivate(wgRow.tun.uuid)
+                }
+                PrimaryButton {
+                    width: parent.width
+                    text: qsTr("Delete")
+                    onClicked: Network.wgDelete(wgRow.tun.uuid)
+                }
+            }
+        }
+    }
+
+    // An available-network row: collapsed to a strength glyph plus SSID, expanded
+    // to a password form (only when secured and not already saved) and Connect.
+    Component {
+        id: availNetComponent
+
+        RevealerButton {
+            id: apRow
+            required property var modelData
+            readonly property var ap: apRow.modelData
+            property bool showPassword: false
+            property bool connecting: false
+            property bool errorShown: false
+            property int pendingId: -1
+
+            width: parent.width
+            iconName: root.wifiIcon(apRow.ap.strength)
+            label: apRow.ap.ssid
+
+            function doConnect() {
+                apRow.errorShown = false;
+                apRow.connecting = true;
+                var pw = (root.secured(apRow.ap) && !apRow.ap.saved) ? pwEntry.text : "";
+                apRow.pendingId = Network.connectWifi(apRow.ap.ssid, pw);
+            }
+
+            Connections {
+                target: Network
+                function onReplied(id, ok, error) {
+                    if (id !== apRow.pendingId)
+                        return;
+                    apRow.connecting = false;
+                    apRow.pendingId = -1;
+                    if (!ok) {
+                        apRow.errorShown = true;
+                        pwEntry.text = "";
+                    }
+                }
+            }
+
+            Column {
+                width: parent.width
+                spacing: 8
+
+                Rectangle {
+                    width: parent.width
+                    visible: root.secured(apRow.ap) && !apRow.ap.saved
+                    height: pwEntry.implicitHeight + Theme.paddingSm * 2
+                    radius: Theme.radiusWidget
+                    color: "transparent"
+                    border.width: Theme.borderWidth
+                    border.color: Theme.outline
+
+                    TextInput {
+                        id: pwEntry
+                        anchors.left: parent.left
+                        anchors.right: eye.left
+                        anchors.leftMargin: Theme.paddingMd
+                        anchors.rightMargin: Theme.paddingSm
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurface)
+                        font.family: Theme.fontPrimary
+                        font.pixelSize: Theme.fontSm
+                        echoMode: apRow.showPassword ? TextInput.Normal : TextInput.Password
+                        clip: true
+                        onAccepted: apRow.doConnect()
+                        Text {
+                            anchors.fill: parent
+                            verticalAlignment: Text.AlignVCenter
+                            text: qsTr("Password")
+                            color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
+                            font: pwEntry.font
+                            visible: pwEntry.text.length === 0 && !pwEntry.activeFocus
+                        }
+                    }
+                    MaterialIcon {
+                        id: eye
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.paddingSm
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Theme.iconSm
+                        height: Theme.iconSm
+                        font.pixelSize: Theme.iconSm
+                        text: apRow.showPassword ? "visibility_off" : "visibility"
+                        color: Theme.inkOn(Theme.effectiveSurface, Theme.onSurfaceVariant, 3.0)
+                        TapHandler { onTapped: apRow.showPassword = !apRow.showPassword }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    visible: apRow.errorShown
+                    height: errText.implicitHeight + Theme.paddingSm * 2
+                    radius: Theme.radiusWidget
+                    color: Theme.error
+                    Text {
+                        id: errText
+                        anchors.centerIn: parent
+                        text: qsTr("Error Connecting")
+                        color: Theme.inkOn(Theme.error, Theme.onError)
+                        font.family: Theme.fontPrimary
+                        font.pixelSize: Theme.fontMd
+                        font.weight: Font.Bold
+                    }
+                }
+
+                PrimaryButton {
+                    width: parent.width
+                    text: qsTr("Connect")
+                    enabled: !apRow.connecting
+                    onClicked: apRow.doConnect()
+                }
+            }
+        }
+    }
+}

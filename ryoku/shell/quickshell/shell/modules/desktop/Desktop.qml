@@ -1,0 +1,435 @@
+import QtQuick
+import Quickshell
+import Quickshell.Wayland
+import Quickshell.Io
+import Quickshell.Widgets
+import "Singletons"
+import "clock"
+import "calendar"
+import "music"
+import Ryoku.PluginKit
+
+// desktop widgets layer: WlrLayer.Bottom (below windows), instantiated once per
+// monitor by the main shell, carrying the clock. only clicks on bare wallpaper
+// land here, so windows above keep their input. drag = move (snaps to the
+// fade-in grid), right-click a widget = its menu, right-click empty = global
+// menu. every knob is live from Config; drag, menus and Ryoku Settings all
+// write the same file, so surfaces retune with no reload.
+Scope {
+    id: root
+
+    // the monitor this instance renders on, bound by the main shell per screen.
+    property var screen
+    // controller hook; the desktop layer defaults on.
+    property bool active: true
+    property string wallpaperUrl: ""
+    property string wallpaperFit: "Cover"
+
+    // Resolve the placement helper the way Registry resolves discover.sh: in a
+    // dev run RYOKU_SHELL_DIR points at the shell tree and the tool is NOT on
+    // PATH, so a bare "ryoku-plugins-place" Process silently no-ops and every
+    // drag / resize / lock / hide / settings write is lost. Packaged installs
+    // (no RYOKU_SHELL_DIR) ship it to /usr/bin, where the bare name resolves.
+    readonly property string _shellDir: Quickshell.env("RYOKU_SHELL_DIR")
+    readonly property string placeTool: (root._shellDir && root._shellDir.length > 0)
+        ? root._shellDir + "/quickshell/plugins/ryoku-plugins-place"
+        : "ryoku-plugins-place"
+
+    // hand the keyboard back after a widget text field releases its grab. the
+    // widget layer never unmaps, and dropping an exclusive grab on a mapped
+    // layer strands the keyboard (the focused app can't type). this 1x1 helper
+    // takes the grab and unmaps, which hands the keyboard to a real window.
+    // same mechanism as the pill's kbBounce.
+    property bool kbBounce: false
+    function kbRestore() {
+        root.kbBounce = true;
+        kbBounceT.restart();
+    }
+    Timer {
+        id: kbBounceT
+        interval: 90
+        onTriggered: root.kbBounce = false
+    }
+    PanelWindow {
+        visible: root.kbBounce
+        screen: root.screen
+        implicitWidth: 1
+        implicitHeight: 1
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.namespace: "widgets-kbbounce"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+        anchors { top: true; left: true }
+    }
+
+    PanelWindow {
+        id: win
+
+        screen: root.screen
+        visible: root.active
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Bottom
+        WlrLayershell.namespace: "ryoku-widgets"
+        // None while nothing on this layer wants the keyboard, so this
+        // full-screen Bottom layer never holds focus on an empty workspace
+        // (which would otherwise leave the next-opened window unfocused).
+        // A plugin tile's focused text field bumps `kbWanted`; the layer
+        // then grabs the keyboard (the same exclusive grab the pill uses for
+        // its launcher) so the field can be typed in, and releases it the
+        // moment the field blurs. pointer input is unaffected either way -
+        // layer-shell routes clicks by input region, not kb interactivity -
+        // so drag and the right-click menu always fire.
+        property int kbWanted: 0
+        onKbWantedChanged: if (kbWanted === 0) root.kbRestore()
+        WlrLayershell.keyboardFocus: kbWanted > 0 ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+        anchors { top: true; left: true; right: true; bottom: true }
+
+        // enabled desktopWidget-hosted plugins, filtered from the shared
+        // Registry. drives the Repeater below so plugin tiles ride the
+        // SAME wallpaper layer as the clock: one layer, one input
+        // model, no second full-screen surface fighting for input.
+        readonly property var desktopPlugins: Registry.plugins.filter(p => p.placement && p.placement.host === "desktopWidget")
+
+        // current persisted desktopWidget block by id. menu handlers use
+        // it to round-trip a partial change (lock/scale) without dropping
+        // the other coordinates.
+        function placementOf(id) {
+            const p = win.desktopPlugins.find(pp => pp.id === id);
+            return (p && p.placement && p.placement.desktopWidget) || {};
+        }
+
+        // the Repeater below is keyed by this id list, not by `desktopPlugins`
+        // directly: any placement write (drag, resize, settings) rewrites
+        // plugins.json and Registry reparses to a brand-new array, so binding
+        // the Repeater to that array would tear down and rebuild every tile -
+        // and its service - on every move, throwing away the open search and
+        // page. the id list only changes when a plugin is enabled or
+        // disabled, so moving a tile keeps its delegate and its live service.
+        property var desktopPluginIds: []
+        function syncDesktopIds() {
+            const ids = win.desktopPlugins.map(p => p.id);
+            const same = ids.length === win.desktopPluginIds.length
+                && ids.every((id, i) => id === win.desktopPluginIds[i]);
+            if (!same)
+                win.desktopPluginIds = ids;
+        }
+        Component.onCompleted: win.syncDesktopIds()
+        Connections {
+            target: Registry
+            function onPluginsChanged() { win.syncDesktopIds(); }
+        }
+
+        // The wallpaper is painted in a separate Wayland surface, which Qt cannot
+        // sample across scene graphs. Mirror the same image into this scene as an
+        // offscreen texture so ShaderEffectSource can capture the pixels beneath a
+        // frosted widget. WidgetGlass hides this source after taking its crop.
+        Image {
+            id: glassBackdrop
+            anchors.fill: parent
+            source: root.wallpaperUrl
+            cache: false
+            asynchronous: true
+            visible: (Config.calendarEnabled && Config.calendarStyle === "glass")
+                || (Config.musicEnabled && Config.musicStyle === "glass")
+            fillMode: {
+                switch (root.wallpaperFit) {
+                case "Contain": return Image.PreserveAspectFit;
+                case "Fill": return Image.Stretch;
+                case "ScaleDown":
+                    return sourceSize.width <= width && sourceSize.height <= height
+                        ? Image.Pad : Image.PreserveAspectFit;
+                default: return Image.PreserveAspectCrop;
+                }
+            }
+        }
+
+        // right-click empty desktop = global menu. sits behind the widgets
+        // (which own their own right-click) and only takes RightButton, so
+        // left-clicks on wallpaper fall through instead of being silently
+        // swallowed.
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.RightButton
+            onPressed: (mouse) => menu.openDesktop(mouse.x, mouse.y)
+        }
+
+        WidgetGrid {
+            anchors.fill: parent
+            active: clockSlot.dragging || calendarSlot.dragging || musicSlot.dragging
+            gridSize: clockSlot.dragging ? clockSlot.gridSize
+                : (calendarSlot.dragging ? calendarSlot.gridSize : musicSlot.gridSize)
+        }
+
+        WidgetSlot {
+            id: clockSlot
+            widget: "clock"
+            visible: Config.clockEnabled
+            anchor: Config.clockAnchor
+            freeX: Config.clockX
+            freeY: Config.clockY
+            locked: Config.clockLocked
+            bg: Config.clockBg
+            radius: Config.clockRadius
+            scaleCfg: Config.clockScale
+            pad: Config.clockBg === "none" ? 0 : Math.round(24 * Config.clockScale)
+            opacity: Config.clockOpacity
+            onMenuRequested: (x, y, w) => menu.openFor(w, x, y)
+            Clock {}
+        }
+
+        WidgetSlot {
+            id: calendarSlot
+            widget: "calendar"
+            visible: Config.calendarEnabled
+            anchor: Config.calendarAnchor
+            freeX: Config.calendarX
+            freeY: Config.calendarY
+            locked: Config.calendarLocked
+            bg: "none"
+            scaleCfg: Config.calendarScale
+            opacity: Config.calendarOpacity
+            onMenuRequested: (x, y, w) => menu.openFor(w, x, y)
+            CalendarWidget {
+                style: Config.calendarStyle
+                weeks: Config.calendarWeeks
+                showWeekNumbers: Config.calendarWeekNumbers
+                holidayRegion: Config.calendarHolidayRegion
+                active: calendarSlot.visible
+                s: Config.calendarScale
+                wallpaperSource: glassBackdrop
+                wallpaperRect: Qt.rect(calendarSlot.x, calendarSlot.y,
+                    calendarSlot.width, calendarSlot.height)
+            }
+        }
+
+        WidgetSlot {
+            id: musicSlot
+            widget: "music"
+            visible: Config.musicEnabled
+            anchor: Config.musicAnchor
+            freeX: Config.musicX
+            freeY: Config.musicY
+            locked: Config.musicLocked
+            bg: "none"
+            scaleCfg: Config.musicScale
+            opacity: Config.musicOpacity
+            onMenuRequested: (x, y, w) => menu.openFor(w, x, y)
+            MusicWidget {
+                style: Config.musicStyle
+                showLyrics: Config.musicLyrics
+                active: musicSlot.visible
+                musicApp: Config.musicApp
+                shape: Config.musicShape
+                videoMode: Config.musicVideo
+                videoFile: Config.musicVideoFile
+                s: Config.musicScale
+                wallpaperSource: glassBackdrop
+                wallpaperRect: Qt.rect(musicSlot.x, musicSlot.y,
+                    musicSlot.width, musicSlot.height)
+            }
+        }
+
+        // one draggable PluginDesktopSlot per enabled desktopWidget plugin.
+        // drag = write free pos. resize bracket = write scale. right-click
+        // = per-tile menu. each commit goes through its own Process so a
+        // Lock right after a drag can't stomp an in-flight write on
+        // `persist`.
+        Repeater {
+            model: win.desktopPluginIds
+            delegate: PluginDesktopSlot {
+                id: slot
+                required property string modelData
+                readonly property string pid: modelData
+                // live registry entry for this id, re-resolved whenever
+                // Registry reloads. placement (x/y/scale/bg) updates here
+                // without rebuilding the delegate, because the model is the
+                // stable id list, not the per-write plugin array.
+                readonly property var entry: Registry.plugins.find(p => p.id === slot.pid) || null
+                readonly property var dw: (entry && entry.placement && entry.placement.desktopWidget) || ({})
+                readonly property string dir: entry ? entry.dir : ""
+                readonly property string versionQuery: entry && entry.version
+                    ? "?v=" + encodeURIComponent(entry.version) : ""
+
+                pluginId: slot.pid
+                locked: slot.dw.locked === true
+                scaleCfg: slot.dw.scale || 0.85
+                freeX: slot.dw.x !== undefined ? slot.dw.x : 80
+                freeY: slot.dw.y !== undefined ? slot.dw.y : 80
+                bg: slot.dw.bg ? slot.dw.bg : ((entry && entry.manifest && entry.manifest.defaults && entry.manifest.defaults.desktopWidget && entry.manifest.defaults.desktopWidget.bg) || "card")
+                radius: slot.dw.radius || 26
+
+                onMoved: (x, y) => {
+                    persist.command = [root.placeTool, slot.pid, "desktopWidget", "" + x, "" + y];
+                    persist.running = true;
+                }
+                onResized: (sc) => {
+                    const x = (slot.dw.x !== undefined) ? slot.dw.x : Math.round(slot.x);
+                    const y = (slot.dw.y !== undefined) ? slot.dw.y : Math.round(slot.y);
+                    const lk = (slot.dw.locked === true);
+                    persist.command = [root.placeTool, slot.pid, "desktopWidget",
+                        "" + x, "" + y, "" + sc, "" + lk];
+                    persist.running = true;
+                }
+                onMenuRequested: (mx, my, id) => {
+                    pluginMenu.openFor(id, slot.dw.locked === true, mx, my,
+                        slot.entry ? slot.entry.manifest : null,
+                        slot.entry ? slot.entry.placement : null);
+                }
+
+                // when the content exposes `editing` (a focused text field),
+                // the wallpaper layer grabs the keyboard for as long as it
+                // stays true. the flag falls back to false if the content is
+                // ever torn down, so the grab can't leak.
+                readonly property bool editing: !!(item && item.editing)
+                onEditingChanged: win.kbWanted += editing ? 1 : -1
+                Component.onDestruction: if (editing) win.kbWanted -= 1
+
+                property var api: QtObject {
+                    property var mainInstance: svc.item
+                    property var pluginSettings: (slot.entry && slot.entry.placement && slot.entry.placement.settings) ? slot.entry.placement.settings : ({})
+                    property string pluginDir: slot.dir
+                    function saveSettings() {}
+                    // host image viewer: a real click on a photo tile calls
+                    // this to open a dimmed, full-desktop enlarged view of the
+                    // image (see photoViewer). Closed by click-away or Esc.
+                    function expandImage(url) { photoViewer.open(url); }
+                }
+
+                PluginObjectSlot {
+                    id: svc
+                    source: slot.dir.length > 0 ? "file://" + slot.dir + "/service/Main.qml" + slot.versionQuery : ""
+                    configure: (service) => { service.pluginApi = slot.api; }
+                }
+
+                contentUrl: slot.dir.length > 0 ? "file://" + slot.dir + "/content/Widget.qml" + slot.versionQuery : ""
+                configure: (it) => {
+                    it.pluginApi = slot.api;
+                    it.screen = win.screen;
+                    it.density = "compact";
+                    it.s = 1;
+                    it.widthBudget = 360;
+                    it.active = true;
+                }
+            }
+        }
+
+        WidgetMenu { id: menu }
+
+        // per-tile right-click menu, hoisted to PanelWindow level so the
+        // click-away catcher covers the whole desktop and a tile that
+        // vanishes (Hide) doesn't pull the menu down with it.
+        PluginWidgetMenu {
+            id: pluginMenu
+            onHideRequested: (id) => {
+                hide.command = [root.placeTool, id, "enabled", "false"];
+                hide.running = true;
+                pluginMenu.close();
+            }
+            onLockToggled: (id) => {
+                const dw = win.placementOf(id);
+                const x = (dw.x !== undefined) ? dw.x : 80;
+                const y = (dw.y !== undefined) ? dw.y : 80;
+                const sc = (dw.scale !== undefined) ? dw.scale : 1;
+                const lk = !(dw.locked === true);
+                lockProc.command = [root.placeTool, id, "desktopWidget",
+                    "" + x, "" + y, "" + sc, "" + lk];
+                lockProc.running = true;
+            }
+            onSettingChanged: (id, key, value) => {
+                var obj = {};
+                obj[key] = value;
+                settingsProc.command = [root.placeTool, id, "settings", JSON.stringify(obj)];
+                settingsProc.running = true;
+            }
+        }
+
+        // Shared image viewer for desktop plugin tiles. A tile (e.g. Photo
+        // Frame) calls pluginApi.expandImage(url) on a real click; this dims the
+        // whole desktop and shows that image large + centered
+        // (PreserveAspectFit, capped per axis at min(85% of the screen, the
+        // image's own size) so small photos never upscale). Any click on the
+        // scrim or the photo, or Esc, closes it. It rides this same wallpaper
+        // layer, so it sits above the tiles as a full-desktop overlay.
+        Item {
+            id: photoViewer
+            anchors.fill: parent
+            z: 100
+
+            // the image being shown; empty = closed.
+            property url src: ""
+            // `src` is a url: `src !== ""` is always true for an empty url (strict
+            // type mismatch against a string), which opened the viewer on boot and
+            // stranded kbWanted (an exclusive keyboard grab). Test length, as open() does.
+            readonly property bool shown: String(photoViewer.src).length > 0
+
+            visible: opacity > 0
+            opacity: photoViewer.shown ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.quick; easing.type: Theme.ease } }
+
+            function open(url) { if (url && String(url).length > 0) photoViewer.src = url; }
+            function close() { photoViewer.src = ""; }
+
+            // Esc closes. The wallpaper layer only holds the keyboard while
+            // something wants it (kbWanted), so bump it exactly like a focused
+            // plugin text field and take active focus while shown.
+            Keys.onEscapePressed: photoViewer.close()
+            onShownChanged: {
+                win.kbWanted += photoViewer.shown ? 1 : -1;
+                if (photoViewer.shown)
+                    photoViewer.forceActiveFocus();
+            }
+            Component.onDestruction: if (photoViewer.shown) win.kbWanted -= 1
+
+            // dim scrim + click-away. Accepts both buttons so a click or
+            // right-click anywhere closes, instead of falling through to a tile
+            // or the global desktop menu behind it.
+            Rectangle {
+                anchors.fill: parent
+                color: Qt.rgba(0, 0, 0, 0.78)
+            }
+            MouseArea {
+                anchors.fill: parent
+                enabled: photoViewer.shown
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onClicked: photoViewer.close()
+            }
+
+            // the enlarged print: rounded-clipped to match the tile aesthetic.
+            // clicks fall through it to the MouseArea above, so tapping the photo
+            // closes too.
+            ClippingRectangle {
+                anchors.centerIn: parent
+                radius: Theme.radiusWidget
+                color: "transparent"
+                width: big.paintedWidth
+                height: big.paintedHeight
+
+                Image {
+                    id: big
+                    anchors.centerIn: parent
+                    source: photoViewer.src
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    cache: true
+                    smooth: true
+                    width: implicitWidth > 0 ? Math.min(photoViewer.width * 0.85, implicitWidth) : photoViewer.width * 0.85
+                    height: implicitHeight > 0 ? Math.min(photoViewer.height * 0.85, implicitHeight) : photoViewer.height * 0.85
+                }
+            }
+        }
+
+        // position/scale writeback for plugin tiles. ryoku-plugins-place
+        // merges free x/y (+ optional scale/locked) into plugins.json;
+        // Registry's file-watch then retunes every surface.
+        Process { id: persist }
+        // separate Processes per menu action so a quick Hide-then-Lock or
+        // resize-then-Lock doesn't trample an in-flight `persist` command.
+        Process { id: hide }
+        Process { id: lockProc }
+        // settings writeback from the right-click menu.
+        Process { id: settingsProc }
+    }
+}

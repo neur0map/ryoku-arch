@@ -37,6 +37,29 @@ func main() {
 		}
 		return
 	}
+	if args[0] == "__clip-ingest" {
+		// wl-paste --watch helper: read the new selection and stream it to the
+		// daemon. Internal, not a user verb.
+		runClipIngest()
+		return
+	}
+	if args[0] == "theme" && len(args) == 2 && args[1] == "catalog" {
+		// The colour-scheme catalog is static (compiled in) and larger than the
+		// daemon's 8192-byte socket reply, so print it here without a round trip;
+		// `theme <name>` still forwards to the daemon to apply.
+		fmt.Println(themeCatalogJSON())
+		return
+	}
+	if args[0] == "matugen-preview" && len(args) == 2 {
+		// Generate (never apply) the palette an image would produce, for the
+		// ryowalls live preview. Runs standalone -- no daemon round trip -- so the
+		// same generator serves apply and preview from one binary.
+		if err := matugenPreview(args[1]); err != nil {
+			fmt.Fprintln(os.Stderr, "ryoku-shell:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	if err := sendCommand(strings.Join(args, " ")); err != nil {
 		fmt.Fprintln(os.Stderr, "ryoku-shell:", err)
 		os.Exit(1)
@@ -70,10 +93,13 @@ func sendCommand(line string) error {
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage:")
 	fmt.Fprintln(os.Stderr, "  ryoku-shell daemon")
-	fmt.Fprintln(os.Stderr, "  ryoku-shell <launcher|clipboard|link|mixer|calendar|power|battery|peek|hide>")
+	fmt.Fprintln(os.Stderr, "  ryoku-shell launcher")
 	fmt.Fprintln(os.Stderr, "  ryoku-shell <overview|wallpaper-switcher>")
+	fmt.Fprintln(os.Stderr, "  ryoku-shell plugin <id>")
+	fmt.Fprintln(os.Stderr, "  ryoku-shell <visualizer|visualizer-overlay>")
 	fmt.Fprintln(os.Stderr, "  ryoku-shell lock")
 	fmt.Fprintln(os.Stderr, "  ryoku-shell wallpaper [next|init|set <path>]")
+	fmt.Fprintln(os.Stderr, "  ryoku-shell theme [<scheme>|catalog]")
 	fmt.Fprintln(os.Stderr, "  ryoku-shell voice")
 	fmt.Fprintln(os.Stderr, "  ryoku-shell <reload|status|ping|quit>")
 }

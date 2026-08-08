@@ -147,7 +147,7 @@ var desktopMap = []desktopMapRow{
 	{"Ryoku CLI", "binary `ryoku`; state ~/.local/state/ryoku/", "ryoku", "ryoku update | rollback | status | materialize | reload"},
 	{"Hub state", "~/.config/ryoku/hub.toml", "ryoku-hub (Ryoku Settings)", "written by Ryoku Settings; no reload"},
 	{"Theme + colour source", "~/.config/ryoku/theme.json", "ryoku-hub", "ryoku-shell wallpaper repaint"},
-	{"Wallust palette", "~/.cache/wallust/colors.json", "ryoku-shell daemon (wallust)", "ryoku-shell wallpaper repaint"},
+	{"Palette", "~/.cache/ryoku/colors.json", "ryoku-shell daemon (matugen)", "ryoku-shell wallpaper repaint"},
 	{"Packages", "pacman + yay database", "pacman, yay", "ryoku update"},
 	{"System vault", "~/.local/share/ryoku/rashin/", "ryoku-rashin", "ryoku-rashin index"},
 }

@@ -13,7 +13,7 @@ func TestParkable(t *testing.T) {
 			t.Errorf("%s should be parkable", n)
 		}
 	}
-	for _, n := range []string{"pill", "visualizer", "widgets", "hub", ""} {
+	for _, n := range []string{"shell", "visualizer", "widgets", "hub", ""} {
 		if parkable(n) {
 			t.Errorf("%s should not be parkable", n)
 		}
@@ -67,17 +67,37 @@ func TestUnloadPaletteWhenIdle(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(dir, "ryoku"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	// launcher opts OUT explicitly; overview is unset.
 	if err := os.WriteFile(filepath.Join(dir, "ryoku", "performance.json"),
-		[]byte(`{"unloadLauncherWhenIdle":true}`), 0o644); err != nil {
+		[]byte(`{"unloadLauncherWhenIdle":false}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if !unloadPaletteWhenIdle("launcher") {
-		t.Error("launcher flag is on")
+	if unloadPaletteWhenIdle("launcher") {
+		t.Error("launcher explicitly false -> off")
 	}
-	if unloadPaletteWhenIdle("overview") {
-		t.Error("overview flag is unset -> off")
+	if !unloadPaletteWhenIdle("overview") {
+		t.Error("overview unset -> on by default (cheap default)")
 	}
-	if unloadPaletteWhenIdle("pill") {
-		t.Error("pill is not a parkable palette")
+	if unloadPaletteWhenIdle("shell") {
+		t.Error("shell is not a parkable palette")
+	}
+}
+
+func TestStartsAtBoot(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	if err := os.MkdirAll(filepath.Join(dir, "ryoku"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if !startsAtBoot(component{"shell", true}) {
+		t.Error("a persistent component starts at boot")
+	}
+	if startsAtBoot(component{"launcher", false}) {
+		t.Error("an on-demand palette does not start at boot")
+	}
+	_ = os.WriteFile(filepath.Join(dir, "ryoku", "performance.json"),
+		[]byte(`{"disabledComponents":["launcher"]}`), 0o644)
+	if startsAtBoot(component{"launcher", true}) {
+		t.Error("a disabled component never starts at boot")
 	}
 }

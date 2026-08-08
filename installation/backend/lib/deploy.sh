@@ -123,8 +123,8 @@ ryoku_deploy_packages() {
   local -a pkgs=(ryoku-keyring ryoku-desktop)
 
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
-    log "DRYRUN: arch-chroot /mnt pacman -Sy"
-    log "DRYRUN: arch-chroot /mnt pacman -S --noconfirm --needed ${pkgs[*]} (one retry on a network flake)"
+    log "DRYRUN: arch-chroot /mnt pacman -Sy --noprogressbar"
+    log "DRYRUN: arch-chroot /mnt pacman -S --noconfirm --needed --noprogressbar ${pkgs[*]} (one retry on a network flake)"
     log "DRYRUN: would warn if $RYOKU_REPO/.payload version differs from pacman -Si ryoku-desktop"
     return 0
   fi
@@ -141,10 +141,12 @@ ryoku_deploy_packages() {
 
   log "installing the Ryoku desktop set: ${pkgs[*]}"
   local rc=0
-  if arch-chroot /mnt pacman -Sy; then
-    if ! arch-chroot /mnt pacman -S --noconfirm --needed "${pkgs[@]}"; then
+  # --noprogressbar: the TUI streams this output through a line viewport that the
+  # \r-driven pacman bar would shred; the download still runs, just without the bar.
+  if arch-chroot /mnt pacman -Sy --noprogressbar; then
+    if ! arch-chroot /mnt pacman -S --noconfirm --needed --noprogressbar "${pkgs[@]}"; then
       log "desktop set install failed (often a mid-download network flake); retrying once"
-      arch-chroot /mnt pacman -S --noconfirm --needed "${pkgs[@]}" || rc=$?
+      arch-chroot /mnt pacman -S --noconfirm --needed --noprogressbar "${pkgs[@]}" || rc=$?
     fi
   else
     rc=1
@@ -229,11 +231,14 @@ ryoku_seed_hypr_keymap() {
 # sources are fine.
 ryoku_deploy_seed() {
   local h=$1
-  log "seeding brand assets, wallpapers, and ~/.npmrc into $h"
+  log "seeding brand assets, wallpapers, decor art, and ~/.npmrc into $h"
   deploy_dir "$RYOKU_REPO/ryoku/assets/brand" "$h/.local/share/ryoku/assets/brand"
   # ship a wallpaper set so a fresh install has something to pick from;
   # ryoku-shell picks one at random on first start.
   deploy_dir "$RYOKU_REPO/ryoku/assets/wallpapers" "$h/Pictures/Wallpapers"
+  # the decor art the Decor/Placard components render, beside Wallpapers and
+  # livewalls so a user can see and swap it. `ryoku doctor` keeps it current.
+  deploy_dir "$RYOKU_REPO/ryoku/assets/ryodecors" "$h/Pictures/ryodecors"
   deploy_file "$RYOKU_REPO/ryoku/apps/npm/npmrc" "$h/.npmrc"
 }
 

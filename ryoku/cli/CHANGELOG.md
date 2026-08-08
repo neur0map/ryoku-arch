@@ -3,6 +3,182 @@
 ## Unreleased
 
 ### Added
+- **Existing boxes land on the QS Bar default on update.** `ryoku doctor` no
+  longer strips the live top-level `barStyle` (it was wrongly listed as a retired
+  key, so an update stripped it and reseeded `sumi`, flipping every QS Bar user to
+  the minimal Sumi rail); `reconcileSumiBar` now defaults an absent or retired
+  Atoll-era bar style to `qsbar`, while an explicit sumi or installed store style
+  is kept (`internal/doctor/doctor.go`).
+- **Spotify Canvas is wired up for a Spotify user automatically.** A new
+  `reconcileSpicetifyCanvas` drops the bundled `ryoku-canvas.js` into a Spotify
+  user's spicetify Extensions, enables it, and applies it (building `spicetify-cli`
+  from the AUR if missing). Gated on Spotify being installed and best-effort, so it
+  never blocks an update and stays inert for anyone without Spotify
+  (`internal/doctor/reconcile_spicetify.go`).
+- **`ryoku track <main|unstable-dev>` switches the update channel.** It points a
+  box at a channel and makes `ryoku update` follow it: installs the build tools,
+  checks out the branch, records the channel, and rebuilds the desktop from the
+  checkout, keeping your user_edits overlay and Hub settings (deploy re-applies
+  them). It mirrors `ryoku recovery`'s handoff, running `bin/ryoku-track` from a
+  local checkout or fetching the canonical copy, so a packaged install with no
+  checkout can still hop onto the source-tracked edge and back. `ryoku recovery`
+  stays the heavy factory reset to stable main (`track.go`, `main.go`,
+  `bin/ryoku-track`).
+
+### Fixed
+- **Materialize activates WirePlumber policy changes immediately.** It compares
+  the effective Bluetooth fragment before and after the base plus user overlay,
+  then try-restarts WirePlumber only when those bytes changed. Updated installs
+  get the A2DP default in the current session without interrupting audio on
+  ordinary updates (`internal/updater/materialize.go`).
+- **Doctor restarts a shell daemon left running on a replaced binary.** Updaters
+  before beta-17 swapped the packages without quiescing the shell, so the old
+  daemon kept serving surfaces that hot-reload QML newer than it can host
+  ("module Ryoku.FrameBars is not installed" after updating to beta-18). Doctor
+  now spots a daemon whose /proc exe link reads deleted and restarts it on the
+  installed binary, making `ryoku doctor` the one-command cure
+  (`internal/doctor/doctor.go`).
+- **Doctor can revive a shell skipped by a missing session env.** The
+  ryoku-shell unit is gated on `ConditionEnvironment=WAYLAND_DISPLAY`; when
+  login's env import never reached the systemd user manager, `systemctl
+  restart` reported success while starting nothing, so doctor's shell-daemon
+  reconciler pushed a restart into a void. It now imports the live session's
+  env into the user manager first (`internal/doctor/doctor.go`).
+- **Doctor moves a persisted Stash sidebar to the right.** The Stash board is now
+  the floating Features page on the right, but a box that persisted frameBars
+  still carried `surfaces.stash.anchor: "left"` (the old full-span default), which
+  normalize keeps, so the page would grow from the wrong edge. Doctor flips that
+  one leaf to `right` in place, leaving every other key untouched
+  (`internal/doctor/reconcile_stash_sidebar.go`, `internal/doctor/doctor.go`).
+- **Doctor installs the missing in-session lockscreen.** Only the ISO installer
+  ever laid down the qylock lock, so a box that predates the step (or where it
+  failed) had a dead lock button and suspended without locking, silently:
+  hypridle's before_sleep runs the same command. ryoku-desktop ships the bundle
+  now and doctor heals the user-side install, never touching the greeter half or
+  a theme the user picked (`internal/doctor/reconcile_lockscreen.go`,
+  `release/packages/ryoku-desktop/PKGBUILD`, `ryoku/lockscreen/install-qylock`).
+- **The shell daemon's systemd unit reaches package installs.** The shipped
+  autostart now starts the unit, but only the dev deploy laid it down:
+  ryoku-desktop shipped the session target alone, so a package user's next
+  login had no unit to start and no shell. The package ships the whole
+  systemd/user tree now, and the updater, doctor, and deploy all stop and
+  start the daemon through the unit where it exists (with a daemon-reload so
+  a just-delivered unit is found), falling back to the bare start where it
+  does not (`release/packages/ryoku-desktop/PKGBUILD`,
+  `internal/updater/update.go`, `internal/doctor/doctor.go`).
+
+### Added
+- **`ryoku keyboard`: the layout on every screen that asks for one.** `status`
+  shows what the desktop, greeter, console and boot image each use and whether
+  they agree, `detect` reports the layout this system records and where it came
+  from, and `apply` puts one on the greeter and the console AND rebuilds the
+  boot image, which localectl alone cannot do (`internal/keyboard/`).
+- **Doctor adopts the keyboard the installer was told about.** A keyboard cannot
+  report the legends printed on its keys, so a box installed with an AZERTY
+  keymap still came up on QWERTY. The layout is now read back from what the
+  system already records, strongest source first: the X11 keymap, then
+  /etc/vconsole.conf, then the locale's country. It is adopted only while the
+  desktop is on the untouched shipped default, once, and a marker keeps a later
+  deliberate pick from being undone (`internal/doctor/keyboard_detect.go`,
+  `internal/doctor/reconcile_keymap.go`).
+
+### Changed
+- **`ryoku doctor` follows the trimmed frame-bar catalogue.** Its `frameBars`
+  normalizer mirrors the shell's catalogue, which dropped App Launcher,
+  Clipboard, Layout Switcher, Color Picker, Power Profile, Reboot, Screenshot and
+  Wallpaper as bar widgets: doctor now strips any of the eight from a saved rail
+  and drops `reboot` from the legacy-migration default, while `music` -- a bar
+  widget the allowlist had never carried -- is preserved instead of being
+  silently stripped (`internal/doctor/doctor.go`).
+
+### Added
+- **doctor keeps every recording in one directory.** Clips were landing in three
+  places: the shell's own, Ryoku Motion's Electron userData directory, and an
+  empty `~/Videos/Ryoku Motion` a deleted prototype left behind. Ryoku Motion
+  hardcodes its path with nothing to redirect it, so its directory becomes a link
+  into the real one and whatever it already recorded moves across, never
+  overwriting a file already there. gpu-screen-recorder's own default is reported
+  with the command to merge it, not migrated, since it may be running
+  deliberately (`internal/doctor/reconcile_recordings.go`).
+
+### Fixed
+- **`ryoku doctor` carries existing launcher blur settings into the local-frost
+  design without taking ownership from the user.** Before a one-time marker, an
+  exact saved `bgBlur: 12`, the retired shipped global-blur default, moves to the
+  new 2 px card-local frost default. Every other numeric value, a missing config,
+  or a missing key is preserved and marked complete; malformed/non-numeric JSON
+  is warned about and never marked. `--check` reports the exact migration
+  without writing either file. Once marked, even a deliberate 12 stays 12
+  (`internal/doctor/reconcile_launcher.go`,
+  `TestReconcileLauncherLocalFrost*`).
+- **`ryoku doctor` heals a shell daemon left on a dead Hyprland instance.** A
+  daemon that outlived its compositor (a relogin or crash brings up a new
+  Hyprland; the daemon runs detached and kept the old signature) still answers
+  ping, so the daemon check passed it as healthy while workspaces stayed frozen
+  and the power menu and every monitor-aware keybind did nothing. The check now
+  compares the daemon's Hyprland instance (a new `ryoku-shell signature` command)
+  against the live session and, on a mismatch, restarts the daemon against the
+  live compositor -- quit it (it reaps its own quickshell children), then start a
+  fresh one bound to this session. A daemon it cannot identify (an older binary)
+  or one already on the live instance is left alone (`internal/doctor/doctor.go`
+  `reconcileShellDaemon`/`daemonIsStale`, covered by `TestDaemonIsStale`,
+  `TestReconcileShellDaemonStale`).
+- **`ryoku doctor` stops nagging about the `.pacnew` files it creates itself.** The
+  `.pacnew` check is now a reconciler: it auto-clears provably-safe pending configs
+  -- a `.pacnew` byte-identical to the live file, and `pacman.conf` whose live copy
+  differs only by Ryoku's appended `[ryoku]` repo stanza -- and reports only genuine
+  conflicts for `pacdiff`. It never overwrites a user-modified config.
+
+### Added
+- **The keyring never prompts out of the box.** The default policy is now
+  `never-ask` (a blank, passwordless default keyring) instead of `ask`: an
+  unconfigured box with no PAM wiring infers `never-ask`, and a new
+  `ryoku keyring init` (run from the Hyprland autostart at first login) records
+  the mode and seeds the blank keyring, so no libsecret app (browser, editor, SSH
+  agent) ever asks for a keyring password, and it persists across reboots. `init`
+  is idempotent (a no-op once a mode is chosen) and non-destructive (a
+  pre-existing password-protected keyring is left intact; it records the policy
+  and points at `set never-ask --reset`). `internal/keyring/init.go`,
+  `TestInit*`, `TestStatusModeInference`.
+- **`ryoku keyring` chooses how the GNOME keyring unlocks at sign-in.** Three
+  modes: `unlock-on-login` (PAM unlocks the login keyring with the login password
+  at sign-in, encrypted at rest, silent), `never-ask` (a blank plaintext default
+  keyring that never prompts, the only silent option under SDDM autologin), and
+  `ask` (locked until an app asks). `status [--json]` reports the configured (or
+  inferred) mode, the PAM state, autologin, the daemon, and each keyring file's
+  encrypted/plaintext/absent format for the Hub; `set <mode> [--convert|--reset]
+  [--password-stdin]` runs the user-side state machine over the keyring files via
+  gnome-keyring's D-Bus interface (godbus, vendored) and escalates the privileged
+  PAM half through `pkexec`; `apply-pam <mode>` idempotently wires or strips
+  `pam_gnome_keyring` in `/etc/pam.d/sddm`. `$RYOKU_PAM_FILE` overrides the PAM
+  path so tests and the sandbox never touch the real stack
+  (`internal/keyring/`, `TestApplyPAMText*`, `TestSet*`, `TestE2EKeyringLifecycle`).
+- **`doctor` watches the keyring policy for drift.** `keyring unlock policy`
+  records the inferred mode when none is set and points the default keyring at
+  `login` for unlock-on-login (safe, user-side); it only warns -- never edits the
+  root file or rekeys a keyring -- when `/etc/pam.d/sddm` disagrees with the mode
+  (with the exact `sudo ryoku keyring apply-pam <mode>` fix), when autologin
+  conflicts with unlock-on-login, or when never-ask still finds an encrypted
+  keyring (`internal/doctor/reconcile_keyring.go`, `TestReconcileKeyring*`).
+- **`materialize` overlays `~/.config/ryoku/user_edits` after the base.** A
+  regular file in the overlay wins at its mirrored `~/.config` path; the base is
+  laid in full first, so fixes and new files still land, and an empty overlay is a
+  no-op. Symlinks and `.md` notes are skipped (`internal/updater/materialize.go`,
+  `internal/sys/useredits.go`, `TestMaterializeUserEditsOverlay`).
+- **`ryoku reset [path]`.** Drops a `user_edits` override (or, with no path and a
+  confirm, the whole overlay) and re-lays the base, so a customization returns to
+  the Ryoku default (`internal/updater/reset.go`).
+- **`doctor` sets up the overlay.** `user edits overlay` seeds a how-to
+  `README.md` and adopts a machine's legacy loose files (`hypr/user.lua`,
+  `hypr/monitors_user.lua`, `kitty/user.conf`) into it
+  (`internal/doctor/reconcile_useredits.go`, `TestReconcileUserEditsAdopt`).
+- **`doctor` seeds the decor art into `~/Pictures/ryodecors`.** The `Decor` and
+  `Placard` components render their baked art from that folder (beside
+  `Wallpapers` and `livewalls`); the installer seeds a fresh box, and this
+  reconciler delivers the shipped set -- and anything a later release adds -- to a
+  box that updated before it shipped or lost a file. Missing-only, so a swapped or
+  added file is left alone and nothing is pruned (`internal/doctor/doctor.go`,
+  `TestReconcileRyodecors`).
 - **`doctor` heals the looping limine boot countdown.** On the
   limine-mkinitcpio-hook layout the OS entry is a directory and the kernel is a
   `//` sub-entry, but `default_entry` was a bare `2`, which Limine resolves as
@@ -363,12 +539,16 @@
   several keyboard layouts had to re-add them after each update. Its comment now
   shows the multi-layout syntax (`kb_layout = "us,ru,de,fr"` with a switch key).
   Covered by `materialize_test.go`.
-- `doctor` gains a "cursor theme" reconciler: it warns when a Ryoku desktop has no
-  Bibata cursor theme and points at `ryoku-pkg-aur-add bibata-cursor-theme-bin`.
-  A failed AUR source build, or a dev checkout (which installs no AUR packages),
-  could leave the Ryoku Settings cursor picker with a single fallback theme; the
-  prebuilt `-bin` package installs the whole Bibata family. Covered by
-  `doctor_test.go`.
+- `doctor` gains a "cursor theme" reconciler that converges the configured cursor
+  onto a theme that is actually on disk. The Bibata family now ships as the
+  `ryoku-cursors` package (a hard `ryoku-desktop` dependency, from the `[ryoku]`
+  repo), so the shipped default is package-guaranteed; the failure worth healing
+  is a Hub-picked third-party theme that was never installed, which drops the
+  pointer to a bare bitmap. The reconciler resets `hypr.json`'s `cursor.theme`
+  back to `Bibata-Modern-Ice` (config-side, never a pacman call) and names both
+  sides so a user who set the theme on purpose can re-pick it after installing
+  it; it only warns when even the default is absent (a dev checkout with no
+  package). Covered by `doctor_test.go`.
 - `doctor` gains a "display resolution" reconciler that recovers a monitor a
   degraded link left below its available resolution. A cold boot or the
   post-upgrade `hyprctl reload` can briefly leave a DP/HDMI link advertising only

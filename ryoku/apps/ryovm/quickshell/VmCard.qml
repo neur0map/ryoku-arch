@@ -1,10 +1,13 @@
 import QtQuick
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// One VM in the yard: a hard-shadowed plate carrying the OS badge, the name, a
-// compact spec line, and a split-flap state word — the departure-board row for
-// this machine. A running machine hoists a vermillion signal rail on its left
-// edge; the selected plate wears the ember frame.
+// One machine in the yard: a 64-tall row, hairline frame, transparent fill:
+// the departure-board row for this machine. The OS mark, the name (ink when
+// running, inkDim when stopped), a compact mono spec line, and the state on its
+// own split-flap drum, registered like a board column. Selected wears the
+// gallery grammar: tint10 fill, 1px ink border, corner dot. No signal rail, no
+// border colour; running just brightens the name and flips the flap to RUN.
 Item {
     id: card
 
@@ -14,62 +17,39 @@ Item {
 
     readonly property bool running: card.item ? card.item.running === true : false
 
-    height: 68
+    height: 64
 
-    // hard offset shadow: depth from geometry, never glow.
-    Rectangle {
-        x: 4; y: 4
-        width: face.width
-        height: face.height
-        color: Theme.shadow
-        antialiasing: false
+    function specLine(it) {
+        var c = it.cores === "auto" ? "auto" : it.cores + "c";
+        var m = ({ "gtk": "window", "spice": "spice", "none": "headless" })[it.display] || it.display;
+        var d = it.diskUsed > 0 ? Vm.human(it.diskUsed) : "-";
+        return c + " · " + it.ram + " · " + m + " · " + d;
     }
 
     Rectangle {
         id: face
-        width: parent.width - 4
-        height: parent.height - 4
-        color: Theme.surfaceLo
+        anchors.fill: parent
+        radius: Tokens.radius
+        color: card.active ? Tokens.tint10 : (ma.containsMouse ? Tokens.tint5 : "transparent")
+        border.width: Tokens.border
+        border.color: card.active ? Tokens.ink : (ma.containsMouse ? Tokens.lineStrong : Tokens.line)
         antialiasing: false
-        border.width: card.active ? 1.6 : 1
-        border.color: card.active ? Theme.ember : (ma.containsMouse ? Qt.alpha(Theme.cream, 0.3) : Theme.line)
-        Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+        Behavior on color { ColorAnimation { duration: Tokens.snap } }
+        Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
 
-        // signal rail: hoisted while the machine runs. Mechanical: it snaps.
-        Rectangle {
-            id: rail
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.margins: 1
-            width: card.running ? 4 : 0
-            color: Theme.ember
-            antialiasing: false
-        }
-
-        // OS badge: a stamped square plate.
-        Rectangle {
+        // OS mark on a hairline tile (keeps its chroma: it is data).
+        Item {
             id: badge
             anchors.left: parent.left
-            anchors.leftMargin: 12
+            anchors.leftMargin: Tokens.s3
             anchors.verticalCenter: parent.verticalCenter
             width: 40
             height: 40
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.keyTop }
-                GradientStop { position: 1.0; color: Theme.keyBot }
-            }
-            border.width: 1
-            border.color: card.active ? Qt.alpha(Theme.ember, 0.5) : Theme.line
-            antialiasing: false
             OsIcon {
                 anchors.centerIn: parent
-                width: 26
-                height: 26
-                size: 26
+                width: 26; height: 26; size: 26
                 slug: card.item ? (card.item.os || "") : ""
                 label: card.item ? (card.item.name || card.item.os || "") : ""
-                glyphTint: card.active ? Theme.ember : Theme.cream
             }
         }
 
@@ -85,32 +65,18 @@ Item {
                 width: parent.width
                 elide: Text.ElideRight
                 text: card.item ? card.item.name : ""
-                color: Theme.bright
-                font.family: Theme.font
+                color: card.running ? Tokens.ink : Tokens.inkDim
+                font.family: Tokens.ui
                 font.pixelSize: 14
-                font.weight: Font.DemiBold
+                font.weight: card.running ? Font.DemiBold : Font.Medium
             }
-            Row {
-                spacing: 6
-                Text {
-                    text: card.item ? (card.item.cores + (card.item.cores === "auto" ? " cores" : "c")) : ""
-                    color: Theme.dim; font.family: Theme.mono; font.pixelSize: 11
-                }
-                Text { text: "·"; color: Theme.faint; font.family: Theme.mono; font.pixelSize: 11 }
-                Text {
-                    text: card.item ? card.item.ram : ""
-                    color: Theme.dim; font.family: Theme.mono; font.pixelSize: 11
-                }
-                Text { text: "·"; color: Theme.faint; font.family: Theme.mono; font.pixelSize: 11 }
-                Text {
-                    text: card.item ? ({ "gtk": "window", "spice": "SPICE", "none": "headless" })[card.item.display] || card.item.display : ""
-                    color: Theme.dim; font.family: Theme.mono; font.pixelSize: 11
-                }
-                Text { text: "·"; color: Theme.faint; font.family: Theme.mono; font.pixelSize: 11 }
-                Text {
-                    text: card.item && card.item.diskUsed > 0 ? Vm.human(card.item.diskUsed) : "—"
-                    color: Theme.dim; font.family: Theme.mono; font.pixelSize: 11
-                }
+            Text {
+                width: parent.width
+                elide: Text.ElideRight
+                text: card.item ? card.specLine(card.item) : ""
+                color: Tokens.inkFaint
+                font.family: Tokens.mono
+                font.pixelSize: 11
             }
         }
 
@@ -118,14 +84,23 @@ Item {
         FlapWord {
             id: stateFlap
             anchors.right: parent.right
-            anchors.rightMargin: 12
+            anchors.rightMargin: 14
             anchors.verticalCenter: parent.verticalCenter
             text: card.running ? "RUN" : "OFF"
             pad: 3
-            cellW: 13
-            cellH: 20
-            fontPx: 11
-            ink: card.running ? Theme.ok : Theme.dim
+            cellW: 13; cellH: 20; fontPx: 11
+            ink: card.running ? Tokens.sun : Tokens.inkDim
+        }
+
+        // the gallery grammar's corner dot on the selected row.
+        Rectangle {
+            visible: card.active
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: 6
+            width: 5; height: 5
+            radius: 2.5
+            color: Tokens.ink
         }
 
         MouseArea {

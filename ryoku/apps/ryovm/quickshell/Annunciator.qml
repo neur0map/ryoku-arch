@@ -1,68 +1,58 @@
 import QtQuick
-import "Singletons"
+import Ryoku.Ui.Singletons
 
-// One Apollo-panel annunciator tile: a small hard rectangle that is either
-// unlit (dark, engraved label) or lit (solid color, hard shadow). Warning tiles
-// blink a 1Hz square wave — no easing, machines don't fade. Mostly-dark grids
-// are correct: a quiet panel is a healthy panel.
+// One backlit-panel annunciator tile, in monochrome grammar (DESIGN 3.4). Three
+// states where colour used to fake five:
+//   dark  = transparent face, lineSoft border, inkFaint engraved label
+//   lit   = tint10 face, lineStrong border, ink label, a 2px ink filament base
+//   alarm = the tile inverts to bone, black label, on a 1Hz square-wave blink
+// A mostly-dark grid is correct: a quiet panel is a healthy panel.
 Item {
     id: tile
 
     property string label: ""
     property bool lit: false
-    property bool warn: false               // blink while lit
-    property color litColor: Theme.ok
-    property real tileW: 52
+    property bool warn: false               // alarm: invert + blink while lit
+    property real tileW: 54
     property real tileH: 22
+
+    readonly property bool alarm: tile.lit && tile.warn
 
     width: tileW
     height: tileH
 
-    // hard shadow only while lit: a lit tile is raised, an unlit one is flush.
-    Rectangle {
-        x: 2; y: 2
-        width: tile.tileW
-        height: tile.tileH
-        color: Theme.shadow
-        visible: tile.lit
-        antialiasing: false
-    }
-
-    // backlit, not painted: a lit annunciator is a dark tile whose LABEL glows
-    // through — a panel of solid colour blocks read as candy, not instruments.
     Rectangle {
         id: face
-        width: tile.tileW
-        height: tile.tileH
-        color: tile.lit ? Qt.rgba(tile.litColor.r, tile.litColor.g, tile.litColor.b, 0.16) : Theme.surfaceLo
-        border.width: 1
-        border.color: tile.lit ? Qt.alpha(tile.litColor, 0.55) : Theme.lineSoft
+        anchors.fill: parent
+        color: tile.alarm ? Tokens.bone : (tile.lit ? Tokens.tint10 : "transparent")
+        border.width: Tokens.border
+        border.color: tile.alarm ? Tokens.bone : (tile.lit ? Tokens.lineStrong : Tokens.lineSoft)
         antialiasing: false
+        Behavior on color { ColorAnimation { duration: Tokens.snap } }
 
         Text {
             anchors.centerIn: parent
             text: tile.label
-            color: tile.lit ? Qt.lighter(tile.litColor, 1.25) : Theme.faint
-            font.family: Theme.mono
+            color: tile.alarm ? Tokens.inkOnBone : (tile.lit ? Tokens.ink : Tokens.inkFaint)
+            font.family: Tokens.ui
             font.pixelSize: 9
-            font.weight: tile.lit ? Font.Bold : Font.DemiBold
+            font.weight: Font.Medium
             font.letterSpacing: 1.2
+            font.capitalization: Font.AllUppercase
         }
-        // the lamp strip: a thin lit filament along the base of the glass.
+
+        // the lamp filament: a thin lit strip along the base of the glass.
         Rectangle {
-            anchors.bottom: parent.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.margins: 1
+            anchors { bottom: parent.bottom; left: parent.left; right: parent.right; margins: 1 }
             height: 2
-            visible: tile.lit
-            color: Qt.alpha(tile.litColor, 0.85)
+            visible: tile.lit && !tile.alarm
+            color: Tokens.ink
             antialiasing: false
         }
 
-        // 1Hz square-wave blink for warnings: visible toggles, nothing eases.
+        // 1Hz square-wave blink for the alarm: opacity toggles, nothing eases.
         Timer {
-            running: tile.lit && tile.warn
+            running: tile.alarm
             interval: 500
             repeat: true
             onTriggered: face.opacity = face.opacity > 0.5 ? 0.25 : 1

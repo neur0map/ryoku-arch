@@ -1,0 +1,5 @@
+module Ryoku.FrameBars
+singleton FrameBars 1.0 FrameBars.qml
+singleton BarCatalog 1.0 BarCatalog.qml
+singleton MenuCatalog 1.0 MenuCatalog.qml
+singleton NacreConfig 1.0 NacreConfig.qml

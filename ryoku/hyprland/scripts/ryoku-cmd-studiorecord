@@ -1,10 +1,9 @@
 #!/bin/bash
 # Ryoku Motion studio capture. Records the screen with gpu-screen-recorder (the
-# same clean, portal-free path the shell's Quick capture uses) AND samples the
-# cursor, then writes OpenScreen's <video>.cursor.json sidecar and opens the clip
-# in the ryomotion editor -- so the editor's automatic cursor-follow zoom still
-# works even though gsr itself carries no cursor track. Wayland-friendly: gsr
-# captures without the desktop-portal double-prompt.
+# same path the shell's Quick capture uses) AND samples the cursor, then writes
+# OpenScreen's <video>.cursor.json sidecar and opens the clip in the ryomotion
+# editor -- so the editor's automatic cursor-follow zoom still works even though
+# gsr itself carries no cursor track.
 #
 #   ryoku-cmd-studiorecord [--with-desktop-audio] [--with-microphone-audio]
 #

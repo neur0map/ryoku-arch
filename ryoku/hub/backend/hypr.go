@@ -26,37 +26,79 @@ import (
 
 // Appearance: general / decoration / animations keywords.
 type Appearance struct {
-	GapsIn           int     `json:"gapsIn"`
-	GapsOut          int     `json:"gapsOut"`
-	BorderSize       int     `json:"borderSize"`
-	Rounding         int     `json:"rounding"`
-	RoundingPower    float64 `json:"roundingPower"`
-	ActiveOpacity    float64 `json:"activeOpacity"`
-	InactiveOpacity  float64 `json:"inactiveOpacity"`
-	DimInactive      bool    `json:"dimInactive"`
-	DimStrength      float64 `json:"dimStrength"`
-	BlurEnabled      bool    `json:"blurEnabled"`
-	BlurSize         int     `json:"blurSize"`
-	BlurPasses       int     `json:"blurPasses"`
-	BlurXray         bool    `json:"blurXray"`
-	BlurVibrancy     float64 `json:"blurVibrancy"`
-	BlurNoise        float64 `json:"blurNoise"`
-	ShadowEnabled    bool    `json:"shadowEnabled"`
-	ShadowRange      int     `json:"shadowRange"`
-	ShadowPower      int     `json:"shadowPower"`
-	GlowEnabled      bool    `json:"glowEnabled"`
-	GlowRange        int     `json:"glowRange"`
-	GlowColor        string  `json:"glowColor"`
-	Animations       bool    `json:"animations"`
-	Layout           string  `json:"layout"`
-	ActiveBorder     string  `json:"activeBorder"`
-	InactiveBorder   string  `json:"inactiveBorder"`
-	ResizeOnBorder   bool    `json:"resizeOnBorder"`
-	SnapEnabled      bool    `json:"snapEnabled"`
-	WobblyWindows    bool    `json:"wobblyWindows"`
-	WindowStyle      string  `json:"windowStyle"`
-	AnimatedBorder   bool    `json:"animatedBorder"`
-	BorderAngleSpeed float64 `json:"borderAngleSpeed"`
+	GapsIn               int     `json:"gapsIn"`
+	GapsOut              int     `json:"gapsOut"`
+	BorderSize           int     `json:"borderSize"`
+	Rounding             int     `json:"rounding"`
+	RoundingPower        float64 `json:"roundingPower"`
+	ActiveOpacity        float64 `json:"activeOpacity"`
+	InactiveOpacity      float64 `json:"inactiveOpacity"`
+	DimInactive          bool    `json:"dimInactive"`
+	DimStrength          float64 `json:"dimStrength"`
+	BlurEnabled          bool    `json:"blurEnabled"`
+	BlurSize             int     `json:"blurSize"`
+	BlurPasses           int     `json:"blurPasses"`
+	BlurXray             bool    `json:"blurXray"`
+	BlurVibrancy         float64 `json:"blurVibrancy"`
+	BlurNoise            float64 `json:"blurNoise"`
+	ShadowEnabled        bool    `json:"shadowEnabled"`
+	ShadowRange          int     `json:"shadowRange"`
+	ShadowPower          int     `json:"shadowPower"`
+	GlowEnabled          bool    `json:"glowEnabled"`
+	GlowRange            int     `json:"glowRange"`
+	GlowColor            string  `json:"glowColor"`
+	Animations           bool    `json:"animations"`
+	Layout               string  `json:"layout"`
+	ActiveBorder         string  `json:"activeBorder"`
+	InactiveBorder       string  `json:"inactiveBorder"`
+	ResizeOnBorder       bool    `json:"resizeOnBorder"`
+	SnapEnabled          bool    `json:"snapEnabled"`
+	WobblyWindows        bool    `json:"wobblyWindows"`
+	WindowStyle          string  `json:"windowStyle"`
+	AnimatedBorder       bool    `json:"animatedBorder"`
+	BorderAngleSpeed     float64 `json:"borderAngleSpeed"`
+	FullscreenOpacity    float64 `json:"fullscreenOpacity"`
+	DimSpecial           float64 `json:"dimSpecial"`
+	DimAround            float64 `json:"dimAround"`
+	DimModal             bool    `json:"dimModal"`
+	BorderPartOfWindow   bool    `json:"borderPartOfWindow"`
+	BlurContrast         float64 `json:"blurContrast"`
+	BlurBrightness       float64 `json:"blurBrightness"`
+	BlurSpecial          bool    `json:"blurSpecial"`
+	BlurPopups           bool    `json:"blurPopups"`
+	BlurIgnoreOpacity    bool    `json:"blurIgnoreOpacity"`
+	BlurNewOptimizations bool    `json:"blurNewOptimizations"`
+	BlurVibrancyDarkness float64 `json:"blurVibrancyDarkness"`
+	ShadowSharp          bool    `json:"shadowSharp"`
+	ShadowScale          float64 `json:"shadowScale"`
+	ShadowColor          string  `json:"shadowColor"`
+	ExtendBorderGrab     int     `json:"extendBorderGrab"`
+	HoverIconOnBorder    bool    `json:"hoverIconOnBorder"`
+	NoFocusFallback      bool    `json:"noFocusFallback"`
+	ResizeCorner         int     `json:"resizeCorner"`
+	GapsWorkspaces       int     `json:"gapsWorkspaces"`
+}
+
+// Dwindle: the dwindle layout keywords the hub exposes on the Look tab while
+// that layout is selected. Emitted as a `dwindle = {}` block, diffed against the
+// defaults like the appearance leaves.
+type Dwindle struct {
+	PreserveSplit      bool    `json:"preserveSplit"`
+	SmartSplit         bool    `json:"smartSplit"`
+	SmartResizing      bool    `json:"smartResizing"`
+	DefaultSplitRatio  float64 `json:"defaultSplitRatio"`
+	ForceSplit         string  `json:"forceSplit"` // follow | left/top | right/bottom
+	UseActiveForSplits bool    `json:"useActiveForSplits"`
+}
+
+// Master: the master layout keywords the hub exposes on the Look tab while that
+// layout is selected. Emitted as a `master = {}` block.
+type Master struct {
+	Mfact         float64 `json:"mfact"`
+	NewStatus     string  `json:"newStatus"` // master | slave | inherit
+	NewOnTop      bool    `json:"newOnTop"`
+	Orientation   string  `json:"orientation"` // left | right | top | bottom | center
+	SmartResizing bool    `json:"smartResizing"`
 }
 
 // Input: the input keyword (keyboard, pointer, touchpad) + the pointer-adjacent
@@ -208,6 +250,7 @@ type Imgborders struct {
 	Insets  string  `json:"insets"` // "left,right,top,bottom" px
 	Scale   float64 `json:"scale"`
 	Smooth  bool    `json:"smooth"`
+	Blur    bool    `json:"blur"`
 }
 
 type Hyprglass struct {
@@ -216,11 +259,13 @@ type Hyprglass struct {
 	BlurStrength float64 `json:"blurStrength"`
 	Opacity      float64 `json:"opacity"`
 	Tint         string  `json:"tint"` // RRGGBBAA hex, no leading 0x
+	Brightness   float64 `json:"brightness"`
+	Theme        string  `json:"theme"` // dark | light
 }
 
 type Hyprfocus struct {
 	Enabled bool    `json:"enabled"`
-	Mode    string  `json:"mode"`    // flash | bounce | slide
+	Mode    string  `json:"mode"`    // flash | bounce (plugin: shrink) | slide
 	Opacity float64 `json:"opacity"` // fade_opacity, for flash
 	Bounce  float64 `json:"bounce"`  // bounce_strength, for bounce
 	Slide   float64 `json:"slide"`   // slide_height px, for slide
@@ -246,17 +291,21 @@ type Plugins struct {
 }
 
 type Overrides struct {
-	Appearance   Appearance    `json:"appearance"`
-	Input        Input         `json:"input"`
-	Cursor       Cursor        `json:"cursor"`
-	Env          []EnvVar      `json:"env"`
-	WindowRules  []WindowRule  `json:"windowRules"`
-	Autostart    []Autostart   `json:"autostart"`
-	Keybinds     []Keybind     `json:"keybinds"`
-	Anim         Anim          `json:"anim"`
-	LayerRules   []LayerRule   `json:"layerRules"`
-	AppOverrides []AppOverride `json:"appOverrides"`
-	Plugins      Plugins       `json:"plugins"`
+	Appearance     Appearance        `json:"appearance"`
+	Dwindle        Dwindle           `json:"dwindle"`
+	Master         Master            `json:"master"`
+	Input          Input             `json:"input"`
+	Cursor         Cursor            `json:"cursor"`
+	Env            []EnvVar          `json:"env"`
+	WindowRules    []WindowRule      `json:"windowRules"`
+	Autostart      []Autostart       `json:"autostart"`
+	Keybinds       []Keybind         `json:"keybinds"`
+	Anim           Anim              `json:"anim"`
+	LayerRules     []LayerRule       `json:"layerRules"`
+	AppOverrides   []AppOverride     `json:"appOverrides"`
+	Plugins        Plugins           `json:"plugins"`
+	Apps           map[string]string `json:"apps,omitempty"`
+	KeybindRebinds map[string]string `json:"keybindRebinds,omitempty"`
 
 	// inputSaved: the store carries an explicit input section, i.e. the user has
 	// saved input settings through the hub at least once. genConfig then pins the
@@ -272,7 +321,7 @@ type Overrides struct {
 func defaultOverrides() Overrides {
 	return Overrides{
 		Appearance: Appearance{
-			GapsIn: 12, GapsOut: 18, BorderSize: 2, Rounding: 2, RoundingPower: 4,
+			GapsIn: 12, GapsOut: 18, BorderSize: 2, Rounding: 0, RoundingPower: 4,
 			ActiveOpacity: 1, InactiveOpacity: 0.94,
 			DimInactive: false, DimStrength: 0.5,
 			BlurEnabled: true, BlurSize: 4, BlurPasses: 1,
@@ -284,7 +333,16 @@ func defaultOverrides() Overrides {
 			ResizeOnBorder: true, SnapEnabled: false,
 			WobblyWindows: false, WindowStyle: "pop",
 			AnimatedBorder: false, BorderAngleSpeed: 3,
+			FullscreenOpacity: 1, DimSpecial: 0.2, DimAround: 0.4,
+			DimModal: true, BorderPartOfWindow: true,
+			BlurContrast: 0.8916, BlurBrightness: 1, BlurSpecial: false, BlurPopups: false,
+			BlurIgnoreOpacity: true, BlurNewOptimizations: true, BlurVibrancyDarkness: 0,
+			ShadowSharp: false, ShadowScale: 1, ShadowColor: "#000000",
+			ExtendBorderGrab: 15, HoverIconOnBorder: true, NoFocusFallback: false,
+			ResizeCorner: 0, GapsWorkspaces: 0,
 		},
+		Dwindle: Dwindle{PreserveSplit: false, SmartSplit: false, SmartResizing: true, DefaultSplitRatio: 1, ForceSplit: "follow", UseActiveForSplits: true},
+		Master:  Master{Mfact: 0.55, NewStatus: "slave", NewOnTop: false, Orientation: "left", SmartResizing: true},
 		Input: Input{
 			KbLayout: "us", KbVariant: "", KbOptions: "", NumlockByDefault: false,
 			FollowMouse: 2, Sensitivity: 0, AccelProfile: "",
@@ -308,8 +366,8 @@ func defaultOverrides() Overrides {
 		Plugins: Plugins{
 			DynamicCursors: DynamicCursors{Enabled: false, Mode: "tilt", Shake: true, Magnify: 4.0},
 			Hyprbars:       Hyprbars{Enabled: false, Height: 26, TextSize: 11, Blur: true, Buttons: true},
-			Imgborders:     Imgborders{Enabled: false, Image: "", Sizes: "8,8,8,8", Insets: "0,0,0,0", Scale: 1.0, Smooth: true},
-			Hyprglass:      Hyprglass{Enabled: false, Preset: "clear", BlurStrength: 2.0, Opacity: 1.0, Tint: "8899aa22"},
+			Imgborders:     Imgborders{Enabled: false, Image: "", Sizes: "8,8,8,8", Insets: "0,0,0,0", Scale: 1.0, Smooth: true, Blur: false},
+			Hyprglass:      Hyprglass{Enabled: false, Preset: "clear", BlurStrength: 2.0, Opacity: 1.0, Tint: "8899aa22", Brightness: 1.0, Theme: "dark"},
 			Hyprfocus:      Hyprfocus{Enabled: false, Mode: "flash", Opacity: 0.8, Bounce: 0.95, Slide: 20},
 			Hyprscrolling:  Hyprscrolling{ColumnWidth: 0.5, FollowFocus: true},
 		},
@@ -332,8 +390,16 @@ func hyprConfigDir() string {
 	return filepath.Join(base, "hypr")
 }
 
-func generatedLuaPath() string {
-	return filepath.Join(hyprConfigDir(), "settings.lua")
+// userEditsHyprDir is the hypr slice of the user overlay tree,
+// ~/.config/ryoku/user_edits/hypr. The Hub authors its generated Lua here so it
+// survives an update as a user edit; writeOverlayLua reflects the same bytes into
+// the live ~/.config/hypr so the running session reloads at once.
+func userEditsHyprDir() string {
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		base = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	return filepath.Join(base, "ryoku", "user_edits", "hypr")
 }
 
 // loadOverrides: read the store, overlay on the defaults. a partial or older
@@ -476,6 +542,7 @@ func runHypr(args []string) error {
 	case "get":
 		o := loadOverrides()
 		_ = writeGeneratedLua(o) // re-emit settings.lua if a deploy wiped it
+		_ = writeRebindsLua(o)   // re-emit the K() table too
 		return printJSON(o)
 	case "defaults":
 		return printJSON(defaultOverrides())
@@ -491,6 +558,9 @@ func runHypr(args []string) error {
 			return err
 		}
 		if err := writeGeneratedLua(o); err != nil {
+			return err
+		}
+		if err := writeRebindsLua(o); err != nil {
 			return err
 		}
 		hyprReload()
@@ -528,6 +598,15 @@ func runHypr(args []string) error {
 			return printJSON(map[string]string{"scheme": currentScheme()})
 		}
 		return applyScheme(args[1])
+	case "ryoku-theme":
+		return applyRyokuTheme()
+	case "theme-apps":
+		if len(args) < 2 {
+			return printJSON(map[string]bool{"themeApps": currentThemeApps()})
+		}
+		return applyThemeApps(args[1] == "on" || args[1] == "true")
+	case "matugen":
+		return runMatugenCmd(args[1:])
 	default:
 		return fmt.Errorf("unknown hypr subcommand: %s", args[0])
 	}
@@ -554,18 +633,102 @@ func hyprReload() {
 	_ = exec.Command("hyprctl", "reload").Run()
 }
 
+// writeOverlayLua authors a generated overlay file in the user_edits tree (the
+// source of truth, kept across updates) and reflects the same bytes into the live
+// hypr dir so a reload picks them up immediately, without a full materialize.
+func writeOverlayLua(name string, body []byte) error {
+	if err := atomicWrite(filepath.Join(userEditsHyprDir(), name), body, 0o644); err != nil {
+		return err
+	}
+	return atomicWrite(filepath.Join(hyprConfigDir(), name), body, 0o644)
+}
+
 // writeGeneratedLua renders settings.lua from the overrides (diffed against the
-// shipped defaults) and writes it atomically.
+// shipped defaults) into the user overlay, reflected live.
 func writeGeneratedLua(o Overrides) error {
-	return atomicWrite(generatedLuaPath(), []byte(genLua(o, loadThemeState().FollowWallpaper)), 0o644)
+	return writeOverlayLua("settings.lua", []byte(genLua(o, paletteDriven())))
+}
+
+// staticThemeActive reports whether a fixed named colour scheme is selected in
+// shell.json (theme.theme names a catalog palette, not the two dynamic variants
+// Default and Wallpaper). Its palette drives the window border through
+// decoration.lua's hypr-colors.lua, so settings.lua must not pin a fixed
+// col.active_border over it.
+func staticThemeActive() bool {
+	b, err := os.ReadFile(shellStorePath())
+	if err != nil {
+		return false
+	}
+	var s struct {
+		Theme struct {
+			Theme string `json:"theme"`
+		} `json:"theme"`
+	}
+	if json.Unmarshal(b, &s) != nil {
+		return false
+	}
+	switch s.Theme.Theme {
+	case "", "Default", "Wallpaper":
+		return false
+	}
+	return true
+}
+
+// paletteDriven reports whether the window colours come from a live palette (the
+// wallpaper-follow master or a fixed named scheme) rather than the user's fixed
+// border choice. When true the generated config omits the solid col.active_border
+// so decoration.lua's palette border (hypr-colors.lua) wins in both modes.
+func paletteDriven() bool {
+	return loadThemeState().FollowWallpaper || staticThemeActive()
+}
+
+// writeRebindsLua renders the key-rebind table binds.lua's K() consults, one
+// [default chord] = chosen chord entry per rebind. Always written (return {} when
+// empty) so clearing the last rebind leaves no stale table behind.
+func writeRebindsLua(o Overrides) error {
+	keys := make([]string, 0, len(o.KeybindRebinds))
+	for k := range o.KeybindRebinds {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var b strings.Builder
+	b.WriteString("-- Generated by Ryoku Settings (Keybinds page); change it in the GUI, not here.\nreturn {\n")
+	for _, from := range keys {
+		to := strings.TrimSpace(o.KeybindRebinds[from])
+		from = strings.TrimSpace(from)
+		if from == "" || to == "" || from == to {
+			continue
+		}
+		fmt.Fprintf(&b, "\t[%s] = %s,\n", luaStr(from), luaStr(to))
+	}
+	b.WriteString("}\n")
+	return writeOverlayLua("rebinds.lua", []byte(b.String()))
+}
+
+// genApps exports env vars for the chosen browser and terminal so the CLI and
+// xdg-open honour the same choice the keybinds launch via ryoku-app; a later
+// hl.env wins over env.lua. The editor keeps env.lua's default: a terminal editor
+// wants $EDITOR as the bare binary, not the windowed launch the keybind uses, so
+// it is set through the Environment page rather than guessed here.
+func genApps(o Overrides) string {
+	var b strings.Builder
+	if v := strings.TrimSpace(o.Apps["browser"]); v != "" {
+		fmt.Fprintf(&b, "hl.env(%s, %s)\n", luaStr("BROWSER"), luaStr(v))
+	}
+	if v := strings.TrimSpace(o.Apps["terminal"]); v != "" {
+		fmt.Fprintf(&b, "hl.env(%s, %s)\n", luaStr("TERMINAL"), luaStr(v))
+	}
+	if b.Len() > 0 {
+		b.WriteString("\n")
+	}
+	return b.String()
 }
 
 // --- Lua generation -------------------------------------------------------
 
-const luaHeader = `-- Generated by Ryoku Settings (ryoku-hub). Do not edit by hand; it is
--- overwritten on every change. Loaded by hyprland.lua after the base modules and
--- before user.lua, so these tweaks override the shipped defaults while your own
--- user.lua still wins. Manage these in Ryoku Settings (Super + ,).
+const luaHeader = `-- Generated by Ryoku Settings (Super + ,). Lives in the user_edits overlay,
+-- overwritten on every change, so change it in the GUI, not by hand. Loaded
+-- after Ryoku's defaults and before your user.lua, which still wins.
 
 `
 
@@ -608,6 +771,9 @@ func genLua(o Overrides, follow bool) string {
 	if len(o.Env) > 0 {
 		b.WriteString("\n")
 	}
+	if ap := genApps(o); ap != "" {
+		b.WriteString(ap)
+	}
 	for i, r := range o.WindowRules {
 		if rl := genWindowRule(i, r); rl != "" {
 			b.WriteString(rl)
@@ -641,6 +807,24 @@ func genLua(o Overrides, follow bool) string {
 // pluginDir is where the [ryoku] repo (release/packages) installs the optional
 // Hyprland compositor plugin .so files. genPlugins loads them by absolute path.
 const pluginDir = "/usr/lib/hyprland/plugins"
+
+// pluginSoPath resolves where a compositor plugin .so actually lives for the box
+// generating this settings.lua. A packaged install ships them in pluginDir
+// (/usr/lib, root-owned); a dev/tester checkout has no root, so deploy.sh builds
+// them under ~/.local/lib/hyprland/plugins instead. Prefer that user path when
+// the .so is present (so a checkout loads what deploy.sh just built), else fall
+// back to the packaged path. deploy.sh re-emits settings.lua after building, so
+// the baked path stays true on a checkout.
+func pluginSoPath(soName string) string {
+	name := soName + ".so"
+	if home, err := os.UserHomeDir(); err == nil {
+		user := filepath.Join(home, ".local", "lib", "hyprland", "plugins", name)
+		if fi, err := os.Stat(user); err == nil && !fi.IsDir() {
+			return user
+		}
+	}
+	return pluginDir + "/" + name
+}
 
 // genPlugins renders the optional Hyprland compositor plugins the user enabled:
 // per plugin, an hl.plugin.load of its shipped .so plus its hl.config, all inside
@@ -697,6 +881,7 @@ func genPlugins(o Overrides) string {
 			fmt.Sprintf("insets = %s", luaStr(ib.Insets)),
 			fmt.Sprintf("scale = %s", luaNum(ib.Scale)),
 			fmt.Sprintf("smooth = %t", ib.Smooth),
+			fmt.Sprintf("blur = %t", ib.Blur),
 		}
 		b.WriteString(genPluginBlock("imgborders", "imgborders", opts, ""))
 	}
@@ -708,15 +893,27 @@ func genPlugins(o Overrides) string {
 			fmt.Sprintf("blur_strength = %s", luaNum(hg.BlurStrength)),
 			fmt.Sprintf("glass_opacity = %s", luaNum(hg.Opacity)),
 			fmt.Sprintf("tint_color = 0x%s", luaHex8(hg.Tint)),
+			fmt.Sprintf("brightness = %s", luaNum(hg.Brightness)),
+			fmt.Sprintf("default_theme = %s", luaStr(hg.Theme)),
 		}
 		b.WriteString(genPluginBlock("hyprglass", "hyprglass", opts, ""))
 	}
 
 	if hf := p.Hyprfocus; hf.Enabled {
+		// The package tracks upstream's hyprpm pin for the running Hyprland, and
+		// the 0.56 plugin renamed its keys: the focus animation is chosen per
+		// input source and the bounce effect became shrink. The store keeps the
+		// stable mode/bounce names; only the emit follows the plugin.
+		anim := hf.Mode
+		if anim == "bounce" {
+			anim = "shrink"
+		}
 		opts := []string{
-			fmt.Sprintf("mode = %s", luaStr(hf.Mode)),
+			"enable = true",
+			fmt.Sprintf("keyboard_focus_animation = %s", luaStr(anim)),
+			`mouse_focus_animation = "none"`,
 			fmt.Sprintf("fade_opacity = %s", luaNum(hf.Opacity)),
-			fmt.Sprintf("bounce_strength = %s", luaNum(hf.Bounce)),
+			fmt.Sprintf("shrink_percentage = %s", luaNum(hf.Bounce)),
 			fmt.Sprintf("slide_height = %s", luaNum(hf.Slide)),
 		}
 		b.WriteString(genPluginBlock("hyprfocus", "hyprfocus", opts, ""))
@@ -750,7 +947,7 @@ func genPlugins(o Overrides) string {
 func genPluginBlock(soName, section string, opts []string, extra string) string {
 	var b strings.Builder
 	b.WriteString("pcall(function()\n")
-	fmt.Fprintf(&b, "  hl.plugin.load(%s)\n", luaStr(pluginDir+"/"+soName+".so"))
+	fmt.Fprintf(&b, "  hl.plugin.load(%s)\n", luaStr(pluginSoPath(soName)))
 	fmt.Fprintf(&b, "  hl.config({ plugin = { %s = { %s } } })\n", section, strings.Join(opts, ", "))
 	if extra != "" {
 		b.WriteString(extra)
@@ -782,7 +979,7 @@ func luaHex8(s string) string {
 // silently win over what the UI shows.
 func genConfig(o Overrides, follow bool) string {
 	d := defaultOverrides()
-	var general, deco, input, cursor, misc, gestures []string
+	var general, deco, input, cursor, misc, gestures, dwindle, master []string
 
 	a, da := o.Appearance, d.Appearance
 	if a.GapsIn != da.GapsIn {
@@ -813,6 +1010,21 @@ func genConfig(o Overrides, follow bool) string {
 		general = append(general, fmt.Sprintf("[\"col.active_border\"] = %s", luaStr(luaRGB(a.ActiveBorder))))
 		general = append(general, fmt.Sprintf("[\"col.inactive_border\"] = %s", luaStr(luaRGB(a.InactiveBorder))))
 	}
+	if a.ExtendBorderGrab != da.ExtendBorderGrab {
+		general = append(general, fmt.Sprintf("extend_border_grab_area = %d", a.ExtendBorderGrab))
+	}
+	if a.HoverIconOnBorder != da.HoverIconOnBorder {
+		general = append(general, fmt.Sprintf("hover_icon_on_border = %t", a.HoverIconOnBorder))
+	}
+	if a.NoFocusFallback != da.NoFocusFallback {
+		general = append(general, fmt.Sprintf("no_focus_fallback = %t", a.NoFocusFallback))
+	}
+	if a.ResizeCorner != da.ResizeCorner {
+		general = append(general, fmt.Sprintf("resize_corner = %d", a.ResizeCorner))
+	}
+	if a.GapsWorkspaces != da.GapsWorkspaces {
+		general = append(general, fmt.Sprintf("gaps_workspaces = %d", a.GapsWorkspaces))
+	}
 
 	if a.Rounding != da.Rounding {
 		deco = append(deco, fmt.Sprintf("rounding = %d", a.Rounding))
@@ -831,6 +1043,21 @@ func genConfig(o Overrides, follow bool) string {
 	}
 	if a.DimStrength != da.DimStrength {
 		deco = append(deco, fmt.Sprintf("dim_strength = %s", luaNum(a.DimStrength)))
+	}
+	if a.FullscreenOpacity != da.FullscreenOpacity {
+		deco = append(deco, fmt.Sprintf("fullscreen_opacity = %s", luaNum(a.FullscreenOpacity)))
+	}
+	if a.DimSpecial != da.DimSpecial {
+		deco = append(deco, fmt.Sprintf("dim_special = %s", luaNum(a.DimSpecial)))
+	}
+	if a.DimAround != da.DimAround {
+		deco = append(deco, fmt.Sprintf("dim_around = %s", luaNum(a.DimAround)))
+	}
+	if a.DimModal != da.DimModal {
+		deco = append(deco, fmt.Sprintf("dim_modal = %t", a.DimModal))
+	}
+	if a.BorderPartOfWindow != da.BorderPartOfWindow {
+		deco = append(deco, fmt.Sprintf("border_part_of_window = %t", a.BorderPartOfWindow))
 	}
 	var blur []string
 	if a.BlurEnabled != da.BlurEnabled {
@@ -851,6 +1078,27 @@ func genConfig(o Overrides, follow bool) string {
 	if a.BlurNoise != da.BlurNoise {
 		blur = append(blur, fmt.Sprintf("noise = %s", luaNum(a.BlurNoise)))
 	}
+	if a.BlurContrast != da.BlurContrast {
+		blur = append(blur, fmt.Sprintf("contrast = %s", luaNum(a.BlurContrast)))
+	}
+	if a.BlurBrightness != da.BlurBrightness {
+		blur = append(blur, fmt.Sprintf("brightness = %s", luaNum(a.BlurBrightness)))
+	}
+	if a.BlurSpecial != da.BlurSpecial {
+		blur = append(blur, fmt.Sprintf("special = %t", a.BlurSpecial))
+	}
+	if a.BlurPopups != da.BlurPopups {
+		blur = append(blur, fmt.Sprintf("popups = %t", a.BlurPopups))
+	}
+	if a.BlurIgnoreOpacity != da.BlurIgnoreOpacity {
+		blur = append(blur, fmt.Sprintf("ignore_opacity = %t", a.BlurIgnoreOpacity))
+	}
+	if a.BlurNewOptimizations != da.BlurNewOptimizations {
+		blur = append(blur, fmt.Sprintf("new_optimizations = %t", a.BlurNewOptimizations))
+	}
+	if a.BlurVibrancyDarkness != da.BlurVibrancyDarkness {
+		blur = append(blur, fmt.Sprintf("vibrancy_darkness = %s", luaNum(a.BlurVibrancyDarkness)))
+	}
 	if len(blur) > 0 {
 		deco = append(deco, "blur = { "+strings.Join(blur, ", ")+" }")
 	}
@@ -863,6 +1111,15 @@ func genConfig(o Overrides, follow bool) string {
 	}
 	if a.ShadowPower != da.ShadowPower {
 		shadow = append(shadow, fmt.Sprintf("render_power = %d", a.ShadowPower))
+	}
+	if a.ShadowSharp != da.ShadowSharp {
+		shadow = append(shadow, fmt.Sprintf("sharp = %t", a.ShadowSharp))
+	}
+	if a.ShadowScale != da.ShadowScale {
+		shadow = append(shadow, fmt.Sprintf("scale = %s", luaNum(a.ShadowScale)))
+	}
+	if a.ShadowColor != da.ShadowColor {
+		shadow = append(shadow, fmt.Sprintf("color = %s", luaStr(luaRGB(a.ShadowColor))))
 	}
 	if len(shadow) > 0 {
 		deco = append(deco, "shadow = { "+strings.Join(shadow, ", ")+" }")
@@ -879,6 +1136,43 @@ func genConfig(o Overrides, follow bool) string {
 	}
 	if len(glow) > 0 {
 		deco = append(deco, "glow = { "+strings.Join(glow, ", ")+" }")
+	}
+
+	dw, ddw := o.Dwindle, d.Dwindle
+	if dw.PreserveSplit != ddw.PreserveSplit {
+		dwindle = append(dwindle, fmt.Sprintf("preserve_split = %t", dw.PreserveSplit))
+	}
+	if dw.SmartSplit != ddw.SmartSplit {
+		dwindle = append(dwindle, fmt.Sprintf("smart_split = %t", dw.SmartSplit))
+	}
+	if dw.SmartResizing != ddw.SmartResizing {
+		dwindle = append(dwindle, fmt.Sprintf("smart_resizing = %t", dw.SmartResizing))
+	}
+	if dw.DefaultSplitRatio != ddw.DefaultSplitRatio {
+		dwindle = append(dwindle, fmt.Sprintf("default_split_ratio = %s", luaNum(dw.DefaultSplitRatio)))
+	}
+	if dw.ForceSplit != ddw.ForceSplit {
+		dwindle = append(dwindle, fmt.Sprintf("force_split = %d", dwindleForceSplit(dw.ForceSplit)))
+	}
+	if dw.UseActiveForSplits != ddw.UseActiveForSplits {
+		dwindle = append(dwindle, fmt.Sprintf("use_active_for_splits = %t", dw.UseActiveForSplits))
+	}
+
+	ms, dms := o.Master, d.Master
+	if ms.Mfact != dms.Mfact {
+		master = append(master, fmt.Sprintf("mfact = %s", luaNum(ms.Mfact)))
+	}
+	if ms.NewStatus != dms.NewStatus {
+		master = append(master, fmt.Sprintf("new_status = %s", luaStr(ms.NewStatus)))
+	}
+	if ms.NewOnTop != dms.NewOnTop {
+		master = append(master, fmt.Sprintf("new_on_top = %t", ms.NewOnTop))
+	}
+	if ms.Orientation != dms.Orientation {
+		master = append(master, fmt.Sprintf("orientation = %s", luaStr(ms.Orientation)))
+	}
+	if ms.SmartResizing != dms.SmartResizing {
+		master = append(master, fmt.Sprintf("smart_resizing = %t", ms.SmartResizing))
 	}
 
 	in, di := o.Input, d.Input
@@ -977,6 +1271,12 @@ func genConfig(o Overrides, follow bool) string {
 	if len(general) > 0 {
 		sections = append(sections, "  general = { "+strings.Join(general, ", ")+" }")
 	}
+	if len(dwindle) > 0 {
+		sections = append(sections, "  dwindle = { "+strings.Join(dwindle, ", ")+" }")
+	}
+	if len(master) > 0 {
+		sections = append(sections, "  master = { "+strings.Join(master, ", ")+" }")
+	}
 	if len(deco) > 0 {
 		sections = append(sections, "  decoration = { "+strings.Join(deco, ", ")+" }")
 	}
@@ -999,6 +1299,20 @@ func genConfig(o Overrides, follow bool) string {
 		return ""
 	}
 	return "hl.config({\n" + strings.Join(sections, ",\n") + ",\n})\n\n"
+}
+
+// dwindleForceSplit maps the friendly force-split labels the UI stores onto
+// Hyprland's dwindle:force_split integer (0 follows the cursor, 1 forces
+// left/top, 2 forces right/bottom).
+func dwindleForceSplit(s string) int {
+	switch s {
+	case "left/top":
+		return 1
+	case "right/bottom":
+		return 2
+	default:
+		return 0
+	}
 }
 
 // windowRuleField maps the pretty boolean action keys the UI stores onto the
@@ -1207,6 +1521,7 @@ func genStartHook(o Overrides) string {
 // to reset any key, not only push it away from the baseline.
 func fullConfigLua(o Overrides, follow bool) string {
 	a, in, c := o.Appearance, o.Input, o.Cursor
+	dw, ms := o.Dwindle, o.Master
 	general := []string{
 		fmt.Sprintf("gaps_in = %d", a.GapsIn),
 		fmt.Sprintf("gaps_out = %d", a.GapsOut),
@@ -1214,6 +1529,11 @@ func fullConfigLua(o Overrides, follow bool) string {
 		fmt.Sprintf("layout = %s", luaStr(a.Layout)),
 		fmt.Sprintf("resize_on_border = %t", a.ResizeOnBorder),
 		fmt.Sprintf("snap = { enabled = %t }", a.SnapEnabled),
+		fmt.Sprintf("extend_border_grab_area = %d", a.ExtendBorderGrab),
+		fmt.Sprintf("hover_icon_on_border = %t", a.HoverIconOnBorder),
+		fmt.Sprintf("no_focus_fallback = %t", a.NoFocusFallback),
+		fmt.Sprintf("resize_corner = %d", a.ResizeCorner),
+		fmt.Sprintf("gaps_workspaces = %d", a.GapsWorkspaces),
 	}
 	if !follow {
 		general = append(general,
@@ -1225,12 +1545,19 @@ func fullConfigLua(o Overrides, follow bool) string {
 		fmt.Sprintf("rounding_power = %s", luaNum(a.RoundingPower)),
 		fmt.Sprintf("active_opacity = %s", luaNum(a.ActiveOpacity)),
 		fmt.Sprintf("inactive_opacity = %s", luaNum(a.InactiveOpacity)),
+		fmt.Sprintf("fullscreen_opacity = %s", luaNum(a.FullscreenOpacity)),
 		fmt.Sprintf("dim_inactive = %t", a.DimInactive),
 		fmt.Sprintf("dim_strength = %s", luaNum(a.DimStrength)),
-		fmt.Sprintf("blur = { enabled = %t, size = %d, passes = %d, xray = %t, vibrancy = %s, noise = %s }",
-			a.BlurEnabled, a.BlurSize, a.BlurPasses, a.BlurXray, luaNum(a.BlurVibrancy), luaNum(a.BlurNoise)),
-		fmt.Sprintf("shadow = { enabled = %t, range = %d, render_power = %d }",
-			a.ShadowEnabled, a.ShadowRange, a.ShadowPower),
+		fmt.Sprintf("dim_special = %s", luaNum(a.DimSpecial)),
+		fmt.Sprintf("dim_around = %s", luaNum(a.DimAround)),
+		fmt.Sprintf("dim_modal = %t", a.DimModal),
+		fmt.Sprintf("border_part_of_window = %t", a.BorderPartOfWindow),
+		fmt.Sprintf("blur = { enabled = %t, size = %d, passes = %d, xray = %t, vibrancy = %s, noise = %s, "+
+			"contrast = %s, brightness = %s, special = %t, popups = %t, ignore_opacity = %t, new_optimizations = %t, vibrancy_darkness = %s }",
+			a.BlurEnabled, a.BlurSize, a.BlurPasses, a.BlurXray, luaNum(a.BlurVibrancy), luaNum(a.BlurNoise),
+			luaNum(a.BlurContrast), luaNum(a.BlurBrightness), a.BlurSpecial, a.BlurPopups, a.BlurIgnoreOpacity, a.BlurNewOptimizations, luaNum(a.BlurVibrancyDarkness)),
+		fmt.Sprintf("shadow = { enabled = %t, range = %d, render_power = %d, sharp = %t, scale = %s }",
+			a.ShadowEnabled, a.ShadowRange, a.ShadowPower, a.ShadowSharp, luaNum(a.ShadowScale)),
 		fmt.Sprintf("glow = { enabled = %t, range = %d, color = %s }",
 			a.GlowEnabled, a.GlowRange, luaStr(luaRGB(a.GlowColor))),
 	}
@@ -1261,6 +1588,10 @@ func fullConfigLua(o Overrides, follow bool) string {
 		fmt.Sprintf("  gestures = { workspace_swipe_invert = %t, workspace_swipe_create_new = %t, workspace_swipe_distance = %d },\n",
 			in.SwipeInvert, in.SwipeCreateNew, in.SwipeDistance) +
 		fmt.Sprintf("  animations = { enabled = %t },\n", a.Animations) +
+		fmt.Sprintf("  dwindle = { preserve_split = %t, smart_split = %t, smart_resizing = %t, default_split_ratio = %s, force_split = %d, use_active_for_splits = %t },\n",
+			dw.PreserveSplit, dw.SmartSplit, dw.SmartResizing, luaNum(dw.DefaultSplitRatio), dwindleForceSplit(dw.ForceSplit), dw.UseActiveForSplits) +
+		fmt.Sprintf("  master = { mfact = %s, new_status = %s, new_on_top = %t, orientation = %s, smart_resizing = %t },\n",
+			luaNum(ms.Mfact), luaStr(ms.NewStatus), ms.NewOnTop, luaStr(ms.Orientation), ms.SmartResizing) +
 		"})\n"
 }
 
@@ -1348,18 +1679,18 @@ func genMotion(o Overrides, full bool) string {
 	return b.String()
 }
 
-// gradientBorderBlock re-reads the live wallust accents at load time (like
+// gradientBorderBlock re-reads the live palette accents at load time (like
 // decoration.lua) so the rotating border re-themes with the wallpaper on reload.
 const gradientBorderBlock = "do\n" +
-	"  local ok, wc = pcall(dofile, os.getenv(\"HOME\") .. \"/.cache/wallust/hypr-colors.lua\")\n" +
+	"  local ok, wc = pcall(dofile, os.getenv(\"HOME\") .. \"/.cache/ryoku/hypr-colors.lua\")\n" +
 	"  local function rgb(h, f) if type(h) ~= \"string\" then h = f end return \"rgb(\" .. h:gsub(\"#\", \"\") .. \")\" end\n" +
 	"  hl.config({ general = { [\"col.active_border\"] = { colors = { rgb(ok and wc and wc.active, \"#e0563b\"), rgb(ok and wc and wc.inactive, \"#313a4d\") }, angle = 45 } } })\n" +
 	"end\n"
 
-// solidBorderBlock restores the plain wallust active border, for a preview that
+// solidBorderBlock restores the plain palette active border, for a preview that
 // switches the rotating border back off.
 const solidBorderBlock = "do\n" +
-	"  local ok, wc = pcall(dofile, os.getenv(\"HOME\") .. \"/.cache/wallust/hypr-colors.lua\")\n" +
+	"  local ok, wc = pcall(dofile, os.getenv(\"HOME\") .. \"/.cache/ryoku/hypr-colors.lua\")\n" +
 	"  local function rgb(h, f) if type(h) ~= \"string\" then h = f end return \"rgb(\" .. h:gsub(\"#\", \"\") .. \")\" end\n" +
 	"  hl.config({ general = { [\"col.active_border\"] = rgb(ok and wc and wc.active, \"#e0563b\") } })\n" +
 	"end\n"
@@ -1380,7 +1711,7 @@ func borderAngleHyprSpeed(friendly float64) float64 {
 // genAnimatedBorder: a rotating gradient on the active window border. off writes
 // nothing to settings.lua (the base solid border stands); a live preview instead
 // stops the sweep and restores the solid border so the toggle reads at once. the
-// gradient reads the wallust accents at load time when colours follow the
+// gradient reads the palette accents at load time when colours follow the
 // wallpaper, and uses the fixed border colours otherwise.
 func genAnimatedBorder(o Overrides, follow, full bool) string {
 	a := o.Appearance
@@ -1411,7 +1742,7 @@ func genAnimatedBorder(o Overrides, follow, full bool) string {
 // (appearance / input / cursor). rules, keybinds, env, autostart are not
 // previewed; they apply on Save via reload.
 func liveLua(o Overrides) string {
-	follow := loadThemeState().FollowWallpaper
+	follow := paletteDriven()
 	return fullConfigLua(o, follow) + genMotion(o, true) + genAnimatedBorder(o, follow, true) +
 		genAnimBlock(o) + genGesture(o) +
 		fmt.Sprintf("hl.exec_cmd(%s)\n", luaStr(fmt.Sprintf("hyprctl setcursor %s %d", o.Cursor.Theme, o.Cursor.Size)))

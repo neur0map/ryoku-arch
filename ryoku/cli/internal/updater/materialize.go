@@ -1,18 +1,22 @@
 package updater
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"ryoku-cli/internal/sys"
 	"sort"
 	"strings"
 )
 
+const wirePlumberPolicyRel = "wireplumber/wireplumber.conf.d/51-ryoku-bluetooth.conf"
+
 // generatedSeed: base files seeded once on a fresh install, then never
 // clobbered or pruned by an update. The machine owns them after first boot.
 // Two kinds qualify: per-machine files the runtime regenerates (monitors.lua,
-// gpu.lua; kitty/current-theme.conf, which wallust rewrites from the wallpaper)
+// gpu.lua; kitty/current-theme.conf, which matugen rewrites from the wallpaper)
 // and user-owned config the package only seeds a starting point for
 // (keyboard.lua; hypr/user.lua, seeded with a header so a hand-edit sticks;
 // fastfetch/config.jsonc, which has no include mechanism, so direct edits
@@ -46,6 +50,7 @@ func Materialize() error {
 	base := sys.BaseConfigDir()
 	dest := sys.ConfigHome()
 	state := materializeStatePath()
+	wirePlumberBefore, _ := os.ReadFile(filepath.Join(dest, wirePlumberPolicyRel))
 
 	info, err := os.Stat(base)
 	if err != nil || !info.IsDir() {
@@ -122,6 +127,13 @@ func Materialize() error {
 	if err := writeManifest(state, managed); err != nil {
 		return fmt.Errorf("record manifest: %w", err)
 	}
+	if err := overlayUserEdits(dest); err != nil {
+		return err
+	}
+	wirePlumberAfter, _ := os.ReadFile(filepath.Join(dest, wirePlumberPolicyRel))
+	if !bytes.Equal(wirePlumberBefore, wirePlumberAfter) {
+		_ = exec.Command("systemctl", "--user", "try-restart", "wireplumber.service").Run()
+	}
 	fmt.Printf("materialized %d files -> %s\n", len(managed), dest)
 	return nil
 }
@@ -181,4 +193,23 @@ func writeManifest(path string, rels []string) error {
 		return err
 	}
 	return os.WriteFile(path, []byte(strings.Join(rels, "\n")+"\n"), 0o644)
+}
+
+// overlayUserEdits lays the user's override tree over the freshly materialized
+// base: a regular file under ~/.config/ryoku/user_edits wins at the mirrored
+// ~/.config path. Runs last, after the prune and the quickshell converge, so a
+// fork is the final word and nothing sweeps it, while every base fix was still
+// laid underneath first. An absent or empty overlay is a no-op.
+func overlayUserEdits(dest string) error {
+	rels, err := sys.UserEditFiles()
+	if err != nil {
+		return fmt.Errorf("scan overlay: %w", err)
+	}
+	root := sys.UserEditsDir()
+	for _, rel := range rels {
+		if err := sys.CopyFile(filepath.Join(root, rel), filepath.Join(dest, rel)); err != nil {
+			return fmt.Errorf("overlay %s: %w", rel, err)
+		}
+	}
+	return nil
 }

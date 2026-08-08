@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Added
+- **The live installer kiosk now shows the Ryoku (Bibata) cursor.** The live set
+  gains `ryoku-cursors` from the `[ryoku]` repo and `ryoku-installer-session`
+  exports `XCURSOR_THEME=Bibata-Modern-Ice`, so cage/wlroots draws the real
+  pointer instead of its built-in fallback bitmap. `build.sh` wires a local
+  `file://` `[ryoku]` mirror into the staged `pacman.conf` (SigLevel TrustAll,
+  scoped to that build-time repo only; the installed system keeps its strict
+  `SigLevel=Required`) and populates it from `RYOKU_ISO_LOCAL_REPO`, a
+  `release/repo/out` tree, or a fetch from `repo.ryoku.dev` -- failing with an
+  actionable message when the package is unreachable or unpublished, so
+  `publish-repo` (main push) must precede `build-iso` (tag). `iso-stage-check.sh`
+  normalizes the per-run repo path so the reproducibility diff stays clean.
+
 ### Fixed
 - **The live ISO no longer hangs at boot; Ventoy boots reliably.** The
   `cow_label=vtoycow` parameter (added for Ventoy persistence) made archiso wait

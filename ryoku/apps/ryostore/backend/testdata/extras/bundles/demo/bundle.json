@@ -1,0 +1,9 @@
+{
+  "id": "demo",
+  "name": "Demo",
+  "description": "A demo bundle.",
+  "items": [
+    { "type": "package", "name": "cmatrix", "detect": "cmatrix", "summary": "rain", "tier": "core" },
+    { "type": "script", "name": "demo-cli", "detect": "demo", "summary": "a cli", "tier": "optional", "interactive": true }
+  ]
+}

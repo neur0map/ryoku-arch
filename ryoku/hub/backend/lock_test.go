@@ -202,3 +202,11 @@ func TestInstallGreeterMakesThemeWorldReadable(t *testing.T) {
 		t.Errorf("Main.qml mode = %o, want world readable (o+r)", mi.Mode().Perm())
 	}
 }
+
+func TestRunLockRejectsMovedStoreCommands(t *testing.T) {
+	for _, command := range []string{"catalog", "install", "cache"} {
+		if err := runLock([]string{command}); err == nil {
+			t.Errorf("lock %s remained on the Hub command surface", command)
+		}
+	}
+}

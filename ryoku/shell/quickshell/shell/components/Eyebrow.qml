@@ -1,0 +1,43 @@
+import QtQuick
+import shell.services
+
+// section eyebrow, the website's `.eyebrow`: a short vermilion tick, then the
+// 力 seal, then a mono uppercase label with wide tracking. the pill surfaces'
+// header idiom, replacing the bare "力 LABEL" row. scales with `s`.
+Row {
+    id: eye
+
+    property string label: ""
+    property real s: 1
+    property bool mark: true           // lead with the 力 seal after the tick
+    property color tick: Theme.primary
+    property color labelColor: Theme.onSurfaceVariant
+
+    spacing: 9 * eye.s
+
+    Rectangle {                        // the vermilion tick
+        anchors.verticalCenter: parent.verticalCenter
+        width: 20 * eye.s
+        height: 1.5 * eye.s
+        color: eye.tick
+    }
+
+    BrandMark {
+        visible: eye.mark
+        anchors.verticalCenter: parent.verticalCenter
+        size: 13 * eye.s
+        color: eye.tick
+        opacity: 0.9
+    }
+
+    Text {
+        anchors.verticalCenter: parent.verticalCenter
+        text: eye.label
+        color: eye.labelColor
+        font.family: Theme.mono
+        font.pixelSize: 9.5 * eye.s
+        font.weight: Font.DemiBold
+        font.letterSpacing: 2.6 * eye.s
+        font.capitalization: Font.AllUppercase
+    }
+}

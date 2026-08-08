@@ -25,6 +25,7 @@ is_laptop() {
   done
 
   local input_glob="${RYOKU_INPUT_NAME_GLOB:-/sys/class/input/event*/device/name}"
+  # shellcheck disable=SC2086  # $input_glob is a path glob; it must word-split and expand
   grep -qsi 'Lid Switch' $input_glob 2>/dev/null && return 0
 
   local lid_dir="${RYOKU_LID_DIR:-/proc/acpi/button/lid}"

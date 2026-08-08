@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+### Added
+- `bluetooth/ryoku-bluetooth-tune`: BlueZ pairing/reconnect tuning. bluez owns
+  `/etc/bluetooth/main.conf` and has no drop-in dir, so this sets the keys in
+  place: `Experimental` (device battery + newer profiles), `JustWorksRepairing`
+  (re-pair after suspend), `FastConnectable`, `AutoEnable`. Run by the
+  `ryoku-desktop` `.install` on install + upgrade.
+- `display/ryoku-hw-backlight` + `ryoku-hw-backlight-fix`: brightness on ASUS
+  AMD+NVIDIA laptops. The panel hangs off the AMD iGPU but the kernel registers
+  only `nvidia_wmi_ec_backlight` and hides `amdgpu_bl0`, so brightness would not
+  lower. The fix adds `acpi_backlight=native` (a hardware-gated limine drop-in) to
+  reveal `amdgpu_bl0`, and `ryoku-cmd-brightness` now pins the real device with
+  `brightnessctl -d`. `90-ryoku-backlight.rules` grants the `video` group write
+  access. Ref: ArchWiki/Backlight, basecamp/omarchy#5067.
+- `input/99-ryoku-uinput.conf`: load `uinput` at boot for Steam Input and the
+  userspace game-controller drivers.
+- `drivers/nvidia.sh`: detect NVIDIA by scanning `/sys/bus/pci` (vendor `0x10de`,
+  display class) as well as `lspci`, so a card is found even when `pciutils` is
+  absent in the install chroot (the reason nvidia drivers were silently skipped);
+  also installs `lib32-nvidia-utils` when multilib is enabled.
+- `network/50-ryoku-dns.rules`: the network panel's DNS switch applies without a
+  password. `ryoku-dns` runs as root through pkexec but shipped no polkit grant,
+  so the DNS buttons silently did nothing; a rule now authorizes any `ryoku-dns`
+  helper (basename match, so a dev checkout's non-`/usr/bin` path also works) for
+  the active wheel user, matching the WiFi power-save helper. Installed to
+  `/usr/share/polkit-1/rules.d` by `ryoku-desktop`.
+- `network/ryoku-dns`: persistent system-wide DNS provider switching for
+  DHCP, Cloudflare, Google, and validated custom IPv4/IPv6 servers. The helper
+  writes one NetworkManager global-DNS drop-in, reloads the active resolver
+  state, and removes only its own drop-in when returning to DHCP; it is
+  privilege-separated behind polkit and ships through `ryoku-desktop`.
+- `ddc/`: external-monitor brightness over DDC/CI. `ryoku-i2c.conf` loads the
+  `i2c-dev` module (`/etc/modules-load.d/`) so `ddcutil` can open `/dev/i2c-*`, and
+  `60-ryoku-i2c.rules` grants the active-session user access (`uaccess`, no group
+  setup). Drives the pill DISPLAY faders and the new `XF86MonBrightness` keys
+  (`ryoku-cmd-brightness`). Shipped to `/etc` + `/usr/lib/udev` by `ryoku-desktop`.
+
 ### Security
 - `display/ryoku-monitor`: `apply_specs` now renders monitor string fields
   (`output`, `mode`, `position`, `mirror`) through jq's `@json`, which emits a
@@ -14,6 +50,30 @@
   with no behaviour change (empty/absent fields still render as `""`).
 
 ### Added
+- `power/ryoku-clamshell`: macOS-style clamshell (closed-lid) mode for laptops.
+  A laptop-only daemon (autostarted from Hyprland, like `ryoku-idle`) holds a
+  systemd `handle-lid-switch` inhibitor while the machine is on AC power AND an
+  external display is connected, so closing the lid keeps the session running on
+  the external instead of suspending; it drops the inhibitor (and suspends if the
+  lid is already shut) the moment either condition is lost. The `lid` subcommand,
+  driven by the Hyprland lid-switch bind (`hypr/modules/lid.lua`), blanks the
+  internal panel on close when an external is present and restores the layout on
+  open. Event-driven via `udevadm monitor` (power_supply + drm), no polling.
+- `power/logind-ryoku-lid.conf`: a logind drop-in (shipped by `ryoku-desktop` to
+  `/etc/systemd/logind.conf.d/10-ryoku-lid.conf`) that sets `HandleLidSwitch`,
+  `HandleLidSwitchExternalPower`, and `HandleLidSwitchDocked` all to `suspend`, so
+  logind suspends on lid close in every case and `ryoku-clamshell` is the sole
+  thing that keeps a closed lid awake -- power AND an external display, matching
+  macOS (the default `docked=ignore` would keep it awake on battery too).
+- `display/ryoku-monitor`: the Settings paths carry per-output colour management.
+  `list` reports each monitor's `cm` (from Hyprland's `colorManagementPreset`,
+  normalised to srgb/wide/hdr) and its SDR brightness; `apply`/`save`/`load` write
+  `cm` with the bit depth it implies (sRGB -> 8-bit, Wide/HDR -> 10-bit) and, in
+  HDR, `sdrbrightness`, into the `hl.monitor({ ... })` calls and the persisted
+  layout. The colour spec is written on every enabled monitor rather than omitted
+  at its default, so switching a display out of HDR live actually clears the
+  10-bit / raised-brightness state instead of leaving it stuck. Covered by
+  `tests/monitor-profiles.sh`.
 - `gpu/ryoku-gpu-lib32`: installs the 32-bit (lib32) GPU userspace for the
   detected hardware, so 32-bit and Proton/DXVK games render on the real GPU
   instead of falling back to software. The base install and the 64-bit driver
@@ -101,6 +161,43 @@
   proprietary modules otherwise.
 
 ### Fixed
+- `display/ryoku-monitor`: connecting a second monitor no longer throws Hyprland
+  errors or resets the display you already tuned. The hotplug catch-all brings an
+  unknown display up at `preferred` (always valid on an untrained link) instead of
+  `highrr` (which errored until the link resolved; autoscale + settle still raise
+  it to highrr afterwards). And the autoscale DPI pass now skips displays already
+  configured in Ryoku Settings (the applied layout), so plugging in a new screen
+  DPI-scales only the new one and leaves the existing display's chosen scale
+  alone (fixture-covered in `tests/monitor-profiles.sh`).
+- `audio/ryoku-eq`: the equalizer no longer splits the volume, and toggling it
+  never silences or jumps audio that was already playing. Node volumes multiply
+  along `app -> ryoku.eq.sink -> ryoku.eq.out -> hardware`, so enabling the EQ
+  (which makes `ryoku.eq.sink` the default) used to force that sink to 100% while
+  the real level stayed on the hardware sink: a second, hidden volume the OSD,
+  the mixer, and the volume keys could no longer reach. Enable now carries the
+  current master level onto `ryoku.eq.sink` and pins the hardware leg at unmuted
+  unity, so `@DEFAULT_AUDIO_SINK@` stays the one global volume every control
+  reads and writes and the toggle never jumps the level; disable carries it back
+  onto the hardware sink before repointing the default. Enable still pulls any
+  stream on the old default across, and disable still moves every stream off
+  `ryoku.eq.sink` before killing the filter chain (tearing the sink out from
+  under a live stream made clients like mpv and browsers cork themselves, heard
+  as audio that never came back). Full playing->enable->disable cycles stay
+  audible under one continuous volume (verified live), and the crash-recovery
+  self-heal is unchanged.
+- `display/ryoku-monitor`: the Settings paths (`apply`, `save`, `load`) now
+  snap every explicit scale to the nearest Hyprland-valid value for its mode (a
+  1/120 multiple dividing width and height to whole logical pixels), the same
+  rule `autoscale` already applied. A stale draft or an old profile carrying
+  e.g. 1.5 for a 1280x720 mode was sent raw: Hyprland drew the "Invalid scale"
+  overlay, picked its own value, and the invalid number was still written to
+  monitors.lua and the applied layout, so the overlay came back at every login.
+  `list` now also emits per-resolution `scaleLadders` (the valid scales between
+  0.5x and 3x that keep at least a 640x360 logical desktop: a 720p panel tops
+  out at 2x, and the odd 1366x768 offers exactly 0.5/0.67/1/2) for the Hub's
+  scale stepper, and the shared snap searches 0.25x-6x so a deliberate sub-1x
+  choice on a small panel survives instead of being forced up. Covered by
+  `tests/monitor-profiles.sh` (snap on apply/save/load, ladder contents).
 - `drivers/nvidia.sh`: on the stock `linux` kernel install the PREBUILT
   `nvidia-open` (matched to the kernel, so there is no DKMS build to fail on a
   fresh kernel) instead of `nvidia-open-dkms`; custom kernels still use `-dkms` +

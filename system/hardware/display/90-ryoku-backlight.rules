@@ -1,0 +1,6 @@
+# Let the video group write panel brightness without a logind seat. On ASUS
+# AMD+NVIDIA laptops the panel backlight (amdgpu_bl0, revealed by
+# acpi_backlight=native) is root:root with no seat ACL, so ryoku-cmd-brightness'
+# direct sysfs writes fail; chgrp/chmod for the video group (chroot.sh adds the
+# user to it) lets brightnessctl set brightness without going through logind.
+ACTION=="add", SUBSYSTEM=="backlight", RUN+="/usr/bin/chgrp video /sys/class/backlight/%k/brightness", RUN+="/usr/bin/chmod g+w /sys/class/backlight/%k/brightness"

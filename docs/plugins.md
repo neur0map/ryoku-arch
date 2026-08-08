@@ -250,7 +250,3 @@ inline - a plain `Rectangle { Image {} }` - or in their own `.qml` file, **not**
 inside an inline `component { ... }`. See `wallhaven`'s grid for the working
 pattern.
 
----
-
-For the full design and rationale, see
-`docs/superpowers/specs/2026-06-24-shell-plugin-widgets-design.md`.

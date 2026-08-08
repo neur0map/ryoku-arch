@@ -19,6 +19,7 @@ type Config struct {
 type UIConfig struct {
 	Section        string `toml:"section"`
 	UpdateInterval string `toml:"update_interval"`
+	Advanced       string `toml:"advanced"`
 }
 
 func defaultConfig() Config {
@@ -33,10 +34,21 @@ func configPath() string {
 	return filepath.Join(base, "ryoku", "hub.toml")
 }
 
+func normalizeSection(section string) string {
+	if section == "bar" || section == "frame" {
+		return "bar-studio"
+	}
+	return section
+}
+
 func loadConfig() Config {
 	c := defaultConfig()
 	if b, err := os.ReadFile(configPath()); err == nil {
 		_ = toml.Unmarshal(b, &c)
+	}
+	if c.UI.Section != normalizeSection(c.UI.Section) {
+		c.UI.Section = normalizeSection(c.UI.Section)
+		_ = saveConfig(c)
 	}
 	return c
 }
@@ -72,6 +84,8 @@ func configGet(key string) (string, bool) {
 		return c.UI.Section, true
 	case "update_interval":
 		return c.UI.UpdateInterval, true
+	case "advanced":
+		return c.UI.Advanced, true
 	}
 	return "", false
 }
@@ -80,9 +94,11 @@ func configSet(key, value string) error {
 	c := loadConfig()
 	switch key {
 	case "section":
-		c.UI.Section = value
+		c.UI.Section = normalizeSection(value)
 	case "update_interval":
 		c.UI.UpdateInterval = value
+	case "advanced":
+		c.UI.Advanced = value
 	default:
 		return fmt.Errorf("unknown config key: %s", key)
 	}

@@ -16,6 +16,8 @@ type HermesInfo struct {
 	Version    string `json:"version"`
 	Configured bool   `json:"configured"`
 	Wired      bool   `json:"wired"`
+	Provider   string `json:"provider,omitempty"`
+	Model      string `json:"model,omitempty"`
 }
 
 // hermesMemory is the file the vault pointer block is wired into.
@@ -44,8 +46,8 @@ func FindHermes() (string, bool) {
 	return "", false
 }
 
-// HermesStatus reports install, version, config, and wiring state, best effort:
-// a missing or slow hermes never blocks the caller.
+// HermesStatus reports install, version, config, wiring, and the chosen model,
+// best effort: a missing or slow hermes never blocks the caller.
 func HermesStatus() HermesInfo {
 	info := HermesInfo{}
 	bin, ok := FindHermes()
@@ -55,6 +57,7 @@ func HermesStatus() HermesInfo {
 	}
 	info.Configured = hermesOnboarded()
 	info.Wired = fileHasBlock(hermesMemory())
+	info.Provider, info.Model, _ = hermesModel()
 	return info
 }
 

@@ -1,18 +1,26 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import Ryoku.Ui
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// The browse grid: a scrollable wall of thumbnails bound to Wallhaven.results.
-// Picking a cell selects it for the preview; right-click opens it on the web.
+// The browse collection: a scrollable wall of thumbnails bound to
+// Wallhaven.results. Picking a cell selects it for the preview; the empty and
+// loading states carry the torii mark and one sentence, per the skeleton.
 Item {
     id: g
 
-    readonly property real gap: 10
+    readonly property int gap: Tokens.s2
     readonly property int cols: Math.max(2, Math.floor(width / 200))
+
+    // MoeWalls serves only its low-res preview loops, so the browse view says so.
+    readonly property bool showMoeNote: Wallhaven.source === "moewalls"
 
     GridView {
         id: grid
         anchors.fill: parent
+        anchors.topMargin: g.showMoeNote ? moeNote.height + Tokens.s2 : 0
         visible: Wallhaven.results.length > 0
         clip: true
         cellWidth: Math.floor(g.width / g.cols)
@@ -21,9 +29,9 @@ Item {
         cacheBuffer: 1200
         boundsBehavior: Flickable.StopAtBounds
         opacity: Wallhaven.searching ? 0.45 : 1
-        Behavior on opacity { NumberAnimation { duration: Theme.quick } }
+        Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
 
-        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+        ScrollBar.vertical: ScrollRail {}
 
         delegate: Item {
             required property var modelData
@@ -44,25 +52,53 @@ Item {
         }
     }
 
-    // empty / busy state.
-    Column {
-        anchors.centerIn: parent
-        spacing: 12
+    // empty / loading / error state: a vertical specimen poster, the state woven
+    // into its title and caption, so a dead grid still has a face (like the hub's
+    // dead-slot placards) instead of a lone mark.
+    Placard {
+        anchors.fill: parent
         visible: Wallhaven.results.length === 0
-        Icon {
-            anchors.horizontalCenter: parent.horizontalCenter
-            name: Wallhaven.searching ? "refresh" : (Wallhaven.error.length > 0 ? "close" : "image")
-            size: 30
-            tint: Theme.faint
-        }
+        opacity: Wallhaven.searching ? 0.75 : 1
+        Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
+        code: "WALL-02"
+        title: Wallhaven.searching ? "検索" : (Wallhaven.error.length > 0 ? "圏外" : "無")
+        sub: Wallhaven.searching ? "SEARCHING" : (Wallhaven.error.length > 0 ? "NO SIGNAL" : "NO WALLPAPERS")
+        quote: Wallhaven.searching ? "Fetching the latest wallpapers."
+            : (Wallhaven.error.length > 0 ? Wallhaven.error
+            : (Wallhaven.source === "live" ? "No live wallpapers yet — add an MP4 to begin."
+            : "Nothing here yet. Search above, or switch the source."))
+        tate: "壁を探す"
+        seal: "壁"
+        art: "aurelius.png"
+        seed: 3
+    }
+
+    // MoeWalls only serves its ~720p preview loops (soft on a large screen), and
+    // the exact size varies per clip, so instead of a per-tile number (a hardcoded
+    // one made Enhance read as broken) the source carries one honest note, in the
+    // house emphasis grammar — a bone plate, black ink, no red — pointing at the
+    // Enhance that upscales the pick.
+    Rectangle {
+        id: moeNote
+        visible: g.showMoeNote
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: visible ? moeText.implicitHeight + Tokens.s3 * 2 : 0
+        radius: Tokens.radius
+        color: Tokens.bone
         Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: Wallhaven.searching ? "Searching"
-                : (Wallhaven.error.length > 0 ? Wallhaven.error
-                : (Wallhaven.source === "live" ? "No live wallpapers yet" : "No wallpapers"))
-            color: Theme.dim
-            font.family: Theme.font
-            font.pixelSize: 13
+            id: moeText
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: Tokens.s3
+            anchors.rightMargin: Tokens.s3
+            anchors.verticalCenter: parent.verticalCenter
+            wrapMode: Text.WordWrap
+            text: "MoeWalls shows ~720p preview loops — soft on a large screen. Pick one and use Enhance (GRADE tab) to upscale it on the GPU."
+            color: Tokens.inkOnBone
+            font.family: Tokens.ui
+            font.pixelSize: 11
         }
     }
 }

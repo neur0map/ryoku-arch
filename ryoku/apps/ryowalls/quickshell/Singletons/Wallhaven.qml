@@ -20,7 +20,12 @@ Singleton {
 
     // ---- selection + live preview palette -----------------------------------
     property var selected: null
-    property var palette: []            // 16 wallust colours for the picked image
+    property var palette: []            // 16 palette colours for the picked image
+    property var previewTones: null     // matugen tonal ramps for the picked image
+    property var previewGrid: null      // its 8x8 L* map, for the cava specimen
+    property int previewCols
+    property int previewRows
+    property real previewLstar: 50
     property bool paletteLoading
 
     // ---- apply --------------------------------------------------------------
@@ -368,49 +373,12 @@ Singleton {
         return (palette && palette.length > i && palette[i]) ? palette[i] : (fallback || "#000000");
     }
 
-    // ---- tune: the look. Persisted to ryowalls.json, mirrored to the state file
-    // ryoku-shell reads, so preview, Set Wallpaper and Super+W cycles match.
-    // Defaults pass through to the wallust config until you change something.
-    readonly property bool paletteChanged: cfg.tone !== "dark" || cfg.character !== "natural"
-    readonly property string paletteName: {
-        var fam;
-        if (cfg.tone === "light")
-            fam = cfg.character === "pastel" ? "softlight"
-                : cfg.character === "natural" ? "light" : "saliencelight";
-        else
-            fam = cfg.character === "pastel" ? "softdark"
-                : cfg.character === "vivid" ? "harddark"
-                : cfg.character === "salient" ? "saliencedark" : "dark";
-        return fam + "16";
-    }
-    readonly property var tuneFlags: {
-        var f = [];
-        if (root.paletteChanged) f = f.concat(["--palette", root.paletteName]);
-        if (cfg.colorspace.length) f = f.concat(["--colorspace", cfg.colorspace]);
-        if (cfg.backend.length) f = f.concat(["--backend", cfg.backend]);
-        if (cfg.saturation > 0) f = f.concat(["--saturation", "" + cfg.saturation]);
-        if (cfg.threshold > 0) f = f.concat(["--threshold", "" + cfg.threshold]);
-        if (cfg.contrast) f.push("--contrast");
-        return f;
-    }
-    readonly property bool tuned: tuneFlags.length > 0
-
-    onTuneFlagsChanged: _retune.restart()
-    Timer { id: _retune; interval: 220; onTriggered: root._preview() }
-
-    function resetTune() {
-        cfg.tone = "dark"; cfg.character = "natural";
-        cfg.colorspace = ""; cfg.backend = ""; cfg.saturation = 0; cfg.threshold = 0; cfg.contrast = false;
-        cfgFile.writeAdapter();
-    }
+    // ---- tune: the per-image state ryoku-shell reads on Set (image + sampled
+    // frame), so preview, Set Wallpaper and Super+W cycles agree. Palette colours
+    // follow the global Appearance -> Wallpaper tuning; ryowalls no longer tunes
+    // the scheme per image.
     function _writeTuneFor(image) {
         tuneAdapter.image = image;
-        tuneAdapter.palette = root.paletteChanged ? root.paletteName : "";
-        tuneAdapter.colorspace = cfg.colorspace;
-        tuneAdapter.backend = cfg.backend;
-        tuneAdapter.saturation = cfg.saturation;
-        tuneAdapter.threshold = cfg.threshold;
-        tuneAdapter.contrast = cfg.contrast;
         tuneAdapter.frame = cfg.frame;
         tuneState.writeAdapter();
     }
@@ -492,14 +460,14 @@ Singleton {
         var src = (adjustActive && adjustPreview.length > 0) ? _adjSlot(adjustRev) : (selected.thumb || "");
         _previewFrom(src);
     }
-    // extract the wallust scheme from a specific image (the thumb, or the graded
+    // extract the palette from a specific image (the thumb, or the graded
     // preview when an adjustment is live) without touching the running desktop.
     function _previewFrom(src) {
-        palette = [];
+        palette = []; previewTones = null; previewGrid = null;
         if (!src || ("" + src).length === 0) { paletteLoading = false; return; }
         paletteLoading = true;
         palProc.running = false;
-        palProc.command = cmd(["palette", src].concat(root.tuneFlags));
+        palProc.command = cmd(["palette", src]);
         palProc.running = true;
     }
 
@@ -582,7 +550,7 @@ Singleton {
     function saveSettings() { cfgFile.writeAdapter(); }
 
     // frame scrubbing for a live wallpaper: persist the second, then re-theme off
-    // the new frame. repaint re-extracts + re-runs wallust without restarting
+    // the new frame. repaint re-extracts + re-runs the palette without restarting
     // livewall, so scrubbing stays smooth. debounced since the slider fires often.
     function retuneFrame(sec) {
         cfg.frame = sec;
@@ -637,11 +605,37 @@ Singleton {
         id: palProc
         stdout: StdioCollector {
             onStreamFinished: {
-                root.palette = text.trim().split("\n").filter(l => l.trim().length > 0);
+                // The daemon prints exactly what Set would write: base16 + the
+                // Material roles, the tonal ramps, and the 8x8 L* map. Reshape the
+                // base16 keys into the flat 16-slot array col() indexes.
+                try {
+                    const j = JSON.parse(text);
+                    const c = j.colors || {};
+                    const arr = [];
+                    for (let i = 0; i < 16; i++)
+                        arr.push(c["color" + i] || "");
+                    root.palette = arr;
+                    root.previewTones = j.tones || null;
+                    root.previewGrid = j.grid || null;
+                    root.previewCols = j.cols || 0;
+                    root.previewRows = j.rows || 0;
+                    root.previewLstar = (typeof j.lstar === "number") ? j.lstar : 50;
+                } catch (e) {
+                    root.palette = [];
+                    root.previewTones = null;
+                    root.previewGrid = null;
+                }
                 root.paletteLoading = false;
             }
         }
-        onExited: code => { if (code !== 0) { root.palette = []; root.paletteLoading = false; } }
+        onExited: code => {
+            if (code !== 0) {
+                root.palette = [];
+                root.previewTones = null;
+                root.previewGrid = null;
+                root.paletteLoading = false;
+            }
+        }
     }
 
     Process {
@@ -691,14 +685,7 @@ Singleton {
             property string apiKey: ""
             property bool nsfw: false
             property bool fitScreen: false
-            property string tone: "dark"
-            property string character: "natural"
-            property string colorspace: ""
-            property string backend: ""
-            property int saturation: 0
-            property int threshold: 0
-            property bool contrast: false
-            // live wallpapers: which second of the video wallust samples.
+            // live wallpapers: which second of the video the palette samples.
             property real frame: 1
             // live wallpaper motion: screen mapping (fill = cover, fit = letterbox).
             property string liveFit: "fill"
@@ -707,21 +694,15 @@ Singleton {
         }
     }
 
-    // mirror of the resolved look for ryoku-shell's theming to read on every set,
+    // mirror of the picked image + sampled frame for ryoku-shell to read on every set,
     // so the applied desktop matches the preview. write-only from here.
     FileView {
         id: tuneState
-        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku-wallust.json"
+        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku-ryowalls.json"
         printErrors: false
         JsonAdapter {
             id: tuneAdapter
             property string image: ""
-            property string palette: ""
-            property string colorspace: ""
-            property string backend: ""
-            property int saturation: 0
-            property int threshold: 0
-            property bool contrast: false
             property real frame: 1
         }
     }

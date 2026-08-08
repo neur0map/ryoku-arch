@@ -15,11 +15,11 @@ desktop. See `docs/structure.md` for the repo-wide map.
   holds the leaf shell helpers the UI calls (the `ryoku-cmd-*` screen tools plus
   the stash and sysinfo helpers). `hypridle.conf` is the idle daemon's native
   config. The whole directory deploys to `~/.config/hypr/`.
-- `shell/` The Ryoku shell subsystem: `quickshell/` (the QML UI: the morphing
-  `pill` island and its `popouts`, the `sidebar`, and `ryoshot`), `plugin/`
-  (`Ryoku.Blobs`, the C++/QML SDF metaball module the frame renders with; ships
-  prebuilt), `wallust/` (palette from the wallpaper), `qt6ct/` (the Qt icon
-  theme, `qt6ct.conf`),
+- `shell/` The Ryoku shell subsystem: `quickshell/` (the QML UI: the four-edge
+  `pill` frame, its popout cards, the modular Super+Escape control sidebar, and
+  `ryoshot`), `plugin/` (`Ryoku.Blobs`, the C++/QML SDF metaball module the
+  frame renders; ships prebuilt), `matugen/` (palette from the wallpaper),
+  `qt6ct/` (the Qt icon theme and `qt6ct.conf`),
   `systemd/` (the user session target), and `ipc/` (`ryoku-shell`, the Go shell
   daemon that supervises the UI, owns wallpaper/clipboard/lock, and serves the
   control socket). `deploy.sh` and `dev-*.sh` are the live dev-loop tools.

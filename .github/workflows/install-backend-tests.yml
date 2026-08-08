@@ -13,6 +13,17 @@ name: Install backend tests
 # handling and the ryoku-windows-entry chainload emitter) and the installer TUI's
 # Go unit tests, so a boot-menu or TUI regression is caught in the same per-area
 # gate. See tests/limine-*.sh and installation/tui/*_test.go.
+#
+# Boot-chain VM scope: tests/install-chainload-vm.sh boots the real generated
+# limine.conf under QEMU+OVMF and is wired below, but it needs /dev/kvm (TCG is
+# too flaky for the Limine handoff), which hosted runners lack -- so the job
+# skips with a visible ::notice on GitHub and runs for real only on a
+# KVM-capable/self-hosted runner or via workflow_dispatch.
+# installation/tests/install-dualboot-vm.py stays LOCAL-ONLY on purpose: it
+# builds a multi-GB cached golden Windows 11 image (a licensed Windows ISO
+# download) and drives three KVM guests with OCR -- infeasible and unlicensed on
+# a hosted runner. Run it by hand before a release that touches the alongside
+# carve; see .superpowers/sdd/dualboot-vm-report.md.
 
 on:
   pull_request:
@@ -21,6 +32,7 @@ on:
       - 'installation/tui/**'
       - 'system/boot/limine/**'
       - 'tests/install-partition-alongside.sh'
+      - 'tests/install-resize.sh'
       - 'tests/install-partition-whole.sh'
       - 'tests/install-largest-free.sh'
       - 'tests/install-preflight.sh'
@@ -28,8 +40,10 @@ on:
       - 'tests/install-dryrun-matrix.sh'
       - 'tests/limine-bootloader.sh'
       - 'tests/limine-windows.sh'
+      - 'tests/install-chainload-vm.sh'
       - 'tests/install-disk-teardown.sh'
       - 'tests/install-dns.sh'
+      - 'tests/install-swapfile.sh'
       - '.github/workflows/install-backend-tests.yml'
   push:
     branches:
@@ -39,6 +53,7 @@ on:
       - 'installation/tui/**'
       - 'system/boot/limine/**'
       - 'tests/install-partition-alongside.sh'
+      - 'tests/install-resize.sh'
       - 'tests/install-partition-whole.sh'
       - 'tests/install-largest-free.sh'
       - 'tests/install-preflight.sh'
@@ -46,8 +61,10 @@ on:
       - 'tests/install-dryrun-matrix.sh'
       - 'tests/limine-bootloader.sh'
       - 'tests/limine-windows.sh'
+      - 'tests/install-chainload-vm.sh'
       - 'tests/install-disk-teardown.sh'
       - 'tests/install-dns.sh'
+      - 'tests/install-swapfile.sh'
       - '.github/workflows/install-backend-tests.yml'
   workflow_dispatch:
 
@@ -111,14 +128,24 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           # gdisk -> sgdisk, parted -> parted + partprobe, dosfstools -> mkfs.vfat;
-          # losetup/blkid/truncate/udevadm ship with the base image.
-          sudo apt-get install -y --no-install-recommends gdisk parted dosfstools
+          # btrfs-progs -> mkfs.btrfs/btrfs; ntfs-3g on Debian/Ubuntu bundles
+          # ntfsresize + mkntfs (Arch splits those into ntfsprogs); jq for sfdisk
+          # --json. losetup/blkid/truncate/udevadm/e2fsprogs ship with the base image.
+          sudo apt-get install -y --no-install-recommends gdisk parted dosfstools btrfs-progs ntfs-3g jq
 
       - name: Partition alongside a fake Windows layout on a loop device
         shell: bash
         # needs root for losetup/sgdisk; the runner grants passwordless sudo. the
         # test itself prints a skip and exits 0 if a runner lacks loop support.
         run: sudo bash tests/install-partition-alongside.sh
+
+      - name: Carve space out of ntfs/ext4/btrfs partitions on a loop device
+        shell: bash
+        run: sudo bash tests/install-resize.sh
+
+      - name: Btrfs @swap swapfile activation
+        shell: bash
+        run: sudo bash tests/install-swapfile.sh
 
   tui:
     name: Installer TUI unit tests (go test)
@@ -136,3 +163,42 @@ jobs:
         shell: bash
         working-directory: installation/tui
         run: go test ./...
+
+  chainload-vm:
+    name: Alongside boot chain (real QEMU+OVMF; needs KVM)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # hosted runners have no /dev/kvm and TCG is too flaky for the Limine
+      # handoff, so gate the heavy install+boot on KVM and surface the skipped
+      # coverage as a ::notice instead of a silent green. A KVM-capable
+      # self-hosted runner (or workflow_dispatch on one) runs it for real.
+      - name: Check for KVM
+        id: kvm
+        shell: bash
+        run: |
+          if [[ -w /dev/kvm ]]; then
+            echo "have_kvm=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_kvm=0" >> "$GITHUB_OUTPUT"
+            echo "::notice title=install-chainload-vm skipped::no /dev/kvm on this runner; the boot-chain VM test needs KVM (TCG is too flaky). Runs on a KVM-capable/self-hosted runner or via workflow_dispatch."
+          fi
+
+      - name: Install QEMU, OVMF, and Limine
+        if: steps.kvm.outputs.have_kvm == '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          # qemu-system-x86 -> qemu-system-x86_64; ovmf -> OVMF firmware; limine ->
+          # /usr/share/limine/BOOTX64.EFI; gdisk/dosfstools for the fixture disk.
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf limine gdisk dosfstools
+
+      - name: Boot the generated limine.conf under QEMU+OVMF
+        if: steps.kvm.outputs.have_kvm == '1'
+        shell: bash
+        # runs as root for losetup + FAT mounts; self-skips (exit 0, with a
+        # ::notice) on any still-missing dep.
+        run: sudo bash tests/install-chainload-vm.sh

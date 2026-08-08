@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Ryoku.Ui.Singletons
 import "Singletons"
 
 // Step 2 body: the shortcuts that open everything. Each row is the real key combo
@@ -10,12 +11,13 @@ Column {
 
     Repeater {
         model: [
+            { "combo": "Super + ,",      "desc": "Ryoku Settings \u2014 every knob, in one place" },
             { "combo": "Super + Space",  "desc": "App launcher & command palette" },
             { "combo": "Super + Return", "desc": "A terminal" },
-            { "combo": "Super + ,",      "desc": "Ryoku Settings" },
             { "combo": "Super + Tab",    "desc": "Overview \u2014 every workspace at a glance" },
-            { "combo": "Super + D",      "desc": "Features sidebar \u2014 stash & tools" },
-            { "combo": "Super + Q",      "desc": "Close the focused window" }
+            { "combo": "Super + Escape", "desc": "Power & quick settings" },
+            { "combo": "Super + S",      "desc": "Feature sidebar \u2014 screen time & downloads" },
+            { "combo": "Super + W",      "desc": "Wallpaper & theme menu" }
         ]
 
         delegate: Row {
@@ -43,9 +45,9 @@ Column {
                             visible: keyGroup.index > 0
                             anchors.verticalCenter: parent.verticalCenter
                             text: "+"
-                            color: Theme.dim
-                            font.family: Theme.mono
-                            font.pixelSize: 11
+                            color: Tokens.inkFaint
+                            font.family: Tokens.mono
+                            font.pixelSize: Tokens.fMicro
                         }
 
                         KeyCap { text: keyGroup.modelData; big: true }
@@ -58,9 +60,9 @@ Column {
                 width: sc.width - caps.width - sc.spacing
                 wrapMode: Text.WordWrap
                 text: sc.modelData.desc
-                color: Theme.cream
-                font.family: Theme.font
-                font.pixelSize: 14
+                color: Tokens.inkDim
+                font.family: Tokens.ui
+                font.pixelSize: Tokens.fBody
             }
         }
     }
@@ -72,8 +74,8 @@ Column {
 
         Rectangle {
             width: 16
-            height: 1.5
-            color: Theme.gold
+            height: 1
+            color: Tokens.lineStrong
             anchors.verticalCenter: note.verticalCenter
         }
 
@@ -81,10 +83,10 @@ Column {
             id: note
             width: step.width - 26
             wrapMode: Text.WordWrap
-            text: "Press Super + K anytime for the complete shortcut legend."
-            color: Theme.dim
-            font.family: Theme.font
-            font.pixelSize: 13
+            text: "Open Ryoku Settings (Super + ,) for the full shortcut list \u2014 and to rebind any of them."
+            color: Tokens.inkFaint
+            font.family: Tokens.ui
+            font.pixelSize: Tokens.fSmall
         }
     }
 }

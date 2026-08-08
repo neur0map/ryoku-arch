@@ -14,6 +14,11 @@ export RYOKU_BACKEND=ryoku-install
 export COLORTERM=truecolor   # 24-bit color for the TUI (foot supports it)
 export WLR_RENDERER=pixman             # software render, fine on VMs / GPUs with no GL
 export WLR_RENDERER_ALLOW_SOFTWARE=1   # live session has no GPU driver yet
+# match the desktop's cursor in the live kiosk: cage/wlroots reads XCURSOR_* to
+# pick the pointer theme, so without this it draws its built-in fallback bitmap.
+# ryoku-cursors ships the Bibata family into the live set (see packages.x86_64).
+export XCURSOR_THEME=Bibata-Modern-Ice
+export XCURSOR_SIZE=24
 
 log=/var/log/ryoku-session.log
 kbfile=/tmp/ryoku-xkb   # the keyboard step writes the chosen layout here (see below)

@@ -1,5 +1,5 @@
 import QtQuick
-import "Singletons"
+import Ryoku.Ui.Singletons
 
 // Half of a split-flap character: the full glyph, hard-clipped to its upper or
 // lower half. Positioned by FlapCell; knows nothing about the mechanism.
@@ -11,7 +11,7 @@ Item {
     property real cellW: 15
     property real cellH: 22
     property real fontPx: 13
-    property color ink: "#f3ede1"
+    property color ink: Tokens.ink
 
     width: half.cellW
     height: half.cellH / 2
@@ -25,7 +25,7 @@ Item {
         verticalAlignment: Text.AlignVCenter
         text: half.t
         color: half.ink
-        font.family: Theme.mono
+        font.family: Tokens.mono
         font.pixelSize: half.fontPx
         font.weight: Font.DemiBold
     }

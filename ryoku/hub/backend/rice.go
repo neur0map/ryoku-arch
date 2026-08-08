@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"ryostore/compat"
 )
 
 // rice = a named, versioned look document for the whole desktop. it captures a
@@ -26,8 +28,9 @@ import (
 const riceSchema = 1
 
 type RiceColor struct {
-	Mode    string `json:"mode"`              // "wallpaper" | "fixed"
-	Palette string `json:"palette,omitempty"` // relative file, when Mode == "fixed"
+	Mode      string `json:"mode"`                // "wallpaper" | "fixed"
+	Palette   string `json:"palette,omitempty"`   // relative file, when Mode == "fixed"
+	ThemeApps *bool  `json:"themeApps,omitempty"` // do external GTK / GUI apps follow this look
 }
 
 type RiceAssets struct {
@@ -35,6 +38,7 @@ type RiceAssets struct {
 	Hero      string   `json:"hero,omitempty"`
 	Cursor    string   `json:"cursor,omitempty"`
 	Fonts     []string `json:"fonts,omitempty"`
+	Fastfetch string   `json:"fastfetch,omitempty"`
 }
 
 type Rice struct {
@@ -59,30 +63,37 @@ func ryokuConfigDir() string {
 	return filepath.Join(base, "ryoku")
 }
 
-func ricesDir() string          { return filepath.Join(ryokuConfigDir(), "rices") }
-func shellStorePath() string    { return filepath.Join(ryokuConfigDir(), "shell.json") }
-func launcherStorePath() string { return filepath.Join(ryokuConfigDir(), "launcher.json") }
+func ricesDir() string            { return filepath.Join(ryokuConfigDir(), "rices") }
+func shellStorePath() string      { return filepath.Join(ryokuConfigDir(), "shell.json") }
+func launcherStorePath() string   { return filepath.Join(ryokuConfigDir(), "launcher.json") }
+func widgetsStorePath() string    { return filepath.Join(ryokuConfigDir(), "widgets.json") }
+func visualizerStorePath() string { return filepath.Join(ryokuConfigDir(), "visualizer.json") }
+func decorStorePath() string      { return filepath.Join(ryokuConfigDir(), "decor.json") }
+func brandStorePath() string      { return filepath.Join(ryokuConfigDir(), "brand.json") }
 func ricePath(slug string) string {
 	return filepath.Join(ricesDir(), slug, "rice.json")
 }
 
-// the four stores hold arbitrary JSON; a rice touches only its per-store
-// allowlist. hypr.json splits cleanly at the top level: the look sections are
-// always captured, the behavior sections are opt-in layers. shell/launcher are
-// flat key sets (personal keys like weather / greeting are deliberately absent
-// so a shared rice never overwrites them).
+// the stores hold arbitrary JSON; a rice touches only its per-store allowlist.
+// hypr.json splits cleanly at the top level: the look sections are always
+// captured, the behavior sections are opt-in layers. shell/launcher are flat
+// key sets (personal keys like weather / greeting are deliberately absent so a
+// shared rice never overwrites them). widgets/visualizer/decor hold nothing
+// personal, so they capture and apply whole (a nil allowlist); brand is
+// identity, so it travels as an opt-in layer, never as look.
 var riceHyprLook = []string{"appearance", "cursor", "anim", "plugins"}
 var riceHyprLayers = []string{"input", "windowRules", "layerRules", "appOverrides", "keybinds", "autostart", "env"}
+
+// layers that live outside hypr.json; routed to their own store on apply.
+var riceExtraLayers = []string{"brand"}
 var riceShellLook = []string{
-	"frameRadius", "frameBorder", "frameSmoothing", "frameOpacity", "shadowStrength", "shadowSize",
-	"surfaceColor", "osdRadius", "osdOpacity",
-	"barEnabled", "barPosition", "barStyle", "barHeight", "barShowTitle", "barShowMedia", "barShowStatus", "barOccupiedWorkspaces",
-	"islandEdge", "islandAlong", "islandHidden", "islandModules", "islandRadius",
-	"islandStyle", "islandWidth", "islandHeight", "islandRestCorner", "islandOpenCorner", "islandGap", "islandSmoothing", "islandOpacity", "islandAutohide",
-	"sidebarLeftEnabled", "sidebarRightEnabled", "sidebarLeftPanes", "sidebarRightPanes", "sidebarClickless", "sidebarWidth", "sidebarCornerSize",
+	"frameRadius", "frameCorner", "frameBorder", "frameSmoothing", "frameOpacity", "frameEnabled",
+	"shadowStrength", "shadowSize", "surfaceColor",
+	"osdRadius", "osdOpacity",
+	"frameBars",
 	"roundness", "fontFamily", "fontScale",
 }
-var riceLauncherLook = []string{"heroImage", "heroStrength", "heroPosX", "heroPosY"}
+var riceLauncherLook = []string{"heroImage", "heroStrength", "heroPosX", "heroPosY", "bgBlur", "radius", "showGreeting", "showWeather", "resultSettleMs"}
 
 // readJSONMap reads a store file into a generic map; a missing or torn file
 // reads as an empty map so an overlay still lands on a fresh key set.
@@ -94,9 +105,16 @@ func readJSONMap(path string) map[string]any {
 	return m
 }
 
-// pick copies the allowlisted keys present in src into a fresh map.
+// pick copies the allowlisted keys present in src into a fresh map; a nil
+// allowlist copies every key (the whole-store looks).
 func pick(src map[string]any, allow []string) map[string]any {
 	out := map[string]any{}
+	if allow == nil {
+		for k, v := range src {
+			out[k] = v
+		}
+		return out
+	}
 	for _, k := range allow {
 		if v, ok := src[k]; ok {
 			out[k] = v
@@ -107,12 +125,19 @@ func pick(src map[string]any, allow []string) map[string]any {
 
 // overlayStore sets the allowlisted keys from src into the store file, leaves
 // every other key untouched, and writes atomically. unknown keys in src are
-// ignored, so a rice built on an older schema can never inject a retired key.
+// ignored, so a rice built on an older schema can never inject a retired key;
+// a nil allowlist overlays every key (the whole-store looks).
 func overlayStore(path string, src map[string]any, allow []string) error {
 	cur := readJSONMap(path)
-	for _, k := range allow {
-		if v, ok := src[k]; ok {
+	if allow == nil {
+		for k, v := range src {
 			cur[k] = v
+		}
+	} else {
+		for _, k := range allow {
+			if v, ok := src[k]; ok {
+				cur[k] = v
+			}
 		}
 	}
 	return atomicWrite(path, mustJSON(cur), 0o644)
@@ -234,9 +259,127 @@ func launcherHero() string {
 	return ""
 }
 
+// isVideo mirrors the shell's wallpaper routing: these extensions play through
+// the live wallpaper daemon, everything else is a still.
+func isVideo(p string) bool {
+	switch strings.ToLower(filepath.Ext(p)) {
+	case ".mp4", ".webm", ".mkv", ".mov":
+		return true
+	}
+	return false
+}
+
+func liveWallDir() string { return filepath.Join(os.Getenv("HOME"), "Pictures", "livewalls") }
+
+// previewFrameOffset: seconds into a video wallpaper worth screenshotting,
+// from the same per-video ryowalls tune the shell samples its palette at, so
+// the rice preview shows the frame the user actually tuned the look around.
+func previewFrameOffset(video string) string {
+	b, err := os.ReadFile(filepath.Join(stateHome(), "ryoku-ryowalls.json"))
+	if err != nil {
+		return "1"
+	}
+	var t struct {
+		Image string  `json:"image"`
+		Frame float64 `json:"frame"`
+	}
+	if json.Unmarshal(b, &t) == nil && t.Image == video && t.Frame > 0 {
+		return strconv.FormatFloat(t.Frame, 'f', 2, 64)
+	}
+	return "1"
+}
+
+// writeRicePreview renders preview.png beside the manifest: the wallpaper as
+// it was the moment the rice was saved. an image is scaled down (a tile never
+// needs more than ~1280 wide); a video wallpaper contributes its tuned frame,
+// since an <Image> cannot paint an mp4. best-effort: without ffmpeg an image
+// is copied whole and a video rice falls back to the tile silhouette.
+func writeRicePreview(dir, wall string) {
+	out := filepath.Join(dir, "preview.png")
+	if isVideo(wall) {
+		_ = exec.Command("ffmpeg", "-y", "-ss", previewFrameOffset(wall), "-i", wall,
+			"-frames:v", "1", "-vf", "scale=1280:-2", out).Run()
+		return
+	}
+	if exec.Command("ffmpeg", "-y", "-i", wall, "-frames:v", "1", "-vf", "scale=1280:-2", out).Run() != nil {
+		_ = copyFile(wall, out)
+	}
+}
+
+// validAssetName gates rice://-referenced files to plain names inside the rice
+// folder, so a hostile manifest cannot point an asset copy outside it.
+func validAssetName(n string) bool {
+	return n != "" && !strings.HasPrefix(n, ".") && !strings.ContainsAny(n, "/\\")
+}
+
+// bundleDecorAssets copies each decor's picture into the rice and marks its
+// src rice://<asset>, so the decors travel with the rice instead of pointing
+// at files that exist only on the author's disk.
+func bundleDecorAssets(dir string, decor map[string]any) {
+	for key, v := range decor {
+		ent, ok := v.(map[string]any)
+		if !ok {
+			continue
+		}
+		src, _ := ent["src"].(string)
+		p := strings.TrimPrefix(src, "file://")
+		if p == "" || !isFile(p) {
+			continue
+		}
+		asset := "decor-" + slugify(key) + filepath.Ext(p)
+		if copyFile(p, filepath.Join(dir, asset)) == nil {
+			ent["src"] = "rice://" + asset
+		}
+	}
+}
+
+// rehydrateDecorAssets lands rice://-bundled decor pictures under the config
+// dir and points the entries at the copies, so an applied rice never
+// references the rices folder itself (deleting a rice later must not blank
+// the live desktop). a missing or invalid asset clears the picture; the decor
+// still applies.
+func rehydrateDecorAssets(riceDir, slug string, decor map[string]any) {
+	out := filepath.Join(ryokuConfigDir(), "rice-assets", slug)
+	for _, v := range decor {
+		ent, ok := v.(map[string]any)
+		if !ok {
+			continue
+		}
+		src, _ := ent["src"].(string)
+		if !strings.HasPrefix(src, "rice://") {
+			continue
+		}
+		name := strings.TrimPrefix(src, "rice://")
+		dst := filepath.Join(out, name)
+		if validAssetName(name) && isFile(filepath.Join(riceDir, name)) &&
+			copyFile(filepath.Join(riceDir, name), dst) == nil {
+			ent["src"] = "file://" + dst
+		} else {
+			ent["src"] = ""
+		}
+	}
+}
+
+// rehydrateBrandAssets is the brand layer's counterpart: markImage is a bare
+// path in brand.json, so the copy lands as one.
+func rehydrateBrandAssets(riceDir, slug string, brand map[string]any) {
+	src, _ := brand["markImage"].(string)
+	if !strings.HasPrefix(src, "rice://") {
+		return
+	}
+	name := strings.TrimPrefix(src, "rice://")
+	dst := filepath.Join(ryokuConfigDir(), "rice-assets", slug, name)
+	if validAssetName(name) && isFile(filepath.Join(riceDir, name)) &&
+		copyFile(filepath.Join(riceDir, name), dst) == nil {
+		brand["markImage"] = dst
+	} else {
+		delete(brand, "markImage")
+	}
+}
+
 // captureRice snapshots the live look (plus the requested behavior layers) into
 // a new user rice, bundling the wallpaper, launcher hero, and (for a locked
-// palette) the wallust colours. cursor and fonts travel by name.
+// palette) the cached colours. cursor and fonts travel by name.
 func captureRice(name string, layers []string) (Rice, error) {
 	slug := slugify(name)
 	if slug == "" {
@@ -250,26 +393,36 @@ func captureRice(name string, layers []string) (Rice, error) {
 		Author:      currentUser(),
 		CreatedWith: ryokuVersion(),
 		Look: map[string]map[string]any{
-			"hypr":     pick(hy, riceHyprLook),
-			"shell":    extractStore(shellStorePath(), riceShellLook),
-			"launcher": extractStore(launcherStorePath(), riceLauncherLook),
+			"hypr":       pick(hy, riceHyprLook),
+			"shell":      extractStore(shellStorePath(), riceShellLook),
+			"launcher":   extractStore(launcherStorePath(), riceLauncherLook),
+			"widgets":    extractStore(widgetsStorePath(), nil),
+			"visualizer": extractStore(visualizerStorePath(), nil),
+			"decor":      extractStore(decorStorePath(), nil),
 		},
 	}
 	if len(layers) == 1 && layers[0] == "all" {
-		layers = riceHyprLayers
+		layers = append(append([]string{}, riceHyprLayers...), riceExtraLayers...)
 	}
 	if len(layers) > 0 {
 		r.Layers = map[string]json.RawMessage{}
 		for _, l := range layers {
-			if !allowed(l, riceHyprLayers) {
+			if allowed(l, riceHyprLayers) {
+				v, ok := hy[l]
+				if !ok || isEmptyLayer(v) {
+					continue
+				}
+				if b, err := json.Marshal(v); err == nil {
+					r.Layers[l] = b
+				}
 				continue
 			}
-			v, ok := hy[l]
-			if !ok || isEmptyLayer(v) {
-				continue
-			}
-			if b, err := json.Marshal(v); err == nil {
-				r.Layers[l] = b
+			if l == "brand" {
+				if bm := readJSONMap(brandStorePath()); len(bm) > 0 {
+					if b, err := json.Marshal(bm); err == nil {
+						r.Layers[l] = b
+					}
+				}
 			}
 		}
 		if len(r.Layers) == 0 {
@@ -281,11 +434,14 @@ func captureRice(name string, layers []string) (Rice, error) {
 			r.Assets.Cursor = t
 		}
 	}
-	if loadThemeState().FollowWallpaper {
+	st := loadThemeState()
+	if st.FollowWallpaper {
 		r.Color = RiceColor{Mode: "wallpaper"}
 	} else {
 		r.Color = RiceColor{Mode: "fixed", Palette: "palette.json"}
 	}
+	ta := themeAppsOn(st)
+	r.Color.ThemeApps = &ta
 	if err := saveRice(r); err != nil {
 		return r, err
 	}
@@ -295,6 +451,10 @@ func captureRice(name string, layers []string) (Rice, error) {
 		if copyFile(wp, filepath.Join(dir, asset)) == nil {
 			r.Assets.Wallpaper = asset
 		}
+		// the preview is the wallpaper as it stands right now: the saved
+		// look's own specimen, exact for stills and the tuned frame for a
+		// live (video) wall.
+		writeRicePreview(dir, wp)
 	}
 	if hero := launcherHero(); isFile(hero) {
 		asset := "hero" + filepath.Ext(hero)
@@ -303,8 +463,24 @@ func captureRice(name string, layers []string) (Rice, error) {
 		}
 	}
 	if r.Color.Mode == "fixed" {
-		if copyFile(filepath.Join(wallustCacheDir(), "colors.json"), filepath.Join(dir, "palette.json")) != nil {
-			r.Color = RiceColor{Mode: "wallpaper"} // no cached palette: follow the wallpaper instead
+		if copyFile(filepath.Join(ryokuCacheDir(), "colors.json"), filepath.Join(dir, "palette.json")) != nil {
+			r.Color.Mode = "wallpaper" // no cached palette: follow the wallpaper instead
+			r.Color.Palette = ""
+		}
+	}
+	bundleDecorAssets(dir, r.Look["decor"])
+	if raw, ok := r.Layers["brand"]; ok {
+		var bm map[string]any
+		if json.Unmarshal(raw, &bm) == nil {
+			if mi, _ := bm["markImage"].(string); mi != "" && isFile(mi) {
+				asset := "brandmark" + filepath.Ext(mi)
+				if copyFile(mi, filepath.Join(dir, asset)) == nil {
+					bm["markImage"] = "rice://" + asset
+					if b, err := json.Marshal(bm); err == nil {
+						r.Layers["brand"] = b
+					}
+				}
+			}
 		}
 	}
 	return r, saveRice(r)
@@ -352,7 +528,10 @@ func readPalette(path string) map[string]string {
 // the reserved backup slots snapshot the four stores verbatim, so a restore is
 // a byte-for-byte revert (not an allowlisted merge). that is what makes
 // "restore my original setup" trustworthy.
-var backupStores = []string{"hypr.json", "shell.json", "launcher.json", "theme.json"}
+var backupStores = []string{
+	"hypr.json", "shell.json", "launcher.json", "theme.json",
+	"widgets.json", "visualizer.json", "decor.json", "brand.json", "profile.json",
+}
 
 func snapshotStores(slot string) error {
 	dir := filepath.Join(ricesDir(), slot)
@@ -428,12 +607,25 @@ func applyRice(slug string, layers []string) error {
 		hy := readJSONMap(hyprStorePath())
 		changed := false
 		for _, l := range layers {
-			if raw, ok := r.Layers[l]; ok {
-				var v any
-				if json.Unmarshal(raw, &v) == nil {
-					hy[l] = v
-					changed = true
+			raw, ok := r.Layers[l]
+			if !ok {
+				continue
+			}
+			// brand routes to its own store; everything else is a hypr section.
+			if l == "brand" {
+				var bm map[string]any
+				if json.Unmarshal(raw, &bm) == nil && len(bm) > 0 {
+					rehydrateBrandAssets(dir, r.Slug, bm)
+					if err := overlayStore(brandStorePath(), bm, nil); err != nil {
+						return fmt.Errorf("apply brand: %w", err)
+					}
 				}
+				continue
+			}
+			var v any
+			if json.Unmarshal(raw, &v) == nil {
+				hy[l] = v
+				changed = true
 			}
 		}
 		if changed {
@@ -446,8 +638,50 @@ func applyRice(slug string, layers []string) error {
 	if err := overlayStore(launcherStorePath(), r.Look["launcher"], riceLauncherLook); err != nil {
 		return fmt.Errorf("apply launcher look: %w", err)
 	}
+	if len(r.Look["widgets"]) > 0 {
+		if err := overlayStore(widgetsStorePath(), r.Look["widgets"], nil); err != nil {
+			return fmt.Errorf("apply widgets look: %w", err)
+		}
+	}
+	if len(r.Look["visualizer"]) > 0 {
+		if err := overlayStore(visualizerStorePath(), r.Look["visualizer"], nil); err != nil {
+			return fmt.Errorf("apply visualizer look: %w", err)
+		}
+	}
+	if len(r.Look["decor"]) > 0 {
+		dec := r.Look["decor"]
+		rehydrateDecorAssets(dir, r.Slug, dec)
+		if err := overlayStore(decorStorePath(), dec, nil); err != nil {
+			return fmt.Errorf("apply decor look: %w", err)
+		}
+	}
 
 	st := loadThemeState()
+	// a rice built after the toggle carries its app-theming choice; apply it so
+	// a shared full-system look reaches (or spares) the recipient's apps the same
+	// way it did the author's. an older rice (nil) leaves the recipient's setting.
+	if r.Color.ThemeApps != nil {
+		ta := *r.Color.ThemeApps
+		st.ThemeApps = &ta
+	}
+	if r.Assets.Wallpaper != "" {
+		// a video wall lands in the livewalls pool (Super+W cycles it like the
+		// shell's own), a still in the wallpapers pool; `wallpaper set` routes
+		// either to the right daemon.
+		destDir := wallpaperDir()
+		if isVideo(r.Assets.Wallpaper) {
+			destDir = liveWallDir()
+		}
+		_ = os.MkdirAll(destDir, 0o755)
+		dst := filepath.Join(destDir, r.Slug+filepath.Ext(r.Assets.Wallpaper))
+		if copyFile(filepath.Join(dir, r.Assets.Wallpaper), dst) == nil {
+			_ = riceRun("ryoku-shell", "wallpaper", "set", dst)
+		}
+	}
+	// Colour mode is set AFTER the wallpaper: `wallpaper set` re-derives the
+	// palette from the new wall and turns follow back on, so a fixed rice must
+	// re-assert its palette and follow=false last, or the wallpaper's matugen
+	// colours overwrite the fixed ones.
 	if r.Color.Mode == "fixed" {
 		st.FollowWallpaper = false
 		st.Scheme = ""
@@ -460,13 +694,6 @@ func applyRice(slug string, layers []string) error {
 		st.FollowWallpaper = true
 		saveThemeState(st)
 	}
-
-	if r.Assets.Wallpaper != "" {
-		dst := filepath.Join(wallpaperDir(), r.Slug+filepath.Ext(r.Assets.Wallpaper))
-		if copyFile(filepath.Join(dir, r.Assets.Wallpaper), dst) == nil {
-			_ = riceRun("ryoku-shell", "wallpaper", "set", dst)
-		}
-	}
 	if r.Assets.Hero != "" {
 		dst := filepath.Join(ryokuConfigDir(), "rice-hero"+filepath.Ext(r.Assets.Hero))
 		if copyFile(filepath.Join(dir, r.Assets.Hero), dst) == nil {
@@ -478,6 +705,30 @@ func applyRice(slug string, layers []string) error {
 		o.Cursor.Theme = r.Assets.Cursor
 		_ = saveOverrides(o)
 		_ = riceRun("hyprctl", "setcursor", o.Cursor.Theme, fmt.Sprintf("%d", o.Cursor.Size))
+	}
+	if r.Assets.Fastfetch != "" {
+		dst := filepath.Join(filepath.Dir(ryokuConfigDir()), "fastfetch", "fastfetch-emblem.png")
+		_ = os.MkdirAll(filepath.Dir(dst), 0o755)
+		_ = copyFile(filepath.Join(dir, r.Assets.Fastfetch), dst)
+	}
+	// profile hero: copy the bundled image into the profile store and point the
+	// hero at it, so the recipient's Profile page wears the rice's face. profile.json
+	// is in backupStores, so a restore reverts it.
+	if prof := r.Look["profile"]; len(prof) > 0 {
+		if hero, ok := prof["hero"].(map[string]any); ok {
+			if src, _ := hero["source"].(string); src != "" {
+				heroDir := profileHeroDir()
+				_ = os.MkdirAll(heroDir, 0o755)
+				name := "rice-" + r.Slug + filepath.Ext(src)
+				if copyFile(filepath.Join(dir, src), filepath.Join(heroDir, name)) == nil {
+					hero["source"] = name
+					prof["hero"] = hero
+				}
+			}
+		}
+		if err := overlayStore(profileConfigPath(), prof, nil); err != nil {
+			return fmt.Errorf("apply profile: %w", err)
+		}
 	}
 
 	_ = writeGeneratedLua(loadOverrides())
@@ -496,63 +747,33 @@ func activeRice() string {
 
 func setActiveRice(slug string) { _ = atomicWrite(activePath(), []byte(slug), 0o644) }
 
-// majorMinor pulls the (major, minor) from a version like "0.6.8-beta.17".
-func majorMinor(v string) (int, int, bool) {
-	base := v
-	if i := strings.IndexByte(base, '-'); i >= 0 {
-		base = base[:i]
-	}
-	parts := strings.Split(base, ".")
-	if len(parts) < 2 {
-		return 0, 0, false
-	}
-	maj, err1 := strconv.Atoi(parts[0])
-	min, err2 := strconv.Atoi(parts[1])
-	if err1 != nil || err2 != nil {
-		return 0, 0, false
-	}
-	return maj, min, true
-}
-
-// riceCompat marks a rice against the running Ryoku: ok (same major.minor),
-// older (built for an earlier Ryoku, may need migration), newer (built for a
-// later one), or unknown.
-func riceCompat(createdWith string) string {
-	cM, cm, ok1 := majorMinor(ryokuVersion())
-	rM, rm, ok2 := majorMinor(createdWith)
-	if !ok1 || !ok2 {
-		return "unknown"
-	}
-	switch {
-	case rM == cM && rm == cm:
-		return "ok"
-	case rM < cM || (rM == cM && rm < cm):
-		return "older"
-	default:
-		return "newer"
-	}
-}
-
 // --- the UI-facing list ----------------------------------------------------
 
 // riceListEntry is a rice plus the fields the Rices tab needs: compatibility
-// against the running Ryoku, whether it is the applied rice, and a preview URL.
+// against the running Ryoku, whether it is the applied rice, a preview URL,
+// and whether its wallpaper is a live (video) wall.
 type riceListEntry struct {
 	Rice
 	Compat  string `json:"compat"`
 	Active  bool   `json:"active"`
 	Preview string `json:"preview,omitempty"`
+	Live    bool   `json:"live,omitempty"`
 }
 
 func listRiceEntries() []riceListEntry {
 	active := activeRice()
 	out := []riceListEntry{}
 	for _, r := range listRices() {
-		e := riceListEntry{Rice: r, Compat: riceCompat(r.CreatedWith), Active: r.Slug == active}
+		e := riceListEntry{
+			Rice: r, Compat: compat.Rice(r.CreatedWith, ryokuVersion()), Active: r.Slug == active,
+			Live: isVideo(r.Assets.Wallpaper),
+		}
 		dir := filepath.Join(ricesDir(), r.Slug)
 		if p := filepath.Join(dir, "preview.png"); isFile(p) {
 			e.Preview = "file://" + p
-		} else if r.Assets.Wallpaper != "" && isFile(filepath.Join(dir, r.Assets.Wallpaper)) {
+		} else if r.Assets.Wallpaper != "" && !e.Live && isFile(filepath.Join(dir, r.Assets.Wallpaper)) {
+			// never hand a video to an <Image>; a live rice without a rendered
+			// preview falls back to the tile silhouette.
 			e.Preview = "file://" + filepath.Join(dir, r.Assets.Wallpaper)
 		}
 		out = append(out, e)
@@ -560,14 +781,14 @@ func listRiceEntries() []riceListEntry {
 	return out
 }
 
-// setRiceWallpaper bundles a chosen image into a user rice as its wallpaper, so
-// it applies on the desktop and doubles as the rice's preview.
+// setRiceWallpaper bundles a chosen image or video into a user rice as its
+// wallpaper, regenerating the preview so the tile shows the wall it will set.
 func setRiceWallpaper(slug, src string) error {
 	if !validRiceSlug(slug) {
 		return fmt.Errorf("bad rice slug %q", slug)
 	}
 	if !isFile(src) {
-		return fmt.Errorf("no such image: %s", src)
+		return fmt.Errorf("no such file: %s", src)
 	}
 	r, dir, err := loadRice(slug)
 	if err != nil {
@@ -577,7 +798,11 @@ func setRiceWallpaper(slug, src string) error {
 	if err := copyFile(src, filepath.Join(dir, asset)); err != nil {
 		return err
 	}
+	if r.Assets.Wallpaper != "" && r.Assets.Wallpaper != asset {
+		_ = os.Remove(filepath.Join(dir, r.Assets.Wallpaper))
+	}
 	r.Assets.Wallpaper = asset
+	writeRicePreview(dir, src)
 	return saveRice(r)
 }
 
@@ -609,17 +834,27 @@ func riceTouches(r Rice, dir string) []riceTouch {
 		{homeRel(filepath.Join(cfg, "hypr.json")), "config", "window", "Windows: decoration and motion", len(r.Look["hypr"]) > 0},
 		{homeRel(filepath.Join(cfg, "shell.json")), "config", "widgets", "Shell: bar skin and modules", len(r.Look["shell"]) > 0},
 		{homeRel(filepath.Join(cfg, "theme.json")), "config", "palette", "Colours: palette master", r.Color.Mode != "" || len(r.Look["theme"]) > 0},
-		{homeRel(filepath.Join(cfg, "launcher.json")), "config", "rocket", "Launcher: hero image", len(r.Look["launcher"]) > 0 || r.Assets.Hero != ""},
+		{homeRel(filepath.Join(cfg, "launcher.json")), "config", "rocket", "Launcher: hero and card", len(r.Look["launcher"]) > 0 || r.Assets.Hero != ""},
+		{homeRel(filepath.Join(cfg, "widgets.json")), "config", "widgets", "Desktop widgets: clock and calendar", len(r.Look["widgets"]) > 0},
+		{homeRel(filepath.Join(cfg, "visualizer.json")), "config", "widgets", "Audio visualiser", len(r.Look["visualizer"]) > 0},
+		{homeRel(filepath.Join(cfg, "decor.json")), "config", "image", "Desktop decors (pictures bundled)", len(r.Look["decor"]) > 0},
 		{homeRel(filepath.Join(hyprConfigDir(), "settings.lua")), "output", "refresh", "Hyprland settings (regenerated)", true},
 	}
 	if r.Color.Mode == "fixed" {
 		touches = append(touches,
-			riceTouch{homeRel(filepath.Join(wallustCacheDir(), "colors.json")), "output", "refresh", "Colour palette (wallust cache)", true},
+			riceTouch{homeRel(filepath.Join(ryokuCacheDir(), "colors.json")), "output", "refresh", "Colour palette (ryoku cache)", true},
 			riceTouch{homeRel(kittyThemePath()), "output", "terminal", "kitty colours", true},
 		)
 	}
+	if r.Color.ThemeApps == nil || *r.Color.ThemeApps {
+		touches = append(touches, riceTouch{homeRel(filepath.Join(configHome(), "gtk-3.0", "gtk.css")), "output", "widgets", "GTK / GUI apps (Files, editors)", true})
+	}
 	if r.Assets.Wallpaper != "" {
-		touches = append(touches, riceTouch{homeRel(filepath.Join(dir, r.Assets.Wallpaper)), "asset", "wallpaper", "Desktop wallpaper", true})
+		label := "Desktop wallpaper"
+		if isVideo(r.Assets.Wallpaper) {
+			label = "Desktop wallpaper (live video)"
+		}
+		touches = append(touches, riceTouch{homeRel(filepath.Join(dir, r.Assets.Wallpaper)), "asset", "wallpaper", label, true})
 	}
 	if r.Assets.Hero != "" {
 		touches = append(touches, riceTouch{homeRel(filepath.Join(dir, r.Assets.Hero)), "asset", "image", "Launcher hero", true})
@@ -640,10 +875,16 @@ func riceTouches(r Rice, dir string) []riceTouch {
 		{"appOverrides", "window", "Per-app overrides"},
 		{"autostart", "rocket", "Autostart"},
 		{"env", "variable", "Environment"},
+		{"brand", "image", "Brand mark and name"},
 	}
 	for _, lr := range layerRows {
 		if _, ok := r.Layers[lr.key]; ok {
-			touches = append(touches, riceTouch{homeRel(filepath.Join(cfg, "hypr.json")), "config", lr.icon, lr.label, true})
+			// every hypr layer lands in hypr.json; brand routes to its own store.
+			store := "hypr.json"
+			if lr.key == "brand" {
+				store = "brand.json"
+			}
+			touches = append(touches, riceTouch{homeRel(filepath.Join(cfg, store)), "config", lr.icon, lr.label, true})
 		}
 	}
 	return touches
@@ -733,10 +974,17 @@ func exportReadme(r Rice) string {
 		b.WriteString("  palette.json the fixed 16-colour palette\n")
 	}
 	if r.Assets.Wallpaper != "" {
-		fmt.Fprintf(&b, "  %s   the desktop wallpaper\n", r.Assets.Wallpaper)
+		kind := "the desktop wallpaper"
+		if isVideo(r.Assets.Wallpaper) {
+			kind = "the live desktop wallpaper (video)"
+		}
+		fmt.Fprintf(&b, "  %s   %s\n", r.Assets.Wallpaper, kind)
 	}
 	if r.Assets.Hero != "" {
 		fmt.Fprintf(&b, "  %s   the launcher hero image\n", r.Assets.Hero)
+	}
+	if len(r.Look["decor"]) > 0 {
+		b.WriteString("  decor-*      the desktop decors' pictures\n")
 	}
 	fmt.Fprintf(&b, "\nDrop this folder into ~/.config/ryoku/rices/ and apply it from\nRyoku Settings > Appearance > Rices, or `ryoku-hub rice apply %s`.\n", r.Slug)
 	return b.String()
@@ -782,6 +1030,49 @@ func saveRiceJSON(s string) error {
 	return saveRice(r)
 }
 
+// importRice copies an exported rice folder (anything holding a valid
+// rice.json) into the user's rices, so a shared look installs from a picked
+// folder in one step. the slug is re-derived and de-duped locally, never
+// trusted as a path; configs/ and README are the export's reading matter and
+// stay behind.
+func importRice(src string) (Rice, error) {
+	b, err := os.ReadFile(filepath.Join(src, "rice.json"))
+	if err != nil {
+		return Rice{}, fmt.Errorf("not a rice folder (no rice.json): %s", src)
+	}
+	var r Rice
+	if err := json.Unmarshal(b, &r); err != nil {
+		return Rice{}, fmt.Errorf("bad rice.json: %w", err)
+	}
+	slug := slugify(r.Name)
+	if slug == "" {
+		slug = slugify(r.Slug)
+	}
+	if slug == "" {
+		return Rice{}, fmt.Errorf("rice.json names no rice")
+	}
+	base := slug
+	for i := 2; isFile(ricePath(slug)); i++ {
+		slug = fmt.Sprintf("%s-%d", base, i)
+	}
+	r.Slug = slug
+	ents, err := os.ReadDir(src)
+	if err != nil {
+		return Rice{}, err
+	}
+	dir := filepath.Join(ricesDir(), slug)
+	for _, e := range ents {
+		n := e.Name()
+		if e.IsDir() || n == "rice.json" || n == "README.txt" || strings.HasPrefix(n, ".") {
+			continue
+		}
+		if err := copyFile(filepath.Join(src, n), filepath.Join(dir, n)); err != nil {
+			return Rice{}, err
+		}
+	}
+	return r, saveRice(r)
+}
+
 // forkRice duplicates a rice (and its bundled assets) under a fresh slug, so a
 // shipped or installed rice can be tweaked without touching the original.
 func forkRice(slug string) (Rice, error) {
@@ -806,13 +1097,50 @@ func forkRice(slug string) (Rice, error) {
 	return r, saveRice(r)
 }
 
+// preflightData is what the capture card shows before a save: wallpaper kind,
+// decor count, the non-empty behavior layers, colour mode. the user sees the
+// coverage before naming the rice, instead of after.
+func preflightData() map[string]any {
+	hy := readJSONMap(hyprStorePath())
+	layers := []string{}
+	for _, l := range riceHyprLayers {
+		if v, ok := hy[l]; ok && !isEmptyLayer(v) {
+			layers = append(layers, l)
+		}
+	}
+	if len(readJSONMap(brandStorePath())) > 0 {
+		layers = append(layers, "brand")
+	}
+	decors := 0
+	for _, v := range readJSONMap(decorStorePath()) {
+		if ent, ok := v.(map[string]any); ok && len(ent) > 0 {
+			decors++
+		}
+	}
+	wall := currentWallpaper()
+	return map[string]any{
+		"wallpaper":  wall != "" && isFile(wall),
+		"live":       isVideo(wall),
+		"decors":     decors,
+		"widgets":    len(readJSONMap(widgetsStorePath())) > 0,
+		"visualizer": len(readJSONMap(visualizerStorePath())) > 0,
+		"layers":     layers,
+		"fixed":      !loadThemeState().FollowWallpaper,
+		"themeApps":  themeAppsOn(loadThemeState()),
+	}
+}
+
+func ricePreflight() error { return printJSON(preflightData()) }
+
 // --- dispatch --------------------------------------------------------------
 
 func runRice(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("rice needs list|capture|apply|restore|save|fork|delete|catalog|install|publish|setwall|files|export")
+		return fmt.Errorf("rice needs list|preflight|capture|apply|restore|save|fork|delete|import|publish|setwall|files|export")
 	}
 	switch args[0] {
+	case "preflight":
+		return ricePreflight()
 	case "list":
 		return printJSON(listRiceEntries())
 	case "capture":
@@ -862,17 +1190,15 @@ func runRice(args []string) error {
 			return fmt.Errorf("rice delete needs a slug")
 		}
 		return deleteRice(args[1])
-	case "catalog":
-		items, err := catalogRices()
+	case "import":
+		if len(args) < 2 {
+			return fmt.Errorf("rice import needs a folder")
+		}
+		nr, err := importRice(args[1])
 		if err != nil {
 			return err
 		}
-		return printJSON(items)
-	case "install":
-		if len(args) < 2 {
-			return fmt.Errorf("rice install needs an id")
-		}
-		return installRice(args[1])
+		return printJSON(nr)
 	case "publish":
 		if len(args) < 3 {
 			return fmt.Errorf("rice publish needs a slug and a store path")

@@ -6,8 +6,8 @@ import "Singletons"
  * A live, plain-QML preview of the desktop clock widget for the Desktop Widgets
  * section, so the chosen face, date design, format and accent show at a glance
  * without leaning over the hub window to the wallpaper. It mirrors the live faces
- * in ryoku/shell/quickshell/widgets/clock; the accent follows your real wallust
- * palette (Wallust singleton), the rest is bright ink as on the wallpaper.
+ * in ryoku/shell/quickshell/shell/modules/desktop/clock; the accent follows your real
+ * palette (Scheme singleton), the rest is bright ink as on the wallpaper.
  */
 Item {
     id: preview
@@ -15,7 +15,7 @@ Item {
     property string design: "digital"
     property bool is24: true
     property bool seconds: false
-    property string accentChoice: "wallust"
+    property string accentChoice: "palette"
     property bool dateShow: true
     property string dateDesign: "inline"
 
@@ -23,7 +23,7 @@ Item {
     readonly property color inkSoft: "#d2d7ef"
     readonly property color inkDim: "#9aa3c8"
     readonly property color accent: preview.accentChoice === "brand" ? "#F25623"
-        : preview.accentChoice === "mono" ? preview.ink : Wallust.accent
+        : preview.accentChoice === "mono" ? preview.ink : Scheme.accent
 
     property var now: new Date()
     Timer { interval: 1000; running: true; repeat: true; triggeredOnStart: true; onTriggered: preview.now = new Date() }
@@ -186,8 +186,8 @@ Item {
                     var cx = w / 2, lw = w * 0.05, gap = lw * 1.75, r0 = w / 2 - lw * 0.7 - 2;
                     var radii = [r0 - 2 * gap, r0 - gap, r0];
                     var fr = [((preview.h % 12) + preview.mins / 60) / 12, (preview.mins + preview.secs / 60) / 60, preview.secs / 60];
-                    var tints = preview.accentChoice === "wallust"
-                        ? [Wallust.colorAt(0.2), Wallust.colorAt(0.5), Wallust.colorAt(0.85)]
+                    var tints = preview.accentChoice === "palette"
+                        ? [Scheme.colorAt(0.2), Scheme.colorAt(0.5), Scheme.colorAt(0.85)]
                         : [preview.accent, preview.accent, preview.accent];
                     for (var i = 0; i < 3; i++) {
                         ctx.beginPath(); ctx.lineWidth = lw; ctx.lineCap = "butt"; ctx.strokeStyle = rc.css(preview.ink, 0.12);

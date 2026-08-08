@@ -20,7 +20,7 @@ if status is-interactive
   # legible fish syntax colours. fish applies a palette-tied default before
   # config.fish runs (in our case with a malformed flag that made typed input
   # the same colour as the background). pin a fixed scheme unconditionally so
-  # it always wins, regardless of the wallust palette.
+  # it always wins, regardless of the palette.
   set -g fish_color_normal         F1F3E4
   set -g fish_color_command        e2342a
   set -g fish_color_keyword        e83b30

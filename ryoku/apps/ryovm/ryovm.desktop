@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=ryovm
-GenericName=Virtual Machine Manager
-Comment=Build, run and manage QEMU virtual machines
+Name=Ryoport
+GenericName=Machine Hub
+Comment=One console for your virtual machines, VPS and SSH connections
 Exec=flock -n -o /tmp/ryovm.lock qs -c ryovm
 Terminal=false
 Icon=ryovm
 Categories=System;Utility;
-Keywords=vm;virtual machine;qemu;quickemu;windows;linux;android;emulator;
+Keywords=vm;virtual machine;qemu;quickemu;vps;ssh;remote;server;terminal;putty;hub;

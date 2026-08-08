@@ -1,10 +1,11 @@
 import QtQuick
-import "Singletons"
+import Ryoku.Ui.Singletons
 
 // One Solari split-flap character cell. Two clipped halves show the current
 // character; a change folds the top half down over the seam (forward-only drum
-// motion), snapping through like the real mechanism. Mechanical rule: the flap
-// itself is fast and hard — spatial easing is for spatial moves, not machines.
+// motion), snapping through like the real mechanism. The plate gradient dies:
+// the face is a flat instrument plate (amendment 1), a hairline frame, a black
+// seam. The flap itself stays fast and hard: the mechanism is the brand.
 Item {
     id: cell
 
@@ -12,9 +13,7 @@ Item {
     property real cellW: 15
     property real cellH: 22
     property real fontPx: 13
-    property color ink: Theme.cream
-    property color plate: Theme.keyTop
-    property color plateLo: Theme.keyBot
+    property color ink: Tokens.ink
     property bool seam: true
 
     width: cellW
@@ -34,15 +33,12 @@ Item {
             flap.restart();
     }
 
-    // plate background: a keycap gradient, hard corners.
+    // plate: a flat instrument face, hard corners, hairline frame.
     Rectangle {
         anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: cell.plate }
-            GradientStop { position: 1.0; color: cell.plateLo }
-        }
-        border.width: 1
-        border.color: Theme.lineSoft
+        color: Tokens.paperLift
+        border.width: Tokens.border
+        border.color: Tokens.lineSoft
         antialiasing: false
     }
 
@@ -70,28 +66,22 @@ Item {
             axis { x: 1; y: 0; z: 0 }
             angle: 0
         }
-        Rectangle {
-            anchors.fill: parent
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: cell.plate }
-                GradientStop { position: 1.0; color: Qt.darker(cell.plate, 1.15) }
-            }
-            antialiasing: false
-        }
+        Rectangle { anchors.fill: parent; color: Tokens.paperLift; antialiasing: false }
         FlapHalf {
             t: cell.shown; upper: true
             cellW: cell.cellW; cellH: cell.cellH; fontPx: cell.fontPx; ink: cell.ink
         }
-        Rectangle { anchors.fill: parent; color: Theme.shadow; opacity: fold.angle / -180 }
+        // the folding face darkens toward black as it turns away.
+        Rectangle { anchors.fill: parent; color: Tokens.paper; opacity: fold.angle / -180 }
     }
 
-    // seam line across the middle: the mechanism showing, always.
+    // seam line across the middle: the mechanism showing, always. Black.
     Rectangle {
         visible: cell.seam
         y: cell.cellH / 2
         width: cell.cellW
         height: 1
-        color: Theme.shadow
+        color: Tokens.paper
         opacity: 0.65
         antialiasing: false
     }

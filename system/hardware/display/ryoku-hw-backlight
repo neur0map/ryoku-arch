@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+#
+# ryoku-hw-backlight: print the best backlight device name for the laptop panel.
+#
+# ASUS AMD+NVIDIA laptops wire the panel to the AMD iGPU but the kernel can
+# register only nvidia_wmi_ec_backlight (an unreliable EC path) and hide
+# amdgpu_bl0 until acpi_backlight=native is set (ryoku-hw-backlight-fix). So
+# prefer the panel's real PWM controller and fall back to the EC path only when
+# nothing better exists; brightnessctl pins whatever we return.
+#
+# RYOKU_BACKLIGHT_PATH overrides the sysfs root for tests.
+set -euo pipefail
+
+backlight_path="${RYOKU_BACKLIGHT_PATH:-/sys/class/backlight}"
+
+# Floor: any registered backlight, so brightnessctl always has a device to pin
+# even for an unlisted controller name. Sorted glob = same order as ls.
+device=""
+for candidate in "$backlight_path"/*; do
+  [[ -e $candidate ]] || continue
+  device="${candidate##*/}"
+  break
+done
+
+# Refine to the panel's real controller ([[ ]] does no globbing, so expand the
+# candidates in the for list). amdgpu/intel PWM drive the panel directly; the
+# nvidia EC path is the ASUS dual-GPU last resort -- unreliable, and present
+# only until ryoku-hw-backlight-fix's acpi_backlight=native reveals amdgpu_bl0.
+for candidate in "$backlight_path"/amdgpu_bl* "$backlight_path"/intel_backlight \
+  "$backlight_path"/acpi_video* "$backlight_path"/nvidia_wmi_ec_backlight; do
+  if [[ -e $candidate ]]; then
+    device="${candidate##*/}"
+    break
+  fi
+done
+
+if [[ -n $device ]]; then
+  printf '%s\n' "$device"
+else
+  echo "ryoku-hw-backlight: no backlight device under $backlight_path" >&2
+  exit 1
+fi

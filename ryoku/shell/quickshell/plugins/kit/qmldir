@@ -6,3 +6,4 @@ CornerTicks 1.0 CornerTicks.qml
 WaveMeter 1.0 WaveMeter.qml
 Card 1.0 Card.qml
 PluginSurface 1.0 PluginSurface.qml
+PluginObjectSlot 1.0 PluginObjectSlot.qml

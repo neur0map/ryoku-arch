@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# ryoku-cmd-edit-recording: open the Quick screen recording the shell just wrote
+# in Ryoku Motion for editing. Driven by the record card's "Edit in Ryomotion
+# when done" toggle, for Quick captures only -- Studio already records straight
+# through the editor. Waits for gpu-screen-recorder / wf-recorder to finalise the
+# mp4 (a half-written file imports broken), then hands the clip to ryomotion.
+#
+#   ryoku-cmd-edit-recording [FILE]   (no arg = the path the recorder wrote)
+
+set -uo pipefail
+
+state="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
+
+notify() {
+  command -v notify-send >/dev/null 2>&1 && notify-send -a ryoku-cli "$@" >/dev/null 2>&1 || true
+}
+
+input="${1:-}"
+[[ -n $input ]] || input="$(cat "$state/last-recording" 2>/dev/null || true)"
+[[ -n $input ]] || { echo "edit-recording: no recording path" >&2; exit 0; }
+
+command -v ryomotion >/dev/null 2>&1 || { notify "Ryomotion" "Not installed yet"; exit 0; }
+
+# wait for the recorder to finish writing: gpu-screen-recorder / wf-recorder both
+# finalise the mp4 on SIGINT, so hold until neither is running, then until the
+# file size stops growing. time-boxed so a stuck capture can't hang the helper.
+gsr='(^|/)gpu-screen-recorder( |$)'
+wf='(^|/)wf-recorder( |$)'
+for _ in $(seq 1 60); do
+  if pgrep -f "$gsr" >/dev/null 2>&1 || pgrep -f "$wf" >/dev/null 2>&1; then
+    sleep 0.5
+  else
+    break
+  fi
+done
+
+[[ -f $input ]] || { echo "edit-recording: file not found: $input" >&2; exit 0; }
+prev=-1
+for _ in $(seq 1 40); do
+  cur="$(stat -c %s "$input" 2>/dev/null || echo 0)"
+  [[ $cur -gt 0 && $cur -eq $prev ]] && break
+  prev="$cur"
+  sleep 0.3
+done
+
+# open the clip itself (positional arg), matching ryoku-cmd-studiorecord; the bare
+# `--edit` flag opens ryomotion's import chooser instead of this specific file.
+exec ryomotion "$input"

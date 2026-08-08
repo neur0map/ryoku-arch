@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Ryoku.FrameBars
 
 // live shell appearance config. single source of truth for the look knobs
 // Ryoku Settings' Shell section edits, plus the shipped defaults the shell
@@ -46,11 +47,8 @@ Singleton {
     property alias islandStyle:    adapter.islandStyle
     property alias islandAutohide: adapter.islandAutohide
 
-    // optional bar drawn on the frame's thickened top edge (Bar.qml), shown
-    // in place of the resting island. when on, island never shows at rest
-    // (surfaces + keybinds still summon the pill). toggled by Ryoku Settings
-    // -> Shell -> Bar.
-    property alias barEnabled: adapter.barEnabled
+    property alias frameBars: adapter.frameBars
+    readonly property var normalizedFrameBars: FrameBars.normalize(frameBars, BarCatalog, MenuCatalog)
 
     FileView {
         id: file
@@ -79,7 +77,7 @@ Singleton {
             property real islandOpacity: 1
             property string islandStyle: "floating"
             property bool islandAutohide: true
-            property bool barEnabled: true
+            property var frameBars: FrameBars.defaultConfig()
         }
     }
 

@@ -1,0 +1,7 @@
+{
+  "name": "Clock",
+  "description": "A clock plugin.",
+  "version": "1.5.0",
+  "hosts": ["desktopWidget"],
+  "tags": ["time"]
+}

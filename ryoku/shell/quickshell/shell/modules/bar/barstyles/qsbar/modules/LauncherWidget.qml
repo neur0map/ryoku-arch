@@ -1,0 +1,132 @@
+import QtQuick
+import QtQuick.Effects
+import Quickshell
+
+Item {
+    id: rootMod
+    required property var root
+
+    implicitWidth: logo.implicitWidth + logoPadding
+    implicitHeight: 28
+
+    readonly property string tooltipText: "Control center"
+    readonly property real logoPadding: 12
+
+    // animated wave phase
+    property real phase: 0
+    NumberAnimation on phase {
+        from: 0; to: 2 * Math.PI
+        duration: 2600; loops: Animation.Infinite
+        // gate: only animate while hovered or control panel open — otherwise the
+        // Canvas repainted 24/7 via onPhaseChanged even when nobody looks
+        running: ma.containsMouse || root.controlVisible
+    }
+
+    // shadow as a SIBLING of the pill (the pill itself clips, for the wave —
+    // a shadow child would be clipped away). rootMod doesn't clip, so this shows.
+    RectangularShadow {
+        anchors.fill: pill
+        radius: pill.radius
+        visible: root.styleShadow
+        blur: 8
+        spread: 0
+        offset: Qt.vector2d(0, root.barPosition === "bottom" ? -1 : 1)
+        color: root.pillShadow
+        z: -1
+    }
+
+    // ── pill background (same style as other widgets) with the wave inside ──
+    Rectangle {
+        id: pill
+        anchors.centerIn: parent
+        width: logo.implicitWidth + rootMod.logoPadding
+        height: root.pillH
+        radius: root.pillRadius
+        color: root.pill
+        border.color: root.pillBorder
+        border.width: root.pillBorderW
+        clip: true
+
+        Canvas {
+            id: wave
+            anchors.fill: parent
+            // only present while active (hovered or control panel open); fully
+            // gone when idle. Fades so it appears/disappears smoothly.
+            opacity: (ma.containsMouse || root.controlVisible) ? 0.55 : 0
+            visible: opacity > 0.001
+            Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.clearRect(0, 0, width, height)
+                var cy = height / 2
+                var amp = 3.0
+                var k = (2 * Math.PI) / width * 2   // two cycles across the width
+
+                function drawWave(phaseOff, alpha) {
+                    ctx.beginPath()
+                    for (var x = 0; x <= width; x += 2) {
+                        var y = cy + Math.sin(x * k + rootMod.phase + phaseOff) * amp
+                        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
+                    }
+                    // fade the ends so the wave doesn't hard-clip at the pill edge
+                    var r = Math.round(root.seal.r * 255)
+                    var g = Math.round(root.seal.g * 255)
+                    var b = Math.round(root.seal.b * 255)
+                    var lit = "rgba(" + r + "," + g + "," + b + "," + alpha + ")"
+                    var grad = ctx.createLinearGradient(0, 0, width, 0)
+                    grad.addColorStop(0,    "rgba(" + r + "," + g + "," + b + ",0)")
+                    grad.addColorStop(0.16, lit)
+                    grad.addColorStop(0.84, lit)
+                    grad.addColorStop(1,    "rgba(" + r + "," + g + "," + b + ",0)")
+                    ctx.strokeStyle = grad
+                    ctx.lineWidth = 1.5
+                    ctx.lineCap = "round"
+                    ctx.stroke()
+                }
+
+                drawWave(0,       0.45)
+                drawWave(Math.PI, 0.22)
+            }
+
+            Connections {
+                target: rootMod
+                function onPhaseChanged() { wave.requestPaint() }
+            }
+            Connections {
+                target: root
+                function onSealChanged() { wave.requestPaint() }
+            }
+            Component.onCompleted: requestPaint()
+        }
+    }
+
+    // Ryoku brand mark: the RYOKU wordmark, or the 力 kanji, themed with the seal.
+    Text {
+        id: logo
+        anchors.centerIn: parent
+        text: root.launcherLogoMode === "icon" ? "力" : "RYOKU"
+        color: root.seal
+        renderType: Text.NativeRendering
+        font.family: root.launcherLogoMode === "icon" ? "Noto Sans CJK JP" : root.mono
+        font.pixelSize: root.launcherLogoMode === "icon" ? 15 : 12
+        font.weight: Font.Bold
+        font.letterSpacing: root.launcherLogoMode === "icon" ? 0 : 2
+        Behavior on color { ColorAnimation { duration: 200 } }
+    }
+
+    TooltipMixin { id: tip; root: rootMod.root; owner: rootMod; text: rootMod.tooltipText }
+
+    MouseArea {
+        id: ma
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onEntered: tip.show()
+        onExited:  { tip.hide() }
+        onClicked: {
+            tip.hide()
+            root.controlVisible = !root.controlVisible
+        }
+    }
+}

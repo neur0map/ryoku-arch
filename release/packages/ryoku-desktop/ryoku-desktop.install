@@ -48,17 +48,85 @@ _rtkit() {
   mkdir -p /var/lib/ryoku && : >"$marker"
 }
 
+# enable power-profiles-daemon exactly once, so power-mode switching persists and
+# the daemon is reliably running -- it is only D-Bus activated otherwise, and the
+# shell's power-profile UI silently fails when it isn't up. Marker keeps it
+# one-shot: a user who later disables the service stays disabled across upgrades.
+# `start` only fires on a booted system; inside the installer chroot the enable
+# symlink is enough.
+_powerprofiles() {
+  [ -e /usr/lib/systemd/system/power-profiles-daemon.service ] || return 0
+  local marker=/var/lib/ryoku/power-profiles-enabled
+  [ -e "$marker" ] && return 0
+  systemctl enable power-profiles-daemon.service 2>/dev/null || true
+  if [ -d /run/systemd/system ]; then
+    systemctl start power-profiles-daemon.service 2>/dev/null || true
+  fi
+  mkdir -p /var/lib/ryoku && : >"$marker"
+}
+
+# reload logind so the lid-policy drop-in (10-ryoku-lid.conf) applies without a
+# reboot. reload is session-safe (unlike restart, which drops sessions); only on
+# a booted system -- the installer chroot reads the drop-in on first boot.
+_logind_lid() {
+  [ -d /run/systemd/system ] || return 0
+  systemctl reload systemd-logind 2>/dev/null || true
+}
+
+# tune bluez main.conf in place (Experimental battery reporting, fast + robust
+# reconnect, AutoEnable). bluez owns the file and BlueZ has no drop-in dir, so
+# Ryoku edits it idempotently instead of shipping a conflicting copy. Re-applied
+# on upgrade in case a bluez update reset it; restart bluetoothd so keys apply now.
+_bluetooth_tune() {
+  command -v ryoku-bluetooth-tune >/dev/null 2>&1 || return 0
+  ryoku-bluetooth-tune >/dev/null 2>&1 || true
+  if [ -d /run/systemd/system ]; then
+    systemctl try-restart bluetooth.service 2>/dev/null || true
+  fi
+}
+
+# ASUS AMD+NVIDIA panels register only nvidia_wmi_ec_backlight and hide
+# amdgpu_bl0, so brightness will not lower. ryoku-hw-backlight-fix adds
+# acpi_backlight=native (hardware-gated + idempotent, a no-op on every other
+# box) and bakes it into the UKI. Takes effect on the next reboot.
+_backlight_fix() {
+  command -v ryoku-hw-backlight-fix >/dev/null 2>&1 || return 0
+  ryoku-hw-backlight-fix >/dev/null 2>&1 || true
+}
+
+# enable the AI-usage collector timer exactly once via --global, so every user
+# picks it up (the units live in /usr/lib/systemd/user). --global only writes the
+# timers.target.wants symlink; the timer arms on the user's next login. Marker
+# keeps it one-shot: a user who later disables it stays disabled across upgrades.
+_ai_usage_timer() {
+  [ -e /usr/lib/systemd/user/ryoku-ai-usage.timer ] || return 0
+  local marker=/var/lib/ryoku/ai-usage-timer-enabled
+  [ -e "$marker" ] && return 0
+  systemctl --global enable ryoku-ai-usage.timer 2>/dev/null || true
+  mkdir -p /var/lib/ryoku && : >"$marker"
+}
+
 post_install() {
   _refresh
   _bluetooth
+  _bluetooth_tune
+  _backlight_fix
   _rtkit
+  _powerprofiles
+  _logind_lid
+  _ai_usage_timer
   _hint
 }
 
 post_upgrade() {
   _refresh
   _bluetooth
+  _bluetooth_tune
+  _backlight_fix
   _rtkit
+  _powerprofiles
+  _logind_lid
+  _ai_usage_timer
   _hint
 }
 

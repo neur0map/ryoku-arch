@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- `base.packages`: add `pciutils`. `lspci` is the GPU-detection path the driver
+  scripts use during pacstrap; without it NVIDIA cards were silently missed.
+- `aur.packages`: add `game-devices-udev` (PS4/PS5/DualSense/DualShock and Switch
+  Pro udev rules + battery) and `xpadneo-dkms` (Xbox One/Series Bluetooth pads).
+- `aur.packages`: add `spicetify-cli`, the Spotify client patcher the desktop
+  music widget's Spotify Canvas backdrop needs. `ryoku doctor` drops the bundled
+  `ryoku-canvas.js` extension into a Spotify user's spicetify Extensions and
+  applies it; inert for anyone without Spotify.
 - `base.packages`: add `gnome-themes-extra`, the standalone `Adwaita-dark` GTK
   theme the Hyprland autostart selects (`gsettings gtk-theme`). Without it that
   name has nothing on disk, so GTK3 apps -- notably the `xdg-desktop-portal-gtk`

@@ -1,0 +1,25 @@
+module shell.barkit
+# Stable barstyle-product API: the non-singleton shell types a bar product may
+# build on, re-exported from their real locations so a product imports one module
+# instead of scraping internal relative paths. Singletons come from shell.services
+# (a product must share the shell's live instances, e.g. the one notification
+# server). See docs/barstyles.md. Each re-exported file resolves its own
+# shell.services import, so products share the shell's singletons.
+AudioAppRow ../components/AudioAppRow.qml
+BrandMark ../components/BrandMark.qml
+GlyphIcon ../components/GlyphIcon.qml
+HFader ../components/HFader.qml
+MaterialIcon ../components/MaterialIcon.qml
+SymbolIcon ../components/SymbolIcon.qml
+MusicBars ../modules/bar/MusicBars.qml
+TrayMenu ../modules/bar/TrayMenu.qml
+NotificationCard ../modules/notifications/NotificationCard.qml
+Popout ../modules/bar/popouts/Popout.qml
+PopoutChip ../modules/bar/popouts/PopoutChip.qml
+PopoutCard ../modules/bar/popouts/PopoutCard.qml
+PopoutHeadButton ../modules/bar/popouts/PopoutHeadButton.qml
+PopoutAction ../modules/bar/popouts/PopoutAction.qml
+PopoutDetailRow ../modules/bar/popouts/PopoutDetailRow.qml
+PopoutBatteryGauge ../modules/bar/popouts/PopoutBatteryGauge.qml
+AudioDevicePicker ../modules/bar/framebars/menus/AudioDevicePicker.qml
+MenuNotifications ../modules/bar/framebars/menus/MenuNotifications.qml

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -13,152 +14,58 @@ import (
 	"time"
 )
 
-// the wallpaper daemon. awww (swww renamed upstream) now ships from the [ryoku]
-// repo as a hard ryoku-desktop dependency, so `ryoku update` installs it on every
-// box; older installs may still carry the AUR swww or awww-git, whose binary
-// provides the same name. use whichever this box actually has (awww preferred).
-// the CLI is identical between them, so the transition presets work either way.
-var wallDaemon, wallDaemonStart = resolveWallDaemon()
-
-func resolveWallDaemon() (cli, start string) {
-	for _, d := range [][2]string{{"awww", "awww-daemon"}, {"swww", "swww-daemon"}} {
-		if _, err := exec.LookPath(d[0]); err == nil {
-			return d[0], d[1]
-		}
-		if _, err := exec.LookPath(d[1]); err == nil {
-			return d[0], d[1]
+func findHubBin() string {
+	if p, err := exec.LookPath("ryoku-hub"); err == nil {
+		return p
+	}
+	home := os.Getenv("HOME")
+	for _, cand := range []string{
+		filepath.Join(home, ".local", "bin", "ryoku-hub"),
+		"/usr/local/bin/ryoku-hub",
+		"/usr/bin/ryoku-hub",
+	} {
+		if _, err := os.Stat(cand); err == nil {
+			return cand
 		}
 	}
-	return "awww", "awww-daemon"
+	return "ryoku-hub"
 }
-
 func wallDir() string   { return filepath.Join(os.Getenv("HOME"), "Pictures", "Wallpapers") }
 func liveDir() string   { return filepath.Join(os.Getenv("HOME"), "Pictures", "livewalls") }
 func wallState() string { return filepath.Join(stateDir(), "ryoku-wallpaper") }
 func wallBag() string   { return filepath.Join(stateDir(), "ryoku-wallpaper-bag") }
 
-// transition = flags appended after `awww img <pic>`. Super+W picks one at random
-// so consecutive switches feel varied.
-type transition struct {
-	name string
-	args []string
-}
-
-// shared transition speed: every Super+W transition runs the same wall-clock
-// duration, only the shape (type / easing / edge) varies. awww binds non-'simple'
-// transitions to elapsed time, so duration alone sets speed; fps = smoothness
-// (panel is 165Hz).
-const (
-	transitionDuration = "2.2"
-	transitionFPS      = "144"
-)
-
-// awww transition shapes Super+W cycles through; showWallpaper appends the shared
-// duration / fps. mechanics: sweep timing = --transition-duration + bezier + fps.
-// for geometric/wipe/wave, --transition-step is edge softness only (low = feathered
-// band, high = crisp); 'fade' ignores it. beziers stay monotonic (y in [0,1]) so
-// 'fade' never wraps its alpha.
-var transitionPresets = []transition{
-	// crossfade
-	{"silk_fade", []string{ // crossfade, easeInOutCubic
-		"--transition-type", "fade",
-		"--transition-bezier", "0.65,0,0.35,1",
-	}},
-	// directional sweeps (wipe / wave)
-	{"diagonal_silk", []string{ // 30deg wipe, fast launch then glide, easeOutExpo
-		"--transition-type", "wipe", "--transition-angle", "30",
-		"--transition-bezier", "0.16,1,0.3,1", "--transition-step", "110",
-	}},
-	{"dream_curtain", []string{ // top-down curtain, soft feathered edge, easeInOutQuint
-		"--transition-type", "wipe", "--transition-angle", "90",
-		"--transition-bezier", "0.83,0,0.17,1", "--transition-step", "35",
-	}},
-	{"liquid_ribbon", []string{ // diagonal rolling waves, easeInOutQuart
-		"--transition-type", "wave", "--transition-angle", "45",
-		"--transition-wave", "25,35",
-		"--transition-bezier", "0.76,0,0.24,1", "--transition-step", "90",
-	}},
-	// circle reveals (center / grow / outer / any)
-	{"iris_open", []string{ // iris bloom from dead center, easeOutQuint
-		"--transition-type", "center",
-		"--transition-bezier", "0.22,1,0.36,1", "--transition-step", "100",
-	}},
-	{"corner_bloom", []string{ // blooms from bottom-left, easeOutExpo
-		"--transition-type", "grow", "--transition-pos", "bottom-left",
-		"--transition-bezier", "0.16,1,0.3,1", "--transition-step", "90",
-	}},
-	{"spotlight_rise", []string{ // swells up from bottom-center, easeOutCirc
-		"--transition-type", "grow", "--transition-pos", "bottom",
-		"--transition-bezier", "0,0.55,0.45,1", "--transition-step", "90",
-	}},
-	{"wander_iris", []string{ // bloom from a random on-screen point, easeOutQuart
-		"--transition-type", "any",
-		"--transition-bezier", "0.25,1,0.5,1", "--transition-step", "100",
-	}},
-	{"vignette_close", []string{ // new image seals from edges to center, easeInOutCubic
-		"--transition-type", "outer",
-		"--transition-bezier", "0.65,0,0.35,1", "--transition-step", "90",
-	}},
-	// caelestia v2: Material 3 Expressive motion, ported from its shell's
-	// animation tokens (v2.1.0 plugin/src/Caelestia/Config/tokens.hpp). caelestia
-	// switches wallpapers with an opacity crossfade on the expressiveSlowEffects
-	// curve, which celeste_veil reproduces exactly; its other monotonic signature
-	// curves ride our geometric sweeps. Its springy *Spatial curves overshoot
-	// (y>1) and its emphasized curve is a two-segment spline, neither of which
-	// awww's single monotonic bezier can carry, so they are left out.
-	{"celeste_veil", []string{ // caelestia's own wallpaper crossfade, expressiveSlowEffects
-		"--transition-type", "fade",
-		"--transition-bezier", "0.34,0.88,0.34,1",
-	}},
-	{"comet_streak", []string{ // fast-launch, long-glide sweep, emphasizedDecel
-		"--transition-type", "wipe", "--transition-angle", "135",
-		"--transition-bezier", "0.05,0.7,0.1,1", "--transition-step", "100",
-	}},
-	{"aurora_ripple", []string{ // snappy front-loaded wavy sweep, expressiveFastEffects
-		"--transition-type", "wave", "--transition-angle", "120",
-		"--transition-wave", "20,30",
-		"--transition-bezier", "0.31,0.94,0.34,1", "--transition-step", "80",
-	}},
-	{"starfall_bloom", []string{ // iris blooming down from the top, M3 standard
-		"--transition-type", "grow", "--transition-pos", "top",
-		"--transition-bezier", "0.2,0,0,1", "--transition-step", "100",
-	}},
-}
-
-// wallpaperApply: pick a wallpaper per mode (init | set | next | refresh) and show
-// it. hot path runs the transition only; the slow retheme (palette, borders, LEDs)
-// goes to coalescing background workers via scheduleTheme so rapid Super+W stays
-// smooth. best-effort: a missing wallpaper dir or daemon is a no-op, not an error.
+// wallpaperApply: pick a wallpaper per mode (init | set | next | random | refresh)
+// show it. Images are painted by the in-shell backdrop surface (the daemon copies
+// the pick into a cache file, bumps a revision, and publishes it); videos play
+// through ryoku-livewall. The slow retheme (palette, borders, LEDs) goes to
+// coalescing background workers via scheduleTheme so rapid Super+W stays smooth.
+// best-effort: a missing wallpaper dir is a no-op, not an error.
 func (d *daemon) wallpaperApply(mode, arg string) error {
-	// repaint = re-derive the palette / borders / LEDs for the current
-	// wallpaper with no image transition. used by the hub when a settings
-	// change (master toggle, theme) must re-theme without re-animating. needs
-	// no wallpaper daemon: the paint worker reads state and runs wallust.
+	// repaint = re-derive the palette / borders / LEDs and re-fit the current
+	// wallpaper (a settings change re-applies without re-animating). No image copy
+	// or revision bump, so the backdrop re-fits with no crossfade.
 	if mode == "repaint" {
 		d.scheduleTheme()
+		d.wall.republish()
 		return nil
 	}
 	// live-reload = relaunch the current live wallpaper with fresh motion opts
-	// (ryowalls changed the fit). phonto only, so it needs no image daemon; no
-	// state write and no retheme, just a restart.
+	// (ryowalls changed the fit). Video only; no state write and no retheme.
 	if mode == "live-reload" {
 		if cur := readState(); isVideo(cur) && isFile(cur) {
 			return d.showLiveWallpaper(cur)
 		}
 		return nil
 	}
-	// only init cares if a wallpaper is already up. a video is the exception:
-	// its phonto may have died with the previous session, so relaunch it (phonto,
-	// no awww). a live wallpaper never starts awww, which is why the set/next
-	// paths below must not depend on it.
+	// init: a saved live wallpaper's player may have died with the previous
+	// session, so relaunch it; a saved image is painted onto the fresh backdrop by
+	// the set path below.
 	if mode == "init" {
 		if cur := readState(); isVideo(cur) && isFile(cur) {
 			if !liveAlive() {
 				return d.showLiveWallpaper(cur)
 			}
-			return nil
-		}
-		if wallDaemonAlive() {
 			return nil
 		}
 	}
@@ -172,10 +79,14 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 		}
 		pic = arg
 	case "refresh":
-		pic = readState()
-		if pic == "" || !isFile(pic) {
-			pic = popBag()
-		}
+		// hotplug: a new monitor's backdrop window subscribes and paints the
+		// current revision on its own, so there is nothing to repaint here.
+		return nil
+	case "random":
+		// Super+Shift+W: a random wallpaper from the switcher pool, never the
+		// current one. Includes live walls: the type branch below plays a video
+		// through ryoku-livewall, or reveals an image with a random transition.
+		pic = pickRandomImage(listPics(), readState())
 	case "init":
 		if cur := readState(); cur != "" && isFile(cur) {
 			pic = cur
@@ -189,17 +100,11 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 		return nil
 	}
 
-	// backend by file type. a video plays through phonto and never touches the
-	// awww image daemon, so route it straight to the live backend: awww failing
-	// to start must not silently drop a live wallpaper (it once gated every set).
-	// refresh only repaints a hot-plugged output, so it skips the state write and
-	// retheme; every other mode records the pick and re-themes.
+	// backend by file type. a video plays through ryoku-livewall on its own
+	// background surface; an image is painted by the in-shell backdrop.
 	if isVideo(pic) {
 		if err := d.showLiveWallpaper(pic); err != nil {
 			return err
-		}
-		if mode == "refresh" {
-			return nil
 		}
 		_ = os.MkdirAll(stateDir(), 0o755)
 		_ = os.WriteFile(wallState(), []byte(pic+"\n"), 0o644)
@@ -207,18 +112,18 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 		return nil
 	}
 
-	// images need awww, so its start-or-fail gate applies only from here on.
-	if !ensureWallDaemon() {
-		return fmt.Errorf("the wallpaper daemon (%s) is not available; install awww (or run `ryoku doctor` to heal it)", wallDaemon)
+	// images: stop any video so the backdrop is revealed, then copy the pick into
+	// the cache and bump the revision. A user-driven switch (set / next / random)
+	// reveals with a random transition preset; init just crossfades onto the fresh
+	// backdrop, so a login never fires a full reveal.
+	stopLive()
+	var err error
+	if mode == "init" {
+		err = d.wall.show(pic)
+	} else {
+		err = d.wall.showTransition(pic, d.pickTransition())
 	}
-	// refresh = repaint the current image on every output with no transition
-	// (hotplug fills the new monitor without re-animating the rest). palette
-	// already matches, so no retheme / state write.
-	if mode == "refresh" {
-		stopLive()
-		return d.showWallpaperInstant(pic)
-	}
-	if err := d.showAny(pic); err != nil {
+	if err != nil {
 		return err
 	}
 	_ = os.MkdirAll(stateDir(), 0o755)
@@ -227,43 +132,17 @@ func (d *daemon) wallpaperApply(mode, arg string) error {
 	return nil
 }
 
-// showWallpaper: hand the image to awww with a random preset at the shared speed.
-// returns once awww accepts it (~100ms); the daemon animates on its own, so this
-// never blocks for the full transition.
-func (d *daemon) showWallpaper(pic string) error {
-	argv := append([]string{"img", pic}, d.pickTransition()...)
-	argv = append(argv, "--transition-duration", transitionDuration, "--transition-fps", transitionFPS)
-	return exec.Command(wallDaemon, argv...).Run()
-}
-
-// showWallpaperInstant: paint on every output, no transition. used on hotplug so
-// a new monitor catches up without re-animating the others.
-func (d *daemon) showWallpaperInstant(pic string) error {
-	return exec.Command(wallDaemon, "img", pic, "--transition-type", "none").Run()
-}
-
-// showWallpaperFade: crossfade to an image with a plain fade (not a random
-// preset). used to settle awww onto a live clip's first frame, so switching
-// image->live reads as a crossfade rather than a hard cut before the video daemon
-// fades in on top of it (matching the Hyprland wallpaper-crossfade layer rule).
-func (d *daemon) showWallpaperFade(pic string) error {
-	return exec.Command(wallDaemon, "img", pic,
-		"--transition-type", "fade",
-		"--transition-duration", transitionDuration,
-		"--transition-fps", transitionFPS).Run()
-}
-
-// --- live (video) wallpapers: awww still + the ryoku-livewall daemon ---------
+// --- live (video) wallpapers: the ryoku-livewall daemon ---------------------
 //
 // A video plays through ryoku-livewall, a lightweight software-decode daemon that
 // paints wl_shm frames on its own wlr background surface. It maps no GPU/EGL
 // driver, so it holds ~40 MB RSS on any vendor, where mpv/mpvpaper (a client GL
 // pipeline) cost 300-700 MB and leak per loop, and hardware decode cannot beat it
-// on NVIDIA (the CUDA/GL userspace floor alone exceeds 100 MB). awww stays up
-// under it showing the clip's own first frame, so the desktop always shows the
-// clip's content: livewall's video covers awww; the gap before it paints (a
-// one-time transcode) is the clip's still, never a stale image; and switching back
-// to an image transitions from that real frame.
+// on NVIDIA (the CUDA/GL userspace floor alone exceeds 100 MB). The in-shell
+// backdrop paints the clip's own first frame under it, so the desktop always shows
+// the clip's content: livewall's video covers the backdrop; the gap before it
+// paints (a one-time transcode) is the clip's still, never a stale image; and
+// switching back to an image crossfades from that real frame.
 
 const liveDaemon = "ryoku-livewall"
 
@@ -271,7 +150,7 @@ const liveDaemon = "ryoku-livewall"
 // logical width (physical / fractional scale), so a video wallpaper renders near
 // 1:1 with its surface instead of the old fixed 1280 upscaled to a blur. Software
 // decode scales with resolution, so the width is clamped to 2560 to hold
-// livewall's PSS under the 100 MB budget (~57 MB at 2048, ~78 MB at 2560); a
+// livewall's PSS under the 100 MB budget (~47 MB at 2048, ~59 MB at 2560); a
 // wider panel plays at 2560 rather than blow it. "1920" when hyprctl is absent.
 func liveCapWidth() string {
 	const floor, ceil = 1280, 2560
@@ -392,37 +271,29 @@ func stopLive() {
 	killLive()
 }
 
-// showAny: route a video to the live path (awww still + video daemon) and an
-// image to awww. an image set stops the video daemon so awww's still (the clip's
-// frame, or the previous image) is revealed, and awww transitions from that real
-// frame, never a stale cache.
-func (d *daemon) showAny(pic string) error {
-	if isVideo(pic) {
-		return d.showLiveWallpaper(pic)
-	}
-	stopLive()
-	return d.showWallpaper(pic)
-}
-
-// showLiveWallpaper: show a clip through awww's still + the ryoku-livewall daemon.
-// awww paints the clip's own first frame and stays up under livewall, so the
-// desktop always shows the clip's content: livewall's video covers awww; the gap
-// before it paints (only a one-time transcode) is the clip's still, not a stale
-// image or black; and a later switch to an image transitions from that real frame.
-// It is also the whole wallpaper when livewall is not installed (the still alone).
+// showLiveWallpaper: show a clip through the in-shell backdrop's still frame plus
+// the ryoku-livewall daemon. The backdrop paints the clip's own first frame and
+// livewall's video covers it, so the desktop always shows the clip's content: the
+// gap before livewall paints (only a one-time transcode) is the clip's still, not
+// a stale image or black; and a later switch to an image crossfades from that real
+// frame. It is also the whole wallpaper when livewall is not installed (the still
+// alone).
 func (d *daemon) showLiveWallpaper(pic string) error {
 	gen := liveGen.Add(1)
-	killLive() // stop the old video now; awww's frame shows under until the new paints
-	if frame := liveFrame(pic); frame != "" && ensureWallDaemon() {
-		_ = d.showWallpaperFade(frame)
+	killLive() // stop the old video now; the backdrop's frame shows under until the new paints
+	if frame := liveFrame(pic); frame != "" {
+		_ = d.wall.show(frame)
 	}
 	if _, err := exec.LookPath(liveDaemon); err != nil {
-		return nil // no livewall installed: the clip's still is the wallpaper
+		// Degrade gracefully to the clip's still, but say so: a missing binary
+		// otherwise reads as "live walls are broken" with nothing in the journal.
+		log.Printf("live wallpaper: %s not on PATH (build it with ryoku/shell/livewall/build.sh); showing the clip's still frame", liveDaemon)
+		return nil
 	}
 	// Transcode (cached) and launch off the hot path: the first encode of a clip
-	// takes a few seconds, during which awww holds the still; cached clips launch
-	// at once. The generation guard drops the launch if the wallpaper changed while
-	// the transcode ran.
+	// takes a few seconds, during which the backdrop holds the still; cached clips
+	// launch at once. The generation guard drops the launch if the wallpaper
+	// changed while the transcode ran.
 	go func() {
 		capW := liveCapWidth()
 		src := livewallSource(pic, capW)
@@ -438,7 +309,7 @@ func (d *daemon) showLiveWallpaper(pic string) error {
 	return nil
 }
 
-// liveFrame: one still from the video for wallust, which reads an image. offset
+// liveFrame: one still from the video for matugen, which reads an image. offset
 // defaults to a second in; the ryowalls frame slider can move it. "" on failure,
 // so the palette just keeps its previous value.
 func liveFrame(video string) string {
@@ -451,10 +322,10 @@ func liveFrame(video string) string {
 	return out
 }
 
-// frameOffset: seconds into the video that wallust samples, from the per-video
+// frameOffset: seconds into the video that matugen samples, from the per-video
 // sticky tune; "1" by default.
 func frameOffset(video string) string {
-	b, err := os.ReadFile(wallustTune())
+	b, err := os.ReadFile(ryowallsTune())
 	if err != nil {
 		return "1"
 	}
@@ -468,11 +339,50 @@ func frameOffset(video string) string {
 	return "1"
 }
 
+// liveEncRev marks the transcode flags a cached clip was produced with. Bump it
+// whenever they change, so old clips are re-encoded instead of being replayed
+// with settings livewall no longer expects.
+const liveEncRev = "2"
+
+// liveFps: the rate a clip is transcoded to, and so the rate livewall decodes it
+// at (the daemon paces off the stream's own frame rate). 30 keeps software decode
+// affordable on any machine; the Performance page's 60fps switch roughly doubles
+// that cost for hardware with the headroom. A source that cannot supply 60 stays
+// at 30 rather than being padded with duplicate frames livewall would decode for
+// nothing.
+func liveFps(pic string) string {
+	if !perfFlag("liveWallpaper60") {
+		return "30"
+	}
+	out, err := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0",
+		"-show_entries", "stream=r_frame_rate", "-of", "default=nw=1:nk=1", pic).Output()
+	if err != nil {
+		return "30"
+	}
+	// r_frame_rate is a rational: "60/1", or "60000/1001" for NTSC rates.
+	num, den, _ := strings.Cut(strings.TrimSpace(string(out)), "/")
+	n, err := strconv.ParseFloat(num, 64)
+	if err != nil {
+		return "30"
+	}
+	d, err := strconv.ParseFloat(den, 64)
+	if err != nil || d <= 0 {
+		d = 1
+	}
+	if n/d < 50 {
+		return "30"
+	}
+	return "60"
+}
+
 // livewallSource: the cached H.264 that livewall decodes, transcoded once per
-// clip + cap width (keyed by path, mtime and cap). Software-decoding the 4K
-// source directly would blow the RAM budget; downscaling to the screen's width
-// keeps livewall bounded while matching the panel, so the video is not upscaled
-// to a blur. "" if ffmpeg fails, so the caller keeps the clip's still frame.
+// clip + cap width (keyed by path, mtime, cap, fps and encoder rev). Software-decoding
+// the 4K source directly would blow the RAM budget; downscaling to the screen's
+// width keeps livewall bounded while matching the panel, so the video is not
+// upscaled to a blur. B-frames are off: they buy compression this cache does not
+// need, and each one the decoder holds for reordering is a full frame of RAM
+// (~3.5 MB at 2048x1152) charged against livewall's budget for the clip's life.
+// "" if ffmpeg fails, so the caller keeps the clip's still frame.
 func livewallSource(pic, capW string) string {
 	st, err := os.Stat(pic)
 	if err != nil {
@@ -484,7 +394,8 @@ func livewallSource(pic, capW string) string {
 	}
 	dir := filepath.Join(base, "ryoku", "livewall")
 	name := strings.TrimSuffix(filepath.Base(pic), filepath.Ext(pic))
-	out := filepath.Join(dir, name+"-"+strconv.FormatInt(st.ModTime().Unix(), 10)+"-"+capW+".mp4")
+	fps := liveFps(pic)
+	out := filepath.Join(dir, name+"-"+strconv.FormatInt(st.ModTime().Unix(), 10)+"-"+capW+"-"+fps+"-r"+liveEncRev+".mp4")
 	if isFile(out) {
 		return out
 	}
@@ -496,8 +407,8 @@ func livewallSource(pic, capW string) string {
 	// would interleave both writers into a corrupt cached video.
 	tmp := out + ".tmp." + strconv.Itoa(os.Getpid()) + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + ".mp4"
 	err = exec.Command("ffmpeg", "-y", "-i", pic,
-		"-vf", "scale='min("+capW+",iw)':-2:flags=bicubic", "-r", "30",
-		"-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", "-an", tmp).Run()
+		"-vf", "scale='min("+capW+",iw)':-2:flags=bicubic", "-r", fps,
+		"-c:v", "libx264", "-preset", "veryfast", "-bf", "0", "-pix_fmt", "yuv420p", "-an", tmp).Run()
 	if err != nil || !isFile(tmp) {
 		_ = os.Remove(tmp)
 		return ""
@@ -509,21 +420,6 @@ func livewallSource(pic, capW string) string {
 	return out
 }
 
-// pickTransition: random preset, never the previous one (consecutive switches
-// shouldn't feel samey). called under wallMu, so lastTransition is fine bare.
-func (d *daemon) pickTransition() []string {
-	n := len(transitionPresets)
-	if n == 0 {
-		return nil
-	}
-	i := rand.Intn(n)
-	if n > 1 && i == d.lastTransition {
-		i = (i + 1 + rand.Intn(n-1)) % n
-	}
-	d.lastTransition = i
-	return transitionPresets[i].args
-}
-
 // scheduleTheme: nudge the palette/border worker, non-blocking. buffered channel
 // coalesces a burst into the latest, so theming runs once the presses settle.
 func (d *daemon) scheduleTheme() {
@@ -533,31 +429,55 @@ func (d *daemon) scheduleTheme() {
 	}
 }
 
-// paintWorker: regen the wallust palette for whatever is on screen, reload hypr
-// (config-only, monitors untouched), wake the LED worker. `wallust run` rewrites
-// every template in wallust.toml: kitty + hypr colors, and the shell palette at
-// ~/.cache/wallust/colors.json the desktop visualiser live-watches, so its
-// spectrum retunes to the wallpaper too. reads state every pass, so a coalesced
-// burst themes the final wallpaper. runs for the life of the daemon.
+// paintWorker: regen the palette for whatever is on screen, reload hypr
+// (config-only, monitors untouched), wake the LED worker. matugenApply extracts
+// the palette to ~/.cache/ryoku/colors.json (the desktop visualiser live-
+// watches it, so its spectrum retunes too) and fans that one palette into every
+// app config. reads state every pass, so a coalesced burst themes the final
+// wallpaper. runs for the life of the daemon.
 func (d *daemon) paintWorker() {
 	for range d.paintSig {
+		// Before deciding who owns the palette: the surfaces floating on the
+		// picture need its luminance map either way, named theme or not.
+		writeWallpaperTone(readState())
+		// A fixed named theme owns the palette: fan its curated palette into the
+		// same app templates the wallpaper path renders, then reload, so apps
+		// follow the shell rail's master instead of the last wallpaper render. No
+		// wallpaper is needed, so this runs before the wallpaper-file guard below.
+		if staticThemeActive() {
+			if name := staticThemeName(); name != "" {
+				if err := d.matugenApplyStatic(name); err != nil {
+					fmt.Fprintf(os.Stderr, "paintWorker matugen static: %v\n", err)
+				} else {
+					_ = exec.Command("hyprctl", "reload", "config-only").Run()
+					select {
+					case d.ledsSig <- struct{}{}:
+					default:
+					}
+				}
+			}
+			continue
+		}
 		pic := readState()
 		if pic == "" || !isFile(pic) {
 			continue
 		}
-		// fixed-palette theme (Ryoku Settings) owns the colours: change the image
-		// but keep the locked palette, don't re-derive.
-		if themePaletteLocked() {
+		// The dynamic pipeline owns the palette only while Match wallpaper is on
+		// and no fixed named theme is selected; otherwise it idles so it never
+		// fights the theme daemon's static palette.
+		if !matugenFollows() {
 			continue
 		}
-		// wallust reads an image, so a video is themed off one extracted frame.
+		// matugen reads a still image, so a video is themed off one extracted frame.
 		src := pic
 		if isVideo(pic) {
 			if src = liveFrame(pic); src == "" {
 				continue
 			}
 		}
-		_ = exec.Command("wallust", append([]string{"run", src}, tuneArgs()...)...).Run()
+		if err := d.matugenApply(src); err != nil {
+			fmt.Fprintf(os.Stderr, "paintWorker matugen: %v\n", err)
+		}
 		_ = exec.Command("hyprctl", "reload", "config-only").Run()
 		select {
 		case d.ledsSig <- struct{}{}:
@@ -566,89 +486,41 @@ func (d *daemon) paintWorker() {
 	}
 }
 
-// themePaletteLocked: does a Ryoku Settings theme own the colours (so a wallpaper
-// change keeps them). state at ~/.config/ryoku/theme.json; colours locked when
-// the source doesn't follow the wallpaper.
-func themePaletteLocked() bool {
+// themeAppsEnabled reports whether the palette should reach GTK / GUI apps.
+// Mirrors the hub control plane: a theme.json without the key reads as on, so
+// existing installs keep the themed apps they already had.
+func themeAppsEnabled() bool {
 	base := os.Getenv("XDG_CONFIG_HOME")
 	if base == "" {
 		base = filepath.Join(os.Getenv("HOME"), ".config")
 	}
 	b, err := os.ReadFile(filepath.Join(base, "ryoku", "theme.json"))
 	if err != nil {
-		return false
+		return true
 	}
-	// default true when absent (shipped behaviour = follow the wallpaper).
-	s := struct {
-		FollowWallpaper bool `json:"followWallpaper"`
-	}{FollowWallpaper: true}
-	return json.Unmarshal(b, &s) == nil && !s.FollowWallpaper
+	var s struct {
+		ThemeApps *bool `json:"themeApps"`
+	}
+	if json.Unmarshal(b, &s) != nil || s.ThemeApps == nil {
+		return true
+	}
+	return *s.ThemeApps
 }
 
-// wallustTune: the wallhaven app's saved look. when present, its fields append to
-// `wallust run` so a set wallpaper (and later Super+W cycles) match what the app
-// previewed. absent or empty fields fall back to the wallust config.
-func wallustTune() string { return filepath.Join(stateDir(), "ryoku-wallust.json") }
-
-func tuneArgs() []string {
-	b, err := os.ReadFile(wallustTune())
-	if err != nil {
-		return nil
+// blankGtk drops the Ryoku palette from the generated GTK stylesheets, so GTK /
+// libadwaita apps fall back to their own stock colours when app theming is off.
+func blankGtk(cfgBase string) {
+	const off = "/* Ryoku: app theming is off; apps use their own colours. */\n"
+	for _, rel := range []string{"gtk-3.0/gtk.css", "gtk-4.0/gtk.css"} {
+		p := filepath.Join(cfgBase, rel)
+		_ = os.MkdirAll(filepath.Dir(p), 0o755)
+		_ = os.WriteFile(p, []byte(off), 0o644)
 	}
-	var t struct {
-		Image      string `json:"image"`
-		Palette    string `json:"palette"`
-		Colorspace string `json:"colorspace"`
-		Backend    string `json:"backend"`
-		Saturation int    `json:"saturation"`
-		Threshold  int    `json:"threshold"`
-		Contrast   bool   `json:"contrast"`
-	}
-	if json.Unmarshal(b, &t) != nil {
-		return nil
-	}
-	// per-image: the tune only applies to the image it was set on. a plain
-	// wallpaper change (Super+W, a different image) no longer matches, so it
-	// falls back to default extraction. keyed by path, a stale tune can never
-	// bleed onto another wallpaper.
-	if t.Image == "" || t.Image != readState() {
-		return nil
-	}
-	var a []string
-	if isWallustName(t.Palette) {
-		a = append(a, "-p", t.Palette)
-	}
-	if isWallustName(t.Colorspace) {
-		a = append(a, "-c", t.Colorspace)
-	}
-	if isWallustName(t.Backend) {
-		a = append(a, "-b", t.Backend)
-	}
-	if t.Saturation >= 1 && t.Saturation <= 100 {
-		a = append(a, "--saturation", strconv.Itoa(t.Saturation))
-	}
-	if t.Threshold >= 1 && t.Threshold <= 100 {
-		a = append(a, "-t", strconv.Itoa(t.Threshold))
-	}
-	if t.Contrast {
-		a = append(a, "-k")
-	}
-	return a
 }
 
-// isWallustName: every wallust enum value is a short lowercase-alphanumeric token.
-// reject anything else so a stray tune file can't feed odd args to the process.
-func isWallustName(s string) bool {
-	if s == "" || len(s) > 32 {
-		return false
-	}
-	for _, r := range s {
-		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')) {
-			return false
-		}
-	}
-	return true
-}
+// ryowallsTune: the ryowalls per-image tune (ryoku-ryowalls.json). frameOffset
+// reads the sampled frame second for a video wallpaper from it.
+func ryowallsTune() string { return filepath.Join(stateDir(), "ryoku-ryowalls.json") }
 
 // ledsWorker: push accent to OpenRGB. detection is slow (seconds), so it lives on
 // its own coalescing worker and never touches the wallpaper hot path. runs for
@@ -657,36 +529,6 @@ func (d *daemon) ledsWorker() {
 	for range d.ledsSig {
 		_ = exec.Command("ryoku-leds", "apply").Run()
 	}
-}
-
-func wallDaemonAlive() bool {
-	return exec.Command(wallDaemon, "query").Run() == nil
-}
-
-func ensureWallDaemon() bool {
-	if wallDaemonAlive() {
-		return true
-	}
-	// no daemon binary at all (say, the AUR build never landed): retrying the
-	// start just burns ~15s per apply; fail fast so the caller can say why.
-	if _, err := exec.LookPath(wallDaemonStart); err != nil {
-		return false
-	}
-	for attempt := 0; attempt < 5; attempt++ {
-		cmd := exec.Command(wallDaemonStart)
-		if cmd.Start() == nil {
-			// reap on exit so a later-killed daemon is never left a zombie (Release
-			// would orphan it as <defunct> until the shell itself exits).
-			go func() { _ = cmd.Wait() }()
-		}
-		for i := 0; i < 15; i++ {
-			if wallDaemonAlive() {
-				return true
-			}
-			time.Sleep(200 * time.Millisecond)
-		}
-	}
-	return false
 }
 
 // listPics: the Super+W pool. images from ~/Pictures/Wallpapers and videos from

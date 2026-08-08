@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "id": "clock",
+  "category": "plugins",
+  "version": "1.5.0",
+  "destination": "ryoku/plugins/clock",
+  "files": [
+    {
+      "source": "manifest.json",
+      "destination": "manifest.json",
+      "sha256": "86af3cc7db6ecc51b46291b68922b4f82a9a8fb64ced87ecd720e457590feab0",
+      "mode": "0644",
+      "size": 130,
+      "install": true
+    }
+  ]
+}

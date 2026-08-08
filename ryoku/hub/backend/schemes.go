@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-//go:embed schemes/light.json schemes/dark.json
+//go:embed schemes/light.json schemes/dark.json schemes/mono.json
 var schemesFS embed.FS
 
 // loadScheme returns a curated fixed palette (light or dark) baked into the
@@ -24,14 +24,49 @@ func loadScheme(mode string) (map[string]string, error) {
 	return m, json.Unmarshal(b, &m)
 }
 
-// writePalette writes the wallust outputs every consumer reads (the cache
-// colors.json, the hypr border colours, the kitty theme) from a fixed palette.
+// writePalette authors the shell's own palette (the cache colors.json every
+// Quickshell singleton reads) and hands that same palette to matugen, which
+// renders every external app config from it.
 func writePalette(pal map[string]string) {
-	_ = os.MkdirAll(wallustCacheDir(), 0o755)
-	_ = atomicWrite(filepath.Join(wallustCacheDir(), "colors.json"), mustJSON(pal), 0o644)
-	_ = atomicWrite(filepath.Join(wallustCacheDir(), "hypr-colors.lua"),
-		[]byte(fmt.Sprintf("return {\n    active = %q,\n    inactive = %q,\n}\n", paletteAccent(pal), pal["background"])), 0o644)
-	_ = atomicWrite(kittyThemePath(), []byte(renderKitty(pal)), 0o644)
+	_ = os.MkdirAll(ryokuCacheDir(), 0o755)
+	_ = atomicWrite(filepath.Join(ryokuCacheDir(), "colors.json"), mustJSON(pal), 0o644)
+	renderApps(pal)
+}
+
+// renderApps runs matugen in json (templating-only) mode over the palette, the
+// one engine that fans it into the app configs from the templates deployed
+// under ~/.config/matugen. config.toml is the core surface (kitty, Hyprland
+// borders, btop, Qt) and always renders; apps.toml is the GTK / GUI-app reach,
+// rendered only when "Theme apps" is on (else the GTK stylesheets are blanked
+// so those apps fall back to stock). Passthrough keeps every colour byte-exact;
+// only .hex resolves in this mode, so Qt's ARGB roles read the pre-formatted
+// *_argb keys the carrier carries beside the plain colours.
+func renderApps(pal map[string]string) {
+	cfg := loadMatugenConfig()
+	renderActiveTemplates(cfg, pal)
+}
+
+func runMatugen(cfg, carrier string) {
+	if out, err := exec.Command("matugen", "-c", cfg, "json", carrier).CombinedOutput(); err != nil {
+		fmt.Fprintf(os.Stderr, "matugen: %v: %s\n", err, out)
+	}
+}
+
+// themeAppsOn reports whether the palette should reach GTK / GUI apps. A theme
+// state without the key (an older theme.json) reads as on, so existing installs
+// keep the themed apps they already had.
+func themeAppsOn(s themeState) bool { return s.ThemeApps == nil || *s.ThemeApps }
+
+// gtkOff is written to the generated GTK stylesheets when app theming is off, so
+// GTK / libadwaita apps drop the Ryoku palette and use their own stock colours.
+const gtkOff = "/* Ryoku: app theming is off; apps use their own colours. */\n"
+
+func blankGtk() {
+	for _, rel := range []string{"gtk-3.0/gtk.css", "gtk-4.0/gtk.css"} {
+		p := filepath.Join(configHome(), rel)
+		_ = os.MkdirAll(filepath.Dir(p), 0o755)
+		_ = atomicWrite(p, []byte(gtkOff), 0o644)
+	}
 }
 
 // currentScheme reports the active palette mode for the UI: light/dark when a
@@ -39,11 +74,11 @@ func writePalette(pal map[string]string) {
 // a theme owns its own fixed palette.
 func currentScheme() string {
 	st := loadThemeState()
-	if st.Scheme == "light" || st.Scheme == "dark" {
-		return st.Scheme
-	}
 	if st.FollowWallpaper {
 		return "follow"
+	}
+	if st.Scheme == "light" || st.Scheme == "dark" || st.Scheme == "mono" {
+		return st.Scheme
 	}
 	return "custom"
 }
@@ -64,7 +99,7 @@ func applyScheme(mode string) error {
 		}
 		// the daemon derives (honouring the per-image tune); no re-animation.
 		_ = exec.Command("ryoku-shell", "wallpaper", "repaint").Run()
-	case "light", "dark":
+	case "light", "dark", "mono":
 		pal, err := loadScheme(mode)
 		if err != nil {
 			return err
@@ -78,20 +113,63 @@ func applyScheme(mode string) error {
 			return err
 		}
 		writePalette(pal)
+		// GTK apps re-read gtk.css when the colour-scheme preference flips; pin
+		// light/dark so libadwaita picks the freshly rendered palette up.
+		gtkScheme := "prefer-dark"
+		if mode == "light" {
+			gtkScheme = "prefer-light"
+		}
+		_ = exec.Command("gsettings", "set", "org.gnome.desktop.interface", "color-scheme", gtkScheme).Run()
 	default:
-		return fmt.Errorf("unknown scheme %q (want follow|light|dark)", mode)
+		return fmt.Errorf("unknown scheme %q (want follow|light|dark|mono)", mode)
 	}
 	hyprReload()
 	_ = exec.Command("pkill", "-USR1", "-x", "kitty").Run()
 	return nil
 }
 
-// themeState persists the palette master: whether colours track the wallpaper
-// (wallust) and, when they don't, which curated scheme is locked. Lives at
+// currentThemeApps reports the app-theming toggle for the UI.
+func currentThemeApps() bool { return themeAppsOn(loadThemeState()) }
+
+// applyThemeApps sets whether the palette reaches GTK / GUI apps and re-fans the
+// live palette at once, so the toggle takes hold without a wallpaper change or a
+// scheme flip. renderApps honours the new flag (renders the GTK templates, or
+// blanks them); nudgeGtk then asks already-open GTK apps to re-read.
+func applyThemeApps(on bool) error {
+	st := loadThemeState()
+	st.ThemeApps = &on
+	saveThemeState(st)
+	if pal := readPalette(filepath.Join(ryokuCacheDir(), "colors.json")); pal != nil {
+		renderApps(pal)
+	} else if !on {
+		blankGtk()
+	}
+	nudgeGtk()
+	return nil
+}
+
+// nudgeGtk forces already-open GTK / libadwaita apps to re-read the stylesheet
+// by flipping the GTK theme name off and back, the standard live-reload signal.
+func nudgeGtk() {
+	out, err := exec.Command("gsettings", "get", "org.gnome.desktop.interface", "gtk-theme").Output()
+	if err != nil {
+		return
+	}
+	name := strings.Trim(strings.TrimSpace(string(out)), "'")
+	if name == "" {
+		return
+	}
+	_ = exec.Command("gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", "").Run()
+	_ = exec.Command("gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", name).Run()
+}
+
+// themeState persists the palette master: whether colours follow the wallpaper
+// and, when they don't, which curated scheme is locked. Lives at
 // ~/.config/ryoku/theme.json.
 type themeState struct {
 	FollowWallpaper bool   `json:"followWallpaper"`
-	Scheme          string `json:"scheme,omitempty"`
+	Scheme          string `json:"scheme"`
+	ThemeApps       *bool  `json:"themeApps,omitempty"`
 }
 
 func themeStatePath() string {
@@ -102,10 +180,11 @@ func themeStatePath() string {
 	return filepath.Join(base, "ryoku", "theme.json")
 }
 
-// loadThemeState defaults FollowWallpaper=true on a missing/blank file (the
-// shipped behaviour: colours track the wallpaper).
+// loadThemeState defaults to following the wallpaper on a missing or blank file
+// (the shipped default look); an existing file (a user who locked a scheme or
+// turned follow off) wins.
 func loadThemeState() themeState {
-	s := themeState{FollowWallpaper: true}
+	s := themeState{FollowWallpaper: true, Scheme: "mono"}
 	if b, err := os.ReadFile(themeStatePath()); err == nil {
 		_ = json.Unmarshal(b, &s)
 	}
@@ -116,12 +195,12 @@ func saveThemeState(s themeState) {
 	_ = atomicWrite(themeStatePath(), mustJSON(s), 0o644)
 }
 
-func wallustCacheDir() string {
+func ryokuCacheDir() string {
 	base := os.Getenv("XDG_CACHE_HOME")
 	if base == "" {
 		base = filepath.Join(os.Getenv("HOME"), ".cache")
 	}
-	return filepath.Join(base, "wallust")
+	return filepath.Join(base, "ryoku")
 }
 
 func kittyThemePath() string {
@@ -132,29 +211,11 @@ func kittyThemePath() string {
 	return filepath.Join(base, "kitty", "current-theme.conf")
 }
 
-// paletteAccent = the active-border colour: color4 by wallust convention.
-func paletteAccent(p map[string]string) string {
-	if c := p["color4"]; c != "" {
-		return c
+func cacheHome() string {
+	if b := os.Getenv("XDG_CACHE_HOME"); b != "" {
+		return b
 	}
-	return p["foreground"]
-}
-
-// renderKitty fills kitty's current-theme.conf from the palette (cursor =
-// foreground), matches the wallust kitty template.
-func renderKitty(p map[string]string) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "background %s\n", p["background"])
-	fmt.Fprintf(&b, "foreground %s\n", p["foreground"])
-	fmt.Fprintf(&b, "cursor %s\n", p["foreground"])
-	fmt.Fprintf(&b, "cursor_text_color %s\n", p["background"])
-	fmt.Fprintf(&b, "selection_background %s\n", p["color8"])
-	fmt.Fprintf(&b, "selection_foreground %s\n", p["foreground"])
-	for i := range 16 {
-		key := fmt.Sprintf("color%d", i)
-		fmt.Fprintf(&b, "%s %s\n", key, p[key])
-	}
-	return b.String()
+	return filepath.Join(os.Getenv("HOME"), ".cache")
 }
 
 func mustJSON(v any) []byte {
@@ -163,4 +224,53 @@ func mustJSON(v any) []byte {
 		return []byte("{}")
 	}
 	return b
+}
+
+// applyRyokuTheme resets the desktop to the Ryoku signature in one move: the
+// frame-bars style, square corners everywhere, Space Grotesk type across the
+// shell and apps, and the grainy-mono palette. Wired to the Appearance and Rices pages.
+func applyRyokuTheme() error {
+	// Merge so sizing, weather and preserved sidebar content choices survive.
+	frameBars, ok := readJSONMap(shellStorePath())["frameBars"].(map[string]any)
+	if !ok {
+		frameBars = map[string]any{}
+	}
+	frameBars["style"] = "ryoku-frame"
+	mergeShellJSON(map[string]any{
+		"frameBars":   frameBars,
+		"roundness":   0,
+		"frameRadius": 0,
+		"osdRadius":   0,
+		"fontFamily":  "Space Grotesk",
+	})
+	// square window corners: pin the appearance override the daemon reads.
+	o := loadOverrides()
+	o.Appearance.Rounding = 0
+	_ = saveOverrides(o)
+	// GTK type now; the Hyprland autostart pins it on the next login.
+	_ = exec.Command("gsettings", "set", "org.gnome.desktop.interface", "font-name", "Space Grotesk 11").Run()
+	// clear any active-rice marker: the signature is a fresh look, not a rice,
+	// so the Rices page must not keep showing the last rice as applied.
+	setActiveRice("")
+	// the Ryoku mark: the 力 glyph, no custom logo, tinted to the accent, so the
+	// signature brand reads as Ryoku (the desktop name is left as the user set it).
+	mergeBrandJSON(map[string]any{"markText": "力", "markImage": "", "markTint": true})
+	// grainy-mono palette + regen the border lua, reload hypr and kitty.
+	return applyScheme("mono")
+}
+
+// mergeShellJSON overlays keys onto shell.json, mergeBrandJSON onto brand.json;
+// both preserve every key already present, and the shell hot-reloads on write.
+func mergeShellJSON(keys map[string]any) { mergeStore("shell.json", keys) }
+func mergeBrandJSON(keys map[string]any) { mergeStore("brand.json", keys) }
+func mergeStore(name string, keys map[string]any) {
+	p := filepath.Join(configHome(), "ryoku", name)
+	m := map[string]any{}
+	if b, err := os.ReadFile(p); err == nil {
+		_ = json.Unmarshal(b, &m)
+	}
+	for k, v := range keys {
+		m[k] = v
+	}
+	_ = atomicWrite(p, mustJSON(m), 0o644)
 }

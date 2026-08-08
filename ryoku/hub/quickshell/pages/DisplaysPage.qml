@@ -1,0 +1,1102 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls
+import Quickshell.Io
+import Ryoku.Ui
+import Ryoku.Ui.Singletons
+import "lib/arrange.js" as Arrange
+
+// Displays (SYSTEM). Detect every connected monitor, arrange them to scale on a
+// drag canvas (no coordinate math), and tune resolution, scale, rotation, colour
+// (HDR) and mirror per monitor. Apply writes the layout to the live session via
+// ryoku-monitor (over hyprctl) and persists it, so it returns at next login; a
+// named profile is hardware-keyed so it returns when the same displays are
+// plugged in. Edits stage in a draft and only touch real screens on Apply, so
+// fiddling never nukes a display. Full-bleed: this page owns the whole content
+// region (its backend is the ryoku-monitor helper, not the shared settings
+// store), so it draws its own head, canvas, controls and action bar. Every
+// value reads from Tokens; the only change from the old page is monochrome:
+// hairline rects, an ink active border, no colour.
+Item {
+    id: pg
+
+    property var hub
+    // A full-bleed page draws the whole content region itself: the shell hides
+    // its side panel and global action bar and keeps only the rail.
+    readonly property bool fullBleed: true
+
+    // ── state: live baseline (ryoku-monitor list) + the editable draft ──
+    // monCount is the canvas Repeater model (an int, deliberately not the draft
+    // array) so in-place edits never rebuild tiles; `tick` drives reactivity for
+    // those mutations, so a drag never rebuilds a tile mid-drag.
+    property var draft: []
+    property int monCount: 0
+    property int selected: 0
+    property int tick: 0
+    property string committed: "[]"
+    property var profiles: []
+    property bool listed: false
+    property bool listFailed: false
+
+    property bool dragging: false
+    property var frozen: ({ "k": 1, "ox": 0, "oy": 0 })
+
+    // the "main" display: the one at the global origin (0,0), Hyprland's primary
+    // reference corner (cursor home, XWayland primary). Derived on load and
+    // re-anchored by normalize(); "Set as main" re-bases the layout onto it.
+    property string mainName: ""
+
+    // which catalogue overlay is open: "" | "mode" | "mirror".
+    property string pickKind: ""
+
+    readonly property var sel: (pg.selected >= 0 && pg.selected < pg.draft.length) ? pg.draft[pg.selected] : null
+
+    // ── data load (backend unchanged) ───────────────────────────────────────
+    Process {
+        id: listProc
+        command: ["ryoku-monitor", "list"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var arr = JSON.parse(this.text);
+                    if (!Array.isArray(arr))
+                        throw "not an array";
+                    var d = [];
+                    for (var i = 0; i < arr.length; i++)
+                        d.push(pg.clone(arr[i]));
+                    pg.draft = d;
+                    pg.monCount = d.length;
+                    pg.mainName = pg.deriveMain();
+                    // committed is the LIVE baseline (what Hyprland has now); a
+                    // gapped live layout stays the baseline so tidying it below
+                    // reads as a pending Apply, not a silent no-op.
+                    pg.committed = JSON.stringify(pg.specsAll());
+                    // Hyprland cannot move the cursor across a gap, so a layout left
+                    // separated strands a display. Pull any detached display flush
+                    // so opening Displays proposes the fix.
+                    if (pg.tidyGaps()) pg.normalize();
+                    if (pg.selected >= d.length)
+                        pg.selected = 0;
+                    pg.listFailed = false;
+                    pg.listed = true;
+                    pg.tick++;
+                } catch (e) {
+                    pg.listFailed = true;
+                    pg.listed = true;
+                    console.log("hub: monitor list failed (is ryoku-monitor up to date?): " + e);
+                }
+            }
+        }
+    }
+
+    Process {
+        id: profilesProc
+        command: ["ryoku-monitor", "profiles"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try { pg.profiles = JSON.parse(this.text); } catch (e) { pg.profiles = []; }
+            }
+        }
+    }
+
+    Process { id: applyProc }
+    Process { id: profileProc } // save | load | rm
+
+    function reload() { listProc.running = true; profilesProc.running = true; }
+    function reloadProfiles() { profilesProc.running = true; }
+
+    // ── model helpers (backend unchanged) ───────────────────────────────────
+    function parseMode(s) {
+        var m = /^(\d+)x(\d+)@([\d.]+)/.exec(s);
+        if (!m)
+            return null;
+        var w = parseInt(m[1]), h = parseInt(m[2]);
+        return { "key": w + "x" + h + "@" + m[3], "label": w + " \u00d7 " + h + "  \u00b7  " + Math.round(parseFloat(m[3])) + " Hz", "w": w, "h": h, "rate": parseFloat(m[3]) };
+    }
+    function modeOptions(mon) {
+        var seen = ({}), out = [];
+        var arr = mon && mon.modes ? mon.modes : [];
+        for (var i = 0; i < arr.length; i++) {
+            var p = pg.parseMode(arr[i]);
+            if (!p || seen[p.key])
+                continue;
+            seen[p.key] = true;
+            out.push(p);
+        }
+        out.sort((a, b) => (b.w * b.h - a.w * a.h) || (b.rate - a.rate));
+        return out;
+    }
+    function pickCurrentMode(mon) {
+        var arr = pg.modeOptions(mon);
+        for (var i = 0; i < arr.length; i++)
+            if (arr[i].w === mon.width && arr[i].h === mon.height && Math.round(arr[i].rate) === Math.round(mon.refresh))
+                return arr[i].key;
+        for (i = 0; i < arr.length; i++)
+            if (arr[i].w === mon.width && arr[i].h === mon.height)
+                return arr[i].key;
+        return mon.width + "x" + mon.height + "@" + mon.refresh;
+    }
+    function clone(mon) {
+        return {
+            "id": mon.id, "name": mon.name, "modes": (mon.modes || []),
+            "scaleLadders": (mon.scaleLadders || null),
+            "width": mon.width, "height": mon.height, "refresh": mon.refresh,
+            "mode": pg.pickCurrentMode(mon),
+            "scale": mon.scale, "x": mon.x, "y": mon.y, "transform": mon.transform || 0,
+            "vrr": (mon.vrr === true ? 1 : (mon.vrr | 0)),
+            "mirror": (mon.mirror && mon.mirror !== "none") ? mon.mirror : "",
+            "disabled": mon.disabled === true,
+            "cm": (mon.cm || "srgb"), "sdrbrightness": (mon.sdrbrightness || 1.0)
+        };
+    }
+    // Hyprland only accepts a scale that is a 1/120 multiple dividing the
+    // mode's pixels into whole logical pixels; the helper precomputes that
+    // ladder per resolution (`scaleLadders` from `ryoku-monitor list`). The
+    // stepper walks this ladder instead of doing +-25% arithmetic, which
+    // almost always landed between valid values -- the compositor substituted
+    // its own and the readback looked like noise (omarchy steps a fixed list
+    // the same way). An old helper without ladders degrades to a locked
+    // stepper rather than wrong arithmetic.
+    function scaleLadder(m) {
+        var l = m && m.scaleLadders ? m.scaleLadders[m.width + "x" + m.height] : null;
+        return (l && l.length) ? l : [m.scale];
+    }
+    function nearestScaleIdx(l, s) {
+        var best = 0;
+        for (var i = 1; i < l.length; i++)
+            if (Math.abs(l[i] - s) < Math.abs(l[best] - s))
+                best = i;
+        return best;
+    }
+    function footW(m) {
+        var lw = Math.round(m.width / m.scale), lh = Math.round(m.height / m.scale);
+        return (m.transform & 1) ? lh : lw;
+    }
+    function footH(m) {
+        var lw = Math.round(m.width / m.scale), lh = Math.round(m.height / m.scale);
+        return (m.transform & 1) ? lw : lh;
+    }
+    function specsAll() {
+        var out = [];
+        for (var i = 0; i < pg.draft.length; i++) {
+            var m = pg.draft[i];
+            out.push({
+                "id": m.id, "output": m.name, "mode": m.mode, "position": m.x + "x" + m.y,
+                "scale": m.scale, "transform": m.transform, "vrr": m.vrr,
+                "mirror": m.mirror, "disabled": m.disabled,
+                "cm": m.cm, "sdrbrightness": m.sdrbrightness
+            });
+        }
+        return out;
+    }
+    // whole-document string diff, gated on monCount so an empty read is never dirty.
+    readonly property bool dirty: {
+        void pg.tick;
+        return pg.monCount > 0 && JSON.stringify(pg.specsAll()) !== pg.committed;
+    }
+
+    function setField(i, key, val) {
+        if (i < 0 || i >= pg.draft.length)
+            return;
+        pg.draft[i][key] = val;
+        pg.tick++;
+    }
+    function setMode(i, key) {
+        var p = pg.parseMode(key);
+        if (!p)
+            return;
+        pg.draft[i].mode = key;
+        pg.draft[i].width = p.w;
+        pg.draft[i].height = p.h;
+        pg.draft[i].refresh = p.rate;
+        // the ladder is per-resolution: re-snap the scale so a mode change
+        // never stages a scale the new mode cannot hold.
+        var l = pg.scaleLadder(pg.draft[i]);
+        pg.draft[i].scale = l[pg.nearestScaleIdx(l, pg.draft[i].scale)];
+        pg.tick++;
+    }
+    function mirrorOptions() {
+        void pg.tick;
+        var out = [{ "key": "", "label": "None" }];
+        for (var i = 0; i < pg.draft.length; i++) {
+            if (i === pg.selected || pg.draft[i].disabled)
+                continue;
+            out.push({ "key": pg.draft[i].name, "label": pg.draft[i].name });
+        }
+        return out;
+    }
+
+    // ── canvas geometry (backend unchanged) ─────────────────────────────────
+    function bbox() {
+        var minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9, any = false;
+        for (var i = 0; i < pg.draft.length; i++) {
+            var m = pg.draft[i];
+            if (m.disabled)
+                continue;
+            any = true;
+            minX = Math.min(minX, m.x);
+            minY = Math.min(minY, m.y);
+            maxX = Math.max(maxX, m.x + pg.footW(m));
+            maxY = Math.max(maxY, m.y + pg.footH(m));
+        }
+        if (!any)
+            return { "x": 0, "y": 0, "w": 1, "h": 1 };
+        return { "x": minX, "y": minY, "w": Math.max(1, maxX - minX), "h": Math.max(1, maxY - minY) };
+    }
+    // fit the bounding box of all ENABLED monitors to 84% of the canvas, centred.
+    function computeView(cw, ch) {
+        var b = pg.bbox();
+        if (cw <= 0 || ch <= 0)
+            return { "k": 0.05, "ox": 0, "oy": 0 };
+        var k = Math.min(cw * 0.84 / b.w, ch * 0.84 / b.h);
+        if (!isFinite(k) || k <= 0)
+            k = 0.05;
+        return { "k": k, "ox": (cw - b.w * k) / 2 - b.x * k, "oy": (ch - b.h * k) / 2 - b.y * k };
+    }
+    // during a drag the fit is frozen so the canvas does not rescale under the cursor.
+    function view() {
+        void pg.tick;
+        return pg.dragging ? pg.frozen : pg.computeView(canvasArea.width, canvasArea.height);
+    }
+
+    function nearestSnap(val, cands, th) {
+        var best = val, bd = th;
+        for (var i = 0; i < cands.length; i++) {
+            var d = Math.abs(val - cands[i]);
+            if (d < bd) { bd = d; best = cands[i]; }
+        }
+        return best;
+    }
+    function dragMonitor(i, dxLogical, dyLogical) {
+        if (i < 0 || i >= pg.draft.length)
+            return;
+        if (!pg.dragging) {
+            pg.frozen = pg.computeView(canvasArea.width, canvasArea.height);
+            pg.dragging = true;
+        }
+        pg.draft[i].x += dxLogical;
+        pg.draft[i].y += dyLogical;
+        pg.tick++;
+    }
+    // build the pure-geometry view arrange.js works on: logical footprints.
+    function monsView() {
+        var out = [];
+        for (var i = 0; i < pg.draft.length; i++) {
+            var m = pg.draft[i];
+            out.push({ name: m.name, x: m.x, y: m.y, w: pg.footW(m), h: pg.footH(m), disabled: m.disabled });
+        }
+        return out;
+    }
+    // write arranged x/y back onto the draft, matched by connector name.
+    function applyMons(mons) {
+        for (var i = 0; i < pg.draft.length; i++)
+            for (var j = 0; j < mons.length; j++)
+                if (mons[j].name === pg.draft[i].name) { pg.draft[i].x = mons[j].x; pg.draft[i].y = mons[j].y; break; }
+    }
+    // On drop, fine-snap this display's near edge to 0 or a neighbour's edges
+    // (zoom-independent ~22 screen px), then guarantee contiguity via the
+    // unit-tested arrange lib (Hyprland cannot cross a gap), then re-anchor on
+    // the main display.
+    function endDrag(i) {
+        if (i < 0 || i >= pg.draft.length) {
+            pg.dragging = false;
+            return;
+        }
+        var m = pg.draft[i];
+        var k = pg.computeView(canvasArea.width, canvasArea.height).k;
+        var th = Math.max(8, 22 / Math.max(0.0001, k));
+        var xs = [0], ys = [0];
+        for (var j = 0; j < pg.draft.length; j++) {
+            if (j === i || pg.draft[j].disabled)
+                continue;
+            var o = pg.draft[j];
+            xs.push(o.x, o.x + pg.footW(o), o.x - pg.footW(m));
+            ys.push(o.y, o.y + pg.footH(o), o.y - pg.footH(m));
+        }
+        m.x = Math.round(pg.nearestSnap(m.x, xs, th));
+        m.y = Math.round(pg.nearestSnap(m.y, ys, th));
+        var mons = pg.monsView();
+        if (!Arrange.touchesAny(mons, i)) {
+            Arrange.attachFlush(mons, i);
+            pg.applyMons(mons);
+        }
+        pg.normalize();
+        pg.dragging = false;
+        pg.tick++;
+    }
+    // ensure every enabled display is part of one connected block (no gaps).
+    function tidyGaps() {
+        var mons = pg.monsView();
+        var changed = Arrange.tidyGaps(mons);
+        if (changed)
+            pg.applyMons(mons);
+        return changed;
+    }
+    // the main display is the one at the global origin (fallback: top-left).
+    function deriveMain() {
+        return Arrange.deriveMain(pg.monsView());
+    }
+    function setMain(i) {
+        if (i < 0 || i >= pg.draft.length || pg.draft[i].disabled)
+            return;
+        pg.mainName = pg.draft[i].name;
+        pg.normalize();
+        pg.tick++;
+    }
+    // re-base so the main display sits at the global origin (0,0), Hyprland's
+    // primary/reference corner; other displays keep their relative offsets
+    // (may go negative, which Hyprland accepts).
+    function normalize() {
+        var mons = pg.monsView();
+        Arrange.rebaseToMain(mons, pg.mainName);
+        pg.applyMons(mons);
+    }
+
+    // ── apply / profiles (backend unchanged) ────────────────────────────────
+    function apply() {
+        applyProc.command = ["ryoku-monitor", "apply", JSON.stringify(pg.specsAll())];
+        applyProc.running = true;
+        pg.committed = JSON.stringify(pg.specsAll());
+        pg.tick++;
+        // read back what the compositor actually accepted (it may still adjust
+        // a value); the delayed reload keeps "matches your displays" honest.
+        listRefresh.start();
+    }
+    function saveProfile(name) {
+        if (name.trim() === "")
+            return;
+        profileProc.command = ["ryoku-monitor", "save", name.trim(), JSON.stringify(pg.specsAll())];
+        profileProc.running = true;
+        pg.committed = JSON.stringify(pg.specsAll());
+        pg.tick++;
+        nameField.text = "";
+        profileRefresh.start();
+    }
+    function loadProfile(name) {
+        profileProc.command = ["ryoku-monitor", "load", name];
+        profileProc.running = true;
+        listRefresh.start();
+    }
+    function deleteProfile(name) {
+        profileProc.command = ["ryoku-monitor", "rm", name];
+        profileProc.running = true;
+        profileRefresh.start();
+    }
+    function quick(cmd, arg) {
+        applyProc.command = arg ? ["ryoku-monitor", cmd, arg] : ["ryoku-monitor", cmd];
+        applyProc.running = true;
+        listRefresh.start();
+    }
+
+    // fixed-delay refreshes after helper writes, kept from the old page.
+    Timer { id: listRefresh; interval: 700; onTriggered: pg.reload() }
+    Timer { id: profileRefresh; interval: 300; onTriggered: pg.reloadProfiles() }
+
+    // ── presentation helpers (rotation/vrr labels, catalogue mapping) ──
+    function rotLabel(t) { return (t * 90) + "\u00b0"; }
+    function rotKey(label) { return parseInt(label) / 90; }
+    readonly property var vrrLabels: ["Off", "On", "Fullscreen"]
+    function vrrLabel(v) { return pg.vrrLabels[v] !== undefined ? pg.vrrLabels[v] : "Off"; }
+    function vrrKey(label) { var k = pg.vrrLabels.indexOf(label); return k < 0 ? 0 : k; }
+    // colour management: the cm preset drives HDR. sRGB is the safe default,
+    // Wide is wide-gamut (BT2020), HDR turns on the PQ transfer + 10-bit. The
+    // labels round-trip to Hyprland's `cm` value (bitdepth is derived downstream).
+    readonly property var cmLabels: ["sRGB", "Wide", "HDR"]
+    readonly property var cmKeys: ["srgb", "wide", "hdr"]
+    function cmLabel(v) { var i = pg.cmKeys.indexOf(v); return i < 0 ? "sRGB" : pg.cmLabels[i]; }
+    function cmKey(label) { var i = pg.cmLabels.indexOf(label); return i < 0 ? "srgb" : pg.cmKeys[i]; }
+    // SDR content brightness in HDR: 1.0x-2.0x, the Hyprland-typical range.
+    // Fine steps through the usual range, then coarser to the top: a bright
+    // panel (miniLED, high-nit OLED) needs well past 2 before SDR content stops
+    // looking dim in HDR, and the old ladder stopped there.
+    readonly property var sdrLadder: [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0,
+        2.25, 2.5, 2.75, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0]
+    function labelForKey(opts, key) {
+        for (var i = 0; i < opts.length; i++)
+            if (opts[i].key === key)
+                return opts[i].label;
+        return "";
+    }
+    function keyForLabel(opts, label) {
+        for (var i = 0; i < opts.length; i++)
+            if (opts[i].label === label)
+                return opts[i].key;
+        return "";
+    }
+    function openPick(kind) { pg.pickKind = kind; picker.open(); }
+
+    // ── head: eyebrow, Fraunces title with quick actions, blurb ─────────────
+    Column {
+        id: head
+        anchors { left: parent.left; right: parent.right; top: parent.top }
+        anchors.leftMargin: Tokens.s6; anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s6
+        spacing: Tokens.s2
+
+        Row {
+            spacing: Tokens.s2
+            Rectangle {
+                width: 16; height: 1; color: Tokens.ink
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            Text {
+                text: "\u529b"; color: Tokens.ink; font.family: Tokens.jp
+                font.pixelSize: Tokens.fMicro; anchors.verticalCenter: parent.verticalCenter
+            }
+            Text {
+                text: I18n.tr("DEVICES"); color: Tokens.inkMuted; font.family: Tokens.ui
+                font.pixelSize: Tokens.fTiny; font.weight: Font.Medium; font.letterSpacing: Tokens.trackMark
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+
+        Item {
+            id: titleRow
+            width: parent.width
+            height: title.implicitHeight
+
+            Text {
+                id: title
+                anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                text: I18n.tr("Displays"); color: Tokens.ink
+                font.family: Tokens.display; font.pixelSize: Tokens.fTitle
+            }
+            // the page's utility actions sit beside the title, per DESIGN section
+            // 8. Each rewrites the live layout via the shared helper, so they are
+            // kept as buttons.
+            Row {
+                anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                spacing: Tokens.s2
+                Btn { text: I18n.tr("MIRROR"); armed: pg.monCount > 1; onAct: pg.quick("mirror") }
+                Btn { text: I18n.tr("EXTEND"); armed: pg.monCount > 1; onAct: pg.quick("extend") }
+                Btn { text: I18n.tr("DPI AUTO-SCALE"); armed: pg.monCount > 0; onAct: pg.quick("autoscale", "--no-profile") }
+            }
+        }
+
+        Text {
+            width: Math.min(parent.width, 720)
+            text: I18n.tr("Detect connected displays, drag to arrange them to scale, and tune resolution, scale, rotation, colour (including HDR) and mirroring per monitor. Apply writes the layout to your live session and persists it; save a named profile to restore this arrangement when you plug the same displays in again.")
+            color: Tokens.inkMuted; font.family: Tokens.ui
+            font.pixelSize: Tokens.fBody; wrapMode: Text.WordWrap
+        }
+    }
+
+    // ── body: detected readout, drag canvas, per-monitor controls ───────────
+    Item {
+        id: body
+        anchors { left: parent.left; right: parent.right; top: head.bottom; bottom: bar.top }
+        anchors.leftMargin: Tokens.s6; anchors.rightMargin: Tokens.s6
+        anchors.topMargin: Tokens.s5; anchors.bottomMargin: Tokens.s5
+
+        // detected-count readout: singular/plural on monCount.
+        Text {
+            id: detected
+            anchors.left: parent.left; anchors.top: parent.top
+            text: (pg.monCount === 1 ? I18n.tr("1 DISPLAY DETECTED") : pg.monCount + I18n.tr(" DISPLAYS DETECTED"))
+            color: Tokens.inkMuted; font.family: Tokens.ui
+            font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
+            font.letterSpacing: Tokens.trackLabel
+        }
+
+        // ── the drag-arrange canvas ──
+        Rectangle {
+            id: canvasArea
+            anchors.left: parent.left; anchors.top: detected.bottom
+            anchors.bottom: parent.bottom; anchors.right: controls.left
+            anchors.topMargin: Tokens.s3; anchors.rightMargin: Tokens.s5
+            radius: Tokens.radius
+            color: "transparent"
+            border.width: Tokens.border
+            border.color: Tokens.line
+            clip: true
+
+            Repeater {
+                model: pg.monCount
+
+                // one monitor on the canvas: a draggable rect labelled with the
+                // connector and resolution. The page owns all geometry (position
+                // and size from the logical layout via view()); the tile only
+                // reports drag deltas in logical px and selection. Selected gets a
+                // 2px ink ring, disabled greys to 0.5.
+                delegate: Rectangle {
+                    id: tile
+                    required property int index
+                    readonly property var m: pg.draft[index]
+                    readonly property var v: pg.view()
+                    readonly property real k: tile.v.k
+                    readonly property bool on: pg.selected === index
+                    readonly property bool live: tile.m ? !tile.m.disabled : true
+
+                    visible: !!tile.m
+                    x: { void pg.tick; return tile.m ? (tile.m.x * tile.v.k + tile.v.ox) : 0; }
+                    y: { void pg.tick; return tile.m ? (tile.m.y * tile.v.k + tile.v.oy) : 0; }
+                    width: { void pg.tick; return tile.m ? Math.max(36, pg.footW(tile.m) * tile.v.k) : 36; }
+                    height: { void pg.tick; return tile.m ? Math.max(28, pg.footH(tile.m) * tile.v.k) : 28; }
+                    radius: Tokens.radius
+                    antialiasing: false
+                    color: tile.on ? Tokens.tint10 : (th.hovered ? Tokens.tint5 : "transparent")
+                    border.width: tile.on ? 2 : Tokens.border
+                    border.color: tile.on ? Tokens.ink : Tokens.line
+                    opacity: tile.live ? 1 : 0.5
+                    Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                    Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
+
+                    HoverHandler { id: th; cursorShape: Qt.PointingHandCursor }
+
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: Tokens.s1
+                        width: parent.width - Tokens.s3
+
+                        Text {
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            text: tile.m ? tile.m.name : ""
+                            color: tile.live ? Tokens.ink : Tokens.inkDim
+                            font.family: Tokens.ui; font.pixelSize: Tokens.fBody
+                            font.weight: Font.Medium
+                        }
+                        Text {
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            // a resolution spec reads as file-truth, so mono.
+                            text: tile.live ? (tile.m ? (tile.m.width + "\u00d7" + tile.m.height) : "") : I18n.tr("OFF")
+                            color: Tokens.inkMuted
+                            font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
+                        }
+                        Text {
+                            visible: tile.m ? (tile.m.mirror !== "") : false
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: I18n.tr("MIRROR")
+                            color: Tokens.inkFaint
+                            font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
+                            font.letterSpacing: Tokens.trackLabel
+                        }
+                    }
+
+                    // main-display marker: a corner tag, ink on the monochrome tile.
+                    Text {
+                        visible: tile.m ? (tile.m.name === pg.mainName && !tile.m.disabled) : false
+                        anchors.left: parent.left; anchors.top: parent.top; anchors.margins: Tokens.s2
+                        text: I18n.tr("MAIN")
+                        color: Tokens.ink; font.family: Tokens.ui
+                        font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
+                        font.letterSpacing: Tokens.trackMark
+                    }
+
+                    // target null: the page moves the tile from reported deltas so
+                    // the frozen fit and edge snap stay authoritative. Drag also
+                    // selects (a tap fires on drag start).
+                    DragHandler {
+                        id: dh
+                        target: null
+                        property real lastX: 0
+                        property real lastY: 0
+                        onActiveChanged: {
+                            if (active) {
+                                lastX = 0;
+                                lastY = 0;
+                                pg.selected = tile.index;
+                            } else {
+                                pg.endDrag(tile.index);
+                            }
+                        }
+                        onTranslationChanged: {
+                            var dx = translation.x - lastX;
+                            var dy = translation.y - lastY;
+                            lastX = translation.x;
+                            lastY = translation.y;
+                            pg.dragMonitor(tile.index, dx / tile.k, dy / tile.k);
+                        }
+                    }
+                    TapHandler { onTapped: pg.selected = tile.index; cursorShape: Qt.PointingHandCursor }
+                }
+            }
+
+            // empty / loading / error state (monCount === 0).
+            Column {
+                anchors.centerIn: parent
+                visible: pg.monCount === 0
+                spacing: Tokens.s3
+                width: Math.min(parent.width - Tokens.s6 * 2, 360)
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    text: !pg.listed ? I18n.tr("Detecting displays\u2026")
+                        : pg.listFailed ? I18n.tr("Couldn't read your displays.")
+                        : I18n.tr("No displays detected.")
+                    color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fBody
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width
+                    visible: pg.listFailed
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    text: I18n.tr("The ryoku-monitor helper looks out of date. Run 'ryoku deploy' (or update the desktop) and retry.")
+                    color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                }
+                Btn {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: pg.listed
+                    text: I18n.tr("RETRY")
+                    onAct: pg.reload()
+                }
+            }
+
+            // arrangement hint, parked in the canvas corner off the reading path.
+            Text {
+                anchors.left: parent.left; anchors.bottom: parent.bottom
+                anchors.margins: Tokens.s3
+                text: I18n.tr("DRAG A DISPLAY TO ARRANGE IT \u00b7 EDGES SNAP")
+                color: Tokens.inkFaint; font.family: Tokens.ui
+                font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
+                font.letterSpacing: Tokens.trackLabel
+            }
+        }
+
+        // ── per-monitor controls + profiles ──
+        Flickable {
+            id: controls
+            anchors.right: parent.right; anchors.top: detected.bottom; anchors.bottom: parent.bottom
+            anchors.topMargin: Tokens.s3
+            width: 392
+            contentWidth: width
+            contentHeight: Math.max(ctlCol.height, height)
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: ScrollRail { policy: ScrollBar.AsNeeded }
+
+            Column {
+                id: ctlCol
+                width: controls.width - Tokens.s3   // reserve a lane for the scroll rail
+                spacing: Tokens.s5
+
+                // empty-selection placeholder: both per-monitor cards hide.
+                Text {
+                    visible: !pg.sel
+                    text: I18n.tr("Select a display to configure it.")
+                    color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                }
+
+                // per-monitor group; the card title is the selected connector name.
+                SettingCard {
+                    width: ctlCol.width
+                    visible: !!pg.sel
+                    title: pg.sel ? pg.sel.name : I18n.tr("DISPLAY")
+
+                    // the main (primary) display: put this screen at the global
+                    // origin so the cursor and new workspaces start here.
+                    SettingRow {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        label: I18n.tr("MAIN DISPLAY")
+                        footH: 32
+                        Item {
+                            anchors.left: parent.left; anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            Text {
+                                visible: { void pg.tick; return pg.sel ? pg.sel.name === pg.mainName : false; }
+                                anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                                text: I18n.tr("MAIN"); color: Tokens.ink; font.family: Tokens.ui
+                                font.pixelSize: Tokens.fMicro; font.weight: Font.Medium
+                                font.letterSpacing: Tokens.trackMark
+                            }
+                            Btn {
+                                visible: { void pg.tick; return pg.sel ? (pg.sel.name !== pg.mainName && !pg.sel.disabled) : false; }
+                                anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                                text: I18n.tr("SET AS MAIN")
+                                armed: true
+                                onAct: pg.setMain(pg.selected)
+                            }
+                        }
+                    }
+
+                    SettingRow {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        divider: true
+                        label: I18n.tr("ENABLED")
+                        controlWidth: 54
+                        Sw {
+                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            on: { void pg.tick; return pg.sel ? !pg.sel.disabled : false; }
+                            onToggled: (v) => pg.setField(pg.selected, "disabled", !v)
+                        }
+                    }
+                    SettingRow {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        divider: true
+                        label: I18n.tr("RESOLUTION")
+                        footH: 32
+                        PickBar {
+                            anchors.left: parent.left; anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            value: { void pg.tick; return pg.sel ? pg.labelForKey(pg.modeOptions(pg.sel), pg.sel.mode) : ""; }
+                            count: { void pg.tick; return pg.sel ? pg.modeOptions(pg.sel).length : 0; }
+                            onOpened: pg.openPick("mode")
+                        }
+                    }
+                    SettingRow {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        divider: true
+                        label: I18n.tr("SCALE")
+                        value: { void pg.tick; return pg.sel ? (pg.sel.scale.toFixed(2) + "\u00d7") : ""; }
+                        controlWidth: 58
+                        Step {
+                            id: scaleStep
+                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            // value is an index into the per-resolution ladder
+                            // of Hyprland-valid scales (see scaleLadder).
+                            readonly property var ladder: { void pg.tick; return pg.sel ? pg.scaleLadder(pg.sel) : [1]; }
+                            from: 0; to: ladder.length - 1; stepBy: 1
+                            value: { void pg.tick; return pg.sel ? pg.nearestScaleIdx(scaleStep.ladder, pg.sel.scale) : 0; }
+                            onModified: (v) => pg.setField(pg.selected, "scale",
+                                scaleStep.ladder[Math.max(0, Math.min(scaleStep.ladder.length - 1, v))])
+                        }
+                    }
+                    SettingRow {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        divider: true
+                        label: I18n.tr("ROTATION")
+                        block: true
+                        Seg {
+                            anchors.left: parent.left; anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            options: ["0\u00b0", "90\u00b0", "180\u00b0", "270\u00b0"]
+                            current: { void pg.tick; return pg.sel ? pg.rotLabel(pg.sel.transform) : "0\u00b0"; }
+                            onChose: (label) => pg.setField(pg.selected, "transform", pg.rotKey(label))
+                        }
+                    }
+                    SettingRow {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        divider: true
+                        label: I18n.tr("ADAPTIVE SYNC")
+                        block: true
+                        Seg {
+                            anchors.left: parent.left; anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            options: pg.vrrLabels
+                            current: { void pg.tick; return pg.sel ? pg.vrrLabel(pg.sel.vrr) : "Off"; }
+                            onChose: (label) => pg.setField(pg.selected, "vrr", pg.vrrKey(label))
+                        }
+                    }
+                    SettingRow {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        divider: true
+                        label: I18n.tr("COLOUR")
+                        block: true
+                        Seg {
+                            anchors.left: parent.left; anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            options: pg.cmLabels
+                            current: { void pg.tick; return pg.sel ? pg.cmLabel(pg.sel.cm) : "sRGB"; }
+                            onChose: (label) => pg.setField(pg.selected, "cm", pg.cmKey(label))
+                        }
+                    }
+                    // SDR brightness only bites in HDR (it maps SDR content into the
+                    // HDR range); hidden otherwise so it never reads as a dead knob.
+                    SettingRow {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        divider: true
+                        visible: { void pg.tick; return pg.sel ? pg.sel.cm === "hdr" : false; }
+                        label: I18n.tr("SDR BRIGHTNESS")
+                        value: { void pg.tick; return pg.sel ? (pg.sel.sdrbrightness.toFixed(1) + "\u00d7") : ""; }
+                        controlWidth: 58
+                        Step {
+                            id: sdrStep
+                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            readonly property var ladder: pg.sdrLadder
+                            from: 0; to: ladder.length - 1; stepBy: 1
+                            value: { void pg.tick; return pg.sel ? pg.nearestScaleIdx(sdrStep.ladder, pg.sel.sdrbrightness) : 0; }
+                            onModified: (v) => pg.setField(pg.selected, "sdrbrightness",
+                                sdrStep.ladder[Math.max(0, Math.min(sdrStep.ladder.length - 1, v))])
+                        }
+                    }
+                    SettingRow {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        divider: true
+                        label: I18n.tr("MIRROR OF")
+                        footH: 32
+                        PickBar {
+                            anchors.left: parent.left; anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            value: { void pg.tick; return pg.sel ? (pg.labelForKey(pg.mirrorOptions(), pg.sel.mirror) || "None") : "None"; }
+                            count: { void pg.tick; return pg.mirrorOptions().length; }
+                            onOpened: pg.openPick("mirror")
+                        }
+                    }
+                }
+
+                // position: dragging is primary; these coordinates are editable
+                // for a precise nudge. Fields push the stored value on change so a
+                // drag keeps them in sync without fighting a mid-type edit.
+                SettingCard {
+                    width: ctlCol.width
+                    visible: !!pg.sel
+                    title: I18n.tr("POSITION")
+
+                    SettingRow {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        label: I18n.tr("X")
+                        controlWidth: 128
+                        Row {
+                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            spacing: Tokens.s2
+                            Field {
+                                width: 96
+                                anchors.verticalCenter: parent.verticalCenter
+                                tabular: true
+                                placeholder: "0"
+                                readonly property int modelX: { void pg.tick; return pg.sel ? pg.sel.x : 0; }
+                                onModelXChanged: text = String(modelX)
+                                Component.onCompleted: text = String(modelX)
+                                onCommitted: (v) => { var n = parseInt(v); if (!isNaN(n)) pg.setField(pg.selected, "x", n); }
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "px"; color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
+                            }
+                        }
+                    }
+                    SettingRow {
+                        anchors.left: parent.left; anchors.right: parent.right
+                        divider: true
+                        label: I18n.tr("Y")
+                        controlWidth: 128
+                        Row {
+                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            spacing: Tokens.s2
+                            Field {
+                                width: 96
+                                anchors.verticalCenter: parent.verticalCenter
+                                tabular: true
+                                placeholder: "0"
+                                readonly property int modelY: { void pg.tick; return pg.sel ? pg.sel.y : 0; }
+                                onModelYChanged: text = String(modelY)
+                                Component.onCompleted: text = String(modelY)
+                                onCommitted: (v) => { var n = parseInt(v); if (!isNaN(n)) pg.setField(pg.selected, "y", n); }
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "px"; color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fTiny
+                            }
+                        }
+                    }
+                }
+
+                // profiles: a hardware-keyed layout that returns when the same
+                // displays reconnect. The save field and saved-profile list stay a
+                // bespoke management surface, housed in the card for cohesion.
+                SettingCard {
+                    width: ctlCol.width
+                    title: I18n.tr("PROFILES")
+
+                    Text {
+                        width: parent.width
+                        leftPadding: Tokens.s4; rightPadding: Tokens.s4
+                        topPadding: Tokens.s3; bottomPadding: Tokens.s1
+                        wrapMode: Text.WordWrap
+                        text: I18n.tr("Save this layout, keyed to the connected displays, so it returns automatically when you plug them in again.")
+                        color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: 32 + Tokens.s2
+                        Btn {
+                            id: saveBtn
+                            anchors.right: parent.right; anchors.rightMargin: Tokens.s4
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: I18n.tr("SAVE")
+                            onAct: pg.saveProfile(nameField.text)
+                        }
+                        Field {
+                            id: nameField
+                            anchors.left: parent.left; anchors.leftMargin: Tokens.s4
+                            anchors.right: saveBtn.left; anchors.rightMargin: Tokens.s2
+                            anchors.verticalCenter: parent.verticalCenter
+                            placeholder: I18n.tr("Profile name\u2026")
+                            onCommitted: (v) => pg.saveProfile(v)
+                        }
+                    }
+
+                    Column {
+                        width: parent.width - Tokens.s4 * 2
+                        x: Tokens.s4
+                        spacing: Tokens.s2
+
+                        // dynamic data from `ryoku-monitor profiles`.
+                        Repeater {
+                            model: pg.profiles
+
+                            delegate: Rectangle {
+                                id: prof
+                                required property var modelData
+                                width: parent.width
+                                height: Tokens.rowH
+                                radius: Tokens.radius
+                                color: phov.hovered ? Tokens.tint5 : "transparent"
+                                border.width: Tokens.border
+                                // an ink border marks the profile whose hardware is
+                                // connected now; emphasis without colour.
+                                border.color: prof.modelData.matches ? Tokens.ink : Tokens.line
+                                Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                                Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
+
+                                HoverHandler { id: phov }
+
+                                Row {
+                                    anchors.left: parent.left; anchors.leftMargin: Tokens.s4
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Tokens.s2
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: prof.modelData.name
+                                        color: Tokens.ink; font.family: Tokens.ui
+                                        font.pixelSize: Tokens.fSmall; font.weight: Font.Medium
+                                    }
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: prof.modelData.matches
+                                        text: I18n.tr("CONNECTED")
+                                        color: Tokens.inkMuted; font.family: Tokens.ui
+                                        font.pixelSize: Tokens.fTiny; font.weight: Font.Medium
+                                        font.letterSpacing: Tokens.trackLabel
+                                    }
+                                }
+
+                                Row {
+                                    anchors.right: parent.right; anchors.rightMargin: Tokens.s3
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Tokens.s2
+
+                                    Btn {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: I18n.tr("APPLY")
+                                        onAct: pg.loadProfile(prof.modelData.name)
+                                    }
+                                    // a paired minus, not a trash icon: remove is
+                                    // not danger and there is no red on the sheet
+                                    // to carry one.
+                                    IconBtn {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        glyph: "\u2212"
+                                        onAct: pg.deleteProfile(prof.modelData.name)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // breathing room below the list so it clears the card border.
+                    Item { width: parent.width; height: Tokens.s3 }
+                }
+            }
+        }
+    }
+
+    // ── action bar: the transactional status surface, full width, pinned ────
+    Rectangle {
+        id: bar
+        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+        height: 60
+        color: "transparent"
+
+        Rectangle { anchors.top: parent.top; width: parent.width; height: 1; color: Tokens.line }
+
+        Row {
+            anchors.left: parent.left; anchors.leftMargin: Tokens.s6
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Tokens.s3
+
+            Rectangle {
+                width: 6; height: 6
+                anchors.verticalCenter: parent.verticalCenter
+                color: Tokens.ink
+                // a heartbeat while dirty, not an alarm: 600ms each way.
+                SequentialAnimation on opacity {
+                    running: pg.dirty
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.3; duration: 600 }
+                    NumberAnimation { to: 1.0; duration: 600 }
+                }
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: pg.dirty ? I18n.tr("UNAPPLIED LAYOUT CHANGES") : I18n.tr("LAYOUT MATCHES YOUR DISPLAYS")
+                color: pg.dirty ? Tokens.ink : Tokens.inkDim
+                font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
+                font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
+            }
+        }
+
+        Row {
+            anchors.right: parent.right; anchors.rightMargin: Tokens.s6
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Tokens.s3
+
+            Btn { text: I18n.tr("REVERT"); armed: pg.dirty; onAct: pg.reload() }
+            // Apply writes to the live displays and re-commits the baseline; the
+            // armed primary inverts to bone while dirty.
+            Btn { text: I18n.tr("APPLY"); primary: true; armed: pg.dirty; onAct: pg.apply() }
+        }
+
+        // marginalia dressing the empty bar centre between status and actions -- a dead margin. Ink only.
+        Marginalia {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+            kana: "画面"
+            glyph: "column"; glyph2: "wave"
+        }
+    }
+
+    // ── the resolution / mirror catalogue overlay, shared across controls ───
+    MouseArea {
+        id: scrim
+        anchors.fill: parent
+        visible: pg.pickKind !== ""
+        z: 100
+        // a bare click-catcher: no fill, since translucency is banned on app
+        // surfaces (DESIGN section 6).
+        onClicked: pg.pickKind = ""
+
+        Picker {
+            id: picker
+            anchors.centerIn: parent
+            title: pg.pickKind === "mode" ? I18n.tr("Resolution") : I18n.tr("Mirror of")
+            options: {
+                if (pg.pickKind === "mode")
+                    return pg.sel ? pg.modeOptions(pg.sel).map(function (o) { return o.label; }) : [];
+                return pg.mirrorOptions().map(function (o) { return o.label; });
+            }
+            current: {
+                if (!pg.sel)
+                    return "";
+                if (pg.pickKind === "mode")
+                    return pg.labelForKey(pg.modeOptions(pg.sel), pg.sel.mode);
+                return pg.labelForKey(pg.mirrorOptions(), pg.sel.mirror);
+            }
+            onChose: (label) => {
+                if (pg.pickKind === "mode") {
+                    var mk = pg.keyForLabel(pg.modeOptions(pg.sel), label);
+                    if (mk)
+                        pg.setMode(pg.selected, mk);
+                } else {
+                    pg.setField(pg.selected, "mirror", pg.keyForLabel(pg.mirrorOptions(), label));
+                }
+                pg.pickKind = "";
+            }
+            onDismissed: pg.pickKind = ""
+
+            // absorb clicks inside the card so the scrim does not treat a
+            // header/padding tap as an outside dismiss.
+            MouseArea { anchors.fill: parent; z: -1 }
+        }
+    }
+}

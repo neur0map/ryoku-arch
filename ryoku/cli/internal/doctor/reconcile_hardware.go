@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"ryoku-cli/internal/sys"
@@ -154,9 +155,47 @@ func nvidiaConfigOK(modprobe, mkinit string) bool {
 		strings.Contains(mkinit, "nvidia_drm")
 }
 
+// nvidiaModuleOnDisk: modinfo finds the nvidia module for any installed
+// kernel tree, the same probe nvidia.sh gates on at install time.
+func nvidiaModuleOnDisk() bool {
+	dirs, _ := filepath.Glob("/usr/lib/modules/*")
+	for _, d := range dirs {
+		kv := filepath.Base(d)
+		if exec.Command("modinfo", "-k", kv, "nvidia").Run() == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// removeRootFiles deletes root-owned files through sudo; absent files are fine.
+func removeRootFiles(paths ...string) error {
+	args := append([]string{"rm", "-f"}, paths...)
+	return sys.Sudo(args...)
+}
+
 func reconcileNvidiaModeset(checkOnly bool) recResult {
 	if !nvidiaDriverActive() {
 		return okRes("no proprietary NVIDIA driver in use")
+	}
+	// nouveau blacklisted with no loadable nvidia module = no driver can bind
+	// the card (the SDDM login loop). Restore nouveau so the next boot has a
+	// display; installing the matching driver is then an ordinary fix.
+	blacklist := strings.Contains(readFileSafe("/etc/modprobe.d/nvidia.conf"), "blacklist nouveau")
+	if blacklist && !nvidiaModuleOnDisk() {
+		if checkOnly {
+			return wouldRes("nouveau is blacklisted but no nvidia module exists for any installed kernel; the session cannot start (the SDDM login loop)").
+				withFix("ryoku doctor  (restores nouveau, rebuilds the initramfs)")
+		}
+		if err := removeRootFiles("/etc/modprobe.d/nvidia.conf", "/etc/mkinitcpio.conf.d/nvidia.conf"); err != nil {
+			return failRes("could not remove the stale NVIDIA config: %v", err).
+				withFix("sudo rm /etc/modprobe.d/nvidia.conf /etc/mkinitcpio.conf.d/nvidia.conf && sudo mkinitcpio -P")
+		}
+		if err := rebuildInitramfs(); err != nil {
+			return warnRes("restored nouveau, but the initramfs rebuild failed: %v", err).
+				withFix("sudo limine-mkinitcpio  (or: sudo mkinitcpio -P)")
+		}
+		return fixedRes("no nvidia module exists for the installed kernel(s); restored nouveau and rebuilt the initramfs so the next boot has a display. Install a matching driver (pacman -Syu nvidia-open) and run ryoku doctor again to switch back")
 	}
 	modprobe := readFileSafe("/etc/modprobe.d/nvidia.conf")
 	mkinit := readFileSafe("/etc/mkinitcpio.conf.d/nvidia.conf")

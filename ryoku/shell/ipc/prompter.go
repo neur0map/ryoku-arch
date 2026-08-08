@@ -155,7 +155,7 @@ func (p *prompter) StopPrompting(callback dbus.ObjectPath) *dbus.Error {
 	}
 	p.mu.Unlock()
 
-	go ipcCall("pill", "pill", "keyringHide", "")
+	go shellIpc("keyringHide")
 	if sess != nil {
 		go p.callDone(sess)
 	}
@@ -243,7 +243,7 @@ func (p *prompter) pushPrompt(id int, ptype string, props map[string]interface{}
 		log.Printf("ryoku-shell: keyring prompt payload: %v", err)
 		return
 	}
-	ipcCall("pill", "pill", "keyringPrompt", string(b))
+	shellIpc("keyringPrompt", string(b))
 }
 
 func (p *prompter) callReady(sess *promptSession, reply string, props map[string]dbus.Variant, exchange string) {

@@ -24,11 +24,33 @@ cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
 bindir="$HOME/.local/bin"
 say() { printf '  %s\n' "$*"; }
 
+# Lay the user's overrides over the freshly-deployed base: a regular file under
+# ~/.config/ryoku/user_edits wins at the mirrored ~/.config path (a fork), the
+# one-way overlay `ryoku materialize` also applies on an installed box. Symlinks
+# (the store discovery pointers) and the overlay tree itself are skipped. Absent
+# by default, so a box with no user edits sees no change.
+overlay_user_edits() {
+  local root="$cfg/ryoku/user_edits"
+  [[ -d $root ]] || return 0
+  local src rel dst n=0
+  while IFS= read -r -d '' src; do
+    rel="${src#"$root"/}"
+    [[ $rel == ryoku/user_edits/* ]] && continue
+    dst="$cfg/$rel"
+    mkdir -p "${dst%/*}"
+    cp -f "$src" "$dst"
+    ((++n))
+  done < <(find "$root" -type f -not -name '*.md' -print0)
+  (( n > 0 )) && say "overlaid $n user edit(s)"
+  return 0
+}
+
 restart_shell() {
   local shell=$bindir/ryoku-shell
   local log="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell.log"
 
   [[ -x $shell ]] || return 0
+  systemctl --user stop ryoku-shell 2>/dev/null || true
   "$shell" quit >/dev/null 2>&1 || true
   for _ in {1..20}; do
     "$shell" ping >/dev/null 2>&1 || break
@@ -50,12 +72,18 @@ restart_shell() {
   sleep 0.2
 
   mkdir -p "$(dirname -- "$log")"
-  if command -v setsid >/dev/null 2>&1; then
-    setsid "$shell" daemon >"$log" 2>&1 < /dev/null &
+  # under systemd when the unit is installed, so the daemon stays supervised;
+  # bare start otherwise (first deploy on a fresh checkout).
+  if systemctl --user daemon-reload 2>/dev/null && systemctl --user restart ryoku-shell 2>/dev/null; then
+    say "restarted ryoku-shell daemon (systemd unit)"
   else
-    nohup "$shell" daemon >"$log" 2>&1 < /dev/null &
+    if command -v setsid >/dev/null 2>&1; then
+      setsid "$shell" daemon >"$log" 2>&1 < /dev/null &
+    else
+      nohup "$shell" daemon >"$log" 2>&1 < /dev/null &
+    fi
+    say "restarted ryoku-shell daemon -> $log"
   fi
-  say "restarted ryoku-shell daemon -> $log"
 }
 
 hypr_live=0
@@ -83,12 +111,17 @@ mkdir -p "$bindir"
 install -m755 "$here/ipc/ryoku-shell" "$bindir/ryoku-shell"
 say "installed $bindir/ryoku-shell"
 
-# The launcher's "@" radio engine: it lives with the hyprland leaf scripts
-# (packaged into /usr/bin by ryoku-desktop), but the launcher calls it by bare
-# name — a dev deploy must put it on PATH too or a repo-ahead launcher points
-# at a script the installed package does not ship yet.
-install -m755 "$here/../hyprland/scripts/ryoku-cmd-radio" "$bindir/ryoku-cmd-radio"
-say "installed $bindir/ryoku-cmd-radio"
+# Every hyprland leaf script the config calls by bare name (ryoku-app, the
+# ryoku-cmd-*, ...). The package ships them to /usr/bin; a checkout must put the
+# current copies on PATH too, else a new one like ryoku-app is simply missing.
+for s in "$here/../hyprland/scripts"/ryoku-*; do
+  [[ -f $s ]] || continue
+  install -m755 "$s" "$bindir/${s##*/}"
+done
+# ryoku-summon lives with the ryowalls app, but the binds call it by bare name too.
+[[ -f "$here/../apps/ryowalls/bin/ryoku-summon" ]] &&
+  install -m755 "$here/../apps/ryowalls/bin/ryoku-summon" "$bindir/ryoku-summon"
+say "installed the hyprland leaf scripts to $bindir"
 
 # Build ryoku-livewall, the software-decode video-wallpaper daemon the shell drives
 # for live wallpapers. Needs wayland-scanner + a C toolchain + ffmpeg/wayland dev
@@ -137,6 +170,7 @@ install -m755 "$here/../../system/hardware/power/ryoku-idle" "$bindir/ryoku-idle
 install -m755 "$here/../../system/hardware/leds/ryoku-leds" "$bindir/ryoku-leds"
 install -m755 "$here/../../system/hardware/audio/ryoku-mic" "$bindir/ryoku-mic"
 install -m755 "$here/../../system/hardware/display/ryoku-monitor" "$bindir/ryoku-monitor"
+install -m755 "$here/../../system/hardware/network/ryoku-dns" "$bindir/ryoku-dns"
 install -m755 "$here/../../system/hardware/gpu/ryoku-gpu" "$bindir/ryoku-gpu"
 install -m755 "$here/../../system/hardware/gpu/ryoku-gpu-detect" "$bindir/ryoku-gpu-detect"
 install -m755 "$here/../../system/hardware/gpu/ryoku-gpu-lib32" "$bindir/ryoku-gpu-lib32"
@@ -144,7 +178,32 @@ for s in "$here/../../system/extras"/ryoku-*; do
   install -m755 "$s" "$bindir/${s##*/}"
 done
 install -m755 "$here/quickshell/plugins/ryoku-plugins-place" "$bindir/ryoku-plugins-place"
+# AI-usage collectors: refresh ~/.cache/{claude,codex,opencode}-usage.json for
+# the qsbar AI pill, driven by the ryoku-ai-usage.timer installed below. The
+# package ships them to /usr/bin; the dev loop puts the current copies on PATH.
+for s in "$here/bin"/claude-usage "$here/bin"/codex-usage "$here/bin"/opencode-usage; do
+  install -m755 "$s" "$bindir/${s##*/}"
+done
+say "installed the AI-usage collectors to $bindir"
 say "installed Ryoku CLI and hardware helpers"
+
+# Privileged network helpers + their polkit rules. A packaged install ships these
+# to /usr/bin and /usr/share/polkit-1/rules.d; a dev box has neither, so pkexec
+# has no rule to match and the qsbar DNS/wifi toggles silently fail. Install them
+# here when sudo is available (skipped cleanly in a sudo-less/CI env), and skip
+# each dest that already matches so a redeploy is a no-op.
+if command -v sudo >/dev/null 2>&1; then
+  netdir="$here/../../system/hardware/network"
+  _priv_install() { # src dest mode
+    cmp -s "$1" "$2" && return 0
+    sudo install -Dm"$3" "$1" "$2" || true
+  }
+  _priv_install "$netdir/ryoku-dns" /usr/bin/ryoku-dns 755
+  _priv_install "$netdir/50-ryoku-dns.rules" /usr/share/polkit-1/rules.d/50-ryoku-dns.rules 644
+  _priv_install "$netdir/ryoku-wifi-powersave" /usr/bin/ryoku-wifi-powersave 755
+  _priv_install "$netdir/49-ryoku-wifi-powersave.rules" /usr/share/polkit-1/rules.d/49-ryoku-wifi-powersave.rules 644
+  say "installed privileged network helpers + polkit rules"
+fi
 
 # Record the checkout this deploy came from and the commit it laid down, so the
 # deployed `ryoku` binary (on PATH, far from the repo) can track the update
@@ -171,11 +230,92 @@ else
   say "skipping Ryoku.Blobs plugin (cmake/ninja not found)"
 fi
 
+# Build the optional Hyprland compositor plugins (dynamic-cursors, hyprbars,
+# hyprfocus, hyprglass, imgborders) against the running Hyprland and drop the
+# .so files under the user plugin path the generated settings.lua loads from
+# (no root, the way the QML modules above deploy). They are ABI-locked to the
+# compositor, so rebuild only when its version changed since the last build or a
+# .so is missing. Toolchain-gated: skip cleanly when makepkg or the Hyprland
+# headers are absent (a plain config deploy still works; packaged installs get
+# these from [ryoku] as ryoku-desktop deps). A plugin that fails to build is
+# skipped, never fatal: its toggle degrades to off (settings.lua guards the load
+# in a pcall). Build artifacts stay in a tmp/cache dir, so the checkout is clean.
+hplugins="$HOME/.local/lib/hyprland/plugins"
+if command -v makepkg >/dev/null 2>&1 && pkg-config --exists hyprland 2>/dev/null; then
+  _hv="$(pkg-config --modversion hyprland)"
+  _stamp="$hplugins/.hyprland-version"
+  _prev="$(cat "$_stamp" 2>/dev/null || true)"
+  _srccache="$HOME/.cache/ryoku/hypr-plugins-src"
+  mkdir -p "$hplugins" "$_srccache"
+  _built=0
+  # "<package dir>:<space-separated .so basenames it yields>" (see each package()).
+  for _entry in "hypr-dynamic-cursors:dynamic-cursors" \
+                "ryoku-hypr-plugins:hyprbars hyprfocus" \
+                "hyprglass:hyprglass" "imgborders:imgborders"; do
+    _dir="${_entry%%:*}"; _sos="${_entry#*:}"
+    _need=0
+    [[ "$_prev" != "$_hv" ]] && _need=1
+    for _so in $_sos; do [[ -f "$hplugins/$_so.so" ]] || _need=1; done
+    (( _need )) || continue
+    say "building Hyprland plugin $_dir (Hyprland $_hv)"
+    _tmp="$(mktemp -d)"
+    if ( cd "$here/../../release/packages/$_dir" &&
+         env BUILDDIR="$_tmp/b" SRCDEST="$_srccache" PKGDEST="$_tmp" \
+             makepkg -f --nodeps --noconfirm >"$_tmp/log" 2>&1 ); then
+      for _pkg in "$_tmp"/*.pkg.tar.*; do
+        [[ -e "$_pkg" ]] && bsdtar -xf "$_pkg" -C "$_tmp" usr/lib/hyprland/plugins 2>/dev/null || true
+      done
+      # Rename into place, never copy: cp -f truncates the existing inode,
+      # which corrupts the mapped image of a plugin the running compositor
+      # has dlopen'd and crashes it. mv gives the path a fresh inode while
+      # the loaded copy keeps its own until the next clean load.
+      for _so in "$_tmp"/usr/lib/hyprland/plugins/*.so; do
+        [[ -e "$_so" ]] || continue
+        mv -f "$_so" "$hplugins/$(basename "$_so")" && _built=1
+      done
+    else
+      say "  $_dir failed to build against Hyprland $_hv; skipping (its toggle stays off)"
+    fi
+    rm -rf "$_tmp"
+  done
+  printf '%s\n' "$_hv" > "$_stamp"
+  (( _built )) && say "installed Hyprland compositor plugins -> $hplugins" || true
+else
+  say "skipping Hyprland compositor plugins (makepkg or Hyprland headers not found)"
+fi
+
+# Install the Ryoku.Ui QML module: the design system every surface imports --
+# the shell's configs, the Hub and the first-party apps. Pure QML, a plain copy.
+# Note the import path only reaches `qs` when the daemon launches it; a Hub
+# started from a keybind needs QML_IMPORT_PATH from the session
+# (hyprland/modules/env.lua). An installed system puts it in /usr/lib/qt6/qml
+# instead, which Qt finds unaided.
+say "installing Ryoku.Ui module"
+"$here/../ui/install.sh" "$qmldir"
+
+# Seed the decor art the Decor/Placard components render into ~/Pictures/ryodecors
+# (beside Wallpapers and livewalls): the dev-loop equivalent of the installer seed
+# and `ryoku doctor`. Missing-only, so a swapped or added file survives a redeploy.
+decordir="$HOME/Pictures/ryodecors"
+mkdir -p "$decordir"
+for f in "$here/../assets/ryodecors"/*; do
+  [[ -e $f ]] || continue
+  [[ -e "$decordir/${f##*/}" ]] || cp -a "$f" "$decordir/"
+done
+say "seeded decor art -> $decordir"
+
 # Install the Ryoku.PluginKit QML module (the signature kit a plugin imports for
 # its content) onto the same import path. Pure QML, so a plain copy, no toolchain.
 say "installing Ryoku.PluginKit module"
 "$here/quickshell/plugins/kit/install.sh" "$qmldir"
 say "installed Ryoku.PluginKit -> $qmldir/Ryoku/PluginKit"
+
+# Install the Ryoku.FrameBars QML module (the shared frame-bar config schema and
+# catalogs every config root and the Hub Bar Studio import). Pure QML + JS, a
+# plain copy, no toolchain.
+say "installing Ryoku.FrameBars module"
+"$here/framebars/install.sh" "$qmldir"
+say "installed Ryoku.FrameBars -> $qmldir/Ryoku/FrameBars"
 
 # Quickshell components: a deployed daemon runs `qs -c <name>`, reading
 # ~/.config/quickshell/<name>.
@@ -183,6 +323,9 @@ say "installing quickshell components -> $cfg/quickshell"
 rm -rf "$cfg/quickshell"
 mkdir -p "$cfg/quickshell"
 cp -a "$here/quickshell/." "$cfg/quickshell/"
+# The single-instance shell ships as ryoku/shell/quickshell/shell and lands at
+# $cfg/quickshell/shell via the copy above; the ryoku-shell daemon launches it as
+# `qs -c shell`, the live desktop.
 
 # Ryoku Hub's quickshell config (qs -c hub), kept beside the shell's components.
 mkdir -p "$cfg/quickshell/hub"
@@ -212,6 +355,22 @@ for appdir in "$here"/../apps/*/; do
   install -Dm644 "$icon" "$appshare/icons/hicolor/scalable/apps/$appname.svg"
   say "installed app $appname -> $cfg/quickshell/$appname"
 done
+
+# ryotunes: YouTube Music as a Chromium app-window (apps/ryotunes). Not a
+# quickshell app, so it ships explicitly like the other non-qs launchers: the
+# wrapper on PATH, its .desktop, and its icon into the hicolor set.
+install -m755 "$here/../apps/ryotunes/bin/ryotunes" "$bindir/ryotunes"
+install -Dm644 "$here/../apps/ryotunes/ryotunes.desktop" "$appshare/applications/ryotunes.desktop"
+install -Dm644 "$here/../apps/ryotunes/ryotunes.svg" "$appshare/icons/hicolor/scalable/apps/ryotunes.svg"
+say "installed ryotunes launcher"
+
+# ryoku-canvas: a spicetify extension (apps/spicetify) that relays the playing
+# track's Spotify Canvas to the shell so the music widget can show it. Landed in
+# the spicetify Extensions dir; a spicetify user turns it on with
+# `spicetify config extensions ryoku-canvas.js && spicetify apply`, and it stays
+# inert for anyone who does not spicetify Spotify.
+install -Dm644 "$here/../apps/spicetify/ryoku-canvas.js" "$cfg/spicetify/Extensions/ryoku-canvas.js"
+say "installed ryoku-canvas spicetify extension"
 
 # Nautilus stash actions (a nautilus-python extension). Installs ship it system-wide
 # from the ryoku-desktop package; the dev loop drops it in the user extensions dir.
@@ -269,17 +428,35 @@ if [[ -d $cfg/hypr ]]; then
 fi
 mv "$staging" "$cfg/hypr"
 
+wireplumber_policy="$cfg/wireplumber/wireplumber.conf.d/51-ryoku-bluetooth.conf"
+wireplumber_before=
+[[ -f $wireplumber_policy ]] && wireplumber_before=$(<"$wireplumber_policy")
+
 # Palette generation, per-app config, and the user session target.
-mkdir -p "$cfg/wallust";   cp -a "$here/wallust/." "$cfg/wallust/"
+mkdir -p "$cfg/matugen"; cp -a "$here/matugen/." "$cfg/matugen/"
 cp -a "$here/../apps/fish/config.fish" "$cfg/fish/config.fish"
 mkdir -p "$cfg/fish/conf.d"; cp -a "$here/../apps/fish/conf.d/." "$cfg/fish/conf.d/"
 mkdir -p "$cfg/qt6ct"; cp -a "$here/qt6ct/qt6ct.conf" "$cfg/qt6ct/qt6ct.conf"
+mkdir -p "$cfg/btop"; cp -a "$here/../apps/btop/btop.conf" "$cfg/btop/btop.conf"
 mkdir -p "$cfg/pipewire"; cp -a "$here/../apps/pipewire/." "$cfg/pipewire/"
+mkdir -p "$cfg/wireplumber"; cp -a "$here/../apps/wireplumber/." "$cfg/wireplumber/"
 mkdir -p "$cfg/systemd/user"; cp -a "$here/systemd/user/." "$cfg/systemd/user/"
+# dev deploy runs the daemon from ~/.local/bin; the package ships /usr/bin.
+sed -i -e "s|^ExecStart=.*|ExecStart=$bindir/ryoku-shell daemon|" \
+  -e "s|^ExecStartPre=.*|ExecStartPre=-$bindir/ryoku-shell quit|" "$cfg/systemd/user/ryoku-shell.service"
+systemctl --user daemon-reload 2>/dev/null || true
+# ryoku-ai-usage.service ships three ExecStart=-/usr/bin/<collector> lines (the
+# package path); rewrite them to ~/.local/bin so the dev-deployed collectors
+# resolve, mirroring the ryoku-shell.service rewrite above.
+sed -i "s|^ExecStart=-/usr/bin/|ExecStart=-$bindir/|" "$cfg/systemd/user/ryoku-ai-usage.service"
+systemctl --user daemon-reload 2>/dev/null || true
+systemctl --user enable --now ryoku-ai-usage.timer 2>/dev/null || true
 # pip (PEP 668 --user) + the default-app map: Ryoku-owned, so a dev box tracks
 # them the way the package materializes them for an installed one.
 mkdir -p "$cfg/pip"; cp -a "$here/../apps/pip/pip.conf" "$cfg/pip/pip.conf"
 cp -a "$here/../apps/mimeapps.list" "$cfg/mimeapps.list"
+# chromium reads ~/.config/chromium-flags.conf at launch; pin its password store to the GNOME keyring.
+cp -a "$here/../apps/chromium-flags.conf" "$cfg/chromium-flags.conf"
 # Refresh the icon cache only when the theme has an index.theme; the user-overlay
 # hicolor dir usually has none, and gtk-update-icon-cache -f on an index-less dir
 # writes an EMPTY cache that Qt then trusts, hiding every icon in it. With no
@@ -291,6 +468,24 @@ else
   rm -f "$_iconroot/icon-theme.cache" 2>/dev/null || true
 fi
 command -v systemctl >/dev/null 2>&1 && systemctl --user daemon-reload 2>/dev/null || true
+
+# Re-emit settings.lua from hypr.json through the freshly built ryoku-hub, so a
+# genLua change (like the compositor-plugin load path above) reaches an existing
+# box on `ryoku update` with no manual Hub save. Derived from hypr.json (the
+# editable truth), so idempotent; guarded, since a box may have no overrides yet.
+# Runs before overlay_user_edits so a user_edits/hypr/settings.lua still wins.
+"$bindir/ryoku-hub" hypr get >/dev/null 2>&1 || true
+
+# User overrides win over the base just laid, for hypr and every other surface.
+overlay_user_edits
+wireplumber_after=
+[[ -f $wireplumber_policy ]] && wireplumber_after=$(<"$wireplumber_policy")
+if (( reload )) && [[ $wireplumber_before != "$wireplumber_after" ]]; then
+  if systemctl --user try-restart wireplumber.service 2>/dev/null; then
+    say "restarted WirePlumber for updated Bluetooth audio policy"
+  fi
+fi
+
 
 if (( hypr_live && reload )); then
   # Apply now in one clean reload (this also restores auto-reload), then restart

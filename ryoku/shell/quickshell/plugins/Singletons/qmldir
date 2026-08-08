@@ -1,5 +1,0 @@
-singleton Theme Theme.qml
-singleton Config Config.qml
-singleton Motion Motion.qml
-singleton Registry Registry.qml
-singleton Wallust Wallust.qml

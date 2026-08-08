@@ -1,20 +1,20 @@
--- user.lua - your own Hyprland config, written in Ryoku's `hl` Lua API.
+-- --- hypr/user.lua --------------------------------------------------------
+-- Your Hyprland overrides, in Ryoku's `hl` Lua API. Loaded LAST, so anything
+-- here wins over Ryoku's defaults and over Ryoku Settings. Updates never touch
+-- it. Reach for it only for raw config the GUI does not expose.
 --
--- Hyprland loads this file LAST, so anything you put here wins over both
--- Ryoku's shipped defaults and the settings you change in Ryoku Settings
--- (Super + ,). Ryoku updates never touch this file.
+-- --- who owns what --------------------------------------------------------
+--   Ryoku defaults   the base modules           replaced by updates   don't edit
+--   Ryoku Settings   settings.lua, rebinds.lua  the GUI writes these  edit in-app
+--   you              this file, + anything you drop in user_edits     yours
 --
--- You usually do not need it. Everything you set in Ryoku Settings is saved
--- to ~/.config/ryoku/hypr.json, generated into ~/.config/hypr/settings.lua,
--- and already survives updates. Reach for this file only for raw Hyprland
--- config the GUI does not expose yet.
+-- --- take over a whole module ---------------------------------------------
+-- Copy it into the overlay at the same path and edit there, e.g.
+--   ~/.config/ryoku/user_edits/hypr/modules/binds.lua
+-- You then own that file: `ryoku doctor` warns when an update changes the
+-- original, and `ryoku reset hypr/modules/binds.lua` hands it back.
 --
--- Load order, last wins:
---   1. Ryoku base modules   (the defaults + bug fixes)    replaced by updates
---   2. settings.lua         (built from your Hub choices)  kept, rebuilt on Save
---   3. user.lua             (this file)                    never touched
---
--- Examples, uncomment to use:
+-- --- examples -------------------------------------------------------------
 -- hl.bind("SUPER + SHIFT + T", hl.dsp.exec_cmd("kitty"))
 -- hl.window_rule({ name = "float-mpv", match = { class = "mpv" }, float = true })
 -- hl.config({ general = { border_size = 3 } })

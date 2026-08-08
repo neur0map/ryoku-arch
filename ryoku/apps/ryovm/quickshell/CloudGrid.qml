@@ -1,9 +1,11 @@
 import QtQuick
 import QtQuick.Controls
+import Ryoku.Ui
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// The Instant lane's left column: the curated cloud-image OSes as tiles. Picking
-// one selects it for the CloudPanel. Prebuilt images only — a short, curated
+// The INSTANT lane's left column: the curated cloud-image OSes as tiles. Picking
+// one selects it for the CloudPanel. Prebuilt images only: a short curated
 // list, so no Popular/rest split.
 Item {
     id: g
@@ -31,7 +33,7 @@ Item {
         contentHeight: grid.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        ScrollBar.vertical: BoardScrollBar {}
+        ScrollBar.vertical: ScrollRail {}
 
         Grid {
             id: grid
@@ -57,20 +59,19 @@ Item {
 
     Column {
         anchors.centerIn: parent
-        spacing: 12
+        spacing: Tokens.s4
         width: parent.width - 40
         visible: g.shown.length === 0
-        Icon {
-            anchors.horizontalCenter: parent.horizontalCenter
-            name: Vm.cloudLoading ? "refresh" : (g.filter.length > 0 ? "search" : "download")
-            size: 32; tint: Theme.faint
-        }
+        Mark { anchors.horizontalCenter: parent.horizontalCenter; size: 96 }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
-            width: parent.width; wrapMode: Text.WordWrap
+            width: parent.width
+            wrapMode: Text.WordWrap
             text: Vm.cloudLoading ? "Loading the image list" : (g.filter.length > 0 ? "No images match" : "No cloud images")
-            color: Theme.dim; font.family: Theme.font; font.pixelSize: 13
+            color: Tokens.inkMuted
+            font.family: Tokens.ui
+            font.pixelSize: 12
         }
     }
 }

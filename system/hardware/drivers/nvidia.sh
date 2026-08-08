@@ -75,7 +75,18 @@ has_nvidia() {
   if has_lspci && lspci 2>/dev/null | grep -qi 'nvidia'; then
     return 0
   fi
-  grep -rqs '^DRIVER=nvidia$' /sys/class/drm/card*/device/uevent 2>/dev/null
+  # no lspci (missing in the pacstrap chroot): scan sysfs for a PCI display
+  # controller (class 0x03xxxx) made by NVIDIA (vendor 0x10de). works before
+  # any driver binds, unlike a DRIVER= uevent match.
+  local dev vendor class
+  for dev in /sys/bus/pci/devices/*/; do
+    [[ -r $dev/vendor && -r $dev/class ]] || continue
+    read -r vendor <"$dev/vendor" || continue
+    [[ $vendor == 0x10de ]] || continue
+    read -r class <"$dev/class" || continue
+    [[ $class == 0x03* ]] && return 0
+  done
+  return 1
 }
 
 # GSP-firmware cards (-> open modules): GTX 16xx, RTX 20xx-50xx, RTX Pro,
@@ -130,6 +141,11 @@ else
   # nvidia) kept in step with it, so there is no DKMS build to fail on a fresh
   # kernel. any custom kernel (zen/lts/cachyos) needs DKMS + its headers.
   base=(nvidia-utils libva-nvidia-driver)
+  # lib32-nvidia-utils: 32-bit userspace driver (Steam/Wine); add only when the
+  # [multilib] repo is on, else pacman can't resolve it. mirrors omarchy.
+  if pacman-conf --repo-list 2>/dev/null | grep -qx multilib; then
+    base+=(lib32-nvidia-utils)
+  fi
   if [[ ${#kernels[@]} -eq 1 && ${kernels[0]} == linux ]]; then
     if nvidia_has_gsp; then
       echo "nvidia.sh: Turing+ GPU on stock linux, using the prebuilt open module (nvidia-open)."

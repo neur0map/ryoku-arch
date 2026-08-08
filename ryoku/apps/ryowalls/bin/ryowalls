@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Engine for ryowalls: search and download wallpapers (wallhaven + curated /
-# scraped live sources), a palette verb that prints an image's wallust scheme for
+# scraped live sources), a palette verb that prints an image's matugen palette for
 # the honest live preview, an adjust verb that grades an image (brightness /
 # contrast / saturation / warmth / vignette) for the editor, and an enhance verb
 # that AI-upscales an image or video on the GPU with progress. WALLHAVEN_API_KEY
-# raises limits; the palette + adjust verbs take the same flags the desktop applies.
+# raises limits; the palette verb mirrors the daemon's matugen engine so the live preview matches what Set writes.
 set -euo pipefail
 
 api="https://wallhaven.cc/api/v1"
@@ -54,12 +54,13 @@ screen_cap() {
 	printf '%s' "$w"
 }
 
-# waifu2x picks the highest-scored Vulkan GPU by default; on a hybrid laptop that
-# is the dGPU, which here fails vkCreateDevice when suspended AND intermittently
-# emits all-black frames under PRIME (a clean probe, then garbage on the real
-# run). A small probe cannot catch that, so the enhance instead runs each GPU on
-# the actual clip, validates the output, and keeps the first that is not black;
-# the last good GPU is remembered so the reliable one is tried first next time.
+# waifu2x runs on the discrete GPU first: a dGPU has its own VRAM, so enhancing
+# does not starve the shared memory the integrated GPU (and the compositor) run
+# on -- an enhance forced onto the iGPU visibly kills desktop performance. The
+# dGPU can still be flaky on a hybrid laptop (vkCreateDevice fails when the card
+# is suspended, and it intermittently emits all-black frames under PRIME), so
+# every run still validates its output and falls back to the next GPU, keeping
+# the first that is not black; the last good GPU is remembered as a fallback hint.
 w2x_model="/usr/share/waifu2x-ncnn-vulkan/models-cunet"
 
 # sane_img: succeed only when an image has real content, not the near-black /
@@ -69,18 +70,49 @@ sane_img() {
 	local m s
 	# [0]: probe the first frame only — a bare %[fx:...] on an animation prints
 	# one value per frame concatenated ("0.4966390.496639"), which awk reads as
-	# garbage and the validity gate then rejects every animated enhance.
+	# garbage and the sanity gate then rejects every animated enhance.
 	m="$(identify -format '%[fx:mean]' "$1[0]" 2>/dev/null)"
 	s="$(identify -format '%[fx:standard_deviation]' "$1[0]" 2>/dev/null)"
 	[ -n "$m" ] && [ -n "$s" ] && awk -v m="$m" -v s="$s" 'BEGIN{exit !(m>0.02 && s>0.01)}'
 }
 w2x_gpu_pref="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-w2x-gpu"
-# w2x_order: GPU indices to attempt, last-known-good first (persisted after a
-# clean run) then every index.
+w2x_disc_file="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-w2x-discrete"
+# w2x_discrete: the ncnn index of the discrete GPU, detected once and cached.
+# ncnn's Vulkan enumeration order is not fixed (index 0 is not always the dGPU),
+# so read it from waifu2x's own device banner -- the same indices -g uses -- and
+# take the first device whose name is not an integrated GPU. Cached as an index
+# or -1 (none found); the probe is a 64x64 op that only runs on a cold cache.
+w2x_discrete() {
+	local cached tmp name disc idx
+	cached="$(cat "$w2x_disc_file" 2>/dev/null || true)"
+	case "$cached" in 0 | 1 | 2 | 3) printf '%s' "$cached"; return ;; -1) return ;; esac
+	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || return
+	tmp="$(mktemp -d)" || return
+	magick -size 64x64 xc:gray "$tmp/in.png" >/dev/null 2>&1 || : >"$tmp/in.png"
+	disc=-1
+	while IFS= read -r name; do
+		idx="${name%% *}"; name="${name#* }"
+		case "$name" in
+		*[Ii]ntel* | *[Ii]ris* | *UHD* | *[Rr]adeon*[Gg]raphics* | *[Ll]lvmpipe* | *[Ss]wiftshader* | *[Mm]ali* | *[Aa]dreno*) ;;
+		*) disc="$idx"; break ;;
+		esac
+	done < <(waifu2x-ncnn-vulkan -i "$tmp/in.png" -o "$tmp/out.png" -s 2 -n 0 -m "$w2x_model" 2>&1 | grep -oE '\[[0-9]+ [^]]+\]' | sed -E 's/^\[([0-9]+) (.*)\]$/\1 \2/' | sort -u)
+	rm -rf "$tmp"
+	printf '%s' "$disc" >"$w2x_disc_file" 2>/dev/null || true
+	case "$disc" in 0 | 1 | 2 | 3) printf '%s' "$disc" ;; esac
+}
+# w2x_order: GPU indices to attempt -- the discrete GPU first, then the last-known
+# -good, then every index, de-duplicated so the preferred/reliable one leads.
 w2x_order() {
-	local p
+	local disc p out i
+	disc="$(w2x_discrete)"
 	p="$(cat "$w2x_gpu_pref" 2>/dev/null || true)"
-	case "$p" in 0 | 1 | 2 | 3) printf '%s 0 1 2 3' "$p" ;; *) printf '0 1 2 3' ;; esac
+	out=""
+	for i in "$disc" "$p" 0 1 2 3; do
+		case "$i" in 0 | 1 | 2 | 3) ;; *) continue ;; esac
+		case " $out " in *" $i "*) ;; *) out="$out $i" ;; esac
+	done
+	printf '%s' "${out# }"
 }
 
 # real dimensions for a batch of local clips: newline-separated paths in,
@@ -92,13 +124,30 @@ w2x_order() {
 # short write (well under PIPE_BUF), so parallel probes never interleave; the
 # path is passed as a positional, never spliced into the sh -c text.
 vid_res_map() {
-	# shellcheck disable=SC2016  # $1 expands inside sh -c, not here
+	# shellcheck disable=SC2016  # $1 must expand inside the child sh -c, not here
 	xargs -r -d '\n' -n 1 -P 8 sh -c \
 		'printf "%s\t%s\n" "$1" "$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$1" 2>/dev/null | head -1)"' _
 }
 
 # downloads land as-is now; enhancing is an explicit, on-demand action.
 finish() { printf '%s\n' "$1"; }
+
+# A killed enhance (Quickshell SIGTERMs the engine when the ryowalls window
+# closes) must never leave waifu2x/ffmpeg hammering the GPU with nothing on
+# screen, nor a multi-GB frame dump in /tmp. Track the current heavy child and
+# the workdir, and reap both when the engine is signalled or exits. The heavy
+# steps run backgrounded + waited so a signal interrupts the wait and this runs
+# (bash defers a trap until a foreground command returns, so a foreground worker
+# would outlive the parent and orphan onto the GPU).
+_enh_child=""
+_enh_workdir=""
+_enh_reap() {
+	if [ -n "$_enh_child" ] && kill -0 "$_enh_child" 2>/dev/null; then
+		pkill -TERM -P "$_enh_child" 2>/dev/null || true
+		kill -TERM "$_enh_child" 2>/dev/null || true
+	fi
+	[ -n "$_enh_workdir" ] && rm -rf "$_enh_workdir" 2>/dev/null || true
+}
 
 # enhance an image in place on the GPU: waifu2x doubles the resolution and
 # denoises. 4k sources are already sharp, so skip them (minutes of GPU, no gain).
@@ -119,12 +168,16 @@ enhance_image() {
 	read -ra gpus <<<"$(w2x_order)"
 	for gpu in "${gpus[@]}"; do
 		rm -f "$tmp"
-		waifu2x-ncnn-vulkan -i "$f" -o "$tmp" -s 2 -n 2 -g "$gpu" -m "$w2x_model" >/dev/null 2>&1 || continue
+		# backgrounded + waited so a SIGTERM (window closed) reaps the worker
+		# through the trap instead of orphaning it on the GPU.
+		waifu2x-ncnn-vulkan -i "$f" -o "$tmp" -s 2 -n 2 -g "$gpu" -m "$w2x_model" >/dev/null 2>&1 &
+		_enh_child=$!
+		wait "$_enh_child" || continue
 		if [ -s "$tmp" ] && sane_img "$tmp"; then
 			mv -f "$tmp" "$f"
 			printf '%s' "$gpu" >"$w2x_gpu_pref" 2>/dev/null || true
 			enh_write "$f" "done"
-			enh_verdict 'done' image
+			enh_verdict "done" image
 			return 0
 		fi
 	done
@@ -136,7 +189,7 @@ enhance_image() {
 # foreground so the UI can track the phase and frame count; only swaps the crisp
 # clip onto the desktop if it is still the live wallpaper when it lands.
 enhance_video() {
-	local f="$1" d fps w cap total wpid gpu out chk ok gpus
+	local f="$1" d fps w cap total est dur gpu out chk ok gpus
 	command -v ffmpeg >/dev/null 2>&1 || { enh_write "$f" error; enh_verdict error video 0 0 "" tools; return 1; }
 	command -v waifu2x-ncnn-vulkan >/dev/null 2>&1 || { enh_write "$f" unsupported; enh_verdict unsupported video; return 3; }
 	enh_write "$f" probe
@@ -150,12 +203,30 @@ enhance_video() {
 	if [ "${w:-0}" -ge "$cap" ]; then enh_write "$f" "sharp"; enh_verdict sharp video "${w:-0}" "$cap"; return 2; fi
 	fps="$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$f" 2>/dev/null | head -1 || true)"
 	[ -n "$fps" ] && [ "$fps" != "0/0" ] || fps=30
-	d="$(mktemp -d)" || { enh_write "$f" error; enh_verdict error video 0 0 "" io; return 1; }
-	mkdir -p "$d/in" "$d/out"
-	enh_write "$f" extract
-	if ! ffmpeg -y -i "$f" -qscale:v 1 -qmin 1 -qmax 1 -vsync 0 "$d/in/%08d.png" >/dev/null 2>&1; then
-		rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" read; return 1
+	# estimated frame count for the extract bar: nb_frames when the container
+	# carries it, else duration x fps. Only moves the bar during extract; the
+	# exact count comes from the files once extract finishes.
+	est="$(ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of csv=p=0 "$f" 2>/dev/null | head -1 || true)"
+	case "$est" in '' | *[!0-9]*) est=0 ;; esac
+	if [ "$est" -le 0 ]; then
+		dur="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f" 2>/dev/null | head -1 || true)"
+		est="$(awk -v d="${dur:-0}" -v fr="$fps" 'BEGIN{n=split(fr,a,"/"); r=(n>1&&a[2]!=0?a[1]/a[2]:a[1]); v=d*r; printf "%d", (v>0?v:0)}')"
 	fi
+	d="$(mktemp -d)" || { enh_write "$f" error; enh_verdict error video 0 0 "" io; return 1; }
+	_enh_workdir="$d"
+	mkdir -p "$d/in" "$d/out"
+	# extract every frame in the background and poll the count against the
+	# estimate, so the bar moves during extract (a long clip used to sit on a
+	# blinking dot with no bar). Backgrounded so a close reaps ffmpeg via the
+	# trap instead of running the whole extract to completion off-screen.
+	enh_write "$f" extract 0 "$est"
+	ffmpeg -y -i "$f" -qscale:v 1 -qmin 1 -qmax 1 -vsync 0 "$d/in/%08d.png" >/dev/null 2>&1 &
+	_enh_child=$!
+	while kill -0 "$_enh_child" 2>/dev/null; do
+		enh_write "$f" extract "$(find "$d/in" -name '*.png' 2>/dev/null | wc -l)" "$est"
+		sleep 0.5
+	done
+	wait "$_enh_child" || { rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" read; return 1; }
 	total="$(find "$d/in" -name '*.png' | wc -l)"
 	[ "${total:-0}" -gt 0 ] || { rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" read; return 1; }
 	# try each GPU on the real clip and validate a middle frame: a hybrid dGPU can
@@ -169,12 +240,12 @@ enhance_video() {
 		rm -rf "$d/out"; mkdir -p "$d/out"
 		enh_write "$f" enhance 0 "$total"
 		waifu2x-ncnn-vulkan -i "$d/in" -o "$d/out" -s 2 -n 2 -g "$gpu" -m "$w2x_model" >/dev/null 2>&1 &
-		wpid=$!
-		while kill -0 "$wpid" 2>/dev/null; do
+		_enh_child=$!
+		while kill -0 "$_enh_child" 2>/dev/null; do
 			enh_write "$f" enhance "$(find "$d/out" -name '*.png' 2>/dev/null | wc -l)" "$total"
 			sleep 1
 		done
-		wait "$wpid" || continue
+		wait "$_enh_child" || continue
 		chk="$(printf '%08d' "$(( total / 2 > 0 ? total / 2 : 1 ))")"
 		if [ -s "$d/out/$chk.png" ] && sane_img "$d/out/$chk.png"; then
 			printf '%s' "$gpu" >"$w2x_gpu_pref" 2>/dev/null || true
@@ -183,7 +254,10 @@ enhance_video() {
 	done
 	[ -n "$ok" ] || { rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" gpu; return 1; }
 	enh_write "$f" assemble "$total" "$total"
-	if ! ffmpeg -y -framerate "$fps" -i "$d/out/%08d.png" -i "$f" -map 0:v:0 -map 1:a:0? -c:a copy -c:v libx264 -pix_fmt yuv420p -movflags +faststart "$d/final.mp4" >/dev/null 2>&1; then
+	# assemble backgrounded + waited too, so a close during encode reaps ffmpeg.
+	ffmpeg -y -framerate "$fps" -i "$d/out/%08d.png" -i "$f" -map 0:v:0 -map 1:a:0? -c:a copy -c:v libx264 -pix_fmt yuv420p -movflags +faststart "$d/final.mp4" >/dev/null 2>&1 &
+	_enh_child=$!
+	if ! wait "$_enh_child"; then
 		rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" assemble; return 1
 	fi
 	# non-destructive: waifu2x output is H.264, so write a correctly-named .mp4
@@ -192,9 +266,9 @@ enhance_video() {
 	mv -f "$d/final.mp4" "$out" || { rm -rf "$d"; enh_write "$f" error; enh_verdict error video 0 0 "" io; return 1; }
 	rm -rf "$d"
 	enh_write "$out" "done" "$total" "$total"
-	enh_verdict 'done' video 0 0 "$out"
+	enh_verdict "done" video 0 0 "$out"
 	# the desktop swap detaches, bounded at 20s: the shell's set can take seconds
-	# (wallust + livewall relaunch) or wedge outright, and the UI holds a dead
+	# (matugen + livewall relaunch) or wedge outright, and the UI holds a dead
 	# "Enhanced" — button hidden, every click swallowed — until this process
 	# exits. The still-current guard runs before detaching, so a wallpaper the
 	# user moved off of is never yanked back; the straggler window is seconds
@@ -297,32 +371,24 @@ download)
 	finish "$out"
 	;;
 palette)
-	url=""; pal=""; cs=""; backend=""; sat=""; thr=""; contrast=0
-	while [ $# -gt 0 ]; do
-		case "$1" in
-		--palette) pal="$2"; shift 2 ;;
-		--colorspace) cs="$2"; shift 2 ;;
-		--backend) backend="$2"; shift 2 ;;
-		--saturation) sat="$2"; shift 2 ;;
-		--threshold) thr="$2"; shift 2 ;;
-		--contrast) contrast=1; shift ;;
-		*) [ -z "$url" ] && url="$1"; shift ;;
-		esac
-	done
-	: "${url:?image url required}"
+	url="${1:?image url required}"
 	tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-	img="$tmp/img"
+	# Keep a real extension so the decoder can read the file: matugen (and thus
+	# the daemon) fails on an extensionless path ("failed to parse"), which left
+	# the preview palette empty and the spectrum specimen on fallback colours.
+	case "$url" in
+	*.png | *.PNG) ext=png ;;
+	*.webp | *.WEBP) ext=webp ;;
+	*.gif | *.GIF) ext=gif ;;
+	*) ext=jpg ;;
+	esac
+	img="$tmp/img.$ext"
 	if [ -f "$url" ]; then cp -- "$url" "$img"; else curl -fsSL "${auth[@]}" "$url" -o "$img"; fi
-	# Skip templates, sequences and hooks, cache in the scratch dir: generating
-	# the scheme never disturbs the running desktop. Tune flags mirror the apply.
-	wargs=(run "$img" -T -s -q --no-hooks --print-scheme)
-	[ -n "$pal" ] && wargs+=(-p "$pal")
-	[ -n "$cs" ] && wargs+=(-c "$cs")
-	[ -n "$backend" ] && wargs+=(-b "$backend")
-	[ -n "$sat" ] && wargs+=(--saturation "$sat")
-	[ -n "$thr" ] && wargs+=(-t "$thr")
-	[ "$contrast" = 1 ] && wargs+=(-k)
-	XDG_CACHE_HOME="$tmp/cache" wallust "${wargs[@]}"
+	# The daemon owns palette generation: ask it for exactly what Set will write
+	# (same scheme, mode and achromatic neutralisation) plus the tonal ramps and
+	# the L* map, as JSON, so the live preview and its cava specimen match the
+	# applied desktop instead of running a divergent second engine.
+	ryoku-shell matugen-preview "$img"
 	;;
 moewalls-search)
 	# Anime / aesthetic live wallpapers from moewalls.com. No API, but it runs
@@ -390,9 +456,11 @@ motionbgs-search)
 	mb="https://motionbgs.com"
 	if [ -n "$query" ]; then
 		q2="$(printf '%s' "$query" | tr '[:upper:] ' '[:lower:]-')"
-		path="/tag:$q2/"; [ "$page" -gt 1 ] && path="/tag:$q2/$page"
+		path="/tag:$q2/"; [ "$page" -gt 1 ] && path="/tag:$q2/$page/"
 	else
-		path="/"; [ "$page" -gt 1 ] && path="/$page"
+		# motionbgs paginates only via a trailing-slash path (/2/, /3/, ...); the
+		# slashless /2 404s (curl 22) and ?page= is ignored (silently page 1).
+		path="/"; [ "$page" -gt 1 ] && path="/$page/"
 	fi
 	html="$(curl -fsSL -A "$ua" -e "$mb/" "$mb$path")"
 	# posters look like /i/c/{WxH}/media/{id}/{name}[.{res}].jpg. Take the media id
@@ -452,10 +520,11 @@ library-list)
 	if [ -n "$regp" ]; then
 		curl -fsSL -A "$ua" "$rawb/$regp" 2>/dev/null | jq -c --arg rawb "$rawb" --arg q "$ql" --arg type "$ltype" --argjson from "$from" --argjson to "$to" '
 			def abs(p): if (p|test("^https?://")) then p else ($rawb + "/" + p) end;
+			def tproxy(u): if u == "" then "" else "https://wsrv.nl/?url=" + (u | sub("^https?://";"")) + "&w=480&output=webp&q=80" end;
 			[ .wallpapers[]?
 			  | select($type != "images")
 			  | select($q == "" or (.name|ascii_downcase|contains($q)) or (any((.tags // [])[]; ascii_downcase|contains($q))))
-			  | { id: .id, kind: "video", thumb: abs(.poster), video: abs(.video), dl: abs(.video), resolution: "", name: .name } ]
+			  | { id: .id, kind: "video", thumb: tproxy(abs(.poster)), video: abs(.video), dl: abs(.video), resolution: "", name: .name } ]
 			| .[$from:$to][]'
 		exit 0
 	fi
@@ -464,6 +533,7 @@ library-list)
 	jq -c --arg rawb "$rawb" --arg sub "$subpath" --arg q "$ql" --arg type "$ltype" --argjson from "$from" --argjson to "$to" '
 		def enc: split("/") | map(@uri) | join("/");
 		def humanize: sub("-[0-9]+$";"") | gsub("[-_]";" ");
+		def tproxy(u): if u == "" then "" else "https://wsrv.nl/?url=" + (u | sub("^https?://";"")) + "&w=480&output=webp&q=80" end;
 		[.tree[].path] as $all
 		| ($all | map(select($sub == "" or startswith($sub)))) as $scoped
 		| ($scoped | map(select(test("\\.(mp4|webm|mkv|mov)$";"i")))) as $vids
@@ -485,7 +555,7 @@ library-list)
 		| map(select($type=="all" or ($type=="live" and .kind=="video") or ($type=="images" and .kind=="image")))
 		| map(select($q=="" or (.path|ascii_downcase|contains($q))))
 		| .[$from:$to][]
-		| { id:.path, kind:.kind, thumb:(if .thumb=="" then "" else ($rawb+"/"+(.thumb|enc)) end), video:(if .kind=="video" then ($rawb+"/"+(.media|enc)) else "" end), dl:($rawb+"/"+(.media|enc)), resolution:"", name:.name }' "$ck"
+		| { id:.path, kind:.kind, thumb:tproxy(if .thumb=="" then "" else ($rawb+"/"+(.thumb|enc)) end), large:(if .thumb=="" then "" else ($rawb+"/"+(.thumb|enc)) end), video:(if .kind=="video" then ($rawb+"/"+(.media|enc)) else "" end), dl:($rawb+"/"+(.media|enc)), resolution:"", name:.name }' "$ck"
 	;;
 library-download)
 	# Full-quality download on Save. Videos land in livewalls, images in
@@ -565,6 +635,18 @@ enhance)
 	# desktop swap on the file still being live, so a late finish can't yank an
 	# old wallpaper back.
 	f="${1:?path required}"
+	# reap the GPU/ffmpeg worker and the frame dump if the engine is killed
+	# (Quickshell SIGTERMs it when the ryowalls window closes) or exits, so an
+	# interrupted enhance never keeps churning invisibly or leaks a /tmp dump.
+	trap '_enh_reap; exit 143' TERM
+	trap '_enh_reap; exit 130' INT
+	trap '_enh_reap; exit 129' HUP
+	trap '_enh_reap' EXIT
+	# keep the desktop responsive while the enhance grinds: idle IO for the frame
+	# dump and the lowest CPU priority for the ffmpeg / waifu2x helper threads, so
+	# the extract and encode do not fight the compositor for cores.
+	renice -n 19 $$ >/dev/null 2>&1 || true
+	ionice -c 3 -p $$ >/dev/null 2>&1 || true
 	ext="$(printf '%s' "${f##*.}" | tr '[:upper:]' '[:lower:]')"
 	case "$ext" in
 	mp4 | webm | mkv | mov) enhance_video "$f" ;;
@@ -632,7 +714,7 @@ caps)
 	jq -cn --argjson vk "$vk" --argjson up "$up" '{vulkan:$vk,upscaler:$up}'
 	;;
 *)
-	echo "usage: ryowalls search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url> [flags] | adjust <src> <out> [--brightness N] [--contrast N] [--saturation N] [--warmth N] [--vignette] [--size W] | enhance <path> | moewalls-search [--query <q>] [--page <n>] --json | moewalls-download <id> <url> | extras-search [--query <q>] --json | extras-download <id> <url> | live-list | live-import <src> | local-list [--type <t>] [--query <q>] | local-remove <path>..." >&2
+	echo "usage: ryowalls search --query <q> --page <n> [--top-range <r>] [--ratios <r>] --json | download <id> <url> | palette <url> | adjust <src> <out> [--brightness N] [--contrast N] [--saturation N] [--warmth N] [--vignette] [--size W] | enhance <path> | moewalls-search [--query <q>] [--page <n>] --json | moewalls-download <id> <url> | extras-search [--query <q>] --json | extras-download <id> <url> | live-list | live-import <src> | local-list [--type <t>] [--query <q>] | local-remove <path>..." >&2
 	exit 2
 	;;
 esac

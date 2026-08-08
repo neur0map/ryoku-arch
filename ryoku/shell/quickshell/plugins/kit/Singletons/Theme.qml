@@ -2,42 +2,57 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
+// The plugin kit's design tokens. Colour resolves from the daemon palette
+// through the Scheme singleton so a plugin's card, ink and accent follow the active theme (a
+// fixed named scheme or the live wallpaper) instead of a hardcoded tint; the
+// RASHIN flame and the rest-card sky stay fixed identity, deliberately
+// independent of the accent. brand/verm are the live accent (the palette
+// primary); sun/gold are the fixed brand marks.
 Singleton {
-    // Accent follows the wallpaper when matchWallpaper is on (a core feature);
-    // the fixed fallback is the Ryoku brand vermillion (website tokens.css).
-    readonly property color brand:    Wallust.matchWallpaper ? Wallust.accent : "#e2342a"
+    // accent family: the live system accent (palette primary), with lit/deep
+    // variants tinted off it. brand + verm are the accent under their historical
+    // names, so existing plugin content follows the theme with no change.
+    readonly property color accent:   Scheme.accent
+    readonly property color brand:    Scheme.accent
     readonly property color verm:     brand
-    readonly property color vermLit:  Wallust.matchWallpaper ? Qt.lighter(Wallust.accent, 1.22) : "#e83b30"
-    readonly property color vermDeep: Wallust.matchWallpaper ? Qt.darker(Wallust.accent, 1.3) : "#b81f19"
+    readonly property color vermLit:  Qt.lighter(Scheme.accent, 1.22)
+    readonly property color vermDeep: Qt.darker(Scheme.accent, 1.3)
+    // fixed brand marks, never themed (the deliberate identity accents).
     readonly property color sun:      "#e2342a"
     readonly property color gold:     "#d9a441"
-    // warm-white text ramp (website --ink).
-    readonly property color cream:    "#e6dccb"
-    readonly property color bright:   "#f3ede1"
-    readonly property color dim:      "#8f8770"
-    // near-black canvas (website --paper), or wallust surfaces when matching.
-    readonly property color cardTop:  Wallust.matchWallpaper ? Wallust.base : "#16110b"
-    readonly property color cardBot:  Wallust.matchWallpaper ? Wallust.deep : "#0f0c07"
-    readonly property color border:   Wallust.matchWallpaper ? Wallust.line : Qt.rgba(243/255, 237/255, 225/255, 0.14)
-    readonly property color lineStrong: Qt.rgba(236/255, 226/255, 205/255, 0.40)
+    // text ramp, resolved from the palette so a plugin's copy reads on the themed
+    // card in light and dark alike.
+    readonly property color cream:    Scheme.onSurface
+    readonly property color bright:   Scheme.onSurface
+    readonly property color dim:      Scheme.onSurfaceVariant
+    // card surface, from the palette depth ramp. panelTop/panelBot are the Card
+    // gradient stops (aliases of cardTop/cardBot).
+    readonly property color cardTop:  Scheme.base
+    readonly property color cardBot:  Scheme.deep
+    readonly property color panelTop: cardTop
+    readonly property color panelBot: cardBot
+    readonly property color border:   Scheme.line
+    readonly property color lineStrong: Qt.rgba(bright.r, bright.g, bright.b, 0.40)
     readonly property color shadow:   "#000000"
-    readonly property color tileBg:   Wallust.matchWallpaper ? Wallust.elevated : "#1b150e"
-    readonly property color subtle:   "#c7bfae"
-    readonly property color faint:    "#5c5249"
-    readonly property color iconDim:  "#8f8770"
-    readonly property color hair:     Qt.rgba(243/255, 237/255, 225/255, 0.12)
-    readonly property color sheen:    Qt.rgba(243/255, 237/255, 225/255, 0.06)
+    readonly property color tileBg:   Scheme.elevated
+    readonly property color subtle:   Scheme.onSurface
+    readonly property color faint:    Scheme.onSurfaceVariant
+    readonly property color iconDim:  Scheme.onSurfaceVariant
+    readonly property color hair:     Qt.rgba(bright.r, bright.g, bright.b, 0.12)
+    readonly property color sheen:    Qt.rgba(bright.r, bright.g, bright.b, 0.06)
+    // ember tones for the flame gradients: warm browns of the fixed RASHIN
+    // identity, held independent of the accent.
     readonly property color vermDim:  "#b05a43"
     readonly property color vermDimDeep: "#65342b"
     readonly property color vermBurn: "#8f321d"
-    readonly property color tickRest: "#8f8770"
-    readonly property color threadBg: Qt.rgba(226/255, 52/255, 42/255, 0.13)
+    readonly property color tickRest: Scheme.onSurfaceVariant
+    readonly property color threadBg: Qt.rgba(accent.r, accent.g, accent.b, 0.13)
     readonly property color flameCore: "#ffd2bf"
     readonly property color flameGlow: "#ff9e64"
 
     // flame canvas ramp: literal hex strings (color type breaks here), fed
-    // straight into Canvas addColorStop/strokeStyle. a color property
-    // serializes to #aarrggbb and corrupts the gradient render.
+    // straight into Canvas addColorStop/strokeStyle. a color property serializes
+    // to #aarrggbb and corrupts the gradient render. Fixed RASHIN identity.
     readonly property string flameInk:   "#e83b30"
     readonly property string flameEmber: "#7a2a1a"
     readonly property string flameBurn:  "#8f321d"
@@ -49,9 +64,9 @@ Singleton {
     readonly property color sunGold:  "#ffc777"
     readonly property color moonGlow: "#7aa2f7"
     readonly property color moonDisc: "#c8d3f5"
-    readonly property color frameBg:     Qt.rgba(226/255, 52/255, 42/255, 0.10)
-    readonly property color frameBorder: Qt.rgba(243/255, 237/255, 225/255, 0.18)
-    readonly property color creamMenu:   Qt.rgba(230/255, 220/255, 203/255, 0.82)
+    readonly property color frameBg:     Qt.rgba(accent.r, accent.g, accent.b, 0.10)
+    readonly property color frameBorder: Qt.rgba(bright.r, bright.g, bright.b, 0.18)
+    readonly property color creamMenu:   Qt.rgba(bright.r, bright.g, bright.b, 0.82)
     readonly property real shadowOpacity: 0.5
     // type stack + brutalist geometry, the website language.
     readonly property string display: "Fraunces"

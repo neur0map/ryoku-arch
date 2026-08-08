@@ -1,354 +1,1612 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import Quickshell.Io
+import QtQuick.Controls
 import Quickshell
+import Quickshell.Io
+import Ryoku.Ui
+import Ryoku.Ui.Singletons
 import "Singletons"
+import "schema/DesktopPage.js" as DesktopSchema
+import "schema/AppearancePage.js" as AppearanceSchema
+import "schema/WindowsPage.js" as WindowsSchema
+import "schema/InputPage.js" as InputSchema
+import "schema/CursorPage.js" as CursorSchema
+import "schema/KeybindsPage.js" as KeybindsSchema
+import "schema/DisplaysPage.js" as DisplaysSchema
+import "schema/GpuPage.js" as GpuSchema
+import "schema/RecordingPage.js" as RecordingSchema
+import "schema/DictationPage.js" as DictationSchema
+import "schema/LauncherPage.js" as LauncherSchema
+import "schema/FastfetchPage.js" as FastfetchSchema
+import "schema/WidgetsPage.js" as WidgetsSchema
+import "schema/LockscreenPage.js" as LockscreenSchema
+import "schema/AnimationsPage.js" as AnimationsSchema
+import "schema/AddonsPage.js" as AddonsSchema
+import "schema/WindowRulesPage.js" as WindowRulesSchema
+import "schema/AppOverridesPage.js" as AppOverridesSchema
+import "schema/LayerRulesPage.js" as LayerRulesSchema
+import "schema/AutostartPage.js" as AutostartSchema
+import "schema/EnvironmentPage.js" as EnvironmentSchema
+import "schema/PerformancePage.js" as PerformanceSchema
+import "schema/UpdatesPage.js" as UpdatesSchema
+import Ryoku.FrameBars
 
-// Ryoku Settings = the nav rail (which owns global search) next to a content
-// area. no query -> selected section. with a query -> global results across
-// every section. data + persisted state come from the ryoku-hub Go backend.
-// most sections edit the live Hyprland (lua) config through that backend;
-// Shell tunes the desktop shell; Updates tracks the channel.
+// Ryoku Settings, assembled. The rail owns navigation and global search; the
+// head, cells and tabs are drawn once by SchemaPage from a page's schema; the
+// pinned side is the feedback loop (live preview, the dirty-state plate, the
+// pending-write diff); the action bar is the one surface whose absence eats an
+// edit, so it lives in the shell and no page can lose it.
+//
+// Nothing writes to disk except Save. Values live in `draft`; `committed` is
+// what the JsonAdapters hold from disk; the diff is draft against committed,
+// rendered in each file's own JSON syntax. Factory values live in `defs` and
+// only RESET reaches for them.
 Rectangle {
     id: hub
 
-    implicitWidth: 1360
+    implicitWidth: 1400
     implicitHeight: 880
+    color: Tokens.paper
+    focus: true
 
-    property string section: "displays"
-    property var keybindsModel: []
-    readonly property bool searching: navRail.query.length > 0
+    // ── which page ───────────────────────────────────────────────────────
+    property string section: "windows"
+    // remember the last section so a reopen lands where you left, not the default.
+    // Read once at startup by `sectionGet` below; written here on every change.
+    onSectionChanged: Quickshell.execDetached(["ryoku-hub", "config", "set", "section", hub.section])
+    property string query: ""
 
-    readonly property var sectionDefs: [
-        { "key": "profile",     "name": "Profile",         "icon": "user",     "pinned": "top" },
-        { "key": "displays",    "name": "Displays",        "icon": "display",  "group": "System" },
-        { "key": "input",       "name": "Input",           "icon": "mouse",    "group": "System" },
-        { "key": "keybinds",    "name": "Keybinds",        "icon": "keyboard", "group": "System" },
-        { "key": "connections", "name": "Connections",     "icon": "wifi",     "group": "System" },
-        { "key": "gpu",         "name": "GPU",             "icon": "chip",     "group": "System" },
-        { "key": "recording",   "name": "Recording",       "icon": "play",     "group": "System" },
-        { "key": "dictation",   "name": "Dictation",       "icon": "mic",      "group": "System" },
-        { "key": "updates",     "name": "Updates",         "icon": "download", "pinned": "bottom" },
-        { "key": "credits",     "name": "Credits",         "icon": "heart",    "pinned": "bottom" },
-        { "key": "appearance",  "name": "Appearance",      "icon": "palette",  "group": "Desktop" },
-        { "key": "shell",       "name": "Shell",           "icon": "gear",     "group": "Desktop" },
-        { "key": "launcher",    "name": "App Launcher",    "icon": "search",   "group": "Desktop" },
-        { "key": "fastfetch",   "name": "Fastfetch",       "icon": "terminal", "group": "Desktop" },
-        { "key": "widgets",     "name": "Desktop Widgets", "icon": "widgets",  "group": "Desktop" },
-        { "key": "lockscreen",  "name": "Lockscreen",      "icon": "lock",     "group": "Desktop" },
-        { "key": "animations",  "name": "Animations",      "icon": "motion",   "group": "Desktop" },
-        { "key": "store",       "name": "Store",           "icon": "sparkles", "group": "Add-ons" },
-        { "key": "addons",      "name": "Installed",       "icon": "widgets",  "group": "Add-ons" },
-        { "key": "windowrules", "name": "Window Rules",    "icon": "window",   "group": "Advanced" },
-        { "key": "appoverrides", "name": "App Overrides",  "icon": "window",   "group": "Advanced" },
-        { "key": "layerrules",  "name": "Layer Rules",     "icon": "window",   "group": "Advanced" },
-        { "key": "autostart",   "name": "Autostart",       "icon": "rocket",   "group": "Advanced" },
-        { "key": "environment", "name": "Environment",     "icon": "variable", "group": "Advanced" },
-        { "key": "performance", "name": "Performance",     "icon": "rocket",   "group": "Advanced" },
-        { "key": "rashin",      "name": "Rashin",          "icon": "compass",  "group": "Advanced" }
+    // progressive disclosure: one global Advanced switch (in the rail) reveals the
+    // deep knobs across every schema page. persisted like `section`, restored at
+    // startup by `advancedGet` below.
+    property bool advanced: false
+    onAdvancedChanged: Quickshell.execDetached(["ryoku-hub", "config", "set", "advanced", hub.advanced ? "1" : "0"])
+
+    // The full catalogue. `wired` marks the pages whose content and
+    // persistence are ported; the rest render an honest porting plate rather
+    // than a settings page that cannot save. `adv` marks the power-user
+    // sections: the rail hides them until Advanced is on (search still reaches
+    // them), so the everyday view is the handful of settings most people ever
+    // touch -- displays, wifi, theme, bar, lockscreen, updates -- while the deep
+    // desktop internals, per-window rules, tools, system plumbing and the agent
+    // OS stay out of the way until asked for.
+    readonly property var groups: [
+        { name: "OVERVIEW", items: [ { key: "profile", name: "Profile" } ] },
+        { name: "DEVICES", items: [
+            { key: "displays", name: "Displays" }, { key: "connections", name: "Connections" },
+            { key: "input", name: "Input" }, { key: "cursor", name: "Cursor", adv: true }, { key: "gpu", name: "GPU", adv: true } ] },
+        { name: "DESKTOP", items: [
+            { key: "windows", name: "Windows" }, { key: "appearance", name: "Appearance" }, { key: "bar-studio", name: "Bar Studio", wired: true }, { key: "desktop", name: "Desktop", wired: true },
+            { key: "widgets", name: "Widgets", adv: true }, { key: "animations", name: "Animations", adv: true },
+            { key: "lockscreen", name: "Lockscreen" }, { key: "launcher", name: "App Launcher" } ] },
+        { name: "APPS & KEYS", items: [
+            { key: "keybinds", name: "Keybinds" }, { key: "windowrules", name: "Window Rules", adv: true },
+            { key: "appoverrides", name: "App Overrides", adv: true }, { key: "layerrules", name: "Layer Rules", adv: true } ] },
+        { name: "TOOLS", items: [
+            { key: "recording", name: "Recording", adv: true }, { key: "dictation", name: "Dictation", adv: true },
+            { key: "fastfetch", name: "Fastfetch", adv: true } ] },
+        { name: "SYSTEM", items: [
+            { key: "performance", name: "Performance", adv: true }, { key: "autostart", name: "Autostart", adv: true },
+            { key: "environment", name: "Environment", adv: true } ] },
+        { name: "ADD-ONS", items: [
+            { key: "addons", name: "Add-ons" },
+            { key: "rashin", name: "Rashin", adv: true } ] },
+        { name: "", items: [ { key: "credits", name: "Credits" } ] }
     ]
 
-    readonly property var pageMeta: ({
-        "profile":     { "title": "Profile", "subtitle": "Your machine as a collector's specimen, built to share alongside your rice." },
-        "displays":    { "title": "Displays", "subtitle": "Detect and arrange your monitors: resolution, scale, rotation, mirroring, and saved layout profiles." },
-        "appearance":  { "title": "Appearance", "subtitle": "Window look: gaps, rounding, borders, opacity, blur, shadows, animations, and the cursor theme." },
-        "lockscreen":  { "title": "Lockscreen", "subtitle": "Choose the skin your lock screen wears. Ryoku ships the clockwork theme; picking one only swaps the look, never your login." },
-        "animations":  { "title": "Animations", "subtitle": "Tune Hyprland's animations and edit bezier curves with a live preview." },
-        "input":       { "title": "Input", "subtitle": "Keyboard layout, pointer feel, touchpad behaviour, and key repeat." },
-        "keybinds":    { "title": "Keybinds", "subtitle": "Every shortcut in the Ryoku desktop, read live from your Hyprland config, plus your own custom binds." },
-        "dictation":   { "title": "Dictation", "subtitle": "Voice typing with Voxtype: pick a speech-to-text engine and model, add a cloud API key if you use one, and dictate into any app with the voice keybind." },
-        "windowrules": { "title": "Window Rules", "subtitle": "Float, size, pin, or place windows by class or title." },
-        "appoverrides": { "title": "App Overrides", "subtitle": "Give a specific app its own look: opacity, corners, border, blur, shadow, and animations, overriding the global Appearance." },
-        "layerrules":  { "title": "Layer Rules", "subtitle": "Tweak layer-shell surfaces (bars, launchers) by namespace: blur, dim, no animation." },
-        "autostart":   { "title": "Autostart", "subtitle": "Commands that run when the session starts." },
-        "environment": { "title": "Environment", "subtitle": "Environment variables for the Hyprland session." },
-        "shell":       { "title": "Shell", "subtitle": "Tune the Ryoku shell: the frame, the bar, notifications, and the desktop visualiser." },
-        "widgets":     { "title": "Desktop Widgets", "subtitle": "Clock and weather on the wallpaper: pick a design, size, shape, and placement, with a live preview that follows your palette." },
-        "launcher":    { "title": "App Launcher", "subtitle": "Tune the command palette you open with Super+Space: its roundness, how much the desktop behind it blurs, the weather units, and the home card's backdrop and greeting." },
-        "fastfetch":   { "title": "Fastfetch", "subtitle": "The branded terminal readout: pick the emblem (an image, ASCII art, or a built-in), choose what shows, reorder and rename the rows, and edit the tagline, with a live preview." },
-        "connections": { "title": "Connections", "subtitle": "Wi-Fi networks, Bluetooth devices, and your hotspot, all in one place." },
-        "gpu":         { "title": "GPU", "subtitle": "Choose which GPU Ryoku renders on. GPU passthrough is an optional advanced path that frees the discrete GPU for a VM; run virtual machines from the ryovm app." },
-        "recording":   { "title": "Recording", "subtitle": "Screen recording quality: framerate, definition, codec, and the hardware encoder Ryoku uses for your machine. Start and stop from the bar's screen-capture Tools." },
-        "updates":     { "title": "Updates", "subtitle": "Updates pending for your Ryoku system." },
-        "credits":     { "title": "Credits", "subtitle": "The projects, communities, and people Ryoku is built on, and the alpha and beta testers who keep it honest." },
-        "store":       { "title": "Store", "subtitle": "Browse and install shell plugins and extras bundles for the Ryoku desktop." },
-        "addons":      { "title": "Add-ons", "subtitle": "Your installed plugins. Open one to change its settings, enable it, or remove it." },
-        "performance": { "title": "Performance", "subtitle": "Opt-in tweaks that trade a little eye-candy for lower CPU, GPU, and memory use on modest hardware." },
-        "rashin":      { "title": "Rashin", "subtitle": "Rashin, the needle (羅針): an optional local agent OS. A maintained system map plus the Hermes agent point every coding agent straight at your machine's answers." }
+    // Each section's terse kanji, paired with its Latin name in the rail. Latin
+    // names the thing; the kanji is its seal. The two scripts sitting together
+    // is the texture, and every gloss is the real word, never decoration:
+    // 外観 = appearance, 接続 = connections, 描画 = rendering (GPU), and so on.
+    readonly property var jpName: ({
+        "profile": "横顔", "displays": "画面", "input": "入力", "cursor": "矢印", "keybinds": "操作",
+        "connections": "接続", "gpu": "描画", "recording": "録画", "dictation": "音声",
+        "windows": "窓", "appearance": "外観", "bar-studio": "帯", "desktop": "卓上", "launcher": "起動", "fastfetch": "情報",
+        "widgets": "部品", "lockscreen": "施錠", "animations": "動き",
+        "addons": "拡張", "windowrules": "規則", "appoverrides": "上書", "layerrules": "階層",
+        "autostart": "自動", "environment": "環境", "performance": "性能", "rashin": "羅針",
+        "updates": "更新", "credits": "謝辞"
     })
 
-    function known(s) {
-        for (var i = 0; i < hub.sectionDefs.length; i++)
-            if (hub.sectionDefs[i].key === s)
-                return true;
-        return false;
-    }
+    // Extra search vocabulary per section: the words a user actually types that
+    // the labels never use. This is what lets the search reach a page with no
+    // schema rows (Connections, Rashin) and cover synonyms the copy avoids
+    // (transparency->opacity, startup->autostart, screensaver->lockscreen).
+    readonly property var sectionKeywords: ({
+        "profile": "dashboard status overview telemetry hostname cpu gpu memory uptime specs",
+        "displays": "monitor screen resolution refresh scale rotation arrange mirror hidpi dual second external multiple",
+        "connections": "wifi wi-fi wireless bluetooth network hotspot tether internet ethernet pair pairing device",
+        "input": "keyboard mouse touchpad pointer trackpad sensitivity scroll layout dvorak remap capslock repeat gesture",
+        "cursor": "cursor pointer mouse arrow theme size hide idle timeout motion dynamic rotate tilt stretch shake magnify",
+        "keybinds": "shortcuts hotkeys binds keys browser terminal editor files launch super",
+        "gpu": "graphics nvidia amd vram passthrough vfio rendering hybrid performance",
+        "recording": "screen record capture video screencast screenshot fps codec framerate",
+        "dictation": "voice typing speech transcribe whisper microphone stt",
+        "windows": "window windows rounding corners softness gaps border borders thickness colour tiling dwindle master scrolling layout opacity transparency transparent dim blur shadow glow glass wobble wobbly title bar titlebar float snap resize animation",
+        "appearance": "theme palette accent color colour wallpaper background rice scheme dark light night bluelight comfort brightness backlight",
+        "bar-studio": "bar frame rails zones widgets menus surfaces style catalogue layout framebars sidebar",
+        "desktop": "desktop visualizer visualiser spectrum weather brand logo mark name widget board wallpaper",
+        "launcher": "launcher spotlight command palette greeting weather home",
+        "fastfetch": "fetch neofetch terminal system info logo ascii emblem readout",
+        "widgets": "desktop widget clock calendar weather face overlay wallpaper",
+        "lockscreen": "lock screensaver signin greeter skin theme login",
+        "animations": "animation animations motion transition bezier curve speed feel wobbly disable enable toggle",
+        "addons": "installed plugin addon extension manage enable remove update widget bundle extras store marketplace browse",
+        "windowrules": "window rule float pin size place opacity class title override",
+        "appoverrides": "app override per-app opacity blur corner class inherit opaque transparent",
+        "layerrules": "layer rule namespace blur dim bar notification surface",
+        "autostart": "autostart startup launch login run command boot",
+        "environment": "environment variable env var session export",
+        "performance": "performance battery power saving save lowpower potato lag cpu gpu ram memory idle freeze reduce motion fps",
+        "rashin": "rashin agent ai assistant hermes vault memory skills chat code llm needle",
+        "updates": "update upgrade version channel commit behind check origin",
+        "credits": "credits thanks acknowledgement gratitude contributor"
+    })
 
-    // The section's group name, for the page eyebrow ("SYSTEM", "DESKTOP", …).
-    // Pinned sections (Profile, Updates) have no group; label them "Settings".
-    function groupFor(s) {
-        for (var i = 0; i < hub.sectionDefs.length; i++)
-            if (hub.sectionDefs[i].key === s)
-                return hub.sectionDefs[i].group || "Settings";
-        return "Settings";
-    }
-
-    gradient: Gradient {
-        GradientStop { position: 0.0; color: Theme.bgTop }
-        GradientStop { position: 1.0; color: Theme.bgBot }
-    }
-
-    focus: true
-    Keys.onEscapePressed: Qt.quit()
-    Keys.onPressed: (e) => {
-        if (e.key === Qt.Key_K && (e.modifiers & Qt.ControlModifier)) {
-            navRail.focusSearch();
-            e.accepted = true;
-        }
-    }
-
-    Process {
-        id: kbProc
-        command: ["ryoku-hub", "keybinds"]
-        running: true
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    hub.keybindsModel = JSON.parse(this.text).categories;
-                } catch (e) {
-                    console.log("hub: keybinds parse failed: " + e);
-                }
+    // ── global search ────────────────────────────────────────────────────
+    // The rail search matches page titles AND every option (label, hint, key)
+    // inside every schema page, so "noise" finds the Blur noise control from
+    // anywhere. Ranking is fuzzy: exact word > substring > subsequence.
+    readonly property var searchIndex: {
+        var srcs = {
+            "bar-studio": [], "desktop": DesktopSchema.rows, "appearance": AppearanceSchema.rows, "windows": WindowsSchema.rows,
+            "input": InputSchema.rows, "cursor": CursorSchema.rows, "keybinds": KeybindsSchema.rows,
+            "displays": DisplaysSchema.rows, "gpu": GpuSchema.rows,
+            "recording": RecordingSchema.rows, "dictation": DictationSchema.rows,
+            "launcher": LauncherSchema.rows, "fastfetch": FastfetchSchema.rows,
+            "widgets": WidgetsSchema.rows, "lockscreen": LockscreenSchema.rows,
+            "animations": AnimationsSchema.rows, "addons": AddonsSchema.rows,
+            "windowrules": WindowRulesSchema.rows, "appoverrides": AppOverridesSchema.rows,
+            "layerrules": LayerRulesSchema.rows, "autostart": AutostartSchema.rows,
+            "environment": EnvironmentSchema.rows, "performance": PerformanceSchema.rows,
+            "updates": UpdatesSchema.rows
+        };
+        // a real, navigable setting vs a doc-only "surface" row (an action button
+        // or a dynamic-title note) whose engineering copy must never surface.
+        var isSetting = function (r) {
+            if (!r || !r.label) return false;
+            if (r.ctl === "action" || r.ctl === "layoutdemo") return false;
+            if (/^\s*\(/.test(r.label) || /\((action bar|quick action)\)/.test(r.label)) return false;
+            return true;
+        };
+        // a result breadcrumb shows the group; the schemas hide engineering notes
+        // in it (parentheticals, <dynamic> tokens), so drop those from display.
+        var cleanGroup = function (g) {
+            if (!g) return "";
+            if (g.indexOf("(") >= 0 || g.indexOf("<") >= 0) return "";
+            return g;
+        };
+        var nameOf = {}, out = [];
+        for (var gi = 0; gi < groups.length; gi++)
+            for (var ii = 0; ii < groups[gi].items.length; ii++) {
+                var it = groups[gi].items[ii];
+                nameOf[it.key] = it.name;
+                out.push({ section: it.key, sectionName: it.name, group: "", tab: "", label: it.name, desc: "", kw: sectionKeywords[it.key] || "", key: "", isPage: true });
+            }
+        // Updates left the rail for the top-right corner button, so it has no
+        // page row here; its one setting still surfaces in search, named right.
+        nameOf["updates"] = "Updates";
+        for (var k in srcs) {
+            var rows = srcs[k] || [];
+            for (var ri = 0; ri < rows.length; ri++) {
+                var r = rows[ri];
+                if (!isSetting(r)) continue;
+                // a setting also matches its option values (h264, dwindle, dark,
+                // fahrenheit): index the lowercase ones (skips DisplaysPage's
+                // capitalised doc placeholders) so an enum value finds its row.
+                var optkw = r.opts ? r.opts.filter(function (o) { return typeof o === "string" && /^[a-z0-9][a-z0-9 ._/-]*$/.test(o); }).join(" ") : "";
+                out.push({ section: k, sectionName: nameOf[k] || k, group: cleanGroup(r.group), tab: r.tab || "", label: r.label, desc: r.desc || "", kw: optkw, key: r.key || "", isPage: false });
             }
         }
+        return out;
+    }
+    // Intent map: what a user types -> the vocabulary the index actually uses.
+    // This is the "semantic" layer without a model: a curated synonym table for
+    // a bounded settings vocabulary matches intent far more cheaply (and
+    // predictably) than a local embedding runtime would. A query word expands to
+    // itself plus these, and any one of them satisfying a term counts as a hit.
+    readonly property var synonyms: ({
+        "transparency": "opacity", "transparent": "opacity", "seethrough": "opacity transparency", "opacity": "transparency",
+        "darkmode": "dark scheme theme", "lightmode": "light scheme theme", "theme": "appearance scheme palette",
+        "wallpaper": "appearance background", "color": "colour appearance palette", "colour": "color appearance palette", "accent": "appearance colour",
+        "hotkey": "keybind shortcut", "hotkeys": "keybinds shortcuts", "shortcut": "keybind", "shortcuts": "keybinds",
+        "wifi": "connections wireless network", "internet": "connections network", "ethernet": "connections network", "bluetooth": "connections", "hotspot": "connections",
+        "brightness": "backlight", "backlight": "brightness", "nightlight": "night comfort backlight", "warmth": "night comfort", "bluelight": "night comfort",
+        "volume": "audio sound", "sound": "audio", "font": "typeface appearance", "typeface": "font appearance",
+        "screenshot": "recording capture", "screencast": "recording capture", "screensaver": "lockscreen lock", "lock": "lockscreen",
+        "startup": "autostart", "boot": "autostart", "battery": "performance power", "powersaving": "performance power", "potato": "performance", "lag": "performance",
+        "gap": "gaps spacing", "spacing": "gaps", "glass": "hyprglass blur liquid", "liquid": "hyprglass glass",
+        "titlebar": "hyprbars title bar", "titlebars": "hyprbars title bar", "plugin": "plugins hyprland", "plugins": "hyprland",
+        "monitor": "displays screen", "monitors": "displays screen", "resolution": "displays screen", "hidpi": "displays scale", "refresh": "displays",
+        "mouse": "cursor pointer input", "pointer": "cursor input", "keyboard": "input", "touchpad": "input trackpad", "trackpad": "input touchpad",
+        "visualizer": "desktop spectrum", "visualiser": "desktop spectrum", "clock": "widgets desktop", "notifications": "layerrules",
+        "update": "updates upgrade", "upgrade": "updates", "blur": "windows glass", "rounding": "windows corners", "corners": "windows rounding",
+        "animation": "animations motion", "motion": "animations", "gpu": "graphics", "graphics": "gpu",
+        "voice": "dictation", "speech": "dictation voice", "microphone": "dictation", "mic": "dictation"
+    })
+    // a query word expands to itself plus its synonyms, so a term is satisfied by
+    // any one of them (and never dilutes multi-word coverage).
+    function expandQuery(q) {
+        var words = q.split(/\s+/), groups = [];
+        for (var i = 0; i < words.length; i++) {
+            var w = words[i];
+            if (!w) continue;
+            var g = [w], syn = synonyms[w];
+            if (syn) { var ps = syn.split(/\s+/); for (var j = 0; j < ps.length; j++) if (ps[j]) g.push(ps[j]); }
+            groups.push(g);
+        }
+        return groups;
+    }
+    // bounded Levenshtein: returns the distance if <= max, else -1, with an
+    // early length-diff reject and a per-row floor so it stays cheap in the
+    // per-keystroke loop.
+    function editDistance(a, b, max) {
+        var la = a.length, lb = b.length, j;
+        if (Math.abs(la - lb) > max) return -1;
+        var prev = [], cur = [];
+        for (j = 0; j <= lb; j++) prev[j] = j;
+        for (var i = 1; i <= la; i++) {
+            cur[0] = i;
+            var rowMin = i;
+            for (j = 1; j <= lb; j++) {
+                var cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+                var v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+                cur[j] = v;
+                if (v < rowMin) rowMin = v;
+            }
+            if (rowMin > max) return -1;
+            var tmp = prev; prev = cur; cur = tmp;
+        }
+        return prev[lb] <= max ? prev[lb] : -1;
+    }
+    function wordScore(w, text) {
+        var tws = text.split(/[^a-z0-9]+/);
+        var best = 0;
+        for (var i = 0; i < tws.length; i++) {
+            var tw = tws[i];
+            if (tw === "") continue;
+            var idx = tw.indexOf(w);
+            if (idx === 0) { if (best < 1200) best = 1200; continue; }
+            if (idx > 0) { var ss = 1000 - Math.min(idx, 50); if (ss > best) best = ss; continue; }
+            if (w.length <= tw.length) {
+                var ti = 0, sc = 0, streak = 0, ok = true;
+                for (var ci = 0; ci < w.length; ci++) {
+                    var f = tw.indexOf(w.charAt(ci), ti);
+                    if (f < 0) { ok = false; break; }
+                    streak = (f === ti) ? streak + 1 : 0;
+                    sc += 2 + streak * 3;
+                    ti = f + 1;
+                }
+                if (ok && sc > best) best = sc;
+            }
+        }
+        // typo tolerance: a near-miss still matches, weaker than a clean hit, so
+        // "trasparency" or "keybnd" still reach their setting. gated on nothing
+        // cleaner matching and bounded, so it stays cheap per keystroke.
+        if (best < 600 && w.length >= 4) {
+            for (var t = 0; t < tws.length; t++) {
+                var tw2 = tws[t];
+                if (tw2.length < 3) continue;
+                var d = editDistance(w, tw2, w.length >= 7 ? 2 : 1);
+                if (d >= 0) { var es = 640 - d * 140; if (es > best) best = es; }
+            }
+        }
+        return best;
+    }
+    // Tolerant multi-word scoring over expanded groups: each term scores its best
+    // synonym (a synonym counts a touch less than the typed word), summed and
+    // scaled by how much of the query landed, so one out-of-vocab word never
+    // blanks the rail and a synonym or typo still finds the page.
+    function searchScore(groups, text) {
+        var total = 0, matched = 0, n = 0;
+        for (var gi = 0; gi < groups.length; gi++) {
+            n++;
+            var g = groups[gi], best = 0;
+            for (var wi = 0; wi < g.length; wi++) {
+                var s = wordScore(g[wi], text);
+                if (wi > 0) s *= 0.85;
+                if (s > best) best = s;
+            }
+            if (best > 0) { total += best; matched++; }
+        }
+        if (matched === 0 || n === 0) return 0;
+        return total * (matched / n);
+    }
+    readonly property var searchResults: {
+        var q = query.toLowerCase().trim();
+        if (q === "") return [];
+        var groups = expandQuery(q);
+        var scored = [];
+        for (var i = 0; i < searchIndex.length; i++) {
+            var e = searchIndex[i];
+            var full = (e.label + " " + e.desc + " " + e.sectionName + " " + e.group + " " + e.tab + " " + e.kw).toLowerCase();
+            var s = searchScore(groups, full);
+            if (s <= 0) continue;
+            s += 2 * searchScore(groups, e.label.toLowerCase());
+            var kwHit = searchScore(groups, (e.sectionName + " " + e.tab + " " + e.kw).toLowerCase());
+            s += kwHit;
+            if (e.isPage) s += 300 + 3 * kwHit;
+            scored.push({ e: e, s: s });
+        }
+        scored.sort(function (a, b) { return b.s - a.s; });
+        var out = [];
+        for (var j = 0; j < Math.min(scored.length, 60); j++) out.push(scored[j].e);
+        return out;
     }
 
+    // Layout class per section, kept as sets so the chrome is derived from the
+    // section and never from the mid-load item: that is what stops the rail,
+    // side column and bar reflowing (flickering) during an async page swap.
+    // `framed` pages keep the rail + bottom action bar; `ledger` pages also get
+    // the right write-ledger column. Everything else is full-bleed.
+    readonly property var framedSet: ({
+        "bar-studio": true, "desktop": true, "appearance": true, "windows": true, "input": true, "cursor": true, "animations": true,
+        "windowrules": true, "appoverrides": true, "layerrules": true,
+        "autostart": true, "environment": true
+    })
+    // Which rail sections drive the Hyprland compositor (they write settings.lua:
+    // input, window/layer rules, keybinds, animations, autostart, env, plus the
+    // display and cursor hardware). Everything else configures the Ryoku shell.
+    readonly property var hyprlandSet: ({
+        "displays": true, "input": true, "cursor": true, "windows": true,
+        "animations": true, "keybinds": true, "windowrules": true,
+        "appoverrides": true, "layerrules": true, "autostart": true, "environment": true
+    })
+    // A shell (non-Hyprland) section gets the red rail marker, so the settings that
+    // drive the desktop shell read apart from the compositor ones at a glance.
+    function isShellSection(key) { return !hub.hyprlandSet[key]; }
+
+    readonly property var pageMeta: ({})
+    function metaFor(s) {
+        return hub.pageMeta[s] || { title: hub.nameFor(s), eyebrow: hub.groupFor(s), blurb: "" };
+    }
+    function nameFor(s) {
+        for (var g = 0; g < groups.length; g++)
+            for (var i = 0; i < groups[g].items.length; i++)
+                if (groups[g].items[i].key === s) return groups[g].items[i].name;
+        return s;
+    }
+    function groupFor(s) {
+        for (var g = 0; g < groups.length; g++)
+            for (var i = 0; i < groups[g].items.length; i++)
+                if (groups[g].items[i].key === s) return groups[g].name || "SETTINGS";
+        return "SETTINGS";
+    }
+    function isWired(s) {
+        for (var g = 0; g < groups.length; g++)
+            for (var i = 0; i < groups[g].items.length; i++)
+                if (groups[g].items[i].key === s) return groups[g].items[i].wired === true;
+        return false;
+    }
+    function pageFile(s) {
+        var map = { "windows": "WindowsPage", "profile": "ProfilePage", "bar-studio": "BarStudioPage", "desktop": "DesktopPage", "environment": "EnvironmentPage", "autostart": "AutostartPage", "layerrules": "LayerRulesPage", "windowrules": "WindowRulesPage", "appoverrides": "AppOverridesPage", "animations": "AnimationsPage", "appearance": "AppearancePage", "input": "InputPage", "cursor": "CursorPage", "keybinds": "KeybindsPage", "dictation": "DictationPage", "displays": "DisplaysPage", "connections": "ConnectionsPage", "gpu": "GpuPage", "updates": "UpdatesPage", "rashin": "RashinPage", "recording": "RecordingPage", "performance": "PerformancePage", "launcher": "LauncherPage", "lockscreen": "LockscreenPage", "fastfetch": "FastfetchPage", "addons": "AddonsPage", "widgets": "WidgetsPage", "credits": "CreditsPage" };
+        return map[s] ? Qt.resolvedUrl("pages/" + map[s] + ".qml") : "";
+    }
+    function openPick(r) { picker.openFor(r); }
+
+    // ── the store ─────────────────────────────────────────────────────────
+    // draft is the live full map; committed mirrors disk; defs are factory.
+    property var draft: ({})
+    property var committed: ({})
+    property bool pristine: true
+
+    readonly property var defs: ({
+        "frameRadius": 9, "roundness": 10, "frameBorder": 59, "frameEnabled": true,
+        "frameSmoothing": 8, "frameOpacity": 1, "shadowStrength": 0.63, "shadowSize": 12,
+        "frameThickness": 2, "frameCorner": 8,
+        "surfaceColor": "#0f1115", "osdRadius": 28, "osdOpacity": 1,
+        "fontFamily": "Space Grotesk", "fontScale": 1.3,
+        "frameBars": FrameBars.defaultConfig(),
+        "weatherLocation": "", "weatherUnit": "auto",
+        "enabled": true, "bars": 64, "height": 0.42, "thickness": 0.58, "bloom": 0.6,
+        "reflection": 0.1, "idleWave": true, "style": "bars", "shape": "rounded",
+        "position": "bottom", "mirror": false, "segments": 10, "fps": 30,
+        "adaptive": true, "smoothing": 0.5, "gain": 1.0, "peaks": false,
+        "markText": "力", "markImage": "", "markTint": true, "name": "Ryoku",
+        "language": "Auto", "barStyle": "sumi", "obi": {}, "nacre": NacreConfig.defaultConfig(), "qsbar": {}
+    })
+
+    // key -> source file, derived from the schema so it cannot drift.
+    readonly property var srcOf: {
+        var m = {};
+        var rows = DesktopSchema.rows;
+        for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
+            if (r.src && r.src !== "none") m[r.key] = r.src;
+        }
+        m.frameBars = "shell";
+        return m;
+    }
+    function adapterFor(src) { return src === "viz" ? vizA : brandA; }
+    function fileFor(src) { return src === "viz" ? "visualizer" : (src === "brand" ? "brand" : "shell"); }
+
+    // The full config files backing the current page: the source of truth the GUI
+    // writes and the user can hand-edit in place (every value present, not a sparse
+    // overlay). Plus the shipped base they layer over. Opened from the FILES
+    // masthead chip; the overlay model lives in docs/updates.md.
+    function settingsFiles() {
+        var s = hub.section;
+        if (hub.pageFile(s) === "") return [];
+        var ce = hub.cfgDir;
+        var ue = ce + "/user_edits/hypr";
+        var home = Quickshell.env("HOME") || "";
+        var out = [];
+        if (hub.hyprlandSet[s]) {
+            out.push({ role: "yours", label: "Your Hyprland config", path: ce + "/hypr.json",
+                note: "Every Hyprland setting the pages control, with your values, in one full file you edit in place. The GUI writes this same file and reads your hand-edits back on open." });
+            out.push({ role: "advanced", label: "Raw overrides", path: ue + "/user.lua",
+                seed: "-- Your Hyprland overrides. Loaded last, so this wins over the\\n-- hub-generated files and the shipped base. Updates never touch it.\\n",
+                note: "Advanced, starts empty. Hand-written Hyprland for anything the GUI does not expose; loaded last, so it wins over all." });
+            out.push({ role: "base", label: "Shipped base", path: home + "/.config/hypr/modules",
+                note: "Ryoku's defaults (Lua logic), refreshed every update; your config above wins. The compositor loads a generated copy of your settings, which you never edit." });
+        } else {
+            out.push({ role: "yours", label: "Your shell config", path: ce + "/shell.json",
+                note: "Every shell setting, with your values, in one full file you edit in place. The GUI writes it and the shell retunes live when you save a hand-edit." });
+            if (s === "desktop" || s === "appearance") {
+                out.push({ role: "yours", label: "Widget visuals", path: ce + "/visualizer.json",
+                    note: "Visualiser and desktop-widget visuals, a full file you edit in place." });
+                out.push({ role: "yours", label: "Brand mark", path: ce + "/brand.json",
+                    note: "The brand mark and hero, a full file you edit in place." });
+            }
+            out.push({ role: "base", label: "Shipped defaults", noOpen: true,
+                note: "Ship in the shell package and refresh each update; your config above overrides them." });
+        }
+        return out;
+    }
+    function tildePath(p) {
+        var home = Quickshell.env("HOME") || "";
+        return (home && p.indexOf(home) === 0) ? "~" + p.substring(home.length) : p;
+    }
+    // Ensure a user file exists (seeding a header when given), then open it via
+    // xdg-open (mimeapps route text/json/lua to ryoku-nvim); a base dir opens in
+    // the file manager.
+    function openSettingsFile(e) {
+        if (!e || e.noOpen || !e.path)
+            return;
+        var dir = e.path.substring(0, e.path.lastIndexOf("/"));
+        var sh = "mkdir -p \"" + dir + "\"; ";
+        if (e.seed)
+            sh += "[ -e \"" + e.path + "\" ] || printf \"" + e.seed + "\" > \"" + e.path + "\"; ";
+        sh += "xdg-open \"" + e.path + "\"";
+        Quickshell.execDetached(["sh", "-c", sh]);
+    }
+
+    function snapshot() {
+        var s = {};
+        for (var k in defs) {
+            var src = srcOf[k] || "shell";
+            if (src === "shell") { var v = Settings.get(k); s[k] = v === undefined ? defs[k] : v; }
+            else s[k] = adapterFor(src)[k];
+        }
+        return s;
+    }
+    function rebase() {
+        hub.committed = snapshot();
+        if (hub.pristine) hub.draft = JSON.parse(JSON.stringify(hub.committed));
+        // the first real daemon frame is the saved state Bar Studio's live
+        // edits are measured against (and walked back to on an unsaved close)
+        if (!hub.liveBaseline && Settings.ready) hub.captureLiveBaseline();
+    }
+    function val(k) { var v = draft[k]; return v === undefined ? committed[k] : v; }
+    function edit(k, v) {
+        hub.pristine = false;
+        var d = {}; for (var x in draft) d[x] = draft[x];
+        d[k] = v; hub.draft = d;
+    }
+    readonly property int dirty: {
+        var n = 0;
+        for (var k in defs) {
+            if (draft[k] === undefined || committed[k] === undefined) continue;
+            if (JSON.stringify(draft[k]) !== JSON.stringify(committed[k])) n++;
+        }
+        return n + hub.hyprChanges().length + (hub.pageDirty ? 1 : 0) + hub.liveChanges.length;
+    }
+
+    // ── Bar Studio live-apply ────────────────────────────────────────────
+    // The frame keys and frameBars are native settings-daemon keys, so a Bar
+    // Studio edit applies to the RUNNING desktop as it is staged: stageLive
+    // stages the draft like any edit and rides a coalesced settings.patch to
+    // the daemon, which repaints the pill live. The daemon's re-push rebases
+    // committed onto the patched value, so the unsaved distance is kept here
+    // against liveBaseline: the state at open, re-snapshotted on every Save.
+    // Quit and Revert walk the desktop back to that baseline through the same
+    // channel, so an unsaved close leaves no residue.
+    readonly property var liveKeys: ["frameBars", "frameEnabled", "frameOpacity", "frameThickness", "frameCorner", "fontFamily", "barStyle", "obi", "nacre", "qsbar"]
+    property var liveBaseline: null
+    property var livePending: ({})
+    function captureLiveBaseline() {
+        var b = {};
+        for (var i = 0; i < hub.liveKeys.length; i++) {
+            var k = hub.liveKeys[i];
+            var v = hub.val(k);
+            b[k] = JSON.parse(JSON.stringify(v === undefined ? hub.defs[k] : v));
+        }
+        hub.liveBaseline = b;
+    }
+    function stageLive(k, v) {
+        hub.edit(k, v);
+        var p = {};
+        for (var x in hub.livePending) p[x] = true;
+        p[k] = true;
+        hub.livePending = p;
+        liveFlush.restart();
+    }
+    Timer {
+        id: liveFlush
+        interval: 130
+        onTriggered: {
+            for (var k in hub.livePending) Settings.patch(k, hub.val(k));
+            hub.livePending = ({});
+        }
+    }
+    // the live-applied keys that have drifted from the saved baseline
+    readonly property var liveChanges: {
+        var out = [];
+        if (!hub.liveBaseline) return out;
+        for (var i = 0; i < hub.liveKeys.length; i++) {
+            var k = hub.liveKeys[i];
+            var v = hub.val(k);
+            if (v === undefined) continue;
+            if (JSON.stringify(v) !== JSON.stringify(hub.liveBaseline[k])) out.push(k);
+        }
+        return out;
+    }
+    // put the saved state back on the desktop; true if anything was patched
+    function restoreLiveUnsaved() {
+        liveFlush.stop();
+        hub.livePending = ({});
+        if (!hub.liveBaseline) return false;
+        var changed = hub.liveChanges;
+        if (!changed.length) return false;
+        var d = {};
+        for (var x in hub.draft) d[x] = hub.draft[x];
+        for (var i = 0; i < changed.length; i++) {
+            var k = changed[i];
+            Settings.patch(k, hub.liveBaseline[k]);
+            d[k] = JSON.parse(JSON.stringify(hub.liveBaseline[k]));
+        }
+        hub.draft = d;
+        return true;
+    }
+    function save() {
+        var files = {};
+        for (var k in defs) {
+            if (draft[k] === undefined || committed[k] === undefined) continue;
+            if (JSON.stringify(draft[k]) === JSON.stringify(committed[k])) continue;
+            var src = srcOf[k] || "shell";
+            if (src === "shell") Settings.patch(k, draft[k]);
+            else adapterFor(src)[k] = draft[k];
+            files[src] = true;
+        }
+        if (files.viz) vizFV.writeAdapter();
+        if (files.brand) brandFV.writeAdapter();
+        hub.committed = JSON.parse(JSON.stringify(hub.draft));
+        // language rides the normal Save: the file it just wrote (shell.json) is
+        // watched by every Ryoku surface's shared I18n, so the whole desktop
+        // retranslates. Set it here too so this window switches deterministically.
+        if (files.shell) I18n.configLang = hub.committed.language || "Auto";
+        if (hub.hyprChanges().length) {
+            hyprSave.command = ["ryoku-hub", "hypr", "save", JSON.stringify(hub.hyprDraft)];
+            hyprSave.running = true;
+            hub.hyprCommitted = JSON.parse(JSON.stringify(hub.hyprDraft));
+        }
+        hub.captureLiveBaseline();
+        hub.savePage();
+    }
+    function revert() {
+        hub.draft = JSON.parse(JSON.stringify(hub.committed));
+        hub.restoreLiveUnsaved();
+        hub.hyprDraft = JSON.parse(JSON.stringify(hub.hyprCommitted));
+        if (hub.hyprLoaded) { hyprRestore.command = ["ryoku-hub", "hypr", "restore"]; hyprRestore.running = true; }
+        hub.revertPage();
+    }
+    function resetDefaults() {
+        hub.pristine = false;
+        hub.draft = JSON.parse(JSON.stringify(hub.defs));
+        if (Object.keys(hub.hyprDefaults).length) hub.hyprDraft = JSON.parse(JSON.stringify(hub.hyprDefaults));
+    }
+
+    // the diff, grouped by file, in each file's own JSON syntax.
+    readonly property var diff: {
+        var by = { shell: [], viz: [], brand: [] };
+        for (var k in defs) {
+            if (draft[k] === undefined || committed[k] === undefined) continue;
+            if (JSON.stringify(draft[k]) === JSON.stringify(committed[k])) continue;
+            var src = srcOf[k] || "shell";
+            by[src].push({ key: k, was: JSON.stringify(committed[k]), now: JSON.stringify(draft[k]) });
+        }
+        var out = [];
+        var order = ["shell", "viz", "brand"];
+        for (var i = 0; i < order.length; i++)
+            if (by[order[i]].length)
+                out.push({ file: hub.fileFor(order[i]) + ".json", changes: by[order[i]] });
+        var hc = hub.hyprChanges();
+        if (hc.length) out.push({ file: "settings.lua", changes: hc });
+        return out;
+    }
+
+    Component.onCompleted: rebase()
     Process {
-        id: loadSection
+        id: sectionGet
         command: ["ryoku-hub", "config", "get", "section"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
                 var s = this.text.trim();
-                if (hub.known(s))
-                    hub.section = s;
+                if (s && hub.pageFile(s) !== "") hub.section = s;
             }
         }
     }
-
-    Process { id: saveSection }
-    Process { id: restoreProc }
-
-    function go(s) {
-        navRail.query = "";
-        if (hub.section === s)
-            return;
-        // leaving a live-preview page (Appearance, Input) with unsaved edits:
-        // reset the desktop to the saved state. the page's own teardown can't
-        // run a process reliably, so the persistent hub does it.
-        if (pageLoader.item && pageLoader.item.previewDirty === true) {
-            restoreProc.command = ["ryoku-hub", "hypr", "restore"];
-            restoreProc.running = true;
-        }
-        hub.section = s;
-        saveSection.command = ["ryoku-hub", "config", "set", "section", s];
-        saveSection.running = true;
-    }
-
-    // The section's config files for the header buttons, split by ownership.
-    // edit = the durable file you can hand-edit and keep across updates
-    // (hypr/user.lua for the Hyprland sections, monitors_user.lua for Displays,
-    // or a Hub-owned JSON); view = Ryoku's shipped defaults, read-only, since an
-    // update replaces them. settings.lua is deliberately NOT shown: it is
-    // generated from your Hub choices (hypr.json) and rewritten on every Save,
-    // so it is never a file to open or edit. GPU is view-only (ryoku-gpu writes
-    // it). editTip/viewTip explain each button in a hover tooltip.
-    function configFor(s) {
-        var base = Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config");
-        var hypr = base + "/hypr";
-        var ryoku = base + "/ryoku";
-        var user = hypr + "/user.lua";
-        var mod = hypr + "/modules/";
-        // shared tooltips for the Hyprland sections, whose edit target is user.lua.
-        var userTip = "Your own Hyprland Lua, loaded last so it wins over everything here. For tweaks the settings above don't cover; updates never touch it. What you set above is saved separately and also survives updates, so you rarely need this.";
-        var defTip = "Read-only. Ryoku's shipped defaults for this section. An update replaces this file, so make your changes above, in the GUI.";
-        function luaSec(view) { return { "edit": [user], "view": view, "editLabel": "Edit user.lua", "editTip": userTip, "viewTip": defTip }; }
-        switch (s) {
-        case "input":       return luaSec([mod + "input.lua"]);
-        case "keybinds":    return luaSec([mod + "binds.lua"]);
-        case "appearance":  return luaSec([mod + "decoration.lua"]);
-        case "animations":  return luaSec([mod + "animations.lua"]);
-        case "windowrules": return luaSec([mod + "window_rules.lua"]);
-        case "appoverrides": return luaSec([mod + "window_rules.lua"]);
-        case "layerrules":  return luaSec([]);
-        case "autostart":   return luaSec([mod + "autostart.lua"]);
-        case "environment": return luaSec([mod + "env.lua"]);
-        case "displays":    return { "edit": [hypr + "/monitors_user.lua"], "view": [hypr + "/monitors.lua"], "editLabel": "Edit overrides", "editTip": "Hand-written display tweaks (forced modes, a pinned layout), loaded after the auto-detected layout so they win. Survives updates; see monitors_user.lua.example.", "viewTip": "Read-only. The display layout Ryoku detected and wrote; regenerated when your monitors change." };
-        case "gpu":         return { "edit": [], "view": [hypr + "/gpu.lua"], "viewTip": "Read-only. GPU config written by ryoku-gpu; regenerated on GPU or driver changes." };
-        case "shell":       return { "edit": [ryoku + "/shell.json", ryoku + "/visualizer.json"], "editLabel": "Edit config", "editTip": "Opens this section's config files, where the Hub saves your changes. Yours; survives updates." };
-        case "widgets":     return { "edit": [ryoku + "/widgets.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
-        case "launcher":    return { "edit": [ryoku + "/launcher.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
-        case "fastfetch":   return { "edit": [base + "/fastfetch/config.jsonc"], "editLabel": "Edit config.jsonc", "editTip": "Opens the fastfetch readout config (config.jsonc) directly. Yours; the Hub writes your changes here too." };
-        case "performance": return { "edit": [ryoku + "/performance.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
-        case "recording":   return { "edit": [ryoku + "/recording.json"], "editLabel": "Edit config", "editTip": "Opens this section's config file, where the Hub saves your changes. Yours; survives updates." };
-        default:            return {};
+    Process {
+        id: advancedGet
+        command: ["ryoku-hub", "config", "get", "advanced"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: { if (this.text.trim() === "1") hub.advanced = true; }
         }
     }
 
-    Row {
-        anchors.fill: parent
+    property string cfgDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku"
 
-        NavRail {
-            id: navRail
-            width: 252
-            height: parent.height
-            sections: hub.sectionDefs
-            current: hub.section
-            onNavigate: (s) => hub.go(s)
-            onEscaped: Qt.quit()
+    // shell.json is owned by the ryoku-shell settings daemon; the Hub reads it
+    // through the `settings` topic and writes it only through settings.patch
+    // (Singletons/Settings.qml), never opening the file itself. A fresh daemon
+    // frame rebases committed onto the pushed values, the way the FileView
+    // reload did before the daemon owned the schema.
+    Connections {
+        target: Settings
+        function onRevisionChanged() { hub.rebase(); }
+    }
+    FileView {
+        id: vizFV
+        path: hub.cfgDir + "/visualizer.json"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: hub.rebase()
+        JsonAdapter {
+            id: vizA
+            property bool enabled: true
+            property real bars: 64
+            property real height: 0.42
+            property real thickness: 0.58
+            property real bloom: 0.6
+            property real reflection: 0.1
+            property bool idleWave: true
+            property string style: "bars"
+            property string shape: "rounded"
+            property string position: "bottom"
+            property bool mirror: false
+            property real segments: 10
+            property real fps: 30
+            property bool adaptive: true
+            property real smoothing: 0.5
+            property real gain: 1.0
+            property bool peaks: false
         }
+    }
+    FileView {
+        id: brandFV
+        path: hub.cfgDir + "/brand.json"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: hub.rebase()
+        JsonAdapter {
+            id: brandA
+            property string markText: "力"
+            property string markImage: ""
+            property bool markTint: true
+            property string name: "Ryoku"
+        }
+    }
 
-        Item {
-            width: parent.width - 252
-            height: parent.height
+    // ── hypr backend (the Lua pages) ─────────────────────────────────────
+    // Every Lua page persists through one nested object via ryoku-hub, not a
+    // JsonAdapter. Pages read and write dotted paths (appearance.gapsIn); the
+    // change shows up in the same dirty/diff/save the JSON pages use, grouped
+    // under settings.lua. Nothing is written until Save calls `hypr save`.
+    property var hyprCommitted: ({})
+    property var hyprDraft: ({})
+    property var hyprDefaults: ({})
+    property bool hyprLoaded: false
 
-            PageHeader {
-                id: header
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.leftMargin: 40
-                anchors.rightMargin: 64
-                anchors.topMargin: 16
-                eyebrow: hub.searching ? "Search" : hub.groupFor(hub.section)
-                title: hub.searching ? "Search" : hub.pageMeta[hub.section].title
-                subtitle: hub.searching ? "Results across every section" : hub.pageMeta[hub.section].subtitle
-                editPaths: hub.searching ? [] : (hub.configFor(hub.section).edit || [])
-                viewPaths: hub.searching ? [] : (hub.configFor(hub.section).view || [])
-                editLabel: hub.searching ? "Edit user.lua" : (hub.configFor(hub.section).editLabel || "Edit user.lua")
-                editTip: hub.searching ? "" : (hub.configFor(hub.section).editTip || "")
-                viewTip: hub.searching ? "" : (hub.configFor(hub.section).viewTip || "")
+    // A bespoke page (e.g. Appearance > Theme) that owns its own edits can route
+    // them through the shared action bar: it raises pageDirty while it holds
+    // staged changes (lighting Save), and Save/Revert emit these so the page
+    // applies or drops them in lockstep with everything else.
+    property bool pageDirty: false
+    signal savePage()
+    signal revertPage()
+
+    Process {
+        id: hyprGet
+        command: ["ryoku-hub", "hypr", "get"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var o = JSON.parse(this.text);
+                    hub.hyprCommitted = o;
+                    if (hub.pristine || !hub.hyprLoaded) hub.hyprDraft = JSON.parse(JSON.stringify(o));
+                    hub.hyprLoaded = true;
+                } catch (e) { console.log("hub: hypr get parse failed: " + e); }
             }
+        }
+    }
+    Process {
+        id: hyprDefaultsGet
+        command: ["ryoku-hub", "hypr", "defaults"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: { try { hub.hyprDefaults = JSON.parse(this.text); } catch (e) {} }
+        }
+    }
+    Process { id: hyprSave }
 
-            Loader {
-                id: pageLoader
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: header.bottom
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: 40
-                anchors.rightMargin: 30
-                anchors.topMargin: 14
-                anchors.bottomMargin: 12
+    // live preview: the shell owns it, not the pages. A hypr edit applies to the
+    // running compositor (throttled) so "previewing live" is honest; revert and
+    // an unsaved quit restore the compositor to what is on disk.
+    property bool quitting: false
+    onHyprDraftChanged: if (hub.hyprLoaded) hyprPreviewThrottle.restart()
+    Timer {
+        id: hyprPreviewThrottle
+        interval: 140
+        onTriggered: {
+            hyprPreview.command = ["ryoku-hub", "hypr", "preview", JSON.stringify(hub.hyprDraft)];
+            hyprPreview.running = true;
+        }
+    }
+    Process { id: hyprPreview }
+    Process { id: hyprRestore; onRunningChanged: if (!running && hub.quitting) Qt.quit() }
+    function requestQuit() {
+        if (hub.quitting) return;
+        // Bar Studio edits are already live on the desktop: an unsaved quit
+        // puts the saved state back through the same channel before the Hub
+        // goes, whichever way it was closed.
+        var restored = hub.restoreLiveUnsaved();
+        if (hub.hyprLoaded && hub.hyprChanges().length) {
+            hub.quitting = true;
+            hyprRestore.command = ["ryoku-hub", "hypr", "restore"];
+            hyprRestore.running = true;
+        } else if (restored) {
+            // hold the door one beat so the control socket flushes the patches
+            hub.quitting = true;
+            quitFlush.restart();
+        } else {
+            Qt.quit();
+        }
+    }
+    Timer { id: quitFlush; interval: 120; onTriggered: Qt.quit() }
 
-                sourceComponent: hub.searching ? searchComp : hub.pageFor(hub.section)
+    function hyprVal(path) { return hub.pathGet(hub.hyprDraft, path); }
+    function hyprCommittedVal(path) { return hub.pathGet(hub.hyprCommitted, path); }
+    function hyprEdit(path, v) {
+        hub.pristine = false;
+        var d = JSON.parse(JSON.stringify(hub.hyprDraft));
+        hub.pathSet(d, path, v);
+        hub.hyprDraft = d;
+    }
+    function pathGet(obj, path) {
+        var parts = path.split("."), cur = obj;
+        for (var i = 0; i < parts.length; i++) { if (cur === undefined || cur === null) return undefined; cur = cur[parts[i]]; }
+        return cur;
+    }
+    function pathSet(obj, path, v) {
+        var parts = path.split("."), cur = obj;
+        for (var i = 0; i < parts.length - 1; i++) {
+            if (typeof cur[parts[i]] !== "object" || cur[parts[i]] === null) cur[parts[i]] = {};
+            cur = cur[parts[i]];
+        }
+        cur[parts[parts.length - 1]] = v;
+    }
+    function hyprChanges() {
+        if (!hub.hyprLoaded) return [];
+        var out = [];
+        hub.walkHypr("", hub.hyprCommitted, hub.hyprDraft, out);
+        return out;
+    }
+    function walkHypr(prefix, a, b, out) {
+        var seen = {}, k;
+        for (k in (b || {})) seen[k] = true;
+        for (k in (a || {})) seen[k] = true;
+        for (k in seen) {
+            var pa = a ? a[k] : undefined, pb = b ? b[k] : undefined;
+            var p = prefix ? prefix + "." + k : k;
+            var oa = pa && typeof pa === "object" && !Array.isArray(pa);
+            var ob = pb && typeof pb === "object" && !Array.isArray(pb);
+            if (oa && ob) hub.walkHypr(p, pa, pb, out);
+            // a key on only one side (added or removed) is a change too, not only
+            // a modified value, so first-time sets of omitempty maps (apps,
+            // keybindRebinds) mark the store dirty and light Save.
+            else if (JSON.stringify(pa) !== JSON.stringify(pb)) out.push({ key: p, was: pa === undefined ? "(unset)" : JSON.stringify(pa), now: pb === undefined ? "(unset)" : JSON.stringify(pb) });
+        }
+    }
 
-                onLoaded: {
-                    if (!item)
-                        return;
-                    item.opacity = 0;
-                    item.y = 10;
-                    fadeAnim.target = item;
-                    slideAnim.target = item;
-                    fadeAnim.restart();
-                    slideAnim.restart();
+    Keys.onEscapePressed: {
+        if (diffPop.open) diffPop.open = false;
+        else if (hub.query !== "") { hub.query = ""; searchField.clear(); }
+        else hub.requestQuit();
+    }
+    Keys.onPressed: (e) => {
+        if (e.key === Qt.Key_K && (e.modifiers & Qt.ControlModifier)) {
+            searchField.grabFocus();
+            e.accepted = true;
+        }
+    }
+
+    // the registration sheet: the HUD backdrop the whole instrument sits on.
+    Reg { anchors.fill: parent }
+
+    // ── rail ────────────────────────────────────────────────────────────
+    Item {
+        id: rail
+        anchors { left: parent.left; top: parent.top; bottom: bar.top }
+        width: Tokens.railW
+        Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Tokens.line }
+
+        Column {
+            id: railHead
+            anchors { left: parent.left; right: parent.right; top: parent.top }
+            anchors.margins: Tokens.s5
+            spacing: Tokens.s4
+
+            // the masthead as a poster plate: framed, register-ticked, with the
+            // seal and a /// mark. The reference sheet's title block, scaled down.
+            Rectangle {
+                width: parent.width
+                height: 64
+                color: "transparent"
+                radius: Tokens.radius
+                border.width: Tokens.border
+                border.color: Tokens.line
+                Ticks { }
+                Row {
+                    anchors { left: parent.left; verticalCenter: parent.verticalCenter; leftMargin: Tokens.s4 }
+                    spacing: Tokens.s3
+                    Text { text: "力"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 22 }
+                    Column {
+                        spacing: 1
+                        anchors.verticalCenter: parent.verticalCenter
+                        Text {
+                            text: "RYOKU ARCH"; color: Tokens.ink; font.family: Tokens.ui
+                            font.pixelSize: 14; font.weight: Font.Medium; font.letterSpacing: 2.4
+                        }
+                        Text {
+                            text: "//SETTINGS_"; color: Tokens.inkMuted
+                            font.family: Tokens.mono; font.pixelSize: 10; font.letterSpacing: 1.4
+                        }
+                    }
+                }
+                Text {
+                    anchors { right: parent.right; top: parent.top; margins: Tokens.s2 }
+                    text: "///"; color: Tokens.inkFaint
+                    font.family: Tokens.mono; font.pixelSize: 10
                 }
             }
+            Field {
+                id: searchField
+                width: parent.width
+                toolbar: true
+                placeholder: I18n.tr("Search settings…")
+                onEdited: (t) => hub.query = t
+                onAccepted: hub.activateSearch(0)
+            }
+        }
 
+        // the rail foot: a genuine Code 39 plate, the poster's totem. It scans.
+        Item {
+            id: railFoot
+            anchors { left: parent.left; right: parent.right; bottom: advToggle.top }
+            anchors.margins: Tokens.s5
+            anchors.bottomMargin: Tokens.s4
+            height: Tokens.s3 + edition.height + Tokens.s3 + plate.implicitHeight
+            Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top } height: 1; color: Tokens.lineSoft }
+            // marginalia above the plate: an edition register, shared by every
+            // page since the rail is the one always-present chrome.
+            Marginalia {
+                id: edition
+                anchors { left: parent.left; top: parent.top; topMargin: Tokens.s3 }
+                index: "BETA"; label: "18"
+                glyph: "column"; glyph2: ""
+                chevrons: false
+            }
+            Barcode {
+                id: plate
+                anchors { left: parent.left; bottom: parent.bottom }
+                text: "RYOKU HUB"
+                unit: 1.1
+                barHeight: 14
+            }
+            Text {
+                anchors { right: parent.right; bottom: parent.bottom; bottomMargin: 2 }
+                text: "+"; color: Tokens.inkFaint
+                font.family: Tokens.mono; font.pixelSize: 10
+            }
+        }
+
+        // the one global switch, seated at the foot below the plate: Advanced
+        // reveals the power-user sections in the rail and the deep knobs inside
+        // every schema page. Persisted like `section`, restored at startup by
+        // `advancedGet`. One control, not one per page.
+        Item {
+            id: advToggle
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+            anchors.leftMargin: Tokens.s5; anchors.rightMargin: Tokens.s5
+            anchors.bottomMargin: Tokens.s4
+            height: Tokens.ctlH
+            Text {
+                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                text: I18n.tr("Advanced settings")
+                color: hub.advanced ? Tokens.ink : Tokens.inkMuted
+                font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
+            }
+            Sw {
+                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                on: hub.advanced
+                onToggled: (v) => hub.advanced = v
+            }
+        }
+
+        Flickable {
+            id: navFlick
+            anchors { left: parent.left; right: parent.right; top: railHead.bottom; bottom: railFoot.top }
+            anchors.margins: Tokens.s5
+            anchors.topMargin: Tokens.s4
+            contentHeight: nav.height
+            clip: true
+            ScrollBar.vertical: ScrollRail { policy: ScrollBar.AsNeeded }
+
+            // keep the active section on screen: jumping there by search, IPC or
+            // a config-restored section must never leave the selection clipped at
+            // the rail edge. Only scrolls when the item is actually off-screen,
+            // and animates the scroll, so an in-view click never jumps the rail.
+            function reveal(it) {
+                var y = it.mapToItem(nav, 0, 0).y;
+                if (y >= contentY && y + it.height <= contentY + height)
+                    return;
+                var max = Math.max(0, nav.height - height);
+                railScroll.to = Math.max(0, Math.min(y - height / 2, max));
+                railScroll.restart();
+            }
             NumberAnimation {
-                id: fadeAnim
-                property: "opacity"
-                to: 1
-                duration: Theme.medium
-                easing.type: Theme.ease
+                id: railScroll
+                target: navFlick; property: "contentY"
+                duration: Tokens.move; easing.type: Tokens.ease
             }
 
-            NumberAnimation {
-                id: slideAnim
-                property: "y"
-                to: 0
-                duration: Theme.medium
-                easing.type: Theme.ease
+            Column {
+                id: nav
+                width: navFlick.width - 12
+                spacing: 0
+
+                Repeater {
+                    model: hub.groups
+                    Column {
+                        id: grp
+                        required property var modelData
+                        required property int index
+                        width: nav.width
+                        spacing: 0
+                        // which group holds the open section: its header lifts up
+                        // the ink ramp (faint -> dim) as a quiet "you are here",
+                        // monochrome, never a colour, so the bone-plate item stays
+                        // the one emphasis.
+                        readonly property bool activeGroup: grp.modelData.items.some(function (i) { return i.key === hub.section; })
+
+                        Item {
+                            // the header shows only while the group has a visible
+                            // item: with Advanced off and every section in it
+                            // power-user (adv), the whole group (e.g. Tools) folds
+                            // away instead of leaving a bare header. The open
+                            // section always counts, so you never lose your place.
+                            readonly property bool anyShown: grp.modelData.items.some(function (i) {
+                                return !i.adv || hub.advanced || hub.section === i.key;
+                            })
+                            width: parent.width
+                            height: !anyShown ? 0 : (grp.modelData.name === "" ? Tokens.s4 : 30)
+                            visible: anyShown
+                            Row {
+                                visible: grp.modelData.name !== ""
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.bottomMargin: 2
+                                spacing: Tokens.s2
+                                // the poster's plate numerals: each group carries
+                                // its index, 01..05, in tabular mono.
+                                Text {
+                                    text: (grp.index + 1 < 10 ? "0" : "") + (grp.index + 1)
+                                    color: grp.activeGroup ? Tokens.inkDim : Tokens.inkFaint
+                                    font.family: Tokens.mono; font.pixelSize: 9
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: I18n.tr(grp.modelData.name); color: grp.activeGroup ? Tokens.inkDim : Tokens.inkFaint
+                                    font.family: Tokens.ui; font.pixelSize: 9
+                                    font.weight: Font.Medium; font.letterSpacing: 2
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Rectangle {
+                                    width: Math.max(0, nav.width - 130); height: 1; color: Tokens.lineSoft
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Rectangle {
+                                    width: 1; height: 5; color: grp.activeGroup ? Tokens.lineStrong : Tokens.line
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.verticalCenterOffset: -2
+                                }
+                            }
+                        }
+
+                        Repeater {
+                            model: grp.modelData.items
+                            Item {
+                                id: navItem
+                                required property var modelData
+                                // Advanced off hides the power-user sections from
+                                // the rail (search still reaches them); the open
+                                // section stays put so turning it off never strands
+                                // you on a page the rail no longer lists.
+                                readonly property bool shown: !modelData.adv || hub.advanced
+                                    || hub.section === modelData.key
+                                width: nav.width
+                                height: shown ? 34 : 0
+                                visible: shown
+                                readonly property bool sel: hub.section === modelData.key
+                                onSelChanged: if (sel) navFlick.reveal(navItem)
+                                Component.onCompleted: if (sel) navFlick.reveal(navItem)
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.topMargin: 1; anchors.bottomMargin: 1
+                                    radius: Tokens.radius
+                                    color: navItem.sel ? Tokens.bone : (nh.hovered ? Tokens.tint10 : "transparent")
+                                    Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                                }
+                                // selection is typography, never a coloured bar:
+                                // the live section takes the sheet's // lead. On
+                                // the right, every item carries its kanji seal,
+                                // Latin and Japanese sitting side by side.
+                                Row {
+                                    x: Tokens.s3
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Tokens.s2
+                                    Text {
+                                        id: navLead
+                                        visible: navItem.sel
+                                        text: "//"
+                                        color: Tokens.inkOnBoneDim
+                                        font.family: Tokens.mono; font.pixelSize: 11
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                    Text {
+                                        id: navLatin
+                                        text: I18n.tr(navItem.modelData.name)
+                                        color: navItem.sel ? Tokens.inkOnBone : Tokens.inkDim
+                                        font.family: Tokens.ui; font.pixelSize: 14
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        elide: Text.ElideRight
+                                        width: Math.max(0, navKana.x - Tokens.s2 - Tokens.s3
+                                            - (navItem.sel ? navLead.width + Tokens.s2 : 0))
+                                        Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                                    }
+                                }
+                                Text {
+                                    id: navKana
+                                    anchors { right: parent.right; rightMargin: Tokens.s3; verticalCenter: parent.verticalCenter }
+                                    text: hub.jpName[navItem.modelData.key] || ""
+                                    color: navItem.sel ? Tokens.inkOnBoneDim : Tokens.inkFaint
+                                    font.family: Tokens.jp; font.pixelSize: 12
+                                    Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                                }
+                                HoverHandler { id: nh; cursorShape: Qt.PointingHandCursor }
+                                TapHandler { onTapped: { hub.query = ""; searchField.clear(); hub.section = navItem.modelData.key } }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
-    function pageFor(s) {
-        switch (s) {
-        case "profile": return profileComp;
-        case "displays": return displaysComp;
-        case "appearance": return appearanceComp;
-        case "lockscreen": return lockscreenComp;
-        case "animations": return animationsComp;
-        case "input": return inputComp;
-        case "keybinds": return keybindsComp;
-        case "dictation": return dictationComp;
-        case "windowrules": return windowRulesComp;
-        case "appoverrides": return appOverridesComp;
-        case "layerrules": return layerRulesComp;
-        case "autostart": return autostartComp;
-        case "environment": return environmentComp;
-        case "widgets": return widgetsComp;
-        case "launcher": return launcherComp;
-        case "fastfetch": return fastfetchComp;
-        case "updates": return updatesComp;
-        case "credits": return creditsComp;
-        case "connections": return connectionsComp;
-        case "gpu": return gpuComp;
-        case "store": return storeComp;
-        case "addons": return addonsComp;
-        case "performance": return performanceComp;
-        case "recording": return recordingComp;
-        case "rashin": return rashinComp;
-        default: return shellComp;
+    // ── the page ──────────────────────────────────────────────────────────
+    Item {
+        id: pageArea
+        // full/framed and the ledger are derived from the section via the sets
+        // above, never the loaded item, so the chrome holds still through an
+        // async page swap (only the page content fades). A porting page (no
+        // file) stays framed too.
+        readonly property bool full: hub.pageFile(hub.section) !== "" && !hub.framedSet[hub.section]
+        anchors.left: rail.right
+        anchors.top: parent.top
+        anchors.bottom: pageArea.full ? parent.bottom : bar.top
+        anchors.right: parent.right
+        anchors.leftMargin: pageArea.full ? 0 : Tokens.s6
+        anchors.rightMargin: pageArea.full ? 0 : Tokens.s6
+        anchors.topMargin: pageArea.full ? 0 : Tokens.s5
+        anchors.bottomMargin: pageArea.full ? 0 : Tokens.s3
+
+        // Two loaders crossfade the page: the incoming page loads async into the
+        // hidden loader, then fades in as the visible one fades out, so the
+        // content never blanks to bare paper mid-swap (that blank was the
+        // "flicker on section change"). The new page always loads into the
+        // non-front loader, so the visible page is never disturbed even on rapid
+        // switches, and a stale load from a superseded switch never reveals.
+        Item {
+            id: pageHost
+            anchors.fill: parent
+            readonly property string src: hub.pageFile(hub.section)
+            property Item front: lb
+            onSrcChanged: pageHost.swap()
+            Component.onCompleted: pageHost.swap()
+            function swap() {
+                var incoming = pageHost.front === la ? lb : la;
+                if (incoming.source == pageHost.src && incoming.status === Loader.Ready)
+                    pageHost.reveal(incoming);
+                else
+                    incoming.source = pageHost.src;
+            }
+            function reveal(l) {
+                if (l.source != pageHost.src)
+                    return;
+                pageHost.front = l;
+                la.opacity = la === l ? 1 : 0; la.z = la === l ? 1 : 0;
+                lb.opacity = lb === l ? 1 : 0; lb.z = lb === l ? 1 : 0;
+            }
+            Loader {
+                id: la
+                anchors.fill: parent
+                asynchronous: true
+                opacity: 1
+                // hidden once fully faded, so the parked page stops taking hover
+                // (a stale tooltip was leaking through the overlay layer).
+                visible: opacity > 0.01
+                onLoaded: { if (item) item.hub = hub; pageHost.reveal(la); }
+                Behavior on opacity { NumberAnimation { duration: Tokens.swap; easing.type: Tokens.ease } }
+            }
+            Loader {
+                id: lb
+                anchors.fill: parent
+                asynchronous: true
+                opacity: 0
+                visible: opacity > 0.01
+                onLoaded: { if (item) item.hub = hub; pageHost.reveal(lb); }
+                Behavior on opacity { NumberAnimation { duration: Tokens.swap; easing.type: Tokens.ease } }
+            }
+        }
+
+        // honest interim: a page whose content is not ported yet says so,
+        // rather than showing settings it cannot persist.
+        Column {
+            visible: hub.pageFile(hub.section) === ""
+            anchors.top: parent.top; anchors.left: parent.left
+            spacing: Tokens.s2
+            Row {
+                spacing: Tokens.s2
+                Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: "力"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+                Text {
+                    text: I18n.tr(hub.groupFor(hub.section)); color: Tokens.inkMuted
+                    font.family: Tokens.ui; font.pixelSize: 9; font.weight: Font.Medium
+                    font.letterSpacing: Tokens.trackMark; anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+            Text { text: I18n.tr(hub.nameFor(hub.section)); color: Tokens.ink; font.family: Tokens.display; font.pixelSize: Tokens.fTitle }
+            Item { width: 1; height: Tokens.s4 }
+            Text {
+                text: "PORTING IN PROGRESS"; color: Tokens.inkDim; font.family: Tokens.ui
+                font.pixelSize: 11; font.weight: Font.Medium; font.letterSpacing: 2
+            }
+            Text {
+                width: 520
+                text: "This page is being rebuilt into the monochrome instrument. Its settings and surfaces are wired page by page; the Shell page is the proven pattern."
+                color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: 13; wrapMode: Text.WordWrap
+            }
         }
     }
 
-    Component { id: searchComp; SearchResults { categories: hub.keybindsModel; sections: hub.sectionDefs; query: navRail.query; onNavigate: (s) => hub.go(s) } }
-    Component { id: profileComp; ProfilePage {} }
-    Component { id: displaysComp; DisplaysPage {} }
-    Component { id: appearanceComp; AppearancePage {} }
-    Component { id: lockscreenComp; LockscreenPage {} }
-    Component { id: animationsComp; AnimationsPage {} }
-    Component { id: inputComp; InputPage {} }
-    Component { id: keybindsComp; KeybindsPage { categories: hub.keybindsModel } }
-    Component { id: dictationComp; DictationPage {} }
-    Component { id: windowRulesComp; WindowRulesPage {} }
-    Component { id: appOverridesComp; AppOverridesPage {} }
-    Component { id: layerRulesComp; LayerRulesPage {} }
-    Component { id: autostartComp; AutostartPage {} }
-    Component { id: environmentComp; EnvironmentPage {} }
-    Component { id: shellComp; ShellSettingsPage {} }
-    Component { id: widgetsComp; WidgetsPage {} }
-    Component { id: launcherComp; LauncherPage {} }
-    Component { id: fastfetchComp; FastfetchPage {} }
-    Component { id: updatesComp; UpdatesPage {} }
-    Component { id: creditsComp; CreditsPage {} }
-    Component { id: storeComp; StorePage {} }
-    Component { id: addonsComp; AddonsPage {} }
-    Component { id: connectionsComp; ConnectionsPage {} }
-    Component { id: gpuComp; GpuPage {} }
-    Component { id: performanceComp; PerformancePage {} }
-    Component { id: recordingComp; RecordingPage {} }
-    Component { id: rashinComp; RashinPage {} }
+
+    // ── updates: a corner button, not a rail row ────────────────────────────
+    // Updates left the rail for a button in the top-right corner: an English
+    // UPDATES chip that opens the Updates page and wears a red dot
+    // (`Tokens.alert`, a fixed attention red) when the channel sits behind
+    // origin. It rides the empty top strip above every page's head, and is
+    // opaque, so it never collides with a page's running-head marginalia. The
+    // `Updates` singleton self-checks on load and on cadence, so the dot is live.
+    Item {
+        id: updatesBtn
+        anchors { top: parent.top; right: parent.right }
+        anchors.topMargin: Tokens.s2; anchors.rightMargin: Tokens.s4
+        z: 60
+        width: ubLabel.implicitWidth + Tokens.s3 * 2
+        height: 24
+        readonly property bool here: hub.section === "updates"
+        Rectangle {
+            anchors.fill: parent
+            radius: Tokens.radius
+            color: updatesBtn.here ? Tokens.bone : (ubh.hovered ? Tokens.paperLift : Tokens.paper)
+            border.width: Tokens.border
+            border.color: (updatesBtn.here || ubh.hovered) ? Tokens.lineStrong : Tokens.line
+            antialiasing: false
+            Behavior on color { ColorAnimation { duration: Tokens.snap } }
+            Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
+        }
+        Text {
+            id: ubLabel
+            anchors.centerIn: parent
+            text: I18n.tr("UPDATES")
+            color: updatesBtn.here ? Tokens.inkOnBone : Tokens.inkMuted
+            font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
+            font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
+            Behavior on color { ColorAnimation { duration: Tokens.snap } }
+        }
+        // the one red accent: an update is waiting on the channel.
+        Rectangle {
+            visible: Updates.available
+            width: 8; height: 8; radius: 4
+            color: Tokens.alert
+            border.width: 1; border.color: Tokens.paper
+            antialiasing: true
+            anchors { right: parent.right; top: parent.top; rightMargin: -3; topMargin: -3 }
+        }
+        HoverHandler { id: ubh; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: hub.section = "updates" }
+    }
+
+    // ── settings files: a masthead chip beside UPDATES ───────────────────────
+    // Opens a popover naming the files that back the current page: the user-owned
+    // layer (kept on update, edits win) and the shipped base it overrides.
+    Item {
+        id: filesBtn
+        anchors { top: parent.top; right: updatesBtn.left }
+        anchors.topMargin: Tokens.s2; anchors.rightMargin: Tokens.s2
+        z: 60
+        visible: hub.settingsFiles().length > 0
+        width: fbLabel.implicitWidth + Tokens.s3 * 2
+        height: 24
+        Rectangle {
+            anchors.fill: parent
+            radius: Tokens.radius
+            color: filesPop.open ? Tokens.bone : (fbh.hovered ? Tokens.paperLift : Tokens.paper)
+            border.width: Tokens.border
+            border.color: (filesPop.open || fbh.hovered) ? Tokens.lineStrong : Tokens.line
+            antialiasing: false
+            Behavior on color { ColorAnimation { duration: Tokens.snap } }
+            Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
+        }
+        Text {
+            id: fbLabel
+            anchors.centerIn: parent
+            text: I18n.tr("FILES")
+            color: filesPop.open ? Tokens.inkOnBone : Tokens.inkMuted
+            font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
+            font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel
+            Behavior on color { ColorAnimation { duration: Tokens.snap } }
+        }
+        HoverHandler { id: fbh; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: filesPop.open = !filesPop.open }
+    }
+
+    // ── action bar ─────────────────────────────────────────────────────────
+    ActionBar {
+        id: bar
+        visible: !pageArea.full
+        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+        dirty: hub.dirty
+        onSaved: hub.save()
+        onReverted: hub.revert()
+        onReset: hub.resetDefaults()
+        onDiffRequested: diffPop.toggle()
+    }
+
+    // ── catalogue overlay (font pick) ──────────────────────────────────────
+    Item {
+        id: picker
+        anchors.fill: parent
+        visible: pickState.row !== null
+        z: 900
+
+        QtObject { id: pickState; property var row: null }
+
+        function openFor(r) { pickState.row = r; pick.open(); }
+        function close() { pickState.row = null; }
+
+        Rectangle {
+            anchors.fill: parent
+            color: "black"
+            opacity: 0.55
+            TapHandler { onTapped: picker.close() }
+        }
+        Picker {
+            id: pick
+            anchors.centerIn: parent
+            title: pickState.row ? pickState.row.label : ""
+            options: pickState.row ? (pickState.row.opts || []) : []
+            current: pickState.row ? String(hub.val(pickState.row.key)) : ""
+            onChose: (k) => { if (pickState.row) hub.edit(pickState.row.key, k); picker.close(); }
+            onDismissed: picker.close()
+        }
+    }
+
+    // ── search: results overlay + jump-to-setting ────────────────────────────
+    // The rail search opens a results card under the field (not a cramped rail
+    // list). Picking a result navigates to its page and, for a real setting,
+    // scrolls it into view and flashes it -- the jump-to-setting the old search
+    // never did. Enter takes the top hit; Escape (the field clears) dismisses.
+    property string pendingFocusKey: ""
+    function activateSearch(i) {
+        var r = hub.searchResults[i];
+        if (!r) return;
+        hub.section = r.section;
+        hub.pendingFocusKey = (r.isPage || !r.key) ? "" : r.key;
+        hub.query = "";
+        searchField.clear();
+        if (hub.pendingFocusKey !== "") { focusTimer.tries = 0; focusTimer.restart(); }
+    }
+    // bold the matched run in a result label (StyledText).
+    function hlLabel(text) {
+        function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+        var q = hub.query.trim();
+        if (!q) return esc(text);
+        var lc = String(text).toLowerCase(), i = lc.indexOf(q.toLowerCase());
+        if (i < 0) return esc(text);
+        return esc(text.substring(0, i)) + "<u>" + esc(text.substring(i, i + q.length)) + "</u>" + esc(text.substring(i + q.length));
+    }
+    Timer {
+        id: focusTimer
+        interval: 90; repeat: false
+        property int tries: 0
+        onTriggered: {
+            var it = pageHost.front ? pageHost.front.item : null;
+            if (it && typeof it.focusKey === "function") { it.focusKey(hub.pendingFocusKey); hub.pendingFocusKey = ""; focusTimer.tries = 0; return; }
+            if (focusTimer.tries < 15) { focusTimer.tries++; focusTimer.restart(); } else focusTimer.tries = 0;
+        }
+    }
 
     Item {
-        id: closeBtn
-        anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.topMargin: 20
-        anchors.rightMargin: 22
-        width: 26
-        height: 26
+        id: searchPop
+        z: 850
+        visible: hub.query !== "" && hub.searchResults.length > 0
+        x: rail.x + railHead.x + searchField.x
+        y: rail.y + railHead.y + searchField.y + searchField.height + Tokens.s2
+        width: Math.min(480, hub.width - x - Tokens.s5)
+        height: Math.min(440, list.contentHeight + head.height + Tokens.s3 * 2 + Tokens.s1)
 
-        Icon {
-            anchors.centerIn: parent
-            name: "close"
-            size: 16
-            tint: closeHover.hovered ? Theme.ember : Theme.faint
-            Behavior on tint { ColorAnimation { duration: Theme.quick } }
+        Rectangle {
+            anchors.fill: parent
+            color: Tokens.paperLift
+            radius: Tokens.radius
+            border.width: Tokens.border
+            border.color: Tokens.lineStrong
         }
-
-        HoverHandler { id: closeHover; cursorShape: Qt.PointingHandCursor }
-        TapHandler { onTapped: Qt.quit() }
+        // sink so a click on the card's chrome never falls through to the rail.
+        MouseArea { anchors.fill: parent; hoverEnabled: true }
+        Row {
+            id: head
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: Tokens.s3 }
+            height: 14
+            Text {
+                text: "// RESULTS_"; color: Tokens.inkMuted
+                font.family: Tokens.mono; font.pixelSize: 9; font.letterSpacing: 1.2
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            Item { width: Math.max(0, parent.width - 170); height: 1 }
+            Text {
+                text: hub.searchResults.length + (hub.searchResults.length === 1 ? " HIT" : " HITS")
+                color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 9
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+        ListView {
+            id: list
+            anchors { left: parent.left; right: parent.right; top: head.bottom; bottom: parent.bottom }
+            anchors.margins: Tokens.s2; anchors.topMargin: Tokens.s1
+            clip: true
+            model: hub.searchResults
+            spacing: 1
+            ScrollBar.vertical: ScrollRail { policy: ScrollBar.AsNeeded }
+            delegate: Rectangle {
+                id: rr
+                required property var modelData
+                required property int index
+                width: ListView.view.width
+                height: 46
+                radius: Tokens.radius
+                color: rrh.containsMouse ? Tokens.tint10 : "transparent"
+                Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                Column {
+                    anchors { left: parent.left; right: kseal.left; verticalCenter: parent.verticalCenter }
+                    anchors.leftMargin: Tokens.s3; anchors.rightMargin: Tokens.s2
+                    spacing: 1
+                    Text {
+                        width: parent.width
+                        text: hub.hlLabel(I18n.tr(rr.modelData.label))
+                        textFormat: Text.StyledText
+                        color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: 13
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        width: parent.width
+                        text: rr.modelData.isPage ? I18n.tr("Page") : (rr.modelData.sectionName + (rr.modelData.group ? "  \u203a  " + rr.modelData.group : ""))
+                        color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 9
+                        elide: Text.ElideRight
+                    }
+                }
+                Text {
+                    id: kseal
+                    anchors { right: parent.right; rightMargin: Tokens.s3; verticalCenter: parent.verticalCenter }
+                    text: hub.jpName[rr.modelData.section] || ""
+                    color: Tokens.inkFaint; font.family: Tokens.jp; font.pixelSize: 12
+                }
+                MouseArea {
+                    id: rrh
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: hub.activateSearch(rr.index)
+                }
+            }
+        }
     }
+
+    // ── the pending diff, on demand ──────────────────────────────────────────
+    // The write ledger left the rail for a popover the action bar opens, so the
+    // page keeps the full width and the diff is one click away when it matters.
+    Item {
+        id: diffPop
+        anchors.fill: parent
+        z: 870
+        property bool open: false
+        visible: diffPop.open && hub.diff.length > 0
+        function toggle() { diffPop.open = !diffPop.open }
+
+        Rectangle {
+            anchors.fill: parent
+            color: "transparent"
+            TapHandler { onTapped: diffPop.open = false }
+        }
+        Rectangle {
+            id: diffCard
+            width: 480
+            anchors { left: parent.left; leftMargin: Tokens.s5; bottom: parent.bottom; bottomMargin: (bar.visible ? bar.height : 0) + Tokens.s2 }
+            height: Math.min(440, dcol.height + dhead.height + Tokens.s3 * 3)
+            color: Tokens.paperLift
+            radius: Tokens.radius
+            border.width: Tokens.border
+            border.color: Tokens.lineStrong
+            TapHandler {}
+            Row {
+                id: dhead
+                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Tokens.s3 }
+                height: 14
+                Text { text: "// PENDING WRITE_"; color: Tokens.inkMuted; font.family: Tokens.mono; font.pixelSize: 9; font.letterSpacing: 1.2; anchors.verticalCenter: parent.verticalCenter }
+                Item { width: Math.max(0, parent.width - 200); height: 1 }
+                Text { text: "DIFF"; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 9; anchors.verticalCenter: parent.verticalCenter }
+            }
+            Flickable {
+                id: dflick
+                anchors { left: parent.left; right: parent.right; top: dhead.bottom; bottom: parent.bottom }
+                anchors.margins: Tokens.s3; anchors.topMargin: Tokens.s2
+                contentHeight: dcol.height
+                clip: true
+                ScrollBar.vertical: ScrollRail { policy: ScrollBar.AsNeeded }
+                Column {
+                    id: dcol
+                    width: dflick.width - 12
+                    spacing: Tokens.s3
+                    Repeater {
+                        model: hub.diff
+                        Column {
+                            id: fg
+                            required property var modelData
+                            width: dcol.width
+                            spacing: Tokens.s1
+                            Row {
+                                spacing: Tokens.s2
+                                Rectangle { width: 3; height: 3; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: fg.modelData.file; color: Tokens.inkDim; font.family: Tokens.mono; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "\u00b7 " + fg.modelData.changes.length; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+                            }
+                            Repeater {
+                                model: fg.modelData.changes
+                                Column {
+                                    required property var modelData
+                                    width: fg.width
+                                    topPadding: 2
+                                    Text { text: modelData.key + ":"; color: Tokens.inkDim; font.family: Tokens.mono; font.pixelSize: 12 }
+                                    Row {
+                                        spacing: Tokens.s2
+                                        Text { text: modelData.was; color: Tokens.inkFaint; font.strikeout: true; font.family: Tokens.mono; font.pixelSize: 12 }
+                                        Text { text: "\u2192"; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 12 }
+                                        Text { text: modelData.now; color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: 12 }
+                                    }
+                                    Rectangle { width: parent.width; height: 1; color: Tokens.lineSoft }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── settings files popover ───────────────────────────────────────────────
+    Item {
+        id: filesPop
+        anchors.fill: parent
+        z: 880
+        property bool open: false
+        visible: filesPop.open && hub.settingsFiles().length > 0
+        Rectangle {
+            anchors.fill: parent
+            color: "transparent"
+            TapHandler { onTapped: filesPop.open = false }
+        }
+        Rectangle {
+            width: Math.min(460, filesPop.width - Tokens.s4 * 2)
+            anchors { right: parent.right; rightMargin: Tokens.s4; top: parent.top; topMargin: Tokens.s2 + 24 + Tokens.s2 }
+            height: Math.min(520, fcol.height + fhead.height + Tokens.s3 * 3)
+            color: Tokens.paperLift
+            radius: Tokens.radius
+            border.width: Tokens.border
+            border.color: Tokens.lineStrong
+            TapHandler {}
+            Row {
+                id: fhead
+                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Tokens.s3 }
+                height: 14
+                Text { text: "SETTINGS FILES"; color: Tokens.inkMuted; font.family: Tokens.mono; font.pixelSize: 9; font.letterSpacing: 1.2; anchors.verticalCenter: parent.verticalCenter }
+                Item { width: Math.max(0, parent.width - 240); height: 1 }
+                Text { text: I18n.tr(hub.nameFor(hub.section)); color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 9; anchors.verticalCenter: parent.verticalCenter }
+            }
+            Flickable {
+                anchors { left: parent.left; right: parent.right; top: fhead.bottom; bottom: parent.bottom }
+                anchors.margins: Tokens.s3; anchors.topMargin: Tokens.s2
+                contentHeight: fcol.height
+                clip: true
+                ScrollBar.vertical: ScrollRail { policy: ScrollBar.AsNeeded }
+                Column {
+                    id: fcol
+                    width: parent.width - 12
+                    spacing: Tokens.s2
+                    Text {
+                        width: fcol.width
+                        text: "Each page's settings live in one full file below: the complete config you edit in place (the GUI writes the very same file). The shipped base underneath refreshes on update; your file wins. Run `ryoku reset <path>` to drop an override."
+                        color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: 11; wrapMode: Text.WordWrap
+                    }
+                    Repeater {
+                        model: hub.settingsFiles()
+                        Rectangle {
+                            required property var modelData
+                            width: fcol.width
+                            height: fentry.height + Tokens.s3 * 2
+                            color: rowH.hovered && !modelData.noOpen ? Tokens.paper : "transparent"
+                            radius: Tokens.radius
+                            border.width: Tokens.border
+                            border.color: Tokens.line
+                            HoverHandler { id: rowH; cursorShape: modelData.noOpen ? Qt.ArrowCursor : Qt.PointingHandCursor }
+                            TapHandler { enabled: !modelData.noOpen; onTapped: { hub.openSettingsFile(modelData); filesPop.open = false; } }
+                            Column {
+                                id: fentry
+                                anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: Tokens.s3 }
+                                spacing: 3
+                                Row {
+                                    spacing: Tokens.s2
+                                    Rectangle {
+                                        width: 6; height: 6; radius: 3; anchors.verticalCenter: parent.verticalCenter
+                                        color: modelData.role === "yours" ? Tokens.ink : Tokens.inkFaint
+                                    }
+                                    Text { text: modelData.label; color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: 13; font.weight: Font.Medium; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { visible: modelData.role === "yours"; text: "EDIT HERE"; color: Tokens.ink; font.family: Tokens.mono; font.pixelSize: 8; font.letterSpacing: 1; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { visible: modelData.role === "advanced"; text: "ADVANCED"; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 8; font.letterSpacing: 1; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { visible: modelData.role === "base"; text: "SHIPPED"; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 8; font.letterSpacing: 1; anchors.verticalCenter: parent.verticalCenter }
+                                }
+                                Text { visible: !!modelData.path; text: hub.tildePath(modelData.path || ""); color: Tokens.inkDim; font.family: Tokens.mono; font.pixelSize: 11; width: fentry.width; elide: Text.ElideMiddle }
+                                Text { text: modelData.note; color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: 11; width: fentry.width; wrapMode: Text.WordWrap }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 }

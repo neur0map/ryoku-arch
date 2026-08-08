@@ -99,16 +99,17 @@ ryoku_cfg_hostname() {
   write_file /mnt/etc/hostname <<EOF
 $RYOKU_HOSTNAME
 EOF
-  write_file /mnt/etc/hosts <<EOF
-127.0.0.1   localhost
-::1         localhost
-127.0.1.1   $RYOKU_HOSTNAME.localdomain $RYOKU_HOSTNAME
-EOF
+  # No /etc/hosts write: that file is owned by the `filesystem` package, so
+  # editing it makes pacman drop a .pacnew on every filesystem upgrade. The
+  # stock nss-myhostname (default in /etc/nsswitch.conf) already resolves
+  # localhost and the machine hostname, so the hand-written table is redundant.
 }
 
 ryoku_cfg_user() {
-  log "user: $RYOKU_USERNAME (wheel, shell /usr/bin/fish)"
-  run arch-chroot /mnt useradd -m -G wheel -s /usr/bin/fish "$RYOKU_USERNAME"
+  log "user: $RYOKU_USERNAME (wheel,video,input; shell /usr/bin/fish)"
+  # video -> write panel backlight (with 90-ryoku-backlight.rules); input ->
+  # read game controllers / input devices without a per-login logind grant.
+  run arch-chroot /mnt useradd -m -G wheel,video,input -s /usr/bin/fish "$RYOKU_USERNAME"
   # same password on the user + root, so sudo (wheel) and su both work
   # with what the installer collected. hashes go in on stdin (chpasswd -e
   # reads name:hash) and never hit the logs.

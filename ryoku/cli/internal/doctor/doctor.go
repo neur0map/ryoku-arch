@@ -2,6 +2,7 @@ package doctor
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -100,6 +101,7 @@ func reconcilers() []reconciler {
 		{"snapper configuration", reconcileSnapper},
 		{"limine boot menu layout", reconcileLimineLayout},
 		{"limine boot entry", reconcileLimineBootEntry},
+		{"alongside boot entry", reconcileAlongsideBootEntry},
 		{"limine UKI boot tree", reconcileLimineUKITree},
 		{"limine autoboot", reconcileLimineAutoboot},
 		{"limine snapshot sync", reconcileLimineOSName},
@@ -110,16 +112,33 @@ func reconcilers() []reconciler {
 		{"stale dev residue", reconcileDevResidue},
 		{"desktop session components", reconcileSessionComponents},
 		{"desktop portal routing", reconcilePortalRouting},
+		{"audio playback routing", reconcileAudioRouting},
+		{"keyboard layout", reconcileKeymap},
+		{"keyboard layout detection", reconcileKeyboardSeed},
+		{"in-session lockscreen", reconcileLockscreen},
 		{"cursor theme", reconcileCursorTheme},
 		{"Material Symbols icon font", reconcileIconFont},
+		{"frame bar style name", reconcileFrameBarsStyle},
 		{"shell config schema", reconcileShellConfig},
+		{"shell style knobs", reconcileLegacyStyleKnobs},
+		{"sumi bar simplification", reconcileSumiBar},
+		{"retired shell menus", reconcileRetiredMenus},
+		{"quick-settings capture tab", reconcileCaptureModule},
+		{"retired system sidebar", reconcileLegacySystemSidebar},
+		{"stash features sidebar anchor", reconcileStashSidebar},
+		{"spicetify canvas extension", reconcileSpicetifyCanvas},
+		{"launcher local-frost default", reconcileLauncherLocalFrostDefault},
+		{"user edits overlay", reconcileUserEditsAdopt},
+		{"keyring unlock policy", reconcileKeyring},
 		{"SDDM greeter theme", reconcileGreeterTheme},
 		{"fastfetch readout emblem", reconcileFastfetchEmblem},
 		{"brand mark image", reconcileBrandLogo},
+		{"decor art", reconcileRyodecors},
 		{"Hyprland config integrity", reconcileHyprlandConfig},
 		{"orphaned theme.lua", reconcileThemeLua},
 		{"follow-mouse default", reconcileFollowMouseDefault},
 		{"ryoku shell daemon", reconcileShellDaemon},
+		{"recordings directory", reconcileRecordingsDir},
 		{"failed services", reconcileFailedUnits},
 		{"btrfs device health", reconcileBtrfsHealth},
 		{"display backlight", reconcileBacklight},
@@ -936,27 +955,6 @@ func reconcileDevResidue(checkOnly bool) recResult {
 
 // ---- reconciler: shell config schema -------------------------------------------
 
-// legacyIslandKeys: pill-era knobs the popouts rework retired. their presence
-// marks a ~/.config/ryoku/shell.json seeded before the rework, whose values
-// point the shell at a face that no longer exists (islandStyle "floating",
-// barEnabled false): an updated box would come up with no bar and no resting
-// island at all. materialize never touches this file, so only doctor can
-// converge it.
-var legacyIslandKeys = []string{
-	"islandWidth", "islandHeight", "islandRestCorner", "islandOpenCorner",
-	"islandGap", "islandSmoothing", "islandOpacity", "islandStyle", "islandAutohide",
-}
-
-// shellConfigClamps: geometry knobs the renderer consumes raw; a value outside
-// these ranges draws a broken frame (the Hub sliders stay well inside them).
-var shellConfigClamps = map[string][2]float64{
-	"frameBorder":    {50, 120},
-	"frameRadius":    {0, 32},
-	"frameSmoothing": {1, 32},
-	"barHeight":      {16, 64},
-	"fontScale":      {0.7, 1.6},
-}
-
 func reconcileShellConfig(checkOnly bool) recResult {
 	path := filepath.Join(sys.ConfigHome(), "ryoku", "shell.json")
 	raw, err := os.ReadFile(path)
@@ -972,7 +970,7 @@ func reconcileShellConfig(checkOnly bool) recResult {
 		return okRes("shell.json is on the current schema")
 	}
 	if checkOnly {
-		return wouldRes("shell.json carries pre-rework state: %s", strings.Join(changes, "; ")).
+		return wouldRes("shell.json carries retired state: %s", strings.Join(changes, "; ")).
 			withFix("ryoku doctor migrates it in place")
 	}
 	tmp := path + ".ryoku-tmp"
@@ -986,43 +984,547 @@ func reconcileShellConfig(checkOnly bool) recResult {
 	return fixedRes("migrated shell.json to the current schema: %s", strings.Join(changes, "; "))
 }
 
-// migrateShellConfig drops retired pill-era keys, revives the bar they pointed
-// at, and clamps out-of-range geometry. pure, so it is unit-testable; returns
-// the rewritten JSON and a human summary of what changed (empty = no change).
+// ---- reconciler: frame bar style name ----------------------------------------
+
+// reconcileFrameBarsStyle converges a persisted frameBars.style that still
+// carries the retired bar-style name. The style itself did not change, only its
+// name, so an install that saved the old value would silently fall back to the
+// default until the store is rewritten. Surgical and idempotent: only the one
+// string moves, every other key survives untouched, and a store already on a
+// current style (or with no style key) is left alone.
+func reconcileFrameBarsStyle(checkOnly bool) recResult {
+	path := filepath.Join(sys.ConfigHome(), "ryoku", "shell.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return okRes("no shell.json yet (seeded on first shell run)")
+	}
+	migrated, changed, err := migrateFrameBarsStyle(raw)
+	if err != nil {
+		return warnRes("shell.json does not parse (%v); the shell falls back to defaults", err).
+			withFix("delete %s to re-seed it", path)
+	}
+	if !changed {
+		return okRes("frameBars.style names a current bar style")
+	}
+	if checkOnly {
+		return wouldRes("frameBars.style still names the retired bar style").
+			withFix("ryoku doctor renames it in place")
+	}
+	tmp := path + ".ryoku-tmp"
+	if err := os.WriteFile(tmp, migrated, 0o644); err != nil {
+		return failRes("could not write %s: %v", tmp, err)
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		os.Remove(tmp)
+		return failRes("could not replace %s: %v", path, err)
+	}
+	return fixedRes("renamed the retired frameBars.style to the current bar style")
+}
+
+// migrateFrameBarsStyle rewrites a shell store whose frameBars.style names a
+// retired bar style so it converges on the current default. The two names the
+// shell reads today are the only values left alone; anything else present (the
+// old name included) moves to the default. Every other key is preserved as its
+// own raw bytes, and an absent or non-string style is a no-op, so a store that
+// is already current comes back unchanged.
+func migrateFrameBarsStyle(raw []byte) ([]byte, bool, error) {
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &top); err != nil {
+		return nil, false, err
+	}
+	frameRaw, ok := top["frameBars"]
+	if !ok {
+		return nil, false, nil
+	}
+	var frame map[string]json.RawMessage
+	if err := json.Unmarshal(frameRaw, &frame); err != nil {
+		return nil, false, err
+	}
+	var style string
+	if err := json.Unmarshal(frame["style"], &style); err != nil {
+		return nil, false, nil
+	}
+	if style == "slate-frame" || style == "ryoku-frame" {
+		return nil, false, nil
+	}
+	next, err := json.Marshal("slate-frame")
+	if err != nil {
+		return nil, false, err
+	}
+	frame["style"] = next
+	frameBytes, err := json.Marshal(frame)
+	if err != nil {
+		return nil, false, err
+	}
+	top["frameBars"] = frameBytes
+	out, err := json.MarshalIndent(top, "", "  ")
+	if err != nil {
+		return nil, false, err
+	}
+	return append(out, '\n'), true, nil
+}
+
+// ---- reconciler: retired shell style knobs -----------------------------------
+
+// reconcileLegacyStyleKnobs strips the style keys a persisted shell.json may
+// still carry for looks the shell no longer has. surfaceColor / fontFamily /
+// roundness each duplicated a Theme token that now owns the value (surface,
+// fontPrimary, radiusWidget); frameSmoothing / shadowStrength / shadowSize drove
+// the retired soft-chrome look, whose blur hid the frame's crisp 2px border.
+// Surgical and idempotent: only these keys move, every other key survives
+// untouched, and a store already free of them is left alone.
+func reconcileLegacyStyleKnobs(checkOnly bool) recResult {
+	path := filepath.Join(sys.ConfigHome(), "ryoku", "shell.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return okRes("no shell.json yet (seeded on first shell run)")
+	}
+	migrated, changed, err := stripLegacyStyleKnobs(raw)
+	if err != nil {
+		return warnRes("shell.json does not parse (%v); the shell falls back to defaults", err).
+			withFix("delete %s to re-seed it", path)
+	}
+	if !changed {
+		return okRes("shell.json carries no retired style knobs")
+	}
+	if checkOnly {
+		return wouldRes("shell.json still carries retired style knobs (%s)", strings.Join(legacyStyleKnobs, " / ")).
+			withFix("ryoku doctor strips them in place")
+	}
+	tmp := path + ".ryoku-tmp"
+	if err := os.WriteFile(tmp, migrated, 0o644); err != nil {
+		return failRes("could not write %s: %v", tmp, err)
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		os.Remove(tmp)
+		return failRes("could not replace %s: %v", path, err)
+	}
+	return fixedRes("stripped retired style knobs from shell.json")
+}
+
+// legacyStyleKnobs are shell.json keys the shell no longer reads: each was a look
+// override for a style the shell no longer has.
+var legacyStyleKnobs = []string{
+	"surfaceColor", "fontFamily", "roundness",
+	"frameRadius", "frameBorder",
+	"frameSmoothing", "shadowStrength", "shadowSize",
+}
+
+// stripLegacyStyleKnobs removes the retired style knobs from a shell store,
+// preserving every other key as its own raw bytes. An absent knob is a no-op, so
+// a store already free of them comes back unchanged.
+func stripLegacyStyleKnobs(raw []byte) ([]byte, bool, error) {
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &top); err != nil {
+		return nil, false, err
+	}
+	changed := false
+	for _, key := range legacyStyleKnobs {
+		if _, ok := top[key]; ok {
+			delete(top, key)
+			changed = true
+		}
+	}
+	if !changed {
+		return nil, false, nil
+	}
+	out, err := json.MarshalIndent(top, "", "  ")
+	if err != nil {
+		return nil, false, err
+	}
+	return append(out, '\n'), true, nil
+}
+
+// ---- reconciler: sumi bar simplification -------------------------------------
+
+// reconcileSumiBar defaults a persisted shell.json's bar to the shipped QS Bar
+// (barStyle "qsbar") when it is absent -- a store older than the pluggable
+// bar-style system, which renders nothing until a default -- or still names a
+// retired Atoll-era style, so an existing box lands on the current default look
+// on update. Only the built-in Sumi rail keeps its left-only simplification (its
+// top/bottom/right rails ship disabled). Surgical and idempotent: a current or
+// installed store style, every zone widget array, and other keys survive
+// untouched, and a store already on a valid style is left alone.
+func reconcileSumiBar(checkOnly bool) recResult {
+	path := filepath.Join(sys.ConfigHome(), "ryoku", "shell.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return okRes("no shell.json yet (seeded on first shell run)")
+	}
+	migrated, changed, err := migrateSumiBar(raw)
+	if err != nil {
+		return warnRes("shell.json does not parse (%v); the shell falls back to defaults", err).
+			withFix("delete %s to re-seed it", path)
+	}
+	if !changed {
+		return okRes("barStyle names a current style; any Sumi frame is left-only")
+	}
+	if checkOnly {
+		return wouldRes("shell.json is missing barStyle or names a retired bar style (or a Sumi frame still has extra rails)").
+			withFix("ryoku doctor converges it to the qsbar default in place")
+	}
+	tmp := path + ".ryoku-tmp"
+	if err := os.WriteFile(tmp, migrated, 0o644); err != nil {
+		return failRes("could not write %s: %v", tmp, err)
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		os.Remove(tmp)
+		return failRes("could not replace %s: %v", path, err)
+	}
+	return fixedRes("defaulted the bar to qsbar / reduced any Sumi frame to left-only")
+}
+
+// retiredBarStyles are old top-level barStyle values from the pre-pluggable
+// Atoll/Washi era. The shell can no longer render them (they fall back to the
+// empty Sumi rail), so they migrate to the current default instead.
+var retiredBarStyles = map[string]bool{"atoll": true, "washi": true, "dyad": true, "ilyamiro": true}
+
+// migrateSumiBar defaults a shell store's bar to the shipped QS Bar when barStyle
+// is absent (a store older than the pluggable bar-style system) or names a
+// retired Atoll-era style, and -- only for the built-in Sumi rail -- reduces the
+// frame to its left rail. A current or installed store style, its zone widget
+// arrays, and every other key are preserved as raw bytes, so a store already on
+// a valid style comes back unchanged.
+func migrateSumiBar(raw []byte) ([]byte, bool, error) {
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &top); err != nil {
+		return nil, false, err
+	}
+	changed := false
+	style := ""
+	if b, ok := top["barStyle"]; ok {
+		_ = json.Unmarshal(b, &style)
+	}
+	if _, ok := top["barStyle"]; !ok || retiredBarStyles[style] {
+		next, err := json.Marshal("qsbar")
+		if err != nil {
+			return nil, false, err
+		}
+		top["barStyle"] = next
+		style = "qsbar"
+		changed = true
+	}
+	// Only the built-in Sumi rail keeps the left-only simplification; every other
+	// style owns its own rails.
+	if style == "sumi" {
+		if frameRaw, ok := top["frameBars"]; ok {
+			var frame map[string]json.RawMessage
+			if err := json.Unmarshal(frameRaw, &frame); err != nil {
+				return nil, false, err
+			}
+			if railsRaw, ok := frame["rails"]; ok {
+				var rails map[string]json.RawMessage
+				if err := json.Unmarshal(railsRaw, &rails); err != nil {
+					return nil, false, err
+				}
+				railsChanged := false
+				for _, side := range []string{"top", "bottom", "right"} {
+					railRaw, ok := rails[side]
+					if !ok {
+						continue
+					}
+					var rail map[string]json.RawMessage
+					if err := json.Unmarshal(railRaw, &rail); err != nil {
+						return nil, false, err
+					}
+					var enabled bool
+					if err := json.Unmarshal(rail["enabled"], &enabled); err != nil || !enabled {
+						continue
+					}
+					off, err := json.Marshal(false)
+					if err != nil {
+						return nil, false, err
+					}
+					rail["enabled"] = off
+					railBytes, err := json.Marshal(rail)
+					if err != nil {
+						return nil, false, err
+					}
+					rails[side] = railBytes
+					railsChanged = true
+				}
+				if railsChanged {
+					railsBytes, err := json.Marshal(rails)
+					if err != nil {
+						return nil, false, err
+					}
+					frame["rails"] = railsBytes
+					frameBytes, err := json.Marshal(frame)
+					if err != nil {
+						return nil, false, err
+					}
+					top["frameBars"] = frameBytes
+					changed = true
+				}
+			}
+		}
+	}
+	if !changed {
+		return nil, false, nil
+	}
+	out, err := json.MarshalIndent(top, "", "  ")
+	if err != nil {
+		return nil, false, err
+	}
+	return append(out, '\n'), true, nil
+}
+
+func frameRail(enabled bool, size float64, zones map[string][]any) map[string]any {
+	rail := map[string]any{"enabled": enabled, "size": size, "reveal": true}
+	for zone, ids := range zones {
+		rail[zone] = ids
+	}
+	return rail
+}
+
+func defaultFrameBarsFromLegacy(_ map[string]any) map[string]any {
+	return map[string]any{
+		"version": float64(1),
+		"style":   "slate-frame",
+		"rails": map[string]any{
+			"top":    frameRail(false, 32, map[string][]any{"start": {}, "center": {}, "end": {}}),
+			"left":   frameRail(true, 48, map[string][]any{"top": {"quick-settings", "workspaces"}, "center": {"dock"}, "bottom": {"recording", "tray", "audio-input", "audio-output", "bluetooth", "network", "clock", "battery"}}),
+			"bottom": frameRail(false, 32, map[string][]any{"start": {}, "center": {}, "end": {}}),
+			"right":  frameRail(false, 48, map[string][]any{"top": {}, "center": {}, "bottom": {}}),
+		},
+		"menus": map[string]any{
+			"quick-settings": map[string]any{"anchor": "left", "minWidth": float64(410), "expansion": "always", "widgets": []any{"quick-settings"}, "modules": []any{"home", "notifications", "weather", "capture"}},
+			"wallpaper":      map[string]any{"anchor": "bottom", "minWidth": float64(1400), "expansion": "always", "widgets": []any{"theme", "wallpaper"}},
+			"theme":          map[string]any{"anchor": "right", "minWidth": float64(320), "expansion": "never", "widgets": []any{"theme"}},
+			"weather":        map[string]any{"anchor": "right", "minWidth": float64(320), "expansion": "never", "widgets": []any{"weather"}},
+		},
+		"surfaces": map[string]any{
+			"stash": map[string]any{"anchor": "right", "minWidth": float64(340), "panes": []any{"stash"}},
+		},
+		"dock": map[string]any{"pinned": []any{}},
+	}
+}
+
+// frameBarAxes mirrors ryoku/shell/framebars/BarCatalog.js: the bar widgets the
+// frame renders, with the rail axes each one fits. An id absent here is stripped
+// from any rail on normalize, so this list stays in step with the QML catalogue.
+var frameBarAxes = map[string][]string{
+	"audio-input": {"horizontal", "vertical"}, "audio-output": {"horizontal", "vertical"},
+	"battery": {"horizontal", "vertical"}, "bluetooth": {"horizontal", "vertical"},
+	"clock": {"horizontal", "vertical"}, "dock": {"vertical"},
+	"workspaces": {"horizontal", "vertical"}, "lock": {"horizontal", "vertical"},
+	"logout": {"horizontal", "vertical"}, "music": {"horizontal", "vertical"},
+	"network": {"horizontal", "vertical"}, "notifications": {"horizontal", "vertical"},
+	"quick-settings": {"horizontal", "vertical"}, "recording": {"horizontal", "vertical"},
+	"shutdown": {"horizontal", "vertical"}, "tray": {"horizontal", "vertical"},
+	"vpn": {"horizontal", "vertical"},
+}
+
+func frameMap(value any) map[string]any {
+	m, _ := value.(map[string]any)
+	return m
+}
+
+func frameStringList(value any, allowed map[string]bool) []any {
+	values, _ := value.([]any)
+	out := make([]any, 0, len(values))
+	seen := map[string]bool{}
+	for _, value := range values {
+		id, ok := value.(string)
+		if ok && allowed[id] && !seen[id] {
+			seen[id] = true
+			out = append(out, id)
+		}
+	}
+	return out
+}
+func frameUniqueStrings(value any) []any {
+	values, _ := value.([]any)
+	out := make([]any, 0, len(values))
+	seen := map[string]bool{}
+	for _, value := range values {
+		id, ok := value.(string)
+		if ok && id != "" && !seen[id] {
+			seen[id] = true
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+func frameRailList(value any, axis string) []any {
+	values, _ := value.([]any)
+	out := make([]any, 0, len(values))
+	seen := map[string]bool{}
+	for _, value := range values {
+		id, ok := value.(string)
+		if !ok || seen[id] {
+			continue
+		}
+		for _, supported := range frameBarAxes[id] {
+			if supported == axis {
+				seen[id] = true
+				out = append(out, id)
+				break
+			}
+		}
+	}
+	return out
+}
+
+func frameNumber(value any, fallback, low, high float64) float64 {
+	n, ok := value.(float64)
+	if !ok {
+		return fallback
+	}
+	return min(max(n, low), high)
+}
+
+func frameAnchor(value any, fallback string) string {
+	anchor, ok := value.(string)
+	if !ok {
+		return fallback
+	}
+	for _, valid := range []string{"bottom", "bottom-left", "bottom-right", "left", "right", "top", "top-left", "top-right"} {
+		if anchor == valid {
+			return anchor
+		}
+	}
+	return fallback
+}
+
+func normalizeFrameBars(v any) (map[string]any, []string) {
+	base := defaultFrameBarsFromLegacy(nil)
+	source := frameMap(v)
+	out := defaultFrameBarsFromLegacy(nil)
+	if style, ok := source["style"].(string); ok && (style == "slate-frame" || style == "ryoku-frame") {
+		out["style"] = style
+	}
+	baseRails := frameMap(base["rails"])
+	sourceRails := frameMap(source["rails"])
+	outRails := frameMap(out["rails"])
+	for _, edge := range []string{"top", "left", "bottom", "right"} {
+		fallback := frameMap(baseRails[edge])
+		raw := frameMap(sourceRails[edge])
+		rail := frameMap(outRails[edge])
+		if enabled, ok := raw["enabled"].(bool); ok {
+			rail["enabled"] = enabled
+		}
+		if reveal, ok := raw["reveal"].(bool); ok {
+			rail["reveal"] = reveal
+		}
+		horizontal := edge == "top" || edge == "bottom"
+		if horizontal {
+			rail["size"] = frameNumber(raw["size"], fallback["size"].(float64), 16, 96)
+		} else {
+			rail["size"] = frameNumber(raw["size"], fallback["size"].(float64), 24, 112)
+		}
+		axis := "vertical"
+		zones := []string{"top", "center", "bottom"}
+		if horizontal {
+			axis, zones = "horizontal", []string{"start", "center", "end"}
+		}
+		for _, zone := range zones {
+			if _, present := raw[zone]; present {
+				rail[zone] = frameRailList(raw[zone], axis)
+			}
+		}
+	}
+	baseMenus, sourceMenus, outMenus := frameMap(base["menus"]), frameMap(source["menus"]), frameMap(out["menus"])
+	for _, id := range []string{"quick-settings", "wallpaper", "theme", "weather"} {
+		fallback, raw, menu := frameMap(baseMenus[id]), frameMap(sourceMenus[id]), frameMap(outMenus[id])
+		menu["anchor"] = frameAnchor(raw["anchor"], fallback["anchor"].(string))
+		menu["minWidth"] = frameNumber(raw["minWidth"], fallback["minWidth"].(float64), 1, 10000)
+		if expansion, ok := raw["expansion"].(string); ok {
+			switch expansion {
+			case "always", "never", "both", "up", "down":
+				menu["expansion"] = expansion
+			}
+		}
+	}
+	// Modules are catalogued and filtered by the shell. Doctor only guarantees a
+	// unique string list so a future module can be enabled without teaching this
+	// migration layer about every QML component.
+	menuRaw, menuOut := frameMap(sourceMenus["quick-settings"]), frameMap(outMenus["quick-settings"])
+	if modules := frameUniqueStrings(menuRaw["modules"]); len(modules) > 0 {
+		menuOut["modules"] = modules
+	}
+	baseSurfaces, sourceSurfaces, outSurfaces := frameMap(base["surfaces"]), frameMap(source["surfaces"]), frameMap(out["surfaces"])
+	fallback, raw, surface := frameMap(baseSurfaces["stash"]), frameMap(sourceSurfaces["stash"]), frameMap(outSurfaces["stash"])
+	surface["anchor"] = frameAnchor(raw["anchor"], fallback["anchor"].(string))
+	surface["minWidth"] = frameNumber(raw["minWidth"], fallback["minWidth"].(float64), 1, 10000)
+	if _, present := raw["panes"]; present {
+		allowed := map[string]bool{"stash": true}
+		surface["panes"] = frameStringList(raw["panes"], allowed)
+	}
+	dockRaw, dockOut := frameMap(source["dock"]), frameMap(out["dock"])
+	if pinned, ok := dockRaw["pinned"].([]any); ok {
+		outPinned := make([]any, 0, len(pinned))
+		for _, value := range pinned {
+			if id, ok := value.(string); ok {
+				outPinned = append(outPinned, id)
+			}
+		}
+		dockOut["pinned"] = outPinned
+	}
+	before, _ := json.Marshal(source)
+	after, _ := json.Marshal(out)
+	if bytes.Equal(before, after) {
+		return out, nil
+	}
+	return out, []string{"normalized frameBars"}
+}
+
+// retiredShellKeys are shell.json keys no shipped surface reads any more: the
+// Atoll bar geometry and skins, its module/toggle lists, the island knobs, and
+// the sidebar openers that frame surfaces replaced. Frame bars carry all of it
+// now, so a machine upgrading from any older release sheds them here rather
+// than keeping dead state around forever.
+var retiredShellKeys = []string{
+	"atollVariant", "barEnabled", "barHeight", "barLayoutCentre", "barLayoutLeft",
+	"barLayoutRight", "barOccupiedWorkspaces", "barPosition", "barShowMedia",
+	"barShowSpecialWs", "barShowStatus", "barShowTitle", "barShowWeather",
+	"barToggles", "dyadVariant", "islandAlong", "islandEdge",
+	"islandHidden", "islandModules", "islandRadius", "ryolayerEnabled", "sidebarClickless",
+	"sidebarCornerSize", "sidebarLeftEnabled", "sidebarRightEnabled",
+	"washiVariant",
+}
+
 func migrateShellConfig(raw []byte) ([]byte, []string, error) {
 	var cfg map[string]any
 	if err := json.Unmarshal(raw, &cfg); err != nil {
 		return nil, nil, err
 	}
 	var changes []string
-	legacy := false
-	for _, k := range legacyIslandKeys {
-		if _, ok := cfg[k]; ok {
-			delete(cfg, k)
-			legacy = true
+	if _, present := cfg["frameBars"]; !present {
+		cfg["frameBars"] = defaultFrameBarsFromLegacy(cfg)
+		changes = append(changes, "migrated Atoll settings to frame bars")
+	}
+	if _, left := cfg["sidebarLeftPanes"]; left || cfg["sidebarRightPanes"] != nil || cfg["sidebarWidth"] != nil {
+		frameBars := frameMap(cfg["frameBars"])
+		surfaces := frameMap(frameBars["surfaces"])
+		stash := frameMap(surfaces["stash"])
+		if panes, ok := cfg["sidebarLeftPanes"]; ok {
+			stash["panes"] = panes
+		}
+		if width, ok := cfg["sidebarWidth"]; ok {
+			stash["minWidth"] = width
+		}
+		surfaces["stash"] = stash
+		frameBars["surfaces"] = surfaces
+		cfg["frameBars"] = frameBars
+		delete(cfg, "sidebarLeftPanes")
+		delete(cfg, "sidebarRightPanes")
+		delete(cfg, "sidebarWidth")
+		changes = append(changes, "migrated stash sidebar and retired system sidebar settings")
+	}
+	normalized, frameChanges := normalizeFrameBars(cfg["frameBars"])
+	cfg["frameBars"] = normalized
+	changes = append(changes, frameChanges...)
+	removed := false
+	for _, key := range retiredShellKeys {
+		if _, exists := cfg[key]; exists {
+			delete(cfg, key)
+			removed = true
 		}
 	}
-	if legacy {
-		changes = append(changes, "dropped the retired island knobs")
-		// the resting island those files disabled the bar in favour of no
-		// longer exists; without the bar the rework has no shell face at all.
-		if on, ok := cfg["barEnabled"].(bool); ok && !on {
-			cfg["barEnabled"] = true
-			changes = append(changes, "enabled the bar (the resting island it replaced is gone)")
-		}
-		if _, ok := cfg["barPosition"]; !ok {
-			cfg["barPosition"] = "top"
-		}
-	}
-	for k, r := range shellConfigClamps {
-		v, ok := cfg[k].(float64)
-		if !ok {
-			continue
-		}
-		if v < r[0] || v > r[1] {
-			cfg[k] = min(max(v, r[0]), r[1])
-			changes = append(changes, fmt.Sprintf("clamped %s %g into [%g, %g]", k, v, r[0], r[1]))
-		}
+	if removed {
+		changes = append(changes, "removed retired settings")
 	}
 	if len(changes) == 0 {
 		return nil, nil, nil
@@ -1200,21 +1702,122 @@ func reconcilePortalRouting(checkOnly bool) recResult {
 
 // ---- reconciler: cursor theme ------------------------------------------------
 
-// reconcileCursorTheme flags a Ryoku desktop with no Bibata cursor theme.
-// shipped XCURSOR_THEME default (env.lua + Ryoku Settings) = Bibata-Modern-Ice,
-// and the AUR set installs the whole Bibata family. but a failed source build
-// or a dev checkout (deploy.sh installs no AUR packages) can leave the cursor
-// picker with only a single fallback. the -bin package is prebuilt, so the
-// fix never has to compile.
-func reconcileCursorTheme(_ bool) recResult {
+const defaultCursorTheme = "Bibata-Modern-Ice"
+
+// cursorSearchDirs: the XCursor theme search path, in load order. the system dir
+// (where ryoku-cursors installs the Bibata family) first, then the two per-user
+// dirs a Hub-installed third-party theme can land in.
+func cursorSearchDirs() []string {
+	return []string{
+		"/usr/share/icons",
+		filepath.Join(sys.Home(), ".local", "share", "icons"),
+		filepath.Join(sys.Home(), ".icons"),
+	}
+}
+
+// cursorThemeInstalled: is <theme>/cursors present under any search dir? a bare
+// theme dir with no cursors/ is an index-only stub the loader cannot use.
+func cursorThemeInstalled(theme string, dirs []string) bool {
+	if theme == "" {
+		return false
+	}
+	for _, d := range dirs {
+		if sys.Exists(filepath.Join(d, theme, "cursors")) {
+			return true
+		}
+	}
+	return false
+}
+
+// configuredCursor: the theme + size the desktop actually loads = the Hub
+// override in hypr.json when set, else the shipped env.lua default. pure, so the
+// converge decision is unit-testable without a live desktop.
+func configuredCursor(raw []byte) (string, int) {
+	theme, size := defaultCursorTheme, 24
+	var cfg struct {
+		Cursor struct {
+			Theme string `json:"theme"`
+			Size  int    `json:"size"`
+		} `json:"cursor"`
+	}
+	if json.Unmarshal(raw, &cfg) == nil {
+		if cfg.Cursor.Theme != "" {
+			theme = cfg.Cursor.Theme
+		}
+		if cfg.Cursor.Size > 0 {
+			size = cfg.Cursor.Size
+		}
+	}
+	return theme, size
+}
+
+// resetCursorTheme rewrites hypr.json's cursor.theme to def, leaving every other
+// key (size, the rest of the store) intact. pure and idempotent.
+func resetCursorTheme(raw []byte, def string) ([]byte, error) {
+	cfg := map[string]any{}
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &cfg); err != nil {
+			return nil, err
+		}
+	}
+	cur, _ := cfg["cursor"].(map[string]any)
+	if cur == nil {
+		cur = map[string]any{}
+	}
+	cur["theme"] = def
+	cfg["cursor"] = cur
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return append(out, '\n'), nil
+}
+
+// reconcileCursorTheme keeps the desktop pointing at a cursor theme that is
+// actually on disk. ryoku-cursors now ships the Bibata family as a hard
+// ryoku-desktop dependency, so the configured default is package-guaranteed and
+// the failure worth healing is a Hub-picked third-party theme that was never
+// installed (or was removed): the pointer then falls back to a bare bitmap.
+// the fix is config-side -- reset hypr.json to the guaranteed default -- never a
+// pacman call. when even the default is absent (a dev checkout with no package)
+// there is nothing config can heal, so it only warns.
+func reconcileCursorTheme(checkOnly bool) recResult {
 	if !sys.Exists(filepath.Join(sys.Home(), ".config", "hypr")) && !sys.Has("Hyprland") {
 		return okRes("not a Hyprland desktop")
 	}
-	if anyPkgInstalled("bibata-cursor-theme-bin", "bibata-cursor-theme") {
-		return okRes("Bibata cursor themes installed")
+	dirs := cursorSearchDirs()
+	store := filepath.Join(sys.ConfigHome(), "ryoku", "hypr.json")
+	raw, _ := os.ReadFile(store)
+	theme, size := configuredCursor(raw)
+	if cursorThemeInstalled(theme, dirs) {
+		return okRes("configured cursor theme %q is installed", theme)
 	}
-	return warnRes("Ryoku's Bibata cursor themes are missing; the cursor picker has only fallbacks").
-		withFix("ryoku-pkg-aur-add bibata-cursor-theme-bin")
+	if !cursorThemeInstalled(defaultCursorTheme, dirs) {
+		// the package default is missing too: no config edit can conjure the
+		// theme files, and doctor never drives pacman.
+		return warnRes("cursor theme %q is missing on disk and so is the default %q; the pointer falls back to a bitmap", theme, defaultCursorTheme).
+			withFix("install ryoku-cursors (it ships the Bibata family and is a ryoku-desktop dependency)")
+	}
+	if checkOnly {
+		return wouldRes("cursor theme %q missing on disk; would reset to %s", theme, defaultCursorTheme).
+			withFix("ryoku doctor resets it to %s; re-pick your theme in the Hub after installing it", defaultCursorTheme)
+	}
+	out, err := resetCursorTheme(raw, defaultCursorTheme)
+	if err != nil {
+		return warnRes("cursor theme %q missing on disk and hypr.json does not parse (%v)", theme, err).
+			withFix("set cursor.theme to %s in %s", defaultCursorTheme, store)
+	}
+	tmp := store + ".ryoku-tmp"
+	if err := os.WriteFile(tmp, out, 0o644); err != nil {
+		return failRes("could not write %s: %v", tmp, err)
+	}
+	if err := os.Rename(tmp, store); err != nil {
+		os.Remove(tmp)
+		return failRes("could not replace %s: %v", store, err)
+	}
+	// best-effort live apply; no-ops off a running session.
+	_ = exec.Command("hyprctl", "setcursor", defaultCursorTheme, fmt.Sprintf("%d", size)).Run()
+	return fixedRes("cursor theme %q missing on disk; reset to %s (re-pick your theme in the Hub after installing it)", theme, defaultCursorTheme)
 }
 
 // ---- reconciler: SDDM greeter theme readable ---------------------------------
@@ -1439,6 +2042,64 @@ func reconcileBrandLogo(checkOnly bool) recResult {
 	return fixedRes("cleared the broken brand image (%s); the mark falls back to the text seal", img)
 }
 
+// ---- reconciler: decor art (Pictures/ryodecors) ------------------------------
+
+// ryodecorsSource is where the shipped decor art set lives: the repo checkout on
+// a dev box (ryoku deploy records it), else /usr/share/ryoku/ryodecors from the
+// ryoku-desktop package. "" when neither is present (a box on a pre-fix package,
+// cured by pulling the update first).
+func ryodecorsSource() string {
+	if repo := sys.ResolveRepo(); repo != "" {
+		if p := filepath.Join(repo, "ryoku", "assets", "ryodecors"); sys.Exists(p) {
+			return p
+		}
+	}
+	if p := "/usr/share/ryoku/ryodecors"; sys.Exists(p) {
+		return p
+	}
+	return ""
+}
+
+// reconcileRyodecors keeps the shipped decor art present in ~/Pictures/ryodecors,
+// the folder the Decor and Placard components render from (beside Wallpapers and
+// livewalls). The installer seeds it on a fresh install; this delivers it -- and
+// any art a later release adds -- to a box that updated before it shipped, or one
+// where a file went missing. Missing-only: a file the user swapped or added is
+// left alone, and nothing is pruned (it is a user-owned Pictures folder).
+func reconcileRyodecors(checkOnly bool) recResult {
+	src := ryodecorsSource()
+	if src == "" {
+		return okRes("no decor art source yet (ships with the desktop package)")
+	}
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return okRes("decor art source unreadable (%v)", err)
+	}
+	dst := filepath.Join(sys.Home(), "Pictures", "ryodecors")
+	var missing []string
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if !sys.Exists(filepath.Join(dst, e.Name())) {
+			missing = append(missing, e.Name())
+		}
+	}
+	if len(missing) == 0 {
+		return okRes("decor art present in %s", dst)
+	}
+	if checkOnly {
+		return wouldRes("%d decor art file(s) missing from %s", len(missing), dst).
+			withFix("ryoku doctor")
+	}
+	for _, name := range missing {
+		if err := sys.CopyFile(filepath.Join(src, name), filepath.Join(dst, name)); err != nil {
+			return failRes("could not seed decor art %s: %v", name, err).withFix("ryoku doctor")
+		}
+	}
+	return fixedRes("seeded %d decor art file(s) into %s", len(missing), dst)
+}
+
 // ---- reconciler: retired follow-mouse default --------------------------------
 
 // followMouseMarker records that the one-time follow-mouse heal has run, so a
@@ -1546,7 +2207,50 @@ func reconcileShellDaemon(checkOnly bool) recResult {
 			withFix("redeploy the shell: `ryoku update` (or ryoku/shell/deploy.sh from a checkout)")
 	}
 	if shellDaemonReachable() {
-		return okRes("shell daemon reachable")
+		// A reachable daemon can still be stale. One left over from a previous
+		// Hyprland instance -- it survived a relogin or crash (deploy starts it
+		// detached, and it need not die with the compositor) -- keeps answering
+		// ping, but it and every quickshell child it supervises stay pinned to
+		// the dead instance's IPC socket: the workspace indicator freezes and
+		// power (any monitor-aware command) resolves no monitor. Compare the
+		// daemon's instance to this live session and restart a mismatch.
+		sig, ok := shellDaemonSignature()
+		if !daemonIsStale(os.Getenv("HYPRLAND_INSTANCE_SIGNATURE"), sig, ok) {
+			// Same instance, but the binary under it may be gone: an update
+			// that replaced /usr/bin/ryoku-shell without quiescing the shell
+			// (updaters before beta-17 did) leaves the old daemon serving
+			// surfaces that hot-reload QML newer than it can host -- the
+			// "module Ryoku.FrameBars is not installed" class of breakage.
+			if !shellDaemonOutdated() {
+				return okRes("shell daemon reachable")
+			}
+			if checkOnly {
+				return wouldRes("shell daemon is running a replaced binary; its surfaces load config newer than it").
+					withFix("ryoku doctor restarts the daemon on the installed binary")
+			}
+			if err := restartShellDaemon(); err != nil {
+				return failRes("shell daemon runs a replaced binary and could not be restarted: %v", err).
+					withFix("`ryoku-shell quit`, then `ryoku-shell daemon` in a terminal")
+			}
+			if waitDaemonReachable(5 * time.Second) {
+				return fixedRes("shell daemon was running a replaced binary; restarted it on the installed one")
+			}
+			return failRes("restarted the outdated shell daemon but it did not come back").
+				withFix("run `ryoku-shell daemon` in a terminal to see why it exits")
+		}
+		if checkOnly {
+			return wouldRes("shell daemon is bound to a previous Hyprland instance; workspaces and monitor-aware menus are dead").
+				withFix("ryoku doctor restarts the daemon against the live session")
+		}
+		if err := restartShellDaemon(); err != nil {
+			return failRes("shell daemon is stale and could not be restarted: %v", err).
+				withFix("`ryoku-shell quit`, then `ryoku-shell daemon` in a terminal")
+		}
+		if waitDaemonReachable(5 * time.Second) {
+			return fixedRes("shell daemon was bound to a dead Hyprland instance; restarted it against the live session")
+		}
+		return failRes("restarted the stale shell daemon but it did not come back").
+			withFix("run `ryoku-shell daemon` in a terminal to see why it exits")
 	}
 	if checkOnly {
 		return wouldRes("shell daemon is down; the shell, keybinds and panels are dead").
@@ -1568,11 +2272,7 @@ func reconcileShellDaemon(checkOnly bool) recResult {
 // the connection; a hung daemon accepts but never replies, so the read is
 // bounded.
 func shellDaemonReachable() bool {
-	dir := os.Getenv("XDG_RUNTIME_DIR")
-	if dir == "" {
-		dir = "/tmp"
-	}
-	conn, err := net.DialTimeout("unix", filepath.Join(dir, "ryoku-shell.sock"), time.Second)
+	conn, err := net.DialTimeout("unix", shellSockPath(), time.Second)
 	if err != nil {
 		return false
 	}
@@ -1594,6 +2294,19 @@ func shellDaemonReachable() bool {
 // would resurrect a stale daemon; a checkout box's home deploy IS the
 // desktop, so PATH is right there.
 func startShellDaemon() error {
+	// Prefer the unit so a recovered daemon stays supervised; the reload lets a
+	// freshly delivered unit be found. Falls through to a bare start where the
+	// unit does not exist, so recovery never depends on it. The env push first:
+	// if login's import never reached the user manager, the unit's
+	// ConditionEnvironment=WAYLAND_DISPLAY skips it and restart "succeeds"
+	// while starting nothing.
+	_ = exec.Command("dbus-update-activation-environment", "--systemd",
+		"WAYLAND_DISPLAY", "XDG_CURRENT_DESKTOP", "HYPRLAND_INSTANCE_SIGNATURE",
+		"XDG_SESSION_TYPE", "RYOKU_POLKIT_AGENT").Run()
+	_ = exec.Command("systemctl", "--user", "daemon-reload").Run()
+	if exec.Command("systemctl", "--user", "restart", "ryoku-shell").Run() == nil {
+		return nil
+	}
 	shell := "ryoku-shell"
 	if sys.ResolveRepo() == "" && sys.Exists("/usr/bin/ryoku-shell") {
 		shell = "/usr/bin/ryoku-shell"
@@ -1617,6 +2330,109 @@ func waitDaemonReachable(d time.Duration) bool {
 		}
 		if time.Now().After(deadline) {
 			return false
+		}
+		time.Sleep(150 * time.Millisecond)
+	}
+}
+
+// shellSockPath is the shell daemon's control socket -- the one the keybinds and
+// quickshell components dial.
+func shellSockPath() string {
+	dir := os.Getenv("XDG_RUNTIME_DIR")
+	if dir == "" {
+		dir = "/tmp"
+	}
+	return filepath.Join(dir, "ryoku-shell.sock")
+}
+
+// shellDaemonSignature asks the running daemon which Hyprland instance it was
+// launched under (the `signature` command). ok is false when the query fails or
+// the daemon predates the command, so a "can't tell" is never read as stale.
+func shellDaemonSignature() (sig string, ok bool) {
+	conn, err := net.DialTimeout("unix", shellSockPath(), time.Second)
+	if err != nil {
+		return "", false
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(2 * time.Second))
+	if _, err := fmt.Fprintln(conn, "signature"); err != nil {
+		return "", false
+	}
+	buf := make([]byte, 4096)
+	n, _ := conn.Read(buf)
+	resp := strings.TrimSpace(string(buf[:n]))
+	if resp == "" || strings.HasPrefix(resp, "err ") {
+		return "", false
+	}
+	return resp, true
+}
+
+// daemonIsStale reports whether a reachable daemon is bound to a different
+// Hyprland instance than this session (live), from the signature it reported and
+// whether that report was usable (ok). "can't tell" (ok=false) is never stale,
+// so doctor never restarts a daemon it could not identify.
+func daemonIsStale(live, sig string, ok bool) bool {
+	return ok && sig != live
+}
+
+// shellDaemonOutdated: is the running daemon's binary gone from disk? pacman
+// replacing /usr/bin/ryoku-shell (or a deploy replacing the home build) turns
+// the daemon's /proc exe link into "... (deleted)". Matches by exact cmdline,
+// never pgrep -f, so doctor's own shell can't shadow the answer.
+func shellDaemonOutdated() bool {
+	entries, err := os.ReadDir("/proc")
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		pid := e.Name()
+		if pid[0] < '0' || pid[0] > '9' {
+			continue
+		}
+		cmd, err := os.ReadFile("/proc/" + pid + "/cmdline")
+		if err != nil {
+			continue
+		}
+		exe, _ := os.Readlink("/proc/" + pid + "/exe")
+		if daemonBinaryReplaced(string(cmd), exe) {
+			return true
+		}
+	}
+	return false
+}
+
+// daemonBinaryReplaced decides from a /proc cmdline and exe link whether this
+// process is the shell daemon left running on a deleted binary.
+func daemonBinaryReplaced(cmdline, exeLink string) bool {
+	fields := strings.Split(cmdline, "\x00")
+	if len(fields) < 2 || fields[1] != "daemon" || filepath.Base(fields[0]) != "ryoku-shell" {
+		return false
+	}
+	return strings.HasSuffix(exeLink, " (deleted)")
+}
+
+// restartShellDaemon replaces a stale daemon with one bound to the live session:
+// quit the incumbent (so it reaps its own quickshell children and frees the
+// socket), then start a fresh daemon, which inherits doctor's live
+// HYPRLAND_INSTANCE_SIGNATURE and passes it to every component it supervises.
+func restartShellDaemon() error {
+	quitShellDaemon()
+	return startShellDaemon()
+}
+
+// quitShellDaemon sends the daemon a quit and waits, bounded, for the control
+// socket to go quiet, so the fresh daemon binds without racing the old one's
+// teardown.
+func quitShellDaemon() {
+	if conn, err := net.DialTimeout("unix", shellSockPath(), time.Second); err == nil {
+		_ = conn.SetDeadline(time.Now().Add(2 * time.Second))
+		fmt.Fprintln(conn, "quit")
+		conn.Close()
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if !shellDaemonReachable() {
+			return
 		}
 		time.Sleep(150 * time.Millisecond)
 	}
@@ -1896,14 +2712,114 @@ func reconcileBtrfsHealth(_ bool) recResult {
 
 // ---- reconciler: pending .pacnew config --------------------------------------
 
-func reconcilePacnew(_ bool) recResult {
+// pacnewOutcome classifies one .pacnew against its live file. pure, so the
+// resolve decision is unit-testable without root or a real /etc.
+type pacnewOutcome int
+
+const (
+	pacnewIdentical pacnewOutcome = iota // bytes match: pacman's new default is already in place
+	pacnewRyokuOnly                      // differs only by Ryoku's deterministic [ryoku] repo stanza
+	pacnewConflict                       // a real merge only a human should make
+)
+
+// classifyPacnew decides whether a .pacnew is safe to drop. identical bytes mean
+// the packaged default already equals the live file (the flagged edit was
+// reverted, or the bump was metadata-only). the [ryoku] repo stanza the
+// installer appends to pacman.conf is Ryoku's own deterministic addition, not a
+// user edit: a live pacman.conf that equals the .pacnew once that stanza is
+// stripped carries nothing to merge. anything else is a genuine conflict left
+// for the user + pacdiff.
+func classifyPacnew(livePath string, live, pacnew []byte) pacnewOutcome {
+	if bytes.Equal(live, pacnew) {
+		return pacnewIdentical
+	}
+	if filepath.Base(livePath) == "pacman.conf" &&
+		bytes.Equal(trimTrailing(stripRyokuRepoStanza(live)), trimTrailing(pacnew)) {
+		return pacnewRyokuOnly
+	}
+	return pacnewConflict
+}
+
+// stripRyokuRepoStanza removes the `[ryoku]` section (and a single blank
+// separator before it) the installer appends to pacman.conf, so what remains is
+// the base config pacman ships. a later section header ends the stanza, so a
+// user's edits after [ryoku] survive the comparison.
+func stripRyokuRepoStanza(conf []byte) []byte {
+	lines := strings.Split(string(conf), "\n")
+	out := make([]string, 0, len(lines))
+	inRyoku := false
+	for _, l := range lines {
+		t := strings.TrimSpace(l)
+		if t == "[ryoku]" {
+			inRyoku = true
+			for len(out) > 0 && strings.TrimSpace(out[len(out)-1]) == "" {
+				out = out[:len(out)-1]
+			}
+			continue
+		}
+		if inRyoku {
+			if strings.HasPrefix(t, "[") && strings.HasSuffix(t, "]") {
+				inRyoku = false // a new section begins; keep it
+			} else {
+				continue // still inside the [ryoku] stanza
+			}
+		}
+		out = append(out, l)
+	}
+	return []byte(strings.Join(out, "\n"))
+}
+
+// trimTrailing drops trailing whitespace/newlines so a lone trailing-newline
+// difference never reads as a conflict.
+func trimTrailing(b []byte) []byte { return bytes.TrimRight(b, " \t\r\n") }
+
+// reconcilePacnew resolves the .pacnew files pacman drops when it upgrades a
+// package whose tracked /etc file the install (or a later edit) changed. it
+// auto-clears only the provably safe ones -- a .pacnew identical to the live
+// file, or a pacman.conf whose sole diff is the [ryoku] repo stanza the
+// installer appends -- and never overwrites a user-modified base config with the
+// packaged default. genuine merges are reported for `sudo pacdiff`. idempotent:
+// once the safe ones are gone a re-run only sees (and reports) the conflicts.
+func reconcilePacnew(checkOnly bool) recResult {
 	out, _ := sys.RunOut("find", "/etc", "-name", "*.pacnew")
 	files := nonEmptyLines(out)
 	if len(files) == 0 {
 		return okRes("no pending config updates")
 	}
-	return warnRes("%d pending config update(s) (.pacnew)", len(files)).
-		withFix("review and merge with `sudo pacdiff` (from pacman-contrib)")
+	resolved, conflicts := 0, 0
+	for _, pacnew := range files {
+		live := strings.TrimSuffix(pacnew, ".pacnew")
+		lb, lerr := os.ReadFile(live)
+		pb, perr := os.ReadFile(pacnew)
+		if lerr != nil || perr != nil || classifyPacnew(live, lb, pb) == pacnewConflict {
+			conflicts++
+			continue
+		}
+		if checkOnly {
+			resolved++
+			continue
+		}
+		if err := sys.Sudo("rm", "-f", pacnew); err != nil {
+			conflicts++
+			continue
+		}
+		resolved++
+	}
+	if conflicts == 0 {
+		if checkOnly {
+			return wouldRes("%d pending .pacnew are safe to drop (identical to the live config or only the [ryoku] repo addition)", resolved)
+		}
+		return fixedRes("cleared %d safe .pacnew (identical to the live config or only the [ryoku] repo addition)", resolved)
+	}
+	msg := warnRes("%d pending config update(s) (.pacnew) need review", conflicts)
+	if resolved > 0 {
+		verb := "cleared"
+		if checkOnly {
+			verb = "safe to drop"
+		}
+		msg = warnRes("%d pending config update(s) (.pacnew) need review (%d %s)", conflicts, resolved, verb)
+	}
+	return msg.withFix("review and merge with `sudo pacdiff` (from pacman-contrib)")
 }
 
 // ---- reconciler: orphaned packages -------------------------------------------

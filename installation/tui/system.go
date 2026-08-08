@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -296,7 +297,10 @@ func sysDisks() []item {
 		}
 		tran := strings.ToUpper(r["TRAN"])
 		model := strings.TrimSpace(r["MODEL"])
-		hint := strings.TrimSpace(fmt.Sprintf("%s · %s · %s %s", r["SIZE"], model, tran, kind))
+		// Lead the row with what's actually on the disk (from the probe) so the
+		// content summary survives truncation; the size/model/bus follow.
+		sum := diskSummary(sysDiskLayout(r["NAME"]))
+		hint := strings.TrimSpace(fmt.Sprintf("%s · %s · %s · %s %s", sum, humanSize(sysDiskBytes(r["NAME"])), model, tran, kind))
 		items = append(items, item{r["NAME"], r["NAME"], hint})
 	}
 	return items
@@ -328,8 +332,8 @@ func hasVMD() bool {
 	return false
 }
 
-// sysDiskSize returns a device size in GiB via blockdev. WIRE target.
-func sysDiskSize(dev string) int {
+// sysDiskBytes returns a device's exact size in bytes via blockdev. WIRE target.
+func sysDiskBytes(dev string) int64 {
 	out, ok := run("blockdev", "--getsize64", dev)
 	if !ok {
 		return 0
@@ -338,21 +342,32 @@ func sysDiskSize(dev string) int {
 	if err != nil {
 		return 0
 	}
-	return int(n / (1024 * 1024 * 1024))
+	return n
 }
+
+// sysDiskSize returns a device size in whole GiB (for the layout math).
+func sysDiskSize(dev string) int { return int(sysDiskBytes(dev) / (1024 * 1024 * 1024)) }
 
 // espTypeGUID is the GPT partition type for an EFI System Partition.
 const espTypeGUID = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
 
 // diskLayout is a disk's real partition layout: the existing partitions (kept for
-// a dual-boot install) and the largest contiguous free region in GiB. It is read
-// from lsblk + parted so the installer shows the actual disk, never a guess.
+// a dual-boot install) and the largest contiguous free region. Partitions come
+// from lsblk; the free region comes from the backend's read-only alongside probe
+// (the single source of truth for free space), so the TUI never guesses.
 type diskLayout struct {
-	parts     []part
-	freeG     int
-	windows   bool // an NTFS partition is present (a Windows install)
-	gpt       bool // GPT label (alongside requires it)
-	bitlocker bool // a BitLocker-encrypted partition is present (recovery-key warning)
+	parts        []part
+	freeG        int
+	regionStart  int64  // chosen free region, first sector (alongside; 0 when none)
+	regionEnd    int64  // chosen free region, last sector
+	probeVerdict string // ok|none|no-gpt|no-esp|error from the alongside probe
+	probeMessage string // human cause for a non-ok verdict (rendered as the block reason)
+	windows      bool   // an NTFS partition is present (a Windows install)
+	gpt          bool   // GPT label (alongside requires it)
+	bitlocker    bool   // a BitLocker-encrypted partition is present (recovery-key warning)
+	espKind      string // windows|ryoku|linux for the disk's EF00 ESP ("" when none/older backend)
+	existingBoot string // the existing OS's chainloadable EFI binary, or "none" ("" when absent)
+	leftovers    []part // verified failed-install debris the backend reclaims (freed space)
 }
 
 // sysDiskLayout reads the existing partitions and largest free region of a disk.
@@ -384,15 +399,9 @@ func sysDiskLayout(disk string) diskLayout {
 				dl.bitlocker = true // locked NTFS: booting Windows via Ryoku will demand the recovery key
 			}
 			p := part{size: gib, fs: fs, mount: "-", flags: "-", status: "keep"}
-			lbl := strings.TrimSpace(r["PARTLABEL"])
 			switch {
-			case lbl == "ryoku" || lbl == "ryokuboot":
-				// Leftover of a prior failed Ryoku run: the backend reclaims (frees)
-				// these before measuring space, so mark them reclaimable. A ryokuboot
-				// leftover is an ESP, so this must win over the ESP case below.
-				p.reclaim, p.dev, p.flags = true, "previous Ryoku", "-"
 			case strings.EqualFold(r["PARTTYPE"], espTypeGUID):
-				p.dev, p.fs, p.mount, p.flags = "EFI (Windows)", "fat32", "-", "esp"
+				p.dev, p.fs, p.mount, p.flags = "EFI System", "fat32", "-", "esp"
 			case fs == "ntfs":
 				p.dev, p.mount = winLabel(r["PARTLABEL"]), "Windows"
 				dl.windows = true
@@ -402,7 +411,10 @@ func sysDiskLayout(disk string) diskLayout {
 			dl.parts = append(dl.parts, p)
 		}
 	}
-	dl.freeG = largestFreeGiB(disk)
+	pr := probeAlongside(disk)
+	dl.freeG, dl.regionStart, dl.regionEnd = pr.freeG, pr.regionStart, pr.regionEnd
+	dl.probeVerdict, dl.probeMessage = pr.verdict, pr.message
+	dl.espKind, dl.existingBoot, dl.leftovers = pr.espKind, pr.existingBoot, pr.leftovers
 	return dl
 }
 
@@ -423,41 +435,185 @@ func partLabel(lbl, fs string) string {
 	return "partition"
 }
 
-// largestFreeGiB returns the largest contiguous free region on the disk in GiB.
-// It parses parted's byte-precise `unit B` listing (parted rounds MiB/GiB output,
-// overpromising up to 1 MiB at thresholds); parseLargestFreeGiB does the flooring.
-func largestFreeGiB(disk string) int {
-	out, ok := run("parted", "-ms", disk, "unit", "B", "print", "free")
-	if !ok {
-		return 0
-	}
-	return parseLargestFreeGiB(out)
+// probeResult is the backend alongside probe's report: the largest usable free
+// region (GiB + first/last sectors), plus the verdict and its human message so
+// the exact cause (no ESP, no GPT, no region, probe failure) reaches the user
+// instead of a generic "not enough space". The backend (sfdisk) is the single
+// source of truth for free space; the TUI renders what it says and hands the
+type probeResult struct {
+	freeG                  int
+	regionStart, regionEnd int64
+	verdict, message       string
+	espKind                string // esp_kind: windows|ryoku|linux ("" when no ESP or older backend)
+	existingBoot           string // existing_boot: the existing OS's EFI binary, or "none" ("" when absent)
+	leftovers              []part // one per verified failed-install partition to reclaim (freed)
 }
 
-// parseLargestFreeGiB mirrors the backend's ryoku_largest_free_mib exactly: over
-// parted's `unit B print free` output it takes the largest "free;" region in whole
-// bytes, floors to MiB, drops a 1 MiB alignment margin, then floors to GiB. Pure so
-// the byte-flooring can be tested over fixture strings without a real disk.
-func parseLargestFreeGiB(out string) int {
-	var bestB int64
+func probeAlongside(disk string) probeResult {
+	bin := os.Getenv("RYOKU_BACKEND")
+	if bin == "" {
+		bin = "ryoku-install"
+	}
+	out, ok := run(bin, "probe", "alongside", disk)
+	if !ok {
+		return probeResult{verdict: "error", message: "could not run the disk probe (ryoku-install probe alongside)."}
+	}
+	var r probeResult
+	var bestMiB int64
 	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)
-		if !strings.HasSuffix(line, "free;") {
+		f := strings.Fields(line)
+		if len(f) == 0 {
 			continue
 		}
-		f := strings.Split(line, ":")
-		if len(f) < 4 {
+		switch {
+		case len(f) == 4 && f[0] == "region":
+			if m := parseI64(f[3]); m > bestMiB {
+				bestMiB, r.regionStart, r.regionEnd = m, parseI64(f[1]), parseI64(f[2])
+			}
+		case len(f) >= 2 && f[0] == "esp_kind":
+			r.espKind = f[1]
+		case len(f) >= 2 && f[0] == "existing_boot":
+			r.existingBoot = f[1]
+		case len(f) == 4 && f[0] == "leftover":
+			// leftover <dev> <partlabel> <sizeMiB>: verified debris the backend frees.
+			r.leftovers = append(r.leftovers, part{
+				dev: "previous Ryoku", fs: f[2], size: gibRound(parseI64(f[3])),
+				reclaim: true, status: "reclaim",
+			})
+		case len(f) >= 2 && f[0] == "verdict":
+			r.verdict = f[1]
+		case f[0] == "message":
+			r.message = strings.TrimSpace(strings.TrimPrefix(line, "message"))
+		}
+	}
+	r.freeG = int(bestMiB / 1024)
+	return r
+}
+
+func parseI64(s string) int64 {
+	v, _ := strconv.ParseInt(s, 10, 64)
+	return v
+}
+
+// resizePart is one `part` line of `ryoku-install probe resize <disk>`: a
+// partition and whether the carve flow may shrink it, with the exact size/used/
+// min figures the bounds math needs and, when it can't be carved, the reason to
+// show the user. Field order is frozen in .superpowers/sdd/resize-probe-format.txt.
+type resizePart struct {
+	dev        string // /dev/sdaN — handed back verbatim as RYOKU_RESIZE_PART
+	index      int    // partition number (the backend's sfdisk -N target)
+	fs         string
+	label      string // "" when the probe reported "-"; spaces come as underscores
+	sizeMiB    int64
+	usedMiB    int64
+	minMiB     int64 // smallest the fs can shrink to (used + safety margin)
+	shrinkable bool
+	reason     string // why not, when !shrinkable ("BitLocker: decrypt in Windows first")
+}
+
+// name is the short human label for a partition in the carve UI: its label, or
+// "Windows" for a plain NTFS volume, else the filesystem in caps.
+func (p resizePart) name() string {
+	if p.label != "" {
+		return p.label
+	}
+	switch p.fs {
+	case "ntfs":
+		return "Windows"
+	case "":
+		return "partition"
+	default:
+		return strings.ToUpper(p.fs)
+	}
+}
+
+// parseResizeParts pulls the `part` lines out of a resize-probe report:
+//
+//	part <dev> <index> <fstype> <label> <sizeMiB> <usedMiB> <minMiB> <yes|no> <reason...>
+//
+// The first nine fields are positional (label is a single whitespace-free token,
+// "-" = none); the reason is the free-text remainder. A malformed line — too few
+// fields or a non-numeric size — is skipped rather than trusted, so a garbled
+// probe fails closed to "nothing shrinkable" instead of offering a bad carve.
+func parseResizeParts(out string) []resizePart {
+	var parts []resizePart
+	for _, line := range strings.Split(out, "\n") {
+		f := strings.Fields(line)
+		if len(f) < 9 || f[0] != "part" {
 			continue
 		}
-		if v, err := strconv.ParseInt(strings.TrimSuffix(f[3], "B"), 10, 64); err == nil && v > bestB {
-			bestB = v
+		idx, e1 := strconv.Atoi(f[2])
+		size, e2 := strconv.ParseInt(f[5], 10, 64)
+		used, e3 := strconv.ParseInt(f[6], 10, 64)
+		min, e4 := strconv.ParseInt(f[7], 10, 64)
+		if e1 != nil || e2 != nil || e3 != nil || e4 != nil {
+			continue
+		}
+		lbl := f[4]
+		if lbl == "-" {
+			lbl = ""
+		}
+		parts = append(parts, resizePart{
+			dev: f[1], index: idx, fs: strings.ToLower(f[3]), label: lbl,
+			sizeMiB: size, usedMiB: used, minMiB: min,
+			shrinkable: f[8] == "yes", reason: strings.Join(f[9:], " "),
+		})
+	}
+	return parts
+}
+
+// probeResize runs the backend's read-only resize probe and returns its
+// per-partition shrinkability report. A probe that will not run (missing verb on
+// an older backend, error) yields no candidates, so carve simply stays unoffered.
+func probeResize(disk string) []resizePart {
+	bin := os.Getenv("RYOKU_BACKEND")
+	if bin == "" {
+		bin = "ryoku-install"
+	}
+	out, ok := run(bin, "probe", "resize", disk)
+	if !ok {
+		return nil
+	}
+	return parseResizeParts(out)
+}
+
+// diskSummary is the one-line "what's on this disk" the target picker shows: the
+// headline occupant, how many other partitions there are, and the free headroom,
+// so a blank spare disk reads differently from the full 1 TB Windows drive
+// without opening it. e.g. "Windows + 3 more · 190 GiB free", "ryoku · full".
+func diskSummary(dl diskLayout) string {
+	if len(dl.parts) == 0 {
+		return "empty"
+	}
+	head := diskPrimary(dl)
+	if more := len(dl.parts) - 1; more > 0 {
+		head += fmt.Sprintf(" + %d more", more)
+	}
+	free := "full"
+	if dl.freeG > 0 {
+		free = fmt.Sprintf("%d GiB free", dl.freeG)
+	}
+	return head + " · " + free
+}
+
+// diskPrimary names the headline occupant: Windows when NTFS is present, a
+// previous Ryoku when the probe flagged failed-install debris, otherwise the
+// biggest partition's label.
+func diskPrimary(dl diskLayout) string {
+	if dl.windows {
+		return "Windows"
+	}
+	if len(dl.leftovers) > 0 {
+		return "ryoku"
+	}
+	big := dl.parts[0]
+	for _, p := range dl.parts[1:] {
+		if p.size > big.size {
+			big = p
 		}
 	}
-	mib := bestB / (1 << 20) // floor to whole MiB (no float truncation)
-	if mib > 0 {
-		mib-- // 1 MiB alignment margin so the partition can start aligned inside the region
-	}
-	return int(mib / 1024) // floor to GiB
+	return big.dev
 }
 
 // sysSSIDs lists the cached nearby Wi-Fi networks via nmcli. It uses --rescan no
@@ -829,6 +985,24 @@ func (m model) installEnv() []string {
 	if m.picks["encryption"] == "LUKS" {
 		env = append(env, "RYOKU_ENCRYPT=1", "RYOKU_LUKS_PASSPHRASE="+m.luksPass)
 	}
+	// Alongside hands the backend either a pre-existing gap or a carve request,
+	// never both. Carve exports only the partition + take; the backend shrinks it,
+	// then re-probes the freed gap and drives the same region math from there — so
+	// the region sectors are computed downstream, not here. Absent RESIZE vars =
+	// no carve.
+	if m.picks["disk"] == "alongside" {
+		switch {
+		case m.carving():
+			p := m.resizeParts[m.carvePart]
+			env = append(env,
+				"RYOKU_RESIZE_PART="+p.dev,
+				"RYOKU_RESIZE_TAKE_MIB="+strconv.FormatInt(m.carveTakeMiB, 10))
+		case m.regionEnd > 0:
+			env = append(env,
+				"RYOKU_REGION_START="+strconv.FormatInt(m.regionStart, 10),
+				"RYOKU_REGION_END="+strconv.FormatInt(m.regionEnd, 10))
+		}
+	}
 	// The typed "ERASE" acknowledgement (wipeStage == 2) authorizes a destructive
 	// step, but which one depends on strategy: a whole-disk wipe needs
 	// RYOKU_WIPE_CONFIRMED; an alongside install that must free leftover ryoku/
@@ -906,6 +1080,30 @@ func stepIndex(id string) (int, bool) {
 	return 0, false
 }
 
+// ansiCSI matches an ANSI CSI escape (colours, cursor moves, line erase) -- what
+// pacman/curl progress bars spray alongside carriage returns.
+var ansiCSI = regexp.MustCompile("\x1b\\[[0-9;?]*[ -/]*[@-~]")
+
+// sanitizeLine flattens a child's terminal output into a plain string the
+// bubbletea viewport can render without shredding: keep only the final segment a
+// carriage-return progress bar left, strip ANSI escapes, and drop stray control
+// bytes. Display-only -- the @@RYOKU sentinels are matched on the raw line.
+func sanitizeLine(s string) string {
+	if i := strings.LastIndexByte(s, '\r'); i >= 0 {
+		s = s[i+1:]
+	}
+	s = ansiCSI.ReplaceAllString(s, "")
+	return strings.Map(func(r rune) rune {
+		if r == '\t' {
+			return r
+		}
+		if r < 0x20 || r == 0x7f {
+			return -1
+		}
+		return r
+	}, s)
+}
+
 // startInstall launches the backend with the built environment and streams its
 // output as messages. The backend path comes from RYOKU_BACKEND or PATH.
 func (m *model) startInstall() tea.Cmd {
@@ -948,7 +1146,7 @@ func (m *model) startInstall() tea.Cmd {
 			if line == "@@RYOKU_DONE" {
 				continue
 			}
-			st.ch <- installLineMsg(line)
+			st.ch <- installLineMsg(sanitizeLine(line))
 		}
 		// A backend line longer than the 1 MiB scanner cap stops Scan with
 		// ErrTooLong. Left alone, this goroutine would exit while the backend

@@ -2,15 +2,299 @@
 
 ## Unreleased
 
+### Added
+- `wireplumber/`: **Software volume on every ALSA card, ending the intermittent
+  "audio breaks" reports.** A new drop-in sets `api.alsa.soft-mixer = true` for
+  all ALSA cards, so volume and mute run in software rather than the hardware
+  mixer, whose quirks on Realtek and generic HD-audio codecs (a master that comes
+  up muted or muffled, coarse or dead steps) were the likely cause. Adapted from
+  Omarchy's audio setup; override in `~/.config/wireplumber/wireplumber.conf.d/`
+  (`apps/wireplumber/wireplumber.conf.d/50-ryoku-alsa-soft-mixer.conf`).
+- `ryotunes/`: **YouTube Music as a first-party Ryoku app, wired to the desktop
+  now-playing widget.** A dedicated Chromium app-window on music.youtube.com,
+  single-instanced by a flock and isolated in its own profile, so it carries its
+  own login and its own MPRIS identity -- which the desktop music widget follows
+  and retints to. Chromium is the wrap because Ryoku already ships it and its
+  media session speaks MPRIS on Wayland out of the box, where the Electron
+  (pear-desktop / glassy) and Tauri (zuno) YTM clients respectively crash on the
+  compositor or publish no MPRIS at all. Ships as a launcher on PATH, a `.desktop`
+  and an icon; a float window rule gives it the music-player treatment
+  (`apps/ryotunes/{bin/ryotunes,ryotunes.desktop,ryotunes.svg}`,
+  `hyprland/modules/window_rules.lua`, `shell/deploy.sh`,
+  `release/packages/ryoku-desktop/PKGBUILD`).
+- `ryostore/`: **A Themes category delivers third-party colour schemes.** It
+  serves the `ryoku-extras` colorschemes catalogue through a per-provider subtab
+  strip (the HANCORE-linux Omarchy themes and the existing Noctalia set) with a
+  My themes tab for the installed library and a per-provider Install all. A
+  scheme installs (install-only) into `~/.local/share/ryoku/themes/<id>`, where
+  the shell picks it up so it shows in the Color-scheme section (Super+W and the
+  Hub); schemes without a preview render an accent/surface swatch tile
+  (`backend/provider_colorschemes.go`, `backend/catalog.go`,
+  `quickshell/{ProviderTabs,App}.qml`, `quickshell/Singletons/Store.qml`,
+  `quickshell/lib/store.js`).
+- `ryostore/`: **Bundles preview their contents and install by selection.**
+  Opening a bundle lists its components grouped Core / Optional, each with a
+  toggle (Core on, Optional off) and a one-line summary. Two actions replace the
+  single install: INSTALL SELECTED (only the toggled items) and INSTALL ALL. The
+  selection threads to the actuator as `install bundle <id> --only ...`; the
+  detail is a scrollable list so a 40-item bundle stays navigable
+  (`quickshell/ProductDetail.qml`, `quickshell/Singletons/Store.qml`,
+  `backend/{main,provider_bundles}.go`).
+
 ### Changed
+- `ryostore/`: **The store navigation is a proper two-tier app bar.** The old
+  flat row crammed identity, a hidden "SEARCH" overlay trigger, Library,
+  Refresh, and every category into one strip, so categories clipped off-screen
+  with no affordance. Tier one now carries the 力 wordmark, a persistent search
+  field (magnifier, always visible, Ctrl+K focuses it, live result count) and
+  the Library / Refresh actions; tier two lays every category out as bone-invert
+  Tabs plates so none are hidden. The `SearchLayer` overlay is gone, folded into
+  the header field (`quickshell/StoreHeader.qml`, `quickshell/App.qml`).
+
+### Fixed
+- `nautilus/`: **The right-click menu no longer shows duplicate "Compress with
+  Ryoku" (or "Install with Ryoku") entries.** nautilus-python could register the
+  stash extension twice in one nautilus process (an extension reload after a
+  deploy, a re-import), doubling every entry; the provider now binds once per
+  process (`apps/nautilus/ryoku-stash-menu.py`).
+- `ryowalls/`: **The source picker actually switches source now.** Choosing a
+  row (MoeWalls, Live, a library, …) dismissed the drawer but left you on
+  Wallhaven. The filter field's "Enter picks the top match" was wired to Field's
+  `committed`, which rides `editingFinished` and so also fires on focus loss --
+  and dismissing the drawer after a row pick moves focus away, re-selecting the
+  top row (Wallhaven) and clobbering the choice. It now uses Field's `accepted`
+  (Return only), matching the Picker grammar (`quickshell/SourcePicker.qml`).
+- `ryowalls/`: **The live preview now shows the exact colours Set will apply.**
+  Its palette command copied the picture to an extensionless temp file, which
+  matugen cannot decode, so the palette came back empty and the preview -- the
+  candidate strip and the cava spectrum -- fell back to stand-in colours; even
+  when it did run it used a second matugen invocation that diverged from the
+  daemon (no scheme/mode/neutralisation). The daemon now owns generation behind
+  one command (`ryoku-shell matugen-preview`) that emits exactly what apply
+  writes -- the shell palette, the tonal ramps, and the wallpaper's L* map --
+  and the preview's cava paints tones off the image's own primary/secondary
+  ramps against that map, mirroring the desktop visualiser
+  (`bin/ryowalls`, `quickshell/Singletons/Wallhaven.qml`,
+  `quickshell/MockDesktop.qml`, `shell/ipc/matugen.go`).
+- `ryowalls/`: **motionbgs page 2 and beyond no longer error out.** The pager
+  built the page path without a trailing slash (`/2`), which motionbgs 404s, so
+  the whole browse fell over with a curl 22; the real scheme is a trailing-slash
+  path (`/2/`, `/3/`, …) -- `?page=` is silently ignored -- so the pager uses it
+  now and every page loads distinct results (`bin/ryowalls`).
+- `ryowalls/`: **a live wall's Adjust and Colour lanes read cleanly.** A video
+  pick has only a few controls (Fit, sampling Frame, Enhance), and the Fit and
+  Frame cells were declared at a narrow span: the reserved control slot collapsed
+  the cell's text column to nothing and left the Fill/Fit segments stacked in an
+  empty box, and it clipped the Frame caption to "The sec…". Both are full-width
+  inline cells now, with the shared segment reservation padded a gutter so Fill|Fit
+  stays one row (`quickshell/GradeSheet.qml`, `quickshell/PaletteSheet.qml`).
+
+### Changed
+- `ryowalls/`: **The store is reworked around the image and its rice preview.**
+  The live preview -- your wallpaper wearing the terminal and the cava spectrum
+  in its own colours -- is now the hero: it fills the right column down to a slim
+  candidate-palette + metadata footer, no longer squeezed above a redundant
+  pending-diff card whose state the commit bar already carries. Editing is
+  demoted from a co-equal BROWSE / GRADE / PALETTE tab set to a secondary
+  "ADJUST" entry that appears on a pick, with a `‹ BROWSE` back and an
+  ADJUST / COLOUR switch; browsing is home. Grid thumbnails lean in on hover
+  (`quickshell/App.qml`, `quickshell/PreviewStack.qml`, `quickshell/WallCell.qml`;
+  `quickshell/PendingCard.qml` retired).
+- `ryostore/`: **The store lands on the section it was opened to instead of
+  snapping to Discover.** A nav-open (from `ryostore open`, behind every Hub
+  "Browse RyoStore" button and "Open in Settings") arrived before the catalogue
+  loaded, so the route was dropped; it is now stashed and applied once the
+  categories arrive (`quickshell/App.qml`).
+- `ryostore/`: **Animated gif previews keep their aspect instead of stretching
+  to the plate.** The preview's AnimatedImage forced a sourceSize, which QMovie
+  applies as an exact scale that distorts a gif whose aspect differs; dropping it
+  lets fillMode fit the frames (`quickshell/ProductMedia.qml`).
+- **Softer corners across the desktop.** The shared Ryoku.Ui radius went from
+  2 px to 6 px, so buttons, cards, and tiles read less boxy
+  (`ui/Singletons/Tokens.qml`).
+- `ryostore/`: **"Open in Settings" only shows for products with a real settings
+  page.** It appeared on every installed product, but decors, launcher images,
+  and lockscreens have no manage or apply page (the lockscreen and app-launcher
+  pages are edit-only), so the button did nothing there. The catalogue now marks
+  each item's `hasSettings` and the detail hides the action when there is nowhere
+  to go (`backend/routing.go`, `backend/{catalog,model}.go`, `quickshell/lib/store.js`).
+- `ryostore/`: **Launcher images, a Store category of curated hero art for the
+  app launcher's header.** Six wide public-domain works (Hokusai's Great Wave,
+  Hiroshige's Shono, Friedrich's Sea of Ice, Van Gogh's Wheatfield with Crows,
+  Aivazovsky's Ninth Wave, the Hubble Carina Nebula) ship with raw and
+  `ryodither`-baked variants; the detail's DITHER toggle previews and picks
+  which installs. An install lands one flat file in `~/Pictures/ryoku-launchers`,
+  and the launcher settings hero picker gains a STORE shortcut that browses it,
+  so a store image becomes the launcher hero. Decors and launcher images now
+  share one `flatImageProvider` (`ryostore/backend/provider_flat_image.go`,
+  `backend/{catalog,routing,product_manifest}.go`, `hub/quickshell/pages/LauncherPage.qml`).
+- `ryostore/`: **Decors, a new Store category of curated public-domain art for
+  the Hub's decor slots.** Seven specimens (Piranesi's Carceri, Dürer's
+  Melencolia I and Rhinoceros, Hokusai's Red Fuji, the Hubble Pillars of
+  Creation, a Met bronze, a Muybridge motion plate) ship in the external
+  catalogue, each with a raw and a `ryodither`-baked 1-bit bone variant. The
+  detail's **DITHER** toggle previews both looks and chooses which one installs;
+  a decor lands as one flat file in `~/Pictures/ryodecors`, so the `Decor` and
+  `Placard` gallery lists it beside the shipped set with no further wiring
+  (`ryostore/backend/provider_flat_image.go`, `backend/{catalog,main,routing,product_manifest,model}.go`,
+  `ryostore/quickshell/{ProductDetail,ProductCover,App}.qml`,
+  `quickshell/Singletons/Store.qml`, `ui/Decor.qml`).
+- `ryostore/`: **Nacre and Obi are installable Store products instead of
+  bundled shell payloads.** Their complete QML scenes now live in the external
+  catalogue with generated previews and strict manifests. RyoStore owns their
+  install receipts, publishes a derived installed-style index, and the shell
+  reloads a changed product in place from its versioned URL; removing the active
+  product falls back to built-in Sumi without restarting the shell.
+- `wireplumber/`: **Bluetooth playback stays in A2DP unless the user selects
+  headset mode.** WirePlumber's default microphone autoswitch silently moved
+  earbuds into low-bandwidth HFP/HSP whenever an app opened their mic, degrading
+  every playing stream. The Ryoku fragment now disables that automatic switch;
+  its existing Hi-Fi / Headset control still provides explicit microphone mode.
+- `nvim/`: **the editor follows the live wallpaper palette.** `ryoku.lua` pinned
+  `tokyonight-night` flat, so the editor ignored the theme while kitty and the
+  shell tracked it. It now reads the daemon's `~/.cache/ryoku/colors.json` (the
+  same base16 set kitty reads) into tokyonight's `on_colors`, so nvim's
+  background and syntax match the terminal; habamax stays the fallback, and a
+  `FocusGained` hook re-tints a running editor when the palette changes
+  (`nvim/lua/plugins/ryoku.lua`).
+- `ryowalls/`: **the palette preview runs through matugen, and the per-image
+  scheme tune is gone.** The `palette` verb dropped its wallust invocation and
+  now derives the 16-slot preview strip from `matugen image --json hex
+  --dry-run`, mapped onto the daemon's base16 order exactly, so the preview
+  matches what Set writes. The PALETTE lane's tone / character / colorspace /
+  backend / saturation / threshold / contrast rows are removed (colours follow
+  Appearance > Wallpaper globally now); the 16-swatch strip and the
+  live-wallpaper frame control stay, and the pending diff no longer tracks a
+  per-image palette name. The tune state file is `ryoku-ryowalls.json`
+  (`bin/ryowalls`, `quickshell/Singletons/Wallhaven.qml`, `quickshell/PaletteSheet.qml`,
+  `quickshell/App.qml`, `quickshell/PendingCard.qml`, `quickshell/PreviewStack.qml`).
+- `ryovm/`: **a new connection defaults its login to `root`, not you.** A blank
+  user on a remote host silently resolves to your local username, which almost
+  never matches a VPS and reads as a dead box on first probe. The add form now
+  seeds `root` (the common VPS default, still editable); editing a host keeps its
+  own user (`AddRemote.qml`).
+- `ryovm/`: **a running machine reads red, and the stage claims the freed corner.**
+  The RUN drum on a live machine now flips in the sun accent (the yard's one
+  earned colour, spent on state), the fleet filter is trimmed to its content, and
+  the machine stage rises into the space the departure board left behind, so the
+  detail plate starts at the toolbar line instead of below the list
+  (`VmCard.qml`, `FleetTile.qml`, `Machines.qml`).
+- `ryovm/`: **the page heads are quieter and the machine stage sits higher.** The
+  Fraunces page title dropped from display to headline size, and the Machines
+  head lost its split-flap `NN MACHINES / NN RUNNING` board, which competed with
+  the title and only echoed the fleet vitals already on the Dashboard. The
+  reclaimed height lifts the detail stage so a stopped machine's RESOURCES no
+  longer clip below the fold (`PageHead.qml`, `Machines.qml`).
 - **`ryowalls` and `ryovm` get distinct app icons.** New flat marks on Ryoku's
   dark tile in the brand orange (a framed mountain-and-sun for the wallpaper
   gallery, cascading screens for the virtual machines), replacing the old
   `logo.svg` and matching the Ryo Motion aperture as one cohesive set. They ship
   via `ryoku-desktop` as the scalable hicolor app icon, so `ryoku update`
   delivers them (`ryowalls/quickshell/logo.svg`, `ryovm/quickshell/logo.svg`).
+- `ryovm/`: **the dashboard's LAUNCH button is sized for a tile.** The fleet
+  tiles used the full control padding, so the primary verb dominated each card.
+  A `compact` variant on the shared `Btn` (tighter padding, smaller label) makes
+  LAUNCH read as a tile action, not the loudest thing on the plate
+  (`ui/Btn.qml`, `FleetTile.qml`).
 
 ### Fixed
+- `ryowalls/`: **adding a wallpaper library now lives in Settings, and its fields
+  actually take typing.** The source drawer and the settings panel never claimed
+  keyboard focus (they lacked `focus: open`, so the app root held it and its key
+  map ate every keystroke), and their scrim and card caught clicks with a
+  `TapHandler` that let a field click fall through and dismiss the overlay -- so
+  the drawer's `owner/repo@branch` field could not be typed into at all. Both
+  overlays now take focus while open and use `MouseArea`s for click-safety (the
+  ryovm connection-sheet pattern), the drawer focuses its filter on open, and the
+  app regains focus when an overlay closes. Adding and removing libraries moved
+  out of the drawer into ryowalls Settings (the gear -> Wallpaper libraries),
+  where the field reliably takes input; the drawer is now a pure source picker
+  (`SourcePicker.qml`, `SettingsPanel.qml`, `App.qml`).
+- `ryowalls/`: **pressing Enter in the search box no longer sets the wallpaper.**
+  The browse-lane key map applied the current pick on Return, and a single-line
+  `TextInput` does not consume Return, so hitting Enter to run a search also
+  silently set the highlighted wallpaper. Enter now only searches; SET WALLPAPER
+  is the one way to apply (`App.qml`).
+- `ryowalls/`: **a user-added library grid loads in seconds, not half a minute.**
+  A GitHub folder-tree library used each wallpaper's full-resolution file as its
+  grid thumbnail, so one page pulled 30-50 MB of originals before anything drew.
+  The grid now requests a 480px WebP thumbnail through the wsrv.nl image proxy
+  (~15 KB each), while the preview, palette and Set still use the full file, kept
+  as a new `large` field (`bin/ryowalls`).
+- `ryowalls/`: **Enhance runs on the discrete GPU first.** The last-good-GPU hint
+  had settled on the integrated Radeon, which shares memory with the compositor,
+  so enhancing dragged the whole desktop. The engine now detects the discrete GPU
+  from waifu2x's own device list (cached) and tries it first, and the enhance
+  process runs at idle IO and the lowest CPU priority so the extract/encode do not
+  fight the desktop for cores (`bin/ryowalls`).
+- `ryowalls/`: **a closed or interrupted enhance no longer keeps churning
+  invisibly.** The video enhance ran waifu2x and ffmpeg as untracked children, so
+  closing the window (Quickshell sends SIGTERM) orphaned them onto the GPU with
+  nothing on screen and leaked a multi-GB frame dump in `/tmp`. The heavy steps
+  now run backgrounded and a trap reaps the worker and the workdir on
+  TERM / INT / HUP / exit (`bin/ryowalls`).
+- `ryowalls/`: **Enhance shows progress while it extracts a clip's frames.** The
+  bar only moved during the upscale pass, so a long clip sat on a blinking dot
+  through the whole extract. Extract now reports frames-done against an estimated
+  total, so the bar climbs from the first phase (`bin/ryowalls`).
+- `ryowalls/`: **MoeWalls warns that its previews are low-resolution.** MoeWalls
+  only serves ~720p preview loops (soft on a large screen) and the exact size
+  varies per clip, so the browse view now carries one honest note -- a bone plate,
+  black ink, no red -- pointing at Enhance, instead of a misleading per-tile
+  number (`WallGrid.qml`).
+- `ryovm/`: **a saved password now works for health probes and connect, not just
+  in theory.** A keyless host with a saved password read as a dead box: the probe
+  ran under `BatchMode`, which blocks password auth, and the CONNECT button went
+  through the ssh kitten, which ignores `SSH_ASKPASS` and silently prompted. The
+  probe now drops `BatchMode` for a saved-password host and answers from the
+  keyring via askpass (one prompt, key first); connect routes a saved-password
+  host through plain ssh so askpass fills it, keeping the kitten for keyed hosts.
+  Verified live: `probe` returns a full reading and CONNECT lands on a root shell,
+  no prompt (`remote/ryossh.go`).
+- `ryovm/`: **the connection sheet fits any window and only closes on purpose.**
+  The add/edit form outgrew short windows: its head and the SAVE row fell off
+  the top and bottom with no way to scroll, and a click on any field inside
+  dismissed the whole thing. The fields now scroll between a pinned head and a
+  pinned CANCEL/SAVE row, the card is capped to the window height, and only an
+  outside click or Esc closes it. The settings panel gets the same click-safety
+  (`AddRemote.qml`, `SettingsPanel.qml`).
+- `ryovm/`: **the create sheet no longer overprints the channel switch.** The
+  machine stage's rise into the freed corner also lifted the NEW lane's create
+  sheet, so a running build's download row landed on top of the
+  CATALOG/INSTANT/ISO switch and its refresh. The rise now applies only in the
+  LIBRARY lane, where that corner is empty (`Machines.qml`).
+- `ryovm/`: **a catalogue build that can't fetch its media fails out loud, not
+  into a dead machine.** Microsoft IP-gates the Windows ISO, so `quickget`
+  finished with a config but no ISO; worse, its log stream ran through a pipe
+  that, under `set -e`, aborted the whole create before any result was reported,
+  leaving a machine that only errored at launch with a raw qemu line. The
+  streamed log can no longer sink the create, and a build whose ISO never landed
+  now clears itself and says why: for Windows, that Microsoft blocks the download
+  and to build from a browser-fetched ISO via Load ISO (drivers and TPM already
+  wired). Launching a machine with missing media says so plainly too (`bin/ryovm`).
+- `ryovm/`: **HEADLESS and SPICE launches honour the mode you pick.** quickemu
+  sources a machine's `.conf` after its own `--display` flag, so the conf's saved
+  display always won and a machine set to a GTK window would open one even when
+  launched headless. The engine now writes the chosen mode into the conf before
+  handing off, so `launch <vm> headless` truly runs windowless (`bin/ryovm`).
+- `ryovm/`: **cores and memory can go back to AUTO.** Pinning a VM's CPU or RAM
+  to a number left no way back to quickemu's auto-tuning short of editing the
+  conf; the steppers only counted up and down. Each now grows an `AUTO` button
+  once pinned, and the engine's `config` verb clears the key (rather than writing
+  a non-numeric value quickemu would choke on) so the guest auto-tunes again
+  (`VmDetail.qml`, `bin/ryovm`).
+- `ryowalls/`: **the source drawer is legible.** The provider catalogue rendered
+  as `paperLift` on a 55% scrim with only a hairline border and no elevation, so
+  it dissolved into the grid behind it. It now sits on a deeper scrim with the
+  shadow the design system reserves for things that genuinely float. Its opener,
+  a faint `N ▾` glyph lost beside the title, is now a bordered `SOURCE ▾` chip
+  that reads as a real control (`SourcePicker.qml`, `App.qml`).
+- **`Field` never took focus.** The shared field's `focus()` helper was shadowed
+  by `Item`'s built-in `focus` property, so `Field.focus()` threw a `TypeError`
+  everywhere it was called (the `ryowalls`/`ryovm` search shortcuts, the hub's
+  Ctrl+K, the source filter) and no field ever focused. Renamed to `grabFocus()`
+  and fixed every call site (`ui/Field.qml`, `apps/{ryowalls,ryovm}`,
+  `hub/quickshell/Hub.qml`).
 - `ryovm/`: **instant machines now hand over a shell only once the tools are
   actually there.** The connect flow waited for `sshd` to answer, but a cloud
   image installs its toolset in cloud-init's *final* stage, which runs 20s
@@ -26,8 +310,130 @@
   bakes `bash-completion` (and `bash` itself on Alpine, whose login shell is
   ash); a template spawn inherits it from its base and keeps its refresh seed
   empty so it still boots in seconds (`bin/ryovm`).
+- `ryovm/`: **the machine detail's hardware knobs show their labels.** In the
+  narrow detail column the CPU-cores, memory, and disk-size cells sized to a
+  third of the pane, which left the text column at zero width once the stepper
+  took its share, so each showed only a stray word (`How`, `RAM`) with no label
+  or value. The paired cells now take half the column and the disk cell its full
+  row, so `CPU CORES / AUTO`, `MEMORY / AUTO GB`, and `DISK SIZE` read as
+  intended (`VmDetail.qml`).
+- `ryovm/`: **a berth's health readout is no longer cramped.** The Remotes list
+  held two-thirds of the page, so the detail column fell to a third and elided
+  even a short host name (`localh…`) while the middle sat empty. The split now
+  matches Machines, giving the host name, the probe grid, and the tunnels room,
+  and the list tiles stop clipping their address (`RemotesPage.qml`).
 
 ### Added
+- `ryovm/`: **a remote's password, saved in the login keyring, never a file.**
+  The connection sheet gains a PASSWORD field; the secret goes to the Secret
+  Service (`secret-tool`), never the sidecar, the ssh_config, or a command line.
+  On connect ssh pulls it through an askpass helper that reads the keyring on
+  demand, so a password host opens without a prompt, and COPY KEY can use it to
+  deploy a key in one step (`remote/ryossh.go`, `AddRemote.qml`,
+  `Singletons/Remotes.qml`, `RemoteDetail.qml`, `ui/Field.qml`).
+- `ryovm/`: **kitty connections run through the ssh kitten.** A launched session
+  gets real terminfo, shell integration, and OSC-52 clipboard, so copy and paste
+  reach the remote instead of a bare, key-mangled `ssh` (`remote/ryossh.go`).
+- `ryovm/`: **Windows installs cleanly from an ISO, drivers and all.** Windows
+  ships no in-box VirtIO driver, so its installer saw no disk, and the driver CD
+  quickget pulls per-VM now comes back as an anti-bot HTML stub from
+  fedorapeople, so even that was broken. Building a machine from a Windows ISO
+  now enables a TPM (so 11 passes setup), attaches one shared, validated
+  virtio-win CD fetched from a mirror that serves the bytes (cached in
+  `.images/`, reused by every Windows machine), and leaves Secure Boot off since
+  Arch's edk2 has no MS-key firmware to verify the loader. A `virtio` verb keeps
+  the driver CD current and repairs a machine whose stub download failed; the
+  ISO sheet spells out what's handled and points at Microsoft for the media
+  (`bin/ryovm`, `Singletons/Vm.qml`, `IsoPanel.qml`).
+- `ryovm/`: **build several machines at once.** The create flow was single-file:
+  one download locked out the rest until it finished. Downloads are now a jobs
+  model, each build its own streamed process, shown as a compact stack (name,
+  live percent and rate, its own cancel) that coexists with the picker, so you
+  queue the next OS while the first pulls (up to four; the engine's per-name
+  staging keeps them from colliding). The footer counts the fleet in flight and
+  offers CANCEL ALL (`Singletons/Vm.qml`, `DownloadStack.qml`, `CreatePanel.qml`,
+  `CloudPanel.qml`, `Machines.qml`).
+- `ryovm/`: **the VM manager becomes Ryoport, a hub for machines you command.**
+  The single-lane quickemu app is reworked into a three-plate hub behind a
+  Hub-style nav rail (harbour masthead, kanji seals, foot barcode): a
+  **Dashboard** fleet overview (a dossier plate in the Profile register: a
+  bone-engraved lighthouse hero (a new `lighthouse` ryodecor, generated with fal
+  and baked bone-on-black through `ryoduo`), monumental Fraunces, live fleet vitals, and at-a-glance
+  machine and remote tiles you act on in one tap), the **Machines** yard (the
+  whole prior quickemu manager, moved intact), and a new **Remotes** fleet. The
+  app is rebranded Ryoport (港, the harbour: a network *port* too) in the
+  masthead and `.desktop`; the `qs -c ryovm` config id and the `ryovm` VM engine
+  keep their names, so nothing in packaging, the keybind, or user data has to
+  migrate. Ctrl+1/2/3 switch plates, Ctrl+N opens a new connection
+  (`App.qml`, `Rail.qml`, `PageHead.qml`, `Dashboard.qml`, `Machines.qml`,
+  `FleetTile.qml`, `shell.qml`, `ryovm.desktop`).
+- `ryovm/`: **Remotes: an SSH/VPS console with live health, the PuTTY a hub
+  should have.** A new `ryossh` Go engine reads `~/.ssh/config` (and a ryoport
+  include it owns, so hosts also work from a bare `ssh <alias>`, no lock-in),
+  reports per-host reachability + latency, runs a one-shot agentless health
+  probe (uptime, load, memory, disk, failed units, watched services) over a
+  reused ControlMaster and fed to a remote `sh -s` on stdin, so a fish/csh login
+  shell can't mangle the POSIX script, opens an interactive terminal in a tap,
+  and carries the
+  key toolkit (`ssh-add`/`keygen`/`copy-id`). The page lists hosts as ink-metered
+  tiles (state by word and a dot, never colour), a berth reads the full probe and
+  browses the host's files over SFTP in the file manager, and an add/edit sheet
+  writes the host back (fields validated so a stray space or newline can't corrupt
+  or inject into ssh_config), and a ProxyJump field reaches hosts behind a
+  bastion; a per-host watch list adds `systemctl is-active` checks to the probe,
+  and the berth reads each watched service's state. Timed probes pause when the page is
+  off screen (`remote/ryossh.go`, `Singletons/Remotes.qml`, `RemotesPage.qml`,
+  `RemoteTile.qml`, `RemoteDetail.qml`, `AddRemote.qml`).
+- `ryovm/`: **per-host app shortcuts with a live HTTP monitor.** A berth carries
+  a list of web services (Grafana, a Proxmox UI, anything with a URL); each is a
+  tile that opens in the browser and, on a timed `ryossh appcheck`, shows a live
+  up/warn/down dot and its round-trip in milliseconds. Glance's monitor and
+  bookmarks fused and scoped to one host: a GET (self-signed TLS tolerated, body
+  never read) reads up on a sub-400 answer, warn on a 4xx/5xx, down when nothing
+  answers. Entered in the connection sheet as `name=url` pairs
+  (`remote/ryossh.go` appcheck verbs, `Singletons/Remotes.qml`,
+  `RemoteDetail.qml`, `AddRemote.qml`).
+- `ryovm/`: **Proxmox clusters, controlled from the hub.** Give a host a Proxmox
+  API URL and token and its berth grows a GUESTS section: every VM and container
+  across the cluster from one `/cluster/resources` call (the token in the header,
+  self-signed certs accepted), each with a live state, memory, owning node, and a
+  one-tap start/stop that Proxmox routes to the right node. A starting or
+  stopping guest holds a pending state until the cluster confirms the new status,
+  so a slow graceful shutdown still reads as working, not as a dead button
+  (`remote/ryossh.go` pve verbs + `ryossh_test.go`, `Singletons/Remotes.qml`,
+  `RemoteDetail.qml`, `AddRemote.qml`).
+- `ryovm/`: **live control of a running machine.** A new `ryovm-mon` helper talks
+  to the HMP monitor and guest-agent sockets quickemu already opens (no QEMU flag
+  injection, no engine change), so the machine stage gains a POWER section:
+  pause/resume, a two-tap hard reset, a live memory balloon, vCPU pinning to host cores, and a
+  live readout of host CPU/RAM cost, the guest's real IP, and topology. Verified
+  live against a running Arch guest (`mon/ryovm-mon.go`, `bin/ryovm` `mon` verb,
+  `Singletons/Vm.qml`, `VmDetail.qml`). The machine's PORTS section forwards a
+  host port to a guest port (quickemu's native `port_forwards`), reachable at
+  `localhost` (`bin/ryovm` `portfwd` verb). Static disk `cache`/`aio` and virtiofs
+  shared-folder tuning are noted as a follow-up.
+- `ryovm/`: **harbour conveniences.** The Dashboard grows an `// ACTIVITY_` feed
+  merging machine and remote events newest-first; Remotes is keyboard-first
+  (arrows walk the tiles with a selected-plate highlight, Enter drops into a
+  session, `/` jumps to the filter) like a real terminal client. A berth also
+  raises **SSH tunnels**: local (-L), remote (-R) and dynamic SOCKS (-D)
+  forwards run as tracked `ssh -N` processes (strict spec validation, self-healing
+  state, no orphans) shown live with one-tap close, and **one-tap ops** that
+  open htop, a live journal, disk usage or listening ports on the host in a held
+  terminal. The Dashboard reads at a glance at any fleet size and stays live: each
+  section caps to a preview (active machines and ailing remotes first) with a
+  `+N more` plate to its full page, and the health probes run whenever the
+  dashboard or the fleet page is on screen (`Dashboard.qml`, `MoreTile.qml`,
+  `RemotesPage.qml`, `RemoteTile.qml`, `RemoteDetail.qml`, `remote/ryossh.go`,
+  `Singletons/{Vm,Remotes}.qml`).
+- `ryowalls/`: **the empty spaces wear the house decor.** The head's dead right
+  band is now a masthead specimen (a live bone-dithered `wave` under 壁紙 / 画廊,
+  a 壁を選ぶ tategaki, a barcode and 壁 seal, right-click to reframe); the empty
+  preview shows a 壁紙 / プレビュー earth plate instead of a bare Torii; and the
+  empty, loading, and error browse grid becomes a 無 statue `Placard`, and the
+  GRADE lane's no-pick column a 調色 statue `Placard`, each with the state woven
+  into its caption. The same `Decor`/`Placard` grammar the hub uses for its own
+  dead slots (`ryowalls/quickshell/{App,PreviewStack,WallGrid,GradeSheet}.qml`).
 - `ryovm/`: **SSH sessions no longer break on the terminal type.** Opening SSH
   from kitty (or foot, WezTerm, …) advertised a `TERM` a minimal guest has no
   terminfo for, `clear`, `less`, `vim` died with `'xterm-kitty': unknown

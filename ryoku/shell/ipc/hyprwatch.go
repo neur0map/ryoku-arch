@@ -118,6 +118,10 @@ func (d *daemon) consumeHyprEvents(r io.Reader) {
 		line := sc.Text()
 		if affectsCoverage(line) {
 			select {
+			case d.liveSig <- struct{}{}:
+			default:
+			}
+			select {
 			case d.widgetSig <- struct{}{}:
 			default:
 			}

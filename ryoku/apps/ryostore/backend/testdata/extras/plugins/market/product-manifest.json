@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "id": "market",
+  "category": "plugins",
+  "version": "2.0.0",
+  "destination": "ryoku/plugins/market",
+  "files": [
+    {
+      "source": "manifest.json",
+      "destination": "manifest.json",
+      "sha256": "aebbe98dca2251a0507b520e400c11e5e642232c0b094b5bff546301256890c8",
+      "mode": "0644",
+      "size": 194,
+      "install": true
+    },
+    {
+      "source": "SidebarLeft.qml",
+      "destination": "SidebarLeft.qml",
+      "sha256": "9333027ce8bfc1cd9fbdc805a3ffdf6303c357dbfd82292a8d9a8be27394edf4",
+      "mode": "0644",
+      "size": 23,
+      "install": true
+    },
+    {
+      "source": "extra.js",
+      "destination": "extra.js",
+      "sha256": "2363a41c968845c9cd4f8f07fada645e4fdb4ba42dd1dd94e2c912fa741516b9",
+      "mode": "0644",
+      "size": 17,
+      "install": true
+    }
+  ]
+}

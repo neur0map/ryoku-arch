@@ -1,104 +1,111 @@
-# The bar
+# Frame bars
 
-The bar is the shell's resting face: a strip of modules riding one frame edge,
-drawn in the frame's own blob scene and painted on top of the popouts, so it
-stays visible and clickable while a popout is open. It lives in
-`quickshell/pill/Bar.qml` (the `pill/` directory name is historical; there is no
-pill). See `docs/frame.md` for the blob field it rides and the popouts it opens.
+This document describes **Sumi**, Ryoku's built-in painted-frame bar: one
+frame-bar system of four independent rails that share the monitor's frame
+scene. When Sumi is the active style,
+`ryoku/shell/quickshell/shell/modules/bar/Bar.qml` creates a `FrameRail` for each
+edge and reads the normalized `frameBars` object from `~/.config/ryoku/shell.json`.
 
-## Placement and skins
+Sumi is no longer the shipped default. The default is **qsbar**, a separate
+full-color top bar that loads from a self-contained folder under
+`shell/modules/bar/barstyles/`. `Frame.qml` draws Sumi's rails only while
+`barStyle` resolves to no folder scene (the id `"sumi"` or an empty value), and
+any other id mounts that folder style's `Scene.qml` instead. For style
+selection and qsbar, see `docs/barstyles.md`.
 
-Ryoku Settings drives the bar through `Config`:
+A rail is a thin interactive strip, not a second panel process. The monitor
+overlay owns its input region and the corresponding exclusive-zone reserve, so
+tiled windows clear exactly the enabled edge rails.
 
-- `barEnabled` on/off; `barPosition` is **top** or **bottom** (left/right were
-  dropped, so anything but `bottom` reads as top).
-- `barStyle` the skin. `noctalia` and `caelestia` are carried from the credited
-  reference shells; `aegis`, `stele`, `triptych`, `delos` and `nacre` are Ryoku's own, and `inir` / `aurora` / `angel` are flat frame-off skins ported from snowarch's iNiR:
-  - **`noctalia`** fully rounded capsule modules in a row; dot workspaces whose
-    active dot widens into an accent lozenge with its number; the stacked clock.
-  - **`caelestia`** the numbered workspace cell strip inside one container pill
-    with a sliding indicator; Material Symbols Rounded iconography.
-  - **`nacre`** grows the frame lobes like triptych, so the bar dips between three
-    dark module islands with the same organic concave transition, but holds a
-    persistent hairline top edge so the dips survive with the frame ring off and a
-    popout melts cleanly, and it squares the display corners. The seal, a compact now-playing thumb, and the
-    title left; the clock, small hollow-ring workspaces, and a live CPU/RAM/temp
-    readout centred; status and tray right. The stats open a resources popout, and
-    the workspace rings light the active one in the accent.
-  - **`inir`** / **`aurora`** / **`angel`** flat frame-off bars ported from
-    iNiR: a flush, full-width strip at the screen edge with borderless modules
-    (seal, workspaces, stats and now-playing left; the clock centred; status and
-    tray right), no frame band and no lobes. `inir` is a solid TUI panel with
-    hairline cell separators; `aurora` is translucent glass the wallpaper shows
-    through, with a soft top sheen (translucency, not a gaussian frost -- a
-    Wayland layer cannot blur its live backdrop); `angel` is an opaque brutalist
-    panel with a heavy base border and a bright inset top edge. Meant for the
-    frame off, and the Bar paints their surface itself instead of riding the
-    frame band.
-- `barHeight` and `fontScale` size it. Everything scales off `s =
-  monitor.height / 1080 x fontScale` (clamped 0.7-1.6). The band the frame swells
-  by is `barBand = barHeight x s`; modules size against `moduleSpan =
-  round(barBand x 0.76)`.
-- `barShowMedia` / `barShowStatus` toggle the now-playing and status modules.
+## Default profile
 
-The bar's edge gets `frameBorder + barBand` on the frame's `BlobInvertedRect`, so
-the border swells into a band the bar rides; the other three edges stay a
-hairline.
+The shipped profile enables a compact top rail and a continuous left rail:
 
-## The modules
+- **Top**: centred clock.
+- **Left**: quick settings and workspaces at the top, dock in the centre, tray,
+  network, and clock at the bottom.
+- **Bottom and right**: configured but initially disabled.
 
-A left group and a right group flank the centred clock:
+Every edge has its own `enabled`, `size`, `reveal`, and three axis-appropriate
+zones. Horizontal rails use `start`, `center`, and `end`; vertical rails use
+`top`, `center`, and `bottom`. A zone holds its group against its own end of
+the rail: a start zone hugs the leading edge, a centre zone sits on the rail's
+midpoint, an end zone hugs the trailing edge. The runtime accepts only
+catalogued widgets that fit the target axis.
 
-- **力 seal** the brand mark and launcher trigger; a bare glyph (a `BarModule`
-  with `filled: false`), not a control capsule.
-- **workspaces** (`BarWorkspaces`) the skin's workspace strip.
-- **focused title** the active window's title.
-- **clock** (`BarClock`, centred) the time; clicking opens the calendar popout.
-- **now-playing** (`BarMedia`) the track's art + title; clicking toggles play, the
-  wheel nudges volume, and hovering opens the transport popout (`MediaPopout`).
-- **status** (`BarStatus`) the volume / network / bluetooth / battery glyphs;
-  each opens its own popout.
-- **tray** (`BarTray`) the system tray.
-- **power** a session glyph; clicking opens the power popout.
-- **system stats** (`BarStats`, on nacre and the flat iNiR skins) a CPU / RAM / temperature readout off
-  the `SysStats` singleton (native `/proc` + `/sys` polling); clicking opens the
-  resources popout (`ResourcesPopout`) with usage sparklines and the top
-  processes by CPU.
+## Bar Studio
 
-## BarModule: the shared capsule
+Open **Bar Studio** with **Super+Period**. The shortcut records the Bar Studio
+section before opening the guarded Ryoku Settings process.
 
-Every control module is a `BarModule` (`BarModule.qml`): a fully rounded pill
-(`Theme.tileBg`) carrying the caelestia StateLayer feel: an 8% overlay lifts on
-hover and a soft ripple blooms from the press point. Content centres; the pill
-hugs it plus `padX` / `padY`. Set `filled: false` for a bare mark (the 力 seal),
-`interactive: false` for a display-only module (workspaces, status, tray). It
-emits `tapped()` and `wheeled(steps)` and exposes `hovered`.
+Bar Studio stages a complete immutable `frameBars` object through the normal Hub
+draft and Save flow, and its edits apply to the running desktop as you make them.
+Pick an edge to work on that rail. It edits only what changes the running frame:
 
-## Opening a popout from a module
+- the frame chrome the shell draws around the desktop: the draw toggle, the
+  opacity, the band thickness, and the corner radius;
+- each rail's own switches: on or off, and thickness;
+- the widgets in each rail's three zones: add a catalogued widget that fits the
+  rail's axis and is not already on it, remove one, or reorder within a zone.
 
-A module never owns a popout; it asks the shell to open one, and the shell grows
-the blob at the module (see `docs/frame.md`). Two signals on `Bar`, both handed
-the module's along-axis centre in window coordinates so the popout emerges from
-it:
+The frame's material and colour come from the shell's look (`Theme` and the
+palette), not a user knob; picking a different bar style is a separate choice,
+covered in `docs/barstyles.md`.
 
-- **`popoutRequested(name, center)`** a click. The clock module's `onTapped`
-  emits `popoutRequested("calendar", ...centre...)` and `shell.qml` pins that
-  popout at the centre; `BarStatus` forwards its glyph clicks the same way through
-  its own `requestPopout` signal.
-- **`hoverPopoutRequested(name, center, hovered)`** a hover. The now-playing
-  module emits it from `onHoveredChanged`; `shell.qml`'s `setHoverPopout` drives
-  the popout's `triggerHovered`, and a short grace lets the pointer cross the bar
-  edge to the panel body, whose own hover latch then holds it open. This is the
-  model for any hover popout.
+Every change is live on the desktop at once. Save keeps it and rebaselines;
+Revert, or closing the window with unsaved edits, walks the desktop back to the
+saved state through the same channel. Bar Studio never writes configuration
+files directly.
 
-## Adding a module
+The bounded menus and the `stash` frame surface keep whatever
+values are persisted: every Bar Studio edit clones the whole `frameBars` object,
+so a subtree it does not touch is never dropped. They are configured through
+their defaults and the catalogue, not edited on this page.
 
-1. Add it to the right group in `Bar.qml`: the left `Row`, the centred clock
-   slot, or the right `Row`. Wrap a control in a `BarModule { s: bar.s; height:
-   bar.moduleSpan; ... }` and size everything off `bar.s` and `bar.moduleSpan` so
-   it tracks the band.
-2. If it opens a popout, emit `popoutRequested` (click) or `hoverPopoutRequested`
-   (hover) with the module's centre, then add the matching `Popout` and its input
-   mask region in `shell.qml` per `docs/frame.md`.
-3. If the two skins must differ, branch on `Config.barStyle` the way the existing
-   modules do, and keep each skin faithful to its reference.
+## Menus and popout cards
+
+A rail widget reports its own rectangle to the monitor-local
+`FrameMenuManager`, which owns one open surface per anchor per monitor. It
+combines the widget and body mask regions so input lands where it should, and it
+closes on Escape, a click outside, focus loss, or fullscreen.
+
+Most status widgets open a popout card. Click the network, Bluetooth, battery,
+audio, system-monitor, recording, or music widget and a card grows out of the
+rail from the point you clicked, then melts back the same way when it closes.
+The cards are not read-outs, they are the controls: audio is a full mixer
+(output, input, per-app volume, and the Bluetooth codec), Bluetooth pairs and
+connects devices and shows their battery, battery carries the gauge, the power
+profiles, and a detail panel, network runs Wi-Fi, and the rest follow suit. They
+share one skin from a card kit (`shell/modules/bar/popouts/PopoutCard.qml` and its siblings),
+so every card opens, reads, and dismisses the same way.
+
+Super+Escape opens the only full-height control sidebar. Its fixed rail selects
+independent modules catalogued in `MenuCatalog.js`; the default module list is
+home, notifications, weather, and capture, while media is available as an optional
+module. The home module retains the session actions and performance profiles.
+Adding a module requires one catalog entry and one component under
+`shell/modules/bar/framebars/menus/quicksettings/`, then its ID can be added to
+`frameBars.menus.quick-settings.modules`.
+
+`ryoku-shell menu <id>` opens a catalogued menu on the active monitor;
+`MenuCatalog.js` holds the valid IDs, and anything else is rejected before it
+reaches Quickshell. Asking for the menu that already owns an anchor closes it,
+so a rail button and its command read as one toggle, and a different menu at
+the same anchor replaces it safely. The keyring prompt and the voice toast are
+daemon-owned, so they replace rather than toggle.
+
+A card clears the rail it grows from and draws above the rails, so its body
+never hides under rail chrome. Voice, keyring, and enabled plugin surfaces share
+this same manager scene.
+
+## Extending frame bars
+
+1. Add a catalogued widget or surface with an explicit axis/anchor contract.
+2. Add the matching finite IPC route if it needs a command entry point.
+3. Keep menu body work gated by its `open` state and release it on close.
+4. Preserve owner rectangles, mask regions, monitor locality, and identity-safe
+   close behavior.
+5. Add the behavior test and Bar Studio label before exposing the new ID.
+
+Do not introduce a parallel renderer, unbounded component loader, or direct
+configuration writer.

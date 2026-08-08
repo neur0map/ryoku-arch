@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+- **`install bundle <id> --only name1,name2,...` installs a chosen subset.** The
+  store's bundle preview passes the user's manual selection; without `--only`
+  the whole-bundle install is unchanged. `bundle_items` filters to the
+  comma-separated allowlist.
+
 ### Fixed
 - **A failed multilib enable now aborts the bundle instead of mis-routing its
   packages.** `ensure_requires` ran `ryoku-pkg-multilib || true`, so when the

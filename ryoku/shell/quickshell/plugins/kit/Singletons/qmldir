@@ -1,4 +1,4 @@
 singleton Theme Theme.qml
 singleton Config Config.qml
 singleton Motion Motion.qml
-singleton Wallust Wallust.qml
+singleton Scheme Scheme.qml

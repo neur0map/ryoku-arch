@@ -78,20 +78,41 @@ ryoku_pacstrap() {
 
   ryoku_ensure_keyring
   log "installing ${#pkgs[@]} packages (profile=$RYOKU_PROFILE)"
-  # one retry: a wifi drop or a corrupt download otherwise kills the install with
-  # raw pacman errors. the retry clears the target cache first (below), so a
-  # package that downloaded corrupt does not fail it a second time on the cache.
-  if ! run pacstrap -K /mnt "${pkgs[@]}"; then
-    log "pacstrap failed (connection drop, or a package that downloaded corrupt under load); clearing the target cache and retrying once"
-    # a plain retry reuses the target cache, but a package that downloaded corrupt
-    # (bad PGP signature) makes pacman prompt to delete it -- which the
-    # non-interactive pacstrap cannot answer, so the retry fails identically on the
-    # poisoned cache. drop the cached downloads so the retry re-fetches them clean.
-    run_sh 'rm -f /mnt/var/cache/pacman/pkg/*.pkg.tar.* 2>/dev/null || true'
-    run pacstrap -K /mnt "${pkgs[@]}" \
-      || die "pacstrap failed twice (network, or repeated package corruption). Check the connection (Wi-Fi can drop under sustained download) and re-run the installer."
-  fi
+  ryoku_pacstrap_install "${pkgs[@]}"
 
   log "writing /etc/fstab"
   run_sh "genfstab -U /mnt >> /mnt/etc/fstab"
+}
+
+# install the package set, retrying once from the NEXT mirror tier on failure.
+# a wifi drop, a slow mirror, or a package that downloaded corrupt otherwise
+# kills the install with raw pacman errors. the retry drops the poisoned cache
+# (a bad-signature package makes non-interactive pacstrap fail identically on the
+# reused cache), regenerates the mirrorlist from a different source, and adds
+# --needed so it resumes over the already-installed packages (issue #21) instead
+# of redoing the whole set. separated from ryoku_pacstrap so the retry path is
+# testable with stubs.
+ryoku_pacstrap_install() {
+  local -a pkgs=("$@")
+  if run pacstrap -K /mnt "${pkgs[@]}"; then
+    return 0
+  fi
+
+  log "pacstrap failed (connection drop, slow mirror, or a package corrupt under load); clearing the target cache, dropping to the next mirror tier, and retrying once with --needed"
+  run_sh 'rm -f /mnt/var/cache/pacman/pkg/*.pkg.tar.* 2>/dev/null || true'
+  ryoku_mirrors_fallback || true
+
+  local paclog
+  paclog=$(mktemp) || paclog=/dev/null
+  if run pacstrap -K --needed /mnt "${pkgs[@]}" >"$paclog" 2>&1; then
+    [[ $paclog == /dev/null ]] || { cat -- "$paclog"; rm -f -- "$paclog"; }
+    return 0
+  fi
+
+  [[ $paclog == /dev/null ]] || cat -- "$paclog"
+  local failinfo=""
+  [[ $paclog == /dev/null ]] \
+    || failinfo=$(grep -aoE "failed retrieving file '?[^' ]+'? from [^ ]+" "$paclog" 2>/dev/null | tail -n1) || failinfo=""
+  rm -f -- "$paclog" 2>/dev/null || true
+  die "pacstrap failed after retrying across mirror tiers (tried: ${RYOKU_MIRROR_TIERS_TRIED:-tier 1 (reflector)}).${failinfo:+ Last mirror error: $failinfo.} Check the connection (Wi-Fi can drop under sustained download) and re-run the installer."
 }

@@ -24,9 +24,9 @@ for b in /sys/class/power_supply/BAT*; do
     break
 done
 
-# wallust palette, comma-joined, for the swatch strip.
+# palette, comma-joined, for the swatch strip.
 palette=""
-cj="${XDG_CACHE_HOME:-$HOME/.cache}/wallust/colors.json"
+cj="${XDG_CACHE_HOME:-$HOME/.cache}/ryoku/colors.json"
 if [ -s "$cj" ] && command -v jq >/dev/null 2>&1; then
     palette=$(jq -r '[.color0,.color1,.color2,.color3,.color4,.color5,.color6,.color7,.color8,.color9,.color10,.color11,.color12,.color13,.color14,.color15]|join(",")' "$cj" 2>/dev/null)
 fi

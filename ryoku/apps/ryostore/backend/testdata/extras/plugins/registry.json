@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "plugins": [
+    {
+      "id": "market",
+      "name": "Marketplace",
+      "version": "2.0.0",
+      "path": "plugins/market",
+      "author": "ryoku",
+      "summary": "Browse and install",
+      "description": "A market plugin.",
+      "tags": ["shop"],
+      "screenshots": ["assets/a.png", "https://cdn.example/b.png"],
+      "accent": "#112233",
+      "surface": "#101010",
+      "preview": "assets/preview.gif",
+      "manifest": "product-manifest.json",
+      "manifestSha256": "7e1547a2757db8a3389a4cf44a5d32e3c4224b256e4428ed4ffd922e42e045e6",
+      "official": true,
+      "tagline": "Install plugins",
+      "icon": "shop",
+      "hosts": ["sidebarLeft"],
+      "lastUpdated": "2026-07-31T12:00:00Z"
+    },
+    {
+      "id": "clock",
+      "name": "Clock",
+      "version": "1.5.0",
+      "path": "plugins/clock",
+      "author": "ryoku",
+      "summary": "A clock plugin",
+      "description": "An external clock plugin.",
+      "tags": ["time"],
+      "screenshots": [],
+      "accent": "#445566",
+      "surface": "#101010",
+      "preview": "assets/preview.gif",
+      "manifest": "product-manifest.json",
+      "manifestSha256": "35127d1cb1b81587f2b3558316e3e65ec5e2a61807d051fac380918dbdfc1f5c",
+      "official": false,
+      "tagline": "Show time",
+      "icon": "clock",
+      "hosts": ["desktopWidget"],
+      "lastUpdated": "2026-07-30T12:00:00Z"
+    }
+  ]
+}

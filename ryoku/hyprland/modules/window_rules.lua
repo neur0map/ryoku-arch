@@ -73,6 +73,14 @@ hl.window_rule({
 })
 
 hl.window_rule({
+    name   = "float-ryostore",
+    match  = { title = "^(Ryostore)$" },
+    float  = true,
+    size   = { 1180, 760 },
+    center = true,
+})
+
+hl.window_rule({
     name   = "float-ryovm",
     match  = { title = "^(ryovm)$" },
     float  = true,
@@ -82,6 +90,21 @@ hl.window_rule({
     -- the NVIDIA node), so the pop-in would reveal the uninitialised surface as
     -- horizontal streaks; skip it and the (opaque, see shell.qml) window snaps in.
     no_anim = true,
+})
+
+hl.window_rule({
+    name   = "float-ryoport-ssh",
+    match  = { class = "ryoport-ssh" },
+    float  = true,
+    size   = { 900, 560 },
+    center = true,
+})
+
+hl.window_rule({
+    name   = "float-ryoport-console",
+    match  = { class = "spicy" },
+    float  = true,
+    center = true,
 })
 
 hl.window_rule({
@@ -122,4 +145,29 @@ hl.window_rule({
     float  = true,
     size   = { 1180, 760 },
     center = true,
+})
+
+-- Steam is an XWayland app: Big Picture and the client (both class "steam"),
+-- launched games (steam_app_<id>) and gamescope otherwise inherit the desktop's
+-- blur and shadow (per-frame GPU cost, a floating-card look) and the 0.94
+-- inactive opacity, which turns a game translucent the moment focus leaves it.
+-- Strip that chrome and force them opaque so they read like a native fullscreen
+-- app, and inhibit idle while fullscreen so controller-only play never dims or
+-- locks (hypridle has no fullscreen exception). steamwebhelper stays untouched.
+hl.window_rule({
+    name         = "steam-native",
+    match        = { class = "^(steam|steam_app_.*|gamescope)$" },
+    no_blur      = true,
+    no_shadow    = true,
+    opaque       = true,
+    idle_inhibit = "fullscreen",
+})
+
+-- ryotunes is YouTube Music as a Chromium app-window (apps/ryotunes); the
+-- --app mode derives its class from the URL, so match that. Float it like the
+-- other music players (Spotify above).
+hl.window_rule({
+    name  = "float-ryotunes",
+    match = { class = "^chrome-music\\.youtube\\.com.*$" },
+    float = true,
 })

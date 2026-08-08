@@ -41,15 +41,16 @@ fail=0
 
 # 1. config orphans. every dotfile under ryoku/apps that ends up in a user's
 # home must be laid by a delivery path. skip a GUI app's quickshell tree, bin
-# helpers, .desktop handlers, docs, and Go build sources/artifacts: those ship
-# by their own package rules, not as materialized config.
+# helpers, .desktop handlers, docs, Go build sources/artifacts, and a Go
+# backend's testdata fixtures (test-only, never shipped): those ship by their
+# own package rules, not as materialized config.
 while IFS= read -r f; do
 	delivered "$f" || {
 		echo "delivery: ${f#"$repo"/} is in the repo but no package/installer/deploy ships it (users never get it)" >&2
 		fail=1
 	}
 done < <(find ryoku/apps -type f \
-	-not -path '*/quickshell/*' -not -path '*/bin/*' \
+	-not -path '*/quickshell/*' -not -path '*/bin/*' -not -path '*/backend/testdata/*' \
 	-not -name '*.desktop' -not -name '*.md' -not -name 'README*' \
 	-not -name '*.go' -not -name 'go.mod' -not -name 'go.sum' \
 	-not -name '*.cpp' -not -name '*.h' -not -name '*.qml' -not -name 'CMakeLists.txt' ! -executable)

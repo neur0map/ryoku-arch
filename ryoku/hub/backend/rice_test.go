@@ -17,16 +17,19 @@ func TestOverlayAndExtractRespectAllowlist(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(p, []byte(`{"barStyle":"noctalia","weatherLocation":"Oslo","fontScale":1.3}`), 0o644); err != nil {
+	if err := os.WriteFile(p, []byte(`{"barStyle":"noctalia","frameBars":{"style":"slate-frame"},"weatherLocation":"Oslo","fontScale":1.3}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := overlayStore(p, map[string]any{"barStyle": "caelestia", "weatherLocation": "X"}, riceShellLook); err != nil {
+	if err := overlayStore(p, map[string]any{"barStyle": "caelestia", "frameBars": map[string]any{"style": "ryoku-frame"}, "weatherLocation": "X"}, riceShellLook); err != nil {
 		t.Fatal(err)
 	}
 	got := readJSONMap(p)
-	if got["barStyle"] != "caelestia" {
-		t.Fatalf("barStyle = %v, want caelestia", got["barStyle"])
+	if got["frameBars"].(map[string]any)["style"] != "ryoku-frame" {
+		t.Fatalf("frameBars = %v, want ryoku-frame", got["frameBars"])
+	}
+	if got["barStyle"] != "noctalia" {
+		t.Fatalf("retired barStyle was applied: %v", got["barStyle"])
 	}
 	if got["weatherLocation"] != "Oslo" {
 		t.Fatalf("non-allowlisted key clobbered: %v", got["weatherLocation"])
@@ -35,6 +38,9 @@ func TestOverlayAndExtractRespectAllowlist(t *testing.T) {
 	ex := extractStore(p, riceShellLook)
 	if _, ok := ex["weatherLocation"]; ok {
 		t.Fatal("extract leaked a non-allowlisted key")
+	}
+	if _, ok := ex["barStyle"]; ok {
+		t.Fatal("extract leaked the retired barStyle key")
 	}
 	if ex["fontScale"] == nil {
 		t.Fatal("extract dropped an allowlisted key")
@@ -50,7 +56,7 @@ func TestSaveLoadListRice(t *testing.T) {
 	r := Rice{
 		Schema: riceSchema, Slug: "demo", Name: "Demo", CreatedWith: "0.6.8",
 		Color: RiceColor{Mode: "wallpaper"},
-		Look:  map[string]map[string]any{"shell": {"barStyle": "delos"}},
+		Look:  map[string]map[string]any{"shell": {"frameBars": map[string]any{"style": "ryoku-frame"}}},
 	}
 	if err := saveRice(r); err != nil {
 		t.Fatal(err)
@@ -59,7 +65,7 @@ func TestSaveLoadListRice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Look["shell"]["barStyle"] != "delos" {
+	if got.Look["shell"]["frameBars"].(map[string]any)["style"] != "ryoku-frame" {
 		t.Fatalf("round-trip lost look: %v", got.Look)
 	}
 
@@ -75,7 +81,7 @@ func TestSaveLoadListRice(t *testing.T) {
 // captureRice pulls only look keys into look, routes behavior keys to layers
 // only when opted in, records the cursor by name, and reads the colour mode
 // from the master. personal keys (weatherLocation) never travel.
-func TestCaptureRice(t *testing.T) {
+func TestRiceCapture(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	if err := os.MkdirAll(filepath.Join(dir, "ryoku"), 0o755); err != nil {
@@ -87,7 +93,7 @@ func TestCaptureRice(t *testing.T) {
 		}
 	}
 	write(hyprStorePath(), `{"appearance":{"rounding":10},"cursor":{"theme":"Bibata-Modern-Ice","size":24},"input":{"sensitivity":0.2}}`)
-	write(shellStorePath(), `{"barStyle":"delos","weatherLocation":"Oslo"}`)
+	write(shellStorePath(), `{"frameBars":{"style":"ryoku-frame"},"weatherLocation":"Oslo","sidebarWidth":360}`)
 	write(launcherStorePath(), `{"heroStrength":0.5,"showWeather":true}`)
 	write(themeStatePath(), `{"followWallpaper":true}`)
 
@@ -104,11 +110,14 @@ func TestCaptureRice(t *testing.T) {
 	if _, ok := r.Look["hypr"]["input"]; ok {
 		t.Fatal("input leaked into look (it is a behavior layer)")
 	}
-	if r.Look["shell"]["barStyle"] != "delos" {
-		t.Fatalf("shell barStyle = %v", r.Look["shell"]["barStyle"])
+	if frameBars, ok := r.Look["shell"]["frameBars"].(map[string]any); !ok || frameBars["style"] != "ryoku-frame" {
+		t.Fatalf("shell frameBars = %v, want ryoku-frame", r.Look["shell"]["frameBars"])
 	}
 	if _, ok := r.Look["shell"]["weatherLocation"]; ok {
 		t.Fatal("personal key weatherLocation captured")
+	}
+	if _, ok := r.Look["shell"]["sidebarWidth"]; ok {
+		t.Fatal("personal key sidebarWidth captured")
 	}
 	if r.Assets.Cursor != "Bibata-Modern-Ice" {
 		t.Fatalf("cursor = %q", r.Assets.Cursor)
@@ -133,7 +142,7 @@ func TestCaptureRice(t *testing.T) {
 // key survives), flips the colour master for a fixed rice and writes its
 // palette, and reloads. restoreRice(".baseline") then reverts every store to
 // the pristine pre-apply snapshot.
-func TestApplyMergesAndRestoreReverts(t *testing.T) {
+func TestRiceApplyMergesAndRestoreReverts(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(dir, "cache"))
@@ -154,7 +163,7 @@ func TestApplyMergesAndRestoreReverts(t *testing.T) {
 		}
 	}
 	w(hyprStorePath(), `{"appearance":{"rounding":2},"cursor":{"theme":"Bibata-Modern-Ice","size":24}}`)
-	w(shellStorePath(), `{"barStyle":"noctalia","weatherLocation":"Oslo"}`)
+	w(shellStorePath(), `{"frameBars":{"style":"slate-frame","rails":{"top":{"size":44}}},"weatherLocation":"Oslo","sidebarWidth":360}`)
 	w(launcherStorePath(), `{"heroStrength":0.6}`)
 	w(themeStatePath(), `{"followWallpaper":true}`)
 
@@ -162,17 +171,17 @@ func TestApplyMergesAndRestoreReverts(t *testing.T) {
 		t.Fatal(err)
 	}
 	w(filepath.Join(ricesDir(), "cool", "palette.json"), `{"background":"#101010","color4":"#ff8800","foreground":"#eeeeee"}`)
-	w(ricePath("cool"), `{"schema":1,"slug":"cool","name":"Cool","color":{"mode":"fixed","palette":"palette.json"},"look":{"hypr":{"appearance":{"rounding":18}},"shell":{"barStyle":"caelestia"},"launcher":{}}}`)
-
+	w(ricePath("cool"), `{"schema":1,"slug":"cool","name":"Cool","color":{"mode":"fixed","palette":"palette.json"},"look":{"hypr":{"appearance":{"rounding":18}},"shell":{"frameBars":{"style":"ryoku-frame","rails":{"top":{"size":38}}}},"launcher":{}}}`)
 	if err := applyRice("cool", nil); err != nil {
 		t.Fatal(err)
 	}
 	shell := readJSONMap(shellStorePath())
-	if shell["barStyle"] != "caelestia" {
-		t.Fatalf("apply did not set barStyle: %v", shell["barStyle"])
+	frameBars := shell["frameBars"].(map[string]any)
+	if frameBars["style"] != "ryoku-frame" {
+		t.Fatalf("apply did not set frameBars.style: %v", frameBars["style"])
 	}
-	if shell["weatherLocation"] != "Oslo" {
-		t.Fatal("apply clobbered a personal key")
+	if shell["sidebarWidth"] != float64(360) {
+		t.Fatal("apply clobbered a personal sidebar value")
 	}
 	ap := readJSONMap(hyprStorePath())["appearance"].(map[string]any)
 	if ap["rounding"].(float64) != 18 {
@@ -181,8 +190,8 @@ func TestApplyMergesAndRestoreReverts(t *testing.T) {
 	if loadThemeState().FollowWallpaper {
 		t.Fatal("a fixed rice must turn off followWallpaper")
 	}
-	if !isFile(filepath.Join(dir, "cache", "wallust", "colors.json")) {
-		t.Fatal("fixed palette not written to the wallust cache")
+	if !isFile(filepath.Join(dir, "cache", "ryoku", "colors.json")) {
+		t.Fatal("fixed palette not written to the ryoku cache")
 	}
 	reloaded := false
 	for _, c := range calls {
@@ -198,15 +207,74 @@ func TestApplyMergesAndRestoreReverts(t *testing.T) {
 		t.Fatal(err)
 	}
 	shell2 := readJSONMap(shellStorePath())
-	if shell2["barStyle"] != "noctalia" {
-		t.Fatalf("restore did not revert barStyle: %v", shell2["barStyle"])
-	}
-	ap2 := readJSONMap(hyprStorePath())["appearance"].(map[string]any)
-	if ap2["rounding"].(float64) != 2 {
-		t.Fatalf("restore rounding = %v, want 2", ap2["rounding"])
+	frameBars2 := shell2["frameBars"].(map[string]any)
+	if frameBars2["style"] != "slate-frame" {
+		t.Fatalf("restore did not revert frameBars.style: %v", frameBars2["style"])
 	}
 	if !loadThemeState().FollowWallpaper {
 		t.Fatal("restore did not revert followWallpaper")
+	}
+}
+
+// themeApps travels with a rice: capture records the author's app-theming
+// choice, apply sets it on the recipient, and an older rice (no themeApps key)
+// leaves the recipient's own setting alone. themeAppsOn defaults to on when the
+// key is absent, so existing installs keep their themed apps.
+func TestThemeAppsRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(dir, "cache"))
+	t.Setenv("HOME", dir)
+	if err := os.MkdirAll(filepath.Join(dir, "ryoku"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	origRun, origReload := riceRun, riceReload
+	riceRun = func(name string, args ...string) error { return nil }
+	riceReload = func() {}
+	t.Cleanup(func() { riceRun, riceReload = origRun, origReload })
+	w := func(p, body string) {
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if !themeAppsOn(loadThemeState()) {
+		t.Fatal("themeApps absent should read as on")
+	}
+
+	// capture with the toggle off records the choice on the rice.
+	w(hyprStorePath(), `{"appearance":{"rounding":2}}`)
+	w(shellStorePath(), `{"frameBars":{"style":"slate-frame"}}`)
+	w(launcherStorePath(), `{}`)
+	w(themeStatePath(), `{"followWallpaper":true,"themeApps":false}`)
+	r, err := captureRice("Bare", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Color.ThemeApps == nil || *r.Color.ThemeApps {
+		t.Fatalf("capture did not record themeApps=false: %v", r.Color.ThemeApps)
+	}
+
+	// a recipient with the toggle on adopts the rice's off.
+	w(themeStatePath(), `{"followWallpaper":true,"themeApps":true}`)
+	if err := applyRice("bare", nil); err != nil {
+		t.Fatal(err)
+	}
+	if themeAppsOn(loadThemeState()) {
+		t.Fatal("apply did not carry themeApps=false onto the recipient")
+	}
+
+	// an older rice without the key must not clear the recipient's setting.
+	w(themeStatePath(), `{"followWallpaper":true,"themeApps":true}`)
+	if err := os.MkdirAll(filepath.Join(ricesDir(), "legacy"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	w(ricePath("legacy"), `{"schema":1,"slug":"legacy","name":"Legacy","color":{"mode":"wallpaper"},"look":{"hypr":{},"shell":{},"launcher":{}}}`)
+	if err := applyRice("legacy", nil); err != nil {
+		t.Fatal(err)
+	}
+	if !themeAppsOn(loadThemeState()) {
+		t.Fatal("a rice without themeApps must not clear the recipient's setting")
 	}
 }
 
@@ -222,7 +290,7 @@ func TestRiceTouchesAndExport(t *testing.T) {
 		CreatedWith: "0.6.8",
 		Color:       RiceColor{Mode: "fixed", Palette: "palette.json"},
 		Assets:      RiceAssets{Wallpaper: "wall.png"},
-		Look:        map[string]map[string]any{"hypr": {"rounding": 3.0}, "shell": {"barStyle": "stele"}},
+		Look:        map[string]map[string]any{"hypr": {"rounding": 3.0}, "shell": {"frameBars": map[string]any{"style": "ryoku-frame"}}},
 	}
 	rdir := filepath.Join(ricesDir(), "demo")
 	if err := os.MkdirAll(rdir, 0o755); err != nil {
@@ -253,8 +321,8 @@ func TestRiceTouchesAndExport(t *testing.T) {
 	if l := find("launcher.json"); l == nil || l.Provided {
 		t.Fatalf("launcher.json should be present but not provided: %+v", l)
 	}
-	if find("wallust") == nil {
-		t.Fatal("fixed rice should touch the wallust cache")
+	if find("colors.json") == nil {
+		t.Fatal("fixed rice should touch the ryoku palette cache")
 	}
 	if find("Desktop wallpaper") == nil {
 		t.Fatal("bundled wallpaper not reported")
@@ -336,20 +404,20 @@ func TestSquareShellAndKeybindRoundTrip(t *testing.T) {
 		}
 	}
 	w(hyprStorePath(), `{"appearance":{"rounding":12},"keybinds":[]}`)
-	w(shellStorePath(), `{"barStyle":"noctalia","frameRadius":9,"islandRadius":17,"roundness":10,"osdRadius":12}`)
+	w(shellStorePath(), `{"frameBars":{"style":"slate-frame"},"frameRadius":9,"roundness":10,"osdRadius":12}`)
 	w(launcherStorePath(), `{}`)
 	w(themeStatePath(), `{"followWallpaper":true}`)
 
 	if err := os.MkdirAll(filepath.Join(ricesDir(), "sq"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	w(ricePath("sq"), `{"schema":1,"slug":"sq","name":"Square","color":{"mode":"wallpaper"},"look":{"hypr":{"appearance":{"rounding":0}},"shell":{"frameRadius":0,"islandRadius":0,"roundness":0,"osdRadius":0},"launcher":{}},"layers":{"keybinds":[{"keys":"SUPER + T","action":"exec","value":"kitty"}]}}`)
+	w(ricePath("sq"), `{"schema":1,"slug":"sq","name":"Square","color":{"mode":"wallpaper"},"look":{"hypr":{"appearance":{"rounding":0}},"shell":{"frameRadius":0,"roundness":0,"osdRadius":0},"launcher":{}},"layers":{"keybinds":[{"keys":"SUPER + T","action":"exec","value":"kitty"}]}}`)
 
 	if err := applyRice("sq", []string{"keybinds"}); err != nil {
 		t.Fatal(err)
 	}
 	shell := readJSONMap(shellStorePath())
-	for _, k := range []string{"frameRadius", "islandRadius", "roundness", "osdRadius"} {
+	for _, k := range []string{"frameRadius", "roundness", "osdRadius"} {
 		if v, ok := shell[k].(float64); !ok || v != 0 {
 			t.Fatalf("square rice did not set shell %s to 0: %v", k, shell[k])
 		}
@@ -366,10 +434,271 @@ func TestSquareShellAndKeybindRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	shell2 := readJSONMap(shellStorePath())
-	if shell2["frameRadius"].(float64) != 9 || shell2["islandRadius"].(float64) != 17 {
-		t.Fatalf("restore did not revert the frame/island shape: %v", shell2)
+	if shell2["frameRadius"].(float64) != 9 {
+		t.Fatalf("restore did not revert the frame shape: %v", shell2)
 	}
 	if kb2, _ := readJSONMap(hyprStorePath())["keybinds"].([]any); len(kb2) != 0 {
 		t.Fatalf("restore did not remove the installed keybind: %v", readJSONMap(hyprStorePath())["keybinds"])
+	}
+}
+
+// the widened snapshot: widgets/visualizer/decor travel as whole-store look,
+// a decor's picture is bundled and its src rewritten to rice://, the brand
+// layer bundles its mark, and a live (video) wallpaper is recorded without
+// ever being handed to the tile <Image> as a preview.
+func TestCaptureNewStoresDecorsAndLiveWall(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("XDG_STATE_HOME", filepath.Join(dir, "state"))
+	t.Setenv("HOME", dir)
+	for _, d := range []string{filepath.Join(dir, "ryoku"), filepath.Join(dir, "state"), filepath.Join(dir, "pics")} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	w := func(p, body string) {
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	decorPic := filepath.Join(dir, "pics", "cat.png")
+	mark := filepath.Join(dir, "pics", "mark.png")
+	clip := filepath.Join(dir, "pics", "wave.mp4")
+	w(decorPic, "PNG")
+	w(mark, "PNG")
+	w(clip, "MP4")
+	w(hyprStorePath(), `{"appearance":{"rounding":8}}`)
+	w(shellStorePath(), `{"frameBars":{"style":"ryoku-frame"}}`)
+	w(launcherStorePath(), `{"bgBlur":0.4,"radius":22}`)
+	w(themeStatePath(), `{"followWallpaper":true}`)
+	w(widgetsStorePath(), `{"clock24h":true,"clockScale":1.2}`)
+	w(visualizerStorePath(), `{"bars":116,"style":"bars"}`)
+	w(decorStorePath(), `{"input.touchpad":{"shot":6,"zoom":1,"src":"file://`+decorPic+`"},"input.map":{"shot":10,"src":""}}`)
+	w(brandStorePath(), `{"name":"Berserk","markText":"力","markImage":"`+mark+`"}`)
+	w(filepath.Join(dir, "state", "ryoku-wallpaper"), clip+"\n")
+
+	r, err := captureRice("Wave", []string{"all"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Look["widgets"]["clock24h"] != true {
+		t.Fatalf("widgets look missing: %v", r.Look["widgets"])
+	}
+	if r.Look["visualizer"]["style"] != "bars" {
+		t.Fatalf("visualizer look missing: %v", r.Look["visualizer"])
+	}
+	if r.Look["launcher"]["bgBlur"] != 0.4 {
+		t.Fatalf("launcher bgBlur not captured: %v", r.Look["launcher"])
+	}
+	tp := r.Look["decor"]["input.touchpad"].(map[string]any)
+	src, _ := tp["src"].(string)
+	if !strings.HasPrefix(src, "rice://decor-") {
+		t.Fatalf("decor src not bundled: %q", src)
+	}
+	if !isFile(filepath.Join(ricesDir(), "wave", strings.TrimPrefix(src, "rice://"))) {
+		t.Fatal("bundled decor picture missing from the rice folder")
+	}
+	raw, ok := r.Layers["brand"]
+	if !ok {
+		t.Fatalf("brand layer not captured with all: %v", r.Layers)
+	}
+	if !strings.Contains(string(raw), "rice://brandmark") {
+		t.Fatalf("brand mark not bundled: %s", raw)
+	}
+	if !isFile(filepath.Join(ricesDir(), "wave", "brandmark.png")) {
+		t.Fatal("bundled brand mark missing from the rice folder")
+	}
+	if r.Assets.Wallpaper != "wall.mp4" {
+		t.Fatalf("wallpaper asset = %q, want wall.mp4", r.Assets.Wallpaper)
+	}
+	es := listRiceEntries()
+	if len(es) != 1 || !es[0].Live {
+		t.Fatalf("live flag not set: %+v", es)
+	}
+	if strings.HasSuffix(es[0].Preview, ".mp4") {
+		t.Fatalf("a video must never be the tile preview: %q", es[0].Preview)
+	}
+
+	// preflight mirrors the same coverage before the save.
+	pf := preflightData()
+	if pf["live"] != true || pf["decors"] != 2 || pf["widgets"] != true {
+		t.Fatalf("preflight = %v", pf)
+	}
+}
+
+// applying a rice with the widened look writes the new stores, lands decor
+// and brand pictures under rice-assets (never pointing into the rices dir),
+// routes a video wallpaper to the livewalls pool, and .previous snapshots the
+// new stores so restore reverts them.
+func TestApplyNewStoresBrandAndVideoWall(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(dir, "cache"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(dir, "state"))
+	t.Setenv("HOME", dir)
+	if err := os.MkdirAll(filepath.Join(dir, "ryoku"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var calls []string
+	origRun, origReload := riceRun, riceReload
+	riceRun = func(name string, args ...string) error {
+		calls = append(calls, name+" "+strings.Join(args, " "))
+		return nil
+	}
+	riceReload = func() {}
+	t.Cleanup(func() { riceRun, riceReload = origRun, origReload })
+
+	w := func(p, body string) {
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	w(hyprStorePath(), `{"appearance":{"rounding":2}}`)
+	w(shellStorePath(), `{"frameBars":{"style":"slate-frame"}}`)
+	w(launcherStorePath(), `{}`)
+	w(themeStatePath(), `{"followWallpaper":true}`)
+	w(widgetsStorePath(), `{"clock24h":false}`)
+	w(visualizerStorePath(), `{"bars":32}`)
+	w(decorStorePath(), `{}`)
+	w(brandStorePath(), `{"name":"Old"}`)
+
+	rdir := filepath.Join(ricesDir(), "wave")
+	if err := os.MkdirAll(rdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	w(filepath.Join(rdir, "wall.mp4"), "MP4")
+	w(filepath.Join(rdir, "decor-input-touchpad.png"), "PNG")
+	w(filepath.Join(rdir, "brandmark.png"), "PNG")
+	w(ricePath("wave"), `{"schema":1,"slug":"wave","name":"Wave",
+	  "color":{"mode":"wallpaper"},
+	  "assets":{"wallpaper":"wall.mp4"},
+	  "look":{"hypr":{"appearance":{"rounding":18}},"shell":{"frameBars":{"style":"ryoku-frame"}},"launcher":{},
+	          "widgets":{"clock24h":true},"visualizer":{"bars":116},
+	          "decor":{"input.touchpad":{"shot":6,"src":"rice://decor-input-touchpad.png"}}},
+	  "layers":{"brand":{"name":"Berserk","markImage":"rice://brandmark.png"}}}`)
+
+	if err := applyRice("wave", []string{"brand"}); err != nil {
+		t.Fatal(err)
+	}
+	if readJSONMap(widgetsStorePath())["clock24h"] != true {
+		t.Fatal("widgets look not applied")
+	}
+	if readJSONMap(visualizerStorePath())["bars"].(float64) != 116 {
+		t.Fatal("visualizer look not applied")
+	}
+	dec := readJSONMap(decorStorePath())["input.touchpad"].(map[string]any)
+	src, _ := dec["src"].(string)
+	if !strings.HasPrefix(src, "file://"+filepath.Join(dir, "ryoku", "rice-assets", "wave")) {
+		t.Fatalf("decor src not rehydrated under rice-assets: %q", src)
+	}
+	if !isFile(strings.TrimPrefix(src, "file://")) {
+		t.Fatal("rehydrated decor picture missing on disk")
+	}
+	br := readJSONMap(brandStorePath())
+	if br["name"] != "Berserk" {
+		t.Fatalf("brand layer not applied: %v", br)
+	}
+	mi, _ := br["markImage"].(string)
+	if !strings.HasPrefix(mi, filepath.Join(dir, "ryoku", "rice-assets", "wave")) || !isFile(mi) {
+		t.Fatalf("brand mark not rehydrated: %q", mi)
+	}
+	wantWall := filepath.Join(dir, "Pictures", "livewalls", "wave.mp4")
+	found := false
+	for _, c := range calls {
+		if c == "ryoku-shell wallpaper set "+wantWall {
+			found = true
+		}
+	}
+	if !found || !isFile(wantWall) {
+		t.Fatalf("video wall not routed to livewalls; calls=%v", calls)
+	}
+	if !isFile(filepath.Join(ricesDir(), ".previous", "widgets.json")) {
+		t.Fatal(".previous snapshot missing widgets.json")
+	}
+
+	// the byte-for-byte restore brings the new stores back too.
+	if err := restoreRice(".previous"); err != nil {
+		t.Fatal(err)
+	}
+	if readJSONMap(widgetsStorePath())["clock24h"] != false {
+		t.Fatal("restore did not revert widgets.json")
+	}
+	if readJSONMap(brandStorePath())["name"] != "Old" {
+		t.Fatal("restore did not revert brand.json")
+	}
+}
+
+// setRiceWallpaper accepts a video, swaps out the previous asset file, and an
+// import lands an exported folder as a fresh, de-duped local rice without its
+// reading matter (configs/, README).
+func TestSetWallVideoAndImport(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("XDG_STATE_HOME", filepath.Join(dir, "state"))
+	t.Setenv("HOME", dir)
+	if err := os.MkdirAll(filepath.Join(dir, "ryoku"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	w := func(p, body string) {
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Join(ricesDir(), "demo"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	w(ricePath("demo"), `{"schema":1,"slug":"demo","name":"Demo","color":{"mode":"wallpaper"},"assets":{"wallpaper":"wall.png"},"look":{}}`)
+	w(filepath.Join(ricesDir(), "demo", "wall.png"), "PNG")
+	clip := filepath.Join(dir, "clip.mp4")
+	w(clip, "MP4")
+	if err := setRiceWallpaper("demo", clip); err != nil {
+		t.Fatal(err)
+	}
+	r, _, err := loadRice("demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Assets.Wallpaper != "wall.mp4" {
+		t.Fatalf("wallpaper = %q, want wall.mp4", r.Assets.Wallpaper)
+	}
+	if isFile(filepath.Join(ricesDir(), "demo", "wall.png")) {
+		t.Fatal("stale wall.png left behind after a video setwall")
+	}
+
+	// an exported folder: manifest + assets + reading matter.
+	exp := filepath.Join(dir, "shared")
+	if err := os.MkdirAll(filepath.Join(exp, "configs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	w(filepath.Join(exp, "rice.json"), `{"schema":1,"slug":"demo","name":"Demo","color":{"mode":"wallpaper"},"look":{"shell":{"frameBars":{"style":"ryoku-frame"}}}}`)
+	w(filepath.Join(exp, "wall.png"), "PNG")
+	w(filepath.Join(exp, "README.txt"), "hi")
+	w(filepath.Join(exp, "configs", "shell.json"), `{}`)
+
+	nr, err := importRice(exp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nr.Slug != "demo-2" {
+		t.Fatalf("import slug = %q, want demo-2 (de-duped)", nr.Slug)
+	}
+	idir := filepath.Join(ricesDir(), "demo-2")
+	if !isFile(filepath.Join(idir, "wall.png")) {
+		t.Fatal("import dropped the wallpaper asset")
+	}
+	if isFile(filepath.Join(idir, "README.txt")) || isFile(filepath.Join(idir, "configs", "shell.json")) {
+		t.Fatal("import copied the export's reading matter")
+	}
+	if _, _, err := loadRice("demo-2"); err != nil {
+		t.Fatalf("imported rice does not load: %v", err)
+	}
+}
+
+func TestRunRiceRejectsStoreCommands(t *testing.T) {
+	for _, command := range []string{"catalog", "install"} {
+		err := runRice([]string{command})
+		if err == nil || !strings.Contains(err.Error(), "unknown rice subcommand") {
+			t.Fatalf("runRice(%q) = %v, want unknown rice subcommand", command, err)
+		}
 	}
 }

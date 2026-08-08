@@ -1,11 +1,13 @@
 import QtQuick
 import QtQuick.Controls
+import Ryoku.Ui
+import Ryoku.Ui.Singletons
 import "Singletons"
 
 // The catalogue: OS tiles bound to Vm.osList, split into Popular (systems that
 // ship real brand art) above All systems (the rest, drawn as monograms). The
-// split re-evaluates when the prefetch fills Vm.iconSet, so logos float up once
-// they're known. Picking a tile selects it for the create panel.
+// split survives; the section headers are the dot-and-leader. Picking a tile
+// selects it for the create sheet.
 Item {
     id: g
 
@@ -22,12 +24,8 @@ Item {
         var f = g.filter.toLowerCase();
         return o.name.toLowerCase().indexOf(f) >= 0 || o.os.toLowerCase().indexOf(f) >= 0;
     }
-    // curated headliners; everything else files under All systems.
     readonly property var popularSlugs: ["ubuntu", "debian", "archlinux", "linuxmint", "opensuse",
         "nixos", "alpine", "kali", "freebsd", "windows", "macos", "cachyos"]
-    // no iconRev dependency: the curated split doesn't care which logos have
-    // resolved, and re-filtering on every icon landing rebuilt the whole grid
-    // dozens of times during launch (each card re-resolves its own art).
     readonly property var popular: Vm.osList.filter(o => g._match(o) && g.popularSlugs.indexOf(o.os) >= 0)
     readonly property var rest: Vm.osList.filter(o => g._match(o) && g.popularSlugs.indexOf(o.os) < 0)
     readonly property int total: popular.length + rest.length
@@ -41,90 +39,82 @@ Item {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         opacity: Vm.catalogLoading ? 0.4 : 1
-        Behavior on opacity { NumberAnimation { duration: Theme.quick } }
-        ScrollBar.vertical: BoardScrollBar {}
+        Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
+        ScrollBar.vertical: ScrollRail {}
 
         Column {
             id: col
             width: flick.width
-            spacing: 10
+            spacing: Tokens.s3
 
-            Section {
-                title: "Popular"
-                entries: g.popular
-                visible: g.popular.length > 0
-            }
-            Section {
-                // only label the second band when the first is present.
-                title: g.popular.length > 0 ? "All systems" : ""
-                entries: g.rest
-                visible: g.rest.length > 0
-            }
+            Group { title: "Popular"; entries: g.popular; visible: g.popular.length > 0 }
+            Group { title: g.popular.length > 0 ? "All systems" : ""; entries: g.rest; visible: g.rest.length > 0 }
         }
     }
 
-    // empty / loading / error state.
+    // empty / loading / error, anchored on the app mark.
     Column {
         anchors.centerIn: parent
-        spacing: 12
+        spacing: Tokens.s4
         width: parent.width - 40
         visible: g.total === 0
-        Icon {
-            anchors.horizontalCenter: parent.horizontalCenter
-            name: Vm.catalogLoading ? "refresh" : (Vm.catalogError.length > 0 ? "close" : (g.filter.length > 0 ? "search" : "download"))
-            size: 32
-            tint: Theme.faint
-        }
+        Mark { anchors.horizontalCenter: parent.horizontalCenter; size: 96 }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
             width: parent.width
             wrapMode: Text.WordWrap
             text: Vm.catalogLoading ? "Fetching the OS catalogue"
-                : (Vm.caps.quickget !== true ? "The catalogue needs the engine (quickget) — install it and the 90+ systems appear here."
+                : (Vm.caps.quickget !== true ? "The catalogue needs the engine (quickget): install it and the 90+ systems appear here."
                 : (Vm.catalogError.length > 0 ? Vm.catalogError
                 : (g.filter.length > 0 ? "No systems match" : "No catalogue")))
-            color: Theme.dim
-            font.family: Theme.font
-            font.pixelSize: 13
+            color: Tokens.inkMuted
+            font.family: Tokens.ui
+            font.pixelSize: 12
         }
-        HubButton {
+        Btn {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: !Vm.catalogLoading && Vm.caps.quickget !== true
             primary: true
-            icon: "download"
-            label: "Install engine"
-            onClicked: g.installRequested()
+            text: "INSTALL ENGINE"
+            onAct: g.installRequested()
         }
-        HubButton {
+        Btn {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: !Vm.catalogLoading && Vm.caps.quickget === true && Vm.catalogError.length > 0
-            icon: "refresh"
-            label: "Retry"
-            onClicked: Vm.loadCatalog(true)
+            text: "RETRY"
+            onAct: Vm.loadCatalog(true)
         }
     }
 
-    component Section: Column {
+    // a catalogue section: dot + caps title + lineSoft leader, then a tile grid.
+    component Group: Column {
         id: sec
         property string title: ""
         property var entries: []
         width: g.width - 8
-        spacing: 6
+        spacing: Tokens.s2
 
         Row {
             visible: sec.title.length > 0
-            spacing: 7
-            Rectangle { width: 5; height: 5; radius: Theme.radius; color: Theme.brand; anchors.verticalCenter: parent.verticalCenter }
+            spacing: Tokens.s2
+            width: parent.width
+            Rectangle { width: 4; height: 4; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: sec.title
-                color: Theme.subtle
-                font.family: Theme.mono
-                font.pixelSize: 10
-                font.letterSpacing: 2
-                font.weight: Font.DemiBold
+                color: Tokens.ink
+                font.family: Tokens.ui
+                font.pixelSize: 11
+                font.weight: Font.Medium
+                font.letterSpacing: Tokens.trackMark
                 font.capitalization: Font.AllUppercase
+            }
+            Rectangle {
+                width: Math.max(0, parent.width - 200)
+                height: 1
+                color: Tokens.lineSoft
+                anchors.verticalCenter: parent.verticalCenter
             }
         }
         Grid {

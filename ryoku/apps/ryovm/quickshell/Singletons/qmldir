@@ -1,2 +1,2 @@
-singleton Theme Theme.qml
 singleton Vm Vm.qml
+singleton Remotes Remotes.qml

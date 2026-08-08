@@ -35,17 +35,6 @@ html, body {
    against the window edge. */
 body { display: flex; min-height: 100%; }
 
-.grain {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  pointer-events: none;
-  background-image: url('../assets/grain.png');
-  background-repeat: repeat;
-  mix-blend-mode: overlay;
-  opacity: .06;
-}
-
 a { color: inherit; text-decoration: none; }
 
 /* Left rail: mark, vertical kanji, numbered poster index. */

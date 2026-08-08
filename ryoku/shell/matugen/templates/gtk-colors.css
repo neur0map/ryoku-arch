@@ -1,0 +1,52 @@
+/* Ryoku palette -> GTK. Rendered by matugen; do not edit. One file themes both
+   toolkits: libadwaita / GTK 4 read the *_color names, classic GTK 3 (Adwaita)
+   reads the @theme_* names. Each toolkit ignores the other's names, so both sets
+   live together. Values are Material 3 role names (the same roles the shell and
+   the reference paint with), so a wallpaper scheme reaches the whole app suite
+   with the identical semantics, not a base16 approximation. */
+
+/* --- libadwaita / GTK 4 (Files, text editors, GNOME apps) --- */
+@define-color accent_color {{colors.primary.default.hex}};
+@define-color accent_bg_color {{colors.primary.default.hex}};
+@define-color accent_fg_color {{colors.on_primary.default.hex}};
+@define-color window_bg_color {{colors.surface.default.hex}};
+@define-color window_fg_color {{colors.on_surface.default.hex}};
+@define-color view_bg_color {{colors.surface.default.hex}};
+@define-color view_fg_color {{colors.on_surface.default.hex}};
+@define-color headerbar_bg_color {{colors.surface_container.default.hex}};
+@define-color headerbar_fg_color {{colors.on_surface.default.hex}};
+@define-color headerbar_border_color {{colors.outline_variant.default.hex}};
+@define-color headerbar_backdrop_color {{colors.surface.default.hex}};
+@define-color card_bg_color {{colors.surface_container_low.default.hex}};
+@define-color card_fg_color {{colors.on_surface.default.hex}};
+@define-color dialog_bg_color {{colors.surface_container_high.default.hex}};
+@define-color dialog_fg_color {{colors.on_surface.default.hex}};
+@define-color popover_bg_color {{colors.surface_container.default.hex}};
+@define-color popover_fg_color {{colors.on_surface.default.hex}};
+@define-color sidebar_bg_color {{colors.surface_container_low.default.hex}};
+@define-color sidebar_fg_color {{colors.on_surface.default.hex}};
+@define-color destructive_color {{colors.error.default.hex}};
+@define-color destructive_bg_color {{colors.error.default.hex}};
+@define-color destructive_fg_color {{colors.on_error.default.hex}};
+@define-color warning_color {{colors.tertiary.default.hex}};
+@define-color success_color {{colors.secondary.default.hex}};
+
+/* --- classic GTK 3 (Adwaita named palette) --- */
+@define-color theme_bg_color {{colors.surface.default.hex}};
+@define-color theme_fg_color {{colors.on_surface.default.hex}};
+@define-color theme_base_color {{colors.surface.default.hex}};
+@define-color theme_text_color {{colors.on_surface.default.hex}};
+@define-color theme_selected_bg_color {{colors.primary.default.hex}};
+@define-color theme_selected_fg_color {{colors.on_primary.default.hex}};
+@define-color theme_unfocused_bg_color {{colors.surface.default.hex}};
+@define-color theme_unfocused_fg_color {{colors.on_surface.default.hex}};
+@define-color theme_unfocused_base_color {{colors.surface.default.hex}};
+@define-color theme_unfocused_text_color {{colors.on_surface.default.hex}};
+@define-color theme_unfocused_selected_bg_color {{colors.primary.default.hex}};
+@define-color theme_unfocused_selected_fg_color {{colors.on_primary.default.hex}};
+@define-color insensitive_bg_color {{colors.surface_container.default.hex}};
+@define-color insensitive_fg_color {{colors.on_surface_variant.default.hex}};
+@define-color insensitive_base_color {{colors.surface.default.hex}};
+@define-color borders {{colors.outline_variant.default.hex}};
+@define-color unfocused_borders {{colors.outline_variant.default.hex}};
+@define-color error_color {{colors.error.default.hex}};

@@ -1,10 +1,12 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Ryoku.Ui.Singletons
 import "Singletons"
 
 // Step 1 body: the warm opening. A short editorial paragraph, then three value
-// ticks that echo the eyebrow's vermillion mark. The header (eyebrow + title +
-// subtitle) is drawn by Welcome.qml; this is only the body.
+// ticks -- hairline ink marks, no accent; the sun stays with the mark and the
+// art. The header (eyebrow + title + subtitle) is drawn by Welcome.qml; this is
+// only the body.
 Column {
     id: step
     spacing: 22
@@ -15,9 +17,9 @@ Column {
         text: "You've arrived. " + Theme.brandName + " is a single, hand-built desktop \u2014 one bar, one "
             + "launcher, one control plane \u2014 carved on Arch and Hyprland. This is a "
             + "two-minute tour of where things live and how to make it yours."
-        color: Theme.cream
-        font.family: Theme.font
-        font.pixelSize: 15
+        color: Tokens.inkDim
+        font.family: Tokens.ui
+        font.pixelSize: Tokens.fRow
         lineHeight: 1.35
     }
 
@@ -40,8 +42,8 @@ Column {
 
                 Rectangle {
                     width: 16
-                    height: 1.5
-                    color: Theme.sun
+                    height: 1
+                    color: Tokens.lineStrong
                     anchors.verticalCenter: label.verticalCenter
                 }
 
@@ -50,9 +52,9 @@ Column {
                     width: tick.width - 28
                     wrapMode: Text.WordWrap
                     text: tick.modelData
-                    color: Theme.subtle
-                    font.family: Theme.font
-                    font.pixelSize: 14
+                    color: Tokens.inkMuted
+                    font.family: Tokens.ui
+                    font.pixelSize: Tokens.fBody
                     lineHeight: 1.3
                 }
             }

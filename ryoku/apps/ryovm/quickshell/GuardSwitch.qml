@@ -1,10 +1,14 @@
 import QtQuick
-import "Singletons"
+import Ryoku.Ui.Singletons
 
-// A guarded destructive switch: the verb lives under a flip-up cover plate,
-// like a missile switch. First click lifts the cover and arms the red switch;
-// clicking the armed switch fires; the cover slams shut by itself after 3s of
-// hesitation. Destruction requires two distinct, deliberate motions.
+// A guarded destructive switch: the verb lives under a flip-up cover plate, like
+// a missile switch. First click lifts the cover and arms the bed; clicking the
+// armed bed fires; the cover slams shut by itself after 3s of hesitation. Two
+// distinct, deliberate motions for destruction: interaction design, not decor.
+//
+// Monochrome grammar (DESIGN 3.4): the cover is a flat paperLift plate with
+// 45-degree ink hazard hatching (pattern replaces colour); the armed bed is the
+// contract's destructive plate: bone fill, black verb, 2px border. No red.
 Item {
     id: gs
 
@@ -16,39 +20,30 @@ Item {
     property bool armed: false
 
     implicitWidth: 128
-    implicitHeight: 36
-    opacity: gs.enabled ? 1 : 0.4
+    implicitHeight: 34
+    opacity: gs.enabled ? 1 : 0.3
 
     onArmedChanged: if (armed) slam.restart(); else slam.stop()
     Timer { id: slam; interval: 3000; onTriggered: gs.armed = false }
 
-    // hard shadow.
-    Rectangle {
-        x: 3; y: 3
-        width: gs.width - 3
-        height: gs.height - 3
-        color: Theme.shadow
-        antialiasing: false
-    }
-
-    // the armed switch bed: red, waiting.
+    // the armed bed: bone plate, 2px border, black verb, waiting.
     Rectangle {
         id: bed
-        width: gs.width - 3
-        height: gs.height - 3
-        color: gs.armed ? Theme.emberDeep : Theme.surfaceLo
-        border.width: 1
-        border.color: gs.armed ? Theme.ember : Theme.line
+        anchors.fill: parent
+        radius: Tokens.radius
+        color: gs.armed ? Tokens.bone : "transparent"
+        border.width: gs.armed ? 2 : Tokens.border
+        border.color: gs.armed ? Tokens.bone : Tokens.line
         antialiasing: false
 
         Text {
             anchors.centerIn: parent
             text: gs.armed ? gs.armedLabel : ""
-            color: Theme.onAccent
-            font.family: Theme.mono
-            font.pixelSize: 10
-            font.weight: Font.Bold
-            font.letterSpacing: 1.5
+            color: Tokens.inkOnBone
+            font.family: Tokens.ui
+            font.pixelSize: 11
+            font.weight: Font.Medium
+            font.letterSpacing: Tokens.trackLabel
         }
 
         TapHandler {
@@ -58,61 +53,53 @@ Item {
         HoverHandler { enabled: gs.enabled && gs.armed; cursorShape: Qt.PointingHandCursor }
     }
 
-    // the cover plate: hinged on its top edge, striped like machine guards.
+    // the cover plate: hinged on its top edge, hazard-hatched.
     Item {
         id: coverPivot
-        width: gs.width - 3
-        height: gs.height - 3
+        anchors.fill: parent
         transform: Rotation {
             id: hinge
             origin.x: 0
             origin.y: 0
             axis { x: 1; y: 0; z: 0 }
             angle: gs.armed ? 78 : 0
-            Behavior on angle { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
+            Behavior on angle { NumberAnimation { duration: Tokens.move; easing.type: Tokens.easeSnap } }
         }
         visible: hinge.angle < 89
 
         Rectangle {
             anchors.fill: parent
-            color: Theme.keyTop
-            border.width: 1
-            border.color: Theme.lineStrong
+            radius: Tokens.radius
+            color: Tokens.paperLift
+            border.width: Tokens.border
+            border.color: Tokens.lineStrong
             antialiasing: false
+            clip: true
 
-            // caution stripe along the bottom edge of the guard.
-            Row {
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.margins: 1
-                height: 4
-                clip: true
-                Repeater {
-                    model: Math.ceil(gs.width / 8)
-                    delegate: Item {
-                        required property int index
-                        width: 8; height: 4
-                        Rectangle {
-                            width: 6; height: 10
-                            rotation: 45
-                            y: -3
-                            color: index % 2 === 0 ? Qt.alpha(Theme.ember, 0.55) : "transparent"
-                            antialiasing: false
-                        }
-                    }
+            // 45-degree ink hazard hatching across the whole cover.
+            Repeater {
+                model: Math.ceil((gs.width + gs.height) / 12)
+                delegate: Rectangle {
+                    required property int index
+                    width: 3
+                    height: gs.height * 3
+                    rotation: 45
+                    antialiasing: false
+                    color: Tokens.line
+                    x: index * 12 - gs.height
+                    y: -gs.height
                 }
             }
 
             Text {
                 anchors.centerIn: parent
                 text: gs.label
-                color: gh.hovered && gs.enabled ? Theme.bright : Theme.subtle
-                font.family: Theme.mono
-                font.pixelSize: 10
-                font.weight: Font.DemiBold
-                font.letterSpacing: 1.5
-                Behavior on color { ColorAnimation { duration: Theme.quick } }
+                color: gh.hovered && gs.enabled ? Tokens.ink : Tokens.inkDim
+                font.family: Tokens.ui
+                font.pixelSize: 11
+                font.weight: Font.Medium
+                font.letterSpacing: Tokens.trackLabel
+                Behavior on color { ColorAnimation { duration: Tokens.snap } }
             }
         }
 

@@ -37,7 +37,8 @@ usage() {
   cat <<EOF
 ryoku-recovery: last-resort restore of the Ryoku desktop from origin/$CHANNEL.
 Resets a clean checkout to the latest commit, reinstalls the base packages, and
-rebuilds + redeploys the desktop, OVERWRITING your Ryoku configs in ~/.config.
+rebuilds + redeploys the desktop, and CLEARS your user_edits overlay and Hub
+settings, OVERWRITING your Ryoku configs in ~/.config with the shipped defaults.
 
   ryoku recovery [--yes] [--no-packages]
   curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/bin/ryoku-recovery | bash
@@ -80,7 +81,7 @@ need go
 
 if [[ $ASSUME_YES != 1 ]]; then
   [[ -r /dev/tty ]] || die "non-interactive shell; re-run with --yes once you are sure"
-  warn "this resets Ryoku to origin/$CHANNEL and OVERWRITES your Ryoku configs in ~/.config."
+  warn "this resets Ryoku to origin/$CHANNEL, CLEARS your user_edits overlay and Hub settings, and OVERWRITES your configs in ~/.config with shipped defaults."
   printf 'type "recover" to continue: ' >/dev/tty
   ans=""
   read -r ans </dev/tty || true
@@ -134,6 +135,20 @@ if [[ $DO_PACKAGES == 1 ]]; then
   fi
 fi
 
+# Factory reset: drop the user overlay, the fork ledger, the generated Hyprland
+# overlays, and the Hub's stored settings, so the redeploy below lays pure Ryoku
+# defaults with nothing layered back on (deploy.sh re-applies user_edits and
+# preserves unshipped live files otherwise). This is the point of recovery, and
+# why it is the last resort: your customizations go. Saved looks under rices/ and
+# the per-machine display/GPU seeds are left alone.
+say "clearing user overrides and Hub settings (recovery restores pure defaults)"
+RCFG="${XDG_CONFIG_HOME:-$HOME/.config}"
+rm -rf "$RCFG/ryoku/user_edits"
+rm -f "$RCFG/hypr/settings.lua" "$RCFG/hypr/rebinds.lua" "$RCFG/hypr/user.lua" "$RCFG/hypr/monitors_user.lua"
+for _s in shell theme launcher widgets visualizer decor brand hypr plugins; do
+  rm -f "$RCFG/ryoku/$_s.json"
+done
+
 deploy="$RECOVERY_DIR/ryoku/shell/deploy.sh"
 [[ -x $deploy ]] || die "recovery checkout is missing $deploy"
 say "rebuilding and redeploying the desktop (overwrites Ryoku configs)"
@@ -151,14 +166,14 @@ if pacman -Q ryoku-desktop >/dev/null 2>&1; then
   say "packaged install detected: staying on the pacman update channel"
 fi
 
-# ensure the shell's wallpaper daemon + palette generator: awww and wallust both
-# ship from the [ryoku] repo as ryoku-desktop depends, but a box whose awww or
-# wallust was dropped (an old broken AUR build) needs them put back. a plain
+# ensure the shell's wallpaper daemon + palette generator: awww ships from the
+# [ryoku] repo (a ryoku-desktop depend) and matugen from the official repos, but
+# a box whose awww or matugen was dropped needs them put back. a plain
 # package install, gated on the package step (--no-packages skips it) and
 # best-effort, so a fetch failure never blocks the rescue.
 if [[ $DO_PACKAGES == 1 ]] && grep -qs '^\[ryoku\]' /etc/pacman.conf; then
-  say "ensuring the awww wallpaper daemon and wallust palette generator from [ryoku]"
-  sudo pacman -S --needed --noconfirm awww wallust || warn "could not install awww/wallust (continuing)"
+  say "ensuring the awww wallpaper daemon and matugen palette generator"
+  sudo pacman -S --needed --noconfirm awww matugen || warn "could not install awww/matugen (continuing)"
 fi
 
 say "recovery done: Ryoku restored to $CHANNEL ($commit). log out and back in if the shell did not reload."

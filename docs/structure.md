@@ -25,24 +25,30 @@ truth for the live desktop.
   (`env`, `input`, `displays`, `decoration`, `animations`, `binds`, `ryoshot`,
   `window_rules`, `fullscreen`, `autostart`). `scripts/` holds the leaf shell helpers the UI
   calls directly: the `ryoku-cmd-*` screen tools (lens, OCR, color, QR, webcam
-  mirror, screen record, night light, caffeine) plus the stash and sysinfo
-  helpers. `hypridle.conf` is the idle daemon's native config. The whole
+  mirror, screen record, night light, caffeine) plus the stash sidebar's
+  download, compress, and install helpers and `ryoku-sysinfo`. `hypridle.conf`
+  is the idle daemon's native config. The whole
   directory deploys to `~/.config/hypr/`.
 - `lockscreen/` `qylock/` (the lock theme and its quickshell lockscreen),
   `install-qylock`, and `sddm/` (the greeter setup).
-- `shell/` the desktop shell subsystem: `quickshell/` (the QML UI: `pill` (the
-  plated top bar and morphing island, which also draws the screen frame, hosts
-  the edge popouts under `pill/popouts/`, and grows the centre-island control
-  deck (`Super+D`:
-  stash, tools, and utilities)), `launcher`, `ryoshot`, `welcome` (the first-run guided tour), and `widgets` (the desktop
-  clock and weather on the wallpaper), and `plugins` (the third-party shell
-  plugin runtime: `discover.sh` merges the catalogue with the user's
-  `plugins.json`, `shell.qml` is the desktop-widget host layer, and `kit/` is the
-  `Ryoku.PluginKit` QML module a plugin imports for the signature look; see
-  `docs/plugins.md`)),
+- `shell/` the desktop shell subsystem: `quickshell/` (the QML UI. Every surface
+  runs in-process in a single `qs -c shell` instance under `shell/`, drawn per
+  monitor from one scene (`shell.qml`): `modules/` is one directory per surface
+  (`bar` the four-edge frame bars with the bounded menu manager, rail status
+  popout cards (`bar/popouts/`), the Super+Escape control sidebar and pluggable
+  bar styles (`bar/barstyles/`, see `docs/barstyles.md`); then `launcher`,
+  `overview` (Super+Tab), `wallpaper`,
+  `visualizer`, `osd`, `notifications`, `capture`, `confirm`, and `desktop` the
+  wallpaper clock and enabled third-party widgets); `services/` holds the shared
+  singletons every surface reads, `components/` the shared UI primitives, and
+  `utils/` the shared JS. Beside it are `ryoshot`, `welcome` (the first-run
+  guided tour), and `plugins` (the third-party shell plugin runtime:
+  `discover.sh` merges the catalogue with the user's `plugins.json`, the widget
+  host carries desktop placements, and `kit/` is the `Ryoku.PluginKit` QML module
+  a plugin imports for the signature look; see `docs/plugins.md`)),
   `plugin/` (`Ryoku.Blobs`, the C++/QML SDF metaball module the frame renders
-  with; `build.sh` builds it, and it ships prebuilt), `wallust/` (palette from
-  the wallpaper), `qt6ct/` (the Qt icon theme, `qt6ct.conf`),
+  with; `build.sh` builds it, and it ships prebuilt), `matugen/` (palette
+  templates rendered on every wallpaper change), `qt6ct/` (the Qt icon theme, `qt6ct.conf`),
   `systemd/` (the user session target), `ipc/` (`ryoku-shell`, the Go shell
   daemon that supervises the Quickshell components, owns wallpaper/clipboard/
   lock and the GNOME keyring password prompt (it registers as the keyring system
@@ -60,7 +66,7 @@ truth for the live desktop.
   `docs/cli.md`.
 - `hub/` Ryoku Settings, the central control-center GUI (`Super + ,`): `backend/`
   (`ryoku-hub`, the Go data plane that reads the keybind legend from the live
-  Hyprland config, generates the `settings.lua` override from a JSON document, and
+  Hyprland config, generates the `settings.lua` overlay (in `user_edits`) from JSON, and
   persists hub state as TOML) and `quickshell/` (the native Qt6/QML app, a
   `FloatingWindow` with a grouped nav rail and global fuzzy search, with live
   editors for displays, appearance, lockscreen, animations, input, keybinds, window and layer
@@ -77,8 +83,10 @@ truth for the live desktop.
   weave). The Hub's `RashinPage.qml` is the control surface (enable, one-click
   Hermes setup, open dashboard); built by the shell's `deploy.sh`. See
   `docs/rashin.md` and `docs/rashin-terminal.md`.
-- `assets/` `brand/` the 力 logo and icons, and `wallpapers/` the shipped
-  wallpaper set (installs to `~/Pictures/Wallpapers`).
+- `assets/` `brand/` the 力 logo and icons, `wallpapers/` the shipped wallpaper
+  set (installs to `~/Pictures/Wallpapers`), and `ryodecors/` the decor art the
+  `Decor`/`Placard` components render (installs to `~/Pictures/ryodecors`, kept
+  current by `ryoku doctor`; bake more with `bin/art/ryodither`).
 
 ## `system/` the machine
 
@@ -108,8 +116,9 @@ System-level definition installed into the target.
   `preflight`, `disk`, `luks`, `filesystem`, `pacstrap`, `mirrors`, `chroot`,
   `deploy`, `network`, `drivers`, `bootloader`, `aur`, `snapshots`). It reads
   `system/packages/`, adds the `[ryoku]` package repository, and installs the
-  desktop onto the target. `alongside` dual-boots by creating a dedicated Ryoku
-  ESP + root in free space, never touching the Windows ESP.
+  desktop onto the target. `alongside` dual-boots by creating a 2 GiB XBOOTLDR
+  boot partition + root in free space and sharing Windows' ESP (Limine lands
+  beside Windows' loader), never touching `/EFI/Microsoft`.
 - `iso/` the archiso profile. `build.sh` bakes the repo payload into the image,
   prebuilds the Go binaries, and runs `mkarchiso` (reproducible for a fixed
   commit). `profiledef.sh`, `packages.x86_64` (live-only set), and `airootfs/`
@@ -164,8 +173,10 @@ raw.githubusercontent.com serves them with no release infrastructure.
 ## Tooling
 
 - `bin/` repo tooling: the release version helpers (`ryoku-release-version`,
-  `ryoku-release-bump`) and the CI/hook checks (`ryoku-dev-scan-slop`,
-  `ryoku-dev-audit-shell-binds`).
+  `ryoku-release-bump`), the CI/hook checks (`ryoku-dev-scan-slop`,
+  `ryoku-dev-audit-shell-binds`), and `art/` for art authoring (`ryodither` bakes
+  an image or gif into a 1-bit bone-on-transparent decor; `tiling-demos`
+  generates the Appearance tiling-layout preview loops).
 - `tests/` standalone CI check scripts (install chroot-safety, shell tool
   availability).
 - `.github/` the workflows and issue/PR templates; `.githooks/` the commit gates.

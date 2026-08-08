@@ -3,7 +3,7 @@
 set -euo pipefail
 
 palette_path() {
-  printf '%s/wallust/hypr-colors.lua\n' "${XDG_CACHE_HOME:-$HOME/.cache}"
+  printf '%s/ryoku/hypr-colors.lua\n' "${XDG_CACHE_HOME:-$HOME/.cache}"
 }
 
 normalize_hex() {
@@ -108,13 +108,13 @@ usage() {
   cat <<'USAGE'
 Usage: ryoku-leds [apply|color|status]
 
-apply   set OpenRGB devices to the current wallust accent color
-color   print the LED color chosen from the wallust palette
+apply   set OpenRGB devices to the current palette accent color
+color   print the LED color chosen from the palette
 status  print OpenRGB availability, palette path, and selected color
 
 Env:
-  RYOKU_LEDS_COLOR=RRGGBB       override wallust color
-  RYOKU_LEDS_PALETTE=/path      override wallust hypr-colors.lua
+  RYOKU_LEDS_COLOR=RRGGBB       override palette color
+  RYOKU_LEDS_PALETTE=/path      override hypr-colors.lua path
   RYOKU_LEDS_FALLBACK=RRGGBB    fallback color when no palette exists
   RYOKU_LEDS_MODE=Static        OpenRGB mode to set before color fallback
   RYOKU_LEDS_TIMEOUT=8s         bound OpenRGB device detection time

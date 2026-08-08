@@ -47,11 +47,10 @@ case "$cmd" in
     ;;
   focus)
     ws=$(target_ws "${2:?slot 1..$PER required}")
-    # pull the target to the focused monitor first (same as the old bind), so the
-    # keys drive whichever screen the mouse is on, then focus it. This is a
-    # lua-config Hyprland, so dispatch the hl.dsp.* lua form (a plain
-    # "dispatch workspace N" is parsed as invalid Lua and rejected).
-    hyprctl dispatch "hl.dsp.workspace.move({ workspace = $ws, monitor = \"current\" })" >/dev/null 2>&1 || true
+    # focusing a workspace already moves focus to the monitor that owns it, so
+    # a workspace on a secondary monitor stays put. This is a lua-config
+    # Hyprland, so dispatch the hl.dsp.* lua form (a plain "dispatch workspace
+    # N" is parsed as invalid Lua and rejected).
     hyprctl dispatch "hl.dsp.focus({ workspace = $ws })" >/dev/null
     ;;
   move)

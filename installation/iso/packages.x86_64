@@ -28,6 +28,11 @@ btrfs-progs
 dosfstools
 cryptsetup
 e2fsprogs
+# NTFS carve (alongside on a Windows disk): ntfsprogs provides ntfsresize/mkntfs
+# (the resize tool), ntfs-3g the FUSE driver + mount helper. Without these, an
+# NTFS shrink is impossible and the backend refuses the carve.
+ntfsprogs
+ntfs-3g
 efibootmgr
 limine
 # reflector re-ranks the package mirrors by measured speed before pacstrap, so a
@@ -51,6 +56,11 @@ cage
 foot
 xorg-xwayland
 ttf-jetbrains-mono-nerd
+# ryoku-cursors: the Bibata XCursor set the desktop is configured against, from
+# the [ryoku] repo (build.sh wires a local file:// mirror into the staged
+# pacman.conf). Gives the cage kiosk the real Ryoku pointer instead of the wlroots
+# fallback bitmap; the installer session exports XCURSOR_THEME to match.
+ryoku-cursors
 
 # Small CLI tools the TUI and backend shell out to.
 git

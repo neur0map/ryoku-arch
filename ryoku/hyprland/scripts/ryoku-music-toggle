@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# ryoku-music-toggle: the desktop music widget's corner button. The first press
+# launches the chosen music app and shows it; each later press flips it in and
+# out of a dedicated scratchpad (special:music) with a single, reliable click --
+# a dropdown-style minimise/restore, since the compositor has no real minimise.
+#
+#   ryoku-music-toggle "<launch command...>"
+#
+# The window is matched from the launch command (Spotify, the ryotunes YouTube
+# Music app-window, else the command's own binary name). Uses the Ryoku Lua
+# dispatch API (hl.dsp.*); this Hyprland has no plain-string dispatch syntax.
+set -uo pipefail
+
+cmd="${1:-ryotunes}"
+special="music"
+
+lc="$(printf '%s' "$cmd" | tr '[:upper:]' '[:lower:]')"
+case "$lc" in
+  *spotify*)
+    match="spotify" ;;
+  *ryotunes*|*music.youtube*|*youtube-music*)
+    match="chrome-music\\.youtube|youtube-music|ryotunes" ;;
+  *)
+    first="${cmd%% *}"; first="${first##*/}"; match="^${first}\$" ;;
+esac
+
+win_addr() {
+  hyprctl clients -j 2>/dev/null | jq -r --arg m "$match" \
+    '[.[] | select((.class|test($m;"i")) or (.initialClass|test($m;"i")))][0].address // empty' 2>/dev/null
+}
+win_ws() {
+  hyprctl clients -j 2>/dev/null | jq -r --arg a "$1" \
+    '[.[] | select(.address==$a)][0].workspace.name // empty' 2>/dev/null
+}
+toggle_special() { hyprctl dispatch "hl.dsp.workspace.toggle_special('$special')" >/dev/null 2>&1; }
+tuck()           { hyprctl dispatch "hl.dsp.window.move({ workspace = 'special:$special', window = 'address:$1', silent = true })" >/dev/null 2>&1; }
+
+addr="$(win_addr)"
+
+# not running: launch it, wait for its window, tuck it into the scratchpad, show.
+if [ -z "$addr" ]; then
+  setsid sh -c "$cmd" >/dev/null 2>&1 </dev/null &
+  for _ in $(seq 1 40); do
+    sleep 0.5
+    addr="$(win_addr)"
+    [ -n "$addr" ] && break
+  done
+  [ -z "$addr" ] && exit 0
+  tuck "$addr"
+  toggle_special
+  exit 0
+fi
+
+# running: a single click flips it. In the scratchpad -> show/hide it; anywhere
+# else -> tuck it away (so the next click is a clean scratchpad toggle).
+if [ "$(win_ws "$addr")" = "special:$special" ]; then
+  toggle_special
+else
+  tuck "$addr"
+fi

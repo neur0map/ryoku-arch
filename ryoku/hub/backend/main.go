@@ -29,6 +29,12 @@ func main() {
 		}
 		os.Stdout.Write(b)
 		fmt.Println()
+	case "apps":
+		if err := printApps(); err != nil {
+			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
+			os.Exit(1)
+		}
+		fmt.Println()
 	case "config":
 		if err := runConfig(args[1:]); err != nil {
 			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
@@ -36,11 +42,6 @@ func main() {
 		}
 	case "hypr":
 		if err := runHypr(args[1:]); err != nil {
-			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
-			os.Exit(1)
-		}
-	case "extras":
-		if err := runExtras(args[1:]); err != nil {
 			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
 			os.Exit(1)
 		}
@@ -66,6 +67,16 @@ func main() {
 		}
 	case "fastfetch":
 		if err := runFastfetch(args[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
+			os.Exit(1)
+		}
+	case "profile":
+		if err := runProfile(args[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
+			os.Exit(1)
+		}
+	case "matugen":
+		if err := runMatugenCmd(args[1:]); err != nil {
 			fmt.Fprintln(os.Stderr, "ryoku-hub:", err)
 			os.Exit(1)
 		}
@@ -109,15 +120,16 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  ryoku-hub hypr variants <layout>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub hypr save|preview <json>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub hypr restore")
-	fmt.Fprintln(os.Stderr, "  ryoku-hub extras catalog|cache")
-	fmt.Fprintln(os.Stderr, "  ryoku-hub extras installer <name>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub lock list")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub lock set <slug>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub gpu caps|mode")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub gpu tune caps|get")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub gpu tune set <gpu> <id> <value>")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub gpu tune reset [<gpu>]")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub voxtype get|ensure")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub voxtype set <json>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub voxtype download|rmmodel <key>")
-	fmt.Fprintln(os.Stderr, "  ryoku-hub rice list|capture|apply|restore|save|fork|delete|files|export|catalog|install|publish")
+	fmt.Fprintln(os.Stderr, "  ryoku-hub rice list|preflight|capture|apply|restore|save|fork|delete|import|publish|setwall|files|export")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub fastfetch get|preview <json>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub fastfetch save <json>")
 	fmt.Fprintln(os.Stderr, "  ryoku-hub fastfetch import-logo <path>")

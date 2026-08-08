@@ -1,0 +1,36 @@
+#!/bin/bash
+# ryoku-app: launch the user's chosen app for a role, or the Ryoku default.
+#
+# The choice lives in the Hub's store (~/.config/ryoku/hypr.json, "apps"); the
+# Default Apps page (Ryoku Settings) writes it. Reading it here means a swap takes
+# effect on the next launch with no reload. The fallbacks match the shipped binds,
+# so an unconfigured system behaves exactly as before.
+set -euo pipefail
+
+role="${1:-}"
+[ -n "$role" ] || { echo "usage: ryoku-app <role>" >&2; exit 2; }
+
+store="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/hypr.json"
+
+fallback() {
+	case "$1" in
+	browser)  echo "chromium" ;;
+	terminal) echo "kitty" ;;
+	editor)   echo "kitty -e nvim" ;;
+	files)    echo "nautilus" ;;
+	*)        echo "" ;;
+	esac
+}
+
+cmd=""
+if [ -r "$store" ] && command -v jq >/dev/null 2>&1; then
+	cmd="$(jq -r --arg r "$role" '.apps[$r] // empty' "$store" 2>/dev/null || true)"
+fi
+[ -n "$cmd" ] || cmd="$(fallback "$role")"
+
+if [ -z "$cmd" ]; then
+	notify-send "Ryoku" "No app set for \"$role\". Pick one in Settings > Default Apps." 2>/dev/null || true
+	exit 1
+fi
+
+exec sh -c "$cmd"

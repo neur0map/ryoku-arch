@@ -76,7 +76,7 @@ func TestGenLuaEmitsNewLeaves(t *testing.T) {
 func TestLoadOverridesOldStoreKeepsNewDefaults(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
-	old := `{"appearance":{"gapsIn":12,"gapsOut":18,"borderSize":2,"rounding":2,` +
+	old := `{"appearance":{"gapsIn":12,"gapsOut":18,"borderSize":2,"rounding":0,` +
 		`"activeOpacity":1,"inactiveOpacity":0.94,"blurEnabled":true,"blurSize":4,` +
 		`"blurPasses":1,"shadowEnabled":true,"shadowRange":45,"animations":true,` +
 		`"layout":"dwindle","activeBorder":"#e0563b","inactiveBorder":"#313a4d"},` +
@@ -110,6 +110,57 @@ func TestGenLuaBorderColours(t *testing.T) {
 	out := genLua(o, false)
 	if !strings.Contains(out, `["col.active_border"] = "rgb(ff6a3d)"`) {
 		t.Errorf("active border not in rgb() form:\n%s", out)
+	}
+}
+
+// A fixed named colour scheme (shell.json theme.theme) drives the window border
+// through decoration.lua's palette, so the generated config must omit the fixed
+// col.active_border even with follow-wallpaper off; the two dynamic variants
+// (Default, Wallpaper) with follow off keep the user's fixed border.
+func TestPaletteDrivenBorderOmitsNamedTheme(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	ryoku := filepath.Join(dir, "ryoku")
+	if err := os.MkdirAll(ryoku, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeState := func(follow bool, theme string) {
+		fw := "false"
+		if follow {
+			fw = "true"
+		}
+		if err := os.WriteFile(filepath.Join(ryoku, "theme.json"), []byte(`{"followWallpaper":`+fw+`}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(ryoku, "shell.json"), []byte(`{"theme":{"theme":"`+theme+`"}}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	o := defaultOverrides()
+	o.Appearance.ActiveBorder = "#ff6a3d"
+
+	// dynamic variant, follow off: the user's fixed border wins.
+	writeState(false, "Wallpaper")
+	if paletteDriven() {
+		t.Error("Wallpaper variant with follow off must not be palette driven")
+	}
+	if !strings.Contains(genLua(o, paletteDriven()), `["col.active_border"] = "rgb(ff6a3d)"`) {
+		t.Error("fixed border must be emitted for a dynamic variant with follow off")
+	}
+
+	// named theme, follow off: the palette drives the border, so it is omitted.
+	writeState(false, "Catppuccin Mocha")
+	if !paletteDriven() {
+		t.Error("a fixed named theme must be palette driven")
+	}
+	if strings.Contains(genLua(o, paletteDriven()), "col.active_border") {
+		t.Error("fixed border must be omitted for a named theme so the palette border wins")
+	}
+
+	// follow on always drives the border from the palette.
+	writeState(true, "Wallpaper")
+	if !paletteDriven() {
+		t.Error("follow wallpaper must be palette driven")
 	}
 }
 
@@ -245,7 +296,7 @@ func TestParseOverridesPartialKeepsDefaults(t *testing.T) {
 func TestLiveLuaIsFullAndParses(t *testing.T) {
 	lua := liveLua(defaultOverrides())
 	for _, want := range []string{
-		"gaps_in = 12", "rounding = 2", "rounding_power = 4.0", "active_opacity = 1.0",
+		"gaps_in = 12", "rounding = 0", "rounding_power = 4.0", "active_opacity = 1.0",
 		"dim_inactive = false", "vibrancy = 0.17", "render_power = 4",
 		"glow = { enabled = false", "resize_on_border = true", "snap = { enabled = false }",
 		"kb_layout = \"us\"", "follow_mouse = 2", "left_handed = false",
@@ -389,7 +440,7 @@ func TestGenAnimatedBorderFixed(t *testing.T) {
 	}
 }
 
-// genAnimatedBorder while colours follow the wallpaper reads the live wallust
+// genAnimatedBorder while colours follow the wallpaper reads the live palette
 // accents at load time, so the sweep re-themes on reload; a preview turning it
 // off stops the sweep and restores a solid border.
 func TestGenAnimatedBorderFollow(t *testing.T) {
@@ -397,7 +448,7 @@ func TestGenAnimatedBorderFollow(t *testing.T) {
 	o.Appearance.AnimatedBorder = true
 	got := genAnimatedBorder(o, true, false)
 	if !strings.Contains(got, "hypr-colors.lua") || !strings.Contains(got, "colors = {") {
-		t.Errorf("following animated border must read wallust accents into a gradient:\n%s", got)
+		t.Errorf("following animated border must read palette accents into a gradient:\n%s", got)
 	}
 	if !strings.Contains(got, `style = "loop"`) {
 		t.Errorf("following animated border must loop:\n%s", got)
@@ -574,6 +625,7 @@ func TestGenPluginsDefaultsAreEmpty(t *testing.T) {
 // can't abort settings.lua. The old hl.get_loaded_plugins guard (which does not
 // exist in the real hl API and broke the whole config) must never be emitted.
 func TestGenPluginsDynamicCursors(t *testing.T) {
+	t.Setenv("HOME", t.TempDir()) // hermetic: no checkout ~/.local plugin, so /usr/lib
 	o := defaultOverrides()
 	o.Plugins.DynamicCursors.Enabled = true
 	out := genLua(o, true)
@@ -616,28 +668,35 @@ func TestGenPluginsHyprbarsButtons(t *testing.T) {
 	}
 }
 
-// hyprfocus: the keys the plugin at the 0.55.4 pin actually registers (verified
-// live via hyprctl getoption) are mode / fade_opacity / bounce_strength /
-// slide_height, with no `enable` key (loading the .so enables it). A newer
-// upstream commit renamed these, but our package builds the 0.55.4-matched
-// commit, so these are the ones that must be emitted.
+// hyprfocus: the package tracks upstream's hyprpm pin for the running
+// Hyprland, and the 0.56 plugin registers enable / keyboard_focus_animation /
+// mouse_focus_animation / fade_opacity / shrink_percentage / slide_height
+// (verified against the built .so). The store keeps the stable mode/bounce
+// names; the emit maps bounce onto the plugin's shrink animation.
 func TestGenPluginsHyprfocusKeys(t *testing.T) {
+	t.Setenv("HOME", t.TempDir()) // hermetic: no checkout ~/.local plugin, so /usr/lib
 	o := defaultOverrides()
 	o.Plugins.Hyprfocus.Enabled = true
 	o.Plugins.Hyprfocus.Mode = "bounce"
 	out := genLua(o, true)
 	for _, want := range []string{
 		`hl.plugin.load("/usr/lib/hyprland/plugins/hyprfocus.so")`,
-		`mode = "bounce"`, `fade_opacity = 0.8`, `bounce_strength = 0.95`, `slide_height = 20.0`,
+		"enable = true",
+		`keyboard_focus_animation = "shrink"`, `mouse_focus_animation = "none"`,
+		`fade_opacity = 0.8`, `shrink_percentage = 0.95`, `slide_height = 20.0`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q:\n%s", want, out)
 		}
 	}
-	for _, not := range []string{"enable = true", "keyboard_focus_animation", "shrink_percentage"} {
+	for _, not := range []string{"mode =", "bounce_strength"} {
 		if strings.Contains(out, not) {
 			t.Errorf("stale hyprfocus key %q emitted:\n%s", not, out)
 		}
+	}
+	o.Plugins.Hyprfocus.Mode = "slide"
+	if out := genLua(o, true); !strings.Contains(out, `keyboard_focus_animation = "slide"`) {
+		t.Errorf("slide mode did not pass through:\n%s", out)
 	}
 }
 
@@ -647,7 +706,7 @@ func TestGenPluginsHyprglass(t *testing.T) {
 	o.Plugins.Hyprglass.Enabled = true
 	out := genLua(o, true)
 	for _, want := range []string{
-		`hl.config({ plugin = { hyprglass = { enabled = 1, default_preset = "clear", blur_strength = 2.0, glass_opacity = 1.0, tint_color = 0x8899aa22 } } })`,
+		`hl.config({ plugin = { hyprglass = { enabled = 1, default_preset = "clear", blur_strength = 2.0, glass_opacity = 1.0, tint_color = 0x8899aa22, brightness = 1.0, default_theme = "dark" } } })`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q:\n%s", want, out)
@@ -661,9 +720,32 @@ func TestGenPluginsImgborders(t *testing.T) {
 	o.Plugins.Imgborders.Enabled = true
 	o.Plugins.Imgborders.Image = "/home/x/b.png"
 	out := genLua(o, true)
-	want := `hl.config({ plugin = { imgborders = { enabled = true, image = "/home/x/b.png", sizes = "8,8,8,8", insets = "0,0,0,0", scale = 1.0, smooth = true } } })`
+	want := `hl.config({ plugin = { imgborders = { enabled = true, image = "/home/x/b.png", sizes = "8,8,8,8", insets = "0,0,0,0", scale = 1.0, smooth = true, blur = false } } })`
 	if !strings.Contains(out, want) {
 		t.Errorf("missing %q:\n%s", want, out)
+	}
+}
+
+// pluginSoPath prefers a checkout's ~/.local .so over the packaged /usr/lib one,
+// so `ryoku update` on a dev/tester box loads what deploy.sh just built.
+func TestGenPluginsPrefersUserPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	so := filepath.Join(home, ".local", "lib", "hyprland", "plugins", "dynamic-cursors.so")
+	if err := os.MkdirAll(filepath.Dir(so), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(so, []byte{0}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	o := defaultOverrides()
+	o.Plugins.DynamicCursors.Enabled = true
+	out := genLua(o, true)
+	if !strings.Contains(out, `hl.plugin.load("`+so+`")`) {
+		t.Errorf("expected user-path load %q:\n%s", so, out)
+	}
+	if strings.Contains(out, "/usr/lib/hyprland/plugins/dynamic-cursors.so") {
+		t.Errorf("must not fall back to /usr/lib when the user .so exists:\n%s", out)
 	}
 }
 
@@ -798,6 +880,165 @@ func TestGenLuaAppOverride(t *testing.T) {
 	for _, want := range []string{`class = "mpv"`, "no_blur = true", "opaque = true"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("app override not emitted through genLua (%q):\n%s", want, out)
+		}
+	}
+}
+
+// decoration extras (fullscreen / dim / blur / shadow) follow the same diff
+// rule: only a changed leaf lands, and the shadow colour uses the rgb() helper.
+func TestGenLuaDecorationExtras(t *testing.T) {
+	o := defaultOverrides()
+	o.Appearance.FullscreenOpacity = 0.9
+	o.Appearance.DimSpecial = 0.5
+	o.Appearance.DimAround = 0.6
+	o.Appearance.DimModal = false
+	o.Appearance.BorderPartOfWindow = false
+	o.Appearance.BlurContrast = 1.2
+	o.Appearance.BlurBrightness = 0.5
+	o.Appearance.BlurSpecial = true
+	o.Appearance.BlurPopups = true
+	o.Appearance.BlurIgnoreOpacity = false
+	o.Appearance.BlurNewOptimizations = false
+	o.Appearance.BlurVibrancyDarkness = 0.5
+	o.Appearance.ShadowSharp = true
+	o.Appearance.ShadowScale = 0.8
+	o.Appearance.ShadowColor = "#ffffff"
+	out := genLua(o, true)
+	for _, want := range []string{
+		"fullscreen_opacity = 0.9", "dim_special = 0.5", "dim_around = 0.6",
+		"dim_modal = false", "border_part_of_window = false",
+		"contrast = 1.2", "brightness = 0.5", "special = true", "popups = true",
+		"ignore_opacity = false", "new_optimizations = false", "vibrancy_darkness = 0.5",
+		"sharp = true", "scale = 0.8", `color = "rgb(ffffff)"`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q:\n%s", want, out)
+		}
+	}
+	// untouched leaves stay out of settings.lua.
+	for _, not := range []string{"dim_strength", "noise"} {
+		if strings.Contains(out, not) {
+			t.Errorf("unchanged %q was emitted:\n%s", not, out)
+		}
+	}
+}
+
+// general extras (border grab, resize corner, workspace gaps) diff-guard the
+// same way as the rest of the general block.
+func TestGenLuaGeneralExtras(t *testing.T) {
+	o := defaultOverrides()
+	o.Appearance.ExtendBorderGrab = 20
+	o.Appearance.HoverIconOnBorder = false
+	o.Appearance.NoFocusFallback = true
+	o.Appearance.ResizeCorner = 3
+	o.Appearance.GapsWorkspaces = 10
+	out := genLua(o, true)
+	for _, want := range []string{
+		"extend_border_grab_area = 20", "hover_icon_on_border = false",
+		"no_focus_fallback = true", "resize_corner = 3", "gaps_workspaces = 10",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "resize_on_border") {
+		t.Errorf("unchanged resize_on_border was emitted:\n%s", out)
+	}
+}
+
+// the dwindle layout knobs emit as their own diff-guarded `dwindle = {}` block,
+// with the friendly force-split label mapped to Hyprland's integer.
+func TestGenLuaDwindleSection(t *testing.T) {
+	o := defaultOverrides()
+	o.Dwindle.PreserveSplit = true
+	o.Dwindle.SmartSplit = true
+	o.Dwindle.SmartResizing = false
+	o.Dwindle.DefaultSplitRatio = 1.3
+	o.Dwindle.ForceSplit = "right/bottom"
+	o.Dwindle.UseActiveForSplits = false
+	out := genLua(o, true)
+	if !strings.Contains(out, "dwindle = {") {
+		t.Errorf("dwindle block missing:\n%s", out)
+	}
+	for _, want := range []string{
+		"preserve_split = true", "smart_split = true", "smart_resizing = false",
+		"default_split_ratio = 1.3", "force_split = 2", "use_active_for_splits = false",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q:\n%s", want, out)
+		}
+	}
+	// master untouched -> no master block.
+	if strings.Contains(out, "master = {") {
+		t.Errorf("unchanged master block emitted:\n%s", out)
+	}
+	// force-split label maps by index.
+	o.Dwindle.ForceSplit = "left/top"
+	if !strings.Contains(genLua(o, true), "force_split = 1") {
+		t.Errorf("force_split left/top should map to 1")
+	}
+	// all-default dwindle emits nothing.
+	if strings.Contains(genLua(defaultOverrides(), true), "dwindle = {") {
+		t.Errorf("default dwindle knobs must emit no block")
+	}
+}
+
+// the master layout knobs emit as their own `master = {}` block; the enum knobs
+// are Lua strings.
+func TestGenLuaMasterSection(t *testing.T) {
+	o := defaultOverrides()
+	o.Master.Mfact = 0.6
+	o.Master.NewStatus = "master"
+	o.Master.NewOnTop = true
+	o.Master.Orientation = "right"
+	o.Master.SmartResizing = false
+	out := genLua(o, true)
+	if !strings.Contains(out, "master = {") {
+		t.Errorf("master block missing:\n%s", out)
+	}
+	for _, want := range []string{
+		"mfact = 0.6", `new_status = "master"`, "new_on_top = true",
+		`orientation = "right"`, "smart_resizing = false",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "dwindle = {") {
+		t.Errorf("unchanged dwindle block emitted:\n%s", out)
+	}
+}
+
+// the plugin option gaps (imgborders blur, hyprglass brightness / default_theme)
+// pass through whenever their plugin is enabled.
+func TestGenPluginsOptionExtras(t *testing.T) {
+	o := defaultOverrides()
+	o.Plugins.Hyprglass.Enabled = true
+	o.Plugins.Hyprglass.Brightness = 1.5
+	o.Plugins.Hyprglass.Theme = "light"
+	o.Plugins.Imgborders.Enabled = true
+	o.Plugins.Imgborders.Blur = true
+	out := genLua(o, true)
+	for _, want := range []string{
+		"brightness = 1.5", `default_theme = "light"`, "blur = true",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q:\n%s", want, out)
+		}
+	}
+}
+
+// a saved store carrying the new top-level dwindle/master sections round-trips
+// through parseOverrides into the emitted config (the hub's save path).
+func TestParseOverridesDwindleMaster(t *testing.T) {
+	o, err := parseOverrides(`{"dwindle":{"forceSplit":"left/top","smartResizing":false},"master":{"orientation":"center","mfact":0.7}}`)
+	if err != nil {
+		t.Fatalf("parseOverrides: %v", err)
+	}
+	out := genLua(o, true)
+	for _, want := range []string{"force_split = 1", "smart_resizing = false", `orientation = "center"`, "mfact = 0.7"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q:\n%s", want, out)
 		}
 	}
 }

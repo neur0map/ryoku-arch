@@ -28,7 +28,8 @@ built from it; the live machine is only ever a deployment target.
 ## How the parts fit
 
 - **The shell** (`ryoku/shell/`) is the desktop UI. `quickshell/` is the QML
-  front end (the morphing `pill` bar, the `launcher`, and
+  front end (the `qsbar` top bar by default, with the built-in `sumi`
+  monochrome rail as its alternative, plus the `launcher` and
   `ryoshot` screenshot tool). `ipc/ryoku-shell` is a single Go daemon that is the
   control plane: it supervises the UI components, owns the wallpaper, clipboard,
   and lock, and answers one socket. Keybinds and the UI talk to it; it decides.
@@ -38,9 +39,11 @@ built from it; the live machine is only ever a deployment target.
   orchestrates pacman, yay, and snapper.
 - **Hyprland** (`ryoku/hyprland/`) is the compositor, configured in Lua, one
   concern per module. Its autostart brings up the shell and the hardware helpers.
-- **Theming** is wallpaper-driven: `wallust` regenerates the palette from the
-  current wallpaper, and the terminal and Hyprland colors follow it. Brand-fixed
-  elements (the 力 logo, a few accents) stay constant.
+- **Theming** is wallpaper-driven: `matugen` regenerates the palette from the
+  current wallpaper, and the terminal and Hyprland colors follow it. With *Theme
+  apps* on (the default), `matugen` fans that same palette into GTK / GUI apps
+  (Files, editors, other libadwaita/GTK apps) too; off, they stay stock. Brand-
+  fixed elements (the 力 logo, a few accents) stay constant.
 - **The system** (`system/`) defines the boot chain, the hardware policy
   (GPU/driver/display/power helper scripts), and the package sets.
 - **The installer** (`installation/`) is a Go TUI plus a shell backend that

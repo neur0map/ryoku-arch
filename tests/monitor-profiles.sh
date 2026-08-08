@@ -25,8 +25,8 @@ export RYOKU_MONITOR_VM=0
 # Two distinct displays, Dell on DP-1 and LG on DP-2.
 cat >"$tmp/two.json" <<'JSON'
 [
-  {"name":"DP-1","make":"Dell","model":"U2720Q","serial":"ABC123","width":3840,"height":2160,"refreshRate":60.0,"x":0,"y":0,"scale":1.5,"transform":0,"vrr":false,"disabled":false,"focused":true,"mirrorOf":"none","availableModes":["3840x2160@60.00Hz","2560x1440@60.00Hz"]},
-  {"name":"DP-2","make":"LG","model":"27GL850","serial":"XYZ789","width":2560,"height":1440,"refreshRate":144.0,"x":3840,"y":0,"scale":1.0,"transform":0,"vrr":true,"disabled":false,"focused":false,"mirrorOf":"none","availableModes":["2560x1440@144.00Hz"]}
+  {"name":"DP-1","make":"Dell","model":"U2720Q","serial":"ABC123","width":3840,"height":2160,"refreshRate":60.0,"x":0,"y":0,"scale":1.5,"transform":0,"vrr":false,"disabled":false,"focused":true,"mirrorOf":"none","availableModes":["3840x2160@60.00Hz","2560x1440@60.00Hz"],"colorManagementPreset":"hdr","sdrBrightness":1.30},
+  {"name":"DP-2","make":"LG","model":"27GL850","serial":"XYZ789","width":2560,"height":1440,"refreshRate":144.0,"x":3840,"y":0,"scale":1.0,"transform":0,"vrr":true,"disabled":false,"focused":false,"mirrorOf":"none","availableModes":["2560x1440@144.00Hz"],"colorManagementPreset":"wide"}
 ]
 JSON
 
@@ -39,8 +39,8 @@ cat >"$tmp/swapped.json" <<'JSON'
 JSON
 
 layout='[
-  {"id":"Dell|U2720Q|ABC123","output":"DP-1","mode":"3840x2160@60","position":"0x0","scale":1.5,"transform":0,"vrr":0,"mirror":"none","disabled":false},
-  {"id":"LG|27GL850|XYZ789","output":"DP-2","mode":"2560x1440@144","position":"2560x0","scale":1,"transform":1,"vrr":1,"mirror":"none","disabled":false}
+  {"id":"Dell|U2720Q|ABC123","output":"DP-1","mode":"3840x2160@60","position":"0x0","scale":1.5,"transform":0,"vrr":0,"mirror":"none","cm":"hdr","sdrbrightness":1.3,"disabled":false},
+  {"id":"LG|27GL850|XYZ789","output":"DP-2","mode":"2560x1440@144","position":"2560x0","scale":1,"transform":1,"vrr":1,"mirror":"none","cm":"wide","disabled":false}
 ]'
 
 run() { RYOKU_MONITOR_JSON="$tmp/two.json" RYOKU_MONITORS_CONF="$conf" RYOKU_MONITORS_DIR="$profiles" "$mon" "$@"; }
@@ -52,6 +52,9 @@ n="$(run list | jq 'length')"
 [[ $n == 2 ]] || fail "list returned $n monitors, want 2"
 run list | jq -e '.[0].id == "Dell|U2720Q|ABC123"' >/dev/null || fail "list missing hardware id"
 run list | jq -e '(.[0].modes | length) == 2' >/dev/null || fail "list missing available modes"
+run list | jq -e '.[0].cm == "hdr" and .[0].sdrbrightness == 1.3' >/dev/null \
+  || fail "list did not map the HDR colour mode and SDR brightness"
+run list | jq -e '.[1].cm == "wide"' >/dev/null || fail "list did not map the wide-gamut colour mode"
 
 # --- apply: explicit modes preserved (not highrr) -------------------------
 run apply "$layout" >/dev/null
@@ -60,8 +63,13 @@ has "$conf" 'mode = "2560x1440@144"' "apply did not keep the chosen LG mode"
 has "$conf" 'transform = 1' "apply dropped the transform"
 has "$conf" 'vrr = 1' "apply dropped vrr"
 has "$conf" 'position = "2560x0"' "apply dropped the position"
-has "$conf" 'output = "", mode = "highrr"' "apply omitted the hotplug catch-all"
+has "$conf" 'output = "", mode = "preferred"' "apply omitted the hotplug catch-all (preferred so a new link never errors)"
 grep -q 'highrr' <(grep 'DP-1' "$conf") && fail "DP-1 was written as highrr, not its explicit mode"
+# Colour management rides the explicit layout: cm is always written with its
+# implied bitdepth (srgb->8, wide/hdr->10), and sdrbrightness resets to 1
+# outside HDR so turning HDR off in the hub clears the elevated value live.
+has "$conf" 'cm = "hdr", bitdepth = 10, sdrbrightness = 1.3' "apply dropped the HDR colour mode / brightness"
+has "$conf" 'cm = "wide", bitdepth = 10, sdrbrightness = 1' "apply dropped the wide-gamut mode or left SDR brightness elevated"
 
 # --- save + profiles ------------------------------------------------------
 run save desk "$layout" >/dev/null
@@ -80,6 +88,40 @@ RYOKU_MONITOR_JSON="$tmp/swapped.json" RYOKU_MONITORS_CONF="$conf" RYOKU_MONITOR
 # LG 144Hz mode against DP-1.
 grep -q 'output = "DP-2", mode = "3840x2160@60"' "$conf" || fail "load did not remap Dell to its new connector DP-2"
 grep -q 'output = "DP-1", mode = "2560x1440@144"' "$conf" || fail "load did not remap LG to its new connector DP-1"
+
+# --- scale snapping on the GUI paths: an invalid scale (stale draft, old or
+# hand-edited profile) must never reach Hyprland or disk -- the compositor
+# rejects it with the "Invalid scale" overlay on every login and substitutes
+# its own. 1.5 is invalid for 1280x720 (1280/1.5 = 853.33); nearest valid: 1.6.
+cat >"$tmp/tv.json" <<'JSON'
+[{"name":"HDMI-A-1","make":"Acme","model":"TV720","serial":"T1","width":1280,"height":720,
+  "physicalWidth":700,"physicalHeight":390,"refreshRate":60.0,"x":0,"y":0,"scale":1.0,
+  "transform":0,"vrr":false,"disabled":false,"focused":true,"mirrorOf":"none",
+  "availableModes":["1280x720@60.00Hz","1366x768@60.00Hz"]}]
+JSON
+tvlayout='[{"id":"Acme|TV720|T1","output":"HDMI-A-1","mode":"1280x720@60","position":"0x0","scale":1.5,"transform":0,"vrr":0,"mirror":"none","disabled":false}]'
+runT() { RYOKU_MONITOR_JSON="$tmp/tv.json" RYOKU_MONITORS_CONF="$conf" \
+  RYOKU_MONITORS_DIR="$profiles" RYOKU_MONITORS_APPLIED="$tmp/tv-applied.json" "$mon" "$@"; }
+runT apply "$tvlayout" >/dev/null
+has "$conf" 'scale = 1.6' "apply did not snap the invalid 720p scale 1.5 to 1.6"
+grep -qF 'scale = 1.5' "$conf" && fail "apply persisted the invalid scale 1.5"
+# A layout with no colour mode is plain sRGB at 8-bit with SDR brightness reset,
+# so switching a display back from HDR fully clears the 10-bit / bright state.
+has "$conf" 'cm = "srgb", bitdepth = 8, sdrbrightness = 1' "apply did not write the sRGB reset (8-bit, SDR brightness 1)"
+jq -e '.monitors[0].scale == 1.6' "$tmp/tv-applied.json" >/dev/null \
+  || fail "the applied layout recorded the invalid scale instead of the snapped one"
+runT save tv "$tvlayout" >/dev/null
+jq -e '.monitors[0].scale == 1.6' "$profiles/tv.json" >/dev/null \
+  || fail "save persisted the invalid scale into the profile"
+
+# --- list: the per-resolution ladders the hub's scale stepper walks. Only
+# Hyprland-valid scales (1/120 multiples dividing both dims to whole pixels),
+# and never below a 640x360 logical desktop: 720p tops out at 2x, and the odd
+# 1366x768 panel has exactly four steps.
+runT list | jq -e '.[0].scaleLadders["1280x720"] == [0.5,0.5333,0.625,0.6667,0.8,0.8333,1,1.0667,1.25,1.3333,1.6,1.6667,2]' >/dev/null \
+  || fail "wrong 1280x720 scale ladder: $(runT list | jq -c '.[0].scaleLadders["1280x720"]')"
+runT list | jq -e '.[0].scaleLadders["1366x768"] == [0.5,0.6667,1,2]' >/dev/null \
+  || fail "wrong 1366x768 scale ladder: $(runT list | jq -c '.[0].scaleLadders["1366x768"]')"
 
 # --- autoscale DPI snapping: the wanted scale must be Hyprland-valid for the
 # panel (a 1/120 multiple dividing both dims to whole pixels), never the raw DPI
@@ -147,7 +189,7 @@ jq -e '.monitors[0].scale == 1' "$appliedfile" >/dev/null || fail "applied layou
 
 # ...and a plain login autoscale recalls it (scale 1.0), not the live/DPI scale (2.5).
 runA autoscale >/dev/null
-eDP | grep -qE 'scale = 1(\.0)? ' || fail "autoscale did not recall the applied scale (got: $(eDP))"
+eDP | grep -qE 'scale = 1(\.0)?[, ]' || fail "autoscale did not recall the applied scale (got: $(eDP))"
 eDP | grep -q 'scale = 2.5' && fail "autoscale used the live scale, not the applied layout"
 
 # A forced DPI pass clears the override so it stops winning at login.
@@ -192,5 +234,24 @@ chk "$tmp/stuck.json"  "$tmp/none.lua" drift "settle missed an explicit 1080p pi
 sc 'hl.monitor({ output = "", mode = "highrr", position = "auto", scale = 1 })'
 printf '%s\n' 'hl.monitor({ output = "DP-1", mode = "800x600@60" })' >"$tmp/pin.lua"
 chk "$tmp/stuck.json"  "$tmp/pin.lua"  ok    "settle touched a monitors_user.lua-pinned output"
+
+# --- hotplug: a display already tuned in Ryoku Settings keeps its scale when a
+# NEW monitor is plugged in; only the new one is DPI-scaled (the "connecting a
+# monitor resets my other display" fix). eDP-1 is in the applied layout, DP-5 is
+# new; both sit at 1x but bucket to 1.6, so without the skip BOTH would rescale.
+cat >"$tmp/hotplug.json" <<'JSON'
+[
+  {"name":"eDP-1","make":"Acme","model":"PanelA","serial":"SA","width":2560,"height":1600,"refreshRate":60.0,"physicalWidth":301,"x":0,"y":0,"scale":1.0,"transform":0,"vrr":false,"disabled":false,"focused":true,"mirrorOf":"none","availableModes":["2560x1600@60.00Hz"]},
+  {"name":"DP-5","make":"Ext","model":"Mon","serial":"SE","width":2560,"height":1600,"refreshRate":60.0,"physicalWidth":301,"x":2560,"y":0,"scale":1.0,"transform":0,"vrr":false,"disabled":false,"focused":false,"mirrorOf":"none","availableModes":["2560x1600@60.00Hz"]}
+]
+JSON
+hpconf="$tmp/hotplug.lua"
+hpapplied="$tmp/hotplug-applied.json"
+echo '{"monitors":[{"id":"Acme|PanelA|SA","output":"eDP-1","mode":"2560x1600@60","position":"0x0","scale":1.0}]}' >"$hpapplied"
+hpout="$(RYOKU_MONITOR_JSON="$tmp/hotplug.json" RYOKU_MONITORS_CONF="$hpconf" \
+  RYOKU_MONITORS_DIR="$tmp/none-hp" RYOKU_MONITORS_APPLIED="$hpapplied" RYOKU_MONITOR_VM=0 "$mon" autoscale 2>&1)"
+grep -q 'DP-5 -> scale' <<<"$hpout" || fail "hotplug autoscale did not DPI-scale the new display DP-5: $hpout"
+grep -q 'eDP-1 -> scale' <<<"$hpout" && fail "hotplug autoscale reset the already-tuned eDP-1 (should preserve it): $hpout"
+has "$hpconf" 'output = "", mode = "preferred"' "autoscale wrote a highrr catch-all (a hotplugged link errors on highrr; want preferred)"
 
 echo "monitor-profiles: all checks passed"

@@ -2,7 +2,90 @@
 
 ## Unreleased
 
+### Changed
+- **Super+T opens the Stash Features sidebar.** The floating Features page (the
+  Stash board, with room for more panes) now has a keybind, growing from the
+  right edge (`ryoku-shell menu stash`); Super+Shift+T (terminal) is unchanged
+  (`hyprland/modules/binds.lua`).
+- **Administrator passwords are asked for on a Ryoku island.** The shell daemon
+  now registers as the PolicyKit1 authentication agent, so a privileged action
+  prompts on the same island the keyring prompt uses instead of the stock Qt
+  agent's grey dialog, and `hyprpolkitagent` is no longer started
+  (`hyprland/modules/env.lua`, `hyprland/modules/autostart.lua`).
+
+### Changed
+- **Super+W opens the wallpaper + theme menu bottom-centre; Super+C is freed.**
+  The keybind now grows the frame's wallpaper menu from the bottom-centre edge
+  (`ryoku-shell menu wallpaper`) instead of the old bottom-left menu, and the
+  former Super+C binding is removed (`hyprland/modules/binds.lua`).
+- **The desktop shell now has one Atoll bar and one bar-owned popup.** The
+  ilyamiro and Ryoku Atoll looks remain, with their weather, media, connectivity,
+  volume, battery and notification readouts left visible but inert. Power still
+  opens from `Super+Escape` or the Atoll button; the old renderers, Washi and
+  Atoll popup sets, sidebar entry paths, and their commands and settings are
+  removed. Both sidebar bodies and their Stash/System logic remain mounted for
+  the next UI, while the app launcher and frame stay in place. Ryoku Settings
+  exposes only the live Atoll contract, and `ryoku doctor` prunes retired
+  `shell.json` keys without touching preserved sidebar state.
+
+### Fixed
+- **Screen recording no longer leaves the desktop black or colour-inverted.**
+  On GPUs whose DRM buffer modifiers Hyprland's screencopy path mishandles, the
+  output was mis-restored when a capture ended, so after any capture (OBS,
+  gpu-screen-recorder, hyprpicker, a screenshot) the whole screen could go black
+  then negative until a reconfigure (Hyprland #11315, #8134). `AQ_NO_MODIFIERS=1`
+  in the aquamarine backend sidesteps it; effective on the next login, and safe
+  to drop once the upstream screencopy fix ships (`hyprland/modules/env.lua`).
+- **The screen's colours are restored after a recording.** gpu-screen-recorder's
+  KMS capture leaves Hyprland's colour management in CM space, washing the whole
+  desktop out until the output is reconfigured (Hyprland #11284, #9286). Stopping
+  a recording now waits for the recorder to release the capture, then reloads
+  Hyprland to reset the screen (`hyprland/scripts/ryoku-cmd-screenrecord`).
+- **Steam Big Picture and launched games render native and stay awake.** Steam is
+  an XWayland app, so Big Picture and the client (class `steam`), launched games
+  (`steam_app_*`) and `gamescope` inherited the desktop blur and shadow (per-frame
+  GPU cost and a floating-card look) and the 0.94 inactive opacity, which turned a
+  game translucent the moment focus left it; `hypridle` also had no fullscreen
+  exception, so controller-only play dimmed at 5 min and locked at 10. A window
+  rule now strips blur and shadow, forces them opaque, and inhibits idle while
+  fullscreen (`hyprland/modules/window_rules.lua`).
+- **Multi-monitor: switching to a workspace on another monitor no longer drags
+  its windows to the focused monitor.** `scripts/ryoku-workspace` dropped the
+  `workspace.move({ monitor = "current" })` that pulled the target workspace onto
+  the active monitor before focusing it; it now just focuses the workspace, which
+  already moves focus to the monitor that owns it (single-monitor unaffected).
+- **`hyprpolkitagent.service` no longer fails out of the box.** `modules/autostart`
+  imports `WAYLAND_DISPLAY` (and the session env) into the systemd user manager
+  with `dbus-update-activation-environment --systemd` before starting the session,
+  so hyprpolkitagent's `ConditionEnvironment=WAYLAND_DISPLAY` is satisfied, and
+  `shell/systemd/user/hyprland-session.target` now Wants/After
+  `graphical-session.target` so it is actually activated.
+- **`ui/Seg` no longer clips long translated option labels.** Each segment sizes
+  to its own text and the group wraps to a second line when its slot is narrow
+  (Portuguese `Padrão|Plano|Adaptativo`, `arredondado|plano`); short sets unchanged.
+
 ### Added
+- **The FN touchpad-lock key now toggles the touchpad.** New
+  `scripts/ryoku-cmd-touchpad`, bound to `XF86TouchpadToggle`/`On`/`Off` in
+  `modules/binds`, enables or disables every touchpad through `hyprctl eval`
+  (`hl.device{ enabled }`, since the Lua config parser rejects the old
+  `hyprctl keyword` device path), so the one hardware key that did nothing now
+  works like the volume and brightness keys. The Ryoku Settings Keybinds legend
+  reads the new binds live.
+- **Brightness keys work on laptops AND desktop monitors.** New
+  `scripts/ryoku-cmd-brightness`, bound to `XF86MonBrightnessUp`/`Down` in
+  `modules/binds`, drives the laptop backlight through `brightnessctl` and every
+  external monitor through `ddcutil` (DDC/CI) at once, so brightness is not
+  laptop-only. `modules/autostart` also seeds the AI-translation key file
+  (`ryoku-i18n ensure`).
+- `hyprland` + `system/hardware/power`: **clamshell mode -- close the lid without
+  sleeping when docked.** A new `modules/lid.lua` binds the laptop lid switch
+  (`bindl switch:Lid Switch`) to `ryoku-clamshell lid`, which blanks the internal
+  panel on close when an external display is attached and restores the layout on
+  open; autostart launches the `ryoku-clamshell` daemon that keeps the machine
+  awake on lid close while on AC power with an external display (macOS-style: both
+  are required, else it suspends). The suspend policy and the logind drop-in live
+  in `system/hardware/power/`.
 - `hyprland` + `shell`: **`Super+Alt+D` opens the right (System) sidebar**, the
   mirror of `Super+D` for the left (Features) sidebar. The bind runs
   `ryoku-shell system`, a new IPC verb that toggles the System control centre;

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"reflect"
 	"ryoku-cli/internal/sys"
 	"strings"
 	"testing"
@@ -176,6 +178,86 @@ func TestReconcileShellDaemonOutsideSession(t *testing.T) {
 	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "")
 	if r := reconcileShellDaemon(true); r.status != recOK {
 		t.Fatalf("outside a Hyprland session the daemon check must be ok, got %q: %s", r.status.label(), r.detail)
+	}
+}
+
+func TestDaemonIsStale(t *testing.T) {
+	cases := []struct {
+		name      string
+		live, sig string
+		ok        bool
+		want      bool
+	}{
+		{"bound to a dead instance", "live", "dead", true, true},
+		{"bound to the live instance", "live", "live", true, false},
+		{"signature unavailable (old daemon)", "live", "", false, false},
+	}
+	for _, c := range cases {
+		if got := daemonIsStale(c.live, c.sig, c.ok); got != c.want {
+			t.Errorf("%s: daemonIsStale(%q, %q, %v) = %v, want %v", c.name, c.live, c.sig, c.ok, got, c.want)
+		}
+	}
+}
+
+func TestDaemonBinaryReplaced(t *testing.T) {
+	cases := []struct {
+		name, cmdline, exe string
+		want               bool
+	}{
+		{"packaged daemon on deleted binary", "/usr/bin/ryoku-shell\x00daemon\x00", "/usr/bin/ryoku-shell (deleted)", true},
+		{"bare name on deleted binary", "ryoku-shell\x00daemon\x00", "/home/u/.local/bin/ryoku-shell (deleted)", true},
+		{"daemon on live binary", "/usr/bin/ryoku-shell\x00daemon\x00", "/usr/bin/ryoku-shell", false},
+		{"other subcommand", "/usr/bin/ryoku-shell\x00quit\x00", "/usr/bin/ryoku-shell (deleted)", false},
+		{"other binary", "/usr/bin/other-shell\x00daemon\x00", "/usr/bin/other-shell (deleted)", false},
+		{"doctor's own grep-alike shell", "bash\x00-c\x00ryoku-shell daemon\x00", "/usr/bin/bash", false},
+	}
+	for _, c := range cases {
+		if got := daemonBinaryReplaced(c.cmdline, c.exe); got != c.want {
+			t.Errorf("%s: daemonBinaryReplaced = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+// A reachable daemon pinned to a previous Hyprland instance must be flagged for a
+// restart, not passed as healthy -- the frozen-workspaces / dead-power bug.
+func TestReconcileShellDaemonStale(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_RUNTIME_DIR", dir)
+	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "live-instance")
+
+	// a fake ryoku-shell on PATH so the reconciler clears its install check;
+	// check-only mode never executes it (it only detects and reports).
+	bin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bin, "ryoku-shell"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	ln, err := net.Listen("unix", filepath.Join(dir, "ryoku-shell.sock"))
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			b := make([]byte, 64)
+			n, _ := c.Read(b)
+			switch strings.TrimSpace(string(b[:n])) {
+			case "ping":
+				fmt.Fprintln(c, "ok")
+			case "signature":
+				fmt.Fprintln(c, "stale-instance") // a different instance than live
+			}
+			c.Close()
+		}
+	}()
+
+	if r := reconcileShellDaemon(true); r.status != recWouldFix { // check-only: detect, don't restart
+		t.Fatalf("a reachable-but-stale daemon must be flagged (todo), got %q: %s", r.status.label(), r.detail)
 	}
 }
 
@@ -457,6 +539,94 @@ func TestReconcileCursorThemeNotDesktop(t *testing.T) {
 	t.Setenv("PATH", t.TempDir()) // no Hyprland on PATH
 	if r := reconcileCursorTheme(true); r.status != recOK {
 		t.Fatalf("off a Hyprland desktop the cursor check must be ok, got %q: %s", r.status.label(), r.detail)
+	}
+}
+
+func TestConfiguredCursor(t *testing.T) {
+	if th, sz := configuredCursor(nil); th != defaultCursorTheme || sz != 24 {
+		t.Fatalf("no store: got %q/%d, want %s/24", th, sz, defaultCursorTheme)
+	}
+	if th, sz := configuredCursor([]byte(`{"cursor":{"theme":"phinger-cursors","size":32}}`)); th != "phinger-cursors" || sz != 32 {
+		t.Fatalf("override: got %q/%d, want phinger-cursors/32", th, sz)
+	}
+	if th, sz := configuredCursor([]byte(`not json`)); th != defaultCursorTheme || sz != 24 {
+		t.Fatalf("garbage store must fall back to the default: got %q/%d", th, sz)
+	}
+}
+
+func TestCursorThemeInstalled(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "Real-Theme", "cursors"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// a theme dir with no cursors/ subdir is an index-only stub, not usable.
+	if err := os.MkdirAll(filepath.Join(root, "Stub-Theme"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	dirs := []string{root}
+	if !cursorThemeInstalled("Real-Theme", dirs) {
+		t.Error("Real-Theme with a cursors/ dir must count as installed")
+	}
+	if cursorThemeInstalled("Stub-Theme", dirs) {
+		t.Error("a theme with no cursors/ dir must not count as installed")
+	}
+	if cursorThemeInstalled("", dirs) || cursorThemeInstalled("Absent", dirs) {
+		t.Error("empty or absent theme must not count as installed")
+	}
+}
+
+func TestResetCursorTheme(t *testing.T) {
+	out, err := resetCursorTheme([]byte(`{"cursor":{"theme":"phinger-cursors","size":32},"input":{"sensitivity":0.2}}`), defaultCursorTheme)
+	if err != nil {
+		t.Fatal(err)
+	}
+	th, sz := configuredCursor(out)
+	if th != defaultCursorTheme || sz != 32 {
+		t.Fatalf("reset kept theme %q size %d, want %s/32 (size preserved)", th, sz, defaultCursorTheme)
+	}
+	if !strings.Contains(string(out), "sensitivity") {
+		t.Error("reset dropped an unrelated key")
+	}
+}
+
+// the converge path: a Hub-picked theme that is not on disk resets to the
+// package-guaranteed default, then a re-run is a no-op.
+func TestReconcileCursorThemeConverge(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("PATH", t.TempDir()) // no hyprctl; the live setcursor no-ops
+	if err := os.MkdirAll(filepath.Join(home, ".config", "hypr"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// the default is present in a per-user icon dir (independent of /usr/share).
+	if err := os.MkdirAll(filepath.Join(home, ".local", "share", "icons", defaultCursorTheme, "cursors"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	store := filepath.Join(home, ".config", "ryoku", "hypr.json")
+	if err := os.MkdirAll(filepath.Dir(store), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(store, []byte(`{"cursor":{"theme":"No-Such-Cursor-Theme","size":28}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if r := reconcileCursorTheme(true); r.status != recWouldFix {
+		t.Fatalf("check-only on a missing theme: got %s, want todo", r.status.label())
+	}
+	r := reconcileCursorTheme(false)
+	if r.status != recFixed {
+		t.Fatalf("apply on a missing theme: got %s (%s), want fixed", r.status.label(), r.detail)
+	}
+	// the detail must name both sides so the user understands the reset.
+	if !strings.Contains(r.detail, "No-Such-Cursor-Theme") || !strings.Contains(r.detail, defaultCursorTheme) {
+		t.Errorf("fixed detail must name the missing theme and the default: %q", r.detail)
+	}
+	raw, _ := os.ReadFile(store)
+	if th, sz := configuredCursor(raw); th != defaultCursorTheme || sz != 28 {
+		t.Fatalf("after reset the store has %q/%d, want %s/28 (size kept)", th, sz, defaultCursorTheme)
+	}
+	if r := reconcileCursorTheme(false); r.status != recOK {
+		t.Fatalf("idempotent re-run: got %s (%s), want ok", r.status.label(), r.detail)
 	}
 }
 
@@ -1000,14 +1170,11 @@ func TestHyprFollowMouseNotDefault(t *testing.T) {
 	}
 }
 
-// migrateShellConfig: pill-era files lose the island knobs and get the bar
-// back; out-of-range geometry clamps; a current-schema file is left alone.
 func TestMigrateShellConfig(t *testing.T) {
 	legacy := []byte(`{
-		"islandStyle": "floating", "islandWidth": 109, "islandAutohide": true,
-		"barEnabled": false, "barHeight": 26,
-		"frameBorder": 59, "fontScale": 1.3
-	}`)
+        "barEnabled": false, "barPosition": "bottom", "barHeight": 26, "atollVariant": "ryoku",
+        "sidebarLeftPanes": ["stash"], "sidebarRightPanes": ["weather", "calendar", "media"], "sidebarWidth": 360
+    }`)
 	out, changes, err := migrateShellConfig(legacy)
 	if err != nil || len(changes) == 0 {
 		t.Fatalf("legacy file should migrate: changes=%v err=%v", changes, err)
@@ -1016,41 +1183,216 @@ func TestMigrateShellConfig(t *testing.T) {
 	if err := json.Unmarshal(out, &cfg); err != nil {
 		t.Fatalf("migrated JSON does not parse: %v", err)
 	}
-	for _, k := range legacyIslandKeys {
-		if _, ok := cfg[k]; ok {
-			t.Errorf("retired key %s survived the migration", k)
+	frameBars, ok := cfg["frameBars"].(map[string]any)
+	if !ok {
+		t.Fatal("legacy settings must seed frameBars")
+	}
+	rails := frameBars["rails"].(map[string]any)
+	if top := rails["top"].(map[string]any); top["enabled"].(bool) {
+		t.Error("legacy settings must keep the empty top reference rail disabled")
+	}
+	if left := rails["left"].(map[string]any); !left["enabled"].(bool) {
+		t.Error("legacy settings must seed the left reference rail")
+	}
+	surfaces := frameBars["surfaces"].(map[string]any)
+	stash := surfaces["stash"].(map[string]any)
+	if stash["anchor"] != "right" {
+		t.Errorf("stash anchor was not normalized: %v", stash["anchor"])
+	}
+	if stash["minWidth"].(float64) != 360 {
+		t.Errorf("stash width was not preserved: %v", stash["minWidth"])
+	}
+	if got := stash["panes"]; !reflect.DeepEqual(got, []any{"stash"}) {
+		t.Errorf("left sidebar panes were not preserved: %v", got)
+	}
+	if _, present := surfaces["system"]; present {
+		t.Error("retired system sidebar was recreated")
+	}
+	for _, key := range []string{"sidebarLeftPanes", "sidebarRightPanes", "sidebarWidth"} {
+		if _, ok := cfg[key]; ok {
+			t.Errorf("sidebar-only key %s survived migration", key)
 		}
 	}
-	if on, _ := cfg["barEnabled"].(bool); !on {
-		t.Error("legacy barEnabled:false must flip on (the island face is gone)")
+	for _, key := range retiredShellKeys {
+		if _, ok := cfg[key]; ok {
+			t.Errorf("retired key %s survived migration", key)
+		}
 	}
-	if pos, _ := cfg["barPosition"].(string); pos != "top" {
-		t.Errorf("missing barPosition should seed to top, got %q", pos)
-	}
-	if v, _ := cfg["barHeight"].(float64); v != 26 {
-		t.Errorf("in-range barHeight must be untouched, got %g", v)
-	}
-
-	clamped := []byte(`{"barPosition": "top", "frameBorder": 900, "barHeight": 4}`)
-	out, changes, err = migrateShellConfig(clamped)
-	if err != nil || len(changes) != 2 {
-		t.Fatalf("out-of-range file should clamp twice: changes=%v err=%v", changes, err)
-	}
-	_ = json.Unmarshal(out, &cfg)
-	if v, _ := cfg["frameBorder"].(float64); v != 120 {
-		t.Errorf("frameBorder 900 should clamp to 120, got %g", v)
-	}
-	if v, _ := cfg["barHeight"].(float64); v != 16 {
-		t.Errorf("barHeight 4 should clamp to 16, got %g", v)
+	out, changes, err = migrateShellConfig(out)
+	if err != nil || out != nil || changes != nil {
+		t.Fatalf("legacy migration must be idempotent: out=%s changes=%v err=%v", out, changes, err)
 	}
 
-	modern := []byte(`{"barPosition": "bottom", "barEnabled": false, "barHeight": 30}`)
-	if out, changes, err := migrateShellConfig(modern); out != nil || changes != nil || err != nil {
-		t.Fatalf("current-schema file must pass through untouched: out=%s changes=%v err=%v", out, changes, err)
+	malformed := []byte(`{
+        "frameBars": {
+            "style": "bad",
+            "rails": {
+                "top": { "size": 2, "start": ["tray", "tray", "dock", "unknown"] },
+                "left": { "size": 999, "top": ["clock", "clock", "unknown"] }
+            },
+            "menus": { "quick-settings": { "anchor": "wrong", "modules": ["media", "future-module", "media"] } },
+            "surfaces": { "stash": { "anchor": "wrong" } }
+        }
+    }`)
+	out, changes, err = migrateShellConfig(malformed)
+	if err != nil || len(changes) == 0 {
+		t.Fatalf("malformed frameBars should normalize: changes=%v err=%v", changes, err)
+	}
+	if err := json.Unmarshal(out, &cfg); err != nil {
+		t.Fatalf("normalized JSON does not parse: %v", err)
+	}
+	frameBars = cfg["frameBars"].(map[string]any)
+	rails = frameBars["rails"].(map[string]any)
+	top := rails["top"].(map[string]any)
+	left := rails["left"].(map[string]any)
+	if top["size"].(float64) != 16 || left["size"].(float64) != 112 {
+		t.Errorf("rail sizes were not clamped: top=%v left=%v", top["size"], left["size"])
+	}
+	if got := top["start"]; !reflect.DeepEqual(got, []any{"tray"}) {
+		t.Errorf("horizontal ids were not normalized: %v", got)
+	}
+	if got := left["top"]; !reflect.DeepEqual(got, []any{"clock"}) {
+		t.Errorf("vertical ids were not normalized: %v", got)
+	}
+	menus := frameBars["menus"].(map[string]any)
+	if menus["quick-settings"].(map[string]any)["anchor"] != "left" {
+		t.Errorf("menu anchor was not normalized: %v", menus)
+	}
+	surfaces = frameBars["surfaces"].(map[string]any)
+	if surfaces["stash"].(map[string]any)["anchor"] != "right" {
+		t.Errorf("surface anchor was not normalized: %v", surfaces)
+	}
+	if got := menus["quick-settings"].(map[string]any)["modules"]; !reflect.DeepEqual(got, []any{"media", "future-module"}) {
+		t.Errorf("quick-settings module configuration was not preserved: %v", got)
 	}
 
+	out, changes, err = migrateShellConfig(out)
+	if err != nil || out != nil || changes != nil {
+		t.Fatalf("normalized frameBars must be idempotent: out=%s changes=%v err=%v", out, changes, err)
+	}
 	if _, _, err := migrateShellConfig([]byte("not json")); err == nil {
 		t.Fatal("garbage must error, not silently rewrite")
+	}
+}
+
+// A store carrying the pre-parity menu shape (the retired `launcher` menu id and
+// a stale quick-settings widget list) converges: the launcher key is dropped and
+// the quick-settings stack resolves to its fixed widget, so the shell re-seeds
+// the reference menus from defaults on the next read.
+func TestMigrateShellConfigConvergesMenus(t *testing.T) {
+	before := []byte(`{
+        "frameBars": {
+            "style": "slate-frame",
+            "menus": {
+                "launcher": { "anchor": "left", "minWidth": 420, "expansion": "always", "widgets": ["launcher"] },
+                "quick-settings": { "anchor": "left", "minWidth": 410, "expansion": "always", "widgets": ["clock", "network", "audio-output"] },
+                "clock": { "anchor": "top", "minWidth": 280, "expansion": "never", "widgets": ["clock"] }
+            }
+        }
+    }`)
+	out, changes, err := migrateShellConfig(before)
+	if err != nil || len(changes) == 0 {
+		t.Fatalf("pre-parity menus should converge: changes=%v err=%v", changes, err)
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal(out, &cfg); err != nil {
+		t.Fatalf("converged JSON does not parse: %v", err)
+	}
+	menus := cfg["frameBars"].(map[string]any)["menus"].(map[string]any)
+	if _, ok := menus["launcher"]; ok {
+		t.Errorf("retired launcher menu id survived migration: %v", menus)
+	}
+	qs, ok := menus["quick-settings"].(map[string]any)
+	if !ok {
+		t.Fatalf("quick-settings menu missing after convergence: %v", menus)
+	}
+	if got := qs["widgets"]; !reflect.DeepEqual(got, []any{"quick-settings"}) {
+		t.Errorf("quick-settings widgets did not converge to the fixed stack: %v", got)
+	}
+	if out2, changes2, err := migrateShellConfig(out); err != nil || out2 != nil || changes2 != nil {
+		t.Fatalf("menu convergence must be idempotent: out=%s changes=%v err=%v", out2, changes2, err)
+	}
+}
+
+// A box upgrading from any Atoll-era release carries the whole retired set, not
+// just the four geometry keys. Every one of them must go, and the settings the
+// shell still reads must survive untouched.
+func TestMigrateShellConfigDropsEveryRetiredKey(t *testing.T) {
+	cfg := map[string]any{"fontScale": 0.96, "language": "Auto"}
+	for _, key := range retiredShellKeys {
+		cfg[key] = "carried"
+	}
+	raw, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, changes, err := migrateShellConfig(raw)
+	if err != nil || len(changes) == 0 {
+		t.Fatalf("retired keys should migrate: changes=%v err=%v", changes, err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("migrated JSON does not parse: %v", err)
+	}
+	for _, key := range retiredShellKeys {
+		if _, ok := got[key]; ok {
+			t.Errorf("retired key %s survived migration", key)
+		}
+	}
+	for key, want := range map[string]any{"fontScale": 0.96, "language": "Auto"} {
+		if got[key] != want {
+			t.Errorf("live setting %s = %v, want %v", key, got[key], want)
+		}
+	}
+	if _, ok := got["frameBars"]; !ok {
+		t.Error("migration must leave a frame-bars object behind")
+	}
+	if out, changes, err := migrateShellConfig(out); err != nil || out != nil || changes != nil {
+		t.Fatalf("retired-key migration must be idempotent: out=%s changes=%v err=%v", out, changes, err)
+	}
+}
+
+// The pluggable bar-style selector must survive migration and default to the
+// shipped QS Bar: reconcileShellConfig no longer strips the live barStyle, and
+// reconcileSumiBar defaults an absent or retired Atoll-era style to "qsbar" (not
+// the old "sumi"), so an existing box lands on the current default bar on update
+// while an explicit sumi/store choice is kept.
+func TestBarStyleDefaultsToQsbar(t *testing.T) {
+	barStyleOf := func(raw []byte) string {
+		var m map[string]any
+		if err := json.Unmarshal(raw, &m); err != nil {
+			t.Fatalf("output does not parse: %v", err)
+		}
+		s, _ := m["barStyle"].(string)
+		return s
+	}
+	// migrateShellConfig must not strip the live selector while shedding Atoll keys.
+	out, _, err := migrateShellConfig([]byte(`{"barStyle":"qsbar","atollVariant":"x"}`))
+	if err != nil {
+		t.Fatalf("migrateShellConfig: %v", err)
+	}
+	if got := barStyleOf(out); got != "qsbar" {
+		t.Errorf("migrateShellConfig dropped the live barStyle: got %q, want qsbar", got)
+	}
+	cases := []struct{ name, in, want string }{
+		{"qsbar kept", `{"barStyle":"qsbar"}`, "qsbar"},
+		{"sumi kept", `{"barStyle":"sumi"}`, "sumi"},
+		{"absent defaults to qsbar", `{"fontScale":1.3}`, "qsbar"},
+		{"retired atoll to qsbar", `{"barStyle":"atoll"}`, "qsbar"},
+		{"retired washi to qsbar", `{"barStyle":"washi"}`, "qsbar"},
+	}
+	for _, c := range cases {
+		got, changed, err := migrateSumiBar([]byte(c.in))
+		if err != nil {
+			t.Fatalf("%s: migrateSumiBar: %v", c.name, err)
+		}
+		result := c.in
+		if changed {
+			result = string(got)
+		}
+		if bs := barStyleOf([]byte(result)); bs != c.want {
+			t.Errorf("%s: barStyle = %q, want %q", c.name, bs, c.want)
+		}
 	}
 }
 
@@ -1555,4 +1897,158 @@ func TestReconcileBrandLogo(t *testing.T) {
 			t.Fatalf("second run status=%s, want ok (idempotent)", r.status.label())
 		}
 	})
+}
+
+func TestReconcileRyodecors(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	repo := t.TempDir()
+	if out, err := exec.Command("git", "-C", repo, "init", "-q").CombinedOutput(); err != nil {
+		t.Skipf("git unavailable: %v %s", err, out)
+	}
+	src := filepath.Join(repo, "ryoku", "assets", "ryodecors")
+	if err := os.MkdirAll(src, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range []string{"a.png", "b.gif"} {
+		if err := os.WriteFile(filepath.Join(src, n), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("RYOKU_REPO", repo)
+	dst := filepath.Join(home, "Pictures", "ryodecors")
+
+	// check-only reports the gap without copying.
+	if r := reconcileRyodecors(true); r.status != recWouldFix {
+		t.Fatalf("check-only: status=%s detail=%q, want would-fix", r.status.label(), r.detail)
+	}
+	if _, err := os.Stat(filepath.Join(dst, "a.png")); !os.IsNotExist(err) {
+		t.Fatalf("check-only must not copy anything")
+	}
+
+	// fix seeds every shipped file.
+	if r := reconcileRyodecors(false); r.status != recFixed {
+		t.Fatalf("fix: status=%s detail=%q, want fixed", r.status.label(), r.detail)
+	}
+	for _, n := range []string{"a.png", "b.gif"} {
+		if _, err := os.Stat(filepath.Join(dst, n)); err != nil {
+			t.Fatalf("expected %s seeded: %v", n, err)
+		}
+	}
+
+	// a file the user added or swapped survives, and a settled folder is a no-op.
+	userFile := filepath.Join(dst, "mine.png")
+	if err := os.WriteFile(userFile, []byte("mine"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if r := reconcileRyodecors(false); r.status != recOK {
+		t.Fatalf("idempotent run: status=%s, want ok", r.status.label())
+	}
+	if b, _ := os.ReadFile(userFile); string(b) != "mine" {
+		t.Fatalf("a user's own decor file must survive the reconciler")
+	}
+}
+
+// reconcileFrameBarsStyle converges a store that still names a retired bar style
+// onto the current default, leaving every other key untouched, and does nothing
+// once the value is current or absent.
+func TestMigrateFrameBarsStyle(t *testing.T) {
+	// a retired style name migrates, and unrelated keys survive untouched.
+	retired := []byte(`{"frameBars":{"style":"retired-frame","rails":{"top":{"size":44}}},"weatherLocation":"Oslo","fontScale":1.3}`)
+	out, changed, err := migrateFrameBarsStyle(retired)
+	if err != nil || !changed {
+		t.Fatalf("retired style must migrate: changed=%v err=%v", changed, err)
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal(out, &cfg); err != nil {
+		t.Fatalf("migrated JSON does not parse: %v", err)
+	}
+	frameBars := cfg["frameBars"].(map[string]any)
+	if frameBars["style"] != "slate-frame" {
+		t.Errorf("style did not converge on the default: %v", frameBars["style"])
+	}
+	if size := frameBars["rails"].(map[string]any)["top"].(map[string]any)["size"].(float64); size != 44 {
+		t.Errorf("unrelated frameBars key was lost: rail size = %v", size)
+	}
+	if cfg["weatherLocation"] != "Oslo" || cfg["fontScale"].(float64) != 1.3 {
+		t.Errorf("unrelated top-level keys were lost: %v", cfg)
+	}
+
+	// migrating is idempotent: the default it wrote is now a no-op.
+	if _, changed, err := migrateFrameBarsStyle(out); err != nil || changed {
+		t.Errorf("re-migrating the current value must be a no-op: changed=%v err=%v", changed, err)
+	}
+
+	// both current style names are left alone.
+	for _, current := range []string{"slate-frame", "ryoku-frame"} {
+		body := []byte(fmt.Sprintf(`{"frameBars":{"style":%q}}`, current))
+		if _, changed, err := migrateFrameBarsStyle(body); err != nil || changed {
+			t.Errorf("current style %q must be untouched: changed=%v err=%v", current, changed, err)
+		}
+	}
+
+	// an absent style key, or no frameBars at all, is untouched.
+	if _, changed, err := migrateFrameBarsStyle([]byte(`{"frameBars":{"rails":{}},"weatherLocation":"Oslo"}`)); err != nil || changed {
+		t.Errorf("absent style must be untouched: changed=%v err=%v", changed, err)
+	}
+	if _, changed, err := migrateFrameBarsStyle([]byte(`{"weatherLocation":"Oslo"}`)); err != nil || changed {
+		t.Errorf("absent frameBars must be untouched: changed=%v err=%v", changed, err)
+	}
+}
+
+// stripLegacyStyleKnobs drops the retired surfaceColor / fontFamily / roundness
+// keys, leaves every other key untouched, and does nothing once they are gone.
+func TestStripLegacyStyleKnobs(t *testing.T) {
+	// all six knobs present alongside live keys: the knobs go, the rest stay.
+	full := []byte(`{"surfaceColor":"#0f1115","fontFamily":"Space Grotesk","roundness":0,"frameSmoothing":8,"shadowStrength":0.63,"shadowSize":12,"frameRadius":9,"frameBorder":59,"frameEnabled":true,"frameBars":{"style":"slate-frame"},"weatherLocation":"Oslo"}`)
+	out, changed, err := stripLegacyStyleKnobs(full)
+	if err != nil || !changed {
+		t.Fatalf("legacy knobs must be stripped: changed=%v err=%v", changed, err)
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal(out, &cfg); err != nil {
+		t.Fatalf("stripped JSON does not parse: %v", err)
+	}
+	for _, key := range legacyStyleKnobs {
+		if _, present := cfg[key]; present {
+			t.Errorf("retired knob %q survived the strip", key)
+		}
+	}
+	if cfg["frameEnabled"] != true || cfg["weatherLocation"] != "Oslo" {
+		t.Errorf("unrelated top-level keys were lost: %v", cfg)
+	}
+	if frameBars, ok := cfg["frameBars"].(map[string]any); !ok || frameBars["style"] != "slate-frame" {
+		t.Errorf("nested frameBars was not preserved: %v", cfg["frameBars"])
+	}
+
+	// stripping is idempotent: the cleaned store is now a no-op.
+	if _, changed, err := stripLegacyStyleKnobs(out); err != nil || changed {
+		t.Errorf("re-stripping a clean store must be a no-op: changed=%v err=%v", changed, err)
+	}
+
+	// a store carrying only some of the knobs strips exactly those present.
+	partial := []byte(`{"roundness":8,"fontScale":1.3}`)
+	out, changed, err = stripLegacyStyleKnobs(partial)
+	if err != nil || !changed {
+		t.Fatalf("a lone knob must still strip: changed=%v err=%v", changed, err)
+	}
+	if err := json.Unmarshal(out, &cfg); err != nil {
+		t.Fatalf("stripped JSON does not parse: %v", err)
+	}
+	if _, present := cfg["roundness"]; present {
+		t.Error("roundness survived a partial strip")
+	}
+	if cfg["fontScale"].(float64) != 1.3 {
+		t.Errorf("unrelated key lost in a partial strip: %v", cfg)
+	}
+
+	// a store with none of the knobs is left untouched.
+	if _, changed, err := stripLegacyStyleKnobs([]byte(`{"frameOpacity":1,"weatherUnit":"auto"}`)); err != nil || changed {
+		t.Errorf("a store with no retired knobs must be untouched: changed=%v err=%v", changed, err)
+	}
+
+	// garbage errors rather than silently rewriting.
+	if _, _, err := stripLegacyStyleKnobs([]byte("not json")); err == nil {
+		t.Fatal("garbage must error, not silently rewrite")
+	}
 }

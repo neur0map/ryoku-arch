@@ -1,9 +1,13 @@
 import QtQuick
 import QtQuick.Controls
+import Ryoku.Ui
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// The library: a scrollable column of VM cards bound to Vm.vms. Picking a card
-// selects it for the detail hero on the right. An empty library invites a build.
+// The yard: a scrollable column of 64-tall machine rows bound to Vm.vms. Picking
+// a row selects it for the stage on the right. The populate cascade survives:
+// it is the roll-call, and the flaps are already doing it; an empty yard invites
+// a build.
 Item {
     id: g
 
@@ -22,29 +26,23 @@ Item {
         anchors.fill: parent
         visible: g.shown.length > 0
         clip: true
-        spacing: 10
+        spacing: Tokens.s2
         model: g.shown
         cacheBuffer: 800
         boundsBehavior: Flickable.StopAtBounds
-        ScrollBar.vertical: BoardScrollBar {}
+        ScrollBar.vertical: ScrollRail {}
 
-        // yard roll-call on first population only: a populate transition never
-        // runs for delegates the view creates while scrolling (the old
-        // per-delegate Component.onCompleted animation replayed on every
-        // scroll-back and every model refresh — the launch/scroll flicker).
+        // roll-call on first population only (never on scroll-back or refresh).
         populate: Transition {
             id: popT
             SequentialAnimation {
                 PropertyAction { property: "opacity"; value: 0 }
-                PauseAnimation { duration: 50 * Math.min(popT.ViewTransition.index, 8) }
-                ParallelAnimation {
-                    NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.medium; easing.type: Theme.ease }
-                    NumberAnimation { property: "y"; from: popT.ViewTransition.destination.y + 14; to: popT.ViewTransition.destination.y; duration: Theme.medium; easing.type: Theme.ease }
-                }
+                PauseAnimation { duration: 40 * Math.min(popT.ViewTransition.index, 8) }
+                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Tokens.swap; easing.type: Tokens.ease }
             }
         }
         add: Transition {
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.medium; easing.type: Theme.ease }
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Tokens.swap; easing.type: Tokens.ease }
         }
 
         delegate: Item {
@@ -52,7 +50,7 @@ Item {
             required property var modelData
             required property int index
             width: list.width
-            height: 68
+            height: 64
             VmCard {
                 width: parent.width - 6
                 item: slot.modelData
@@ -62,17 +60,15 @@ Item {
         }
     }
 
-    // empty state.
+    // empty / loading state, anchored on the app mark.
     Column {
         anchors.centerIn: parent
-        spacing: 12
+        spacing: Tokens.s4
         width: parent.width - 40
         visible: g.shown.length === 0
-        Icon {
+        Mark {
             anchors.horizontalCenter: parent.horizontalCenter
-            name: Vm.vmsLoading ? "refresh" : (g.filter.length > 0 ? "search" : "server")
-            size: 32
-            tint: Theme.faint
+            size: 96
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -82,17 +78,16 @@ Item {
             text: Vm.vmsLoading ? "Loading your machines"
                 : (g.filter.length > 0 ? "No machines match"
                 : "No machines yet.")
-            color: Theme.dim
-            font.family: Theme.font
-            font.pixelSize: 13
+            color: Tokens.inkMuted
+            font.family: Tokens.ui
+            font.pixelSize: 12
         }
-        HubButton {
+        Btn {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: !Vm.vmsLoading && g.filter.length === 0
             primary: true
-            icon: "download"
-            label: "Open Catalog"
-            onClicked: g.buildRequested()
+            text: "OPEN CATALOG"
+            onAct: g.buildRequested()
         }
     }
 }

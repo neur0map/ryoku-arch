@@ -61,13 +61,8 @@ func TestShowLiveWallpaperHandoff(t *testing.T) {
 	if !strings.Contains(string(got), ".mp4") || !strings.Contains(string(got), liveCapWidth()) {
 		t.Errorf("livewall not launched with the transcoded clip + cap width %s: %q", liveCapWidth(), got)
 	}
-	aw, err := os.ReadFile(awwwLog)
-	if err != nil || !strings.Contains(string(aw), "img") {
-		t.Errorf("awww did not paint the clip's frame under the video: %q err=%v", aw, err)
-	}
-	if strings.Contains(string(aw), "kill") {
-		t.Errorf("awww must stay up under the video (its still is the clip's frame), not be killed: %q", aw)
-	}
+	// The still frame under the video is painted by the shell's own backdrop
+	// surface now, so there is no external image daemon left to assert on.
 }
 
 // An update replaces the video backend (mpvpaper -> phonto -> ryoku-livewall)

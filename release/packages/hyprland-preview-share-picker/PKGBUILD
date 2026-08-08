@@ -1,0 +1,40 @@
+# Maintainer: Ryoku <releases@ryoku.dev>
+pkgname=hyprland-preview-share-picker
+pkgver=0.2.1.r9.ge2f30ff
+pkgrel=1
+_commit=e2f30ff85486e557018523da45ccbc846e3a499c
+pkgdesc="Preview-based screen-share source picker for Hyprland"
+arch=('x86_64')
+url="https://github.com/WhySoBad/hyprland-preview-share-picker"
+license=('MIT')
+depends=('glibc' 'gcc-libs' 'gtk4' 'gtk4-layer-shell' 'wayland' 'hyprland' 'xdg-desktop-portal-hyprland' 'slurp')
+makedepends=('cargo' 'git')
+options=('!lto')
+source=(
+  "$pkgname::git+$url.git#commit=$_commit"
+  'hyprland-protocols::git+https://github.com/hyprwm/hyprland-protocols.git'
+)
+sha256sums=('SKIP' 'SKIP')
+
+prepare() {
+  cd "$pkgname"
+  git config submodule.lib/hyprland-protocols.url "$srcdir/hyprland-protocols"
+  git -c protocol.file.allow=always submodule update
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release
+  ./target/release/hyprland-preview-share-picker schema > schema.json
+}
+
+package() {
+  cd "$pkgname"
+  install -Dm755 target/release/hyprland-preview-share-picker "$pkgdir/usr/bin/hyprland-preview-share-picker"
+  install -Dm644 schema.json "$pkgdir/usr/share/hyprland-preview-share-picker/schema.json"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/hyprland-preview-share-picker/LICENSE"
+}

@@ -1,0 +1,9 @@
+singleton Tokens Tokens.qml
+singleton Ink Ink.qml
+singleton Paths Paths.qml
+singleton I18n I18n.qml
+singleton Spans Spans.qml
+singleton Silhouette Silhouette.qml
+singleton DecorStore DecorStore.qml
+singleton Ryodecors Ryodecors.qml
+singleton ProfileStore ProfileStore.qml

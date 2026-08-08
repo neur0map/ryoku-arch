@@ -45,25 +45,27 @@ encode() {
   esac
 }
 
-# targets = the named file, or every regular file directly in the stash.
+# targets: explicit paths (from the in-shell picker) use those; no args falls
+# back to every regular file directly in the stash.
 declare -a targets=()
-single=0
-if [ "$#" -ge 1 ]; then
-  single=1
-  if [ ! -f "$1" ]; then
-    notify "File not found" dialog-error
-    echo "not found: $1"; exit 1
-  fi
-  targets=("$1")
-else
-  if [ ! -d "$STASH" ]; then
-    notify "Stash folder not found" dialog-error
-    echo "no stash dir: $STASH"; exit 1
-  fi
-  shopt -s nullglob
-  for f in "$STASH"/*; do [ -f "$f" ] && targets+=("$f"); done
-  shopt -u nullglob
-fi
+case "${1:-}" in
+  "")
+    if [ ! -d "$STASH" ]; then
+      notify "Stash folder not found" dialog-error
+      echo "no stash dir: $STASH"; exit 1
+    fi
+    shopt -s nullglob
+    for f in "$STASH"/*; do [ -f "$f" ] && targets+=("$f"); done
+    shopt -u nullglob
+    ;;
+  *)
+    targets=("$@")
+    for f in "${targets[@]}"; do
+      [ -f "$f" ] || { notify "File not found" dialog-error; echo "not found: $f"; exit 1; }
+    done
+    ;;
+esac
+single=0; [ "${#targets[@]}" -eq 1 ] && single=1
 
 compressed=0; optimal=0; failed=0; saved=0
 

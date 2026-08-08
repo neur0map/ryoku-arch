@@ -186,22 +186,37 @@ Item {
     // consistent without re-tuning.
     onVisibleChanged: {
         if (visible && cfg.hasDefault) beautify.loadDefault();
-        if (visible && beautify.composeOnly) composeTimer.restart();
+        if (visible && beautify.composeOnly) { beautify.composeFired = false; composeTimer.restart(); }
     }
     // headless "bake the default and export" path: used when Copy/Save is pressed
     // in the toolbar with a saved default, so the shot exports styled without the
     // editor ever opening.
     property int composeTries: 0
+    // Fire exactly once per compose session: without this the timer could grab
+    // twice (a half-rendered frame and the settled one), copying two frames and
+    // racing two wl-copy owners so the live selection ends up cleared.
+    property bool composeFired: false
     function composeExport() {
+        if (beautify.composeFired) return;
         if (img.status !== Image.Ready) {
-            if (beautify.composeTries++ < 12) composeTimer.restart();
+            if (beautify.composeTries++ < 20) composeTimer.restart();
+            else beautify.closeRequested();
             return;
         }
-        beautify.composeTries = 0;
+        beautify.composeFired = true;
         beautify.exportStage(beautify.exportTmp, function (ok) {
-            if (!ok) { beautify.closeRequested(); return; }
-            if (beautify.composeMode === "save") beautify.saveRequested(beautify.exportTmp);
-            else beautify.copyRequested(beautify.exportTmp);
+            if (ok) {
+                beautify.composeTries = 0;
+                if (beautify.composeMode === "save") beautify.saveRequested(beautify.exportTmp);
+                else beautify.copyRequested(beautify.exportTmp);
+                return;
+            }
+            // Transient failure: the styled stage was not rendered yet. Release
+            // the one-shot claim and retry a few frames on, so a click never ends
+            // up copying nothing.
+            beautify.composeFired = false;
+            if (beautify.composeTries++ < 20) composeTimer.restart();
+            else beautify.closeRequested();
         });
     }
     Timer { id: composeTimer; interval: 220; onTriggered: beautify.composeExport() }

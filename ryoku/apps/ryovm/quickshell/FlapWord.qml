@@ -1,10 +1,12 @@
 import QtQuick
-import "Singletons"
+import Ryoku.Ui.Singletons
 
 // A row of split-flap cells spelling a word. Characters cascade left-to-right
 // (40ms stagger), each cell spinning independently, so a state change reads as
 // the departure board updating. Fixed cell width keeps columns registered like
-// the real board; `pad` reserves drum width so RUNNING -> OFF doesn't reflow.
+// the real board; `pad` reserves drum width so RUNNING -> STOPPED doesn't reflow.
+// Ink is `ink` for a live word, `inkDim` for a dormant one: the word carries
+// the state, never colour.
 Row {
     id: word
 
@@ -13,9 +15,7 @@ Row {
     property real cellW: 15
     property real cellH: 22
     property real fontPx: 13
-    property color ink: Theme.cream
-    property color plate: Theme.keyTop
-    property color plateLo: Theme.keyBot
+    property color ink: Tokens.ink
 
     spacing: 2
 
@@ -48,8 +48,6 @@ Row {
             cellH: word.cellH
             fontPx: word.fontPx
             ink: word.ink
-            plate: word.plate
-            plateLo: word.plateLo
             ch: index < word.fed.length ? word.fed.charAt(index) : " "
         }
     }

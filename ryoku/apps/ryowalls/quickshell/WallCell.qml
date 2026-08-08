@@ -1,11 +1,13 @@
 import QtQuick
 import QtMultimedia
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// One thumbnail in the browse grid. Images show a still; live/moewalls videos
-// show a poster with a play badge and loop the clip on hover (local clips, which
-// have no poster, loop straight away). Hover lifts the border and shows the
-// resolution; the picked one wears an ember frame + corner tick.
+// One thumbnail in the browse grid. The image is the information, so the tile is
+// hairline chrome around a full-bleed thumb: hover lifts the border, the picked
+// tile takes the gallery grammar (1px ink border + a corner ink dot), no wash
+// and no coloured frame. Local clips loop on hover; remote clips never stream
+// here. Right-click opens the source page.
 Rectangle {
     id: cell
 
@@ -20,9 +22,6 @@ Rectangle {
 
     readonly property bool isVideo: !!(cell.item && cell.item.video && ("" + cell.item.video).length > 0)
     readonly property bool hasThumb: !!(cell.item && cell.item.thumb && ("" + cell.item.thumb).length > 0)
-    // only local clips loop in the grid (they are already on disk, free). Remote
-    // library/scrape clips show the poster + a play badge and never stream here;
-    // the hero preview streams the one selected clip, and Save is the only download.
     readonly property bool isLocal: cell.isVideo && !("" + cell.item.video).startsWith("http")
     readonly property bool playing: cell.isLocal && (ma.containsMouse || !cell.hasThumb)
     readonly property string resText: (cell.item && cell.item.resolution) ? ("" + cell.item.resolution) : ""
@@ -30,16 +29,18 @@ Rectangle {
         var p = cell.resText.split("x");
         return p.length === 2 ? (parseInt(p[1]) || 0) : 0;
     }
-    // flag media that would upscale-blur on a 1080p+ screen — exactly the files
-    // worth running Enhance on, image or clip.
+    // media that would upscale-blur on a 1080p+ screen: exactly what Enhance is for.
     readonly property bool lowRes: cell.resH > 0 && cell.resH < 1080
 
-    radius: Theme.radius
-    color: Theme.surfaceLo
-    border.width: cell.active ? 1.6 : 1
-    border.color: cell.active ? Theme.ember : (ma.containsMouse ? Qt.alpha(Theme.cream, 0.35) : Theme.line)
+    radius: Tokens.radius
+    color: "transparent"
+    border.width: Tokens.border
+    // selected → ink; marked-for-delete → bone; hover → lineStrong; rest → line.
+    border.color: cell.active ? Tokens.ink
+        : (cell.selected ? Tokens.bone
+        : (ma.containsMouse ? Tokens.lineStrong : Tokens.line))
     clip: true
-    Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+    Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
 
     Image {
         anchors.fill: parent
@@ -50,6 +51,11 @@ Rectangle {
         sourceSize: Qt.size(Math.ceil(cell.width * 1.6), Math.ceil(cell.height * 1.6))
         source: cell.hasThumb ? cell.item.thumb : ""
         visible: !vout.visible
+        // a slight zoom on hover: the image is clipped to the tile, so it reads
+        // as the thumbnail leaning toward you -- the store's one interactivity tell.
+        scale: ma.containsMouse ? 1.06 : 1.0
+        transformOrigin: Item.Center
+        Behavior on scale { NumberAnimation { duration: Tokens.swap; easing.type: Easing.OutCubic } }
     }
 
     MediaPlayer {
@@ -67,76 +73,58 @@ Rectangle {
         visible: cell.isVideo && mp.playbackState === MediaPlayer.PlayingState
     }
 
-    // play badge on a video cell that isn't currently looping.
+    // video marker: a paper plate with an ink triangle, never a circled play.
     Rectangle {
         visible: cell.isVideo && !vout.visible
         anchors.centerIn: parent
-        width: 32; height: 32; radius: 16
-        color: Qt.rgba(0, 0, 0, 0.42)
-        Icon { anchors.centerIn: parent; name: "play"; size: 14; weight: 2; tint: Theme.bright }
+        width: 26; height: 20
+        radius: Tokens.radius
+        color: Tokens.paper
+        border.width: Tokens.border
+        border.color: Tokens.line
+        // a triangle drawn as a glyph so it stays crisp and mono.
+        Text {
+            anchors.centerIn: parent
+            text: "▶"
+            color: Tokens.ink
+            font.pixelSize: 10
+        }
     }
 
-    Rectangle {
-        anchors.fill: parent
-        radius: parent.radius
-        visible: ma.containsMouse && !cell.active
-        color: Qt.rgba(0, 0, 0, 0.3)
-    }
-    // marked-for-delete wash.
-    Rectangle {
-        visible: cell.selected
-        anchors.fill: parent
-        radius: parent.radius
-        color: Qt.alpha(Theme.ember, 0.14)
-        border.width: 1.5
-        border.color: Theme.ember
-    }
-
-    // resolution badge; amber warns a low-res clip will look soft upscaled.
+    // resolution badge: a solid paper plate, mono. A low-res pick inverts to bone
+    // and says so (amendment 5): inversion is the emphasis, a warning is emphasis.
     Rectangle {
         visible: cell.resText.length > 0
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.margins: 6
         height: 16
-        width: resLabel.implicitWidth + 12
-        radius: 4
-        color: cell.lowRes ? Qt.rgba(0.85, 0.5, 0.12, 0.92) : Qt.rgba(0, 0, 0, 0.55)
+        width: resLabel.implicitWidth + 10
+        radius: Tokens.radius
+        color: cell.lowRes ? Tokens.bone : Tokens.paper
+        border.width: Tokens.border
+        border.color: cell.lowRes ? Tokens.bone : Tokens.line
         Text {
             id: resLabel
             anchors.centerIn: parent
-            text: cell.resH >= 2160 ? "4K" : (cell.resH > 0 ? cell.resH + "p" : cell.resText)
-            color: Theme.bright
-            font.family: Theme.mono
+            text: {
+                var base = cell.resH >= 2160 ? "4K" : (cell.resH > 0 ? cell.resH + "P" : cell.resText.toUpperCase());
+                return cell.lowRes ? base + " · SOFT" : base;
+            }
+            color: cell.lowRes ? Tokens.inkOnBone : Tokens.ink
+            font.family: Tokens.mono
             font.pixelSize: 9
-            font.weight: Font.DemiBold
         }
     }
 
-    Text {
-        visible: ma.containsMouse
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: 6
-        text: cell.item ? (cell.item.name || "") : ""
-        color: Theme.bright
-        font.family: Theme.mono
-        font.pixelSize: 10
-        style: Text.Outline
-        styleColor: Qt.rgba(0, 0, 0, 0.5)
-    }
-
-    // ember corner tick on the active cell.
+    // the picked tile: a corner ink dot, the gallery grammar. No tick, no frame.
     Rectangle {
         visible: cell.active
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: 6
-        width: 16
-        height: 16
-        radius: 8
-        color: Theme.ember
-        Icon { anchors.centerIn: parent; name: "check"; size: 11; weight: 2.2; tint: Theme.onAccent }
+        width: 6; height: 6; radius: 3
+        color: Tokens.ink
     }
 
     MouseArea {
@@ -148,18 +136,28 @@ Rectangle {
         onClicked: (e) => { if (e.button === Qt.RightButton) cell.opened(); else cell.picked(); }
     }
 
-    // selection checkbox (Local source): sits above the pick MouseArea so a tap
-    // here toggles the mark instead of previewing.
+    // selection checkbox (Local source): a hairline square, bone-filled with a
+    // black check when marked. It sits above the pick MouseArea so a tap here
+    // marks instead of previewing.
     Rectangle {
         visible: cell.selectable
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.margins: 6
-        width: 20; height: 20; radius: 5
-        color: cell.selected ? Theme.ember : Qt.rgba(0, 0, 0, 0.5)
-        border.width: 1
-        border.color: cell.selected ? Theme.ember : Qt.alpha(Theme.cream, 0.7)
-        Icon { anchors.centerIn: parent; visible: cell.selected; name: "check"; size: 12; weight: 2.2; tint: Theme.onAccent }
+        width: 16; height: 16
+        radius: Tokens.radius
+        color: cell.selected ? Tokens.bone : Tokens.paper
+        border.width: Tokens.border
+        border.color: cell.selected ? Tokens.bone : Tokens.line
+        Text {
+            anchors.centerIn: parent
+            visible: cell.selected
+            text: "✓"
+            color: Tokens.inkOnBone
+            font.family: Tokens.ui
+            font.pixelSize: 10
+            font.weight: Font.Bold
+        }
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: cell.toggledSelect() }
     }
 }

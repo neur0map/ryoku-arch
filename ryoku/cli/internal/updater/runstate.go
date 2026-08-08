@@ -47,6 +47,7 @@ type promptSpec struct {
 // older readers; steps/label/log/error/snapshot are the richer surface.
 type runState struct {
 	Phase    string      `json:"phase"` // idle | running | prompt | done | error
+	PID      int         `json:"pid,omitempty"`
 	Step     string      `json:"step"`
 	Label    string      `json:"label"`
 	Progress float64     `json:"progress"`
@@ -65,6 +66,7 @@ type publisher struct {
 	steps    []runStep
 	log      []string
 	snapshot string
+	pid      int
 }
 
 func runStatePath() string {
@@ -92,6 +94,7 @@ func writeState(st runState) {
 // run running. A stage2 re-begins the same list and marks the earlier steps
 // done, so the exec handoff keeps one continuous bar.
 func (p *publisher) begin(steps []runStep) {
+	p.pid = os.Getpid()
 	p.steps = make([]runStep, len(steps))
 	copy(p.steps, steps)
 	for i := range p.steps {
@@ -160,7 +163,7 @@ func (p *publisher) setSnapshot(id string) { p.snapshot = id }
 // publish serializes the current state with the given phase; progress is
 // derived from the step states so the bar is determinate.
 func (p *publisher) publish(phase string) {
-	st := runState{Phase: phase, Steps: p.steps, Log: p.log, Snapshot: p.snapshot}
+	st := runState{Phase: phase, PID: p.pid, Steps: p.steps, Log: p.log, Snapshot: p.snapshot}
 	var done float64
 	for _, s := range p.steps {
 		switch s.State {
@@ -185,7 +188,7 @@ func (p *publisher) finish() {
 			p.steps[i].State = stepDone
 		}
 	}
-	writeState(runState{Phase: "done", Progress: 1, Steps: p.steps, Log: p.log, Snapshot: p.snapshot})
+	writeState(runState{Phase: "done", PID: p.pid, Progress: 1, Steps: p.steps, Log: p.log, Snapshot: p.snapshot})
 }
 
 // fail marks the running step failed and publishes an "error" state carrying
@@ -196,7 +199,7 @@ func (p *publisher) fail(err error) {
 			p.steps[i].State = stepFailed
 		}
 	}
-	st := runState{Phase: "error", Steps: p.steps, Log: p.log, Snapshot: p.snapshot, Error: err.Error()}
+	st := runState{Phase: "error", PID: p.pid, Steps: p.steps, Log: p.log, Snapshot: p.snapshot, Error: err.Error()}
 	var done float64
 	for _, s := range p.steps {
 		if s.State == stepDone || s.State == stepSkipped || s.State == stepFailed {
@@ -229,6 +232,7 @@ func publishPrompt(id, title, detail string, options []string) {
 	_ = os.Remove(answerPath())
 	writeState(runState{
 		Phase:    "prompt",
+		PID:      progress.pid,
 		Steps:    progress.steps,
 		Log:      progress.log,
 		Snapshot: progress.snapshot,

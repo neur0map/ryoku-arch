@@ -135,4 +135,87 @@ grep -qF '  //linux' "$indent" || fail "indented-fence strip swallowed the //lin
 grep -qF 'uuid(7777-8888)' "$indent" || fail "indented-fence sync did not write the fresh GUID"
 grep -qF 'uuid(old)' "$indent" && fail "indented-fence sync left the stale GUID"
 
+# --- shared ESP (Windows' ESP IS Limine's boot volume): boot(), not uuid() -----
+# the alongside pivot: a uuid() chainload to Limine's own boot volume panics on
+# 9.x+, so when the conf's volume PARTUUID matches the detected Windows GUID the
+# entry must be protocol efi + boot():/...
+shared="$tmp/shared.conf"
+printf '/Ryoku Linux\n    protocol: linux\n' >"$shared"
+RYOKU_WINDOWS_GUID="5eaf9964-1111-2222-3333-444455556666" \
+RYOKU_CONF_PARTUUID="5EAF9964-1111-2222-3333-444455556666" \
+  "$tool" sync "$shared" >/dev/null
+grep -qF 'protocol: efi' "$shared" || fail "shared-ESP entry is not protocol efi"
+grep -qF 'path: boot():/EFI/Microsoft/Boot/bootmgfw.efi' "$shared" \
+  || fail "shared-ESP entry did not use boot():"
+grep -qF 'uuid(' "$shared" && fail "shared-ESP entry used uuid() (would panic on the boot volume)"
+grep -qF 'protocol: efi_chainload' "$shared" && fail "shared-ESP entry used efi_chainload"
+
+# --- cross-drive Windows (different volume): still uuid() ----------------------
+cross="$tmp/cross.conf"
+printf '/Ryoku Linux\n    protocol: linux\n' >"$cross"
+RYOKU_WINDOWS_GUID="5eaf9964-1111-2222-3333-444455556666" \
+RYOKU_CONF_PARTUUID="aaaaaaaa-0000-0000-0000-000000000000" \
+  "$tool" sync "$cross" >/dev/null
+grep -qF 'path: uuid(5eaf9964-1111-2222-3333-444455556666):/EFI/Microsoft/Boot/bootmgfw.efi' "$cross" \
+  || fail "cross-drive Windows must stay uuid()"
+
+# --- alongside TWO-STAGE limine generator (stage-1 hop + stage-2 /boot conf) -----
+# stage 1 lives on the shared ESP beside our BOOTX64.EFI: a STATIC hop that only
+# chainloads the second-stage limine on the RYOKUBOOT volume (timeout 0). stage 2
+# lives on the XBOOTLDR /boot, so boot() there is the XBOOTLDR: the existing OS on
+# the shared ESP is addressed by guid(<shared-ESP PARTUUID>), never boot():/EFI/... .
+repo="$here/.."
+# shellcheck source=/dev/null
+source "$repo/installation/backend/lib/common.sh"
+# shellcheck source=/dev/null
+source "$repo/installation/backend/lib/disk.sh"
+# shellcheck source=/dev/null
+source "$repo/installation/backend/lib/bootloader.sh"
+export RYOKU_REPO="$repo" CMDLINE="root=UUID=deadbeef rw"
+
+# STAGE 1 hop: timeout 0 + exactly one fslabel(RYOKUBOOT) efi_chainload entry, and
+# NOTHING else -- no branding globals, no kernel entry, no existing-OS entry.
+hop="$(ryoku_stage1_hop_text)"
+grep -qxF 'timeout: 0' <<<"$hop" || fail "stage-1 hop is not timeout 0"
+grep -qF 'protocol: efi_chainload' <<<"$hop" || fail "stage-1 hop is not an efi_chainload"
+grep -qF 'image_path: fslabel(RYOKUBOOT):/ryoku-limine.efi' <<<"$hop" || fail "stage-1 hop does not chainload the second-stage limine by fslabel(RYOKUBOOT)"
+[[ "$(grep -c '^/' <<<"$hop")" == 1 ]] || fail "stage-1 hop has more than the single chainload entry"
+grep -qF 'fslabel(RYOKUBOOT):/vmlinuz-linux' <<<"$hop" && fail "stage-1 hop must not carry a kernel entry (that is the stage-2 menu)"
+grep -qiF 'interface_branding' <<<"$hop" && fail "stage-1 hop must stay a bare hop (no branding globals)"
+
+# STAGE 2 /boot conf: branding + fslabel(RYOKUBOOT) kernels + guid() existing-OS
+# chainload. windows kind:
+win_conf="$(ryoku_alongside_conf_text windows /EFI/Microsoft/Boot/bootmgfw.efi 1111-2222)"
+grep -qF 'interface_branding: Ryoku Bootloader' <<<"$win_conf" || fail "stage-2 conf lost the branding globals"
+grep -qF 'kernel_path: fslabel(RYOKUBOOT):/vmlinuz-linux' <<<"$win_conf" || fail "stage-2 conf missing the fslabel(RYOKUBOOT) kernel path"
+grep -qF 'module_path: fslabel(RYOKUBOOT):/initramfs-linux.img' <<<"$win_conf" || fail "stage-2 conf missing the fslabel(RYOKUBOOT) initramfs path"
+grep -qxF '/Windows' <<<"$win_conf" || fail "stage-2 windows conf missing the /Windows entry"
+grep -qF 'image_path: guid(1111-2222):/EFI/Microsoft/Boot/bootmgfw.efi' <<<"$win_conf" || fail "stage-2 windows conf did not chainload bootmgfw by guid()"
+grep -qF 'protocol: efi_chainload' <<<"$win_conf" || fail "stage-2 windows conf is not an efi_chainload"
+grep -qF 'comment: Windows Boot Manager' <<<"$win_conf" || fail "stage-2 windows conf lost the Windows comment"
+
+# ryoku/linux kinds: guid()-addressed "(existing)" chainload, labeled by kind.
+ryoku_conf="$(ryoku_alongside_conf_text ryoku /EFI/limine/limine_x64.efi 3333-4444)"
+grep -qxF '/Ryoku (existing)' <<<"$ryoku_conf" || fail "stage-2 ryoku conf missing the '/Ryoku (existing)' entry"
+grep -qF 'image_path: guid(3333-4444):/EFI/limine/limine_x64.efi' <<<"$ryoku_conf" || fail "stage-2 ryoku conf did not chainload the existing limine by guid()"
+grep -qF 'comment: existing ryoku install' <<<"$ryoku_conf" || fail "stage-2 ryoku conf lost the existing-install comment"
+grep -qF '/Windows' <<<"$ryoku_conf" && fail "stage-2 ryoku conf wrongly emitted a /Windows entry"
+
+linux_conf="$(ryoku_alongside_conf_text linux /EFI/systemd/systemd-bootx64.efi 5555-6666)"
+grep -qxF '/Linux (existing)' <<<"$linux_conf" || fail "stage-2 linux conf missing the '/Linux (existing)' entry"
+grep -qF 'image_path: guid(5555-6666):/EFI/systemd/systemd-bootx64.efi' <<<"$linux_conf" || fail "stage-2 linux conf did not chainload the vendor binary by guid()"
+
+# existing_boot none: no chainload entry, kernel entry still present.
+none_conf="$(ryoku_alongside_conf_text ryoku none 7777-8888)"
+grep -qF '(existing)' <<<"$none_conf" && fail "stage-2 conf with existing_boot none wrongly emitted a chainload entry"
+grep -qF 'kernel_path: fslabel(RYOKUBOOT):/vmlinuz-linux' <<<"$none_conf" || fail "stage-2 none conf lost the Ryoku Linux entry"
+
+# the cardinal stage-2 rule: NO boot():/EFI cross-volume path (boot() is the
+# XBOOTLDR here, so a boot():/EFI/... would reach the wrong volume and never open
+# the existing OS). assert it across every kind.
+for c in "$win_conf" "$ryoku_conf" "$linux_conf" "$none_conf"; do
+  grep -qF 'boot():/EFI' <<<"$c" && fail "stage-2 conf used a boot():/EFI cross-volume path (must be guid())"
+done
+echo "limine-windows: two-stage generator (hop + windows/ryoku/linux/none, no boot():/EFI) checks passed"
+
 echo "limine-windows: all checks passed"

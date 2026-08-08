@@ -17,6 +17,9 @@ cfg_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
 f="$cfg_home/ryoku/plugins.json"
 mkdir -p "$(dirname "$f")"
+lock="$f.lock"
+exec 9>"$lock"
+flock -x 9
 
 # self-heal. missing / empty / corrupt (stale partial write, external reset)
 # becomes a fresh {}, so writes below have valid input and discover.sh doesn't
@@ -25,10 +28,9 @@ if [ ! -s "$f" ] || ! jq -e . "$f" >/dev/null 2>&1; then
 	echo '{}' >"$f"
 fi
 
-# atomic: unique temp on the same fs, then rename. unique (not a shared
-# "$f.tmp") matters when two writers land at once (desktop drag committing
-# while Settings flips enabled) -- worst case loses one update, never
-# truncates the file.
+# atomic: unique temp on the same filesystem, then rename. The adjacent flock
+# serializes desktop, Settings, and Store transaction writers so no merge is
+# lost while another process is reading and replacing the file.
 tmp="$(mktemp "$f.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
 
@@ -106,11 +108,24 @@ settings)
 seed)
 	seed_entry "$id"
 	;;
+restore)
+	json="${1:?entry json or null}"
+	file_existed="${2:?file-existed bool}"
+	if [ "$json" = "null" ]; then
+		jq --arg id "$id" 'del(.[$id])' "$f" >"$tmp"
+	else
+		jq --arg id "$id" --argjson entry "$json" '.[$id] = $entry' "$f" >"$tmp"
+	fi
+	mv "$tmp" "$f"
+	if [ "$file_existed" = "false" ] && jq -e 'length == 0' "$f" >/dev/null; then
+		rm -f "$f"
+	fi
+	;;
 forget)
 	jq --arg id "$id" 'del(.[$id])' "$f" >"$tmp" && mv "$tmp" "$f"
 	;;
 *)
-	echo "usage: ryoku-plugins-place <id> desktopWidget <x> <y> | framePopout <edge> <align> <hoverW> <hoverH> | host <name> | enabled <bool> | settings <json> | seed | forget" >&2
+	echo "usage: ryoku-plugins-place <id> desktopWidget <x> <y> | framePopout <edge> <align> <hoverW> <hoverH> | host <name> | enabled <bool> | settings <json> | seed | restore <json|null> <file-existed> | forget" >&2
 	exit 2
 	;;
 esac

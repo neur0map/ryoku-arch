@@ -11,15 +11,13 @@ import (
 	"strings"
 )
 
-// ryoku-hub lock = the qylock skin picker behind Ryoku Settings. picking a skin
-// swaps the whole lockscreen: the in-session lock pref at ~/.config/qylock/theme
-// (lock.sh reads it) plus the SDDM greeter theme under /usr/share/sddm/themes.
-// the greeter sits on a system path so that half goes through pkexec
-// (apply-greeter); auth itself stays untouched.
+// ryoku-hub lock manages installed qylock skins behind Ryoku Settings. Picking
+// one swaps the in-session lock preference plus the SDDM greeter theme. Ryostore
+// owns upstream browsing and install-only downloads; Hub owns activation.
 //
-//	ryoku-hub lock list           installed skins + active one, as JSON
-//	ryoku-hub lock set <slug>     make a skin the lock + greeter (pkexec for greeter)
-//	ryoku-hub lock apply-greeter  install <slug> as SDDM greeter (privileged; pkexec runs this)
+//	ryoku-hub lock list                  installed skins + active one, as JSON
+//	ryoku-hub lock set <slug>            activate an installed skin
+//	ryoku-hub lock apply-greeter <slug>  install it as the SDDM greeter
 //
 // a skin = any folder under the themes dir with a Main.qml. slug = its path
 // under that dir (e.g. "clockwork/orbital"), exactly what lock.sh resolves
@@ -39,11 +37,9 @@ type LockSkin struct {
 	SizeKB    int      `json:"sizeKB"` // upstream install weight, 0 when unknown
 }
 
-// LockResponse = the `ryoku-hub lock catalog` / `list` payload: active slug,
-// the skins, plus whether the upstream qylock repo was reachable.
+// LockResponse is the installed-only `ryoku-hub lock list` payload.
 type LockResponse struct {
 	Active string     `json:"active"`
-	Online bool       `json:"online"`
 	Skins  []LockSkin `json:"skins"`
 }
 
@@ -81,11 +77,9 @@ func qylockThemePref() string {
 // runLock = `ryoku-hub lock <sub> [arg]` dispatch.
 func runLock(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("lock needs catalog|list|set|install")
+		return fmt.Errorf("lock needs list|set|apply-greeter")
 	}
 	switch args[0] {
-	case "catalog":
-		return printJSON(lockCatalog())
 	case "list":
 		return printJSON(listLockSkins())
 	case "set":
@@ -93,18 +87,13 @@ func runLock(args []string) error {
 			return fmt.Errorf("lock set needs a slug")
 		}
 		return setLockSkin(args[1])
-	case "install":
-		if len(args) < 2 {
-			return fmt.Errorf("lock install needs a slug")
-		}
-		return lockInstall(args[1])
 	case "apply-greeter":
 		if len(args) < 2 {
 			return fmt.Errorf("lock apply-greeter needs a slug")
 		}
 		return applyGreeter(args[1])
 	default:
-		return fmt.Errorf("lock needs catalog|list|set|install")
+		return fmt.Errorf("lock needs list|set|apply-greeter")
 	}
 }
 
@@ -218,10 +207,17 @@ func setLockSkin(slug string) error {
 	if !fileExists(filepath.Join(dir, slug, "Main.qml")) {
 		return fmt.Errorf("unknown lock skin: %s", slug)
 	}
-	if err := escalateGreeter(slug); err != nil {
+	// The session lock is the user's own file and needs no privilege, so it is
+	// written first. Escalating first meant a cancelled admin prompt threw the
+	// whole pick away: the page snapped back to the old skin even though the
+	// in-session half could always have honoured it.
+	if err := setLockSkinIn(dir, qylockThemePref(), slug); err != nil {
 		return err
 	}
-	return setLockSkinIn(dir, qylockThemePref(), slug)
+	if err := escalateGreeter(slug); err != nil {
+		return fmt.Errorf("lock skin set for this session; the sign-in screen keeps its old one: %w", err)
+	}
+	return nil
 }
 
 // setLockSkinIn writes slug to the active-lock pref file. an unknown slug is

@@ -101,9 +101,13 @@ gst-plugins-ugly
 gst-libav
 
 # Wayland tools
+# matugen: the material-you palette engine the shell daemon runs on every
+# wallpaper / scheme change to author colors.json and fan it into app configs.
+matugen
 brightnessctl
 hypridle
 upower
+power-profiles-daemon
 fuzzel
 grim
 playerctl
@@ -140,6 +144,9 @@ git
 github-cli
 lazygit
 neovim
+# pciutils: lspci is the primary GPU-detection path for the per-profile driver
+# scripts during pacstrap (system/hardware/drivers/*.sh); absent from the chroot otherwise.
+pciutils
 ripgrep
 starship
 zoxide

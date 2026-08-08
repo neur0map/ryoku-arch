@@ -7,8 +7,9 @@
 # EGL/GL context, no GPU userspace driver (Mesa gallium+LLVM, or the NVIDIA
 # GL/CUDA stack) is ever mapped into the process, so its RSS stays in the ~40 MB
 # awww class on any GPU vendor -- unlike mpv/mpvpaper (a GL pipeline, 300-700 MB
-# and an unbounded per-loop leak). The shell transcodes clips to <=720p30 first
-# so the CPU decode is cheap (~8% of one core) and the decoded-frame pool small.
+# and an unbounded per-loop leak). The shell transcodes clips first, to the
+# widest monitor's logical width (<=2560) at 30fps with B-frames off: measured
+# ~15% of a core and ~47 MB PSS at 2048 wide.
 #
 # Build-time only: wayland-scanner, a C toolchain, and the ffmpeg + wayland
 # client dev libraries. The installed target runs against the ffmpeg/wayland

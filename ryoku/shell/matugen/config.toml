@@ -1,0 +1,31 @@
+[config]
+
+# colors.json (the shell's own palette) is authored by the Go control plane;
+# matugen fans that same palette into the core desktop surface below. These
+# templates always render: the terminal, the Hyprland frame, the system
+# monitor, and the Qt toolkit the shell itself is built on. The GTK / GUI-app
+# fan-out lives in apps.toml, gated by the "Theme apps" toggle (theme.json
+# themeApps), so a user can keep third-party apps stock while the shell tracks
+# the palette.
+
+[templates.kitty]
+input_path = "~/.config/matugen/templates/kitty-colors.conf"
+output_path = "~/.config/kitty/current-theme.conf"
+
+[templates.hypr]
+input_path = "~/.config/matugen/templates/hypr-colors.lua"
+output_path = "~/.cache/ryoku/hypr-colors.lua"
+
+[templates.btop]
+input_path = "~/.config/matugen/templates/btop.theme"
+output_path = "~/.config/btop/themes/ryoku.theme"
+
+[templates.qt6ct]
+input_path = "~/.config/matugen/templates/qt6ct-colors.conf"
+output_path = "~/.config/qt6ct/colors/ryoku.conf"
+# Once the palette is fanned out, retint the file-manager folder icons to the
+# same accent: ryoku-cmd-folders rebuilds the Papirus-Dark overlay and nudges
+# running GTK apps to reload. Riding matugen's post_hook fires it on every
+# palette change from either path (follow-wallpaper and fixed schemes), so it
+# needs no wiring in the Go daemon.
+post_hook = "command -v ryoku-cmd-folders >/dev/null && ryoku-cmd-folders; true"

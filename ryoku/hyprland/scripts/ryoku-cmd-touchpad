@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Touchpad lock -- the FN "touchpad off" key (XF86TouchpadToggle/On/Off).
+#
+#   ryoku-cmd-touchpad toggle   flip every touchpad (the FN key)
+#   ryoku-cmd-touchpad on       enable every touchpad
+#   ryoku-cmd-touchpad off      disable every touchpad
+#   ryoku-cmd-touchpad status   "on" | "off"
+#
+# Ryoku's Hyprland runs the Lua config parser, so `hyprctl keyword` is rejected;
+# device state is flipped with `hyprctl eval` against the same `hl` API the
+# config uses (hl.device{ name, enabled }) -- the no-flash path ryoku-hub and
+# ryoku-cmd-game-mode take. Hyprland exposes no per-device enabled readback, so
+# the intended state is kept in a flag file; a `hyprctl reload` (e.g. a Ryoku
+# Settings save) rereads Lua and re-enables every touchpad, same runtime-override
+# model as game mode.
+set -u
+
+state_dir="${RYOKU_STATE_PATH:-${XDG_STATE_HOME:-$HOME/.local/state}/ryoku}"
+state_file="${RYOKU_TOUCHPAD_STATE_FILE:-$state_dir/touchpad.disabled}"
+
+notify() {
+  command -v notify-send >/dev/null 2>&1 && notify-send -a Ryoku "$1" "$2" || true
+}
+
+# Every touchpad libinput exposes: its device name carries the "touchpad" suffix
+# (e.g. asuf1204:00-2808:0201-touchpad), which the trackpoint/mouse half lacks.
+touchpads() {
+  hyprctl devices -j 2>/dev/null | jq -r '.mice[]?.name | select(test("touchpad"; "i"))'
+}
+
+# Flip every touchpad to enabled=<true|false>. Returns non-zero when the machine
+# has no touchpad (a desktop, or no live compositor).
+set_pads() {
+  local enabled="$1" name found=1
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    found=0
+    hyprctl eval "hl.device({ name = \"$name\", enabled = $enabled })" >/dev/null 2>&1 || true
+  done < <(touchpads)
+  return "$found"
+}
+
+enable_pads() {
+  set_pads true || { notify "Touchpad" "No touchpad found"; return 0; }
+  rm -f "$state_file" 2>/dev/null || true
+  notify "Touchpad" "On"
+}
+
+disable_pads() {
+  set_pads false || { notify "Touchpad" "No touchpad found"; return 0; }
+  mkdir -p "$state_dir" 2>/dev/null || true
+  : >"$state_file" 2>/dev/null || true
+  notify "Touchpad" "Off"
+}
+
+is_off() { [ -e "$state_file" ]; }
+
+case "${1:-toggle}" in
+  status)         if is_off; then echo off; else echo on; fi ;;
+  on | enable)    enable_pads ;;
+  off | disable)  disable_pads ;;
+  toggle)         if is_off; then enable_pads; else disable_pads; fi ;;
+  *)
+    echo "usage: ryoku-cmd-touchpad [toggle | on | off | status]" >&2
+    exit 2
+    ;;
+esac

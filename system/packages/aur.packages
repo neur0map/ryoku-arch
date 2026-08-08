@@ -1,6 +1,6 @@
 # AUR packages. These are NOT installed by pacstrap (the base install has no AUR
-# helper). They are built later via an AUR helper during post-install, and are
-# the source-of-truth for an offline AUR mirror on the ISO.
+# helper). They are built via an AUR helper during post-install: online-only and
+# best-effort, so the install completes without them and they arrive later.
 # One package per line; '#' and blank lines are ignored. Use the AUR PackageBase.
 
 # AUR helper (bootstrapped first so the rest can be built)
@@ -10,12 +10,14 @@ yay-bin
 limine-mkinitcpio-hook
 limine-snapper-sync
 
-# Cursor themes: a curated set of modern XCursor themes the Ryoku Settings picker
-# offers (XCURSOR_THEME defaults to Bibata-Modern-Ice). The modern flat vimix set
-# ships from the official repo, see base.packages. Prebuilt packages are preferred
-# so a flaky source build cannot leave the picker with a single fallback.
-# Bibata family: Modern and Original edges in Ice, Amber, Classic.
-bibata-cursor-theme-bin
+# Cursor themes: extra XCursor themes the Ryoku Settings picker offers on top of
+# the configured default. Bibata (XCURSOR_THEME defaults to Bibata-Modern-Ice)
+# now ships first-class from the [ryoku] repo as a hard ryoku-desktop dependency,
+# not the AUR: an AUR-only theme installed only in the post-install step (skipped
+# offline, best-effort on failure) and `ryoku update` never revisited it, so a
+# box could come up with no configured cursor. See release/packages/ryoku-cursors.
+# The modern flat vimix set ships from the official repo, see base.packages.
+# These prebuilt extras are best-effort, like every package in this set.
 # phinger: clean rounded set, light and dark, from a prebuilt release.
 phinger-cursors
 # volantes: minimal modern set, light and dark; the base Catppuccin is built on.
@@ -25,11 +27,6 @@ catppuccin-cursors-mocha
 # apple_cursor (macOS style): builds from source via clickgen, so it can be slow or
 # fail to build; best-effort, like every package in this set.
 apple_cursor
-
-# wallust (the wallpaper -> color palette generator) now ships first-class from
-# the [ryoku] repo as a ryoku-desktop dependency, not the AUR: its AUR package
-# pins a checksum against Codeberg's auto-generated source archive, which
-# Codeberg regenerates non-reproducibly, so the pin drifts and the build fails.
 
 # Wallpaper daemon (awww / awww-daemon): now ships first-class from the [ryoku]
 # repo as a hard ryoku-desktop dependency, not the AUR. The AUR build was skipped
@@ -50,9 +47,23 @@ localsend-bin
 # ships every engine (Whisper + the ONNX set) and types through wtype.
 voxtype-bin
 
+# spicetify-cli: patches the Spotify client so the bundled Ryoku Canvas extension
+# (ryoku/apps/spicetify/ryoku-canvas.js) can relay the playing track's Spotify
+# Canvas to the desktop music widget. `ryoku doctor` drops the extension in and
+# applies it when Spotify is installed; inert for anyone who does not use Spotify.
+spicetify-cli
+
 # Display + UI fonts the shell/Hub use to match the Ryoku brand (the website's
 # type stack): Fraunces (variable serif, editorial headlines) and Space Grotesk
 # (UI sans). Inter, JetBrains Mono and Noto CJK ship from the official repo (see
 # base.packages). AUR-only, so built post-install.
 ttf-fraunces-variable
 otf-space-grotesk
+
+# Game controllers over Bluetooth. game-devices-udev ships the udev rules +
+# battery reporting for DualSense/DualShock and Switch Pro pads; xpadneo-dkms is
+# the Xbox One/Series wireless driver. They pair with the uinput module and the
+# user's `input` group (system/hardware/input, installer groups) so Steam Input
+# and the pads work out of the box.
+game-devices-udev
+xpadneo-dkms

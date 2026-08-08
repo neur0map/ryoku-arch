@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# ryotunes: YouTube Music as a focused Ryoku app. A dedicated Chromium app-window
+# on music.youtube.com, single-instanced by a flock and isolated in its own
+# profile so it carries its own login and its own MPRIS identity -- which is what
+# the desktop now-playing widget (services/Media + Music) follows and retints to.
+#
+# Chromium is the wrap here because Ryoku already ships it and its built-in media
+# session speaks MPRIS on Wayland out of the box; the Electron and Tauri YTM
+# clients either crash on this compositor or publish no MPRIS at all, so neither
+# could drive the widget. See ryoku/shell/CHANGELOG.md.
+exec flock -n -o /tmp/ryotunes.lock chromium \
+    --app=https://music.youtube.com \
+    --class=ryotunes \
+    --user-data-dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryotunes" \
+    --no-first-run \
+    --no-default-browser-check \
+    "$@"

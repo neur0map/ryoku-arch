@@ -8,9 +8,11 @@
 #
 #   1. enable sddm.service
 #   2. default systemd target = graphical
-#   3. strip pam_gnome_keyring from /etc/pam.d/sddm. a password SDDM login
-#      must NOT spawn an encrypted login keyring: it clashes with the
-#      passwordless Default_keyring used for auto-unlock.
+#   3. wire /etc/pam.d/sddm for the shipped keyring mode: unlock-on-login by
+#      default (pam_gnome_keyring unlocks the login keyring with the login
+#      password at sign-in, so the desktop stops prompting), or never-ask under
+#      autologin (strip the lines; there is no login password for PAM to reuse,
+#      and the keyring seeds a blank default on first use via the Hub/CLI).
 #   4. make sure a hyprland.desktop wayland session exists so SDDM can launch it
 #
 # the greeter THEME itself is installed by install-qylock. this script only
@@ -70,16 +72,49 @@ priv systemctl enable sddm.service
 echo "  setting default target -> graphical.target"
 priv systemctl set-default graphical.target
 
-# --- 3. drop pam_gnome_keyring from the SDDM PAM stack -----------------------
+# --- 3. wire pam_gnome_keyring for the shipped keyring mode ------------------
+# Fresh installs ship unlock-on-login: the desktop never prompts and the store
+# stays encrypted at rest. Under autologin there is no login password for PAM to
+# reuse, so we ship never-ask (strip the lines) instead; the blank default
+# keyring is seeded lazily by the Hub/CLI, never by this root installer -- a
+# root process must not create files in the user's home. `ryoku keyring set`
+# lets the user change this later.
+sddm_autologin() {
+  local f
+  for f in /etc/sddm.conf /etc/sddm.conf.d/*; do
+    [[ -f $f ]] || continue
+    awk '
+      /^\[/ { sec = $0 }
+      sec == "[Autologin]" && /^[[:space:]]*User[[:space:]]*=/ {
+        split($0, kv, "="); gsub(/[[:space:]]/, "", kv[2]); if (kv[2] != "") found = 1
+      }
+      END { exit(found ? 0 : 1) }
+    ' "$f" && return 0
+  done
+  return 1
+}
+
+wire_keyring_pam() {
+  if ! grep -qE '^[[:space:]]*auth.*pam_gnome_keyring\.so' "$PAM_FILE"; then
+    priv sed -i '/^[[:space:]]*auth[[:space:]].*include[[:space:]].*system-login/a auth optional pam_gnome_keyring.so' "$PAM_FILE"
+  fi
+  if ! grep -qE '^[[:space:]]*session.*pam_gnome_keyring\.so' "$PAM_FILE"; then
+    priv sed -i '/^[[:space:]]*session[[:space:]].*include[[:space:]].*system-login/a session optional pam_gnome_keyring.so auto_start' "$PAM_FILE"
+  fi
+}
+
 if [[ -f $PAM_FILE ]]; then
-  if grep -q 'pam_gnome_keyring\.so' "$PAM_FILE"; then
-    echo "  removing pam_gnome_keyring from $PAM_FILE"
-    priv sed -i '/pam_gnome_keyring\.so/d' "$PAM_FILE"
+  if sddm_autologin; then
+    echo "  autologin configured: shipping never-ask (stripping pam_gnome_keyring)"
+    if grep -q 'pam_gnome_keyring\.so' "$PAM_FILE"; then
+      priv sed -i '/pam_gnome_keyring\.so/d' "$PAM_FILE"
+    fi
   else
-    echo "  pam_gnome_keyring already absent from $PAM_FILE"
+    echo "  shipping unlock-on-login (wiring pam_gnome_keyring into $PAM_FILE)"
+    wire_keyring_pam
   fi
 else
-  echo "  note: $PAM_FILE not present yet; nothing to strip"
+  echo "  note: $PAM_FILE not present yet; nothing to wire"
 fi
 
 # --- 4. make sure a Hyprland wayland session exists --------------------------

@@ -19,16 +19,6 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .hero-tick { animation: spin 60s linear infinite; }
 
-  /* Halftone grain shimmer: jitter the tile in hard steps. */
-  @keyframes grainshift {
-    0%   { background-position: 0 0; }
-    25%  { background-position: -6px 4px; }
-    50%  { background-position: 4px -6px; }
-    75%  { background-position: -4px -4px; }
-    100% { background-position: 0 0; }
-  }
-  .grain { animation: grainshift 8s steps(4) infinite; }
-
   /* Scanline sweep while a pane refreshes. */
   @keyframes scan {
     from { top: -40%; }

@@ -23,7 +23,7 @@ func TestIsVideo(t *testing.T) {
 func TestFrameOffset(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_STATE_HOME", dir)
-	tune := filepath.Join(dir, "ryoku-wallust.json")
+	tune := filepath.Join(dir, "ryoku-ryowalls.json")
 	video := "/home/x/Pictures/livewalls/clip.mp4"
 
 	// no tune -> the auto default
@@ -43,6 +43,57 @@ func TestFrameOffset(t *testing.T) {
 	_ = os.WriteFile(tune, []byte(`{"image":"`+video+`","frame":0}`), 0o644)
 	if got := frameOffset(video); got != "1" {
 		t.Fatalf("zero frame: got %q want 1", got)
+	}
+}
+
+// liveFps: 30 unless the Performance page's 60fps switch is on AND the clip can
+// actually supply 60, so a 30fps source is never padded up into double the decode.
+func TestLiveFps(t *testing.T) {
+	bin := t.TempDir()
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	if err := os.MkdirAll(filepath.Join(cfg, "ryoku"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	perf := filepath.Join(cfg, "ryoku", "performance.json")
+	fakeProbe := func(out string) {
+		body := "#!/bin/sh\nprintf '%s\\n' " + out + "\n"
+		if err := os.WriteFile(filepath.Join(bin, "ffprobe"), []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	vid := filepath.Join(t.TempDir(), "clip.mp4")
+	if err := os.WriteFile(vid, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	fakeProbe("60/1")
+	if err := os.WriteFile(perf, []byte(`{"liveWallpaper60":false}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := liveFps(vid); got != "30" {
+		t.Errorf("switch off: got %q want 30", got)
+	}
+
+	if err := os.WriteFile(perf, []byte(`{"liveWallpaper60":true}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := liveFps(vid); got != "60" {
+		t.Errorf("60fps source: got %q want 60", got)
+	}
+	fakeProbe("60000/1001") // 59.94, still a 60-class clip
+	if got := liveFps(vid); got != "60" {
+		t.Errorf("59.94fps source: got %q want 60", got)
+	}
+	fakeProbe("30/1")
+	if got := liveFps(vid); got != "30" {
+		t.Errorf("30fps source must not be padded to 60: got %q", got)
+	}
+	// an unreadable rate falls back rather than guessing
+	fakeProbe("N/A")
+	if got := liveFps(vid); got != "30" {
+		t.Errorf("unparseable rate: got %q want 30", got)
 	}
 }
 

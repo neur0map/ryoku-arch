@@ -652,6 +652,10 @@ func stopShell() {
 	if !sys.Has("ryoku-shell") {
 		return
 	}
+	// Under systemd the unit would respawn the daemon two seconds after the
+	// quit below and the update would race its own quiesce. Stopping the unit
+	// is a no-op where it does not exist yet.
+	_ = exec.Command("systemctl", "--user", "stop", "ryoku-shell").Run()
 	shell := pkgBin("ryoku-shell")
 	_ = exec.Command(shell, "quit").Run()
 	for i := 0; i < 20; i++ {
@@ -678,10 +682,16 @@ func stopShell() {
 	time.Sleep(200 * time.Millisecond)
 }
 
-// startShell brings the shell daemon up on the current binary, detached so it
-// outlives this process. mirrors deploy.sh.
+// startShell brings the shell daemon back up, under systemd where the unit
+// exists so it stays supervised, else detached on the current binary. The
+// daemon-reload is what lets a unit materialize just laid down be found; a
+// stale-cached user manager would otherwise report it unknown at start.
 func startShell() {
 	if !sys.Has("ryoku-shell") {
+		return
+	}
+	_ = exec.Command("systemctl", "--user", "daemon-reload").Run()
+	if exec.Command("systemctl", "--user", "restart", "ryoku-shell").Run() == nil {
 		return
 	}
 	cmd := exec.Command("setsid", pkgBin("ryoku-shell"), "daemon")

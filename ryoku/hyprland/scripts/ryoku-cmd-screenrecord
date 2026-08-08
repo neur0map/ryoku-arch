@@ -85,6 +85,33 @@ recorder_running() {
   proc_running "$gsr_pattern" || proc_running "$wf_pattern"
 }
 
+# A live (video) wallpaper renders through ryoku-livewall on its own background
+# layer that gsr's KMS capture drops; the portal path captures the composite.
+live_wallpaper_active() {
+  command -v pgrep >/dev/null 2>&1 && pgrep -x ryoku-livewall >/dev/null 2>&1
+}
+
+# Portal capture works on most boxes but fails on some hybrid-GPU ones where xdph
+# cannot negotiate a DMA-BUF format (no pipewire node). Remember the outcome per
+# GPU topology, so a broken box skips the picker and a changed one is retried.
+portal_status_file() { printf '%s/screenrecord-portal' "${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"; }
+portal_status() {
+  local f sig cs st
+  f="$(portal_status_file)"
+  sig="$(gpu_topology_signature)"
+  [[ -n $sig && -r $f ]] || return 0
+  IFS=$'\t' read -r cs st <"$f" 2>/dev/null || true
+  [[ $cs == "$sig" ]] && printf '%s' "$st"
+}
+set_portal_status() {
+  local f sig
+  f="$(portal_status_file)"
+  sig="$(gpu_topology_signature)"
+  [[ -n $sig ]] || return 0
+  mkdir -p "$(dirname "$f")" 2>/dev/null || true
+  printf '%s\t%s\n' "$sig" "$1" >"$f" 2>/dev/null || true
+}
+
 # which backend owns the live recording right now, if any.
 running_backend() {
   if proc_running "$gsr_pattern"; then
@@ -102,14 +129,22 @@ signal_recorder() {
   pkill "$signal" -f "$pattern" >/dev/null 2>&1 || true
 }
 
-# must match Ryoku.Paths.recsdir (shell/utils/Paths.qml): RYOKU_SHELL_RECORDINGS_DIR
-# or ${XDG_VIDEOS_DIR:-$HOME/Videos}/Recordings. the shell's recordings list only
+# must match Ryoku.Ui.Singletons.Paths.recordingsDir, which the deck's recordings
+# list and the Hub's Recording page both read: the env override, then the Hub's
+# `directory` setting, then ${XDG_VIDEOS_DIR:-$HOME/Videos}/Recordings. the list
 # watches that one dir, so any other resolution (e.g. `xdg-user-dir VIDEOS`,
 # which returns $HOME when there's no Videos dir) would hide every saved
 # recording.
 recordings_dir() {
+  local configured
   if [[ -n ${RYOKU_SHELL_RECORDINGS_DIR:-} ]]; then
     printf '%s\n' "$RYOKU_SHELL_RECORDINGS_DIR"
+    return
+  fi
+
+  configured="$(cfg_get '.directory' '')"
+  if [[ -n $configured ]]; then
+    printf '%s\n' "${configured/#\~/$HOME}"
     return
   fi
 
@@ -346,6 +381,12 @@ stop_recording() {
   signal_recorder -INT "$gsr_pattern"
   signal_recorder -INT "$wf_pattern"
   notify -u normal "Screen recording stopped" "Saving recording to Videos/Recordings"
+
+  # gsr's KMS capture leaves the screen washed out until a reconfigure (#11284)
+  if command -v hyprctl >/dev/null 2>&1; then
+    for _ in $(seq 30); do recorder_running || break; sleep 0.1; done
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
 }
 
 pause_recording() {
@@ -421,6 +462,8 @@ start_gsr() {
   local fps fmode quality codec encoder cursor
   local capture="screen"
   local region_geom=""
+  local portal_token="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/screenrecord-portal-token"
+  local use_portal="no"
   local audio_source=""
   local output_dir
   local output_path
@@ -439,6 +482,13 @@ start_gsr() {
     region_geom="$(region_geometry_gsr)"
     [[ -n $region_geom ]] || exit 0
     capture="region"
+  fi
+
+  # Fullscreen over a live wallpaper: capture through the portal so the
+  # ryoku-livewall layer is composited in. Region stays on KMS (it crops to
+  # content, and -region only works with -w region).
+  if [[ $mode != "region" ]] && live_wallpaper_active; then
+    use_portal="yes"
   fi
 
   if [[ $desktop_audio == "true" && $microphone_audio == "true" ]]; then
@@ -460,6 +510,29 @@ start_gsr() {
   # -fm cfr: a steady framerate every player and editor reads correctly (vfr
   # often imports as ~30fps and looks choppy). -q/-k/-encoder come from the
   # Hub's Recording page (recording.json); env vars override.
+  if [[ $use_portal == "yes" ]]; then
+    # Ryoku's in-frame picker selects the source once; the restore token
+    # remembers it, so later captures start without a prompt.
+    args=("$recorder_cmd" -w portal -restore-portal-session yes -portal-session-token-filepath "$portal_token" -f "$fps" -fm "$fmode" -q "$quality" -k "$codec" -encoder "$encoder" -c mp4 -cursor "$cursor")
+    [[ -n $audio_source ]] && args+=(-a "$audio_source")
+    args+=(-o "$output_path")
+    # Confirm the portal screencast actually came up; if not, remember it and
+    # fall back to wf-recorder, which captures the composite via wlr-screencopy.
+    "${args[@]}" &
+    local gsr_pid=$!
+    sleep 2.5
+    if kill -0 "$gsr_pid" 2>/dev/null && proc_running "$gsr_pattern"; then
+      set_portal_status ok
+      wait "$gsr_pid"
+      exit $?
+    fi
+    wait "$gsr_pid" 2>/dev/null || true
+    set_portal_status bad
+    rm -f "$output_path" 2>/dev/null || true
+    start_wf "$mode" "$desktop_audio" "$microphone_audio"
+    exit $?
+  fi
+
   args=("$recorder_cmd" -w "$capture" -f "$fps" -fm "$fmode" -q "$quality" -k "$codec" -encoder "$encoder" -c mp4 -cursor "$cursor")
   [[ $capture == "region" ]] && args+=(-region "$region_geom")
   [[ -n $audio_source ]] && args+=(-a "$audio_source")
@@ -543,6 +616,7 @@ start_wf() {
     [[ -s $output_path ]] && exit "${status:-0}"
     rm -f "$output_path"
     output_path="$(next_recording_path "$output_dir")"
+    printf '%s\n' "$output_path" >"${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/last-recording" 2>/dev/null || true
   fi
 
   exec "$wf_cmd" -r "$fps" "${target_args[@]}" "${audio_args[@]}" \
@@ -560,7 +634,18 @@ start_recording() {
     return 0
   fi
 
-  backend="$(select_backend)"
+  # A live wallpaper needs the portal path (start_gsr composites the livewall
+  # layer through it); once we learn the portal is broken on this box, skip its
+  # dead-end picker and record with the wf-recorder fallback directly.
+  if [[ $mode != "region" ]] && live_wallpaper_active; then
+    if [[ "$(portal_status)" == "bad" ]]; then
+      backend="wf"
+    else
+      backend="gsr"
+    fi
+  else
+    backend="$(select_backend)"
+  fi
   case "$backend" in
   wf)
     start_wf "$mode" "$desktop_audio" "$microphone_audio"

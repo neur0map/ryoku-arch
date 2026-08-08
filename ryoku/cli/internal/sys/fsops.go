@@ -17,6 +17,16 @@ func BaseConfigDir() string {
 	return "/usr/share/ryoku/config"
 }
 
+// UserEditsDir is the user's override tree, ~/.config/ryoku/user_edits, mirroring
+// ~/.config. A regular file here wins over the Ryoku-owned base materialize lays
+// (a fork); the tool's native last-wins include (settings.lua, user.lua,
+// kitty user.conf) layers the rest on top so base fixes still land. Sparse by
+// design: absent or empty means the machine runs pure base and the overlay is a
+// no-op, so an update behaves exactly as it did before this existed.
+func UserEditsDir() string {
+	return filepath.Join(ConfigHome(), "ryoku", "user_edits")
+}
+
 // CopyFile copies src to dst, preserving src's permission bits, via a temp file
 // and atomic rename so a reader never sees a half-written file.
 func CopyFile(src, dst string) error {

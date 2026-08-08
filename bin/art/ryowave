@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""Draw the dictation audio-wave motion loop as a grayscale gif source.
+
+The decor set is baked from public-domain art, but a live audio wave has no
+still to bake -- so this draws one. It traces an oscilloscope whose frequency
+climbs left to right (low swells building into a high burst, after the reference
+waveform), scrolling for a seamless loop. It emits a grayscale gif -- a soft
+glowing trace on black -- for `ryodither` to bake into the Ryoku decor:
+
+    ryowave --out /tmp/wave.gif && ryodither /tmp/wave.gif --name wave
+
+Grayscale on purpose: ryodither carries the tone into its ordered dither, so the
+wave matches the other motion loops instead of arriving pre-thresholded. Tune
+--width/--height/--frames for size and smoothness.
+
+Requires Pillow and numpy (`pip install pillow numpy`).
+"""
+import argparse
+import sys
+from pathlib import Path
+
+try:
+    import numpy as np
+    from PIL import Image
+except ImportError:
+    sys.exit("ryowave: needs Pillow and numpy -- `pip install pillow numpy`")
+
+
+def render(width, height, n):
+    xs = np.linspace(0, 1, width)
+    yc = height * 0.5
+    # amplitude envelope: big low swells on the left, a dense burst on the right
+    env = (1.00 * np.exp(-((xs - 0.22) / 0.15) ** 2)
+           + 0.55 * np.exp(-((xs - 0.50) / 0.14) ** 2)
+           + 0.85 * np.exp(-((xs - 0.80) / 0.10) ** 2) + 0.12)
+    # phase grows quadratically, so the trace climbs from low tones to a high burst
+    phase = 2 * np.pi * (3.0 * xs + 7.0 * xs ** 3)
+    rows = np.arange(height)[:, None]
+    frames = []
+    for i in range(n):
+        t = i / n
+        carrier = np.sin(phase - 2 * np.pi * 3 * t)   # scrolls 3 cycles -> seamless loop
+        breath = 0.9 + 0.1 * np.sin(2 * np.pi * t)     # subtle amplitude breathing
+        y = yc - env * breath * (height * 0.40) * carrier
+        d = rows - y[None, :]
+        glow = np.exp(-(d / 4.8) ** 2) + 0.35 * np.exp(-(d / 14.0) ** 2)
+        grid = np.zeros((height, width))
+        grid[abs(rows - yc)[:, 0] < 0.6, :] = 0.14     # faint center axis
+        for gx in np.linspace(0.08, 0.92, 7):          # faint time ticks
+            grid[:, int(gx * width)] = np.maximum(grid[:, int(gx * width)], 0.08)
+        field = np.clip(glow + grid, 0, 1)
+        frames.append(Image.fromarray((field * 255).astype(np.uint8), "L"))
+    return frames
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="ryowave", description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("--out", type=Path, default=Path("wave-src.gif"),
+                    help="output grayscale gif (default ./wave-src.gif)")
+    ap.add_argument("--width", type=int, default=560)
+    ap.add_argument("--height", type=int, default=200)
+    ap.add_argument("--frames", type=int, default=24)
+    ap.add_argument("--duration", type=int, default=70, help="ms per frame")
+    a = ap.parse_args()
+
+    fr = render(a.width, a.height, a.frames)
+    fr[0].save(a.out, save_all=True, append_images=fr[1:],
+               duration=a.duration, loop=0, disposal=2)
+    print("drew %s (%dx%d, %d frames) -- bake with: ryodither %s --name wave"
+          % (a.out, a.width, a.height, a.frames, a.out))
+
+
+if __name__ == "__main__":
+    main()

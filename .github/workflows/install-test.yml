@@ -107,7 +107,7 @@ jobs:
               pacman -Su --noconfirm --needed \
                 base-devel git go rust cmake ninja gnupg \
                 qt6-base qt6-declarative qt6-shadertools qt6-multimedia \
-                hyprland hyprcursor pango cairo pixman libdrm libinput libxkbcommon wayland wayland-protocols ffmpeg pkgconf lz4
+                hyprland hyprcursor pango cairo pixman libdrm libinput libxkbcommon wayland wayland-protocols ffmpeg pkgconf lz4 gtk4 gtk4-layer-shell
               git config --global --add safe.directory /repo
               installation/tests/build-ryoku-repo.sh
               chown -R "$HOST_UID:$HOST_GID" /repo

@@ -26,7 +26,7 @@ These are not negotiable. Most are enforced by the git hooks in `.githooks/`.
    `ryoku/hyprland/`, one concern per file. Never hand-write a raw
    `hyprland.conf`. A standalone daemon or app that cannot read Lua keeps its own
    native config under its own directory (for example `hypridle.conf`,
-   `wallust.toml`, `kitty.conf`); that is the only reason a non-Lua config exists.
+   `matugen/config.toml`, `kitty.conf`); that is the only reason a non-Lua config exists.
 
 3. **One concern per file.** A Lua module does one thing. A QML component is one
    component in one file. Split things out; do not pile unrelated logic together.
@@ -54,7 +54,9 @@ These are not negotiable. Most are enforced by the git hooks in `.githooks/`.
 8. **Every change must reach users.** A dev box runs the checkout; users run
    packages, and `ryoku update` delivers them through `materialize` (the config)
    and `doctor` (drift). A user-facing config must be shipped by a package or
-   seeded by the installer, a removed or renamed `shell.json` key needs a doctor
+   seeded by the installer; user edits live in the `user_edits` overlay
+   (`~/.config/ryoku/user_edits`), never in shipped files, and survive updates. A
+   removed or renamed `shell.json` key needs a doctor
    reconciler, and work reaches users only once `main` fast-forwards. See
    `docs/updates.md`; `ryoku-dev-verify-delivery` enforces it.
 
@@ -86,19 +88,19 @@ only after a query points you to the exact lines.
 ### Commands
 
     prowl-agent overview            # project map: docs to read, roles, entrypoints, clusters (start here)
-    prowl-agent find <name>         # locate a symbol (function, setting, keybind, component)
+    prowl-agent find <name>         # locate a symbol; returns its signature, file, and line range
     prowl-agent search <text>       # search content; add --smart (rerank) or --compact (files only)
     prowl-agent callers <path>      # what includes / execs / binds to a file
     prowl-agent callees <path>      # what a file includes / execs / binds to
     prowl-agent impact <path>       # blast radius: dependent count, subsystems, direct importers (--all = full list)
     prowl-agent relations <path>    # a file's symbols and include neighbors
     prowl-agent entrypoints <path>  # root files from which this file is reachable
-    prowl-agent references <id>     # where a symbol is used: ref edges, or call sites for code (id from 'find')
+    prowl-agent references <id>     # where a symbol is used: call sites + calling fn, or ref edges (id from 'find')
     prowl-agent clusters [name]     # subsystems (summaries); with a name, that subsystem's files
     prowl-agent hotspots            # structurally central / large files
     prowl-agent violations          # dangling refs, orphan scripts, hardcoded colors
     prowl-agent doctor              # health: cycles, duplicate keybinds, broken commands
-    prowl-agent tests <path>        # configs/keybinds that launch or reload a file
+    prowl-agent tests <path>        # test files covering a file (or, for a config, what launches it)
     prowl-agent changed             # your git changes mapped to the files they could affect
 
 Every command accepts --json for JSON instead of TOON, and --limit N to cap
@@ -108,9 +110,9 @@ the index by walking up to .prowl/.
 ### When to use which
 
 - New or unfamiliar project: overview for the map, then clusters <name> to pull a subsystem's files.
-- After a find: results carry line and end_line, so read just that range, not the whole file.
-- Fuzzy / natural-language question: search "<text>" (add --smart); --compact lists files first.
-- Before changing a color/font/variable: find it, then references <id> for every usage; check violations.
+- After a find: the row carries the signature, line, and end_line, so read the signature for a symbol's interface and open only that line range when you need the body.
+- Fuzzy / natural-language question: search "<text>" matches all terms when the exact phrase is absent; --smart reranks semantically (needs AI), --compact lists files first.
+- Before changing any symbol (a function, a color, a variable): find it, then references <id> for its usages (cited call sites for code, reference edges for config); check violations.
 - Before editing or deleting a file: impact <path> for what breaks, callers <path> for what invokes it.
 - Adding a keybind: doctor first, to avoid duplicate-keybind clashes.
 - Tracing startup: entrypoints <path> for the entry point and autostart chain.

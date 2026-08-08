@@ -16,6 +16,31 @@ import (
 // ~/.config. empty in a deployed setup.
 var shellDir = os.Getenv("RYOKU_SHELL_DIR")
 
+var frameBarMenuIDs = map[string]bool{
+	"quick-settings": true,
+	"theme": true,
+	"wallpaper": true,
+	"weather": true,
+}
+
+func menuID(cmd string) (string, bool) {
+	fields := strings.Fields(cmd)
+	if len(fields) != 2 || fields[0] != "menu" {
+		return "", false
+	}
+	id := fields[1]
+	// Strip any "#page" suffix before checking the catalog; the full id
+	// (including the suffix) is returned so QML receives the deep-link page.
+	baseID := id
+	if h := strings.IndexByte(id, '#'); h >= 0 {
+		baseID = id[:h]
+	}
+	if !frameBarMenuIDs[baseID] {
+		return "", false
+	}
+	return id, true
+}
+
 // qsSelect: qs config selector for a component. by repo path in dev, by config
 // name when deployed.
 func qsSelect(name string) []string {
@@ -69,6 +94,11 @@ func ipcCallN(config, target, fn string, args ...string) string {
 	return "err qs ipc " + config + "/" + fn + ": " + msg
 }
 
+// ryoku: the pill was consolidated into the single shell instance, which serves
+// no command socket (its shell.qml omits the SocketServer fast path). The pill
+// socket helpers below and pillIpc are therefore dead in production; they are
+// retained (and still covered by pillipc_test.go) for the retire phase rather
+// than deleted here, to keep this cutover minimal and reversible.
 // pillSockPath: the pill's command socket. The pill (a persistent Quickshell
 // component) serves it; the daemon writes a surface command here to skip the
 // `qs ipc call` subprocess on the keybind hot path.
@@ -112,6 +142,15 @@ func pillIpc(fn string, args ...string) string {
 		return "ok"
 	}
 	return ipcCallN("pill", "pill", fn, args...)
+}
+
+// shellIpc invokes a "shell" IpcHandler function through the qs client. Unlike
+// the pill, the single consolidated shell serves no command socket, so there is
+// no socket fast path to prefer: every call goes straight to the qs client. A
+// package var so tests can capture the emitted call in place of a live
+// Quickshell.
+var shellIpc = func(fn string, args ...string) string {
+	return ipcCallN("shell", "shell", fn, args...)
 }
 
 // queryActiveMonitor reads the focused monitor fresh from hyprctl. The daemon's
@@ -203,21 +242,6 @@ func dictationReady() bool {
 		return false
 	}
 	return exec.Command("systemctl", "--user", "is-active", "--quiet", "voxtype.service").Run() == nil
-}
-
-// startCliphist starts the wl-paste watchers that feed clipboard history, once.
-func startCliphist() {
-	for _, kind := range []string{"text", "image"} {
-		pattern := "wl-paste --type " + kind + " --watch cliphist"
-		if pgrepRunning(pattern) {
-			continue
-		}
-		cmd := exec.Command("wl-paste", "--type", kind, "--watch", "cliphist", "store")
-		_ = cmd.Start()
-		if cmd.Process != nil {
-			_ = cmd.Process.Release()
-		}
-	}
 }
 
 func pgrepRunning(pattern string) bool {

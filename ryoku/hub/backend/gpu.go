@@ -21,6 +21,8 @@ func runGpu(args []string) error {
 		return runGpuMode(args[1:])
 	case "apply":
 		return runGpuApply(args[1:])
+	case "tune":
+		return runGpuTune(args[1:])
 	case "hook":
 		return runGpuHook(args[1:])
 	default:

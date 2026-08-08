@@ -1,0 +1,6 @@
+singleton Config Config.qml
+singleton Scheme Scheme.qml
+singleton Now Now.qml
+singleton Theme Theme.qml
+singleton Registry Registry.qml
+singleton Performance Performance.qml

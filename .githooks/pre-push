@@ -59,16 +59,18 @@ if command -v shellcheck >/dev/null 2>&1; then
 		[[ $local_sha == "$zero" ]] && continue
 		base=$remote_sha
 		[[ $base == "$zero" || -z $base ]] && base=$empty_tree
-		while IFS= read -r f; do
+		# NUL-delimited throughout (git -z, read -d '', xargs -0) so paths with
+		# spaces or shell metacharacters are never word-split by the collector.
+		while IFS= read -r -d '' f; do
 			[[ -f $f ]] || continue
 			case "$f" in
 				*.sh | *.bash) files+=("$f") ;;
 				*) [[ $(head -n1 "$f") == '#!'*bash* ]] && files+=("$f") ;;
 			esac
-		done < <(git diff --name-only --diff-filter=ACM "$base" "$local_sha" -- . ':(glob,exclude)**/vendor/**')
+		done < <(git diff -z --name-only --diff-filter=ACM "$base" "$local_sha" -- . ':(glob,exclude)**/vendor/**')
 	done <"$push_updates"
 	if ((${#files[@]} > 0)); then
-		printf '%s\n' "${files[@]}" | sort -u | xargs -r shellcheck -x || fail "ShellCheck failed on pushed shell files."
+		printf '%s\0' "${files[@]}" | sort -zu | xargs -0 -r shellcheck -x || fail "ShellCheck failed on pushed shell files."
 	fi
 fi
 

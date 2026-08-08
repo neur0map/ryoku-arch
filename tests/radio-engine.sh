@@ -13,7 +13,7 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq required" >&2; exit 0; }
 
 work="$(mktemp -d)"
 # stop FIRST: the state file (the only record of the supervisor's pgid) lives
-# inside $work — deleting it first would turn stop into a no-op and strand the
+# inside $work, deleting it first would turn stop into a no-op and strand the
 # stub player for its full 600s nap whenever a case aborts mid-broadcast.
 trap '"$radio" stop >/dev/null 2>&1 || true; rm -rf "$work"' EXIT
 
@@ -140,7 +140,7 @@ fi
 
 # ---- back-to-back starts leave exactly one broadcast --------------------------
 # regression: a second start landing in the pgid-registration window used to
-# spawn a sibling supervisor the stop could never find — doubled audio, an
+# spawn a sibling supervisor the stop could never find, doubled audio, an
 # orphan streaming until logout. start now holds the lock until the group is
 # stamped, and the broadcast token disowns any predecessor mid-lap.
 : >"$work/played.log"
@@ -174,15 +174,15 @@ else
 fi
 
 # ---- one title prefix across the stack ----------------------------------------
-# the engine's forced title, the launcher's matcher and the pill's hand copy
+# the engine's forced title, the launcher's matcher and the media service's copy
 # must agree, or the broadcast dress silently falls off a surface.
 eng="$here/../ryoku/hyprland/scripts/ryoku-cmd-radio"
 if grep -q 'force-media-title="LIVE · ' "$eng" \
-  && grep -q 'TITLE_PREFIX = "LIVE · "' "$here/../ryoku/shell/quickshell/launcher/lib/radio.js" \
-  && grep -q '"LIVE · "' "$here/../ryoku/shell/quickshell/pill/Singletons/Media.qml"; then
-  ok "LIVE title prefix agrees across engine, launcher, pill"
+  && grep -q 'TITLE_PREFIX = "LIVE · "' "$here/../ryoku/shell/quickshell/shell/modules/launcher/shared/lib/radio.js" \
+  && grep -q '"LIVE · "' "$here/../ryoku/shell/quickshell/shell/services/Media.qml"; then
+  ok "LIVE title prefix agrees across engine, launcher, media"
 else
-  bad "LIVE title prefix agrees across engine, launcher, pill" "grep the three files for 'LIVE · '"
+  bad "LIVE title prefix agrees across engine, launcher, media" "grep the three files for 'LIVE · '"
 fi
 
 printf '%d passed, %d failed\n' "$pass" "$fail"

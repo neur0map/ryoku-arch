@@ -1,0 +1,8 @@
+QuickPage QuickPage.qml
+ConfigurePage ConfigurePage.qml
+BarsRoute BarsRoute.qml
+AppearanceRoute AppearanceRoute.qml
+LogoRoute LogoRoute.qml
+WorkspacesRoute WorkspacesRoute.qml
+PickersRoute PickersRoute.qml
+SemanticPreview SemanticPreview.qml

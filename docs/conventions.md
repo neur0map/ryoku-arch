@@ -38,7 +38,7 @@ need it, it is one shared helper (as `ryoku-hw-laptop` is).
 ## Native config formats are expected
 
 The Lua rule covers the *Hyprland* config only. Every third-party tool keeps its
-own native format under its own directory: `kitty.conf`, `wallust.toml`,
+own native format under its own directory: `kitty.conf`,
 `qt6ct.conf`, `yazi.toml`, `starship.toml`, `hypridle.conf`, `npmrc`, `pip.conf`.
 That is correct, not a violation. Do not invent a Lua wrapper for a tool that
 reads its own format.

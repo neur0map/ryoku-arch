@@ -31,7 +31,6 @@ ShellRoot {
     property var hoverWindow: null
     property var windowRects: []
     property bool dialogMode: false
-    property string savedAuto: ""
     property string beautifySrc: ""
     property string beautifyBgImage: ""
     property bool composeActive: false
@@ -45,11 +44,33 @@ ShellRoot {
 
     readonly property bool testRect: Quickshell.env("RYOSHOT_TESTRECT") === "1"
     readonly property string mode: Quickshell.env("RYOSHOT_MODE") === "monitor" ? "monitor" : "region"
+    // RYOSHOT_OPEN=<path>: skip selection and open that image straight in the
+    // beautify editor (the capture card's "Beautify after" hands the saved shot
+    // here). fromFile makes Escape / close quit, since there is no live capture
+    // to fall back to an editing phase over.
+    readonly property string openPath: Quickshell.env("RYOSHOT_OPEN") || ""
+    property bool fromFile: false
     readonly property string homeDir: Quickshell.env("HOME")
-    readonly property string shotsDir: homeDir + "/Pictures/Screenshots"
+    readonly property string shotsDir: (Quickshell.env("XDG_PICTURES_DIR") || (homeDir + "/Pictures")) + "/Screenshots"
     readonly property string ryoshotLuaPath: homeDir + "/.config/hypr/modules/ryoshot.lua"
 
     readonly property color vermilion: "#e2342a"
+
+    // open an existing image straight into beautify (RYOSHOT_OPEN). anchorOverlay
+    // needs a globalSel to pick which monitor shows the editor, so seed it to the
+    // first screen; beautify itself sizes from the file, not the selection.
+    function openForBeautify(path) {
+        var scr = Quickshell.screens;
+        if (scr.length > 0)
+            globalSel = { x: scr[0].x, y: scr[0].y, w: scr[0].width, h: scr[0].height };
+        fromFile = true;
+        composeActive = false;
+        composeMode = "";
+        beautifyBgImage = "";
+        beautifySrc = path;
+        phase = "beautify";
+    }
+    Component.onCompleted: if (openPath.length > 0) openForBeautify(openPath);
 
     function beginSelection(gx, gy) {
         pressPoint = { x: gx, y: gy };
@@ -330,11 +351,13 @@ ShellRoot {
         else endDraw();
     }
 
+    // Match Capture.qml's pattern exactly so both capture paths drop identically
+    // named files in the same folder: a UTC stamp + "_screenshot.png".
     function timestampName() {
         var d = new Date();
         function p(n) { return (n < 10 ? "0" : "") + n; }
-        return "shot-" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate())
-            + "-" + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + ".png";
+        return d.getUTCFullYear() + "_" + p(d.getUTCMonth() + 1) + "_" + p(d.getUTCDate())
+            + "_" + p(d.getUTCHours()) + "_" + p(d.getUTCMinutes()) + "_" + p(d.getUTCSeconds()) + "_screenshot.png";
     }
     readonly property string defaultPath: shotsDir + "/" + timestampName()
 
@@ -370,45 +393,92 @@ ShellRoot {
     }
 
     function seamStitch(path, after) {
-        var slices = [];
+        var screens = [];
         for (var i = 0; i < overlays.length; i++) {
             var s = overlays[i].modelData;
-            var inter = Coords.intersectRect(globalSel, { x: s.x, y: s.y, width: s.width, height: s.height });
-            if (!inter) continue;
-            slices.push({
-                win: overlays[i],
-                tmp: "/tmp/ryoshot-seam-" + i + ".png",
-                ox: Math.round(s.x + inter.x - globalSel.x),
-                oy: Math.round(s.y + inter.y - globalSel.y)
-            });
+            screens.push({ x: s.x, y: s.y, width: s.width, height: s.height });
         }
-        if (slices.length === 0) { if (after) after(false); return; }
-        if (slices.length === 1) { slices[0].win.grabExport(path, after); return; }
-        var done = 0, okAll = true;
-        for (var j = 0; j < slices.length; j++) {
-            (function (sl) {
-                sl.win.grabExport(sl.tmp, function (ok) {
+        var plan = Coords.stitchPlan(globalSel, screens);
+        if (plan.slices.length === 0) { if (after) after(false); return; }
+        // one screen: grab it straight, at native resolution (crisp, no stitch).
+        if (plan.slices.length === 1) { overlays[plan.slices[0].screen].grabExport(path, after); return; }
+        // spanning: grab each slice at its LOGICAL size so mixed-scale monitors
+        // land on one logical canvas without a HiDPI slice overflowing the seam.
+        var parts = [], done = 0, okAll = true;
+        for (var j = 0; j < plan.slices.length; j++) {
+            (function (sl, idx) {
+                var tmp = "/tmp/ryoshot-seam-" + idx + ".png";
+                parts.push({ tmp: tmp, ox: sl.ox, oy: sl.oy });
+                overlays[sl.screen].grabExport(tmp, function (ok) {
                     if (!ok) okAll = false;
                     done += 1;
-                    if (done === slices.length) compositeSlices(slices, path, okAll, after);
-                });
-            })(slices[j]);
+                    if (done === plan.slices.length) root.compositeSlices(parts, plan.canvas, path, okAll, after);
+                }, Qt.size(Math.round(sl.local.w), Math.round(sl.local.h)));
+            })(plan.slices[j], j);
         }
     }
 
-    function compositeSlices(slices, path, okAll, after) {
+    function compositeSlices(parts, canvas, path, okAll, after) {
         if (!okAll) { console.log("ryoshot: seam-stitch slice grab failed"); if (after) after(false); return; }
-        var args = ["magick", "-size", Math.round(globalSel.w) + "x" + Math.round(globalSel.h), "xc:black"];
-        for (var i = 0; i < slices.length; i++)
-            args = args.concat([slices[i].tmp, "-geometry", "+" + slices[i].ox + "+" + slices[i].oy, "-composite"]);
+        var args = ["magick", "-size", canvas.w + "x" + canvas.h, "xc:black"];
+        for (var i = 0; i < parts.length; i++)
+            args = args.concat([parts[i].tmp, "-geometry", "+" + parts[i].ox + "+" + parts[i].oy, "-composite"]);
         args.push(path);
         stitchProc.runWith(args, after);
+    }
+
+    // shutter cue: the daemon owns the shell's event sounds, so a completed
+    // capture asks it to play rather than shipping an asset in this config.
+    function shutter() { Quickshell.execDetached(["ryoku-shell", "sound", "shutter"]); }
+
+    Timer { id: quitTimer; interval: 250; onTriggered: Qt.quit() }
+    function quitSoon() { quitTimer.restart(); }
+
+    function notifySend(title, body) {
+        Quickshell.execDetached(body && body.length > 0
+            ? ["notify-send", "-a", "ryoku", title, body]
+            : ["notify-send", "-a", "ryoku", title]);
+    }
+
+    // Export exactly once per session. The beautify compose can emit copy/save
+    // more than once as overlays settle; without this guard each emission spawns
+    // another clip-copy, and the racing wl-copy owners cancel out so the live
+    // selection ends up empty (or replaced). The first grab wins; the rest no-op.
+    property bool exported: false
+
+    // Hand the copy to the persistent ryoku-shell daemon: it owns the Wayland
+    // selection (so it survives ryoshot quitting) and ingests the entry into
+    // clipboard history directly. A wl-copy run from ryoshot itself would die
+    // with the app and never reach history.
+    function copyImageAndQuit(file) {
+        if (root.exported) return;
+        root.exported = true;
+        Quickshell.execDetached(["ryoku-shell", "clip-copy", "image/png", file]);
+        root.quitSoon();
+        root.notifySend(qsTr("Screenshot copied to clipboard"), "");
+    }
+    function copyTextAndQuit(text) {
+        if (root.exported) return;
+        root.exported = true;
+        Quickshell.execDetached(["sh", "-c",
+            "f=$(mktemp); printf %s \"$1\" > \"$f\"; ryoku-shell clip-copy text/plain \"$f\"; rm -f \"$f\"", "sh", text]);
+        root.quitSoon();
+    }
+    // Save straight to the Screenshots folder (no dialog), matching Super+S. A
+    // beautify render arrives as a temp file and is copied in.
+    function saveToScreenshots(src) {
+        if (root.exported) return;
+        root.exported = true;
+        Quickshell.execDetached(["sh", "-c",
+            "mkdir -p \"$(dirname \"$2\")\"; [ \"$1\" = \"$2\" ] || cp -- \"$1\" \"$2\"", "sh", src, root.defaultPath]);
+        root.notifySend(qsTr("Screenshot saved"), root.defaultPath);
+        root.quitSoon();
     }
 
     function doCopy() {
         var auto = defaultPath;
         grabTo(auto, function (ok) {
-            if (ok) copyProc.run(auto);
+            if (ok) { root.shutter(); root.copyImageAndQuit(auto); }
             else Qt.quit();
         });
     }
@@ -417,16 +487,16 @@ ShellRoot {
         var auto = root.defaultPath;
         grabTo(auto, function (ok) {
             if (!ok) { Qt.quit(); return; }
-            root.savedAuto = auto;
-            root.dialogMode = true;
-            saveDialog.open();
+            root.shutter();
+            root.notifySend(qsTr("Screenshot saved"), auto);
+            root.quitSoon();
         });
     }
 
     function doUpload() {
         var tmp = "/tmp/ryoshot-upload.png";
         grabTo(tmp, function (ok) {
-            if (ok) uploadProc.run(tmp);
+            if (ok) { root.shutter(); uploadProc.run(tmp); }
             else Qt.quit();
         });
     }
@@ -439,6 +509,7 @@ ShellRoot {
         root.beautifySrc = "";
         root.grabTo("/tmp/ryoshot-beautify-src.png", function (ok) {
             if (!ok) return;
+            root.shutter();
             root.composeMode = mode;
             root.composeActive = true;
             root.beautifySrc = "/tmp/ryoshot-beautify-src.png";
@@ -465,28 +536,6 @@ ShellRoot {
     }
 
     Process {
-        id: saveDialog
-        stdout: StdioCollector { id: saveOut }
-        function open() {
-            command = ["sh", "-c",
-                "zenity --file-selection --save --filename=\"$1\" --file-filter='PNG | *.png' 2>/dev/null"
-                + " || kdialog --getsavefilename \"$1\" '*.png' 2>/dev/null",
-                "_", root.savedAuto];
-            running = true;
-        }
-        onExited: (code) => {
-            var chosen = saveOut.text.trim();
-            console.log("ryoshot: save-dialog exit " + code + " path=" + JSON.stringify(chosen));
-            if (code === 0 && chosen.length > 0) {
-                if (chosen !== root.savedAuto) copyFileProc.run(root.savedAuto, chosen);
-                else Qt.quit();
-            } else {
-                root.dialogMode = false;
-            }
-        }
-    }
-
-    Process {
         id: bgDialog
         stdout: StdioCollector { id: bgOut }
         function open() {
@@ -504,25 +553,6 @@ ShellRoot {
     }
 
     Process {
-        id: copyFileProc
-        function run(src, dst) { command = ["cp", "--", src, dst]; running = true; }
-        onExited: () => Qt.quit()
-    }
-
-    Process {
-        id: copyProc
-        function run(file) {
-            command = ["sh", "-c",
-                "wl-copy --type image/png < \"$1\"; "
-                + "if [ \"$(stat -c%s \"$1\")\" -ge 4900000 ]; then magick \"$1\" -quality 92 jpeg:- | cliphist store; "
-                + "else cliphist store < \"$1\"; fi",
-                "_", file];
-            running = true;
-        }
-        onExited: (code) => { console.log("ryoshot: wl-copy exit " + code); Qt.quit(); }
-    }
-
-    Process {
         id: uploadProc
         stdout: StdioCollector { id: uploadOut }
         function run(file) {
@@ -534,18 +564,9 @@ ShellRoot {
         onExited: (code) => {
             var url = uploadOut.text.trim();
             console.log("ryoshot: upload exit " + code + " url=" + JSON.stringify(url));
-            if (code === 0 && url.indexOf("http") === 0) urlCopyProc.run(url);
+            if (code === 0 && url.indexOf("http") === 0) root.copyTextAndQuit(url);
             else Qt.quit();
         }
-    }
-
-    Process {
-        id: urlCopyProc
-        function run(url) {
-            command = ["sh", "-c", "printf %s \"$1\" | wl-copy", "sh", url];
-            running = true;
-        }
-        onExited: () => Qt.quit()
     }
 
     Process {
@@ -619,7 +640,7 @@ ShellRoot {
                     if (root.textEditing) root.cancelText();
                     else if (root.settingsOpen) root.settingsOpen = false;
                     else if (root.selectedIndex !== null) root.clearSelection();
-                    else if (root.phase === "beautify") root.phase = "editing";
+                    else if (root.phase === "beautify") { if (root.fromFile) Qt.quit(); else root.phase = "editing"; }
                     else Qt.quit();
                 }
                 Keys.onPressed: (e) => {
@@ -722,16 +743,16 @@ ShellRoot {
                     bgImagePath: root.beautifyBgImage
                     composeOnly: root.composeActive
                     composeMode: root.composeMode
-                    onCopyRequested: (p) => copyProc.run(p)
-                    onSaveRequested: (p) => { root.savedAuto = p; root.dialogMode = true; saveDialog.open(); }
+                    onCopyRequested: (p) => root.copyImageAndQuit(p)
+                    onSaveRequested: (p) => root.saveToScreenshots(p)
                     onPickImageRequested: { root.dialogMode = true; bgDialog.open(); }
-                    onCloseRequested: { root.composeActive = false; root.phase = "editing"; }
+                    onCloseRequested: { root.composeActive = false; if (root.fromFile) Qt.quit(); else root.phase = "editing"; }
                 }
             }
 
             Component.onCompleted: root.overlays.push(win)
 
-            function grabExport(path, cb) { ov.grabExport(path, cb); }
+            function grabExport(path, cb, targetSize) { ov.grabExport(path, cb, targetSize); }
             function grabToolbar(path, cb) {
                 var sched = toolbar.grabToImage(function (r) {
                     var ok = false;

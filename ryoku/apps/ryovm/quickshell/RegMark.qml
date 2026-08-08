@@ -1,12 +1,12 @@
 import QtQuick
-import "Singletons"
+import Ryoku.Ui.Singletons
 
 // Printing registration crosshair, the website's `.regmark`: a ring with a cross
-// through it. Decorative poster chrome that frames a surface like a proof.
+// through it. Poster chrome that frames a surface like a proof. Ink only.
 Item {
     id: reg
     property real size: 14
-    property color tint: Theme.faint
+    property color tint: Tokens.inkFaint
     property real thickness: 1
 
     implicitWidth: size

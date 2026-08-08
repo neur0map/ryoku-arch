@@ -1,13 +1,35 @@
 hl.on("hyprland.start", function()
+    -- Start the GNOME keyring's secrets + pkcs11 agents before anything that
+    -- might ask for a stored secret. Idempotent: if PAM already started it at
+    -- login (unlock-on-login mode), this just re-prints its env and exits.
+    hl.exec_cmd("gnome-keyring-daemon --start --components=secrets,pkcs11")
     hl.exec_cmd("hyprctl setcursor Bibata-Modern-Ice 24")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface color-scheme prefer-dark")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark")
-    hl.exec_cmd("systemctl --user start hyprland-session.target")
-    hl.exec_cmd("systemctl --user start hyprpolkitagent")
+    hl.exec_cmd("gsettings set org.gnome.desktop.interface font-name 'Space Grotesk 11'")
+    -- Folder icons follow the wallpaper accent: ryoku-cmd-folders builds a small
+    -- Papirus-Dark overlay under ~/.local/share/icons tinted to the palette and
+    -- selects it. Rebuilt on every palette change by the shell's matugen hook.
+    hl.exec_cmd("command -v ryoku-cmd-folders >/dev/null 2>&1 && ryoku-cmd-folders")
+    -- Env import, session target, then the shell, as ONE chained command.
+    -- exec is fire-and-forget: as separate lines the shell start races the
+    -- env import, and losing means ConditionEnvironment=WAYLAND_DISPLAY
+    -- silently skips the unit -- a black desktop on cold first boots.
+    hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE XDG_SESSION_TYPE RYOKU_POLKIT_AGENT; systemctl --user start hyprland-session.target; systemctl --user start ryoku-shell")
+    -- Polkit authentication is answered by the shell's own agent (the island
+    -- that matches the rest of the desktop), so the stock Qt agent must not
+    -- take the session's single agent slot. Stopping it is idempotent and
+    -- harmless when it was never started.
+    hl.exec_cmd("systemctl --user stop hyprpolkitagent 2>/dev/null || true")
     hl.exec_cmd("command -v ryoku-monitor >/dev/null 2>&1 && ryoku-monitor autoscale")
+    -- Keyring default: no app ever prompts for a keyring password out of the box.
+    -- `keyring init` records the mode once and seeds a blank passwordless default
+    -- keyring for never-ask (idempotent; a no-op once a mode is chosen). Best
+    -- effort: an old ryoku without the subcommand just fails silently here.
+    hl.exec_cmd("command -v ryoku >/dev/null 2>&1 && ryoku keyring init")
     hl.exec_cmd("command -v ryoku-gpu >/dev/null 2>&1 && ryoku-gpu persist")
-    hl.exec_cmd("ryoku-shell daemon")
     hl.exec_cmd("command -v ryoku-idle >/dev/null 2>&1 && ryoku-idle start")
+    hl.exec_cmd("command -v ryoku-clamshell >/dev/null 2>&1 && ryoku-clamshell daemon")
     hl.exec_cmd("command -v ryoku-leds >/dev/null 2>&1 && ryoku-leds apply")
     hl.exec_cmd("command -v ryoku-mic >/dev/null 2>&1 && ryoku-mic")
     -- Booted into a btrfs snapshot from the Limine menu: offer the one-click
@@ -20,12 +42,30 @@ hl.on("hyprland.start", function()
     -- the user service once, and starts it unless you turned dictation off in the
     -- Hub. The shell then drives it with `voxtype record` on the Super+` tap.
     hl.exec_cmd("command -v voxtype >/dev/null 2>&1 && command -v ryoku-hub >/dev/null 2>&1 && ryoku-hub voxtype ensure >/dev/null 2>&1")
-    -- First-login welcome walkthrough: show the guided tour once, then mark it
-    -- seen so it never returns. The flag lives in state (not config), so it needs
-    -- no doctor reconciler; an flock guards a double fire. The tour window quits on
-    -- finish or close, then the flag is written only if qs actually ran the tour
-    -- (`&&`), so a first-boot launch failure retries next login instead of marking
-    -- it seen forever. exec is async, so the blocking `qs` never holds up autostart.
+    -- AI UI translation: seed ~/.config/ryoku/i18n-llm.json (empty key) so the
+    -- file exists for the user to paste an API key into; idempotent, a no-op if
+    -- present. The Hub's Language > "Generate with AI" then reads it.
+    hl.exec_cmd("command -v ryoku-i18n >/dev/null 2>&1 && ryoku-i18n ensure >/dev/null 2>&1")
+    -- Welcome walkthrough: show the guided tour once per tour VERSION. A fresh
+    -- box (no flag) sees it; a box that saw an older tour (a bare flag or a lower
+    -- version) sees the refreshed tour once more on update; a box already on this
+    -- version is left alone. The flag lives in state (not config), so it needs no
+    -- doctor reconciler. The seen-check lives in Lua because Hyprland's exec reads
+    -- a leading [...] as its window-rules prefix, and because Lua can compare the
+    -- stored version. The flock guards a double fire, and the version is written
+    -- only if qs actually ran the tour (`&&`), so a first-boot launch failure
+    -- retries next login instead of marking it seen. exec is async, so the
+    -- blocking `qs` never holds up autostart. Bump welcome_version when the tour
+    -- changes materially (beta 18 = 18).
     local welcome_state = (os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state")) .. "/ryoku"
-    hl.exec_cmd("[ -e '" .. welcome_state .. "/welcome-seen' ] || { flock -n \"${XDG_RUNTIME_DIR:-/tmp}/ryoku-welcome.lock\" qs -c welcome && mkdir -p '" .. welcome_state .. "' && touch '" .. welcome_state .. "/welcome-seen'; }")
+    local welcome_version = 18
+    local seen_file = io.open(welcome_state .. "/welcome-seen", "r")
+    local seen_version = 0
+    if seen_file then
+        seen_version = tonumber((seen_file:read("*l") or "")) or 0
+        seen_file:close()
+    end
+    if seen_version < welcome_version then
+        hl.exec_cmd("flock -n \"${XDG_RUNTIME_DIR:-/tmp}/ryoku-welcome.lock\" qs -c welcome && mkdir -p '" .. welcome_state .. "' && printf '" .. welcome_version .. "' > '" .. welcome_state .. "/welcome-seen'")
+    end
 end)

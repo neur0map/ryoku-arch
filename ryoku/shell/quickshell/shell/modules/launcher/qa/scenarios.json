@@ -1,0 +1,1322 @@
+{
+  "scenarios": [
+    {
+      "id": "sock-roundtrip",
+      "name": "Socket toggle opens then closes the palette",
+      "covers": "shell.qml command socket fast path",
+      "steps": [
+        "sh mkdir -p /tmp/launcher-qa-fixtures",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'toggle\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/t1.out; sleep .7; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/s1.json",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'toggle\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/dev/null; sleep .7"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "grep -q '^ok' /tmp/launcher-qa-fixtures/t1.out",
+        "jq -e '.open == true' /tmp/launcher-qa-fixtures/s1.json >/dev/null"
+      ]
+    },
+    {
+      "id": "sock-unknown-err",
+      "name": "Unknown socket command answers err and changes nothing",
+      "covers": "shell.qml runCommand fallback contract",
+      "steps": [
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'frobnicate\\n'; sleep .3)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/err.out"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "grep -q '^err' /tmp/launcher-qa-fixtures/err.out"
+      ]
+    },
+    {
+      "id": "show-resets-clean",
+      "name": "Reopening resets query, scope, shelf, and help to a clean hero",
+      "covers": "Launcher.onShownChanged reset",
+      "steps": [
+        "show",
+        "type kitty",
+        "hide",
+        "show"
+      ],
+      "asserts": [
+        ".open == true",
+        ".query == \"\"",
+        ".resting == true",
+        ".gridMode == false",
+        ".help == false"
+      ]
+    },
+    {
+      "id": "app-exact",
+      "name": "Exact app name puts the app first with Launch verb",
+      "covers": "apps provider ranking + primary action",
+      "steps": [
+        "show",
+        "type kitty",
+        "settle"
+      ],
+      "asserts": [
+        ".resultCount >= 1",
+        ".results[0].title == \"kitty\"",
+        ".results[0].type == \"App\"",
+        ".selectedActions[0] == \"Launch\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "app-prefix-rank",
+      "name": "Name-prefix match outranks looser matches",
+      "covers": "fuzzy 3-tier ranking",
+      "steps": [
+        "show",
+        "type neo",
+        "settle"
+      ],
+      "asserts": [
+        ".results[0].title | test(\"^Neo\"; \"i\")"
+      ]
+    },
+    {
+      "id": "app-subsequence",
+      "name": "Character subsequence still finds the app",
+      "covers": "fuzzy tier 3 subsequence",
+      "steps": [
+        "show",
+        "type fntfrg",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.title == \"FontForge\")] | length == 1"
+      ]
+    },
+    {
+      "id": "app-genericname",
+      "name": "Match via generic name / keywords (terminal finds kitty)",
+      "covers": "fuzzy haystack includes genericName+keywords",
+      "steps": [
+        "show",
+        "type terminal",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.title == \"kitty\" and .type == \"App\")] | length == 1"
+      ]
+    },
+    {
+      "id": "app-launch-frecency",
+      "name": "Enter launches the app, closes palette, bumps frecency",
+      "covers": "activation, execDetached, Frecency.bump persistence",
+      "steps": [
+        "sh mkdir -p /tmp/launcher-qa-fixtures; hyprctl clients -j | jq '[.[]|select(.class==\"kitty\")]|length' >/tmp/launcher-qa-fixtures/kitty.before; jq -r '[to_entries[]|select(.key|test(\"kitty\";\"i\"))|.value] | add // 0' ~/.local/state/ryoku/launcher-usage.json 2>/dev/null >/tmp/launcher-qa-fixtures/frec.before || echo 0 >/tmp/launcher-qa-fixtures/frec.before",
+        "show",
+        "type kitty",
+        "settle",
+        "key Return",
+        "sleep 2"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "b=$(cat /tmp/launcher-qa-fixtures/kitty.before); a=$(hyprctl clients -j | jq '[.[]|select(.class==\"kitty\")]|length'); [ \"$a\" -gt \"$b\" ]",
+        "b=$(cat /tmp/launcher-qa-fixtures/frec.before); a=$(jq -r '[to_entries[]|select(.key|test(\"kitty\";\"i\"))|.value] | add // 0' ~/.local/state/ryoku/launcher-usage.json); [ \"$a\" -gt \"$b\" ]"
+      ],
+      "teardown": [
+        "addr=$(hyprctl clients -j | jq -r '[.[]|select(.class==\"kitty\")]|sort_by(.pid)|last.address'); [ -n \"$addr\" ] && hyprctl dispatch closewindow address:$addr"
+      ]
+    },
+    {
+      "id": "nomatch-web-fallback",
+      "name": "Unmatched plain query still offers exactly the web fallback row",
+      "covers": "web provider low-ranked fallback",
+      "steps": [
+        "show",
+        "type qzwxecrv",
+        "settle"
+      ],
+      "asserts": [
+        ".resultCount == 1",
+        ".results[0].subtitle == \"Search Google\"",
+        ".results[0].type == \"Web\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "all-open",
+      "name": "Ctrl+A at rest opens the ALL app ledger",
+      "covers": "ALL scope and dense lead/ledger",
+      "steps": [
+        "show",
+        "ctrl a",
+        "sleep 0.6"
+      ],
+      "asserts": [
+        ".activeMode == \"all\"",
+        ".gridMode == true",
+        ".open == true"
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "all-escape-back",
+      "name": "Escape leaves ALL and restores the image-only hero",
+      "covers": "escape precedence: scope before close",
+      "steps": [
+        "show",
+        "ctrl a",
+        "sleep 0.5",
+        "key Escape",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".gridMode == false",
+        ".open == true",
+        ".resting == true"
+      ]
+    },
+    {
+      "id": "all-launch",
+      "name": "Enter in ALL launches the selected app and bumps frecency",
+      "covers": "ALL lead primary action and frecency",
+      "steps": [
+        "sh mkdir -p /tmp/launcher-qa-fixtures; jq -r '[to_entries[]|.value]|add // 0' ~/.local/state/ryoku/launcher-usage.json 2>/dev/null >/tmp/launcher-qa-fixtures/grid.frec.before || echo 0 >/tmp/launcher-qa-fixtures/grid.frec.before; hyprctl clients -j | jq -r '[.[].address]|join(\",\")' >/tmp/launcher-qa-fixtures/grid.win.before",
+        "show",
+        "ctrl a",
+        "sleep 0.6",
+        "key Return",
+        "sleep 2"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "b=$(cat /tmp/launcher-qa-fixtures/grid.frec.before); a=$(jq -r '[to_entries[]|.value]|add // 0' ~/.local/state/ryoku/launcher-usage.json); [ \"$a\" -gt \"$b\" ]"
+      ],
+      "teardown": [
+        "before=$(cat /tmp/launcher-qa-fixtures/grid.win.before); for a in $(hyprctl clients -j | jq -r '.[].address'); do case \",$before,\" in *,\"$a\",*) : ;; *) hyprctl dispatch closewindow address:$a ;; esac; done"
+      ]
+    },
+    {
+      "id": "help-open",
+      "name": "F1 opens the help cheat-sheet",
+      "covers": "help panel toggle",
+      "steps": [
+        "show",
+        "key F1",
+        "sleep 0.6"
+      ],
+      "asserts": [
+        ".help == true",
+        ".open == true"
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "help-escape-back",
+      "name": "Escape leaves help but keeps the palette open",
+      "covers": "escape precedence: help before close",
+      "steps": [
+        "show",
+        "key F1",
+        "sleep 0.5",
+        "key Escape",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".help == false",
+        ".open == true"
+      ]
+    },
+    {
+      "id": "nav-down-moves",
+      "name": "Arrow keys move the selection",
+      "covers": "keyboard selection movement",
+      "steps": [
+        "show",
+        "type a",
+        "settle",
+        "key Down Down",
+        "sleep 0.3"
+      ],
+      "asserts": [
+        ".selectedIndex == 2",
+        ".resultCount >= 3"
+      ]
+    },
+    {
+      "id": "nav-clamp-end",
+      "name": "Selection clamps at the last result",
+      "covers": "selection clamping",
+      "steps": [
+        "show",
+        "type kitty",
+        "settle",
+        "key Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down Down",
+        "sleep 0.3"
+      ],
+      "asserts": [
+        ".selectedIndex == .resultCount - 1"
+      ]
+    },
+    {
+      "id": "shelf-open",
+      "name": "Ctrl+K opens earned options below an app with Desktop Actions",
+      "covers": "ActionShelf open + selected Desktop Actions",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 3",
+        "settle",
+        "ctrl k",
+        "sleep 0.5"
+      ],
+      "asserts": [
+        ".shelfOpen == true",
+        ".panelOpen == true",
+        ".secondaryActionCount == 3",
+        ".selectedActions == [\"Launch\", \"Option 01\", \"Option 02\", \"Option 03\"]"
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "shelf-escape-first",
+      "name": "Escape closes expanded options before leaving the query",
+      "covers": "escape precedence: shelf first",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 3",
+        "settle",
+        "ctrl k",
+        "sleep 0.4",
+        "key Escape",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".shelfOpen == false",
+        ".panelOpen == false",
+        ".open == true",
+        ".query == \"Ryoku QA Options 3\""
+      ]
+    },
+    {
+      "id": "shelf-options-0",
+      "name": "An app without Desktop Actions earns no shelf or empty space",
+      "covers": "expanded option matrix: zero secondary actions",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 0",
+        "settle",
+        "ctrl k",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".results[0].title == \"Ryoku QA Options 0\"",
+        ".selectedActions == [\"Launch\"]",
+        ".secondaryActionCount == 0",
+        ".shelfOpen == false",
+        ".shelfHeight == 0",
+        ".actionRowCellCounts == []",
+        ".actionVisibleRange == \"\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "shelf-options-1",
+      "name": "One Desktop Action becomes one full-width shelf row",
+      "covers": "expanded option matrix: one secondary action",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 1",
+        "settle",
+        "ctrl k",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".selectedActions == [\"Launch\", \"Option 01\"]",
+        ".secondaryActionCount == 1",
+        ".shelfOpen == true",
+        ".shelfHeight == 38",
+        ".actionRowCellCounts == [1]",
+        ".actionRowFullWidth == [true]",
+        ".actionVisibleRange == \"\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "shelf-options-2",
+      "name": "Two Desktop Actions share one equal-cell row",
+      "covers": "expanded option matrix: two secondary actions",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 2",
+        "settle",
+        "ctrl k",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".secondaryActionCount == 2",
+        ".shelfHeight == 38",
+        ".actionRowCellCounts == [2]",
+        ".actionRowFullWidth == [false]",
+        ".actionVisibleRange == \"\""
+      ]
+    },
+    {
+      "id": "shelf-options-3",
+      "name": "Three Desktop Actions share one equal-cell row",
+      "covers": "expanded option matrix: three secondary actions",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 3",
+        "settle",
+        "ctrl k",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".secondaryActionCount == 3",
+        ".shelfHeight == 38",
+        ".actionRowCellCounts == [3]",
+        ".actionRowFullWidth == [false]",
+        ".actionVisibleRange == \"\""
+      ]
+    },
+    {
+      "id": "shelf-options-4",
+      "name": "Four Desktop Actions pack into two paired rows",
+      "covers": "expanded option matrix: four secondary actions",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 4",
+        "settle",
+        "ctrl k",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".secondaryActionCount == 4",
+        ".shelfHeight == 76",
+        ".actionRowCellCounts == [2, 2]",
+        ".actionRowFullWidth == [false, false]",
+        ".actionVisibleRange == \"\""
+      ]
+    },
+    {
+      "id": "shelf-options-5",
+      "name": "Five Desktop Actions end with a full-width earned row",
+      "covers": "expanded option matrix: five secondary actions",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 5",
+        "settle",
+        "ctrl k",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".secondaryActionCount == 5",
+        ".shelfHeight == 114",
+        ".actionRowCellCounts == [2, 2, 1]",
+        ".actionRowFullWidth == [false, false, true]",
+        ".actionVisibleRange == \"\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "shelf-options-6",
+      "name": "Six Desktop Actions fill the three-row shelf exactly",
+      "covers": "expanded option matrix: six secondary actions",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 6",
+        "settle",
+        "ctrl k",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".secondaryActionCount == 6",
+        ".shelfHeight == 114",
+        ".actionRowCellCounts == [2, 2, 2]",
+        ".actionRowFullWidth == [false, false, false]",
+        ".actionVisibleRange == \"\""
+      ]
+    },
+    {
+      "id": "shelf-options-7",
+      "name": "Seven Desktop Actions scroll beyond three visible rows",
+      "covers": "expanded option matrix: seven secondary actions",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 7",
+        "settle",
+        "ctrl k",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".secondaryActionCount == 7",
+        ".shelfHeight == 114",
+        ".actionRowCellCounts == [2, 2, 2, 1]",
+        ".actionRowFullWidth == [false, false, false, true]",
+        ".actionVisibleRange == \"1-6 / 7\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "shelf-options-8",
+      "name": "Eight Desktop Actions keep paired rows under the scroll cap",
+      "covers": "expanded option matrix: eight secondary actions",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 8",
+        "settle",
+        "ctrl k",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".secondaryActionCount == 8",
+        ".shelfHeight == 114",
+        ".actionRowCellCounts == [2, 2, 2, 2]",
+        ".actionRowFullWidth == [false, false, false, false]",
+        ".actionVisibleRange == \"1-6 / 8\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "shelf-keyboard-order",
+      "name": "Shelf keyboard focus follows declaration order and scrolls",
+      "covers": "expanded option keyboard traversal and visible range",
+      "steps": [
+        "show",
+        "type Ryoku QA Options 8",
+        "settle",
+        "ctrl k",
+        "key Tab Tab Tab Tab Tab Tab",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".focusedActionId == \"desktop:Option7\"",
+        ".actionVisibleRange == \"3-8 / 8\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "shelf-action-executes",
+      "name": "Enter runs the focused Desktop Action instead of Launch",
+      "covers": "expanded option dispatch targets the chosen action",
+      "steps": [
+        "sh rm -f /tmp/ryoku-launcher-qa-option-1-01",
+        "show",
+        "type Ryoku QA Options 1",
+        "settle",
+        "ctrl k",
+        "key Return",
+        "sleep 0.6"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "test -f /tmp/ryoku-launcher-qa-option-1-01"
+      ],
+      "teardown": [
+        "rm -f /tmp/ryoku-launcher-qa-option-1-01"
+      ]
+    },
+    {
+      "id": "actions-catalog",
+      "name": "Bare / lists the full 24-action catalog with tabs",
+      "covers": "actions provider + category tabs browse",
+      "steps": [
+        "show",
+        "type /",
+        "settle"
+      ],
+      "asserts": [
+        ".actionMode == true",
+        ".modeLabel == \"ACTIONS\"",
+        ".resultCount == 24",
+        ".results[0].title == \"Lock Screen\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "actions-filter-exact",
+      "name": "/night narrows to exactly Night Light",
+      "covers": "action fuzzy filter",
+      "steps": [
+        "show",
+        "type /night",
+        "settle"
+      ],
+      "asserts": [
+        ".resultCount == 1",
+        ".results[0].title == \"Night Light\""
+      ]
+    },
+    {
+      "id": "actions-category-word",
+      "name": "/media matches the whole Media category",
+      "covers": "category keyword matching",
+      "steps": [
+        "show",
+        "type /media",
+        "settle"
+      ],
+      "asserts": [
+        ".resultCount == 5",
+        "[.results[].type] | unique == [\"Media\"]"
+      ]
+    },
+    {
+      "id": "actions-tab-cycle",
+      "name": "Tab cycles category tabs and narrows the list, Shift+Tab restores",
+      "covers": "CategoryTabs cycle + provider narrowing",
+      "steps": [
+        "show",
+        "type /",
+        "settle",
+        "key Tab",
+        "sleep 0.5",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/tabs.state",
+        "key ISO_Left_Tab",
+        "sleep 0.5"
+      ],
+      "asserts": [
+        ".resultCount == 24"
+      ],
+      "shell_asserts": [
+        "jq -e '([.results[].type] | unique == [\"System\"]) and .resultCount < 24' /tmp/launcher-qa-fixtures/tabs.state >/dev/null"
+      ]
+    },
+    {
+      "id": "actions-subsequence",
+      "name": "/scn subsequence-matches Screenshot and Screen Record",
+      "covers": "action subsequence matching",
+      "steps": [
+        "show",
+        "type /scn",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.title == \"Screenshot\")] | length == 1",
+        "[.results[] | select(.title == \"Screen Record\")] | length == 1"
+      ]
+    },
+    {
+      "id": "calc-prefix",
+      "name": "=2+2 shows 4 in CALC mode",
+      "covers": "calc provider prefix mode",
+      "steps": [
+        "show",
+        "type =2+2",
+        "settle"
+      ],
+      "asserts": [
+        ".modeLabel == \"CALC\"",
+        ".results[0].title == \"4\"",
+        ".results[0].type == \"Calc\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "calc-numeric-fallback",
+      "name": "Numeric-looking plain query gets a calc row without prefix",
+      "covers": "calc numericFallback in fan-out",
+      "steps": [
+        "show",
+        "type 17*3",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.type == \"Calc\" and .title == \"51\")] | length == 1"
+      ]
+    },
+    {
+      "id": "calc-units",
+      "name": "Unit conversion works (=100 cm to m)",
+      "covers": "qalc unit conversion pass-through",
+      "steps": [
+        "show",
+        "type =100 cm to m",
+        "settle"
+      ],
+      "asserts": [
+        ".results[0].type == \"Calc\"",
+        ".results[0].title | test(\"^1\\\\s?m$\")"
+      ]
+    },
+    {
+      "id": "calc-copy-on-enter",
+      "name": "Enter on a calc result copies it to the clipboard and closes",
+      "covers": "calc Copy action",
+      "steps": [
+        "sh wl-copy qa-sentinel-before",
+        "show",
+        "type =6*7",
+        "settle",
+        "key Return",
+        "sleep 1"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "[ \"$(wl-paste -n 2>/dev/null)\" = \"42\" ]"
+      ]
+    },
+    {
+      "id": "find-file",
+      "name": "/file finds a file at home by name",
+      "covers": "find provider file mode",
+      "steps": [
+        "sh touch ~/qa_probe_launcher.txt",
+        "show",
+        "type /file qa_probe_launcher",
+        "settle"
+      ],
+      "asserts": [
+        ".modeLabel == \"FILE\"",
+        ".results[0].title == \"qa_probe_launcher.txt\"",
+        ".results[0].type == \"File\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "find-folder",
+      "name": "/folder finds a directory by name",
+      "covers": "find provider folder mode",
+      "steps": [
+        "sh mkdir -p ~/qa_probe_dir",
+        "show",
+        "type /folder qa_probe_dir",
+        "settle"
+      ],
+      "asserts": [
+        ".modeLabel == \"FOLDER\"",
+        "[.results[] | select(.title == \"qa_probe_dir\")] | length == 1"
+      ],
+      "teardown": [
+        "rmdir ~/qa_probe_dir 2>/dev/null || true"
+      ]
+    },
+    {
+      "id": "find-image",
+      "name": "/image finds an image by name",
+      "covers": "find provider image extension filter",
+      "steps": [
+        "sh mkdir -p ~/Pictures; printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' | base64 -d > ~/Pictures/qa_probe_img.png",
+        "show",
+        "type /image qa_probe_img",
+        "settle"
+      ],
+      "asserts": [
+        ".modeLabel == \"IMAGE\"",
+        "[.results[] | select(.title == \"qa_probe_img.png\")] | length == 1"
+      ],
+      "teardown": [
+        "rm -f ~/Pictures/qa_probe_img.png"
+      ]
+    },
+    {
+      "id": "typed-deck-stable",
+      "name": "A settled async file result does not keep resizing its card",
+      "covers": "fixed typed geometry after a provider settles",
+      "steps": [
+        "sh mkdir -p ~/Pictures /tmp/launcher-qa-fixtures; printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' | base64 -d > ~/Pictures/qa_stable_deck.png",
+        "show",
+        "sh wtype -- '/image qa_stable_deck'; sleep 0.6; S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/deck.before.json",
+        "settle",
+        "sleep 0.6",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/deck.after.json"
+      ],
+      "asserts": [
+        "[.results[] | select(.title == \"qa_stable_deck.png\")] | length == 1"
+      ],
+      "shell_asserts": [
+        "before=/tmp/launcher-qa-fixtures/deck.before.json; after=/tmp/launcher-qa-fixtures/deck.after.json; jq -e '.open and .drawerHeight > 0 and .cardHeight > 0' $before >/dev/null && [ \"$(jq -r .drawerHeight $before)\" = \"$(jq -r .drawerHeight $after)\" ] && [ \"$(jq -r .cardHeight $before)\" = \"$(jq -r .cardHeight $after)\" ]"
+      ],
+      "teardown": [
+        "rm -f ~/Pictures/qa_stable_deck.png"
+      ]
+    },
+    {
+      "id": "typed-results-coalesce",
+      "name": "Rapid keystrokes publish one settled result model",
+      "covers": "typed result presentation debounce",
+      "steps": [
+        "show",
+        "sh mkdir -p /tmp/launcher-qa-fixtures; wtype -- a; sleep .30; S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/coalesce.first.json; wtype -- p; sleep .30; wtype -- p; sleep .08; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/coalesce.early.json",
+        "sleep 0.5",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/coalesce.settled.json"
+      ],
+      "asserts": [
+        ".query == \"app\"",
+        ".resultCount > 0",
+        ".selectedIndex == 0",
+        ".resultDeckOpacity == 1"
+      ],
+      "shell_asserts": [
+        "jq -e '.query == \"a\" and .resultCount == 0 and .resultDeckOpacity == 0' /tmp/launcher-qa-fixtures/coalesce.first.json >/dev/null && jq -e '.query == \"app\" and .resultCount == 0 and .resultDeckOpacity == 0' /tmp/launcher-qa-fixtures/coalesce.early.json >/dev/null && jq -e '.query == \"app\" and .resultCount > 0 and .selectedIndex == 0 and .resultDeckOpacity == 1' /tmp/launcher-qa-fixtures/coalesce.settled.json >/dev/null"
+      ]
+    },
+    {
+      "id": "typed-results-clear-stale-deck",
+      "name": "A new character hides the prior query deck before it settles",
+      "covers": "query-token invalidation and single deck publication",
+      "steps": [
+        "show",
+        "sh wtype -- app; sleep .8; S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/stale.before.json; wtype -- x; sleep .10; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S > /tmp/launcher-qa-fixtures/stale.after.json",
+        "sleep 0.5"
+      ],
+      "asserts": [
+        ".query == \"appx\"",
+        ".resultCount > 0",
+        ".resultDeckOpacity == 1"
+      ],
+      "shell_asserts": [
+        "jq -e '.resultCount > 0 and .resultDeckOpacity == 1' /tmp/launcher-qa-fixtures/stale.before.json >/dev/null && jq -e '.query == \"appx\" and .resultCount == 0 and .resultDeckOpacity == 0' /tmp/launcher-qa-fixtures/stale.after.json >/dev/null"
+      ]
+    },
+    {
+      "id": "find-empty-state",
+      "name": "/file with no hits shows the empty state, not a hang",
+      "covers": "find empty result + No matches UI",
+      "steps": [
+        "show",
+        "type /file zzzznoexistfile",
+        "settle 25"
+      ],
+      "asserts": [
+        ".resultCount == 0",
+        ".searching == false"
+      ],
+      "screenshot": true,
+      "teardown": [
+        "rm -f ~/qa_probe_launcher.txt"
+      ]
+    },
+    {
+      "id": "pkg-search",
+      "name": "> searches packages across sources",
+      "covers": "packages provider gpk search",
+      "steps": [
+        "show",
+        "type >firefox",
+        "settle 40"
+      ],
+      "asserts": [
+        ".modeLabel == \"PACKAGE\"",
+        "[.results[] | select(.title | test(\"firefox\"; \"i\"))] | length >= 1"
+      ],
+      "screenshot": true,
+      "network": true
+    },
+    {
+      "id": "pkg-installed-row",
+      "name": ">kitty surfaces the installed package with its installed tag",
+      "covers": "packages verb/installed marker",
+      "steps": [
+        "show",
+        "type >kitty",
+        "settle 40"
+      ],
+      "asserts": [
+        "[.results[] | select((.title | test(\"^kitty\\\\s\")) and (.subtitle | test(\"^pacman\\\\s+\\\\(installed\\\\)\")))] | length >= 1"
+      ],
+      "screenshot": true,
+      "network": true
+    },
+    {
+      "id": "pkg-verb-incomplete",
+      "name": "A bare package verb (>install ) searches nothing",
+      "covers": "packages parseOp incomplete-command guard",
+      "steps": [
+        "show",
+        "type >install ",
+        "settle"
+      ],
+      "asserts": [
+        ".resultCount == 0",
+        ".busy == false"
+      ]
+    },
+    {
+      "id": "pkg-fast-lane",
+      "name": "Package search shows local pacman/aur rows within seconds",
+      "covers": "packages two-phase fast lane",
+      "steps": [
+        "show",
+        "type >ripgrep",
+        "settle 8"
+      ],
+      "asserts": [
+        "[.results[] | select(.title | test(\"^ripgrep\"))] | length >= 1"
+      ],
+      "screenshot": true,
+      "teardown": [
+        "for i in $(seq 45); do pgrep -f 'gpk search' >/dev/null || break; sleep 1; done"
+      ]
+    },
+    {
+      "id": "web-prefix-answer",
+      "name": "? query fetches a DDG instant answer panel",
+      "covers": "web provider instant answers + AnswerPanel",
+      "steps": [
+        "show",
+        "type ?what is nmap",
+        "settle 15",
+        "sleep 1"
+      ],
+      "asserts": [
+        ".modeLabel == \"WEB\"",
+        ".answerMode == true"
+      ],
+      "screenshot": true,
+      "network": true
+    },
+    {
+      "id": "web-bang-engine",
+      "name": "?!gh routes the search row to GitHub",
+      "covers": "bang engine routing",
+      "steps": [
+        "show",
+        "type ?!gh quickshell",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.subtitle == \"Search GitHub\")] | length == 1"
+      ]
+    },
+    {
+      "id": "web-plain-no-answer",
+      "name": "Plain unprefixed query never fires the answer fetch",
+      "covers": "web fallback row without DDG fetch",
+      "steps": [
+        "show",
+        "type nmap",
+        "settle"
+      ],
+      "asserts": [
+        ".answerMode == false",
+        "[.results[] | select(.subtitle == \"Search Google\")] | length == 1"
+      ]
+    },
+    {
+      "id": "win-row",
+      "name": "Open window surfaces as a Window row with class subtitle",
+      "covers": "windows provider listing",
+      "steps": [
+        "sh kitty --title qa-probe-win sh -c 'sleep 180' & sleep 1.5",
+        "show",
+        "type qa-probe-win",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.title == \"qa-probe-win\" and .type == \"Window\" and .subtitle == \"kitty\")] | length == 1"
+      ],
+      "teardown": [
+        "pid=$(hyprctl clients -j | jq -r '.[]|select(.title==\"qa-probe-win\").pid' | head -1); [ -n \"$pid\" ] && kill $pid || true"
+      ]
+    },
+    {
+      "id": "win-rail",
+      "name": "Matching app windows appear as separate preview cards",
+      "covers": "bottom window rail and keyboard-visible focus",
+      "steps": [
+        "sh kitty --title qa-rail-one sh -c 'sleep 180' & kitty --title qa-rail-two sh -c 'sleep 180' & sleep 1.5",
+        "show",
+        "type kitty",
+        "settle",
+        "key Tab",
+        "key Right",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".windowRailActive == true",
+        ".windowRailCount >= 2",
+        "[.results[] | select(.providerId == \"windows\")] | length == 0",
+        ".windowRailFocusActive == true",
+        ".windowRailFocusSerial >= 1",
+        ".focusedWindowAddress != \"\""
+      ],
+      "screenshot": true,
+      "teardown": [
+        "pkill -f 'kitty --title qa-rail-one' 2>/dev/null || true",
+        "pkill -f 'kitty --title qa-rail-two' 2>/dev/null || true"
+      ]
+    },
+    {
+      "id": "win-rail-launch-new",
+      "name": "Enter launches a new instance until window focus is explicitly selected",
+      "covers": "default activation stays on the app result while open windows are visible",
+      "steps": [
+        "sh mkdir -p /tmp/launcher-qa-fixtures; hyprctl clients -j | jq '[.[]|select(.class==\"kitty\")]|length' >/tmp/launcher-qa-fixtures/kitty.instances.before; kitty --title qa-launch-choice sh -c 'sleep 180' >/dev/null 2>&1 & echo $! >/tmp/launcher-qa-fixtures/kitty.choice.pid; sleep 1.5",
+        "show",
+        "type kitty",
+        "settle",
+        "key Return",
+        "sleep 1.5"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "before=$(cat /tmp/launcher-qa-fixtures/kitty.instances.before); after=$(hyprctl clients -j | jq '[.[]|select(.class==\"kitty\")]|length'); [ \"$after\" -gt \"$before\" ]"
+      ],
+      "teardown": [
+        "pid=$(cat /tmp/launcher-qa-fixtures/kitty.choice.pid 2>/dev/null); [ -n \"$pid\" ] && kill $pid 2>/dev/null || true"
+      ]
+    },
+    {
+      "id": "win-rail-keeps-input-focus",
+      "name": "A mapped window rail never takes text focus after typing",
+      "covers": "post-layout focus repair for the separate window surface",
+      "steps": [
+        "sh mkdir -p /tmp/launcher-qa-fixtures; kitty --title qa-focus-retain sh -c 'sleep 180' >/dev/null 2>&1 & echo $! >/tmp/launcher-qa-fixtures/kitty.focus.pid; sleep 1.5",
+        "show",
+        "type kitty",
+        "settle",
+        "sleep 0.5",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .2) | socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/focus.before.json",
+        "type y",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".query == \"kittyy\"",
+        ".inputFocused == true"
+      ],
+      "shell_asserts": [
+        "jq -e '.windowRailActive == true and .inputFocused == true and .selectedIndex == 0' /tmp/launcher-qa-fixtures/focus.before.json >/dev/null"
+      ],
+      "teardown": [
+        "pid=$(cat /tmp/launcher-qa-fixtures/kitty.focus.pid 2>/dev/null); [ -n \"$pid\" ] && kill $pid 2>/dev/null || true"
+      ]
+    },
+    {
+      "id": "win-focus",
+      "name": "Enter on a window row focuses that window",
+      "covers": "windows Focus action via Hyprland dispatch",
+      "steps": [
+        "sh mkdir -p /tmp/launcher-qa-fixtures; hyprctl activewindow -j | jq -r .address >/tmp/launcher-qa-fixtures/orig.addr; kitty --title qa-probe-win sh -c 'sleep 180' & sleep 1.5; hyprctl dispatch \"hl.dsp.focus({ window = \\\"address:$(cat /tmp/launcher-qa-fixtures/orig.addr)\\\" })\"",
+        "sleep 0.5",
+        "show",
+        "type qa-probe-win",
+        "settle",
+        "key Return",
+        "sleep 1.5"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "[ \"$(hyprctl activewindow -j | jq -r .title)\" = \"qa-probe-win\" ]"
+      ],
+      "teardown": [
+        "pid=$(hyprctl clients -j | jq -r '.[]|select(.title==\"qa-probe-win\").pid' | head -1); [ -n \"$pid\" ] && kill $pid || true",
+        "o=$(cat /tmp/launcher-qa-fixtures/orig.addr 2>/dev/null); [ -n \"$o\" ] && hyprctl dispatch \"hl.dsp.focus({ window = \\\"address:$o\\\" })\" || true"
+      ]
+    },
+    {
+      "id": "snippet-copy",
+      "name": "Snippet row copies its expanded body on Enter",
+      "covers": "snippets provider + placeholder expansion",
+      "steps": [
+        "sh mkdir -p ~/.config/ryoku; printf '[{\"name\":\"qa-sig\",\"body\":\"QA-BODY {date}\"}]' > ~/.config/ryoku/launcher-snippets.json; wl-copy qa-sentinel; sleep 0.5",
+        "show",
+        "type qa-sig",
+        "settle",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/snip.state",
+        "key Return",
+        "sleep 1"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "jq -e '[.results[] | select(.title == \"qa-sig\" and .type == \"Snippet\")] | length == 1' /tmp/launcher-qa-fixtures/snip.state >/dev/null",
+        "wl-paste -n 2>/dev/null | grep -q '^QA-BODY 20'"
+      ],
+      "teardown": [
+        "rm -f ~/.config/ryoku/launcher-snippets.json; wl-copy -c"
+      ]
+    },
+    {
+      "id": "quicklink-row",
+      "name": "Quicklink surfaces by name",
+      "covers": "quicklinks provider",
+      "steps": [
+        "sh mkdir -p ~/.config/ryoku; printf '[{\"name\":\"qa wiki\",\"url\":\"https://wiki.archlinux.org/index.php?search={query}\"}]' > ~/.config/ryoku/launcher-quicklinks.json; sleep 0.5",
+        "show",
+        "type qa wiki",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.title == \"qa wiki\" and .type == \"Quicklink\")] | length == 1"
+      ],
+      "teardown": [
+        "rm -f ~/.config/ryoku/launcher-quicklinks.json"
+      ]
+    },
+    {
+      "id": "quicklink-query-routing",
+      "name": "Quicklink with {query} accepts trailing search text",
+      "covers": "snippets keyword-prefix routing into {query}",
+      "steps": [
+        "sh mkdir -p ~/.config/ryoku; printf '[{\"name\":\"qa wiki\",\"url\":\"https://wiki.archlinux.org/index.php?search={query}\"}]' > ~/.config/ryoku/launcher-quicklinks.json; sleep 0.5",
+        "show",
+        "type qa wiki pacman",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.title == \"qa wiki\" and .type == \"Quicklink\")] | length == 1"
+      ],
+      "teardown": [
+        "rm -f ~/.config/ryoku/launcher-quicklinks.json"
+      ]
+    },
+    {
+      "id": "script-provider",
+      "name": "rofi-script rows appear for keyword query and get env per protocol",
+      "covers": "script provider rofi protocol pass 1",
+      "steps": [
+        "sh mkdir -p /tmp/launcher-qa-fixtures ~/.config/ryoku; printf '#!/bin/sh\\necho \"$ROFI_RETV|$ROFI_INFO|$1\" >> /tmp/launcher-qa-fixtures/qaz.log\\nprintf \"QA Row One\\\\nQA Row Two\\\\n\"\\n' > /tmp/launcher-qa-fixtures/qaz.sh; chmod +x /tmp/launcher-qa-fixtures/qaz.sh; printf '[{\"keyword\":\"qaz\",\"name\":\"QA Script\",\"exec\":\"/tmp/launcher-qa-fixtures/qaz.sh\"}]' > ~/.config/ryoku/launcher-scripts.json; rm -f /tmp/launcher-qa-fixtures/qaz.log; sleep 0.5",
+        "show",
+        "type qaz hello",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.title == \"QA Row One\")] | length == 1",
+        "[.results[] | select(.title == \"QA Row Two\")] | length == 1"
+      ],
+      "shell_asserts": [
+        "grep -q '^0|hello|' /tmp/launcher-qa-fixtures/qaz.log"
+      ],
+      "teardown": [
+        "rm -f ~/.config/ryoku/launcher-scripts.json"
+      ]
+    },
+    {
+      "id": "routed-mode-labels",
+      "name": "The compressed hero labels each typed provider route",
+      "covers": "HeroShutter provider-mode label routing",
+      "steps": [
+        "show",
+        "type /x",
+        "sleep 0.4",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S | jq -r .modeLabel >/tmp/launcher-qa-fixtures/chips.out",
+        "hide",
+        "show",
+        "type =1",
+        "sleep 0.4",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S | jq -r .modeLabel >>/tmp/launcher-qa-fixtures/chips.out",
+        "hide",
+        "show",
+        "type /folder x",
+        "sleep 0.4"
+      ],
+      "asserts": [
+        ".modeLabel == \"FOLDER\""
+      ],
+      "shell_asserts": [
+        "printf 'ACTIONS\\nCALC\\n' | diff - /tmp/launcher-qa-fixtures/chips.out"
+      ]
+    },
+    {
+      "id": "ask-mode-ui",
+      "name": "Backslash enters Rashin ask mode with RASHIN chip",
+      "covers": "ask mode routing + panel",
+      "steps": [
+        "show",
+        "type \\what is ryoku",
+        "sleep 0.8"
+      ],
+      "asserts": [
+        ".askMode == true",
+        ".modeLabel == \"RASHIN\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "ask-resume-list",
+      "name": "Bare backslash shows the ask panel in resume/recall state",
+      "covers": "ask resume list",
+      "steps": [
+        "show",
+        "type \\",
+        "sleep 0.8"
+      ],
+      "asserts": [
+        ".askMode == true"
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "hero-rest",
+      "name": "Rest is the full image hero with no result drawer",
+      "covers": "250px HeroShutter rest face",
+      "steps": [
+        "show",
+        "sleep 1.2"
+      ],
+      "asserts": [
+        ".resting == true",
+        ".open == true",
+        ".activeMode == \"rest\"",
+        ".heroHeight > 0",
+        ".resultCount == 0"
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "media-no-rest-card",
+      "name": "An active MPRIS player does not add a card to the resting hero",
+      "covers": "MPRIS is searchable only; Rest remains image-only",
+      "steps": [
+        "sh mkdir -p /tmp/launcher-qa-fixtures; node -e 'const fs=require(\"fs\");const sr=8000,n=sr*60;const b=Buffer.alloc(44+n*2);b.write(\"RIFF\",0);b.writeUInt32LE(36+n*2,4);b.write(\"WAVE\",8);b.write(\"fmt \",12);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(sr,24);b.writeUInt32LE(sr*2,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);b.write(\"data\",36);b.writeUInt32LE(n*2,40);fs.writeFileSync(\"/tmp/launcher-qa-fixtures/QA Probe Tone.wav\",b)'; mpv --no-terminal --volume=0 --loop=inf --pause '/tmp/launcher-qa-fixtures/QA Probe Tone.wav' & echo $! >/tmp/launcher-qa-fixtures/mpv.pid; sleep 2.5",
+        "show",
+        "sleep 1"
+      ],
+      "asserts": [
+        ".hasMedia == true",
+        ".resting == true",
+        ".resultCount == 0"
+      ],
+      "screenshot": true,
+      "teardown": [
+        "kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null || true"
+      ]
+    },
+    {
+      "id": "media-single-letter",
+      "name": "A single letter never summons the media row; two letters do",
+      "covers": "mpris match minimum length",
+      "steps": [
+        "sh kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null; sleep 0.3; mpv --no-terminal --volume=0 --loop=inf --pause '/tmp/launcher-qa-fixtures/QA Probe Tone.wav' & echo $! >/tmp/launcher-qa-fixtures/mpv.pid; sleep 2.5",
+        "show",
+        "type p",
+        "settle",
+        "sh S=$XDG_RUNTIME_DIR/ryoku-launcher.sock; (printf 'state\\n'; sleep .5)|socat - UNIX-CONNECT:$S >/tmp/launcher-qa-fixtures/p1.state",
+        "type a",
+        "settle"
+      ],
+      "asserts": [
+        "[.results[] | select(.type == \"Now Playing\")] | length == 1"
+      ],
+      "shell_asserts": [
+        "jq -e '[.results[] | select(.type == \"Now Playing\")] | length == 0' /tmp/launcher-qa-fixtures/p1.state >/dev/null"
+      ],
+      "teardown": [
+        "kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null || true"
+      ]
+    },
+    {
+      "id": "media-pause-action",
+      "name": "Typing pause surfaces Now Playing row; Enter pauses the player",
+      "covers": "mpris provider transport action",
+      "steps": [
+        "sh kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null; sleep 0.5; mpv --no-terminal --volume=0 --loop=inf '/tmp/launcher-qa-fixtures/QA Probe Tone.wav' & echo $! >/tmp/launcher-qa-fixtures/mpv.pid; sleep 2.5",
+        "show",
+        "type pause",
+        "settle",
+        "key Return",
+        "sleep 1.5"
+      ],
+      "asserts": [
+        ".open == false"
+      ],
+      "shell_asserts": [
+        "playerctl -p mpv status | grep -q Paused"
+      ],
+      "teardown": [
+        "kill $(cat /tmp/launcher-qa-fixtures/mpv.pid 2>/dev/null) 2>/dev/null || true"
+      ]
+    },
+    {
+      "id": "variant-hero-rest",
+      "name": "Hero selection opens the image-backed resting face",
+      "covers": "catalog selection + Hero rest contract",
+      "steps": [
+        "variant hero",
+        "show",
+        "sleep 1.2"
+      ],
+      "asserts": [
+        ".variant == \"hero\"",
+        ".open == true",
+        ".resting == true",
+        ".activeMode == \"rest\""
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "variant-main-provider",
+      "name": "Main selection returns shared provider results",
+      "covers": "catalog selection + Main shared providers",
+      "steps": [
+        "variant main",
+        "show",
+        "type Ryoku QA Options 1",
+        "settle"
+      ],
+      "asserts": [
+        ".variant == \"main\"",
+        ".open == true",
+        ".resultCount >= 1",
+        "[.results[] | select(.title == \"Ryoku QA Options 1\" and .type == \"App\")] | length == 1"
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "variant-okshell-apps",
+      "name": "OkShell selection opens its application rows",
+      "covers": "catalog selection + OkShell application model",
+      "steps": [
+        "variant okshell",
+        "show",
+        "sleep 0.8"
+      ],
+      "asserts": [
+        ".variant == \"okshell\"",
+        ".open == true",
+        ".resultCount >= 1"
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "variant-main-to-hero",
+      "name": "Switching from open Main closes it before Hero activates",
+      "covers": "selector close-before-swap lifecycle",
+      "steps": [
+        "variant main",
+        "show",
+        "bounds main-open",
+        "variant hero",
+        "settle"
+      ],
+      "asserts": [
+        ".variant == \"hero\"",
+        ".open == false",
+        ".pendingVariant == \"\""
+      ],
+      "shell_asserts": [
+        "jq -e '.variant == \"main\" and .open == true' \"$1/main-open.state.json\" >/dev/null"
+      ],
+      "screenshot": true
+    },
+    {
+      "id": "variant-unknown-default",
+      "name": "Unknown launcher selection resolves to Hero",
+      "covers": "catalog unknown-ID default resolution",
+      "steps": [
+        "variant does-not-exist",
+        "show",
+        "sleep 0.8"
+      ],
+      "asserts": [
+        ".requestedVariant == \"does-not-exist\"",
+        ".variant == \"hero\"",
+        ".open == true"
+      ],
+      "screenshot": true
+    }
+  ]
+}

@@ -10,7 +10,7 @@
 #
 # tab-separated, line-buffered status the stash queue parses:
 #   START <name> | PROGRESS <0-100> | SAVED <filename> | ERROR <message>
-# usage: stash-cobalt.sh download <url> [auto|audio|mute] | remux <file>
+# usage: stash-cobalt.sh download <url> [auto|audio|mute] | remux <file> | sites
 set -u
 
 STASH="${STASH_DIR:-$HOME/Downloads/Stash}"
@@ -72,7 +72,7 @@ ytdlp() {
 # cobalt POST + tunnel/redirect/picker; nonzero return triggers the fallback.
 cobalt_get() {
   local url="$1" mode="$2" body resp st durl fn dest
-  body=$(printf '{"url":%s,"downloadMode":"%s","filenameStyle":"basic"}' "$(printf '%s' "$url" | jq -Rs .)" "$mode")
+  body=$(printf '{"url":%s,"downloadMode":"%s","videoQuality":"1080","audioFormat":"mp3","audioBitrate":"320","filenameStyle":"basic"}' "$(printf '%s' "$url" | jq -Rs .)" "$mode")
   resp=$(curl -fsS --max-time 60 -X POST "$COBALT/" \
     -H "Accept: application/json" -H "Content-Type: application/json" -d "$body" 2>/dev/null) || return 1
   st=$(printf '%s' "$resp" | jq -r '.status // "error"')
@@ -97,6 +97,35 @@ cobalt_get() {
         dest=$(dest_for "cobalt-$t-$((i + 1)).${u##*.}")
         fetch "$u" "$dest" && emit SAVED "$(basename "$dest")"
       done
+      ;;
+    local-processing)
+      # newer cobalt hands the raw parts back and asks the client to finish the
+      # job locally (lossless): merge video+audio, drop audio, extract audio, or
+      # remux the container. type is merge|mute|audio|gif|remux.
+      local otype ofn ntun i tu tmpd rc=0
+      otype=$(printf '%s' "$resp" | jq -r '.type // "remux"')
+      ofn=$(printf '%s' "$resp" | jq -r '.output.filename // "download"')
+      ntun=$(printf '%s' "$resp" | jq -r '(.tunnel // []) | length')
+      [ "$ntun" -gt 0 ] || return 1
+      emit START "$ofn"
+      tmpd=$(mktemp -d) || return 1
+      for i in $(seq 0 $((ntun - 1))); do
+        tu=$(printf '%s' "$resp" | jq -r ".tunnel[$i]")
+        [ -n "$tu" ] && [ "$tu" != "null" ] || { rm -rf "$tmpd"; return 1; }
+        fetch "$tu" "$tmpd/part$i" || { rm -rf "$tmpd"; return 1; }
+      done
+      dest=$(dest_for "$ofn")
+      case "$otype" in
+        merge) ffmpeg -y -nostdin -hide_banner -loglevel error -i "$tmpd/part0" -i "$tmpd/part1" -map 0:v:0 -map 1:a:0 -c copy -movflags +faststart "$dest" </dev/null || rc=$? ;;
+        mute)  ffmpeg -y -nostdin -hide_banner -loglevel error -i "$tmpd/part0" -c copy -an -movflags +faststart "$dest" </dev/null || rc=$? ;;
+        audio) ffmpeg -y -nostdin -hide_banner -loglevel error -i "$tmpd/part0" -vn -c:a copy "$dest" </dev/null 2>/dev/null \
+          || ffmpeg -y -nostdin -hide_banner -loglevel error -i "$tmpd/part0" -vn "$dest" </dev/null || rc=$? ;;
+        gif)   ffmpeg -y -nostdin -hide_banner -loglevel error -i "$tmpd/part0" "$dest" </dev/null || rc=$? ;;
+        *)     ffmpeg -y -nostdin -hide_banner -loglevel error -i "$tmpd/part0" -map 0 -c copy -movflags +faststart "$dest" </dev/null || rc=$? ;;
+      esac
+      rm -rf "$tmpd"
+      [ "$rc" -eq 0 ] || { rm -f "$dest"; return 1; }
+      emit SAVED "$(basename "$dest")"
       ;;
     *) return 1 ;;
   esac
@@ -142,8 +171,20 @@ remux)
   notify-send "Stash" "Remux failed" -i dialog-error 2>/dev/null || true
   exit 1
   ;;
+sites)
+  # supported services for the UI bubble: live from the instance when reachable,
+  # else the built-in list so the bubble still fills on a fresh box.
+  if up=$(curl -fsS --max-time 3 -H "Accept: application/json" "$COBALT/" 2>/dev/null) \
+     && list=$(printf '%s' "$up" | jq -r '.cobalt.services[]?' 2>/dev/null) && [ -n "$list" ]; then
+    printf '%s\n' "$list"
+  else
+    printf '%s\n' youtube tiktok twitter instagram reddit twitch vimeo soundcloud \
+      bilibili facebook tumblr pinterest vk ok snapchat loom newgrounds streamable \
+      rutube dailymotion bsky
+  fi
+  ;;
 *)
-  echo "usage: stash-cobalt.sh download <url> [auto|audio|mute] | remux <file>" >&2
+  echo "usage: stash-cobalt.sh download <url> [auto|audio|mute] | remux <file> | sites" >&2
   exit 2
   ;;
 esac

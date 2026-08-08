@@ -1,24 +1,41 @@
 import QtQuick
-import "Singletons"
+import Ryoku.Ui.Singletons
 
-// The wallust scheme as a row of 16 swatches. Empty cells while a palette loads.
-Row {
-    id: pr
+// The palette as one contiguous, hairline-framed swatch strip. The
+// swatches carry their own colour: a swatch's job is to be its colour, so this
+// is the one place chroma is allowed (amendment 6). Everything around it is ink.
+Rectangle {
+    id: strip
     property var colors: []
     readonly property int n: 16
-    spacing: 4
 
-    Repeater {
-        model: pr.n
-        delegate: Rectangle {
-            required property int index
-            width: (pr.width - (pr.n - 1) * pr.spacing) / pr.n
-            height: pr.height
-            radius: Theme.radius
-            color: (pr.colors && pr.colors.length > index && pr.colors[index]) ? pr.colors[index] : Theme.surfaceLo
-            border.width: 1
-            border.color: Qt.alpha(Theme.cream, 0.08)
-            Behavior on color { ColorAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+    implicitHeight: 22
+    color: "transparent"
+    radius: Tokens.radius
+    border.width: Tokens.border
+    border.color: Tokens.line
+    clip: true
+
+    Row {
+        anchors.fill: parent
+        anchors.margins: 1
+        Repeater {
+            model: strip.n
+            delegate: Rectangle {
+                required property int index
+                width: (strip.width - 2) / strip.n
+                height: parent.height
+                readonly property bool has: strip.colors && strip.colors.length > index && strip.colors[index]
+                color: has ? strip.colors[index] : Tokens.paper
+                Behavior on color { ColorAnimation { duration: Tokens.swap } }
+                // a hairline seam between empty (loading) cells so the strip still
+                // reads as sixteen slots before the palette lands.
+                Rectangle {
+                    visible: !parent.has && index > 0
+                    width: 1; height: parent.height
+                    color: Tokens.lineSoft
+                }
+            }
         }
     }
 }

@@ -2,7 +2,1006 @@
 
 ## Unreleased
 
+### Changed
+- **The theme defaults to following the wallpaper.** `loadThemeState`
+  (`backend/schemes.go`) defaults a box with no `theme.json` to follow the
+  wallpaper now (was static mono), so the Appearance scheme control and the daemon
+  agree with the shell's new default look.
+
 ### Added
+- **Appearance lists downloaded colour schemes.** The Colour scheme picker now
+  shows installed RyoStore themes beside the built-in palettes, read live from
+  the daemon catalog (`ryoku-shell theme catalog`) and applied through the same
+  `theme.theme` seam; the ALL THEMES drawer and the named-palette count include
+  them (`quickshell/Singletons/UserSchemes.qml`, `quickshell/pages/AppearancePage.qml`).
+- **The desktop visualiser previews live.** The Visualiser subtab now leads with
+  a self-contained animated preview that retunes as you change the style
+  (bars, dots, line, wave, segments, radial, circle), position, shape, bar
+  count, thickness and height, so the look is visible without leaving Settings
+  (`quickshell/VizPreview.qml`, `quickshell/pages/DesktopPage.qml`).
+- **The Hyprland plugins gather in one place and auto-detect.** The compositor
+  plugins (title bars, liquid glass, image borders, plus enables for realistic
+  cursor motion and focus animation) were scattered across Look, Cursor and
+  Animations; they now gather into a new Windows > Plugins tab that lists only
+  the plugins whose .so is actually installed on the box
+  (`quickshell/schema/WindowsPage.js`, `quickshell/pages/WindowsPage.qml`).
+- **Search understands intent and forgives typos.** A curated synonym map lets a
+  typed word reach the vocabulary the index uses ("transparency" finds opacity,
+  "hotkey" finds keybinds, "screenshot" finds recording), and a bounded edit
+  distance still matches a near-miss like "trasparency". No model, just a
+  lexical layer sized to the settings vocabulary (`quickshell/Hub.qml`).
+- **Every file and image picker is the same paper-and-ink browser.** The native
+  Qt file dialog is gone from the hub: the decor/image chooser, the Fastfetch
+  logo and ASCII pickers, the hero-image picker, and profile export/import all
+  use the shared `PickFile`, which now carries per-picker filters and a doc tile
+  for non-image files (`ui/PickFile.qml`, `ui/Decor.qml`,
+  `quickshell/pages/FastfetchPage.qml`, `quickshell/pages/HeroEditor.qml`,
+  `quickshell/pages/ProfilePage.qml`, `quickshell/pages/AddonsPage.qml`).
+- **Rows no longer collide with their control.** A changed inline row drew its
+  struck default and revert glyph in the same corner as the stepper or switch,
+  so they overlapped; the value, struck default and revert now sit in one
+  cluster to the control's left. Tabs and segmented controls also gained
+  breathing room so they read as distinct pills, not one fused strip
+  (`ui/SettingRow.qml`, `ui/Tabs.qml`, `ui/Seg.qml`).
+- **The hub reads as one instrument, not a wall of cards.** Every setting used
+  to be a 104px value-hero card packed into a bento grid, so a page of toggles
+  read as scattered tiles shouting ON/OFF. Each setting is now a compact row
+  (label and description on the left, the control on the right, or a full-width
+  band beneath for a segmented bar, chips, gallery or slider) grouped into
+  bordered, collapsible `SettingCard` drawers parted by hairlines. Two shared
+  primitives carry it, `SettingRow` and `SettingCard`; the schema pages and
+  every settings-grid page were ported to them (Appearance, Animations, Input,
+  GPU, Launcher, Displays, Recording, Performance, Bar Studio, Dictation), while
+  the bespoke surfaces (Connections lists, Keybinds capture, the displays
+  arrange canvas, previews and decor) were kept intact
+  (`ui/SettingRow.qml`, `ui/SettingCard.qml`, `quickshell/SettingsSheet.qml`,
+  `quickshell/SchemaPage.qml`, `quickshell/pages/*`).
+- **Search jumps to the setting.** Typing in the rail search now opens a results
+  card under the field, each hit showing its breadcrumb and the matched run
+  highlighted, instead of a cramped list crammed into the rail. Choosing a hit
+  navigates to its page, switches to the right tab, scrolls the exact control to
+  centre and flashes it; Enter takes the top hit and Escape clears. A changed
+  row also gains an inline reset on hover (`quickshell/Hub.qml`,
+  `quickshell/SettingsSheet.qml`, `ui/SettingRow.qml`).
+- **The at-rest write-ledger is gone and the space is reclaimed.** The 360px
+  right column drew a decorative torii poster whenever nothing was dirty, which
+  is most of the time; it is removed, the page takes the full width, and the
+  window narrowed to 1200px to suit. The pending diff moved into a "VIEW DIFF"
+  popover the action bar opens on demand, so the write ledger is one click away
+  when it matters and out of the way when it does not (`quickshell/Hub.qml`,
+  `quickshell/shell.qml`, `ui/ActionBar.qml`).
+- **Bar Studio picks the bar style and tunes it.** The Desktop page leads with a
+  style picker, Sumi (the left rail) or Obi (the floating top bar), that swaps the
+  running bar live. For Sumi it edits the frame and the left rail as before; for
+  Obi it shows a per-widget show/hide panel, so the workspaces, media, audio,
+  connections, battery, tray and weather chips turn on and off, saved per style in
+  shell.json (`quickshell/pages/BarStudioPage.qml`, `quickshell/Hub.qml`).
+
+### Fixed
+- **Fastfetch can be reset to the default.** The page offered "Apply Installed
+  Style" from the Store but no way back to the built-in readout; a "Reset to
+  Default" action now rewrites config.jsonc from the default model
+  (`backend/fastfetch.go`, `quickshell/pages/FastfetchPage.qml`).
+- **The App Launcher settings page renders again.** `launcherRoot` fell back to
+  `Qt.resolvedUrl`, which resolves to an unusable qrc path in the deployed Hub, so
+  the launcher catalogue never loaded and the preview plus every style, palette,
+  and motion control drew blank. It now reads the launcher the shell installs
+  under `$XDG_CONFIG_HOME/quickshell/launcher` (`quickshell/pages/LauncherPage.qml`).
+- **The tiling-layout preview animates again.** Windows -> Layout declares a
+  `layoutdemo` row for the looping dwindle/master/scrolling diagram, but
+  `SettingsSheet` had no renderer for that control, so it fell through to the
+  text field and drew an empty card. It now renders as a full-width band: the
+  `art/tiling-<layout>.gif` diagram beside the layout name and blurb, swapped
+  live as the picker changes (`quickshell/SettingsSheet.qml`).
+- **"Never ask" reaches its fix when the keyring is still encrypted.** `keyring
+  init` records never-ask on a box whose keyring is password-protected and leaves
+  the file intact, so the mode reads as chosen while every login still prompts.
+  Picking the mode that was already selected returned early, which left the
+  convert and start-fresh controls unreachable and the option looking dead. The
+  Lockscreen page now opens that row as soon as it sees never-ask against an
+  encrypted keyring, and picking never-ask again offers it too
+  (`quickshell/pages/LockscreenPage.qml`).
+
+
+### Fixed
+- **Adaptive sync stopped switching itself back off.** `hyprctl` reports vrr as a
+  bool of whether the link is doing adaptive sync right now, not the mode that
+  was set, so On read back as Off whenever nothing was driving it and Fullscreen
+  read back as Off outside fullscreen. The Displays page took that reading as the
+  current value and saved it over the choice. The mode now comes from the last
+  applied layout (`system/hardware/display/ryoku-monitor`).
+- **SDR brightness reaches past 2x.** The stepper stopped at 2.0, which is a
+  Ryoku limit and not a Hyprland one (it accepts well beyond that), so SDR
+  content stayed dim in HDR on a bright panel with the control already at its
+  end. The ladder now runs to 6.0, fine to 2.0 and coarser above
+  (`quickshell/pages/DisplaysPage.qml`).
+
+### Added
+- **Bar Studio lists the Music widget.** The rail's music spectrum widget joins
+  the catalogue picker as "Music" (`quickshell/barstudio/CatalogLabels.qml`).
+
+### Fixed
+- **Adding a widget to a rail turns that rail on.** The bottom and right rails
+  ship off, so dropping a widget onto one in Bar Studio changed the config but
+  left nothing on the desktop -- the add read as fully broken. Every add now
+  enables the rail it lands on, so "I added a widget, show it" always holds; a
+  rail is hidden again with its own Show-this-rail switch, after the fact
+  (`quickshell/barstudio/BarStudioModel.js`).
+- **Appearance's colour controls apply when you set them, and the live scheme
+  regenerates again.** Three faults stacked. The mode and contrast knobs staged
+  behind the shared Save, so setting them appeared to do nothing until you found
+  the action bar; they now write straight through, as the scheme picker already
+  did. `matugen set` unmarshalled the payload onto a zero struct, so every save
+  from this page wrote `themeRyokuApps: false` and emptied the roster it does not
+  show; it merges onto the stored config now, and the page sends only the two keys
+  it owns. And the ALGORITHM picker could select `scheme-monochrome`, which drains
+  the colour out of every wallpaper -- indistinguishable from live colours being
+  broken -- so it is gone (`backend/matugen.go`, `quickshell/pages/AppearancePage.qml`).
+
+### Added
+- **Recording has a Save recordings to setting.** The output directory was the
+  one recording knob no UI could reach: the recorder read it from the
+  environment, the deck hardcoded it, and this page only described it. It is a
+  key in recording.json now like every other setting on the page, and everything
+  that writes or lists a recording resolves it. Empty keeps following your
+  Videos folder (`quickshell/pages/RecordingPage.qml`).
+
+### Changed
+- **The Theme tab leads with colour generation, and the 57 named palettes sit in
+  a drawer.** Mode and contrast are what the live scheme is made of, so they come
+  first; the scheme section keeps the two dynamic picks and the palette in use
+  visible and folds the rest behind ALL THEMES, instead of a six-row wall of
+  swatches between the reader and everything below it
+  (`quickshell/pages/AppearancePage.qml`).
+- **The palette cache path is `~/.cache/ryoku/colors.json`, and the hub palette
+  singleton is `Palette`.** `wallustCacheDir()` is renamed `ryokuCacheDir()` and
+  points at `~/.cache/ryoku/`, the rotating-border blocks read `hypr-colors.lua`
+  from there, and the hub's `Wallust` singleton (Profile plate and clock preview)
+  is renamed `Palette`. The clock accent choice `wallust` is renamed `palette` to
+  match. The retired wallust engine leaves no path or type name behind
+  (`backend/schemes.go`, `backend/matugen.go`, `backend/rice.go`, `backend/hypr.go`,
+  `quickshell/Singletons/`, `quickshell/ClockPreview.qml`, `quickshell/schema/WidgetsPage.js`).
+- **Appearance > Theme now picks the colour scheme from the daemon's named
+  catalog, the same settings seam the shell sidebar theme picker uses.** The old
+  Follow / Light / Dark / Mono segmented control -- which drove the hub's own
+  `theme.json` scheme through `ryoku-hub hypr scheme` -- is replaced by a
+  swatch-card picker over `theme.theme`, written through the settings daemon
+  (`Settings.patch`): Follow Wallpaper and the shipped Default as first-class
+  cards, then the 57 named palettes each as their own surface, name and
+  two-by-three swatch grid, so the Hub and the sidebar read and write one truth.
+  A card applies instantly (like the sidebar): the daemon resolves the palette
+  into `themePalette` and fans it into the shell and every app, so the scheme
+  sits outside the page's staged Save -- the Material You (Matugen) engine and
+  knobs and Theme Apps still ride Save. The card catalog is a generated preview
+  projection of the daemon's theme table, cross-checked byte-for-byte against the
+  sidebar's `MenuTheme.qml` (`pages/AppearancePage.qml`, `schema/ThemeCatalog.js`,
+  `schema/AppearancePage.js`).
+- **Bar Studio edits only the essentials that provably change the running
+  desktop.** Pick an edge from the four rail tabs to put that rail on the bench;
+  every edit lands on the running desktop as you make it and rides the Hub's Save
+  and Revert. The frame controls are the draw toggle, opacity, band thickness and
+  corner radius; each rail has its on/off and thickness; and each rail's three
+  zones hold its widgets. Every zone is its own titled section with a numbered,
+  reorderable list and a per-zone drawer that offers the widgets that fit the rail
+  and are not already on it; the controls use a plain click handler so a tap
+  always lands inside the page scroll, which the old compact reorder buttons lost.
+  The widget-radius knob and the two-look style switch are gone (they had no live
+  consumer, and `ryoku doctor` strips the dead keys); the band thickness and
+  corner radius are wired to new keys the shell actually reads (`frameThickness`,
+  `frameCorner`), replacing the inert `frameBorder`/`frameRadius`. The per-rail
+  auto-hide choice is dropped too: a hover-hidden bar could not be brought back
+  because the overlay input mask does not widen on hover, so every rail stays
+  pinned. The bounded menus and the stash and system surfaces are still never
+  dropped: every edit clones the whole `frameBars` object, so an untouched subtree
+  always survives (`pages/BarStudioPage.qml`, `barstudio/ZoneEditor.qml`,
+  `barstudio/BarStudioModel.js`, `barstudio/CatalogLabels.qml`,
+  `barstudio/qmldir`, `Hub.qml`).
+- **Ryoku Settings now describes the Atoll-only shell instead of the retired
+  style catalogue. The Bar page keeps the two-look Atoll control, live bar
+  geometry and preserved sidebar-content controls, and drops style, island and
+  sidebar-opener settings that no longer have a runtime consumer. The Desktop
+  Widgets page now edits the wallpaper clock only. The Ryoku theme preset and
+  rice look allowlist use Atoll, so an old style cannot be reapplied through a
+  preset or imported rice (`schema/BarPage.js`, `schema/WidgetsPage.js`,
+  `pages/BarPage.qml`, `pages/WidgetsPage.qml`, `backend/rice.go`,
+  `backend/schemes.go`).
+
+### Fixed
+- **Backdrop frost now says what it affects.** The launcher editor calls the
+  control **Backdrop frost** and explains that it blurs the captured desktop
+  seen through the result drawer; zero keeps the drawer solid
+  (`quickshell/pages/LauncherPage.qml`).
+- **The App Launcher preview now shows the launcher, at its true scale.** The
+  old full-width mock only repeated the hero art, so it made the shutter look
+  larger and structurally different from the real palette. The specimen now
+  keeps the live 720 x 250 hero ratio, search line, scope keys and compact
+  centered physical size. The page also exposes **Type settle** (120-700 ms),
+  which controls when a completed typed-result deck is released
+  (`quickshell/pages/LauncherPage.qml`, `schema/LauncherPage.js`).
+- **The App Launcher editor and live launcher now share the same hero crop.**
+  The page calls the image a hero instead of a home-card backdrop, keeps the
+  image picker and direct drag-to-frame interaction, and renders through the
+  same `Ryoku.Ui.HeroCrop` cover/focal-point math as the live shutter. Wide,
+  portrait, fallback, and off-centre images therefore land in the launcher
+  exactly where the saved preview put them
+  (`quickshell/pages/LauncherPage.qml`, `Ryoku.Ui/HeroCrop.qml`).
+- **Switching the engine back to Wallust actually reverts now.** Turning the
+  Material You toggle off only re-fanned the Matugen colours still sitting in
+  `colors.json`, so the desktop stayed on the M3 palette -- the switch looked
+  like a no-op. It now re-derives: the change back to Wallust re-applies the
+  current scheme (follow re-runs Wallust on the wallpaper, a fixed light/dark
+  scheme reloads its palette), replacing the stale Matugen palette instead of
+  re-fanning it. A same-engine change (per-app toggle) keeps the fast re-fan
+  path (`backend/matugen.go`).
+- **Wallust themes every app again (Nautilus, Discord, Steam, ghostty, ...),
+  not just the shell.** The Material 3 app templates use M3 role names
+  (`primary`, `surface`, `on_surface`, ...) that only exist under the Matugen
+  engine; on Wallust the render carrier held base16 only, so the first
+  unresolved role aborted the *whole* matugen render and every GTK/Qt app froze
+  on its last theme -- most visibly Nautilus keeping a light background after a
+  light Matugen theme. The carrier now maps base16 -> the M3 roles, so the
+  templates resolve on Wallust too and the app suite re-themes with the
+  wallpaper (`backend/matugen.go`).
+- **Theme tab leads with Wallust; Matugen is an opt-in "advanced" section, and
+  each app has a button to its template.** The Wallust/Matugen picker no longer
+  sits at the top as a co-equal choice: Wallust (the default) drives the palette,
+  and the Material You (Matugen) engine plus its algorithm, mode and tuning now
+  live under a collapsed "MATERIAL YOU (ADVANCED)" toggle, so the Material 3 look
+  reads as opt-in. In Theme Apps each app gained a folder button that opens its
+  template under `~/.config/matugen/templates`. The folder-icon recolour also
+  tints muted wallpapers instead of dropping to grey, so a low-saturation accent
+  still reads as a colour (`pages/AppearancePage.qml`,
+  `hyprland/scripts/ryoku-cmd-folders`).
+- **Theme tab: palette changes go through Save instead of silent auto-apply.**
+  The engine (Wallust / Matugen), scheme, Material 3 tuning, Ryoku interface and
+  per-app toggles applied the instant you touched them and never lit the action
+  bar, so the Save button stayed greyed and the edits felt lost -- unlike every
+  other page in the Hub. They now stage into a draft that raises the shared Save
+  (and Revert): pick freely, then commit in one click, and Revert or an unsaved
+  quit drops the staged edits. Staging also stops the contrast slider re-running
+  matugen on every drag frame (`Hub.qml` gains `pageDirty` + `savePage` /
+  `revertPage`; `pages/AppearancePage.qml`).
+- **Matugen (Material 3) is merge-ready: live wallpapers, real app theming, and
+  the panel folded into Theme.** The Material 3 engine now samples a still frame
+  from a live/video wallpaper before running matugen (it panicked on a `.webm`,
+  silently aborting the whole apply -- shell, apps, and the folder recolour), and
+  a scheme or per-app change now re-fans the palette live on the wallust engine
+  too, not only matugen. The standalone Matugen tab is gone: its controls live
+  under Appearance > Theme, engine-first (Wallust / Matugen), with the wallpaper
+  gallery dropped for room and the app list trimmed to the templates that are
+  actually toggleable plus a note that terminal, borders and Qt6 always follow and
+  Discord, Telegram, OBS, Zed, Steam and Heroic need the theme picked inside the
+  app once. The wallpaper->folder-colour post_hook the PR's older `config.toml`
+  had dropped is restored (`backend/matugen.go`, `pages/AppearancePage.qml`).
+- **Matugen: the visualiser, folder icons and window border follow the wallpaper
+  even with Ryoku Interface set to Original.** Those three read
+  `~/.cache/wallust/colors.json` directly (no `followWallpaper` gate), so writing
+  the monochrome palette to that file when Ryoku Interface was Original dragged
+  them mono too, though the toggle only promises to keep the Hub, pill and widgets
+  mono. Matugen now always writes the wallpaper's Material 3 palette to
+  `colors.json` and keeps the shell mono through `followWallpaper` alone, so on the
+  Matugen engine those accents track the wallpaper on both settings while the
+  chrome still honours the toggle (`backend/matugen.go`).
+- **The theme scheme control shows the mode you are actually on.** The palette
+  offers Follow, Light, Dark and now Mono; the fourth was missing, so a desktop
+  on the Mono palette (the Ryoku default) lit no segment and the control read as
+  if nothing was selected. Mono is now a first-class option, and its blurb no
+  longer claims it tracks the wallpaper (`pages/AppearancePage.qml`).
+- **Every page's section eyebrow matches the rail again.** Pages hard-code the
+  "you are here" group above their title, and the task-oriented regroup had left
+  fifteen of them stale: Input, GPU, Displays and Connections claimed SYSTEM
+  while they live under Devices; Keybinds, Window Rules, App Overrides and Layer
+  Rules pointed at the retired ADVANCED group instead of Apps & Keys; Recording,
+  Dictation and Fastfetch were not Tools; and Autostart, Environment and
+  Performance were not System. Their section register numbers were corrected too
+  (`pages/*.qml`).
+- **The Advanced settings switch stays where you left it.** It persisted through
+  `ryoku-hub config set advanced`, but the config CLI never knew that key, so the
+  write failed silently and every reopen came back with Advanced off, the deep
+  knobs re-hidden. Added the key with a round-trip test (`backend/config.go`,
+  `backend/config_test.go`).
+- **Rices > Browse gains a Refresh button.** The community-store grid fetched its
+  catalogue only once per Hub session (`showBrowse` pulled it only while empty),
+  so a rice newly added to `ryoku-extras` never appeared without reopening the
+  Hub, and the sole re-pull was the empty-state "Try again". A Refresh button now
+  re-runs `ryoku-hub rice catalog` (already network-first with CDN-busting),
+  matching the Add-ons store and Lockscreen (`pages/AppearancePage.qml`).
+- **Matugen (fixed-scheme path): pre-create the template output dirs.**
+  `backend/schemes.go` (`renderApps`) makes the output dirs before matugen runs so
+  its "folder doesn't exist" warnings stay out of the log (matugen already
+  self-creates them, and its errors were already surfaced here). GTK/Qt generation
+  is intact -- verified live; the reported "no themes" failure is now diagnosable
+  via the daemon's newly surfaced matugen errors (see ryoku/shell).
+- **Settings nav rail: long translated category labels no longer collide with the
+  kanji seal.** The Latin label in `Hub.qml` now elides within the space before the
+  right-aligned kanji (Portuguese "Widgets da área de trabalho", "Substituições de
+  aplicativos"); short labels are unchanged.
+- **Language > Generate with AI now explains the key file.**
+  `schema/ShellSettingsPage.js` states that Ryoku auto-creates
+  `~/.config/ryoku/i18n-llm.json` on login and the user pastes an Anthropic/OpenAI
+  key into it (button and file were wired but undocumented).
+
+### Added
+- **Shell settings are flagged in red in the rail.** Every rail section that
+  configures the Ryoku shell rather than the Hyprland compositor now carries a
+  small red tick at its inner edge, so the shell pages (Bar, Frame, Desktop,
+  Widgets, App Launcher, Lockscreen, Appearance, Connections, Recording, and the
+  rest) read apart from the compositor pages (Displays, Input, Cursor, Windows,
+  Animations, Keybinds, Window Rules, App Overrides, Layer Rules, Autostart,
+  Environment) at a glance (`Hub.qml`).
+- **Updates moved to a top-right corner button with a live badge.** The Updates
+  section left the rail for a compact English UPDATES chip pinned to the Hub's
+  top-right corner, riding the empty top strip clear of each page's running-head
+  marginalia: it opens the Updates page from anywhere and wears a red dot
+  whenever the channel sits behind origin. The dot uses a new fixed `Tokens.alert` red
+  that never follows the wallpaper, so an update always reads as an update even
+  under a themed palette; the `Updates` singleton self-checks on load and on the
+  configured cadence, so the badge is live. The write ledger drops below the
+  button on the pages that show it (`Hub.qml`, `Ryoku.Ui` `Tokens.alert`).
+- **The Advanced switch curates the rail, and moves to its foot.** It used to
+  only reveal the deep knobs buried inside a few pages -- an effect you had to
+  already be on the right page to notice -- so the switch read as inert. Now
+  Advanced off also trims the sidebar to the everyday sections (Profile,
+  Displays, Connections, Input, Windows, Appearance, Bar, Desktop, Lockscreen,
+  App Launcher, Keybinds, Store, Installed), folding the power-user
+  ones (Cursor, GPU, Frame, Widgets, Animations, the per-window/layer rules and
+  App Overrides, every Tool, Performance/Autostart/Environment and Rashin) away
+  until it is on. Whole all-advanced groups (Tools) collapse header and all, the
+  open section always stays listed so a toggle never strands you, and search
+  still reaches everything. The switch itself leaves the top of the rail for its
+  foot, seated below the barcode plate as persistent chrome (`Hub.qml`).
+- **Displays page: live drag, no cursor-trapping gaps, and a main display.** The
+  arrangement canvas now moves each display tile live under the cursor (it only
+  jumped to the drop point before). Dropping a display always snaps it flush to a
+  neighbour, and a layout opened with a gap is tidied at once -- Hyprland cannot
+  move the cursor across a gap, so a separated layout stranded a screen. A new
+  "Set as main" control (and a MAIN tile badge) puts a display at the global
+  origin, Hyprland's primary / cursor-home corner. The contiguity and main
+  geometry live in a unit-tested `pages/lib/arrange.js` (`pages/DisplaysPage.qml`,
+  `pages/lib/arrange.test.mjs`, `schema/DisplaysPage.js`).
+- **The `dyad` dual-edge bar is selectable from Settings, and Jules3182 is
+  credited.** The bar-style gallery gains `dyad` (Jules3182's dual-edge
+  floating-island bar) with its own "Dyad look" toggle -- faithful dark capsules
+  or Ryoku-native grainy paper chips -- and the Credits page lists Jules3182's
+  dotfiles beside the other bar sources (`schema/ShellSettingsPage.js`, `Hub.qml`,
+  `pages/CreditsPage.qml`).
+- **Multi-language UI with self-maintaining translations.** Ryoku surfaces read
+  through one `I18n` singleton (`Ryoku.Ui`): `I18n.tr("English")` returns the
+  current language or the English key as a fallback, so a partly-translated UI is
+  never broken. Language comes from `~/.config/ryoku/i18n.json` (default `auto`,
+  which follows the OS locale) and switching it retranslates every open surface
+  live. Wrapping the schema renderer (`SettingsSheet`) translates every settings
+  page's labels and descriptions at once; the GPU page is wrapped too. Translation
+  files are generated, never hand-edited: `ryoku/ui/i18n-sync.py` extracts English
+  and machine-translates only the strings each language is missing (keyless, so it
+  runs in CI), with `overrides/<lang>.json` preserving human fixes; a workflow
+  regenerates and commits them on every update. First languages: Spanish, French,
+  Portuguese, and Brazilian Portuguese.
+- **The Lockscreen page gains an "At sign-in" keyring section.** A compact
+  hairline card above the skin gallery, in the page's own bespoke language: a
+  three-mode chip row (Unlock at sign-in / Never ask / Ask each time) over a live
+  status line read from `ryoku keyring status --json` (keyring format, the
+  daemon, and the caveats -- an encrypted keyring that only unlocks if its
+  password is your login password, the autologin conflict). Picking a mode runs
+  `ryoku keyring set <mode>` (pkexec pops polkit for the root PAM half, the same
+  UX as applying a skin). When a mode is blocked by an encrypted keyring, an
+  inline password field converts it (`--convert --password-stdin`, the secret
+  fed through stdin, never argv) or "Start fresh" resets it after a confirm. New
+  schema search entries surface it under keyring, secrets, passwords, unlock, and
+  sign-in (`pages/LockscreenPage.qml`, `schema/LockscreenPage.js`).
+- **The Displays page gains per-monitor colour management, including HDR.** Each
+  display gets a COLOUR control (sRGB / Wide / HDR) beside Adaptive sync; picking
+  HDR reveals an SDR brightness stepper (1.0x-2.0x) that lifts SDR content into
+  the HDR range. The choice maps to Hyprland's `cm` (with 10-bit depth on Wide
+  and HDR) and rides Apply, the persisted layout and named profiles like every
+  other per-monitor setting. A panel that cannot do HDR has the compositor
+  resolve it back to sRGB, so the page reflects that honestly on the next read
+  (`pages/DisplaysPage.qml`, `schema/DisplaysPage.js`).
+- **A "Theme apps" toggle extends the palette past the shell into GTK / GUI
+  apps.** The Appearance page's Theme tab, under the palette scheme, gains a
+  switch (`ryoku-hub hypr theme-apps`) that decides whether Files, text editors
+  and other GTK / libadwaita apps recolour to the wallpaper or the locked
+  scheme, or stay stock. On renders the GTK stylesheets through matugen; off
+  blanks them so apps fall back to Adwaita. The shell, terminal, borders and Qt
+  always track the palette. A rice now carries the choice (`color.themeApps`),
+  so a shared full-system look reaches (or spares) the recipient's apps the same
+  way it did the author's, and the Rices tab lists the GTK apps it touches
+  (`schemes.go`, `hypr.go`, `rice.go`, `pages/AppearancePage.qml`).
+- **Performance ships cheap on RAM by default, and RyoLayer gets an on/off on the
+  Shell page.** The Performance page's memory unloads (launcher, overview,
+  visualiser, covered desktop widgets) now default ON, so a fresh desktop frees
+  every idle surface, and it adds an "Unload the widget board" toggle for
+  RyoLayer. The Shell page's DESKTOP tab gains an "Enable widget board" switch
+  that turns RyoLayer (the Super+G overlay) on or off entirely
+  (`pages/PerformancePage.qml`, `schema/PerformancePage.js`,
+  `schema/ShellSettingsPage.js`, `Hub.qml`).
+- **The GPU page gains live, per-session tuning, and a full beta-18 rework.** It
+  now explains itself (plain-language purpose plus a live status line) and, below
+  the render-mode selector, a TUNING section that probes the machine
+  (`ryoku-hub gpu tune caps`) and shows only the knobs that hardware actually
+  exposes: NVIDIA power limit (where the driver still allows it) and persistence,
+  AMD performance level and power cap, Intel frequency, and the vendor-generic
+  ACPI thermal profile. Overclock, undervolt, clock-lock and manual fan sit
+  behind an Advanced disclosure with a bone-plate warning. Everything is runtime
+  sysfs / nvidia-smi state applied through one pkexec batch and gone on reboot,
+  so a reboot (or `gpu tune reset`) is the whole backup. Named presets (Quiet /
+  Balanced / Performance plus your own) persist to
+  `~/.config/ryoku/gpu-presets.json`; built-ins are symbolic and skip any knob a
+  box lacks. The specimen is rebuilt as a Ticks-framed instrument plate under the
+  描画 watermark, no bespoke card (`GpuPage.qml`, `gputune.go`, `gpupreset.go`).
+
+### Changed
+- **The DESKTOP section is rebuilt around objects, so each thing has one home.**
+  Window settings were scattered across Appearance (Windows/Effects/Borders
+  tabs), the Shell page, and Animations; now every window setting lives on one
+  **Windows** page with clean tabs (Layout, Look, Borders, Motion). The old
+  catch-all Shell page split into three object pages that match how you think
+  about the desktop: **Bar** (the panel, clusters, island, sidebars), **Frame**
+  (shape, surface, shadow, notifications) and **Desktop** (brand, weather, the
+  visualiser). The pointer left Appearance for its own **Cursor** page under
+  Devices, next to Input, its theme catalogue intact. Appearance is trimmed to
+  what it is really about (theme, comfort, rices), and the sheet machinery its
+  moved tabs no longer needed is gone (199 lines). The rail is reordered so
+  related pages sit together and "Desktop Widgets" reads as "Widgets" beside its
+  Desktop sibling (`Hub.qml`, `pages/WindowsPage.qml`, `pages/BarPage.qml`,
+  `pages/FramePage.qml`, `pages/DesktopPage.qml`, `pages/CursorPage.qml`,
+  `pages/AppearancePage.qml`).
+- **Progressive disclosure: one Advanced switch calms every settings page.** A
+  global toggle in the rail hides the deep, rarely-touched knobs behind it: blur
+  and shadow sub-tuning, dwindle and master internals, the visualiser's spectrum
+  and motion, per-style bar variants, frame grain and edge melt. The default view
+  shows the settings you actually reach for; search still finds a hidden knob, and
+  flipping the switch reveals them all in place (`SchemaPage.qml`,
+  `SettingsSheet.qml`, `Hub.qml`, and the page schemas).
+- **Ryoku Settings reorganized around how you look for a setting, not how it is
+  implemented.** The rail is regrouped into task-oriented sections -- OVERVIEW,
+  DEVICES (displays, connections, input, GPU), DESKTOP (appearance, shell,
+  animations, lockscreen, launcher, widgets), APPS & KEYS (keybinds + window /
+  app / layer rules), TOOLS (recording, dictation, fastfetch), SYSTEM
+  (performance, autostart, environment, updates) and ADD-ONS (store, installed,
+  rashin) -- so recording/dictation/fastfetch read as tools, performance and the
+  agent OS leave the old ADVANCED catch-all, and the group holding the open
+  section lifts up the ink ramp as a quiet monochrome "you are here" (`Hub.qml`).
+- **Global search reaches every page, the words people actually type, and whole
+  phrases.** Each section carries a keyword set, so `wifi` / `bluetooth` /
+  `hotspot` find Connections, `agent` finds Rashin, `plugin` finds the Store, and
+  synonyms the labels avoid (`transparency`->opacity, `startup`->autostart,
+  `screensaver`->lockscreen, `visualizer`) resolve. Multi-word queries no longer
+  cliff to nothing when one word is out of vocabulary -- scoring is tolerant,
+  summing the words that match and scaling by coverage, so `dark mode`, `second
+  monitor` and `turn off blur` land their page instead of blanking. A setting
+  also matches its option values (`h264`, `dwindle`, `dark`, `fahrenheit`); tab
+  names are searchable; engineering-only surface rows (action buttons,
+  dynamic-title notes) no longer pollute results; and a page whose keywords own
+  the queried word floats above a stray control that merely mentions it, so a
+  bare `blur` / `cursor` / `battery` lands the section, not a decoy (`Hub.qml`).
+- **Appearance is re-tabbed by task: the 73-setting Look tab became Windows +
+  Effects, and the Wallpaper tab is reframed as Theme.** The old Look wall (window
+  shape, tiling, gaps, behaviour, blur, shadows, glow, glass, opacity, motion) is
+  now **Windows** (shape, tiling, gaps, behaviour) and **Effects** (the visual
+  layers). The former Wallpaper tab -- which already led with the light/dark/follow
+  colour scheme and Apply-Ryoku-theme above the wallpaper gallery -- is now named
+  **Theme**, since choosing a scheme or wallpaper is how you theme the desktop, so
+  `dark mode` / `theme` / `accent` land an obvious tab instead of hiding under
+  "Wallpaper". Seven tabs, sized to clear the write-ledger column
+  (`schema/AppearancePage.js`, `pages/AppearancePage.qml`).
+- **The Installed and Updates pages fill their dead space with a poster.** A
+  short plugin list or an up-to-date channel used to leave a large empty column;
+  each now closes on a `Decor` specimen (ink-only, no control) that gives the
+  section its face, matching the rest of the Hub (`pages/AddonsPage.qml`,
+  `pages/UpdatesPage.qml`).
+- **Shell settings show only the options the active bar style actually uses.**
+  Beyond the Style gallery, each bar style now exposes just the settings its bar
+  reads: `washi` shows only its Washi Look, `delos` its island modules / edge /
+  radius, the band skins (`noctalia` / `caelestia` / `aegis` / `stele`) the
+  module layout, `atoll` only position and thickness, and so on, so a style never
+  lists a knob that does nothing for it (e.g. atoll no longer shows the washi or
+  island settings). A schema row carries a `styles` list and the sheet hides it
+  while the drafted `barStyle` is not in it, live as you switch styles in the
+  gallery (`schema/ShellSettingsPage.js`, `SettingsSheet.qml`, `SchemaPage.qml`,
+  `pages/ShellPage.qml`).
+- **Ryoku Settings writes its generated Hyprland Lua into the `user_edits`
+  overlay.** `settings.lua` and `rebinds.lua` are authored under
+  `~/.config/ryoku/user_edits/hypr` (the source that survives updates) and
+  reflected into the live `~/.config/hypr`, so a Save still hot-reloads at once
+  (`backend/hypr.go`).
+- **One Keybinds page for every shortcut: Apps, System, Custom.** Default Apps is
+  folded in. **Apps** picks what each launcher key opens (browser, terminal,
+  editor, files, notes) -- installed apps as chips, a filterable catalogue of
+  every installed app (an executable cheatsheet), or any typed command -- and
+  rebinds that key right beside it. **System** rebinds the built-in shortcuts
+  (Close, Fullscreen, focus, workspaces). **Custom** layers your own, now with the
+  same app picker on Run-command rows so you never need to know an executable
+  name. App choices launch through the `ryoku-app` resolver (applied on the next
+  press, no reload; $BROWSER/$TERMINAL exported for the CLI and xdg-open). A key
+  change is a pure remap through the generated `rebinds.lua` that binds.lua's K()
+  consults, so shipped and custom binds never double-fire and overlaps are named
+  as you go; rebinds reset per row or all at once. Adds a shared filterable
+  `AppPicker`; removes the standalone Default Apps page and its nav entry
+  (`pages/KeybindsPage.qml`, `ui/AppPicker.qml`, `Hub.qml`, `backend/apps.go`,
+  `backend/keybinds.go`, `hyprland/scripts/ryoku-app`, `hyprland/modules/binds.lua`).
+- **Keybinds you can record by pressing them, with named conflicts.** The custom
+  editor no longer makes you type "SUPER + J" by hand: every row has a record
+  button (and the section's + records a brand-new bind in one click) that
+  captures the next combo you press. Even shipped chords like SUPER + Q are
+  caught safely, because recording first enters a do-nothing Hyprland submap
+  where only its own binds fire, so the combo reaches the Hub instead of closing
+  it (Esc, a timeout, or a click outside cancels). A captured bind that shadows a
+  shipped one now names it ("Shadows shipped: Close active window") instead of a
+  bare "shipped", and Clear all became Restore defaults. Adds the submap module
+  `hyprland/modules/record.lua` (`pages/KeybindsPage.qml`, `hyprland/hyprland.lua`).
+- **The Shell page's Desktop tab picks images and locations instead of typing
+  paths and city guesses.** The brand Logo image was a raw path field; it is now
+  an image control: a live thumbnail of the current mark, a Choose button that
+  opens a file browser, and Clear (falls back to the text glyph). The weather
+  Location was a free-text guess Open-Meteo might or might not geocode; it is now
+  a live-autocomplete field: as you type, the same keyless Open-Meteo geocoder
+  the weather widgets resolve with suggests real places as "City / Region /
+  Country", and picking one disambiguates (Tokyo, Japan vs Tokyo Hill, Texas)
+  and records the resolver cache (`~/.local/state/ryoku/weather-loc.json`) so the
+  pill, launcher and desktop widget all land on exactly that place instead of
+  re-geocoding. Typing freely still works; empty still locates by IP. Two
+  reusable schema control types back this (`image` and `location` in
+  `SettingsSheet.qml`), usable by any page (`schema/ShellSettingsPage.js`,
+  `SchemaPage.qml`).
+- **The file/image picker is one shared component now.** The monochrome
+  image/folder browser was copied per page; it is promoted to `Ryoku.Ui.PickFile`
+  and the Appearance page (border image, rice wallpaper, rice export/import) uses
+  the shared one, so the Desktop tab's image picker and every existing picker are
+  the same widget (`ryoku/ui/PickFile.qml`, `pages/AppearancePage.qml`).
+- **Rices capture the whole desktop now, and their previews tell the truth.**
+  A rice snapshots three more look stores -- desktop widgets (clock and
+  calendar), the audio visualiser, and the desktop decors, whose pictures are
+  bundled into the rice (`rice://` assets) and land under
+  `~/.config/ryoku/rice-assets/<slug>/` on apply, so a shared decor never
+  points at a file that exists only on the author's disk. The launcher look
+  gained its card knobs (`bgBlur`, `radius`, greeting and weather toggles),
+  the shell look carries `frameEnabled`, and the brand (name + mark, with the
+  mark image bundled) travels as a new opt-in layer routed to `brand.json`.
+  Every save now writes `preview.png` from the wallpaper as it stands at that
+  moment: a still is scaled down, a live (video) wall contributes the frame
+  the palette is tuned to (the wallust offset), so the tile and detail show
+  the wall of when it was saved -- an mp4 is never handed to an `<Image>`
+  again (a live-wall rice previously drew a broken tile). Live walls are
+  captured as the actual clip, badge `LIVE` on the tile and detail, and apply
+  routes them into `~/Pictures/livewalls/` so Super+W keeps cycling them.
+  `.previous`/`.baseline` snapshots grew to all eight stores, so Restore
+  original reverts widgets, visualiser, decors and brand too
+  (`backend/rice.go`, `pages/AppearancePage.qml`, `schema/RicesPage.js`).
+- **Applying a rice is a choice, not a package deal.** ALSO SETS is now a row
+  of toggles (KDE's global-theme partial apply): every behaviour bundle the
+  rice carries -- keybinds, input, window rules, layer rules, per-app
+  overrides, autostart, environment, brand -- applies by default and taps off
+  individually, so a recipient can take the look and leave the keybinds
+  (`pages/AppearancePage.qml`).
+- **Border colours live with the scheme that governs them, and a colour is a
+  swatch now, not a hex string.** The active/inactive window-frame colours moved
+  out of Borders and under the Theme tab's colour scheme (Follow / Light /
+  Dark), so the one decision -- follow the wallpaper or use fixed colours -- and
+  the colours it controls sit in one place instead of split across two tabs. A
+  new `ColorField` renders a live swatch with a click-to-open picker beside the
+  hex, used wherever a colour was a bare hex field (border, shadow, glow, glass,
+  OSD, fastfetch accent), so a colour reads as a colour rather than a code
+  (`ColorField.qml`, `SettingsSheet.qml`, `pages/AppearancePage.qml`,
+  `schema/AppearancePage.js`).
+
+### Added
+- **The capture card shows its coverage before you name the rice.** A
+  `ryoku-hub rice preflight` readout lists what the save will carry: the
+  wallpaper kind (live video or still), the decor count, widgets and
+  visualiser, the colour mode, and the non-empty behaviour layers -- so
+  "everything travels" is visible, not asserted (`backend/rice.go`,
+  `pages/AppearancePage.qml`).
+- **Import closes the sharing loop.** `ryoku-hub rice import <folder>` (and
+  the IMPORT button beside Save) installs an exported rice folder as a local
+  rice, de-duping the slug and skipping the export's reading matter, so a
+  rice folder someone sends you is one pick away from applying
+  (`backend/rice.go`, `pages/AppearancePage.qml`).
+
+### Fixed
+- **The colour picker is Ryoku's own paper-and-ink surface, not a grey web
+  dialog.** Clicking a colour swatch opened the platform `ColorDialog`, which
+  ignored the theme. It now opens an in-app picker on the bar's own black surface:
+  a saturation/value field, a hue rail, a live swatch and a mono hex field, all
+  drawn from `Tokens` (`ColorField.qml`).
+- **A colour setting no longer prints its hex on top of its own control.** The
+  SURFACE colour cells reserved no footer for the swatch and still showed the raw
+  hex as the cell value, so the `ColorField` overlapped the cell content and
+  spilled into the gap between cards. Colour cells now reserve the control footer
+  and blank the redundant value, like the picker and image cells
+  (`SettingsSheet.qml`).
+- **Text settings save the value you typed, not the one before it.** A text
+  field (the desktop brand name, the mark glyph) committed its edit only on
+  focus loss, but clicking Save never blurs the field, so the typed value was
+  dropped and the setting "would not save". Fields now commit as you type, so
+  Save always writes what is on screen (`SettingsSheet.qml`).
+- **The Fastfetch preview shows the emblem at its real size, and an Auto fit
+  sizes it undistorted.** The readout preview drew the emblem as a fixed 84x84
+  square, so changing Width, Height or Pad moved nothing -- the preview never
+  matched the terminal. The emblem is now measured in the readout's own
+  character cells (a Width x Height box, shifted right by Pad), and the whole
+  readout scales to fit the card, so it is a true specimen: adjusting the size
+  resizes it exactly as fastfetch lays it out. A new Auto fit button holds the
+  width and sets the height to the art's own aspect against the terminal's cell
+  ratio, so a picked image renders square instead of stretched
+  (`pages/FastfetchPage.qml`).
+- **Bar style previews look like the bars.** The Shell page's bar STYLE
+  gallery drew abstract shapes that did not resemble the skins they name. Each
+  tile now paints a faithful mini-bar in the skin's own treatment: noctalia's
+  dot workspaces and clock pill, caelestia's numbered cell strip in one
+  container pill, aegis's flat modules with an accent underline, stele's
+  bracket cells, the three rounded islands of triptych and the single floating
+  one of delos, nacre's islands under a hairline top edge, and inir, aurora and
+  angel as flat solid, glass and heavy-base panels. Drawn once in
+  `ui/Singletons/Silhouette.qml`, so the gallery tile and the ryowalls mock
+  desktop cannot disagree with the real bar.
+- **The Displays scale stepper steps through real scales now.** It stepped the
+  percentage by 25 from whatever the compositor last reported, so on most
+  panels a single press requested a scale Hyprland cannot hold (1.60 + a step =
+  1.85, a clean divisor of nothing common): the compositor refused it, drew the
+  "Invalid scale" overlay, substituted a neighbour, and the read-back looked
+  like arbitrary numbers -- worst on low-res screens, whose valid scales are
+  sparse. The stepper now walks the selected mode's ladder of Hyprland-valid
+  scales (`scaleLadders` from `ryoku-monitor list`: the same 1/120
+  whole-logical-pixel rule the compositor enforces, floored at a 640x360
+  logical desktop, so 720p offers 0.5x through 2x in 13 steps), a resolution
+  change re-snaps the staged scale to the new mode's ladder, and Apply reloads
+  the live list afterwards so the action bar reports what the compositor
+  actually accepted instead of assuming the request stuck
+  (`pages/DisplaysPage.qml`).
+- **Ryoku Settings fits a 720p screen.** The window rule floats it at 1360x880
+  and the window pinned a 1280x820 minimum, so on anything smaller (a 720p
+  panel, or a scaled low-res one) the bottom action bar -- Apply itself -- and
+  the right-hand controls sat off screen. The window now clamps its maximum
+  size (and its minimum with it) to the screen it is on; Hyprland sizes the
+  rule into the client's hint and centres the clamped result in the usable
+  area, while roomy screens keep the exact previous size (`shell.qml`).
+- **Wide segmented controls no longer swallow their own label.** A segmented
+  control with three or more options sat inline beside its label, so on a
+  narrow card the label, value and description clamped to zero width and
+  vanished, leaving the buttons alone in an empty card (worst on small
+  screens). Any segmented with three or more options now drops to its own
+  full-width band under the text, so the label always has room whatever the
+  screen size (`SettingsSheet.qml`, `pages/AppearancePage.qml`).
+
+### Changed
+- **Fastfetch emblem is a gallery now, not a file hunt.** Adding your own art
+  meant flipping the emblem to Image, finding a small Choose Image button, and
+  walking a file dialog, with the art sized in cryptic character columns. The
+  emblem is a visual picker now: a wall of ready art you click to set (the
+  Ryoku brand marks and the shipped ryodecors, drawn as real thumbnails) plus
+  a Your image tile that browses or takes a dropped file. The chosen emblem
+  lights up in the wall and the readout preview updates live; ready art sets
+  its source directly while your own file is imported and copied as before
+  (`pages/FastfetchPage.qml`).
+- **Appearance exposes the rest of Hyprland's look, and the layout engines.**
+  The Look tab gains the decoration knobs it was missing (fullscreen opacity,
+  dim for special and modal windows, dim-around, border-inside-window, the
+  full blur set of contrast, brightness, special, popups, ignore-opacity,
+  optimizations and vibrancy-darkness, plus sharp and scaled shadows) and the
+  general ones (border grab area, resize cursor on border, resize corner,
+  no-focus-fallback, workspace gaps). Dwindle and Master each get their own
+  group, shown only while that layout is active, so their split, ratio, mfact,
+  orientation and new-window knobs are finally reachable. Image-border sizes
+  and insets, the glass tint, brightness and theme, and cursor shake-magnify
+  are surfaced too. Every knob previews live and persists on Save
+  (`backend/hypr.go`, `schema/AppearancePage.js`).
+- **Shell exposes the island's dock edge.** The persistent dock already reads
+  which screen edge it sits on, but the Shell page never offered it; it now
+  sits in the bar's Island group as a four-way pick (top, bottom, left,
+  right). The retired pill-era geometry keys stay out (the doctor wipes them),
+  so no dead control is added (`schema/ShellSettingsPage.js`).
+- **Appearance rebuilt to the register, overlaps gone.** The page opened on
+  Rices behind a bare eyebrow with hardcoded font sizes, and three rows
+  collided: the wallpaper blurb ran under SHUFFLE, the rice-capture name field
+  under SAVE/CANCEL, and long rice names and change-summaries overflowed the
+  detail header. It now leads on Look, wears the same register header as the
+  schema pages (力 eyebrow with rule, marks and hairline leader, Fraunces
+  title, blurb), splits the old SHAPE into SHAPE + TILING, and every font size
+  is a `Tokens` value. The colliding rows clamp their width (`Math.max(0, ...)`)
+  and long text elides, so nothing overlaps. The inline sheet stays (it carries
+  the colour swatches and tiling demo the shared sheet cannot); every setting
+  key and its wiring are untouched (`pages/AppearancePage.qml`,
+  `schema/AppearancePage.js`).
+- **Shell settings regrouped into six coherent tabs.** The global tab crammed
+  fifteen unrelated settings, the visualiser spread seventeen across eight thin
+  groups, and two sidebar groups carried bullet-char names. The desktop's brand
+  and weather now sit in their own Desktop tab; global keeps only the shell-wide
+  look (surface, roundness, shadow, text); the visualiser collapses to three
+  groups (Style, Spectrum, Motion) led by its master toggle; and the sidebar
+  groups read plainly. All 53 settings are preserved -- only tab, group and
+  order changed (`schema/ShellSettingsPage.js`).
+- **Profile reborn as a gothic system poster -- a live scan of the operator.**
+  The Greek Lady Justice marble is retired; the plate is now a post-punk
+  brutalist poster in the reference register. A cracked marble profile bust,
+  fal-generated then baked to a high-contrast bone xerox (Bayer stipple,
+  bone-on-transparent), bleeds across the black; the identity is set monumental
+  in Fraunces over a huge 顔 watermark; the machine's vitals read as
+  line-and-stat callouts pinned to the face like a body scan -- the CPU and GPU
+  cores with temperatures, memory, network, and a fracture reading the beta
+  version -- each a big live figure on a thin leader to the point it measures; a
+  film-grain tooth and the audio-wave signal gif sit over it. Driven by a new `LiveStats` singleton
+  that polls `/proc`, `sensors` and `nvidia-smi` every 1.5s while the plate is on
+  screen and writes nothing. The Profile section is also wired into the hub nav
+  (it was a nav entry with no page) (`pages/ProfilePage.qml`, `Hub.qml`;
+  `Singletons/LiveStats.qml`, `art/profile-hero.png`, `art/grain.png`, new;
+  `art/marble-justice.png` retired).
+- **Decor picks apply live -- on Save and on "Next image", no restart.** A local
+  decor edit (pick from the gallery + Save, "Next image", "Shuffle", reframe)
+  persisted at once, but `DecorStore`'s own file-watch then re-broadcast and a
+  stale re-read reverted the value just set: the box snapped back to the old art,
+  so a pick only "took" after reopening the app and "Next image" needed two
+  clicks to advance. `syncFromStore` now holds a short guard after any local write
+  so it does not clobber the edit; external changes still land once the window
+  passes. The editor's on-close reload also runs deferred (`Qt.callLater`) so the
+  picked art repaints once the modal is gone, and shared `Cell.qml` clamps its
+  text column against a negative width so a narrow cell no longer clips
+  (`ui/Decor.qml`, `ui/Cell.qml`).
+- **Decor art caches, so a section with decors stops glitching on select.** The
+  decor image loaded with `cache: false`, so every reopen of a page with decors
+  (Input has six, several of them large custom stills) re-decoded each one from
+  disk -- a visible pop as the art loaded in. It now caches (`cache: true`): a
+  decor's art is decoded once and reused across reopens, so the section paints
+  from cache instead of re-reading the files (`ui/Decor.qml`).
+- **Performance rebuilt as a two-column plate with a hawk specimen.** The ten
+  tweaks sat in a 3-per-row grid that orphaned a cell in EYE CANDY and MEMORY
+  (two-thirds of each second row dead) and left IDLE short, with no art at all.
+  They now flow two-per-row in a left column, even rows, no orphans, beside a
+  specimen rail: 疾風 ("swift as the wind"), a hawk graded to the bone duotone,
+  the machine at peak performance. fal-generated, graded by hand
+  (`pages/PerformancePage.qml`; `Ryoku.Ui` `Placard`;
+  `ryoku/assets/ryodecors/hawk.png`, new).
+- **Credits sheds the Greek marble for a bone-duotone roots tree.** The kansha
+  poster carried a warm Three Graces statue (desaturated to grey at runtime), a
+  Greek-noir holdover that clashed with the space-bone-grotesk rewrite. It is now
+  an ancient tree, its roots gripping the black, fal-generated and graded by hand
+  to the bone duotone (no marble, no colour), under a Fraunces-italic deck ("the
+  roots we grow from"), a rotated poster spine, and the editorial gratitude
+  ledger. Pure bone on black (`pages/CreditsPage.qml`; `art/roots.png`, new;
+  `art/three-graces.png` retired).
+- **Rashin wears Hermes's own face.** Advanced > Rashin is a key feature with room
+  to grow, so it drops the Hub's chrome and wears the identity of the Rashin/Hermes
+  dashboard it fronts (`127.0.0.1:3600`): the warm bone-on-black poster palette and
+  Archivo Black + JetBrains Mono type mirrored from the dashboard's `base.css`. A
+  full-bleed samurai hero banner opens it, then the live **model Hermes runs on**
+  (e.g. `gpt-5.5`, via `openai-codex`, Hermes `v0.18.0`, read from `ryoku-rashin
+  status`), a **FUNCTIONS** poster index of what Rashin does (vault, memory, skills,
+  agents, chat, code -- with live vault/agent counts), a **TRY** list of example
+  commands (`hermes gateway`, `hermes model`, `prowl-agent overview`, ...), and the
+  master switch, one-click Hermes setup and dashboard link. Backend: `HermesInfo`
+  (`status --json`) now carries the chosen `provider`/`model`. Archivo Black ships
+  as a bundled font converted from the dashboard woff2, and the hero rides the
+  `ryodecors` art path; the earlier pass's `ryoneedle`/`ryocompass` loops remain as
+  `ryodecors` gallery art (`pages/RashinPage.qml`, `fonts/archivo-black.ttf`,
+  `rashin/backend/hermes.go`, `ryoku/assets/ryodecors/rashin-hero.png`).
+- **Animations, reorganized feel-first with a live motion preview.** The page
+  led with a raw cubic-bezier editor and a per-leaf Hyprland override table, so it
+  read as advanced. It now opens with named feels (Linear, Gentle, Smooth,
+  Snappy, Bouncy) that reshape the curve in one tap, a live preview that slides a
+  window along the selected curve so the easing is felt (feedback on change and
+  tap, never a perpetual loop), the bezier kept as fine-tune, and the per-leaf
+  table moved under an ADVANCED heading with a plain note. A bouncing-ball decor
+  (滑らか, smooth) fills the section, drawn by a new deterministic
+  `bin/art/ryobounce` and baked by `ryodither`; the loop joins the `ryodecors`
+  shuffle gallery (`Ryoku.Ui` `Decor`; `ryoku/assets/ryodecors/bounce.gif`, new;
+  `pages/AnimationsPage.qml`).
+- **Desktop Widgets' live preview is a pinned side column, not a half-page mock.**
+  The preview was a 300px full-width wallpaper mock that sat near-empty and placed
+  its widgets by a broken centre-scaled anchor (a "top-left" clock floated
+  mid-box), shoving the settings below the fold. It's now a pinned right-hand
+  column of three live specimen cards -- clock, calendar, weather -- each
+  rendering the real widget scaled to fit, dimmed under a struck header when off,
+  with a 3x3 corner map marking where it sits; the settings sheet reflows to the
+  left and scrolls full-height (`pages/WidgetsPage.qml`).
+- **The Lockscreen section shows the whole qylock catalogue, cached.** It read
+  only the installed skins (two), so the 38-design upstream set never appeared; it
+  now pulls the live `ryoku-hub lock catalog`. Preview gifs cache locally on first
+  open (`ryoku-hub lock cache`, warmed in the background) and refresh over time,
+  so the grid stops re-streaming from GitHub on every scroll and survives the
+  unauthenticated API rate limit -- the upstream tree is cached too, with a stale
+  fallback so a rate-limited fetch never collapses the list to the two vendored
+  skins. Picking a catalogue skin downloads and installs it (INSTALL + size hint,
+  an Installing state); the full-screen Preview is gated to installed skins. The
+  Refresh button pulls a fresh tree behind a spinner with a "+N new designs" /
+  "Up to date" cue, finishing fast when nothing is new (`pages/LockscreenPage.qml`,
+  `backend/lock.go`, `backend/lockcatalog.go`).
+- **The Tiling layout picker shows what each layout does.** Under the dwindle /
+  master / scrolling picker (Appearance > Look) a looping diagram plays the
+  drafted layout -- windows binary-splitting smaller, a master frame beside a
+  stack, or a panning column strip -- and swaps live as you click, before Save
+  (it reads the live hypr draft). Bone-on-transparent line art matching the
+  sheet, baked by `bin/art/tiling-demos` (`pages/AppearancePage.qml`,
+  `schema/AppearancePage.js`; new `quickshell/art/tiling-{dwindle,master,scrolling}.gif`).
+- **Decor and Placard art ships as user files in `~/Pictures/ryodecors`.** The
+  baked noir set (the statues and moon, the Muybridge/phenakistoscope/earth/
+  cradle gifs) and the specimen posters (katana, camera) moved out of the
+  `Ryoku.Ui` module into `ryoku/assets/ryodecors`, laid beside `Wallpapers` and
+  `livewalls` where a user can see and swap them. The installer seeds them,
+  `ryoku-desktop` ships them to `/usr/share/ryoku/ryodecors`, and `ryoku doctor`
+  tops up whatever a release adds -- so existing installs receive them on update,
+  not just fresh ones. `Decor`/`Placard` resolve through a new `Ryoku.Ui`
+  `Ryodecors` singleton; the editor gallery and custom picks are unchanged. Bake
+  new art to match with `bin/art/ryodither` (`Ryoku.Ui`
+  `Decor.qml`/`Placard.qml`/`Ryodecors.qml`).
+- **Connections fills its dead right column with a katana specimen poster.**
+  Below the 接続 hero card a slim right-hand bookmark carries a noir-baked
+  katana (from the reference pin, mapped onto the ink ramp), a JP title, a
+  chapter numeral, a quote, a barcode and a 断 seal -- ink only, no accent,
+  shared across every subtab. The lists are held to its left edge so nothing
+  overlaps, and it hides when the window is too narrow to spare a slim column
+  (`Ryoku.Ui` `Placard`, new; `ryoku/assets/ryodecors/katana.png`, new;
+  `pages/ConnectionsPage.qml`).
+- **GPU fills its landscape foot with a real-time-render specimen.** Below the
+  hardware card and the passthrough dossier, a full-width band carries a shaded
+  torus knot -- a stand-in for the desktop's own render -- baked to the house
+  dither and cover-filled so it fills the frame edge to edge, beside a 描画
+  title, a 三次元 sub, a tate phrase, a caption, an instrument readout
+  (SHADING/GEOMETRY/SURFACES/REFRESH), a barcode and a 描 seal. Drawn by a new
+  `bin/art/ryorender` -- a deterministic 3D-render loop, like `ryowave` for
+  audio, with `--shape` for knot, torus, sphere, cube or spring -- dithered by
+  `ryodither`. `Decor` gains a `readout` row, and the five loops join the
+  `ryodecors` shuffle gallery (`ryoku/ui/Decor.qml`; `ryoku/assets/ryodecors/`
+  `render.gif`, `torus.gif`, `sphere.gif`, `cube.gif`, `spring.gif`, new;
+  `pages/GpuPage.qml`).
+- **Recording fills its marked right rail with a camera specimen poster.** The
+  head and the QUALITY/ENCODER cells reflow into a left column (one cell per row
+  while the poster shows, so no label elides), and a wide right rail carries a
+  noir-baked camera dimensions blueprint, an editorial epigraph across the
+  specimen's head (Fraunces italic), 録画, a chapter numeral, a quote, a barcode
+  and a 録 seal. Same `Placard` idiom as Connections; the top-right running-head
+  marginalia is subsumed by the poster's header. Hides when the window is too
+  narrow to spare the rail (`ryoku/assets/ryodecors/camera.png`, new; `Ryoku.Ui`
+  `Placard` gains a `motto` line and a HiDPI `sourceSize`; `pages/RecordingPage.qml`).
+- **Dictation fills both its dead zones with voice decor.** A dithered audio-wave
+  motion loop runs across the page foot (drawn by `bin/art/ryowave`, baked with
+  `ryodither`), and a mic specimen -- the 1938 RCA ribbon-mic patent -- fills the
+  right rail. Fine line-art dithers into noise, so the mic (and the katana and
+  camera specimens) bake smooth instead: a new `bin/art/ryoduo` maps tone
+  straight onto bone with no stipple. The whole decor set is now one bone
+  (`#e8d8c9`) on a transparent ground, baked only by `ryodither` (grain) or
+  `ryoduo` (smooth), with `bin/art/README.md` on which to reach for (`Ryoku.Ui`
+  `Decor` gains `wave.gif` in its gallery; `ryoku/assets/ryodecors/{wave.gif,mic.png}`,
+  new; `pages/DictationPage.qml`).
+- **The monochrome instrument sheet holds together: a full-hub visual pass on
+  every section and subtab.** Driven by screenshots of all 25 sections and
+  their tabs on a live session, in one sweep:
+  - *No more overlaps.* A long value (a file path) elides in the middle instead
+    of running over the neighbouring cell; free-entry fields clip and live in a
+    full-width band at the cell foot (like pick bars), so the brand row no
+    longer smears `markImage` across the TEXT MARK cell; a gallery cell grows
+    to hold its tiles, so the bar-skin gallery stops painting over the cells
+    after it; the Widgets mock collapses a disabled widget instead of ghosting
+    it at 28% over a live neighbour sharing the anchor (`Ryoku.Ui` `Cell`,
+    `SettingsSheet.qml`, `pages/WidgetsPage.qml`).
+  - *Cells stopped truncating their own labels.* The side column is opt-in: a
+    page without a live preview gets the full content width (the "NO PREVIEW"
+    plate is gone), and `Section.span` enforces a 290 px minimum cell, so
+    "ENAB…"/"COR…"/"TILI…" read ENABLED, CORNERS, TILING everywhere
+    (`Hub.qml`, `Ryoku.Ui` `Section`).
+  - *The black is sandpaper, not a void.* Grain doubles to 0.10 so the matte
+    speckle actually reads on #000 (`Tokens.grainOpacity`).
+  - *The line vocabulary from the reference sheets.* Section marks lead with a
+    mono `//` and close their rule with an end tick; framed blocks (the pinned
+    preview, the state plate) wear HUD corner ticks (`Ryoku.Ui` `Ticks`, new).
+  - *One acid drop of colour.* Following the acid rule (a black base, a single
+    saturated accent spent only on state), the active rail item carries a 2 px
+    vermillion tick and the unsaved-state dot beats in `Tokens.sun`; everything
+    else stays ink (`Hub.qml`, `ActionBar`).
+  - *Navigation.* The rail scrolls the active section into view (it used to sit
+    clipped to a sliver at the rail edge), typing in Search now also filters the
+    rail's sections, Credits is wired to its page instead of a porting plate,
+    and `qs -c hub ipc call nav open <key>` jumps sections for scripts and QA
+    (`shell.qml`, `Hub.qml`).
+  - *Data fixes the sweep surfaced.* Wi-Fi signal shows real percentages and
+    bars (Quickshell reports a 0..1 ratio; it was rounded to "1%"), and the
+    brand logo row lost its leftover porting-note label
+    (`pages/ConnectionsPage.qml`, `schema/ShellSettingsPage.js`).
+  - *The reference sheet's full line language, second pass.* A `Reg`
+    registration backdrop (faint dot grid, sparse + marks, print-register
+    corner crosses) sits under every page; the rail masthead became a framed,
+    corner-ticked poster plate (`力 RYOKU ARCH //SETTINGS_`, a `///` mark);
+    the rail foot carries a genuine, scannable Code 39 plate (`RYOKU HUB`);
+    nav groups wear `01..05` mono indexes with end-ticked rules; the page
+    eyebrow runs the full width and closes with `+ ///`; section marks read
+    `//TITLE_`; the preview label leads with `//` and the action bar with
+    `///` (`Ryoku.Ui` `Reg` new, `Barcode` adopted, `Hub.qml`,
+    `SchemaPage.qml`).
+  - *Selection is typography, and Japanese carries its weight, third pass.* The
+    lone vermillion nav tick (the one generic-UI tell left) is gone: a selected
+    tab or nav item is bone with a `//` lead, and every nav row pairs its Latin
+    name with its terse kanji seal (外観, 接続, 描画, 規則...), the two scripts
+    sitting together as the texture. One shared `Tabs` plate replaces five
+    hand-rolled tab bars (schema, Appearance, Connections, Keybinds, Store).
+  - *Bento, so no row ends ragged.* `Spans.pack` greedy-fills each group's cells
+    into flush 12-column rows and stretches the last to the edge, killing the
+    right-half dead space on the schema and Appearance sheets; a 3-option `seg`
+    widened so its value stops eliding (`TILING LAYOUT` reads `dwindle`, not
+    `d..e`).
+  - *Dead zones get meaning, not filler.* Empty states (window/app/layer rules,
+    autostart, environment) are a composed plate: 空 in a ring `Motif` over a
+    `// EMPTY_` caption. The idle diff panel is a framed specimen the way the
+    reference tiles are built, a dithered torii under a solid label bar (so the
+    caption always reads), a 空 · AT REST chip, and the brand set vertically as
+    リョク; art is generated at dev time (`fal-ai/nano-banana-pro`) and graded to
+    pure black. Imagery lands only where a page is about showing something; a
+    functional panel gets line and type, never a floating photo (`Ryoku.Ui`
+    `Tabs`/`Motif`/`Empty` new, `art/dither-torii.png`, `Hub.qml`, the five
+    editor pages).
+  - *No flicker on a section change.* The page swap crossfades through two
+    loaders, so the content never blanks to bare paper mid-load, and the parked
+    page is hidden once faded so a stale hover tooltip cannot leak through the
+    overlay; the rail only scrolls the selection into view when it is actually
+    off-screen and animates the scroll, so an in-view click never jumps the
+    sidebar. `full` and the side ledger are derived from the section, not the
+    loading item, so the rail, side column and bar never reflow mid-swap
+    (`Hub.qml`).
+  - *The at-rest specimen crossfades.* The idle torii plate and the pending diff
+    list now fade between each other instead of hard-cutting when the first edit
+    lands (`Hub.qml`).
+  - *The pinned wireframe preview is gone.* It only duplicated the live desktop
+    (edits already show there), so the shell's side column is purely the write
+    ledger now (state + pending diff), and the sheet, nav and diff flickables
+    reserve a scroll-rail gutter so the bar never overlaps content (`Hub.qml`,
+    `SettingsSheet.qml`, `ShellPage.qml`, `AppearancePage.qml`,
+    `AnimationsPage.qml`).
+  - *The App Launcher page reads dense.* Its lone-cell SHAPE and BACKGROUND
+    sections merge into one two-up PALETTE row, Home Card runs three-up, and the
+    live preview spans the full width, so no row strands a cell in dead space
+    (`LauncherPage.qml`).
+- **The Input page, redesigned for personality (section-by-section pass).** The
+  KEYBOARD MAP no longer scrolls: a compact live diagram is pinned under the head
+  (deep-red `sunDeep` title) beside a decorative poster, so it stays in view
+  while you edit and still shows the layout's legends (AZERTY, QWERTZ, Dvorak,
+  Colemak, else QWERTY) and lights every remapped key to bone. Each section now
+  fills its dead grid space with a `Decor` poster carrying its own kana (配列,
+  変換, 操作, 触覚, 連打), so no section reads as a ragged half-row; POINTER's
+  controls are reordered so the sliders pair and the rows pack full. The Caps
+  Lock chips cell hugs its content (`Cell.neededHeight`) and a faint 入力
+  `Watermark` dresses the background (`InputPage.qml`, `Ryoku.Ui`
+  `KeyboardMap` compact mode, `Decor`, `Section.titleColor`).
+- **Connections wears the same personality.** A faint 接続 `Watermark` sits
+  behind the page and an editable `Decor` hero (接続 / ネットワーク, a rotating
+  earth) fills the head's dead right, shared across the Wi-Fi / Bluetooth /
+  Hotspot subtabs; the head text is bounded so it never crowds the hero and the
+  network list is untouched (`ConnectionsPage.qml`).
+
+### Added
+- **Marginalia: brand ornament for the chrome dead zones.** Two new `Ryoku.Ui`
+  primitives dress the empty margins the way the reference posters do, without
+  ever crowding a control. `Pixel` draws a 1-bit dingbat from the brand
+  vocabulary, Greek and Japanese, never arcade-alien: a Greek-key meander, a
+  torii, seigaiha waves, a fluted column, an asanoha star. `Marginalia` sets one
+  in a thin strip beside a katakana gloss, a numbered index plate and a chevron
+  run, ink only so the acid accent stays on state. It runs app-wide in the dead
+  chrome only: the rail foot's edition register (every page), the framed action
+  bar's centre, and each full-bleed page's head margin and bar centre where those
+  are genuinely empty (occupied heads and read-only pages are left alone)
+  (`Ryoku.Ui` `Marginalia`/`Pixel` new, `Hub.qml`, `ActionBar.qml`, and the
+  full-bleed pages: launcher, displays, keybinds, gpu, dictation, recording,
+  fastfetch, widgets, lockscreen, addons, updates, performance, rashin).
+- **Watermark: a page wears its section kanji.** A new `Ryoku.Ui` `Watermark`
+  sets a page's section kanji huge and faint behind the content, bled off the
+  lower-right and softened by a light blur, so a settings page has a face without
+  a photo. It is the one blur allowed on an app surface, because it is background
+  art, not panel depth: ~0.05 opacity, behind the head and the scroll, it never
+  touches legibility (`Ryoku.Ui` `Watermark` new, `InputPage.qml`).
+- **Decor: a decorative poster that fills a section's dead space.** A new
+  `Ryoku.Ui` `Decor` turns an empty grid slot into a noir mini-poster in the
+  reference style: a real image or gif (a Muybridge/phenakistoscope motion loop,
+  a marble statue, the moon, Newton's cradle, a rotating earth), all baked to
+  1-bit bone-on-black through an ordered dither, under a big Japanese title, a
+  vertical tategaki line, a fine-print caption, a scannable barcode and a kanji
+  seal. Right-click the art to open its editor: frame it like the App Launcher frames its hero -- the image covers the panel and
+  is placed by a 0..1 focal point you drag, with a zoom (scroll, pinch, or the
+  -/+ buttons; below 100% reveals more, above crops in) -- then pick from the
+  gallery underneath (the baked set or a custom file of your own, desaturated to
+  noir) and Save (or Enter; Cancel/Esc discards). The focal point is a fraction so
+  the small preview crops identically to the box (WYSIWYG); choice and framing
+  persist per box through `DecorStore`, and gifs autoplay; with no image it falls back to `DitherField`, a
+  procedural fractal-noise field dithered in a Canvas. The art set is public
+  domain, baked at build time and shipped with the module (`Ryoku.Ui`
+  `Decor`/`DitherField`/`DecorStore` new, `ryoku/assets/ryodecors/*`, `InputPage.qml`,
+  `ConnectionsPage.qml`).
 - **Updates page stays useful when you are up to date.** A packaged box on the
   latest release showed an empty Updates page (nothing incoming). It now lists
   the recent changes the installed version carries, fetched from the GitHub
@@ -236,6 +1235,16 @@
   `backend/schemes.go`, `backend/hypr.go`).
 
 ### Fixed
+- **The Hub reopens on the section you left, not always Shell.** The current
+  section is written to the Hub's config on every navigation (`ryoku-hub config
+  set section`) -- the value it already read back at startup -- so closing on
+  Input and reopening lands on Input (`Hub.qml`).
+- **A Decor's art updates the moment you save, no restart.** While the editor
+  is open the box sits behind the modal, so a new image or GIF picked in there
+  changed the box's source while it was occluded and the async load never
+  painted -- it looked stale until the next launch. Closing the editor now
+  forces the box to reload its art, so the saved picture (or a fresh-started
+  GIF) shows at once (`Decor.qml`).
 - **A Wi-Fi network's password row can be dismissed again.** Tapping a secured,
   unknown network opened an inline password row that only closed on a successful
   connect, so deciding not to connect left it stuck open. Tapping the network

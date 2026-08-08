@@ -404,19 +404,23 @@ install_one() {
 
 # --- main ------------------------------------------------------------------
 
-single=0
+# targets: explicit paths (from the in-shell picker) use those; no args falls
+# back to every installable file in the stash.
 targets=()
-if [ "$#" -ge 1 ]; then
-  single=1
-  targets=("$1")
-else
-  shopt -s nullglob
-  for f in "$STASH"/*; do
-    [ -f "$f" ] || continue
-    case "$(classify "$f")" in appimage|tarball|pacman|flatpak|deb|rpm) targets+=("$f") ;; esac
-  done
-  shopt -u nullglob
-fi
+case "${1:-}" in
+  "")
+    shopt -s nullglob
+    for f in "$STASH"/*; do
+      [ -f "$f" ] || continue
+      case "$(classify "$f")" in appimage|tarball|pacman|flatpak|deb|rpm) targets+=("$f") ;; esac
+    done
+    shopt -u nullglob
+    ;;
+  *)
+    targets=("$@")
+    ;;
+esac
+single=0; [ "${#targets[@]}" -eq 1 ] && single=1
 
 NAMES=()
 attempted=0

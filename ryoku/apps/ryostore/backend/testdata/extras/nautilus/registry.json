@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "packs": [
+    { "id": "video-reformat", "name": "Video Reformat", "path": "nautilus/video-reformat", "subdir": "Ryoku Creator" }
+  ]
+}

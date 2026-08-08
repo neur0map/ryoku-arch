@@ -13,7 +13,7 @@
 # built the AUR package failed, installed offline, or predated the swww->awww rename
 # came up with no wallpaper daemon and only a manual `ryoku doctor` to heal it.
 # Building it here as a signed [ryoku] package makes it resolve as a hard depend and
-# reach every box on install and on `ryoku update`, exactly like wallust and ffmpeg.
+# reach every box on install and on `ryoku update`, exactly like ffmpeg.
 #
 # fixed-version package: it tracks upstream awww releases, not the monorepo
 # RYOKU_PKGVER. To follow a new awww release, bump pkgver + _commit and reset
@@ -24,8 +24,8 @@ pkgname=awww
 pkgver=0.12.1
 pkgrel=1
 # the commit the upstream v0.12.1 tag points at, pinned so the build is immune to
-# Codeberg regenerating the tag's archive bytes (the drift that broke the AUR
-# wallust pin, see ../wallust/PKGBUILD).
+# Codeberg regenerating the tag's archive bytes (a non-reproducible drift that
+# breaks any checksum pinned against those auto-generated archives).
 _commit=f66e12a76dbc4c669b2f1375f78bce49f5b19d66
 pkgdesc="Efficient animated wallpaper daemon for Wayland (the Ryoku shell's wallpaper backend)"
 arch=('x86_64')
@@ -37,7 +37,7 @@ license=('GPL-3.0-or-later')
 depends=('glibc' 'gcc-libs' 'lz4')
 makedepends=('cargo' 'git' 'pkgconf')
 # the release profile in Cargo.toml sets lto=true itself; keep makepkg from
-# injecting its own conflicting LTO flags (same as ../wallust/PKGBUILD).
+# injecting its own conflicting LTO flags.
 options=('!lto')
 source=("$pkgname::git+https://codeberg.org/LGFae/awww.git#commit=$_commit")
 sha256sums=('SKIP')

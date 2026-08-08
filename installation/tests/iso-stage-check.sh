@@ -67,9 +67,13 @@ run_stage 1
 printf 'iso-stage-check: staging run 2 ...\n'
 run_stage 2
 
-# strip the intentionally-variable provenance stamp from both trees.
+# strip the intentionally-variable provenance stamp from both trees, and
+# normalize the [ryoku] Server line: build.sh wires a local file:// repo at a
+# per-run absolute staging path, so the path differs between the two throwaway
+# stage dirs by construction. Compare content, not the throwaway dir name.
 for n in 1 2; do
   rm -f "$tmp/stage$n/profile/airootfs/usr/share/ryoku/.payload"
+  sed -i 's|^Server = file://.*/ryoku-repo/.*|Server = file://@RYOKU_ISO_REPO@|' "$tmp/stage$n/profile/pacman.conf"
 done
 
 # --no-dereference: the payload bakes symlinks (the qylock lockscreen vendors

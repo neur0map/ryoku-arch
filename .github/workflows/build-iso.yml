@@ -141,6 +141,21 @@ jobs:
               # checkout is owned by the runner UID, not container root;
               # build.sh runs `git archive` against it.
               git config --global --add safe.directory /repo
+              # the [ryoku] repo behind Cloudflare 403s datacenter IPs (the
+              # same block the install-test workflow works around), so the
+              # ryoku-cursors payload build.sh fetches cannot come from the
+              # public URL here. build that one package locally and hand it
+              # to build.sh the way its escape hatch expects; everything else
+              # the ISO needs from [ryoku] is pulled by the TARGET at install
+              # time, not baked at build time.
+              useradd -m pkgbuilder
+              cp -a /repo/release/packages/ryoku-cursors /home/pkgbuilder/cursors
+              chown -R pkgbuilder:pkgbuilder /home/pkgbuilder/cursors
+              runuser -u pkgbuilder -- bash -c "cd /home/pkgbuilder/cursors && makepkg -f --nodeps"
+              mkdir -p /tmp/ryoku-localrepo/x86_64
+              cp /home/pkgbuilder/cursors/*.pkg.tar.zst /tmp/ryoku-localrepo/x86_64/
+              repo-add /tmp/ryoku-localrepo/x86_64/ryoku.db.tar.gz /tmp/ryoku-localrepo/x86_64/*.pkg.tar.zst
+              export RYOKU_ISO_LOCAL_REPO=/tmp/ryoku-localrepo
               # reproducibility gate: stage the profile twice and diff before
               # spending the full mkarchiso build on it, so a non-deterministic
               # build (Go binaries, the Blobs plugin, or the baked payload) fails

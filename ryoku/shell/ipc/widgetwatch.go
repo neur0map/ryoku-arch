@@ -28,9 +28,9 @@ func parsePerfFlag(b []byte, key string) bool {
 	return v
 }
 
-// perfPath is ~/.config/ryoku/performance.json, the file the Performance section
-// in Ryoku Settings writes. Empty only when the home dir is unknowable.
-func perfPath() string {
+// ryokuConfigDir is ~/.config/ryoku (honouring XDG_CONFIG_HOME), the dir the
+// Ryoku Settings sections write. Empty only when the home dir is unknowable.
+func ryokuConfigDir() string {
 	dir := os.Getenv("XDG_CONFIG_HOME")
 	if dir == "" {
 		home, err := os.UserHomeDir()
@@ -39,7 +39,17 @@ func perfPath() string {
 		}
 		dir = filepath.Join(home, ".config")
 	}
-	return filepath.Join(dir, "ryoku", "performance.json")
+	return filepath.Join(dir, "ryoku")
+}
+
+// perfPath is ~/.config/ryoku/performance.json, the file the Performance section
+// in Ryoku Settings writes. Empty only when the home dir is unknowable.
+func perfPath() string {
+	dir := ryokuConfigDir()
+	if dir == "" {
+		return ""
+	}
+	return filepath.Join(dir, "performance.json")
 }
 
 // perfFlag reads one opt-in out of performance.json. A missing file is off.

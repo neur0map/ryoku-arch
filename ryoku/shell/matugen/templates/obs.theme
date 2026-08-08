@@ -1,0 +1,39 @@
+/* Matugen OBS Studio Theme */
+@qdata {
+  bg: {{colors.background.default.hex}};
+  fg: {{colors.on_background.default.hex}};
+  surface: {{colors.surface.default.hex}};
+  primary: {{colors.primary.default.hex}};
+  accent: {{colors.secondary.default.hex}};
+}
+
+QWidget {
+  background-color: {{colors.background.default.hex}};
+  color: {{colors.on_background.default.hex}};
+}
+
+QDockWidget {
+  titlebar-close-icon: url(close.png);
+  titlebar-normal-icon: url(undock.png);
+  background-color: {{colors.surface.default.hex}};
+  color: {{colors.on_surface.default.hex}};
+}
+
+QPushButton {
+  background-color: {{colors.primary_container.default.hex}};
+  color: {{colors.on_primary_container.default.hex}};
+  border: 1px solid {{colors.outline.default.hex}};
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+QPushButton:hover {
+  background-color: {{colors.primary.default.hex}};
+  color: {{colors.on_primary.default.hex}};
+}
+
+QListWidget, QTreeWidget, QTextEdit {
+  background-color: {{colors.surface_container_low.default.hex}};
+  color: {{colors.on_surface.default.hex}};
+  border: 1px solid {{colors.outline_variant.default.hex}};
+}

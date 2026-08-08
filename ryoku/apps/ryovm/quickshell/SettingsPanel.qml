@@ -1,10 +1,13 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
+import Ryoku.Ui
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// In-app settings: where VMs live, the engine status, and a one-click install
-// when quickemu is missing.
+// In-app settings: where machines live, the engine status, the new-machine
+// defaults, and a one-click install when quickemu is missing. Overlay spec:
+// paperRaised fill, lineStrong border, radius 2, scrim black 55%.
 Item {
     id: sp
     property bool open: false
@@ -12,61 +15,54 @@ Item {
 
     visible: opacity > 0
     opacity: open ? 1 : 0
-    Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+    Behavior on opacity { NumberAnimation { duration: Tokens.swap; easing.type: Tokens.ease } }
 
+    // scrim: only an outside click (or the ✕) dismisses the panel
     Rectangle {
         anchors.fill: parent
         color: Qt.rgba(0, 0, 0, 0.55)
-        TapHandler { onTapped: sp.closed() }
+        MouseArea { anchors.fill: parent; onClicked: sp.closed() }
     }
 
-    // the modal is a raised plate: same hard offset shadow as the board.
     Rectangle {
         anchors.centerIn: parent
-        anchors.horizontalCenterOffset: 8
-        anchors.verticalCenterOffset: 8
         width: 480
-        height: panelFace.height
-        color: Theme.shadow
-        antialiasing: false
-        visible: panelFace.visible
-    }
-    Rectangle {
-        id: panelFace
-        anchors.centerIn: parent
-        width: 480
-        height: col.implicitHeight + 44
-        radius: Theme.radius
-        color: Theme.surface
-        border.width: 1
-        border.color: Theme.lineStrong
-        scale: sp.open ? 1 : 0.96
-        Behavior on scale { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
-        TapHandler {}
+        height: col.implicitHeight + 2 * Tokens.s5
+        radius: Tokens.radius
+        color: Tokens.paperLift
+        border.width: Tokens.border
+        border.color: Tokens.lineStrong
+        MouseArea { anchors.fill: parent }   // a click inside the panel never dismisses it
 
         Column {
             id: col
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: 22
-            spacing: 18
+            anchors.margins: Tokens.s5
+            spacing: Tokens.s5
 
             Item {
                 width: parent.width
                 height: 28
-                Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "Settings"; color: Theme.bright; font.family: Theme.font; font.pixelSize: 18; font.weight: Font.DemiBold }
-                Item {
+                Text {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Settings"
+                    color: Tokens.ink
+                    font.family: Tokens.ui
+                    font.pixelSize: 18
+                    font.weight: Font.DemiBold
+                }
+                IconBtn {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 26; height: 26
-                    Icon { anchors.centerIn: parent; name: "close"; size: 15; tint: ch.hovered ? Theme.ember : Theme.faint; Behavior on tint { ColorAnimation { duration: Theme.quick } } }
-                    HoverHandler { id: ch; cursorShape: Qt.PointingHandCursor }
-                    TapHandler { onTapped: sp.closed() }
+                    glyph: "\u2715"
+                    onAct: sp.closed()
                 }
             }
 
-            // engine status row.
+            // engine status.
             Item {
                 width: parent.width
                 height: 40
@@ -74,75 +70,102 @@ Item {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 2
-                    Text { text: "Engine"; color: Theme.cream; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
+                    Text { text: "Engine"; color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: 13; font.weight: Font.Medium }
                     Text {
                         text: Vm.caps.quickemu ? ("quickemu " + (Vm.caps.version || "")) : "quickemu not installed"
-                        color: Vm.caps.quickemu ? Theme.ok : Theme.bad
-                        font.family: Theme.mono; font.pixelSize: 11
+                        color: Vm.caps.quickemu ? Tokens.inkDim : Tokens.ink
+                        font.family: Tokens.mono
+                        font.pixelSize: 11
                     }
                 }
-                HubButton {
+                Btn {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     visible: !Vm.caps.quickemu
-                    label: "Install"
-                    icon: "download"
                     primary: true
-                    onClicked: sp.installEngine()
+                    text: "INSTALL"
+                    onAct: sp.installEngine()
                 }
             }
 
-            Rectangle { width: parent.width; height: 1; color: Theme.line }
+            Rectangle { width: parent.width; height: 1; color: Tokens.line }
 
-            // defaults.
-            Text { text: "New machine defaults"; color: Theme.subtle; font.family: Theme.mono; font.pixelSize: 10; font.letterSpacing: 2; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase }
-            NumberField {
+            Section {
+                id: defs
                 width: parent.width
-                label: "CPU cores"
-                from: 1; to: 32; step: 1
-                value: Vm.settings.defaultCores
-                onModified: (v) => { Vm.settings.defaultCores = Math.round(v); Vm.saveSettings(); }
-            }
-            NumberField {
-                width: parent.width
-                label: "Memory"
-                unit: "GB"
-                from: 1; to: 128; step: 1
-                value: Vm.settings.defaultRam
-                onModified: (v) => { Vm.settings.defaultRam = Math.round(v); Vm.saveSettings(); }
+                title: "New machine defaults"
+                Cell {
+                    width: defs.span(Spans.of("step"))
+                    controlWidth: Spans.inlineWidth("step", 0, width)
+                    label: "CPU cores"
+                    value: String(Vm.settings.defaultCores)
+                    Step {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        value: Vm.settings.defaultCores
+                        from: 1; to: 32
+                        onModified: (v) => { Vm.settings.defaultCores = v; Vm.saveSettings(); }
+                    }
+                }
+                Cell {
+                    width: defs.span(Spans.of("step"))
+                    controlWidth: Spans.inlineWidth("step", 0, width)
+                    label: "Memory"
+                    unit: "GB"
+                    value: String(Vm.settings.defaultRam)
+                    Step {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        value: Vm.settings.defaultRam
+                        from: 1; to: 128
+                        onModified: (v) => { Vm.settings.defaultRam = v; Vm.saveSettings(); }
+                    }
+                }
             }
 
-            Rectangle { width: parent.width; height: 1; color: Theme.line }
+            Rectangle { width: parent.width; height: 1; color: Tokens.line }
 
+            // machines path.
             Item {
                 width: parent.width
                 height: 38
                 Column {
                     anchors.left: parent.left
                     anchors.right: openBtn.left
-                    anchors.rightMargin: 10
+                    anchors.rightMargin: Tokens.s3
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 2
-                    Text { text: "Machines"; color: Theme.cream; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
-                    Text { width: parent.width; elide: Text.ElideMiddle; text: Vm.paths.vms || "~/.local/share/ryoku/vms"; color: Theme.dim; font.family: Theme.mono; font.pixelSize: 11 }
+                    Text { text: "Machines"; color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: 13; font.weight: Font.Medium }
+                    Text {
+                        width: parent.width
+                        elide: Text.ElideMiddle
+                        text: Vm.paths.vms || "~/.local/share/ryoku/vms"
+                        color: Tokens.inkMuted
+                        font.family: Tokens.mono
+                        font.pixelSize: 11
+                    }
                 }
-                HubButton {
+                Btn {
                     id: openBtn
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    icon: "folder"
-                    label: "Open"
-                    onClicked: Vm.openFolder("")
+                    text: "OPEN"
+                    onAct: Vm.openFolder("")
                 }
             }
 
-            Rectangle { width: parent.width; height: 1; color: Theme.line }
+            Rectangle { width: parent.width; height: 1; color: Tokens.line }
 
-            // where the catalogue + brand logos come from, and where they cache.
+            // catalogue provenance.
             Column {
                 width: parent.width
-                spacing: 9
-                Text { text: "Catalogue"; color: Theme.subtle; font.family: Theme.mono; font.pixelSize: 10; font.letterSpacing: 2; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase }
+                spacing: Tokens.s2
+                Text {
+                    text: "Catalogue"
+                    color: Tokens.ink
+                    font.family: Tokens.ui; font.pixelSize: 11; font.weight: Font.Medium
+                    font.letterSpacing: Tokens.trackMark; font.capitalization: Font.AllUppercase
+                }
                 ProvRow { k: "Source"; v: (Vm.paths.provider || "quickemu + quickget") + " · " + (Vm.paths.source || "github.com/quickemu-project") }
                 ProvRow { k: "Logos"; v: Vm.paths.icons_provider || "simple-icons + quickemu-icons" }
                 ProvRow { k: "Cached"; v: Vm.paths.icons || "~/.cache/ryoku/ryovm-icons" }
@@ -155,9 +178,9 @@ Item {
         property string v: ""
         width: parent ? parent.width : 0
         height: 18
-        Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; width: 64; text: parent.k; color: Theme.dim; font.family: Theme.font; font.pixelSize: 12 }
-        Text { anchors.left: parent.left; anchors.leftMargin: 70; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideMiddle; text: parent.v; color: Theme.subtle; font.family: Theme.mono; font.pixelSize: 11 }
-        }
+        Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; width: 64; text: parent.k; color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: 12 }
+        Text { anchors.left: parent.left; anchors.leftMargin: 70; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideMiddle; text: parent.v; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 11 }
+    }
 
     function installEngine() {
         Quickshell.execDetached(["sh", "-c",

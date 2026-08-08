@@ -1,4 +1,7 @@
 singleton Theme Theme.qml
 singleton Updates Updates.qml
 singleton SysInfo SysInfo.qml
-singleton Wallust Wallust.qml
+singleton LiveStats LiveStats.qml
+singleton Scheme Scheme.qml
+singleton Settings Settings.qml
+singleton UserSchemes UserSchemes.qml

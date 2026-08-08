@@ -3,6 +3,20 @@
 ## Unreleased
 
 ### Fixed
+- `bootloader`: fresh installs now `systemctl enable power-profiles-daemon.service`
+  alongside sddm/NetworkManager/bluetooth/rtkit, so the shell's power-mode switching
+  works out of the box instead of depending on transient D-Bus activation.
+- **One fewer `.pacnew` out of the box.** `chroot` no longer overwrites the
+  `filesystem`-owned `/etc/hosts` (the default `nss-myhostname` already resolves
+  localhost and the machine hostname), so the first `ryoku update` no longer spawns
+  an `/etc/hosts.pacnew` when `filesystem` upgrades.
+
+### Added
+- `seed`: the decor art the desktop's Decor/Placard components render is laid into
+  `~/Pictures/ryodecors` (beside `Wallpapers`), from `ryoku/assets/ryodecors`, so a
+  fresh install has the set; `ryoku doctor` keeps it current after.
+
+### Fixed
 - `bootloader`: the post-AUR limine finalize points `default_entry` at the
   kernel's entry path (`<dir>/<kernel>`) and sets `remember_last_entry: yes`,
   instead of the bare `default_entry: 2` that lands on the `/EFI fallback` once

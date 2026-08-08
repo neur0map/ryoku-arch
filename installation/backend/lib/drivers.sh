@@ -17,10 +17,22 @@ ryoku_drivers() {
 		name="ryoku-driver-$vendor.sh"
 		run cp "$dir/$vendor.sh" "/mnt/root/$name"
 		if ! run timeout 900 arch-chroot /mnt env RYOKU_DRYRUN="${RYOKU_DRYRUN:-}" bash "/root/$name"; then
-			log "drivers: $vendor.sh timed out (>15m) or failed; continuing so the install finishes (fix drivers after first boot with ryoku doctor)"
+			log "drivers: WARNING, the $vendor driver install timed out (>15m) or failed and was skipped; the desktop will run on the integrated GPU. Run 'ryoku doctor' after first boot to install the $vendor driver. Continuing so the install finishes."
 		fi
 		run rm -f "/mnt/root/$name"
 	done
+
+	# ASUS AMD+NVIDIA panels register only nvidia_wmi_ec_backlight and hide
+	# amdgpu_bl0; ryoku-hw-backlight-fix adds acpi_backlight=native (gated on that
+	# exact case) so brightness works after reboot. self-gating -> safe everywhere.
+	local bl="$RYOKU_REPO/system/hardware/display/ryoku-hw-backlight-fix"
+	if [[ -f $bl ]]; then
+		run cp "$bl" /mnt/root/ryoku-hw-backlight-fix
+		if ! run timeout 300 arch-chroot /mnt env RYOKU_DRYRUN="${RYOKU_DRYRUN:-}" bash /root/ryoku-hw-backlight-fix; then
+			log "drivers: ryoku-hw-backlight-fix failed; continuing (set the backlight kernel param after first boot)"
+		fi
+		run rm -f /mnt/root/ryoku-hw-backlight-fix
+	fi
 
 	# apply the TUI's GPU-mode pick now the desktop + drivers are in place.
 	ryoku_gpu_mode

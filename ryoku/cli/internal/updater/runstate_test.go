@@ -30,6 +30,9 @@ func TestProgressStepsAdvance(t *testing.T) {
 	p.begin(pkgSteps)
 
 	st := readRunState(t)
+	if st.PID != os.Getpid() {
+		t.Fatalf("begin: pid=%d, want %d", st.PID, os.Getpid())
+	}
 	if st.Phase != "running" || len(st.Steps) != len(pkgSteps) {
 		t.Fatalf("begin: phase=%q steps=%d, want running/%d", st.Phase, len(st.Steps), len(pkgSteps))
 	}

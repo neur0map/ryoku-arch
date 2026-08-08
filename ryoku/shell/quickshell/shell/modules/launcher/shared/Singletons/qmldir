@@ -1,0 +1,12 @@
+singleton Theme Theme.qml
+singleton Config Config.qml
+singleton LauncherConfig LauncherConfig.qml
+singleton Scheme Scheme.qml
+singleton Motion Motion.qml
+singleton Metrics Metrics.qml
+singleton Frecency Frecency.qml
+singleton Dispatcher Dispatcher.qml
+singleton Weather Weather.qml
+singleton Players Players.qml
+singleton Radio Radio.qml
+singleton Performance Performance.qml

@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Draw a mariner's compass turning on black, as a grayscale gif for ryoduo.
+
+Rashin is 羅針 -- the compass needle -- so its decor is a compass: a degree ring,
+an eight-point rose, and a two-tone needle sweeping a full turn (a compass taking
+a bearing, the way Rashin maps the machine). This writes the grayscale source;
+ryoduo bakes it smooth, because thin line-art breaks up under a dither.
+
+    ryocompass --out /tmp/c.gif && ryoduo /tmp/c.gif --name compass
+
+Same flags give the same gif -- no randomness. --frames 1 draws the still rose
+(needle at north) for a Placard. Needs Pillow (pip install pillow).
+"""
+import argparse
+import math
+import sys
+from pathlib import Path
+
+try:
+    from PIL import Image, ImageDraw
+except ImportError:
+    sys.exit("ryocompass: needs Pillow -- `pip install pillow`")
+
+
+def rotate(x, y, cx, cy, a):
+    s, c = math.sin(a), math.cos(a)
+    dx, dy = x - cx, y - cy
+    return (cx + dx * c - dy * s, cy + dx * s + dy * c)
+
+
+def point(cx, cy, r, a):
+    # a point at radius r, angle a measured clockwise from north (screen y down).
+    return (cx + r * math.sin(a), cy - r * math.cos(a))
+
+
+def draw_rose(d, cx, cy, R):
+    """The static compass: two rings, a degree scale, and the eight-point rose."""
+    d.ellipse([cx - R, cy - R, cx + R, cy + R], outline=140, width=2)
+    d.ellipse([cx - R * 0.8, cy - R * 0.8, cx + R * 0.8, cy + R * 0.8], outline=70, width=1)
+
+    for k in range(72):                        # a tick every 5 degrees
+        a = math.radians(k * 5)
+        cardinal = k % 18 == 0                 # N E S W
+        inter = k % 9 == 0                     # the intercardinals
+        depth = R * (0.15 if cardinal else 0.10 if inter else 0.05)
+        val = 175 if cardinal else 120 if inter else 75
+        x0, y0 = point(cx, cy, R, a)
+        x1, y1 = point(cx, cy, R - depth, a)
+        d.line([x0, y0, x1, y1], fill=val, width=2 if cardinal else 1)
+
+    for i in range(8):                         # the eight-point star
+        a = math.radians(i * 45)
+        long = i % 2 == 0
+        tip = R * (0.60 if long else 0.32)
+        hw = R * (0.085 if long else 0.055)
+        val = 200 if i == 0 else 150 if long else 95   # north point brightest
+        tx, ty = point(cx, cy, tip, a)
+        bx, by = math.cos(a) * hw, math.sin(a) * hw
+        d.polygon([(tx, ty), (cx + bx, cy + by), (cx - bx, cy - by)], fill=val)
+
+
+def draw_needle(d, cx, cy, R, a):
+    """The two-tone needle: bright north half, dim south half, over a hub."""
+    rn, hw = R * 0.66, R * 0.05
+    tipN = rotate(*point(cx, cy, rn, 0), cx, cy, a)
+    tipS = rotate(*point(cx, cy, -rn * 0.82, 0), cx, cy, a)
+    bl = rotate(cx - hw, cy, cx, cy, a)
+    br = rotate(cx + hw, cy, cx, cy, a)
+    d.polygon([tipN, bl, br], fill=235)
+    d.polygon([tipS, bl, br], fill=110)
+    d.ellipse([cx - hw * 1.5, cy - hw * 1.5, cx + hw * 1.5, cy + hw * 1.5],
+              fill=40, outline=180, width=2)
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="ryocompass", description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("--out", type=Path, default=Path("compass-src.gif"))
+    ap.add_argument("--size", type=int, default=360)
+    ap.add_argument("--frames", type=int, default=60)
+    ap.add_argument("--duration", type=int, default=50, help="ms per frame")
+    a = ap.parse_args()
+
+    S = a.size
+    cx = cy = S / 2
+    R = S * 0.42
+    base = Image.new("L", (S, S), 0)
+    draw_rose(ImageDraw.Draw(base), cx, cy, R)
+
+    frames = []
+    for i in range(max(1, a.frames)):
+        im = base.copy()
+        draw_needle(ImageDraw.Draw(im), cx, cy, R, 2 * math.pi * i / max(1, a.frames))
+        frames.append(im)
+
+    if len(frames) == 1:
+        out = a.out.with_suffix(".png") if a.out.suffix == ".gif" else a.out
+        frames[0].save(out)
+        print("drew %s (still) -- bake: ryoduo %s --name compass-rose" % (out, out))
+        return
+    frames[0].save(a.out, save_all=True, append_images=frames[1:],
+                   duration=a.duration, loop=0, disposal=2)
+    print("drew %s (%dx%d, %d frames) -- bake: ryoduo %s --name compass"
+          % (a.out, S, S, len(frames), a.out))
+
+
+if __name__ == "__main__":
+    main()

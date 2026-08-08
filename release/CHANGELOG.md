@@ -2,7 +2,62 @@
 
 ## Unreleased
 
+### Fixed
+- **Bluetooth, brightness, and controller hardware fixes reach every box.** The
+  `.install` now tunes `/etc/bluetooth/main.conf` in place (bluez owns it, so no
+  file conflict) and applies the ASUS AMD+NVIDIA backlight kernel param on
+  install + upgrade; the PKGBUILD ships the backlight udev rule and the `uinput`
+  module-load, and the AUR set adds the game-controller drivers
+  (`packages/ryoku-desktop/PKGBUILD`, `ryoku-desktop.install`).
+- **The network panel's DNS switch applies without a password prompt.** `ryoku-dns`
+  runs through pkexec but no polkit rule shipped, so the DNS buttons silently did
+  nothing. `ryoku-desktop` now installs `50-ryoku-dns.rules` to
+  `/usr/share/polkit-1/rules.d` (`packages/ryoku-desktop/PKGBUILD`).
+- **The bar's "Open audio" button opens a mixer.** It launches `pavucontrol` for
+  advanced routing (card profiles, per-app device moves) beyond the bar's own
+  native mixer, but `pavucontrol` was never a dependency, so the button ran a
+  missing binary. It is a hard `ryoku-desktop` depend now, from the official extra
+  repo, so it works on every install path (`packages/ryoku-desktop/PKGBUILD`).
+- **`power-profiles-daemon` is enabled, so power-mode switching persists.** The
+  daemon shipped only D-Bus activated (`systemctl is-enabled` = disabled), so the
+  shell's power-mode switching could not reliably stick. A one-shot `_powerprofiles`
+  hook (guarded by `/var/lib/ryoku/power-profiles-enabled`, mirroring
+  `_bluetooth`/`_rtkit`) now enables it on install and upgrade
+  (`packages/ryoku-desktop/ryoku-desktop.install`).
+- **`ryoku-desktop` delivers the WirePlumber policy through materialize.** The
+  Bluetooth fragment moved from the package-only `/etc` drop-in into
+  `/usr/share/ryoku/config/wireplumber`, so package updates and checkout deploys
+  produce the same user configuration and user overlays remain authoritative.
+- **Desktop feature tools now reach every box, not just the ISO.** `ddcutil`,
+  `gpu-screen-recorder`, `wf-recorder`, `hyprsunset`, `wtype`, `tesseract`,
+  `tesseract-data-eng`, `zbar`, `songrec`, `libqalculate`, `openrgb` and `upower`
+  lived only in `system/packages/base.packages` (ISO pacstrap) or `optdepends`, so
+  a packaged box on `ryoku update` and a shell-installer box never got them: the
+  recorder, night light, dictation, OCR/QR, calculator, LED sync, battery readout
+  and external-monitor (DDC/CI) brightness were silently dead. They are now hard
+  `ryoku-desktop` depends, so the ISO, `ryoku update` and the shell installer
+  converge. `tests/shell-tool-availability.sh` gained a reach check (every
+  official-repo feature tool must be a hard depend) so the drift cannot recur.
+
 ### Added
+- RyoStore now opens as an artwork-led living showroom with filmstrip browsing, reversible product details, Library state, and accessible reduced-motion navigation.
+- **`ryoku-desktop` ships DDC/CI i2c access and the `ryoku-i18n` tool.** The
+  `system/hardware/ddc/` module-load (`/etc/modules-load.d/ryoku-i2c.conf`, loads
+  `i2c-dev`) and udev rule (`/usr/lib/udev/rules.d/60-ryoku-i2c.rules`, `uaccess`)
+  let `ddcutil` drive external-monitor brightness with no group setup; and
+  `ryoku/ui/i18n-sync.py` installs as `/usr/bin/ryoku-i18n` for the Hub's
+  Language > Generate with AI button and the autostart key-file seed.
+- **`ryoku-desktop` ships the laptop clamshell policy.** The `ryoku-clamshell`
+  helper lands on `/usr/bin` via the `system/hardware/*/ryoku-*` glob, and the
+  logind drop-in `system/hardware/power/logind-ryoku-lid.conf` installs to
+  `/etc/systemd/logind.conf.d/10-ryoku-lid.conf`; the `.install` reloads
+  `systemd-logind` (session-safe) so the lid policy applies without a reboot.
+  Closing the lid on AC power with an external display no longer suspends.
+- **`ryoku-desktop` ships the decor art set to `/usr/share/ryoku/ryodecors`.** The
+  `Decor` and `Placard` components render from `~/Pictures/ryodecors`; the package
+  carries the shipped set so `ryoku doctor` can lay it there on update (the
+  installer seeds a fresh box straight from the repo). Moved out of the `Ryoku.Ui`
+  QML module, which no longer bakes the art (`ryoku/assets/ryodecors`).
 - **`awww` now ships from the `[ryoku]` repo** as a hard `ryoku-desktop`
   dependency, not the AUR. awww (swww renamed upstream) is the animated wallpaper
   daemon the shell drives: `ryoku/shell/ipc/wallpaper.go` runs `awww img` on every
@@ -15,6 +70,19 @@
   pulls it onto every install and existing box. The publish workflow gains `lz4`
   (awww's pkg-config build probe) and skips `awww` in its official-repo dependency
   check.
+- **`ryoku-cursors` now ships from the `[ryoku]` repo** as a hard `ryoku-desktop`
+  dependency, not the AUR. It packages the Bibata XCursor family (the theme
+  `env.lua`/`autostart.lua` set as `XCURSOR_THEME`/`HYPRCURSOR_THEME` and the Hub
+  cursor picker defaults to) into `/usr/share/icons`, built from the pinned
+  upstream release tarball (GitHub assets are immutable, so the sha256 is pinned
+  for real, GPL-3.0-or-later). As an AUR package (`bibata-cursor-theme-bin`) it
+  installed only in the post-install AUR step -- skipped offline, best-effort on
+  failure, and never revisited by `ryoku update` -- so a box could come up with no
+  configured cursor and a lone fallback bitmap. It is removed from
+  `system/packages/aur.packages` (single source of truth) and added, unpinned
+  like `wallust`/`awww` (a fixed upstream version, not the monorepo `RYOKU_PKGVER`),
+  to `ryoku-desktop`'s depends, so `pacman -Syu` pulls it onto every install and
+  existing box.
 - Four new `[ryoku]` repo packages build the optional Hyprland compositor plugins
   the Hub can toggle, installed to `/usr/lib/hyprland/plugins/`:
   `hypr-dynamic-cursors`, `ryoku-hypr-plugins` (hyprbars + hyprfocus),
@@ -22,7 +90,11 @@
   compositor, so each PKGBUILD's `prepare()` reads the build host's Hyprland
   version and checks out the matching plugin commit from upstream's `hyprpm.toml`
   (the same version map `hyprpm` uses); a rebuild always tracks whatever Hyprland
-  the repo ships, with no manual commit bumps.
+  the repo ships, with no manual commit bumps. If upstream's map has no pin for
+  the shipped Hyprland yet (its pins can lag the distro), `prepare()` falls back
+  to the plugin's default-branch HEAD (as `hyprpm` does) instead of failing, so a
+  Hyprland release that outpaces a plugin's pin table can't abort the `[ryoku]`
+  publish over one optional plugin.
   `ryoku-desktop` depends on all four (pinned to its own version), so they reach
   installed machines through `ryoku update` and a toggle never faces a missing
   `.so`. The publish workflow installs the plugin build deps (hyprland,

@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+#
+# ryoku-hw-backlight-fix: force amdgpu_bl0 on ASUS AMD+NVIDIA laptops.
+#
+# On these panels the display hangs off the AMD iGPU but the kernel registers
+# only nvidia_wmi_ec_backlight (an EC path that misses most levels) and hides
+# amdgpu_bl0, so brightness changes do not take. acpi_backlight=native makes the
+# kernel bind the native AMD backlight, revealing amdgpu_bl0 so brightness
+# tracks. Ref: ArchWiki/Backlight, basecamp/omarchy#5067.
+#
+# HARDWARE-GATED: acts only when nvidia_wmi_ec_backlight is registered AND no
+# amdgpu_bl* exists -- exactly the broken ASUS case. Anywhere amdgpu_bl* already
+# works, or the EC path is absent, it no-ops, so running it on every install is
+# safe. The param goes in a /etc/limine-entry-tool.d drop-in (Ryoku's cmdline is
+# limine-entry-tool managed, read from /etc/default/limine + that dir), never
+# appended to default.conf directly. Needs a reboot to take effect.
+#
+# idempotent, gated on detection, dry-run via RYOKU_DRYRUN (or --dry-run).
+set -euo pipefail
+
+RYOKU_DRYRUN="${RYOKU_DRYRUN:-0}"
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) RYOKU_DRYRUN=1 ;;
+    -h | --help)
+      echo "Usage: ryoku-hw-backlight-fix [--dry-run]"
+      echo "Add acpi_backlight=native on ASUS AMD+NVIDIA panels stuck on nvidia_wmi_ec_backlight."
+      exit 0
+      ;;
+    *)
+      echo "ryoku-hw-backlight-fix: unknown argument: $arg" >&2
+      exit 1
+      ;;
+  esac
+done
+
+backlight_path="${RYOKU_BACKLIGHT_PATH:-/sys/class/backlight}"
+dropin="/etc/limine-entry-tool.d/ryoku-backlight.conf"
+param="acpi_backlight=native"
+
+run() {
+  if [[ $RYOKU_DRYRUN == 1 ]]; then
+    printf 'DRYRUN: %s\n' "$*"
+    return 0
+  fi
+  "$@"
+}
+
+write_root() {
+  local path=$1
+  if [[ $RYOKU_DRYRUN == 1 ]]; then
+    printf 'DRYRUN: write %s\n' "$path"
+    cat >/dev/null
+    return 0
+  fi
+  if (( EUID == 0 )); then cat >"$path"; else sudo -n tee "$path" >/dev/null; fi
+}
+
+# gate: the broken case is the EC backlight present with no native AMD one.
+if [[ ! -e "$backlight_path/nvidia_wmi_ec_backlight" ]]; then
+  echo "ryoku-hw-backlight-fix: no nvidia_wmi_ec_backlight; nothing to fix"
+  exit 0
+fi
+if compgen -G "$backlight_path/amdgpu_bl*" >/dev/null; then
+  echo "ryoku-hw-backlight-fix: amdgpu_bl* already present; nothing to fix"
+  exit 0
+fi
+
+# idempotent: leave an existing drop-in that already carries the param alone.
+if [[ -f $dropin ]] && grep -qF "$param" "$dropin"; then
+  echo "ryoku-hw-backlight-fix: $param already set in $dropin"
+  exit 0
+fi
+
+echo "ryoku-hw-backlight-fix: panel stuck on nvidia_wmi_ec_backlight; adding $param via $dropin (reboot required)"
+run mkdir -p "${dropin%/*}"
+write_root "$dropin" <<EOF
+# Ryoku: ASUS AMD+NVIDIA panel wired to the AMD iGPU registers only
+# nvidia_wmi_ec_backlight; acpi_backlight=native reveals amdgpu_bl0 so
+# brightness works. Managed by ryoku-hw-backlight-fix.
+KERNEL_CMDLINE[default]+=" $param"
+EOF
+
+# Bake the new cmdline into the boot entries. offline/chroot-safe: run only a
+# generator that exists, else the drop-in applies on the next kernel/limine
+# update. limine-mkinitcpio rebuilds the UKI (which embeds the cmdline); mirrors
+# bootloader.sh's limine-mkinitcpio -> limine-update path.
+if command -v limine-mkinitcpio >/dev/null 2>&1; then
+  run limine-mkinitcpio
+  command -v limine-update >/dev/null 2>&1 && run limine-update
+elif command -v limine-update >/dev/null 2>&1; then
+  run limine-update
+else
+  echo "ryoku-hw-backlight-fix: no limine generator here; drop-in applies on the next kernel/limine update"
+fi

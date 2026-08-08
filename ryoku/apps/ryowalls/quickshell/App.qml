@@ -3,54 +3,51 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Dialogs
 import Quickshell
+import Ryoku.Ui
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// ryowalls: browse wallhaven on the left (or tune the look), live rice preview
-// on the right. The left column swaps between Browse and Tune; the preview is
-// always the visible hero.
+// ryowalls: pick a wallpaper and see what it does to your whole rice before you
+// commit. The left column browses (or grades / tunes the palette); the right
+// column is the preview stack, pinned across every lane because it is the
+// feedback loop. Paper and ink.
 Rectangle {
     id: app
 
     implicitWidth: 1180
     implicitHeight: 760
+    color: Tokens.paper
+    focus: true
 
-    gradient: Gradient {
-        GradientStop { position: 0.0; color: Theme.bgTop }
-        GradientStop { position: 1.0; color: Theme.bgBot }
-    }
-
+    // ── lanes + overlays ─────────────────────────────────────────────────────
+    property string lane: "browse"        // browse | grade | palette
     property bool settingsOpen: false
-    property bool sourceMenuOpen: false
-    property string mode: "browse"          // browse | tune
-    readonly property bool fitOn: Wallhaven.ratios.length > 0
-
-    // re-check the upscaler tools when the window regains focus, e.g. after the
-    // gpk install terminal closes, so Install clears to the toggle on its own.
-    readonly property bool windowActive: Window.active
-    onWindowActiveChanged: if (windowActive) Wallhaven.refreshCaps()
+    property bool sourceOpen: false
+    property bool confirmOpen: false
+    property bool quitArmed: false
 
     readonly property var builtins: [
         { key: "wallhaven", label: "Wallhaven" },
-        { key: "live", label: "Live" },
-        { key: "local", label: "Local" },
-        { key: "moewalls", label: "MoeWalls" },
+        { key: "live",      label: "Live" },
+        { key: "local",     label: "Local" },
+        { key: "moewalls",  label: "MoeWalls" },
         { key: "motionbgs", label: "motionbgs" },
-        { key: "ryoku", label: "Ryoku" }
+        { key: "ryoku",     label: "Ryoku" }
     ]
+    readonly property int sourceCount: builtins.length + Wallhaven.libraries.length
     readonly property string sourceLabel: {
-        if (Wallhaven.source === "lib")
-            return Wallhaven.libraryName;
+        if (Wallhaven.source === "lib") return Wallhaven.libraryName;
         for (var i = 0; i < builtins.length; i++)
-            if (builtins[i].key === Wallhaven.source)
-                return builtins[i].label;
+            if (builtins[i].key === Wallhaven.source) return builtins[i].label;
         return "Wallhaven";
     }
+    readonly property bool fitOn: Wallhaven.ratios.length > 0
+    readonly property bool busyNow: Wallhaven.busy || Wallhaven.enhancing
 
     // nearest wallhaven aspect for the primary monitor, for the Fit toggle.
     readonly property string screenRatio: {
         var s = (Quickshell.screens && Quickshell.screens.length > 0) ? Quickshell.screens[0] : null;
-        if (!s || !s.width || !s.height)
-            return "16x9";
+        if (!s || !s.width || !s.height) return "16x9";
         var a = s.width / s.height;
         var t = [["9x16", 0.5625], ["10x16", 0.625], ["1x1", 1], ["5x4", 1.25], ["4x3", 1.333],
             ["3x2", 1.5], ["16x10", 1.6], ["16x9", 1.777], ["21x9", 2.333], ["32x9", 3.555]];
@@ -62,567 +59,632 @@ Rectangle {
         return best;
     }
 
-    focus: true
-    Keys.onEscapePressed: { if (app.settingsOpen) app.settingsOpen = false; else Qt.quit(); }
-    Component.onCompleted: if (Wallhaven.results.length === 0) Wallhaven.searchLatest("")
+    // ── the applied-desktop baseline (2.6) ───────────────────────────────────
+    // The singleton exposes no `current`, so the diff is against what this
+    // session last set on the desktop: SET WALLPAPER captures the candidate, and
+    // any later divergence reads as pending. Before the first set the desktop is
+    // unknown, so a pick is armed and the card says it is not yet on the desktop.
+    property var desktop: ({ valid: false, name: "", image: "", frame: 1, colours: [], sig: "" })
 
-    // ---- header -------------------------------------------------------------
+    function candImage() {
+        var s = Wallhaven.selected;
+        if (!s) return "";
+        if (s.video && ("" + s.video).length > 0) return "" + s.video;
+        return "" + (s.path || s.large || s.thumb || "");
+    }
+    function candSetPath() {
+        var p = candImage();
+        if (Wallhaven.adjustActive && !Wallhaven.isVideoPath(p)) {
+            var slash = p.lastIndexOf("/"), dot = p.lastIndexOf(".");
+            return dot > slash ? p.slice(0, dot) + ".edit" + p.slice(dot) : p + ".edit";
+        }
+        return p;
+    }
+    function adjustSig() {
+        var a = Wallhaven.adjust;
+        return a.brightness + "," + a.contrast + "," + a.saturation + "," + a.warmth + "," + (a.vignette ? 1 : 0);
+    }
+    // the palette colours are global now and reload on every preview, so the
+    // signature keys off the image, sampled frame and grade -- not the swatches.
+    function candSig() {
+        return candSetPath() + "|" + Wallhaven.settings.frame + "|" + adjustSig();
+    }
+    readonly property bool armed: Wallhaven.selected !== null && (!desktop.valid || desktop.sig !== candSig())
+    readonly property bool clean: desktop.valid && desktop.sig === candSig()
+
+    function captureDesktop() {
+        app.desktop = {
+            valid: true,
+            name: Wallhaven.selected ? ("" + (Wallhaven.selected.name || Wallhaven.selected.id || "")) : "",
+            image: candSetPath(),
+            frame: Wallhaven.settings.frame,
+            colours: (Wallhaven.palette || []).slice(),
+            sig: candSig()
+        };
+    }
+
+    // re-probe the upscaler tools when the window regains focus (e.g. after the
+    // gpk install terminal closes), so Install clears to the toggle on its own.
+    readonly property bool windowActive: Window.active
+    onWindowActiveChanged: if (windowActive) Wallhaven.refreshCaps()
+
+    Connections {
+        target: Wallhaven
+        // SET WALLPAPER is the only path that reports "Wallpaper set"; that is the
+        // moment the candidate becomes the desktop baseline.
+        function onStatusChanged() { if (Wallhaven.status === "Wallpaper set") app.captureDesktop(); }
+    }
+
+    Component.onCompleted: {
+        if (Wallhaven.results.length === 0) Wallhaven.searchLatest("");
+        app.forceActiveFocus();
+    }
+
+    // ── keyboard, on ryovm's grammar ─────────────────────────────────────────
+    function peel() {
+        if (settingsOpen) { settingsOpen = false; return; }
+        if (sourceOpen) { sourceOpen = false; return; }
+        if (confirmOpen) { confirmOpen = false; return; }
+        if (Wallhaven.query.length > 0) { search.clear(); Wallhaven.searchLatest(""); return; }
+        if (lane !== "browse") { lane = "browse"; return; }
+        // Esc never quits.
+    }
+    function tryQuit() {
+        if (busyNow) {
+            if (quitArmed) Qt.quit();
+            else { quitArmed = true; quitTimer.restart(); }
+        } else Qt.quit();
+    }
+    function walk(delta) {
+        var r = Wallhaven.results;
+        if (!r || r.length === 0) return;
+        var idx = 0;
+        if (Wallhaven.selected)
+            for (var i = 0; i < r.length; i++) if (r[i].id === Wallhaven.selected.id) { idx = i; break; }
+        Wallhaven.select(r[Math.max(0, Math.min(r.length - 1, idx + delta))]);
+    }
+    Timer { id: quitTimer; interval: 3000; onTriggered: app.quitArmed = false }
+
+    Keys.onPressed: (e) => {
+        if (e.key === Qt.Key_Escape) { app.peel(); e.accepted = true; return; }
+        if (e.key === Qt.Key_Q && (e.modifiers & Qt.ControlModifier)) { app.tryQuit(); e.accepted = true; return; }
+        if (e.key === Qt.Key_K && (e.modifiers & Qt.ControlModifier)) { search.grabFocus(); e.accepted = true; return; }
+        if (e.key === Qt.Key_Slash) { search.grabFocus(); e.accepted = true; return; }
+        if (app.lane === "browse") {
+            if (e.key === Qt.Key_Left) { app.walk(-1); e.accepted = true; }
+            else if (e.key === Qt.Key_Right) { app.walk(1); e.accepted = true; }
+            else if (e.key === Qt.Key_Up) { app.walk(-grid.cols); e.accepted = true; }
+            else if (e.key === Qt.Key_Down) { app.walk(grid.cols); e.accepted = true; }
+        }
+    }
+
+    // ── head ─────────────────────────────────────────────────────────────────
     Item {
-        id: header
+        id: head
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.leftMargin: 40
-        anchors.rightMargin: 22
-        anchors.topMargin: 18
-        height: 54
+        anchors.leftMargin: Tokens.s6
+        anchors.rightMargin: Tokens.s6
+        anchors.topMargin: Tokens.s5
+        height: 132
 
-        Row {
+        Column {
+            id: headCol
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 11
-            Image {
-                anchors.verticalCenter: parent.verticalCenter
-                source: "logo.svg"
-                sourceSize: Qt.size(30, 30)
-                width: 30
-                height: 30
+            spacing: Tokens.s2
+
+            // eyebrow: 16x1 rule, 力, app mark in micro caps.
+            Row {
+                spacing: Tokens.s2
+                Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: "力"; color: Tokens.inkMuted; font.family: Tokens.jp; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+                Text {
+                    text: "RYOKU WALLS"
+                    color: Tokens.inkMuted
+                    font.family: Tokens.ui
+                    font.pixelSize: 9
+                    font.weight: Font.Medium
+                    font.letterSpacing: Tokens.trackMark
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                // the source switcher, up in the identity band: a bordered chip,
+                // so it reads as a real control, not a glyph lost beside the title.
+                Item { width: Tokens.s4; height: 1 }
+                Rectangle {
+                    id: srcChip
+                    anchors.verticalCenter: parent.verticalCenter
+                    implicitWidth: srcInner.width + Tokens.s3 * 2
+                    implicitHeight: srcInner.implicitHeight + Tokens.s2
+                    radius: Tokens.radius
+                    color: openHover.hovered ? Tokens.tint10 : Tokens.tint5
+                    border.width: Tokens.border
+                    border.color: openHover.hovered ? Tokens.ink : Tokens.lineStrong
+                    Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                    Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
+                    Row {
+                        id: srcInner
+                        anchors.centerIn: parent
+                        spacing: Tokens.s2
+                        Text {
+                            text: "SOURCE"
+                            color: openHover.hovered ? Tokens.ink : Tokens.inkDim
+                            font.family: Tokens.ui
+                            font.pixelSize: 9
+                            font.weight: Font.Medium
+                            font.letterSpacing: Tokens.trackLabel
+                            anchors.verticalCenter: parent.verticalCenter
+                            Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                        }
+                        Text {
+                            text: app.sourceCount + " ▾"
+                            color: openHover.hovered ? Tokens.ink : Tokens.inkMuted
+                            font.family: Tokens.mono
+                            font.pixelSize: 11
+                            anchors.verticalCenter: parent.verticalCenter
+                            Behavior on color { ColorAnimation { duration: Tokens.snap } }
+                        }
+                    }
+                    HoverHandler { id: openHover; cursorShape: Qt.PointingHandCursor }
+                    TapHandler { onTapped: app.sourceOpen = true }
+                }
             }
-            Column {
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 3
-                Text { text: "ryowalls"; color: Theme.bright; font.family: Theme.font; font.pixelSize: 25; font.weight: Font.DemiBold; font.letterSpacing: 0.3 }
-                Text { text: "Find a wallpaper, preview the rice, set it."; color: Theme.dim; font.family: Theme.font; font.pixelSize: 12 }
+
+            // the page title — the current source, set in the serif.
+            Row {
+                spacing: Tokens.s3
+                Text {
+                    id: title
+                    text: app.sourceLabel
+                    color: Tokens.ink
+                    font.family: Tokens.display
+                    font.pixelSize: Tokens.fTitle
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
+
+            Text {
+                text: "Find a wallpaper, preview the rice, set it."
+                color: Tokens.inkMuted
+                font.family: Tokens.ui
+                font.pixelSize: 12
+            }
+        }
+
+        // the head's dead right band: a decorative masthead strip in the hub's
+        // noir register (a living specimen + editorial type), giving the top of
+        // the window a face. Pure decoration; right-click to reframe / swap.
+        Decor {
+            id: masthead
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.left: headCol.right
+            anchors.leftMargin: Tokens.s7
+            anchors.right: winBtns.left
+            anchors.rightMargin: Tokens.s5
+            boxId: "ryowalls.masthead"
+            code: "RYOKU · WALLS"
+            title: "壁紙"
+            sub: "画廊"
+            tate: "壁を選ぶ"
+            caption: "Every wall this machine can wear — preview the whole rice, then commit."
+            seal: "壁"
+            images: ["wave.gif", "compass.gif", "disc.gif", "torus.gif", "render.gif", "sphere.gif", "cube.gif"]
+            seed: 0
         }
 
         Row {
             id: winBtns
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 4
-            IconBtn { name: "gear"; onClicked: app.settingsOpen = true }
-            IconBtn { name: "close"; danger: true; onClicked: Qt.quit() }
-        }
-
-        // source picker: built-in libraries plus any repos the user added. A
-        // dropdown (not a segmented row) so it scales to arbitrary libraries.
-        Rectangle {
-            id: sourceBtn
-            anchors.right: winBtns.left
-            anchors.rightMargin: 16
-            anchors.verticalCenter: parent.verticalCenter
-            height: 34
-            width: srcRow.implicitWidth + 26
-            radius: Theme.radius
-            color: srcHover.hovered || app.sourceMenuOpen ? Theme.keyTop : Theme.surfaceLo
-            border.width: 1
-            border.color: app.sourceMenuOpen ? Theme.ember : Theme.line
-            Behavior on color { ColorAnimation { duration: Theme.quick } }
-            Behavior on border.color { ColorAnimation { duration: Theme.quick } }
-            Row {
-                id: srcRow
-                anchors.centerIn: parent
-                spacing: 8
-                Text { anchors.verticalCenter: parent.verticalCenter; text: app.sourceLabel; color: Theme.bright; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
-                Icon { anchors.verticalCenter: parent.verticalCenter; name: "chevron-right"; size: 12; tint: Theme.dim; rotation: app.sourceMenuOpen ? 90 : 0; Behavior on rotation { NumberAnimation { duration: Theme.quick; easing.type: Theme.ease } } }
-            }
-            HoverHandler { id: srcHover; cursorShape: Qt.PointingHandCursor }
-            TapHandler { onTapped: app.sourceMenuOpen = !app.sourceMenuOpen }
+            anchors.top: parent.top
+            spacing: Tokens.s1
+            IconBtn { glyph: "⚙"; onAct: app.settingsOpen = true }
+            IconBtn { glyph: "✕"; onAct: Qt.quit() }
         }
     }
 
-    // ---- toolbar ------------------------------------------------------------
+    // ── toolbar ──────────────────────────────────────────────────────────────
     Item {
         id: toolbar
-        anchors.top: header.bottom
+        anchors.top: head.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.leftMargin: 40
-        anchors.rightMargin: 24
-        anchors.topMargin: 10
+        anchors.leftMargin: Tokens.s6
+        anchors.rightMargin: Tokens.s6
+        anchors.topMargin: Tokens.s4
         height: 40
 
-        Segmented {
-            id: modeToggle
+        // editing is demoted from a co-equal lane tab: browsing is home, and you
+        // reach for editing on a pick. This left cluster only shows while editing
+        // -- a way back to the store and a switch between the two edit surfaces.
+        Row {
+            id: editNav
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            segW: 78
-            model: [{ key: "browse", label: "Browse" }, { key: "adjust", label: "Adjust" }, { key: "tune", label: "Tune" }]
-            current: app.mode
-            onSelected: (k) => app.mode = k
-        }
-
-        // local live wallpapers have nothing to search; the box greys out there.
-        Rectangle {
-            id: searchBox
-            anchors.left: modeToggle.right
-            anchors.leftMargin: 14
-            anchors.verticalCenter: parent.verticalCenter
-            width: 270
-            height: 36
-            radius: Theme.radius
-            color: Theme.surfaceLo
-            opacity: Wallhaven.source === "live" ? 0.4 : 1
-            border.width: 1
-            border.color: input.activeFocus ? Theme.ember : Theme.line
-            Behavior on border.color { ColorAnimation { duration: Theme.quick } }
-
-            Icon { id: si; anchors.left: parent.left; anchors.leftMargin: 11; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 15; tint: Theme.dim }
-            TextInput {
-                id: input
-                anchors.left: si.right
-                anchors.leftMargin: 9
-                anchors.right: parent.right
-                anchors.rightMargin: 11
+            spacing: Tokens.s3
+            visible: app.lane !== "browse"
+            Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                color: Theme.bright
-                font.family: Theme.font
-                font.pixelSize: 13
-                enabled: Wallhaven.source !== "live"
-                selectByMouse: true
-                selectionColor: Theme.frameBg
-                clip: true
-                onAccepted: { app.mode = "browse"; Wallhaven.searchLatest(text); }
-                Text {
-                    anchors.fill: parent
-                    visible: input.text.length === 0
-                    verticalAlignment: Text.AlignVCenter
-                    text: Wallhaven.source === "local" ? "Search saved wallpapers"
-                        : (Wallhaven.source === "moewalls" ? "Search MoeWalls anime"
-                        : (Wallhaven.source === "motionbgs" ? "Search motionbgs"
-                        : (Wallhaven.source === "ryoku" ? "Search Ryoku wallpapers"
-                        : (Wallhaven.source === "lib" ? "Search " + Wallhaven.libraryName : "Search wallhaven"))))
-                    color: Theme.faint
-                    font: input.font
-                }
+                compact: true
+                text: "‹ BROWSE"
+                onAct: app.lane = "browse"
+            }
+            Seg {
+                anchors.verticalCenter: parent.verticalCenter
+                options: ["ADJUST", "COLOUR"]
+                current: app.lane === "grade" ? "ADJUST" : "COLOUR"
+                onChose: (k) => app.lane = (k === "ADJUST" ? "grade" : "palette")
             }
         }
 
-        // browse-only controls fade out in Tune mode.
-        Item {
-            id: browseTools
-            anchors.left: searchBox.right
+        Field {
+            id: search
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: 300
+            toolbar: true
+            visible: app.lane === "browse"
+            enabled: Wallhaven.source !== "live"
+            opacity: Wallhaven.source === "live" ? 0.4 : 1
+            placeholder: Wallhaven.source === "local" ? "Search saved wallpapers"
+                : (Wallhaven.source === "moewalls" ? "Search MoeWalls anime"
+                : (Wallhaven.source === "motionbgs" ? "Search motionbgs"
+                : (Wallhaven.source === "ryoku" ? "Search Ryoku wallpapers"
+                : (Wallhaven.source === "lib" ? "Search " + Wallhaven.libraryName
+                : (Wallhaven.source === "live" ? "Live wallpapers are local" : "Search wallhaven")))))
+            onCommitted: (v) => { app.lane = "browse"; Wallhaven.searchLatest(v); }
+        }
+
+        // per-lane controls: browse gets the source-specific toolbar; the sheets
+        // carry their own controls, so grade/palette leave the toolbar clean.
+        Row {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            height: parent.height
-            opacity: app.mode === "browse" ? 1 : 0
-            visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+            spacing: Tokens.s2
+            visible: app.lane === "browse"
 
-            Segmented {
-                id: sorter
-                anchors.left: parent.left
-                anchors.leftMargin: 14
+            Seg {
                 anchors.verticalCenter: parent.verticalCenter
-                segW: 92
                 visible: Wallhaven.source === "wallhaven"
-                model: [{ key: "", label: "Latest" }, { key: "1w", label: "Top week" }, { key: "1M", label: "Top month" }]
-                current: Wallhaven.topRange
-                onSelected: (k) => Wallhaven.searchTop(k)
+                options: ["Latest", "Week", "Month"]
+                current: Wallhaven.topRange === "1w" ? "Week" : (Wallhaven.topRange === "1M" ? "Month" : "Latest")
+                onChose: (k) => Wallhaven.searchTop(k === "Week" ? "1w" : (k === "Month" ? "1M" : ""))
             }
-
-            // a library can hold both images and video; filter by kind.
-            Segmented {
-                id: libType
-                anchors.left: parent.left
-                anchors.leftMargin: 14
+            Seg {
                 anchors.verticalCenter: parent.verticalCenter
-                segW: 74
                 visible: Wallhaven.source === "lib" || Wallhaven.source === "local"
-                model: [{ key: "all", label: "All" }, { key: "images", label: "Images" }, { key: "live", label: "Live" }]
-                current: Wallhaven.libraryType
-                onSelected: (k) => Wallhaven.setLibraryType(k)
+                options: ["All", "Images", "Live"]
+                current: Wallhaven.libraryType === "images" ? "Images" : (Wallhaven.libraryType === "live" ? "Live" : "All")
+                onChose: (k) => Wallhaven.setLibraryType(k.toLowerCase())
             }
-
-            // add your own mp4 to ~/Pictures/livewalls (Live source only).
-            Rectangle {
-                id: addChip
-                anchors.left: parent.left
-                anchors.leftMargin: 14
+            Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                height: 34
-                width: addRow.implicitWidth + 24
-                radius: height / 2
+                visible: Wallhaven.source === "wallhaven"
+                text: "FIT SCREEN"
+                primary: app.fitOn
+                onAct: Wallhaven.setRatios(app.fitOn ? "" : app.screenRatio)
+            }
+            Btn {
+                anchors.verticalCenter: parent.verticalCenter
                 visible: Wallhaven.source === "live"
-                color: Theme.surfaceLo
-                border.width: 1
-                border.color: addHover.hovered ? Qt.alpha(Theme.ember, 0.6) : Theme.line
-                Behavior on border.color { ColorAnimation { duration: Theme.quick } }
-                Row {
-                    id: addRow
-                    anchors.centerIn: parent
-                    spacing: 7
-                    Icon { anchors.verticalCenter: parent.verticalCenter; name: "plus"; size: 14; tint: Theme.cream }
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Add mp4"; color: Theme.cream; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Medium }
-                }
-                HoverHandler { id: addHover; cursorShape: Qt.PointingHandCursor }
-                TapHandler { onTapped: addDialog.open() }
+                text: "ADD MP4"
+                onAct: addDialog.open()
             }
 
-            Rectangle {
-                id: fitChip
-                anchors.left: sorter.right
-                anchors.leftMargin: 10
-                anchors.verticalCenter: parent.verticalCenter
-                height: 34
-                width: fitRow.implicitWidth + 24
-                radius: height / 2
-                color: app.fitOn ? Theme.frameBg : Theme.surfaceLo
-                border.width: 1
-                border.color: app.fitOn ? Theme.ember : (fitHover.hovered ? Qt.alpha(Theme.ember, 0.6) : Theme.line)
-                Behavior on border.color { ColorAnimation { duration: Theme.quick } }
-                Behavior on color { ColorAnimation { duration: Theme.quick } }
-                Row {
-                    id: fitRow
-                    anchors.centerIn: parent
-                    spacing: 7
-                    Icon { anchors.verticalCenter: parent.verticalCenter; name: "display"; size: 14; tint: app.fitOn ? Theme.ember : Theme.cream }
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Fit screen"; color: app.fitOn ? Theme.ember : Theme.cream; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Medium }
-                }
-                HoverHandler { id: fitHover; cursorShape: Qt.PointingHandCursor }
-                TapHandler { onTapped: Wallhaven.setRatios(app.fitOn ? "" : app.screenRatio) }
-            }
-
+            // pagination, for the paged sources.
             Row {
-                anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 8
+                spacing: Tokens.s2
                 visible: Wallhaven.source !== "live" && Wallhaven.source !== "ryoku" && Wallhaven.source !== "local"
-                IconBtn { name: "chevron-left"; dim: Wallhaven.page <= 1 || Wallhaven.searching; onClicked: Wallhaven.prevPage() }
+                IconBtn {
+                    anchors.verticalCenter: parent.verticalCenter
+                    glyph: "‹"
+                    armed: Wallhaven.page > 1 && !Wallhaven.searching
+                    onAct: Wallhaven.prevPage()
+                }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "" + Wallhaven.page
-                    color: Wallhaven.searching ? Theme.ember : Theme.subtle
-                    font.family: Theme.mono
-                    font.pixelSize: 13
-                    Behavior on color { ColorAnimation { duration: Theme.quick } }
+                    color: Wallhaven.searching ? Tokens.ink : Tokens.inkDim
+                    font.family: Tokens.mono
+                    font.pixelSize: 12
                 }
-                IconBtn { name: "chevron-right"; dim: Wallhaven.searching; onClicked: Wallhaven.nextPage() }
+                IconBtn {
+                    anchors.verticalCenter: parent.verticalCenter
+                    glyph: "›"
+                    armed: !Wallhaven.searching
+                    onAct: Wallhaven.nextPage()
+                }
             }
-            // Local source: bulk-select + delete controls.
-            Row {
-                anchors.right: parent.right
+
+            // local bulk select + delete.
+            Btn {
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 8
                 visible: Wallhaven.source === "local"
-                HubButton {
-                    label: Wallhaven.localSelection.length > 0 ? "Clear" : "Select all"
-                    icon: Wallhaven.localSelection.length > 0 ? "close" : "check"
-                    onClicked: Wallhaven.localSelection.length > 0 ? Wallhaven.clearLocalSelection() : Wallhaven.selectAllLocal()
-                }
-                HubButton {
-                    visible: Wallhaven.localSelection.length > 0
-                    primary: true
-                    icon: "trash"
-                    label: "Delete " + Wallhaven.localSelection.length
-                    onClicked: confirmDelete.open = true
-                }
+                text: Wallhaven.localSelection.length > 0 ? "CLEAR" : "SELECT ALL"
+                onAct: Wallhaven.localSelection.length > 0 ? Wallhaven.clearLocalSelection() : Wallhaven.selectAllLocal()
+            }
+            Btn {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Wallhaven.source === "local" && Wallhaven.localSelection.length > 0
+                text: "DELETE " + Wallhaven.localSelection.length
+                onAct: app.confirmOpen = true
+            }
+            // a hairline divider, then the secondary way into editing: it needs a
+            // pick, since you grade the wallpaper you selected.
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Wallhaven.selected !== null
+                width: 1; height: 22
+                color: Tokens.line
+            }
+            Btn {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Wallhaven.selected !== null
+                compact: true
+                text: "ADJUST"
+                onAct: app.lane = "grade"
             }
         }
     }
 
-    // ---- main: browse | tune  on the left, preview on the right -------------
+    // ── the split: left collection, seam, pinned preview stack ───────────────
     Item {
-        id: main
+        id: split
         anchors.top: toolbar.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: statusBar.top
-        anchors.leftMargin: 40
-        anchors.rightMargin: 24
-        anchors.topMargin: 12
-        anchors.bottomMargin: 6
+        anchors.bottom: bottomBar.top
+        anchors.leftMargin: Tokens.s6
+        anchors.rightMargin: Tokens.s6
+        anchors.topMargin: Tokens.s4
+        anchors.bottomMargin: Tokens.s3
 
-        WallGrid {
-            id: grid
-            anchors.left: parent.left
+        readonly property real gutter: Tokens.s5
+        readonly property real leftW: (width - gutter) * 5 / 12
+        readonly property real rightW: (width - gutter) * 7 / 12
+
+        Item {
+            id: leftCol
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: parent.width * 0.46
-            opacity: app.mode === "browse" ? 1 : 0
-            visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
-        }
-
-        TunePanel {
             anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: parent.width * 0.46
-            opacity: app.mode === "tune" ? 1 : 0
-            visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
-        }
+            width: split.leftW
 
-        AdjustPanel {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: parent.width * 0.46
-            opacity: app.mode === "adjust" ? 1 : 0
-            visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+            WallGrid {
+                id: grid
+                anchors.fill: parent
+                opacity: app.lane === "browse" ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: Tokens.swap } }
+            }
+            GradeSheet {
+                anchors.fill: parent
+                opacity: app.lane === "grade" ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: Tokens.swap } }
+            }
+            PaletteSheet {
+                anchors.fill: parent
+                opacity: app.lane === "palette" ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: Tokens.swap } }
+            }
         }
 
         Rectangle {
-            id: gutter
-            anchors.left: grid.right
-            anchors.leftMargin: 20
+            x: split.leftW + split.gutter / 2
+            width: 1
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.topMargin: 8
-            anchors.bottomMargin: 8
-            width: 1
-            color: Theme.line
+            color: Tokens.line
         }
 
-        PreviewPane {
-            anchors.left: gutter.right
-            anchors.leftMargin: 24
-            anchors.right: parent.right
+        PreviewStack {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
+            x: split.leftW + split.gutter
+            width: split.rightW
         }
     }
 
-    // ---- status bar ---------------------------------------------------------
+    // ── bottom bar ───────────────────────────────────────────────────────────
     Item {
-        id: statusBar
+        id: bottomBar
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.leftMargin: 40
-        anchors.rightMargin: 24
-        height: 28
+        height: 60
 
-        Text {
+        Rectangle { anchors.top: parent.top; width: parent.width; height: 1; color: Tokens.line }
+
+        Row {
             anchors.left: parent.left
+            anchors.leftMargin: Tokens.s6
             anchors.verticalCenter: parent.verticalCenter
-            text: Wallhaven.status.length > 0 ? Wallhaven.status
-                : (Wallhaven.results.length > 0 ? Wallhaven.results.length + " wallpapers" : "")
-            color: Wallhaven.status.length > 0 ? Theme.ember : Theme.faint
-            font.family: Theme.mono
-            font.pixelSize: 11
-            font.letterSpacing: 0.5
-            Behavior on color { ColorAnimation { duration: Theme.quick } }
+            spacing: Tokens.s3
+
+            Rectangle {
+                id: pulseDot
+                width: 6; height: 6; radius: 3
+                anchors.verticalCenter: parent.verticalCenter
+                color: Tokens.ink
+                readonly property bool pending: app.armed || app.busyNow
+                // a heartbeat, not an alarm: 600ms each way while pending; solid
+                // otherwise. The animation is a value source, so reset on stop.
+                onPendingChanged: if (!pending) opacity = 1
+                SequentialAnimation on opacity {
+                    running: pulseDot.pending
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.3; duration: 600 }
+                    NumberAnimation { to: 1.0; duration: 600 }
+                }
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: app.quitArmed ? "PRESS CTRL+Q AGAIN TO QUIT"
+                    : (Wallhaven.enhancing ? "ENHANCING"
+                    : (Wallhaven.busy ? (Wallhaven.status.length ? Wallhaven.status.toUpperCase() : "WORKING")
+                    : (app.clean ? "WALLPAPER SET · LIVE ON YOUR DESKTOP"
+                    : (Wallhaven.selected ? "PREVIEWING · NOT SET" : "NO PICK"))))
+                color: app.armed || app.busyNow ? Tokens.ink : Tokens.inkDim
+                font.family: Tokens.ui
+                font.pixelSize: 11
+                font.weight: Font.Medium
+                font.letterSpacing: 1.6
+            }
         }
+
+        // backend identity: file truth, mono, the far-right corner.
         Text {
+            id: backendTag
             anchors.right: parent.right
+            anchors.rightMargin: Tokens.s6
             anchors.verticalCenter: parent.verticalCenter
-            text: Wallhaven.source === "local" ? "~/Pictures"
-                : (Wallhaven.source === "live" ? "~/Pictures/livewalls"
-                : (Wallhaven.source === "moewalls" ? "moewalls.com"
+            text: Wallhaven.source === "moewalls" ? "moewalls.com"
                 : (Wallhaven.source === "motionbgs" ? "motionbgs.com"
                 : (Wallhaven.source === "ryoku" ? "ryoku-extras"
+                : (Wallhaven.source === "live" ? "~/Pictures/livewalls"
+                : (Wallhaven.source === "local" ? "~/Pictures"
                 : (Wallhaven.source === "lib" ? "github.com/" + Wallhaven.libraryRepo : "wallhaven.cc")))))
-            color: Theme.faint
-            font.family: Theme.mono
-            font.pixelSize: 11
+            color: Tokens.inkFaint
+            font.family: Tokens.mono
+            font.pixelSize: 9
+        }
+
+        Row {
+            anchors.right: backendTag.left
+            anchors.rightMargin: Tokens.s5
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Tokens.s3
+
+            Btn {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Wallhaven.source === "wallhaven"
+                text: "SAVE COPY"
+                armed: Wallhaven.selected !== null && !Wallhaven.busy
+                onAct: Wallhaven.download()
+            }
+            Rectangle {
+                width: 1; height: 22
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Wallhaven.source === "wallhaven"
+                color: Tokens.line
+            }
+            Btn {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Wallhaven.source !== "live" && Wallhaven.source !== "local"
+                text: "OPEN"
+                armed: Wallhaven.selected !== null
+                onAct: Wallhaven.openWeb()
+            }
+            Btn {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "SET WALLPAPER"
+                primary: true
+                armed: app.armed && !Wallhaven.busy
+                onAct: Wallhaven.apply()
+            }
         }
     }
 
-    // source dropdown: built-ins, then user libraries, then an add field.
-    Item {
+    // ── overlays ─────────────────────────────────────────────────────────────
+    SourcePicker {
         anchors.fill: parent
-        visible: app.sourceMenuOpen
         z: 40
-        MouseArea { anchors.fill: parent; onClicked: app.sourceMenuOpen = false }
-        Rectangle {
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.topMargin: 64
-            anchors.rightMargin: 22
-            width: 244
-            height: menuCol.implicitHeight + 16
-            radius: Theme.radius
-            color: Theme.cardTop
-            border.width: 1
-            border.color: Theme.line
-            MouseArea { anchors.fill: parent }
-            Column {
-                id: menuCol
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: 8
-                spacing: 2
-
-                Repeater {
-                    model: app.builtins
-                    delegate: SrcRow {
-                        required property var modelData
-                        width: menuCol.width
-                        label: modelData.label
-                        active: Wallhaven.source === modelData.key
-                        onPick: { app.mode = "browse"; Wallhaven.setSource(modelData.key); app.sourceMenuOpen = false; }
-                    }
-                }
-
-                Rectangle { width: menuCol.width; height: 1; color: Theme.line; visible: Wallhaven.libraries.length > 0 }
-                Repeater {
-                    model: Wallhaven.libraries
-                    delegate: SrcRow {
-                        required property var modelData
-                        width: menuCol.width
-                        label: modelData.name
-                        sub: modelData.repo
-                        removable: true
-                        active: Wallhaven.source === "lib" && Wallhaven.libraryRepo === modelData.repo
-                        onPick: { app.mode = "browse"; Wallhaven.setLibrary(modelData); app.sourceMenuOpen = false; }
-                        onRemove: Wallhaven.removeLibrary(modelData.repo)
-                    }
-                }
-
-                Rectangle { width: menuCol.width; height: 1; color: Theme.line }
-                Rectangle {
-                    width: menuCol.width
-                    height: 34
-                    radius: Theme.radius
-                    color: addInput.activeFocus ? Theme.surfaceLo : "transparent"
-                    border.width: 1
-                    border.color: addInput.activeFocus ? Theme.ember : "transparent"
-                    Icon { id: pl; anchors.left: parent.left; anchors.leftMargin: 9; anchors.verticalCenter: parent.verticalCenter; name: "plus"; size: 13; tint: Theme.dim }
-                    TextInput {
-                        id: addInput
-                        anchors.left: pl.right
-                        anchors.leftMargin: 7
-                        anchors.right: parent.right
-                        anchors.rightMargin: 9
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: Theme.bright
-                        font.family: Theme.mono
-                        font.pixelSize: 12
-                        clip: true
-                        selectByMouse: true
-                        selectionColor: Theme.frameBg
-                        onAccepted: { if (text.trim().length > 0) { Wallhaven.addLibrary(text); text = ""; app.sourceMenuOpen = false; } }
-                        Text { anchors.fill: parent; verticalAlignment: Text.AlignVCenter; visible: addInput.text.length === 0; text: "add library:  owner/repo"; color: Theme.faint; font: addInput.font }
-                    }
-                }
-            }
-        }
+        open: app.sourceOpen
+        builtins: app.builtins
+        onDismissed: { app.sourceOpen = false; app.forceActiveFocus(); }
     }
 
     SettingsPanel {
         anchors.fill: parent
+        z: 40
         open: app.settingsOpen
-        onClosed: app.settingsOpen = false
+        onClosed: { app.settingsOpen = false; app.forceActiveFocus(); }
     }
 
-    FileDialog {
-        id: addDialog
-        title: "Add a live wallpaper"
-        nameFilters: ["Video (*.mp4 *.webm *.mkv *.mov)"]
-        onAccepted: Wallhaven.importLive(selectedFile)
-    }
-
-    // confirm before deleting local wallpapers off disk.
+    // destructive confirm: a bone plate with a 2px border and an unambiguous
+    // verb, never red (2.4).
     Item {
-        id: confirmDelete
         anchors.fill: parent
-        property bool open: false
+        z: 50
         visible: opacity > 0
-        opacity: open ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+        opacity: app.confirmOpen ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
+
         Rectangle {
             anchors.fill: parent
             color: Qt.rgba(0, 0, 0, 0.55)
-            TapHandler { onTapped: if (!cCardHover.hovered) confirmDelete.open = false }
+            TapHandler { onTapped: app.confirmOpen = false }
         }
         Rectangle {
             anchors.centerIn: parent
             width: 380
-            height: cCol.implicitHeight + 40
-            radius: Theme.radius
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.cardTop }
-                GradientStop { position: 1.0; color: Theme.cardBot }
-            }
-            border.width: 1
-            border.color: Theme.line
-            HoverHandler { id: cCardHover }
+            height: cCol.implicitHeight + 2 * Tokens.s5
+            radius: Tokens.radius
+            color: Tokens.bone
+            border.width: 2
+            border.color: Tokens.ink
+            TapHandler {}
             Column {
                 id: cCol
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.margins: 20
-                spacing: 16
-                Text { text: "Delete wallpapers"; color: Theme.bright; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { width: parent.width; wrapMode: Text.WordWrap; text: "Remove " + Wallhaven.localSelection.length + " wallpaper(s) from disk? This cannot be undone."; color: Theme.dim; font.family: Theme.font; font.pixelSize: 12 }
+                anchors.margins: Tokens.s5
+                spacing: Tokens.s4
+                Text {
+                    text: "Delete wallpapers"
+                    color: Tokens.inkOnBone
+                    font.family: Tokens.ui
+                    font.pixelSize: 16
+                    font.weight: Font.DemiBold
+                }
+                Text {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: "Remove " + Wallhaven.localSelection.length + " wallpaper(s) from disk. This cannot be undone."
+                    color: Tokens.inkOnBoneDim
+                    font.family: Tokens.ui
+                    font.pixelSize: 12
+                }
                 Row {
                     anchors.right: parent.right
-                    spacing: 10
-                    HubButton { label: "Cancel"; onClicked: confirmDelete.open = false }
-                    HubButton { primary: true; icon: "trash"; label: "Delete"; onClicked: { Wallhaven.removeLocalSelected(); confirmDelete.open = false; } }
+                    spacing: Tokens.s3
+                    // buttons drawn in-line: the module Btn is built for black
+                    // surfaces and would vanish on a bone plate.
+                    Rectangle {
+                        width: cancelT.width + 30; height: 32
+                        radius: Tokens.radius
+                        color: cancelH.hovered ? Qt.rgba(0, 0, 0, 0.08) : "transparent"
+                        border.width: Tokens.border
+                        border.color: Tokens.lineOnBone
+                        Text { id: cancelT; anchors.centerIn: parent; text: "CANCEL"; color: Tokens.inkOnBone; font.family: Tokens.ui; font.pixelSize: 11; font.weight: Font.Medium; font.letterSpacing: Tokens.trackLabel }
+                        HoverHandler { id: cancelH; cursorShape: Qt.PointingHandCursor }
+                        TapHandler { onTapped: app.confirmOpen = false }
+                    }
+                    Rectangle {
+                        width: delT.width + 30; height: 32
+                        radius: Tokens.radius
+                        color: delH.hovered ? Qt.rgba(0, 0, 0, 0.12) : "transparent"
+                        border.width: 2
+                        border.color: Tokens.inkOnBone
+                        Text { id: delT; anchors.centerIn: parent; text: "DELETE " + Wallhaven.localSelection.length + " FILES"; color: Tokens.inkOnBone; font.family: Tokens.ui; font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: Tokens.trackLabel }
+                        HoverHandler { id: delH; cursorShape: Qt.PointingHandCursor }
+                        TapHandler { onTapped: { Wallhaven.removeLocalSelected(); app.confirmOpen = false; } }
+                    }
                 }
             }
         }
     }
 
-    component SrcRow: Rectangle {
-        id: sr
-        property string label: ""
-        property string sub: ""
-        property bool active: false
-        property bool removable: false
-        signal pick()
-        signal remove()
-        height: sr.sub.length > 0 ? 40 : 32
-        radius: Theme.radius
-        color: rowHov.hovered ? Theme.keyTop : "transparent"
-        Behavior on color { ColorAnimation { duration: Theme.quick } }
-        Rectangle { anchors.left: parent.left; anchors.leftMargin: 3; anchors.verticalCenter: parent.verticalCenter; width: 3; height: 14; radius: 1.5; color: Theme.ember; visible: sr.active }
-        Column {
-            anchors.left: parent.left
-            anchors.leftMargin: 13
-            anchors.right: xbtn.left
-            anchors.rightMargin: 6
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 1
-            Text { width: parent.width; text: sr.label; color: sr.active ? Theme.ember : Theme.cream; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium; elide: Text.ElideRight }
-            Text { width: parent.width; visible: sr.sub.length > 0; text: sr.sub; color: Theme.faint; font.family: Theme.mono; font.pixelSize: 9; elide: Text.ElideRight }
-        }
-        HoverHandler { id: rowHov; cursorShape: Qt.PointingHandCursor }
-        MouseArea { anchors.fill: parent; onClicked: sr.pick() }
-        Rectangle {
-            id: xbtn
-            anchors.right: parent.right
-            anchors.rightMargin: 6
-            anchors.verticalCenter: parent.verticalCenter
-            width: 20; height: 20; radius: 10
-            visible: sr.removable && rowHov.hovered
-            color: xma.containsMouse ? Qt.alpha(Theme.ember, 0.2) : "transparent"
-            Icon { anchors.centerIn: parent; name: "close"; size: 11; tint: xma.containsMouse ? Theme.ember : Theme.faint }
-            MouseArea { id: xma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: sr.remove() }
-        }
-    }
-
-    component IconBtn: Item {
-        id: ib
-        property string name: ""
-        property bool danger: false
-        property bool dim: false
-        signal clicked()
-        width: 30
-        height: 30
-        opacity: ib.dim ? 0.35 : 1
-        Rectangle {
-            anchors.fill: parent
-            radius: Theme.radius
-            color: ibHover.hovered && !ib.dim ? Theme.keyTop : "transparent"
-            Behavior on color { ColorAnimation { duration: Theme.quick } }
-        }
-        Icon {
-            anchors.centerIn: parent
-            name: ib.name
-            size: 16
-            tint: ib.danger ? (ibHover.hovered ? Theme.ember : Theme.faint)
-                : (ibHover.hovered && !ib.dim ? Theme.bright : Theme.cream)
-            Behavior on tint { ColorAnimation { duration: Theme.quick } }
-        }
-        HoverHandler { id: ibHover; enabled: !ib.dim; cursorShape: Qt.PointingHandCursor }
-        TapHandler { enabled: !ib.dim; onTapped: ib.clicked() }
+    // add a live wallpaper (mp4) into ~/Pictures/livewalls.
+    FileDialog {
+        id: addDialog
+        title: "Add a live wallpaper"
+        nameFilters: ["Video (*.mp4 *.mkv *.mov)"]
+        onAccepted: Wallhaven.importLive(selectedFile)
     }
 }

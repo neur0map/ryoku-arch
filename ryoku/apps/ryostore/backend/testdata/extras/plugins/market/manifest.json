@@ -1,0 +1,8 @@
+{
+  "name": "Market",
+  "version": "2.0.0",
+  "hosts": ["sidebarLeft"],
+  "defaults": { "host": "sidebarLeft" },
+  "entryPoints": { "sidebarLeft": "SidebarLeft.qml" },
+  "files": ["extra.js"]
+}

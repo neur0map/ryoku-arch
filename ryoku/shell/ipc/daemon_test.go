@@ -46,7 +46,7 @@ func TestParseDisabledComponents(t *testing.T) {
 	}{
 		{"one", `{"disabledComponents":["overview"]}`, map[string]bool{"overview": true}},
 		{"several", `{"disabledComponents":["launcher","visualizer"]}`, map[string]bool{"launcher": true, "visualizer": true}},
-		{"pill excluded", `{"disabledComponents":["pill","widgets"]}`, map[string]bool{"widgets": true}},
+		{"shell excluded", `{"disabledComponents":["shell","widgets"]}`, map[string]bool{"widgets": true}},
 		{"absent key", `{"unloadWidgetsWhenCovered":true}`, map[string]bool{}},
 		{"empty list", `{"disabledComponents":[]}`, map[string]bool{}},
 		{"malformed", `not json`, map[string]bool{}},
@@ -66,7 +66,7 @@ func TestComponentDisabled(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "ryoku", "performance.json"),
-		[]byte(`{"disabledComponents":["overview","pill"]}`), 0o644); err != nil {
+		[]byte(`{"disabledComponents":["overview","shell"]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if !componentDisabled("overview") {
@@ -75,8 +75,8 @@ func TestComponentDisabled(t *testing.T) {
 	if componentDisabled("launcher") {
 		t.Error("launcher not listed -> should be enabled")
 	}
-	if componentDisabled("pill") {
-		t.Error("pill must never be disabled, even when listed")
+	if componentDisabled("shell") {
+		t.Error("shell must never be disabled, even when listed")
 	}
 }
 
@@ -84,5 +84,42 @@ func TestComponentDisabledMissingFile(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir()) // no performance.json in it
 	if componentDisabled("overview") {
 		t.Error("a missing performance.json must disable nothing")
+	}
+}
+
+// shouldTakeOver decides whether a starting daemon displaces the incumbent on
+// the control socket; a wrong call either strands the shell on a dead compositor
+// (fails to take over a stale daemon) or kills a healthy same-session one.
+func TestShouldTakeOver(t *testing.T) {
+	cases := []struct {
+		name          string
+		mySig, incSig string
+		ok            bool
+		want          bool
+	}{
+		{"stale incumbent from a dead instance", "live", "dead", true, true},
+		{"stale incumbent reporting no signature", "live", "", true, true},
+		{"same-session double start", "live", "live", true, false},
+		{"incumbent too old to answer", "live", "", false, false},
+		{"we have no session to claim", "", "dead", true, false},
+	}
+	for _, c := range cases {
+		if got := shouldTakeOver(c.mySig, c.incSig, c.ok); got != c.want {
+			t.Errorf("%s: shouldTakeOver(%q, %q, %v) = %v, want %v", c.name, c.mySig, c.incSig, c.ok, got, c.want)
+		}
+	}
+}
+
+// the signature command lets one daemon identify another's Hyprland instance; it
+// must echo the launch-time HYPRLAND_INSTANCE_SIGNATURE verbatim, empty included.
+func TestSignatureCommand(t *testing.T) {
+	d := &daemon{}
+	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "sig-abc")
+	if got := d.dispatch("signature"); got != "sig-abc" {
+		t.Fatalf("dispatch(signature) = %q, want %q", got, "sig-abc")
+	}
+	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "")
+	if got := d.dispatch("signature"); got != "" {
+		t.Fatalf("dispatch(signature) with no session = %q, want empty", got)
 	}
 }

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=ryotunes
+GenericName=Music
+Comment=YouTube Music as a focused Ryoku app, wired to the desktop now-playing widget
+Exec=ryotunes
+Terminal=false
+Icon=ryotunes
+Categories=AudioVideo;Audio;Player;
+Keywords=music;youtube;ytmusic;player;ryotunes;
+StartupWMClass=chrome-music.youtube.com__-Default

@@ -1,0 +1,136 @@
+#!/bin/bash
+
+# ryoku-cmd-discord-compress: shrink the Quick screen recording the shell just
+# wrote to a Discord-friendly size (default 10MB) with a two-pass x264 encode
+# that keeps the native resolution and the audio track. Best effort: it
+# re-encodes only when the raw clip is over the limit, retries with a smaller
+# budget if a pass overshoots, and replaces the original in place only once the
+# result is valid and under the limit (otherwise the original is left untouched).
+# Studio recordings never reach this path; the record chooser's Discord toggle
+# drives it for Quick captures only.
+#
+#   ryoku-cmd-discord-compress [FILE]   (no arg = the path the recorder wrote)
+#
+# The bitrate split (video budget from target-size and duration, audio scaled
+# down when the budget is tight) mirrors iNiR's compress-discord approach.
+
+set -uo pipefail
+
+target_mb="${RYOKU_DISCORD_TARGET_MB:-10}"
+audio_kbps="${RYOKU_DISCORD_AUDIO_KBPS:-128}"
+preset="${RYOKU_DISCORD_PRESET:-veryfast}"
+# budget = limit * safety, to leave room for container overhead and muxing.
+safety="${RYOKU_DISCORD_SAFETY:-0.92}"
+state="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
+
+notify() {
+  command -v notify-send >/dev/null 2>&1 && notify-send -a ryoku-cli "$@" >/dev/null 2>&1 || true
+}
+
+# 1024-base size label (matches the "saved 45.2 MB" style elsewhere).
+human() {
+  awk -v b="$1" 'BEGIN{
+    split("B KB MB GB", u, " "); i=1; x=b;
+    while (x>=1024 && i<4) { x/=1024; i++ }
+    if (i==1) printf "%d %s", x, u[i]; else printf "%.1f %s", x, u[i];
+  }'
+}
+
+input="${1:-}"
+[[ -n $input ]] || input="$(cat "$state/last-recording" 2>/dev/null || true)"
+[[ -n $input ]] || { echo "discord-compress: no recording path" >&2; exit 0; }
+
+command -v ffmpeg >/dev/null 2>&1 || { notify -u critical "Discord compress failed" "ffmpeg is not installed"; exit 1; }
+command -v ffprobe >/dev/null 2>&1 || { notify -u critical "Discord compress failed" "ffprobe is not installed"; exit 1; }
+
+# wait for the recorder to finish writing: gpu-screen-recorder / wf-recorder both
+# finalise the mp4 on SIGINT, so hold until neither is running, then until the
+# file size stops growing. time-boxed so a stuck capture can't hang the helper.
+gsr='(^|/)gpu-screen-recorder( |$)'
+wf='(^|/)wf-recorder( |$)'
+for _ in $(seq 1 60); do
+  if pgrep -f "$gsr" >/dev/null 2>&1 || pgrep -f "$wf" >/dev/null 2>&1; then
+    sleep 0.5
+  else
+    break
+  fi
+done
+[[ -f $input ]] || { echo "discord-compress: file not found: $input" >&2; exit 0; }
+prev=-1
+for _ in $(seq 1 40); do
+  cur="$(stat -c %s "$input" 2>/dev/null || echo 0)"
+  [[ $cur -gt 0 && $cur -eq $prev ]] && break
+  prev="$cur"
+  sleep 0.3
+done
+
+dur="$(ffprobe -v error -show_entries format=duration -of default=nk=1:nw=1 "$input" 2>/dev/null || echo 0)"
+awk -v d="$dur" 'BEGIN{ exit !(d+0 > 0.05) }' || { echo "discord-compress: no duration for $input" >&2; exit 0; }
+
+in_size="$(stat -c %s "$input" 2>/dev/null || echo 0)"
+limit=$((target_mb * 1000 * 1000))
+
+# already small enough: keep the native clip, no re-encode, no quality loss.
+if [[ $in_size -gt 0 && $in_size -le $limit ]]; then
+  notify "Recording ready for Discord" "$(basename "$input") is $(human "$in_size"), already under ${target_mb}MB"
+  exit 0
+fi
+
+has_audio=0
+if ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 "$input" 2>/dev/null | grep -q .; then
+  has_audio=1
+fi
+
+tmp="$(mktemp "${TMPDIR:-/tmp}/ryoku-discord.XXXXXX")"
+passlog="$(mktemp -u "${TMPDIR:-/tmp}/ryoku-discord-pass.XXXXXX")"
+cleanup() { rm -f "$tmp" "$passlog"* 2>/dev/null || true; }
+trap cleanup EXIT
+
+budget="$(awk -v l="$limit" -v s="$safety" 'BEGIN{ printf "%d", l*s }')"
+ok=0
+out_size=0
+for _ in 1 2 3; do
+  # video/audio bitrate split for this budget. audio holds at the requested rate
+  # while there is room, then floors and finally scales with the total so video
+  # always keeps the lion's share on a tight (long) clip.
+  read -r vkbps akbps < <(awk -v budget="$budget" -v dur="$dur" -v areq="$audio_kbps" -v ha="$has_audio" 'BEGIN{
+    total = budget*8/dur; if (total < 50000) total = 50000;
+    a = 0;
+    if (ha && areq > 0) {
+      a = areq*1000;
+      if (total >= 140000) { if (a < 32000) a = 32000 }
+      else if (total >= 70000) { if (a < 20000) a = 20000 }
+      else { a = total*0.16 }
+      if (a > total*0.45) a = total*0.45;
+    }
+    v = total - a; if (v < 50000) v = 50000;
+    printf "%d %d", int(v/1000), int(a/1000);
+  }')
+  [[ ${vkbps:-0} -ge 1 ]] || vkbps=50
+  vargs=(-c:v libx264 -preset "$preset" -b:v "${vkbps}k" -maxrate "${vkbps}k" -bufsize "$((vkbps * 2))k" -pix_fmt yuv420p)
+
+  ffmpeg -hide_banner -nostdin -y -i "$input" "${vargs[@]}" -an -pass 1 -passlogfile "$passlog" -f null /dev/null >/dev/null 2>&1 || true
+  if [[ $has_audio -eq 1 && ${akbps:-0} -gt 0 ]]; then
+    ffmpeg -hide_banner -nostdin -y -i "$input" "${vargs[@]}" -pass 2 -passlogfile "$passlog" \
+      -c:a aac -b:a "${akbps}k" -ac 2 -movflags +faststart -f mp4 "$tmp" >/dev/null 2>&1 || true
+  else
+    ffmpeg -hide_banner -nostdin -y -i "$input" "${vargs[@]}" -pass 2 -passlogfile "$passlog" \
+      -an -movflags +faststart -f mp4 "$tmp" >/dev/null 2>&1 || true
+  fi
+
+  out_size="$(stat -c %s "$tmp" 2>/dev/null || echo 0)"
+  if [[ $out_size -gt 0 && $out_size -le $limit ]]; then
+    ok=1
+    break
+  fi
+  budget="$(awk -v b="$budget" 'BEGIN{ printf "%d", b*0.85 }')"
+done
+
+if [[ $ok -eq 1 ]] && ffprobe -v error "$tmp" >/dev/null 2>&1; then
+  mv -f "$tmp" "$input"
+  trap - EXIT
+  rm -f "$passlog"* 2>/dev/null || true
+  notify "Recording compressed for Discord" "$(basename "$input"): $(human "$in_size") -> $(human "$out_size"), under ${target_mb}MB"
+else
+  notify -u normal "Discord compress" "Couldn't get $(basename "$input") under ${target_mb}MB; kept the original"
+fi

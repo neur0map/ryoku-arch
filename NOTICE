@@ -26,3 +26,11 @@ DankMaterialShell, created by Avenge Media LLC and contributors:
 
 DankMaterialShell is released under the MIT License. Copyright (c) 2025
 Avenge Media LLC.
+
+The configurable frame-bar layout, bounded rail/widget catalogue organisation,
+and Bar Studio workflow are adapted from OkShell by John Oberhauser:
+
+ https://github.com/JohnOberhauser/OkShell/tree/87a9d09d923163cd03f396a395be3bb02b335b6e
+
+OkShell is released under the GNU General Public License version 3. The adapted
+frame-bar areas remain GPL-3.0-compatible with Ryoku's GPL-3 distribution.

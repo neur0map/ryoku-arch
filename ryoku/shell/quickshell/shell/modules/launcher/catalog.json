@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "default": "hero",
+  "fallback": "okshell",
+  "variants": [
+    {
+      "id": "main",
+      "name": "Main",
+      "description": "Compact command palette with a centered RestDashboard image card.",
+      "entrypoint": "variants/main/Main.qml",
+      "preview": "variants/main/Preview.qml",
+      "capabilities": ["shape", "background", "results", "hero"]
+    },
+    {
+      "id": "hero",
+      "name": "Hero",
+      "description": "Full HeroShutter image header with modes, actions, and provider results.",
+      "entrypoint": "variants/hero/Main.qml",
+      "preview": "variants/hero/Preview.qml",
+      "capabilities": ["shape", "background", "results", "hero"]
+    },
+    {
+      "id": "okshell",
+      "name": "OkShell",
+      "description": "Fast applications-only list in Ryoku's live palette.",
+      "entrypoint": "variants/okshell/Main.qml",
+      "preview": "variants/okshell/Preview.qml",
+      "capabilities": []
+    }
+  ]
+}

@@ -1,10 +1,12 @@
 import QtQuick
-import "Singletons"
+import Ryoku.Ui.Singletons
 
-// An eki-stamp hanko for a machine: a vermillion ink seal — OS name set around
+// An eki-stamp hanko for a machine: a vermillion ink seal, OS name set around
 // the ring, the mark's initial at the center, station-stamp style. The one
-// legitimately round object on the board: it is print, not chrome. `thud()`
-// plays the stamp landing (new machines, certified snapshots).
+// legitimately round object on the board, and (amendment 3) ryovm's one rationed
+// splash of colour: at most one per screen, on the stage, only when it certifies
+// (a sealed machine, the thud of a new one). It is print, not chrome. `thud()`
+// plays the stamp landing.
 Item {
     id: seal
 
@@ -12,8 +14,8 @@ Item {
     property string glyph: ""          // center character; falls back to title's initial
     property string date: ""           // optional micro date line under the glyph
     property real size: 84
-    property color ink: Theme.brand
-    property real inkOpacity: 0.9
+    property color ink: Tokens.sun
+    property real inkOpacity: 0.92
 
     width: size
     height: size
@@ -64,7 +66,7 @@ Item {
                 y: seal.size * 0.035
                 text: seal._ringText.charAt(index)
                 color: seal.ink
-                font.family: Theme.font
+                font.family: Tokens.ui
                 font.pixelSize: Math.max(7, seal.size * 0.10)
                 font.weight: Font.DemiBold
                 font.letterSpacing: 1
@@ -80,7 +82,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: seal._center
             color: seal.ink
-            font.family: Theme.display
+            font.family: Tokens.display
             font.pixelSize: seal.size * 0.34
             font.weight: Font.Bold
         }
@@ -89,7 +91,7 @@ Item {
             visible: seal.date.length > 0
             text: seal.date
             color: seal.ink
-            font.family: Theme.mono
+            font.family: Tokens.mono
             font.pixelSize: Math.max(6, seal.size * 0.08)
             font.letterSpacing: 0.5
         }

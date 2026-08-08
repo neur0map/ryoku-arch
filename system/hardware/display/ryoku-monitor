@@ -36,11 +36,51 @@ monitors_user="${RYOKU_MONITORS_USER:-${XDG_CONFIG_HOME:-$HOME/.config}/hypr/mon
 # forced DPI pass wipes it.
 applied_layout="${RYOKU_MONITORS_APPLIED:-${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/monitors-applied.json}"
 
+# jq prelude for every scale-touching path. Hyprland only accepts a scale that
+# is a 1/120 multiple AND divides the mode's pixel width and height into whole
+# logical pixels (src/output/Monitor.cpp: exact integer check, no epsilon);
+# anything else draws the "Invalid scale" overlay and the compositor picks a
+# neighbour itself. valid_scales() mirrors that rule with integer math
+# ((w*120) % k == 0), so it reproduces Hyprland's acceptance set exactly.
+# snap() returns the valid scale nearest a target; k=120 (1.0) always
+# qualifies, so it never comes up empty. ladder() is the stepper-facing subset
+# the hub walks: 0.5x-3x, never shrinking the logical desktop below 640x360
+# (the dusky/GNOME floor), which caps a 720p panel at 2x.
+# shellcheck disable=SC2016  # jq program: $w/$h/$target are jq vars, not shell
+jq_scale_lib='
+  def valid_scales($w; $h):
+    [ range(30; 721)
+      | select((($w * 120) % .) == 0 and (($h * 120) % .) == 0)
+      | (. / 120 * 10000 | round) / 10000 ];
+  def snap($w; $h; $target):
+    valid_scales($w; $h) | min_by((. - $target) | if . < 0 then - . else . end);
+  def ladder($w; $h):
+    [ valid_scales($w; $h)[]
+      | select(. >= 0.5 and . <= 3 and ($w / .) >= 640 and ($h / .) >= 360) ]
+    | if length == 0 then [1] else . end;
+'
+
 # names pinned in monitors_user.lua, one per line. empty if none.
 pinned_outputs() {
   [[ -f $monitors_user ]] || return 0
   grep -oE 'output[[:space:]]*=[[:space:]]*"[^"]+"' "$monitors_user" 2>/dev/null \
     | sed -E 's/.*"([^"]*)".*/\1/' | grep -v '^$' || true
+}
+
+# connector names of currently-connected displays the last applied layout (Ryoku
+# Settings Apply) already configured, matched by hardware identity. A hotplug
+# autoscale skips these in the DPI pass, so plugging in a new monitor never
+# resets a display you already tuned. Empty when nothing was applied.
+known_output_names() {
+  [[ -f $applied_layout ]] || return 0
+  local ids
+  ids="$(jq -c '[ .monitors[].id ]' "$applied_layout" 2>/dev/null || echo '[]')"
+  [[ -n $ids && $ids != '[]' ]] || return 0
+  monitors_json | jq -r --argjson known "$ids" '
+    .[] | . as $m
+    | (($m.make // "") + "|" + ($m.model // "") + "|" + ($m.serial // "")) as $id
+    | select(($known | index($id)) != null)
+    | $m.name' 2>/dev/null || true
 }
 
 require_hyprctl() {
@@ -91,17 +131,7 @@ is_vm_guest() {
 dpi_specs() {
   local vm=false
   if is_vm_guest; then vm=true; fi
-  jq -r --argjson vm "$vm" '
-    def abs: if . < 0 then - . else . end;
-    # Nearest scale to $target that Hyprland accepts for a w x h panel: a 1/120
-    # multiple (1.0 .. 3.0) whose logical width and height both land on whole
-    # pixels. This mirrors what robust tools (HyprDynamicMonitors, omarchy) do.
-    def snap($w; $h; $target):
-      [ range(120; 361) | . / 120
-        | select(((($w / .) - (($w / .) | round)) | abs) < 0.01
-             and ((($h / .) - (($h / .) | round)) | abs) < 0.01) ] as $valid
-      | if ($valid | length) == 0 then 1.0
-        else ($valid | min_by(((. - $target) | abs)) | (. * 10000 | round) / 10000) end;
+  jq -r --argjson vm "$vm" "$jq_scale_lib"'
     def dpiscale($name; $w; $h; $pw):
       ( if $vm or ($name | startswith("Virtual-")) or (($pw // 0) <= 0) then 1.0
         else ($w * 25.4 / $pw) as $d
@@ -171,8 +201,11 @@ write_monitors_conf() {
     printf '%s\n' "-- agrees (>=2x), else 1 (Wayland scales native apps fractionally itself)."
     printf 'hl.env("GDK_SCALE", "%s")\n' "$gdk"
     printf '\n'
-    printf '%s\n' "-- Catch-all for monitors not listed above (hotplug-friendly, safe 1x default)."
-    printf '%s\n' 'hl.monitor({ output = "", mode = "highrr", position = "auto", scale = 1 })'
+    printf '%s\n' "-- Catch-all for monitors not listed above. A hotplugged display comes up at"
+    printf '%s\n' "-- its preferred mode (always valid on an untrained link, unlike highrr, which"
+    printf '%s\n' "-- errors until the link resolves; autoscale + settle then raise it to highrr),"
+    printf '%s\n' "-- placed to the right at 1x, never mirrored."
+    printf '%s\n' 'hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })'
   } >"$monitors_conf"
 }
 
@@ -288,6 +321,11 @@ cmd_autoscale() {
   fi
   local pinned
   pinned="$(pinned_outputs)"
+  # a display already tuned in Ryoku Settings (present in the applied layout) keeps
+  # its scale when another monitor hotplugs; only genuinely new displays are
+  # DPI-scaled, so connecting a monitor never resets the one you already set up.
+  local known
+  known="$(known_output_names 2>/dev/null || true)"
   # two passes. first, apply each monitor's DPI scale: Hyprland snaps a
   # requested scale to the nearest one that yields whole logical pixels (e.g.
   # 1.5 on a 2560 panel -> 1.6), so the accepted scale is only known once
@@ -296,6 +334,7 @@ cmd_autoscale() {
   while IFS='|' read -r name mode _ wanted current; do
     [[ -n $name ]] || continue
     grep -qxF "$name" <<<"$pinned" && continue
+    grep -qxF "$name" <<<"$known" && continue
     if awk -v a="$current" -v b="$wanted" 'BEGIN { exit (a == b) ? 1 : 0 }'; then
       apply_monitor "output = \"$name\", mode = \"$mode\", scale = $wanted"
       echo "ryoku-monitor: $name -> scale $wanted"
@@ -396,13 +435,38 @@ cmd_toggle() {
 cmd_list() {
   require_hyprctl
   require_jq
-  monitors_json | jq -c '[ .[] | {
+  # hyprctl reports vrr as a bool of whether the link is currently doing
+  # adaptive sync, not the configured mode, so "on" reads back false whenever
+  # nothing is driving it and "fullscreen" reads false outside fullscreen. The
+  # UI would then show Off and save that back over the choice. Take the mode
+  # from the last applied layout when there is one.
+  local vrrmap='{}'
+  if [[ -f $applied_layout ]]; then
+    vrrmap="$(jq -c '[ .monitors[] | select(.output) | { key: .output, value: (.vrr // 0) } ] | from_entries' \
+      "$applied_layout" 2>/dev/null || echo '{}')"
+    [[ -n $vrrmap ]] || vrrmap='{}'
+  fi
+  monitors_json | jq -c --argjson vrrmap "$vrrmap" "$jq_scale_lib"'[ .[] | {
     name, description, make, model, serial,
     id: ((.make // "") + "|" + (.model // "") + "|" + (.serial // "")),
     width, height, refresh: (.refreshRate | round),
-    x, y, scale, transform, vrr, disabled, focused,
+    x, y, scale, transform, disabled, focused,
+    vrr: ($vrrmap[.name] // (if .vrr then 1 else 0 end)),
     mirror: (.mirrorOf // "none"),
-    modes: (.availableModes // [])
+    cm: (
+      (.colorManagementPreset // "srgb") as $p
+      | if ($p == "hdr" or $p == "hdredid") then "hdr"
+        elif ($p == "" or $p == "srgb" or $p == "auto") then "srgb"
+        else "wide" end ),
+    sdrbrightness: (.sdrBrightness // 1.0),
+    modes: (.availableModes // []),
+    scaleLadders: (
+      ( [ (.availableModes // [])[] | capture("^(?<w>[0-9]+)x(?<h>[0-9]+)")? ]
+        + [ { w: (.width | tostring), h: (.height | tostring) } ] )
+      | map({ w: (.w | tonumber), h: (.h | tonumber) })
+      | unique_by([.w, .h])
+      | map({ key: "\(.w)x\(.h)", value: ladder(.w; .h) })
+      | from_entries )
   } ]'
 }
 
@@ -423,7 +487,24 @@ apply_specs() {
       + (if (.transform // 0) != 0 then ", transform = \(.transform)" else "" end)
       + (if (.vrr // 0) != 0 then ", vrr = \(.vrr)" else "" end)
       + (if (.mirror // "") != "" and (.mirror // "") != "none" then ", mirror = \(.mirror|@json)" else "" end)
+      + ((.cm // "srgb") as $cm | ", cm = \($cm|@json), bitdepth = \(if $cm == "srgb" then 8 else 10 end), sdrbrightness = \(if $cm == "hdr" then (.sdrbrightness // 1) else 1 end)")
     end')
+}
+
+# Snap every explicit scale in a layout (JSON array on stdin) to a value
+# Hyprland will actually accept for its mode. Without this, an invalid scale
+# from a stale draft, an old profile, or a hand-edited file is both applied
+# (error overlay, compositor substitutes its own value) and persisted, so the
+# overlay returns on every login. Only entries whose mode parses as WxH are
+# checkable; highrr/preferred entries pass through (their pixel size is not
+# known here, and every generated seed uses scale 1).
+sanitize_layout() {
+  jq -c "$jq_scale_lib"'
+    map(if (.disabled // false) or ((.scale // null) == null)
+           or (((.mode // "") | test("^[0-9]+x[0-9]+")) | not) then .
+        else ((.mode | capture("^(?<w>[0-9]+)x(?<h>[0-9]+)")) as $d
+              | .scale = snap(($d.w | tonumber); ($d.h | tonumber); .scale))
+        end)'
 }
 
 # write monitors.lua from an explicit layout (JSON array on stdin), keeping the
@@ -455,6 +536,7 @@ write_monitors_explicit() {
         + (if (.transform // 0) != 0 then ", transform = \(.transform)" else "" end)
         + (if (.vrr // 0) != 0 then ", vrr = \(.vrr)" else "" end)
         + (if (.mirror // "") != "" and (.mirror // "") != "none" then ", mirror = \"\(.mirror)\"" else "" end)
+        + ((.cm // "srgb") as $cm | ", cm = \"\($cm)\", bitdepth = \(if $cm == "srgb" then 8 else 10 end), sdrbrightness = \(if $cm == "hdr" then (.sdrbrightness // 1) else 1 end)")
         + " })"
       end'
     printf '\n'
@@ -462,8 +544,10 @@ write_monitors_explicit() {
     printf '%s\n' "-- agrees at >=2x, else 1)."
     printf 'hl.env("GDK_SCALE", "%s")\n' "$gdk"
     printf '\n'
-    printf '%s\n' "-- Catch-all for monitors not listed above (hotplug-friendly, safe 1x default)."
-    printf '%s\n' 'hl.monitor({ output = "", mode = "highrr", position = "auto", scale = 1 })'
+    printf '%s\n' "-- Catch-all for monitors not listed above. A hotplugged display comes up at"
+    printf '%s\n' "-- its preferred mode (always valid on an untrained link; autoscale + settle"
+    printf '%s\n' "-- then raise it to highrr), placed to the right at 1x, never mirrored."
+    printf '%s\n' 'hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })'
   } >"$monitors_conf"
 }
 
@@ -475,6 +559,7 @@ cmd_apply() {
   require_jq
   local json="${1:-}"
   [[ -n $json ]] || json="$(cat)"
+  json="$(printf '%s' "$json" | sanitize_layout)"
   printf '%s' "$json" | apply_specs
   printf '%s' "$json" | write_monitors_explicit
   mkdir -p "$(dirname "$applied_layout")"
@@ -490,6 +575,7 @@ cmd_save() {
   local name="${1:-}" json="${2:-}"
   [[ -n $name ]] || { echo "ryoku-monitor: save needs a profile name" >&2; return 1; }
   [[ -n $json ]] || json="$(cat)"
+  json="$(printf '%s' "$json" | sanitize_layout)"
   mkdir -p "$monitors_dir"
   printf '%s' "$json" | jq '{monitors: .}' >"$monitors_dir/$name.json"
   printf '%s' "$json" | apply_specs
@@ -530,7 +616,7 @@ load_layout_file() {
       | . as $m
       | (first($live[] | select(((.make // "") + "|" + (.model // "") + "|" + (.serial // "")) == $m.id) | .name)) as $out
       | select($out != null)
-      | $m + { output: $out } ]')"
+      | $m + { output: $out } ]' | sanitize_layout)"
   printf '%s' "$resolved" | apply_specs
   printf '%s' "$resolved" | write_monitors_explicit
 }
@@ -596,6 +682,7 @@ Usage: ryoku-monitor <command>
   toggle      Switch between mirror and extend.
   list        Print the connected monitors as JSON (for Ryoku Settings).
   apply JSON  Apply an explicit layout live (JSON array of monitor specs).
+              Scales snap to the nearest Hyprland-valid value for each mode.
   save NAME JSON  Apply a layout and save it as a hardware-keyed profile.
   load NAME   Apply a saved profile, matching displays by hardware identity.
   profiles    List saved profiles as JSON (each tagged if it matches now).

@@ -1,0 +1,10 @@
+[Unit]
+Description=Ryoku AI usage collector schedule
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

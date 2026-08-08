@@ -90,20 +90,26 @@ to the cmdline for that boot to get in and investigate.
 space); or not enough free space to start; or Windows will not boot after the
 install.
 
-**Cause.** The OEM ESP is typically 100-260 MiB, far too small to hold our
-kernel, initramfs, and UKIs (out of space mid-`pacstrap` or at `mkinitcpio`), and
-reusing it would overwrite Windows' own boot loader.
+**Cause.** The OEM ESP is typically 100-260 MiB. Ryoku does not replace it: it
+keeps its kernels on their own FAT partition and only adds its loader beside
+Windows' on the shared ESP.
 
-**What the installer does.** The `alongside` strategy never touches the Windows
-ESP. It creates a dedicated Ryoku ESP (partlabel `ryokuboot`) plus the Btrfs root
-(partlabel `ryoku`) in the largest contiguous free region, and proves both are
-brand new partitions before formatting. Partitions labeled exactly
-`ryoku`/`ryokuboot` (leftovers of a prior failed run) abort the install unless
-`RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed `ERASE` ack) deletes only the
+**What the installer does.** The `alongside` strategy shares Windows' single ESP.
+It creates a 2 GiB XBOOTLDR boot partition (partlabel `ryokuboot`, mounted at
+`/boot`, holding the kernels + initramfs) plus the Btrfs root (partlabel `ryoku`)
+at explicit sectors in the chosen free region, and proves both are brand new
+partitions before formatting. Before writing anything to the Windows ESP it tars
+that ESP's contents to `/var/backups/ryoku/windows-esp-<date>.tar`, then drops
+Limine at `/EFI/ryoku/BOOTX64.EFI` with `limine.conf` beside it and registers a
+"Ryoku" NVRAM entry first in the boot order; `/EFI/Microsoft` is never touched
+and `/EFI/BOOT/BOOTX64.EFI` is written only when absent. Partitions labeled
+exactly `ryoku`/`ryokuboot` (leftovers of a prior failed run) abort the install
+unless `RYOKU_RECLAIM_LEFTOVERS=1` (the TUI's typed `ERASE` ack) deletes only the
 unmounted ones, so re-runs never stack; a mounted match is always left alone. It
-adds a Windows chainload entry so Windows stays in the Limine menu, and the
-first reboot targets the installed disk. It needs `20 + swap + ESP` GiB of
-contiguous free space.
+adds a Windows chainload entry (`boot():/EFI/Microsoft/Boot/bootmgfw.efi`) so
+Windows stays in the Limine menu, and the first reboot targets the installed
+disk. It needs `2 + 20 + swap` GiB of contiguous free space (a 2 GiB boot
+partition plus the root floor).
 
 **What the user must do.**
 
@@ -131,13 +137,14 @@ contiguous free space.
   that as the everyday Windows path if the chainload never settles.
 - **After a Windows feature update.** A major Windows update can rewrite the
   firmware boot order or drop the Ryoku NVRAM entry, so the machine boots
-  straight into Windows. The `EFI/BOOT` fallback loader on the Ryoku ESP still
+  straight into Windows. The `EFI/BOOT` fallback loader on the shared ESP still
   boots the disk, so select the Ryoku disk from the firmware boot menu; to make
-  it persist, re-register the entry (point `--disk` / `--part` at your Ryoku ESP):
+  it persist, re-register the entry (point `--disk`/`--part` at the Windows ESP
+  that Ryoku shares -- usually partition 1):
 
   ```
-  efibootmgr --create --disk /dev/nvme0n1 --part 4 \
-    --loader '\EFI\limine\limine_x64.efi' --label 'Ryoku Linux'
+  efibootmgr --create --disk /dev/nvme0n1 --part 1 \
+    --loader '\EFI\ryoku\BOOTX64.EFI' --label 'Ryoku'
   ```
 - **No in-place Windows reinstalls or upgrades on this layout.** Microsoft does
   not officially support two ESPs on one disk; a Windows setup or in-place upgrade
@@ -189,14 +196,17 @@ the firmware boot menu; the Ryoku entry never appears or does not persist.
 
 **Cause.** Some firmware ignores or will not persist `efibootmgr` NVRAM writes.
 
-**What the installer does.** `bootloader.sh` writes the Limine binary to both the
-tool-managed path (`EFI/limine/limine_x64.efi`) and the removable-media fallback
-path (`EFI/BOOT/BOOTX64.EFI`) on the ESP, so the disk is bootable even with no
-working NVRAM entry. The `efibootmgr` registration is best-effort on top of that.
+**What the installer does.** `bootloader.sh` writes the Limine binary to a
+tool-managed path plus the removable-media fallback `EFI/BOOT/BOOTX64.EFI`, so
+the disk is bootable even with no working NVRAM entry. Which ESP and path depends
+on the strategy: whole-disk uses `EFI/limine/limine_x64.efi` on the Ryoku ESP;
+alongside uses `EFI/ryoku/BOOTX64.EFI` on the shared Windows ESP. The
+`efibootmgr` registration is best-effort on top of the fallback.
 
-**What the user must do.** In firmware setup, add a boot entry pointing at
-`\EFI\limine\limine_x64.efi` on the Ryoku ESP, or move the Ryoku entry to the top
-of the boot order. On firmware that only boots the removable path, the fallback
+**What the user must do.** In firmware setup, add a boot entry pointing at the
+Limine loader on that ESP (`\EFI\limine\limine_x64.efi` for a whole-disk install,
+`\EFI\ryoku\BOOTX64.EFI` for alongside), or move the Ryoku entry to the top of
+the boot order. On firmware that only boots the removable path, the fallback
 loader already covers it; just select the disk.
 
 ## Ventoy and other loop-mounted media

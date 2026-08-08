@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "bundles": [
+    {
+      "id": "demo",
+      "name": "Demo",
+      "description": "A demo bundle.",
+      "sources": "pacman / script",
+      "preview": "assets/hero.png",
+      "screenshots": ["assets/a.png", "https://cdn.example/b.png"],
+      "path": "bundles/demo",
+      "components": [
+        { "type": "package", "name": "cmatrix", "detect": "cmatrix", "tier": "core", "interactive": false, "summary": "rain" },
+        { "type": "script", "name": "demo-cli", "detect": "demo", "tier": "optional", "interactive": true, "summary": "a cli" }
+      ]
+    }
+  ]
+}

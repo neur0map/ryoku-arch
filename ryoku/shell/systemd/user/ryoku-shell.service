@@ -1,0 +1,36 @@
+[Unit]
+# the daemon supervises every surface, so it must itself be supervised
+Description=Ryoku shell daemon
+PartOf=hyprland-session.target
+After=hyprland-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+# a config that cannot load would otherwise restart forever; stop and let
+# doctor report it instead (start-rate keys belong in [Unit]).
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+# the dev deploy rewrites this to ~/.local/bin; the package ships /usr/bin.
+# set here, not only via the session env: an import that does not land would
+# silently drop the polkit agent back to the stock one.
+Environment=RYOKU_POLKIT_AGENT=1
+# QtMultimedia video (the music widget's Canvas / video-gif backdrop) must
+# software-decode: on hybrid-GPU boxes hardware-decoded frames land on the
+# offload GPU and never composite on the surface's GPU, so the video paints
+# black (the same failure that hits Electron/CEF). The backdrop clips are short
+# loops, so software decode is cheap.
+Environment=QT_MEDIA_BACKEND=ffmpeg
+Environment=QT_FFMPEG_DECODING_HW_DEVICE_TYPES=
+# a stray unsupervised daemon (an old deploy, a crashed update) holds the
+# socket and would wedge the unit into its start limit; ask it to quit first.
+ExecStartPre=-/usr/bin/ryoku-shell quit
+ExecStart=/usr/bin/ryoku-shell daemon
+Restart=always
+RestartSec=2
+# Kill only the daemon on stop, not its cgroup: it reaps its own surfaces, and
+# apps the user launched from the shell must survive a shell reload.
+KillMode=process
+Slice=session.slice
+
+[Install]
+WantedBy=hyprland-session.target

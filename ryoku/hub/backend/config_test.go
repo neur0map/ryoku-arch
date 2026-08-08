@@ -48,6 +48,22 @@ func TestUpdateInterval(t *testing.T) {
 	}
 }
 
+func TestAdvanced(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
+	// the Advanced reveal is off until set, so an unset value reads empty.
+	if v, ok := configGet("advanced"); !ok || v != "" {
+		t.Fatalf("default advanced = %q ok=%v, want empty", v, ok)
+	}
+
+	if err := configSet("advanced", "1"); err != nil {
+		t.Fatal(err)
+	}
+	if v, ok := configGet("advanced"); !ok || v != "1" {
+		t.Fatalf("after set: got %q ok=%v, want 1", v, ok)
+	}
+}
+
 func TestConfigUnknownKey(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	if err := configSet("nope", "x"); err == nil {
@@ -55,6 +71,32 @@ func TestConfigUnknownKey(t *testing.T) {
 	}
 	if _, ok := configGet("nope"); ok {
 		t.Error("getting an unknown key should report not-ok")
+	}
+}
+
+func TestLegacyBarAndFrameSectionsMigrateToBarStudio(t *testing.T) {
+	for _, legacy := range []string{"bar", "frame"} {
+		t.Run(legacy, func(t *testing.T) {
+			dir := t.TempDir()
+			t.Setenv("XDG_CONFIG_HOME", dir)
+			path := filepath.Join(dir, "ryoku", "hub.toml")
+			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, []byte("[ui]\nsection = \""+legacy+"\"\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if got := loadConfig().UI.Section; got != "bar-studio" {
+				t.Fatalf("loaded legacy %q section = %q, want bar-studio", legacy, got)
+			}
+			bytes, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !contains(string(bytes), "section = \"bar-studio\"") {
+				t.Fatalf("legacy section was not persisted as bar-studio:\n%s", bytes)
+			}
+		})
 	}
 }
 

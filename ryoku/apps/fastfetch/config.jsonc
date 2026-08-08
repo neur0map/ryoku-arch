@@ -10,7 +10,7 @@
   "display": {
     // Editorial dossier, mirroring the website/Hub Profile: grouped sections
     // under mono eyebrow headers, one vermillion accent. Keys are fixed truecolor
-    // (not palette slots) so they stay legible under any wallust theme.
+    // (not palette slots) so they stay legible under any theme.
     "color": { "keys": "38;2;226;52;42" },
     "key": { "width": 9 },
     "separator": "  ",

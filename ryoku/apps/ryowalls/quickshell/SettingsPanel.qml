@@ -1,9 +1,13 @@
-pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls
 import Quickshell
+import Ryoku.Ui
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// In-app settings: API key, NSFW, where downloads land.
+// In-app settings: the Wallhaven API key, the NSFW gate (only with a key), and
+// where downloads land. An overlay in the standard grammar: paperLift fill,
+// lineStrong border, radius 2, scrim at black 55%.
 Item {
     id: sp
     property bool open: false
@@ -14,96 +18,89 @@ Item {
 
     visible: opacity > 0
     opacity: open ? 1 : 0
-    Behavior on opacity { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
+    // claim keyboard focus while open so its fields (API key, add-library) can
+    // take input; the app root holds focus otherwise and its key map eats typing.
+    focus: open
+    Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
 
-    // the scrim tap co-fires with taps on the card's controls (overlapping
-    // TapHandlers all see the tap; a MouseArea would steal it from the toggles
-    // instead), so click-out is gated on the cursor not being over the card.
     Rectangle {
         anchors.fill: parent
         color: Qt.rgba(0, 0, 0, 0.55)
-        TapHandler { onTapped: if (!cardHover.hovered) sp.closed() }
+        // MouseArea, not TapHandler: a click on a field is consumed by the card
+        // below instead of falling through here and closing the panel mid-type.
+        MouseArea { anchors.fill: parent; onClicked: sp.closed() }
     }
 
     Rectangle {
-        id: card
         anchors.centerIn: parent
         width: 460
-        height: col.implicitHeight + 44
-        radius: Theme.radius
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.cardTop }
-            GradientStop { position: 1.0; color: Theme.cardBot }
-        }
-        border.width: 1
-        border.color: Theme.line
-        scale: sp.open ? 1 : 0.96
-        Behavior on scale { NumberAnimation { duration: Theme.medium; easing.type: Theme.ease } }
-        HoverHandler { id: cardHover }
+        height: col.implicitHeight + 2 * Tokens.s5
+        radius: Tokens.radius
+        color: Tokens.paperLift
+        border.width: Tokens.border
+        border.color: Tokens.lineStrong
+        MouseArea { anchors.fill: parent }
 
         Column {
             id: col
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: 22
-            spacing: 18
+            anchors.margins: Tokens.s5
+            spacing: Tokens.s5
 
             Item {
                 width: parent.width
-                height: 28
-                Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "Settings"; color: Theme.bright; font.family: Theme.font; font.pixelSize: 18; font.weight: Font.DemiBold }
-                Item {
+                height: 26
+                Text {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "SETTINGS"
+                    color: Tokens.ink
+                    font.family: Tokens.ui
+                    font.pixelSize: 11
+                    font.weight: Font.Medium
+                    font.letterSpacing: Tokens.trackMark
+                }
+                IconBtn {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 26; height: 26
-                    Icon { anchors.centerIn: parent; name: "close"; size: 15; tint: ch.hovered ? Theme.ember : Theme.faint; Behavior on tint { ColorAnimation { duration: Theme.quick } } }
-                    HoverHandler { id: ch; cursorShape: Qt.PointingHandCursor }
-                    TapHandler { onTapped: sp.closed() }
+                    glyph: "✕"
+                    onAct: sp.closed()
                 }
             }
 
             Column {
                 width: parent.width
-                spacing: 7
-                Text { text: "Wallhaven API key"; color: Theme.cream; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
-                Rectangle {
+                spacing: Tokens.s2
+                Text { text: "Wallhaven API key"; color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: 13; font.weight: Font.Medium }
+                Field {
                     width: parent.width
-                    height: 38
-                    radius: Theme.radius
-                    color: Theme.surfaceLo
-                    border.width: 1
-                    border.color: keyInput.activeFocus ? Theme.ember : Theme.line
-                    Behavior on border.color { ColorAnimation { duration: Theme.quick } }
-                    TextInput {
-                        id: keyInput
-                        anchors.fill: parent
-                        anchors.leftMargin: 12
-                        anchors.rightMargin: 12
-                        verticalAlignment: Text.AlignVCenter
-                        color: Theme.bright
-                        font.family: Theme.mono
-                        font.pixelSize: 12
-                        selectByMouse: true
-                        selectionColor: Theme.frameBg
-                        clip: true
-                        text: Wallhaven.settings.apiKey
-                        onTextEdited: Wallhaven.settings.apiKey = text
-                        onEditingFinished: Wallhaven.saveSettings()
-                        Text { anchors.fill: parent; visible: keyInput.text.length === 0; verticalAlignment: Text.AlignVCenter; text: "paste your key"; color: Theme.faint; font: keyInput.font }
-                    }
+                    tabular: true
+                    placeholder: "paste your key"
+                    text: Wallhaven.settings.apiKey
+                    onEdited: (v) => Wallhaven.settings.apiKey = v
+                    onCommitted: Wallhaven.saveSettings()
                 }
-                Text { width: parent.width; wrapMode: Text.WordWrap; text: "Optional, from wallhaven.cc/settings/account. Raises rate limits and unlocks NSFW."; color: Theme.dim; font.family: Theme.font; font.pixelSize: 11 }
+                Text {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: "Optional, from wallhaven.cc/settings/account. Raises rate limits and unlocks NSFW."
+                    color: Tokens.inkMuted
+                    font.family: Tokens.ui
+                    font.pixelSize: 12
+                }
             }
 
             Item {
                 width: parent.width
                 height: 24
-                Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "Show NSFW"; color: Theme.cream; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
-                Toggle {
+                Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "Show NSFW"; color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: 13; font.weight: Font.Medium }
+                Sw {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     enabled: Wallhaven.apiKey.length > 0
+                    opacity: Wallhaven.apiKey.length > 0 ? 1 : 0.3
                     on: Wallhaven.settings.nsfw
                     onToggled: (v) => {
                         Wallhaven.settings.nsfw = v;
@@ -113,24 +110,103 @@ Item {
                 }
             }
 
-            Rectangle { width: parent.width; height: 1; color: Theme.line }
+            Rectangle { width: parent.width; height: 1; color: Tokens.line }
+
+            // Wallpaper libraries: add / remove the GitHub repos the SOURCE drawer
+            // browses. This lives here (not in the drawer) because a modal text
+            // field reliably takes focus in this panel.
+            Column {
+                width: parent.width
+                spacing: Tokens.s2
+                Text { text: "Wallpaper libraries"; color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: 13; font.weight: Font.Medium }
+                Text {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: "Add any GitHub repo of wallpapers, then pick it from the SOURCE drawer. Accepts owner/repo, owner/repo@branch, or a github.com URL."
+                    color: Tokens.inkMuted
+                    font.family: Tokens.ui
+                    font.pixelSize: 12
+                }
+                Field {
+                    id: addLib
+                    width: parent.width
+                    tabular: true
+                    placeholder: "owner/repo@branch"
+                    onCommitted: (v) => { if (v.trim().length > 0) { Wallhaven.addLibrary(v); addLib.clear(); } }
+                }
+                Flickable {
+                    width: parent.width
+                    height: Math.min(contentHeight, 132)
+                    contentHeight: libCol.implicitHeight
+                    clip: true
+                    interactive: contentHeight > height
+                    boundsBehavior: Flickable.StopAtBounds
+                    visible: Wallhaven.libraries.length > 0
+                    ScrollBar.vertical: ScrollRail {}
+                    Column {
+                        id: libCol
+                        width: parent.width
+                        spacing: Tokens.s1
+                        Repeater {
+                            model: Wallhaven.libraries
+                            delegate: Rectangle {
+                                width: libCol.width
+                                height: 36
+                                radius: Tokens.radius
+                                color: lh.hovered ? Tokens.tint5 : "transparent"
+                                border.width: Tokens.border
+                                border.color: Tokens.line
+                                Column {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: Tokens.s2
+                                    anchors.right: rmB.left
+                                    anchors.rightMargin: Tokens.s2
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 0
+                                    Text { width: parent.width; text: modelData.name || modelData.repo; color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width; text: modelData.repo + (modelData.branch ? "@" + modelData.branch : ""); color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 9; elide: Text.ElideRight }
+                                }
+                                Btn {
+                                    id: rmB
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: Tokens.s2
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    compact: true
+                                    text: "REMOVE"
+                                    onAct: Wallhaven.removeLibrary(modelData.repo)
+                                }
+                                HoverHandler { id: lh }
+                            }
+                        }
+                    }
+                }
+                Text {
+                    width: parent.width
+                    visible: Wallhaven.libraries.length === 0
+                    text: "No libraries added yet."
+                    color: Tokens.inkFaint
+                    font.family: Tokens.ui
+                    font.pixelSize: 12
+                }
+            }
+
+            Rectangle { width: parent.width; height: 1; color: Tokens.line }
 
             Item {
                 width: parent.width
-                height: 38
+                height: 34
                 Column {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 2
-                    Text { text: "Downloads"; color: Theme.cream; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
-                    Text { text: "~/Pictures/Wallpapers"; color: Theme.dim; font.family: Theme.mono; font.pixelSize: 11 }
+                    Text { text: "Downloads"; color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: 13; font.weight: Font.Medium }
+                    Text { text: "~/Pictures/Wallpapers"; color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: 11 }
                 }
-                HubButton {
+                Btn {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    icon: "folder"
-                    label: "Open"
-                    onClicked: Quickshell.execDetached(["xdg-open", Quickshell.env("HOME") + "/Pictures/Wallpapers"])
+                    text: "OPEN"
+                    onAct: Quickshell.execDetached(["xdg-open", Quickshell.env("HOME") + "/Pictures/Wallpapers"])
                 }
             }
         }

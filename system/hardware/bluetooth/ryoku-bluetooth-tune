@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+#
+# ryoku-bluetooth-tune: set Ryoku's BlueZ keys in /etc/bluetooth/main.conf in
+# place.
+#
+# bluez owns /etc/bluetooth/main.conf, so Ryoku cannot ship its own copy (that
+# is a pacman file conflict), and BlueZ has no main.conf.d drop-in. Instead this
+# idempotently sets the handful of keys the desktop needs on top of whatever
+# bluez ships, uncommenting the stock line in place or appending under the right
+# section. Adapted from omarchy's in-place sed of AutoEnable. Run as root from
+# the ryoku-desktop .install (install + upgrade), so new and existing boxes both
+# get it.
+#
+#   [General] Experimental=true        battery levels + newer profiles; the shell
+#                                      Bluetooth panel reads device battery from
+#                                      the experimental interface
+#   [General] FastConnectable=true     quick reconnect after sleep/idle
+#   [General] JustWorksRepairing=always re-pair survives keys dropped over suspend
+#   [General] MultiProfile=multiple    combo peripherals bring up every profile
+#   [Policy]  AutoEnable=true          Bluetooth powers on by default
+#
+# idempotent (a re-run that changes nothing exits 0 without a write); dry-run via
+# RYOKU_DRYRUN=1 (or --dry-run) prints the would-be file instead of writing.
+set -euo pipefail
+
+RYOKU_DRYRUN="${RYOKU_DRYRUN:-0}"
+[[ ${1:-} == --dry-run ]] && RYOKU_DRYRUN=1
+
+conf="${RYOKU_BT_MAIN_CONF:-/etc/bluetooth/main.conf}"
+
+# nothing to tune if bluez has not been installed yet.
+[[ -f $conf ]] || { echo "ryoku-bluetooth-tune: $conf absent (bluez not installed); nothing to do"; exit 0; }
+
+# The desired keys, "Section:Key:Value", space separated.
+specs="General:Experimental:true General:FastConnectable:true General:JustWorksRepairing:always General:MultiProfile:multiple Policy:AutoEnable:true"
+
+# awk rewrites the file: in a target section it replaces the key line (commented
+# or set) with the wanted value; a target key never seen in its section is added
+# at that section's end; a target section that never appears is appended whole.
+tuned="$(awk -v specs="$specs" '
+  BEGIN {
+    n = split(specs, s, " ")
+    for (i = 1; i <= n; i++) {
+      split(s[i], a, ":")
+      sec[i] = a[1]; key[i] = a[2]; val[i] = a[3]; done[i] = 0; seen[a[1]] = 0
+    }
+    cur = ""
+  }
+  function flush(section,   i) {
+    for (i = 1; i <= n; i++)
+      if (sec[i] == section && !done[i]) { print key[i] " = " val[i]; done[i] = 1 }
+  }
+  /^[ \t]*\[.*\][ \t]*$/ {
+    flush(cur)
+    line = $0
+    sub(/^[ \t]*\[/, "", line); sub(/\][ \t]*$/, "", line)
+    cur = line; seen[cur] = 1
+    print; next
+  }
+  {
+    for (i = 1; i <= n; i++) {
+      if (sec[i] == cur && !done[i] && \
+          match($0, "^[ \t]*#?[ \t]*" key[i] "[ \t]*=")) {
+        print key[i] " = " val[i]; done[i] = 1; next
+      }
+    }
+    print
+  }
+  END {
+    flush(cur)
+    for (i = 1; i <= n; i++) {
+      if (!seen[sec[i]]) {
+        print ""; print "[" sec[i] "]"
+        seen[sec[i]] = 1
+        flush(sec[i])
+      }
+    }
+  }
+' "$conf")"
+
+if [[ "$tuned" == "$(cat "$conf")" ]]; then
+  echo "ryoku-bluetooth-tune: $conf already tuned; no change"
+  exit 0
+fi
+
+if [[ $RYOKU_DRYRUN == 1 ]]; then
+  echo "DRYRUN: would rewrite $conf as:"
+  printf '%s\n' "$tuned"
+  exit 0
+fi
+
+printf '%s\n' "$tuned" >"$conf"
+echo "ryoku-bluetooth-tune: tuned $conf"

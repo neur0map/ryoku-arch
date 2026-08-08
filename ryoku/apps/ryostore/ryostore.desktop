@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Ryostore
+GenericName=Ryoku Store
+Comment=Discover and install Ryoku lockscreens, rices, bar styles, plugins and bundles
+Exec=flock -n -o /tmp/ryostore.lock qs -c ryostore
+Terminal=false
+Icon=ryostore
+Categories=Utility;Settings;
+Keywords=store;marketplace;rice;lockscreen;plugin;bundle;bar;fastfetch;ryoku;

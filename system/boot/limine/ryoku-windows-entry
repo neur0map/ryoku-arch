@@ -7,11 +7,13 @@
 # so a Windows install on a *separate* drive is never picked up -- once Ryoku
 # owns the boot order the machine has no way back into Windows. so we scan
 # every EFI System Partition for the Windows boot manager
-# (EFI/Microsoft/Boot/bootmgfw.efi) and write a Limine entry addressed by the
-# partition's GPT GUID. boot():/ only reaches Limine's own ESP, so a cross-drive
-# Windows has to be referenced via uuid(). the entry sits in a marker-fenced
-# block, so a re-run updates it in place (no duplicates) and foreign entries
-# (kernels, snapshots) are left alone.
+# (EFI/Microsoft/Boot/bootmgfw.efi) and write a Limine entry for it. two forms:
+# when Windows' ESP IS Limine's own boot volume (the shared-ESP alongside install)
+# we use `boot():/...` -- Limine's 9.x+ uuid() cross-volume chainload panics
+# ("Failed to open image") when the target is the boot volume itself; only a
+# genuine cross-DRIVE Windows gets `uuid(<gpt-part-guid>):/...`. the entry sits in
+# a marker-fenced block, so a re-run updates it in place (no duplicates) and
+# foreign entries (kernels, snapshots) are left alone.
 #
 # subcommands:
 #   detect       = print "<gpt-part-guid><TAB><device>" for the Windows ESP, if any
@@ -84,14 +86,39 @@ detect_windows() {
 
 # ── config editing ────────────────────────────────────────────────────────────
 
+# emit_entry GUID [same_volume]: the Limine /Windows block. a non-empty second
+# arg means Windows' ESP is Limine's own boot volume, so use boot(): (protocol
+# efi) -- uuid() to the boot volume itself panics on 9.x+. else uuid() for a
+# genuine cross-drive Windows.
 emit_entry() {
-  local guid="$1"
-  cat <<EOF
+  local guid="$1" same_volume="${2:-}"
+  if [[ -n $same_volume ]]; then
+    cat <<EOF
+/Windows
+    comment: Boot into Windows
+    protocol: efi
+    path: boot():$WIN_PATH
+EOF
+  else
+    cat <<EOF
 /Windows
     comment: Boot into Windows
     protocol: efi_chainload
     path: uuid($guid):$WIN_PATH
 EOF
+  fi
+}
+
+# conf_partuuid CONF: GPT PARTUUID of the volume backing CONF -- the partition
+# Limine boots from when CONF is the live config. RYOKU_CONF_PARTUUID overrides
+# for hermetic tests.
+conf_partuuid() {
+  if [[ -n ${RYOKU_CONF_PARTUUID+x} ]]; then printf '%s' "$RYOKU_CONF_PARTUUID"; return 0; fi
+  command -v findmnt >/dev/null 2>&1 || return 1
+  local dev
+  dev="$(findmnt -nvo SOURCE --target "$1" 2>/dev/null | head -n1 || true)"
+  [[ -n $dev ]] || return 1
+  lsblk -rpno PARTUUID "$dev" 2>/dev/null | head -n1
 }
 
 # echo FILE with any prior managed Windows block removed. title-anchored and
@@ -120,14 +147,14 @@ strip_managed() {
 # rewrite CONF so it carries exactly one managed Windows block for GUID.
 # atomic: write a temp, then mv into place.
 sync_conf() {
-  local conf="$1" guid="$2" tmp
+  local conf="$1" guid="$2" same_volume="${3:-}" tmp
   tmp="$(mktemp)" || return 1
   if [[ -f $conf ]]; then
     strip_managed "$conf" >"$tmp"
   fi
   {
     printf '%s\n' "$BEGIN_MARK"
-    emit_entry "$guid"
+    emit_entry "$guid" "$same_volume"
     printf '%s\n' "$END_MARK"
   } >>"$tmp"
   mv "$tmp" "$conf"
@@ -168,11 +195,18 @@ cmd_sync() {
       return 0
     }
   fi
-  local out guid
+  local out guid confuuid same_volume=""
   if out="$(detect_windows)"; then
     guid="${out%%$'\t'*}"
-    sync_conf "$conf" "$guid"
-    echo "ryoku-windows-entry: Windows chainload entry -> uuid($guid) in $conf"
+    # same volume as Limine's own config = a shared ESP: use boot(), not uuid().
+    confuuid="$(conf_partuuid "$conf" 2>/dev/null || true)"
+    [[ -n $confuuid && ${confuuid,,} == "${guid,,}" ]] && same_volume=1
+    sync_conf "$conf" "$guid" "$same_volume"
+    if [[ -n $same_volume ]]; then
+      echo "ryoku-windows-entry: Windows chainload entry -> boot(): (shared ESP) in $conf"
+    else
+      echo "ryoku-windows-entry: Windows chainload entry -> uuid($guid) in $conf"
+    fi
   else
     # conservative: a missing Windows might just be a detached drive, so an
     # existing managed block stays put rather than getting ripped out.

@@ -117,25 +117,53 @@ write_user() {
   printf '%s\n' "$content" | "${USER_RUN[@]}" tee "$path" >/dev/null
 }
 
+legacy_tape_matches() {
+  local dir="$1"
+  [[ -d $dir && ! -L $dir ]] || return 1
+  [[ -z $(find "$dir" -type l -print -quit) ]] || return 1
+  [[ $(find "$dir" -type f -print | wc -l) -eq 5 ]] || return 1
+  [[ $(sha256sum "$dir/Main.qml" | cut -d' ' -f1) == 106fee628bb634e2b7ee87a4851532a42cbe635ae745d385fc5296e9098dc015 ]] || return 1
+  [[ $(sha256sum "$dir/font/Outfit-Black.ttf" | cut -d' ' -f1) == f240e6128c31a75aa3f456ea1ff3b0fda382176681788ae3d244d08e3fa7d6cd ]] || return 1
+  [[ $(sha256sum "$dir/metadata.desktop" | cut -d' ' -f1) == 37615671bab45ab45979cc9938c0bb8892f58760bd865a5286f58c342dacdf97 ]] || return 1
+  [[ $(sha256sum "$dir/theme.conf" | cut -d' ' -f1) == 002c24b024b3e0788052f178acd7c6cec25f08e2486b4bfb123c7c8b1b8a4475 ]] || return 1
+  [[ $(sha256sum "$dir/preview.gif" | cut -d' ' -f1) == 93237dfb00b51b9fcd0bc153e076a03a7315b490052f16756d9fd020057b1a02 ]] || return 1
+}
+
 QYLOCK_DIR="$TARGET_HOME/.local/share/qylock"
 LOCK_DIR="$TARGET_HOME/.local/share/quickshell-lockscreen"
 
+for parent in "$QYLOCK_DIR" "$QYLOCK_DIR/themes" "$QYLOCK_DIR/themes/clockwork"; do
+  if [[ -L $parent ]]; then
+    echo "install-qylock: refusing symlinked lock theme parent: $parent" >&2
+    exit 1
+  fi
+done
+
 echo "Installing qylock clockwork/orbital greeter for $TARGET_USER"
 
-# --- 1. SDDM greeter theme (system). The fixed "ryoku" name is the one the Hub's
-# lock picker overwrites (ryoku-hub lock apply-greeter) when the user changes skins.
-echo "  greeter theme -> /usr/share/sddm/themes/ryoku"
-priv mkdir -p /usr/share/sddm/themes
-priv rm -rf /usr/share/sddm/themes/ryoku
-priv cp -a "$BUNDLE/themes/clockwork/orbital" /usr/share/sddm/themes/ryoku
+# RYOKU_QYLOCK_USER_ONLY=1 skips the root half (SDDM greeter + its conf):
+# doctor heals the in-session lock from a user session and must not stop on a
+# sudo prompt. The greeter was set at install time and is unaffected.
+install_greeter() {
+  # --- 1. SDDM greeter theme (system). The fixed "ryoku" name is the one the Hub's
+  # lock picker overwrites (ryoku-hub lock apply-greeter) when the user changes skins.
+  echo "  greeter theme -> /usr/share/sddm/themes/ryoku"
+  priv mkdir -p /usr/share/sddm/themes
+  priv rm -rf /usr/share/sddm/themes/ryoku
+  priv cp -a "$BUNDLE/themes/clockwork/orbital" /usr/share/sddm/themes/ryoku
 
-# --- 2. point SDDM at it (system) --------------------------------------------
-echo "  greeter selection -> /etc/sddm.conf.d/99-ryoku.conf"
-priv mkdir -p /etc/sddm.conf.d
-write_root /etc/sddm.conf.d/99-ryoku.conf <<'EOF'
+  # --- 2. point SDDM at it (system) --------------------------------------------
+  echo "  greeter selection -> /etc/sddm.conf.d/99-ryoku.conf"
+  priv mkdir -p /etc/sddm.conf.d
+  write_root /etc/sddm.conf.d/99-ryoku.conf <<'EOF'
 [Theme]
 Current=ryoku
 EOF
+}
+
+if [[ ${RYOKU_QYLOCK_USER_ONLY:-0} != 1 ]]; then
+  install_greeter
+fi
 
 # --- 3. in-session lock (user) -----------------------------------------------
 echo "  quickshell lockscreen -> $LOCK_DIR"
@@ -147,15 +175,55 @@ user chmod +x "$LOCK_DIR/lock.sh"
 # --- 4. themes the lock reads, plus the themes_link the lock resolves ---------
 echo "  lock themes -> $QYLOCK_DIR/themes"
 user mkdir -p "$QYLOCK_DIR"
-user rm -rf "$QYLOCK_DIR/themes"
-user cp -a "$BUNDLE/themes" "$QYLOCK_DIR/themes"
+legacy_tape="$QYLOCK_DIR/themes/clockwork/tape"
+product_tape="$QYLOCK_DIR/themes/clockwork-tape"
+if [[ ! -e $product_tape ]] && legacy_tape_matches "$legacy_tape"; then
+  echo "  migrate clockwork/tape -> clockwork-tape"
+  user mv "$legacy_tape" "$product_tape"
+  user rm "$product_tape/preview.gif"
+  user cp "$BUNDLE/LICENSE" "$product_tape/LICENSE"
+  write_user "$product_tape/PROVENANCE.txt" <<'EOF'
+Clockwork Tape qylock theme
+
+Upstream: https://github.com/Darkkal44/qylock
+Vendored from commit: cde4d11e9e3d385620becdc877a0521e40a55e47
+Author: Darkkal44 and qylock contributors
+License: GNU General Public License version 3; see LICENSE
+
+Ryoku adds assets/preview.gif as catalogue media rendered from the theme. The preview is not installed with the runtime payload.
+EOF
+  user chmod 0644 \
+    "$product_tape/LICENSE" \
+    "$product_tape/PROVENANCE.txt" \
+    "$product_tape/Main.qml" \
+    "$product_tape/font/Outfit-Black.ttf" \
+    "$product_tape/metadata.desktop" \
+    "$product_tape/theme.conf"
+  preference="$TARGET_HOME/.config/qylock/theme"
+  if [[ ! -L $preference && -f $preference && $(<"$preference") == "clockwork/tape" ]]; then
+    write_user "$preference" <<'EOF'
+clockwork-tape
+EOF
+  fi
+fi
+# Refresh only the core fallback. Optional themes are receipt-owned RyoStore
+# products, and legacy user themes must survive installer/doctor reruns.
+user mkdir -p "$QYLOCK_DIR/themes/clockwork"
+user rm -rf "$QYLOCK_DIR/themes/clockwork/orbital"
+user cp -a "$BUNDLE/themes/clockwork/orbital" "$QYLOCK_DIR/themes/clockwork/orbital"
 user ln -sfn "$QYLOCK_DIR/themes" "$LOCK_DIR/themes_link"
 
-# --- 5. active lock theme (user) ---------------------------------------------
-echo "  lock theme preference -> $TARGET_HOME/.config/qylock/theme"
-user mkdir -p "$TARGET_HOME/.config/qylock"
-write_user "$TARGET_HOME/.config/qylock/theme" <<'EOF'
+# --- 5. active lock theme (user, seed once) -----------------------------------
+# only when absent: rerunning the installer (or doctor healing a missing
+# locker) must not reset a theme the user picked in Ryoku Settings.
+if [[ ! -s $TARGET_HOME/.config/qylock/theme ]]; then
+  echo "  lock theme preference -> $TARGET_HOME/.config/qylock/theme"
+  user mkdir -p "$TARGET_HOME/.config/qylock"
+  write_user "$TARGET_HOME/.config/qylock/theme" <<'EOF'
 clockwork/orbital
 EOF
+else
+  echo "  lock theme preference kept ($(cat "$TARGET_HOME/.config/qylock/theme" 2>/dev/null))"
+fi
 
 echo "qylock clockwork/orbital installed."

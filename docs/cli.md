@@ -33,6 +33,7 @@ few commands belong to only one world; that is called out per command below.
 |`snapshots`|List snapper snapshots|both|you|
 |`reload`|Restart the shell and reload Hyprland|both|you|
 |`materialize`|Lay the base configs into `~/.config`|packaged install|the updater/installer|
+|`reset [path]`|Drop a `user_edits` override, back to the Ryoku default|both|you|
 |`deploy`|Build and lay the desktop from a checkout|dev checkout|a maintainer|
 |`recovery`|Last resort: reset to main and redeploy|both|you, when broken|
 |`doctor`|Run idempotent reconcilers for stateful drift|both|you, the updater|
@@ -87,6 +88,15 @@ List the snapper snapshots (`sudo snapper list`). Requires snapper.
 Restart the shell and reload Hyprland, by handing off to `ryoku-shell reload`.
 Use it after changing config that is already in place.
 
+### `ryoku reset [path]`
+
+Drop a user override and go back to the Ryoku default. With a path (relative to
+`~/.config`, e.g. `hypr/modules/binds.lua`) it resets that file; with none, and
+after a confirm (`-y` skips it), the whole `user_edits` overlay. It removes only
+overlay files, not Ryoku Settings' stores. On a packaged box it re-lays the base
+at once; on a dev checkout it drops the override and leaves the re-lay to
+`ryoku deploy`.
+
 ## Production internals
 
 ### `ryoku materialize`
@@ -97,6 +107,12 @@ previous Ryoku copy), prunes files a past release shipped but this one dropped
 (tracked by a manifest at `~/.local/state/ryoku/materialized`), and never touches
 files the package never shipped your own overrides like `hypr/user.lua`,
 `hypr/monitors_user.lua`, `kitty/user.conf`, `fish/user.fish` are left alone.
+
+After the base is laid, materialize overlays your edits: every file under
+`~/.config/ryoku/user_edits` (mirroring `~/.config`) is copied on top, so a file
+there wins at its mirrored path. The overlay is sparse, so a new base file still
+lands; a whole-file fork shadows its base copy (visible in the overlay, `ryoku
+reset` hands it back). See `docs/updates.md`.
 
 Per-machine generated drop-ins (`hypr/monitors.lua` written by `ryoku-monitor`,
 `hypr/gpu.lua` by `ryoku-gpu`) are seeded only when absent and never clobbered or
@@ -110,6 +126,40 @@ step, not usually by hand. **On a dev checkout it fails** (`base config dir not
 found: /usr/share/ryoku/config`) because that path only exists once the package
 is installed; use `ryoku deploy` there instead. To point it at a base tree
 yourself, set `RYOKU_CONFIG_BASE`.
+
+## Keyring
+
+### `ryoku keyring`
+
+Chooses how the GNOME keyring unlocks your saved passwords and secrets at
+sign-in, so browsers and apps stop prompting. **The default is `never-ask`: out
+of the box no app ever prompts.** First login runs `ryoku keyring init`, which
+records the mode and seeds a blank, passwordless default keyring; from then on
+every libsecret app (browsers, editors, the SSH agent) uses it silently, and it
+persists across reboots. Three modes:
+
+- `never-ask` (default) the default keyring is blank (stored in plaintext), so it
+  is already unlocked and nothing ever prompts. Works the same under SDDM
+  autologin or a password login, and is seeded automatically at first login.
+- `unlock-on-login` PAM unlocks (or creates) the login keyring with your login
+  password at sign-in; the store stays encrypted at rest and the desktop never
+  prompts. Opt in for an encrypted store. The default keyring points at `login`.
+- `ask` the store stays locked until an app asks, and gnome-keyring prompts then.
+
+`ryoku keyring init` is the first-login default, run from the Hyprland autostart:
+idempotent, it records the inferred mode and seeds the never-ask keyring, is a
+no-op once you have chosen a mode, and never destroys a pre-existing encrypted
+keyring (it records the policy and points you at `set --reset` instead).
+
+`ryoku keyring status [--json]` reports the configured (or, when unset, inferred)
+mode, whether `/etc/pam.d/sddm` carries `pam_gnome_keyring`, whether autologin is
+configured, whether the keyring daemon is running, and each keyring file's format
+(encrypted, plaintext, or absent). `ryoku keyring set <mode>` records the choice
+in `~/.config/ryoku/keyring.json`, converges the keyring files over D-Bus, and
+escalates the root PAM edit through `pkexec` (`--convert` rekeys an encrypted
+keyring, reading passwords on stdin; `--reset` backs the files up and starts
+fresh). The Hub's Lockscreen page drives all of this; `ryoku doctor` watches for
+drift. `$RYOKU_PAM_FILE` overrides the PAM path for tests.
 
 ## Developer-only commands
 
@@ -147,7 +197,8 @@ a finding never aborts the update.
 
 Current reconcilers (in `ryoku/cli/internal/doctor/`): swap kept out of snapshots,
 snapper config consistency, stale pacman lock, the ryoku package channel + keyring,
-desktop session components, Hyprland config integrity (revalidates and repairs the
+desktop session components, the keyring unlock policy (how the GNOME keyring
+unlocks at sign-in; see `ryoku keyring`), Hyprland config integrity (revalidates and repairs the
 generated monitors.lua/gpu.lua drop-ins so a corrupt one cannot strand the desktop
 in emergency mode), the shell daemon, failed services, btrfs device health, display
 backlight (catches a missing interface, missing brightnessctl, or a hybrid-GPU

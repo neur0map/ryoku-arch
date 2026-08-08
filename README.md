@@ -27,9 +27,9 @@ deliberate in how it looks and moves.
 
 <div align="center">
 
-<img src="docs/media/desktop.webp" alt="The Ryoku desktop" width="960" />
+<img src="docs/media/profile.webp" alt="The Ryoku Hub, a live system dossier" width="960" />
 
-<sub>The Ryoku desktop. Screenshots are real; the poster art is generated.</sub>
+<sub>The Ryoku Hub, a live system dossier. Screenshots are real; the poster art is generated.</sub>
 
 <p>
   <a href="https://youtu.be/kx7VW4Mg0m4">
@@ -50,7 +50,9 @@ to be extended: the desktop is composed of small, independent surfaces, and a
 plugin system is on the way, so the shell grows with what you actually use
 instead of bloating by default. The beauty is the shell itself, one continuous
 and deliberate surface where the bar, panels, launcher, lockscreen, and session
-controls move as a single thing. 力と美のために: for the sake of power and beauty.
+controls move as a single thing: paper and ink, warm bone type on pure black,
+with the frame retinting live from your wallpaper. 力と美のために: for the sake
+of power and beauty.
 
 Underneath, Ryoku is a hand-built Arch distribution rather than a config dump.
 The desktop, the installer, and the system definition all live in this
@@ -66,25 +68,33 @@ animation curves are adapted from Caelestia.
 
 One motion language across every surface, retinted live from your wallpaper.
 
+Click a status widget on the bar and its controls grow out of the rail as a
+popout card, then melt back when you are done.
+
+On first login a short welcome walks you through the desktop: the handful of
+keybinds that open almost everything, and a few choices you can make on the
+spot, the interface scale, the bar, and which desktop widgets to show.
+Everything else waits in Ryoku Settings (`Super + ,`).
+
 <table>
   <tr>
+    <td width="50%">
+      <img src="docs/media/desktop.webp" alt="The desktop" width="100%" /><br />
+      <sub><b>The desktop.</b> Fastfetch, the widget layer, and a live wallpaper under the blob frame.</sub>
+    </td>
     <td width="50%">
       <img src="docs/media/launcher.webp" alt="Launcher" width="100%" /><br />
       <sub><b>Launcher.</b> Apps, commands, calculator, files, and Ryotunes radio behind one search.</sub>
     </td>
-    <td width="50%">
-      <img src="docs/media/control-deck.webp" alt="Control Deck" width="100%" /><br />
-      <sub><b>Control Deck.</b> Stash, tools, game mode, and capture, reachable in one place.</sub>
-    </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/media/appearance.webp" alt="Appearance" width="100%" /><br />
-      <sub><b>Appearance.</b> The whole desktop retints from the wallpaper.</sub>
+      <img src="docs/media/controls.webp" alt="Control Deck" width="100%" /><br />
+      <sub><b>Control Deck.</b> Dials, notes, quick toggles, game mode, and capture in one place.</sub>
     </td>
     <td width="50%">
-      <img src="docs/media/terminals.webp" alt="Terminals" width="100%" /><br />
-      <sub><b>Tooling.</b> GlazePKG across every package manager, plus a live system monitor.</sub>
+      <img src="docs/media/batgirl.webp" alt="A full rice" width="100%" /><br />
+      <sub><b>One wallpaper.</b> The bar, widgets, and frame all retint from it.</sub>
     </td>
   </tr>
 </table>
@@ -100,6 +110,57 @@ One motion language across every surface, retinted live from your wallpaper.
   and the archiso profile that builds the signed ISO.
 - **The update system** under `release/`: the `ryoku` control CLI, the desktop
   packages, and the signed `[ryoku]` pacman repository.
+
+## Requirements
+
+Ryoku is `x86_64` only and boots in UEFI mode. The session is Wayland: Hyprland
+with the GPU-composited Ryoku shell on top. The installer refuses a machine with
+Secure Boot on (Limine ships unsigned) unless you have enrolled your own keys,
+and there is no 32-bit build and no legacy BIOS path.
+
+|  | Minimum | Recommended |
+|---|---|---|
+| CPU | 64-bit x86_64, dual-core | quad-core or better |
+| RAM | 4 GB | 8 GB, 16 GB with the dev toolchains |
+| GPU | any card with working KMS and OpenGL/Vulkan | recent integrated or discrete |
+| Storage | 32 GB (installer floor) | 64 GB+ SSD |
+| Firmware | UEFI, Secure Boot off | UEFI, Secure Boot off |
+
+The desktop is light on its own: a resting session (the compositor, the shell,
+and its daemons) uses under 1 GB of RAM. What you run on top, the browser,
+editor, and toolchains, is the rest of the budget: 8 GB is a sensible floor for
+daily use, and 16 GB is comfortable once the language toolchains are in. The
+32 GB disk figure is the installer's hard floor. The base plus developer and
+desktop package closure is about 13 to 15 GB, and the root filesystem needs 20 GB
+before swap so Btrfs snapshots and AUR builds have somewhere to go. Use an SSD;
+snapshots on every `ryoku update`, package builds, and the shell itself all feel
+a slow disk.
+
+### Graphics
+
+The shell is an accelerated Qt surface (live blur, the blob frame, motion
+throughout), so it wants a real GPU with working DRM/KMS. Software rendering will
+start but will not feel good. Anything from roughly the last decade is fine, and
+the right driver is picked for the detected hardware at install time:
+
+- **AMD** the open Mesa stack and the RADV Vulkan driver (GCN and newer, on
+  amdgpu). No proprietary blob, nothing to install by hand.
+- **Intel** Broadwell (Gen8) and newer, on i915 or the newer Xe driver, with the
+  modern media driver and the ANV Vulkan driver.
+- **NVIDIA** the open kernel modules on Turing and newer (GTX 16-series, RTX
+  20-series and up), the proprietary modules on older Maxwell, Pascal, and Volta
+  cards. On the stock kernel Ryoku installs the prebuilt module, so there is no
+  DKMS build to fail on first boot.
+
+On a hybrid laptop with two GPUs, Ryoku ranks them and pins the strongest as the
+primary renderer on a desktop, while a laptop keeps the integrated GPU primary
+for battery; an external GPU always wins. Every GPU stays available, so a monitor
+on a second card still lights up, and dense HiDPI panels are scaled on first
+login.
+
+The playbook for awkward hardware (Intel VMD, NVIDIA modeset, Windows dual-boot,
+Broadcom Wi-Fi, read-only NVRAM, slow USB media) is in
+[`docs/installation-hardware.md`](docs/installation-hardware.md).
 
 ## Install
 

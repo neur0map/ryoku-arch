@@ -1,0 +1,6 @@
+ControlCenter ControlCenter.qml
+CcHeader CcHeader.qml
+CcTabs CcTabs.qml
+CcStatusStrip CcStatusStrip.qml
+CcSearch CcSearch.qml
+PageMotionStage PageMotionStage.qml

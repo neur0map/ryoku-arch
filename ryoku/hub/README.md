@@ -10,6 +10,12 @@ It is where you edit anything the Hyprland (Lua) config drives, plus the Ryoku
 shell, in one place: monitors, appearance, input, keybinds, window rules,
 autostart, environment, the shell's look, the lock screen, and the update channel.
 
+Every page is built to one design contract: the monochrome instrument sheet
+(palette, type, motion, the control taxonomy, the poster/ornament layer, the
+art pipeline) is specified in `.beta18/DESIGN.md`, and how the brand language
+applies across the whole desktop is in `docs/ui-ux.md`. Read those before
+changing a page's look.
+
 ## Layout
 
 - `backend/` One Go program, `ryoku-hub`, the data plane. The QML front end shells
@@ -22,14 +28,11 @@ autostart, environment, the shell's look, the lock screen, and the update channe
     cursor themes and X11 keyboard layouts for the pickers.
   - `ryoku-hub config get|set <key> [value]` persists hub UI state as TOML at
     `~/.config/ryoku/hub.toml` (last open section, update-check cadence).
-  - `ryoku-hub lock catalog|list|set|install|apply-greeter <slug>` drives the
-    lock-skin picker: `catalog` lists the full qylock theme set live from upstream
-    (each skin's preview gif, install size, and installed/active state), `list` is
-    the installed-only offline fallback, `set` makes a skin both the in-session
-    lock (`~/.config/qylock/theme`) and the SDDM greeter, `install` downloads a
-    theme into `~/.local/share/qylock/themes` then activates it, and `apply-greeter`
-    is the privileged half (run by pkexec) that installs the skin under
-    `/usr/share/sddm/themes/ryoku`. Only the auth flow stays untouched.
+  - `ryoku-hub lock list|set|apply-greeter <slug>` manages installed qylock
+    themes: `list` is the local inventory, `set` writes the in-session
+    preference and applies the SDDM greeter, and `apply-greeter` is the
+    privileged half under `/usr/share/sddm/themes/ryoku`. RyoStore owns remote
+    discovery and installation; Settings owns activation only.
 - `quickshell/` The UI, hand-written Quickshell (QML), deployed to
   `~/.config/quickshell/hub` and launched with `qs -c hub`:
   - `shell.qml` the `FloatingWindow`; `Hub.qml` the app (rail + content + the data
@@ -60,18 +63,22 @@ autostart, environment, the shell's look, the lock screen, and the update channe
   (including wobbly windows for a spring in the drag, and the window open/close
   style), border colours (follow the wallpaper palette or fix them) with an
   optional rotating gradient border, and the cursor: theme, size, and
-  hide-on-idle/typing. A **Wallpaper** tab retheme the desktop (the wallust
-  palette follows the pick, via `ryoku-shell wallpaper`), and a **Comfort** tab
-  controls backlight and the night light.
-- **Lockscreen** the full qylock theme catalogue as a bento grid, fetched live from
-  upstream so new and fixed skins appear without a Ryoku release. Each tile previews
-  the real lockscreen (a local gif for the two vendored clockwork skins, the upstream
-  Assets gif for the rest). Selecting a skin makes it both the in-session lock
-  (writes `~/.config/qylock/theme`, read by `lock.sh`) and the SDDM greeter; the
-  greeter lives on a system path, so that step asks for your password via pkexec.
-  Skins not yet installed download first (size shown up front). Only the login/auth
-  flow stays untouched. **Preview** shows an installed skin live;
-  **Refresh** re-syncs. Backed by `ryoku-hub lock`.
+  hide-on-idle/typing. Its **Theme** tab picks the colour scheme -- Follow
+  Wallpaper, the shipped Default, or one of the daemon's 57 named palettes as
+  swatch cards writing `theme.theme` through the settings daemon (the same key
+  the shell's sidebar theme picker reads and writes), plus the Material You
+  (Matugen) engine and per-app theming; a **Comfort** tab controls backlight and
+  the night light, and a **Rices** tab captures, imports, applies, exports, and
+  removes installed whole-desktop looks. Its RyoStore action opens the separate
+  catalogue for discovery and installation.
+- **Lockscreen** lists installed qylock themes from RyoStore. Each tile previews
+  the real lockscreen and can activate it for both the session lock and SDDM
+  greeter; the system-path greeter step asks for a password through pkexec. The
+  login/auth flow is untouched. RyoStore owns browsing and installation.
+- **Add-ons** manages installed shell plugins and bundle components. Plugin
+  enablement, placement, and settings remain live here; RyoStore owns plugin
+  updates/removal assets and all browsing, while `ryoku-extras-install` owns
+  bundle component state and removal.
 - **Animations** the live Hyprland animation tree (read via `hyprctl animations`)
   with per-leaf enable, speed, bezier, and style (pop-in, slide, fade variants),
   plus a visual bezier-curve editor that

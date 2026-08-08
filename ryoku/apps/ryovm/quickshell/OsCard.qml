@@ -1,9 +1,11 @@
 import QtQuick
+import Ryoku.Ui.Singletons
 import "Singletons"
 
-// One operating system in the catalogue: the project's own brand icon over a
-// carbon tile, the name beneath. Hover lifts the border; the picked one wears an
-// ember frame. Icons load async from quickemu-icons with a glyph fallback.
+// One operating system in the catalogue: the project's own brand logo (colour:
+// it is the catalogue's data), the name beneath. Hover lifts the border; the
+// picked tile wears the gallery grammar (ink border, tint10 fill, corner dot).
+// The ember tick square dies.
 Rectangle {
     id: cell
 
@@ -11,12 +13,14 @@ Rectangle {
     property bool active: false
     signal picked()
 
-    radius: Theme.radius
-    color: Theme.surfaceLo
-    border.width: cell.active ? 1.6 : 1
-    border.color: cell.active ? Theme.ember : (ma.containsMouse ? Qt.alpha(Theme.cream, 0.32) : Theme.line)
+    radius: Tokens.radius
+    color: cell.active ? Tokens.tint10 : (ma.containsMouse ? Tokens.tint5 : "transparent")
+    border.width: Tokens.border
+    border.color: cell.active ? Tokens.ink : (ma.containsMouse ? Tokens.lineStrong : Tokens.line)
     clip: true
-    Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+    antialiasing: false
+    Behavior on color { ColorAnimation { duration: Tokens.snap } }
+    Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
 
     Column {
         anchors.centerIn: parent
@@ -25,41 +29,32 @@ Rectangle {
 
         OsIcon {
             anchors.horizontalCenter: parent.horizontalCenter
-            width: 52
-            height: 52
-            size: 52
+            width: 52; height: 52; size: 52
             slug: cell.entry ? cell.entry.os : ""
             label: cell.entry ? cell.entry.name : ""
-            glyphTint: Theme.subtle
         }
-
         Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
             maximumLineCount: 1
             text: cell.entry ? cell.entry.name : ""
-            color: cell.active ? Theme.ember : Theme.cream
-            font.family: Theme.font
+            color: cell.active ? Tokens.ink : Tokens.inkDim
+            font.family: Tokens.ui
             font.pixelSize: 12
             font.weight: cell.active ? Font.DemiBold : Font.Medium
-            Behavior on color { ColorAnimation { duration: Theme.quick } }
         }
     }
 
-    // ember corner tick on the active tile: a lit square, board-style.
+    // the gallery grammar's corner dot on the picked tile.
     Rectangle {
         visible: cell.active
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: 7
-        width: 16
-        height: 16
-        color: Theme.frameBg
-        border.width: 1
-        border.color: Theme.ember
-        antialiasing: false
-        Icon { anchors.centerIn: parent; name: "check"; size: 11; weight: 2.2; tint: Theme.ember }
+        width: 5; height: 5
+        radius: 2.5
+        color: Tokens.ink
     }
 
     MouseArea {

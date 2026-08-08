@@ -130,7 +130,7 @@ type ffModel struct {
 
 func runFastfetch(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("fastfetch needs get|save|preview|import-logo")
+		return fmt.Errorf("fastfetch needs get|save|reset|preview|import-logo")
 	}
 	switch args[0] {
 	case "get":
@@ -171,6 +171,12 @@ func runFastfetch(args []string) error {
 		}
 		fmt.Println(p)
 		return nil
+	case "reset":
+		b, err := buildFastfetch(defaultFastfetchModel())
+		if err != nil {
+			return err
+		}
+		return atomicWrite(fastfetchConfigPath(), b, 0o644)
 	default:
 		return fmt.Errorf("unknown fastfetch subcommand: %s", args[0])
 	}

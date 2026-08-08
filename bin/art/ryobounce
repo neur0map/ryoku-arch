@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Draw a bouncing ball loop as a grayscale gif for ryodither.
+
+The animation section's decor is a bouncing ball: the first thing an animator
+draws, and the plainest read on easing. Gravity accelerates the fall, the ball
+squashes on contact, then decelerates on the way up. This writes the grayscale
+source; ryodither bakes it into the Ryoku decor set so it grains like the rest.
+
+    ryobounce --out /tmp/b.gif && ryodither /tmp/b.gif --name bounce
+
+Same flags give the same gif. The height is a parabola in time (constant
+gravity), so the timing is honest and the loop is seamless.
+
+Needs Pillow and numpy (pip install pillow numpy).
+"""
+import argparse
+import sys
+from pathlib import Path
+
+try:
+    import numpy as np
+    from PIL import Image, ImageFilter
+except ImportError:
+    sys.exit("ryobounce: needs Pillow and numpy -- `pip install pillow numpy`")
+
+
+def frame(t, W, H):
+    """One frame of the loop at phase t in [0, 1): a shaded ball over a floor."""
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    floor = H * 0.9
+    r = W * 0.19
+    gap = H * 0.66
+    cx = W * 0.5
+    u = 2 * t - 1
+    hfrac = u * u                                  # 1 at the apex, 0 on contact
+    squash = 0.36 * max(0.0, 1 - hfrac) ** 3       # flatten against the floor
+    stretch = 0.12 * np.clip(abs(u) * (1 - max(0.0, 1 - hfrac) ** 3), 0, 1)
+    rx = r * (1 + squash - stretch * 0.5)
+    ry = r * (1 - squash + stretch)
+    cy = floor - ry - gap * hfrac
+    inside = ((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2 <= 1.0
+    lx, ly = cx - rx * 0.4, cy - ry * 0.5          # light from the upper left
+    lit = 1.0 - np.sqrt(((xx - lx) / rx) ** 2 + ((yy - ly) / ry) ** 2) * 0.88
+    img = np.where(inside, np.clip(0.26 + 0.74 * np.clip(lit, 0, 1), 0, 1), 0.0)
+    img[int(floor):int(floor) + 2, :] = 0.72       # the floor line
+    drop = 1 - hfrac
+    sw = rx * (0.75 + 0.6 * drop)                  # contact shadow, wider up close
+    shadow = np.exp(-(((xx - cx) / sw) ** 2)) * 0.4 * drop
+    onfloor = (yy > floor + 2) & (yy < floor + 12)
+    img = np.where(onfloor, np.maximum(img, shadow), img)
+    im = Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8))
+    return im.filter(ImageFilter.GaussianBlur(0.6))
+
+
+def render(W, H, n):
+    return [frame(i / n, W, H) for i in range(n)]
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="ryobounce", description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("--out", type=Path, default=Path("bounce-src.gif"),
+                    help="output grayscale gif (default ./bounce-src.gif)")
+    ap.add_argument("--width", type=int, default=300)
+    ap.add_argument("--height", type=int, default=380)
+    ap.add_argument("--frames", type=int, default=30)
+    ap.add_argument("--duration", type=int, default=33, help="ms per frame")
+    a = ap.parse_args()
+
+    fr = render(a.width, a.height, a.frames)
+    fr[0].save(a.out, save_all=True, append_images=fr[1:],
+               duration=a.duration, loop=0, disposal=2)
+    print("drew %s (%dx%d, %d frames) -- bake: ryodither %s --name bounce"
+          % (a.out, a.width, a.height, a.frames, a.out))
+
+
+if __name__ == "__main__":
+    main()

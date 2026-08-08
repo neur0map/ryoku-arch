@@ -1,0 +1,2 @@
+singleton Motion Motion.qml
+singleton Theme Theme.qml
