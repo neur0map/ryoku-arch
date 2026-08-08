@@ -84,7 +84,7 @@ runuser -u "$TESTUSER" -- env \
 #    slice spanning shell, compositor, palette, and every per-app config.
 cfg="/home/$TESTUSER/.config"
 files=(
-  quickshell/pill/shell.qml
+  quickshell/shell/shell.qml
   hypr/hyprland.lua
   fish/config.fish
   starship.toml

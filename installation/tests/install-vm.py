@@ -41,7 +41,7 @@ OVMF_VARS = next((p for p in (
 # enabled greeter. checked by mounting the target root read-only after install.
 INSTALLED_CHECKS = [
     ("d", "usr/share/ryoku/config"),
-    ("f", "home/{user}/.config/quickshell/pill/shell.qml"),
+    ("f", "home/{user}/.config/quickshell/shell/shell.qml"),
     ("f", "home/{user}/.config/hypr/hyprland.lua"),
     ("f", "home/{user}/.config/pip/pip.conf"),
     ("f", "home/{user}/.config/wireplumber/wireplumber.conf.d/51-ryoku-bluetooth.conf"),
