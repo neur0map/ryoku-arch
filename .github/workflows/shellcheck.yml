@@ -81,7 +81,7 @@ jobs:
               fi
 
               case "$file" in
-                *.sh|*.bash|bin/*|tests/*)
+                *.sh|*.bash)
                   printf '%s\0' "$file" >>"$files"
                   ;;
                 *)

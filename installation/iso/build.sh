@@ -247,7 +247,7 @@ else
   sudo --preserve-env=SOURCE_DATE_EPOCH mkarchiso -v -w "$WORK_DIR" -o "$OUT_DIR" "$PROFILE_STAGE"
 fi
 
-# Broadcom sanity. broadcom-wl ships a precompiled wl.ko matched to one exact
+# Broadcom ABI guard. broadcom-wl ships a precompiled wl.ko matched to one exact
 # linux ABI. A [core]/[extra] mirror-sync window can pair a `linux` from one
 # snapshot with a `broadcom-wl` built against another, so the module lands under
 # a kernel dir the live image never boots: modprobe finds nothing at `uname -r`
