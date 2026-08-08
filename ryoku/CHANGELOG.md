@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Fixed
+- **Hyprland no longer crash-loops at login on hybrid NVIDIA boxes.** The mesa
+  screencopy workaround `AQ_NO_MODIFIERS=1` forced modifier-less buffers NVIDIA
+  can't import, so the first multi-GPU commit failed `drmModeAddFB2` and SIGABRTed.
+  It is now set only when no NVIDIA driver is present (`hyprland/modules/env.lua`).
+
+### Added
+- **Super+Shift+A restarts audio.** Runs `ryoku-restart-audio` to recover sound
+  when it does not come back after an update (`hyprland/modules/binds.lua`).
+
 ### Changed
 - **Super+T opens the Stash Features sidebar.** The floating Features page (the
   Stash board, with room for more panes) now has a keybind, growing from the

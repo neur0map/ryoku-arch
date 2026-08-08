@@ -3,22 +3,22 @@ hl.env("XCURSOR_SIZE",      "24")
 hl.env("HYPRCURSOR_THEME",  "Bibata-Modern-Ice")
 hl.env("HYPRCURSOR_SIZE",   "24")
 
--- VA-API/GLX vendor hints: nvidia only. mesa (AMD/Intel) auto-detects, and
--- forcing them there breaks video decode + Xwayland GL. gate on the driver.
+-- VA-API/GLX hints are nvidia-only: mesa auto-detects, and forcing them breaks
+-- video decode + Xwayland GL. AQ_NO_MODIFIERS is the opposite, a mesa-only fix.
 local nvidia = io.open("/proc/driver/nvidia/version")
 if nvidia then
     nvidia:close()
     hl.env("LIBVA_DRIVER_NAME",         "nvidia")
-    -- NVD_BACKEND=direct: nvidia VA-API direct backend (Turing+); omarchy's GSP default.
+    -- NVD_BACKEND=direct: nvidia VA-API direct backend (Turing+), omarchy's GSP default.
     hl.env("NVD_BACKEND",               "direct")
     hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
     hl.env("__GL_GSYNC_ALLOWED",        "0")
     hl.env("__GL_VRR_ALLOWED",          "0")
+else
+    -- dodges Hyprland's post-capture black screen (#11315). Not on nvidia: it
+    -- can't import the modifier-less buffer and SIGABRTs the first multi-GPU commit.
+    hl.env("AQ_NO_MODIFIERS", "1")
 end
-
--- Hyprland's screencopy leaves the screen black/inverted after a capture on some
--- GPUs (#11315). No modifiers dodges it; I'll drop this when Hyprland fixes it.
-hl.env("AQ_NO_MODIFIERS", "1")
 
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 

@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- `audio/ryoku-restart-audio`: restart the PipeWire stack (wireplumber, pipewire,
+  pipewire-pulse) and reset a stuck USB audio device, for when sound does not come
+  back after an update. Bound to Super+Shift+A. Ported from omarchy.
+- `drivers/intel.sh` now installs `sof-firmware`: recent Intel laptops route audio
+  through a DSP that stays silent without it.
 - `bluetooth/ryoku-bluetooth-tune`: BlueZ pairing/reconnect tuning. bluez owns
   `/etc/bluetooth/main.conf` and has no drop-in dir, so this sets the keys in
   place: `Experimental` (device battery + newer profiles), `JustWorksRepairing`

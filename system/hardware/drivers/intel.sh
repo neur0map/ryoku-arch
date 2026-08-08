@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# intel.sh: Intel graphics drivers if an Intel GPU is present.
+# intel.sh: Intel graphics drivers, plus audio DSP firmware, if Intel is present.
 #
 # intel-media-driver = modern VA-API driver (iHD, Broadwell/Gen8+).
 # vpl-gpu-rt        = oneVPL runtime for hw video enc/dec.
@@ -65,3 +65,7 @@ if ! has_intel_gpu; then
 fi
 
 install_pkgs intel-media-driver vpl-gpu-rt vulkan-intel
+
+# sof-firmware: Sound Open Firmware. Recent Intel laptops (Tiger Lake and newer)
+# route onboard audio through a DSP that has no sound at all without it.
+install_pkgs sof-firmware

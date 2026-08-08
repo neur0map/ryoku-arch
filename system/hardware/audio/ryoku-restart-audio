@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Restart the PipeWire stack, and recover a stuck USB audio device, when sound
+# does not come back: a pipewire upgrade leaves stale daemons behind, or a device
+# hangs the graph. Ported from omarchy-restart-audio.
+set -u
+
+services=(wireplumber.service pipewire.service pipewire-pulse.service)
+
+restart_services() {
+  echo "Restarting audio services..."
+  timeout 25s systemctl --user restart "${services[@]}" && return 0
+  # a wedged service ignores restart: kill it, clear the failure, start fresh.
+  systemctl --user kill --kill-whom=all --signal=KILL "${services[@]}" >/dev/null 2>&1 || true
+  systemctl --user reset-failed "${services[@]}" >/dev/null 2>&1 || true
+  timeout 25s systemctl --user start pipewire.service pipewire-pulse.service wireplumber.service
+}
+
+wpctl_ok() { timeout 5s wpctl status >/dev/null 2>&1; }
+
+# the /sys USB device backing a sound card, empty for a non-USB card.
+usb_device_for_card() {
+  local path
+  path=$(readlink -f "/sys/class/sound/card$1" 2>/dev/null) || return 1
+  while [[ -n $path && $path != / ]]; do
+    [[ -f $path/idVendor && -f $path/busnum && -f $path/devnum ]] && { basename "$path"; return 0; }
+    path=$(dirname "$path")
+  done
+  return 1
+}
+
+# a wireplumber/pipewire thread parked in USB I/O = a hung capture/playback path.
+blocked_on_usb() {
+  local pid name
+  for pid in /proc/[0-9]*; do
+    [[ -r $pid/comm && -r $pid/wchan ]] || continue
+    name=$(<"$pid/comm") || continue
+    [[ $name == wireplumber || $name == pipewire ]] || continue
+    [[ $(<"$pid/wchan") == *usb* ]] && return 0
+  done
+  return 1
+}
+
+reset_usb() {
+  local sysfs="/sys/bus/usb/devices/$1"
+  [[ -d $sysfs ]] || return 1
+  command -v usbreset >/dev/null 2>&1 || { echo "usbreset absent; replug the USB audio device."; return 1; }
+  echo "Resetting stuck USB audio device $1..."
+  timeout 25s sudo -n usbreset "$(printf '%03d/%03d' "$(<"$sysfs/busnum")" "$(<"$sysfs/devnum")")"
+}
+
+restart_services || true
+
+if ! wpctl_ok && blocked_on_usb; then
+  echo "PipeWire is wedged on a USB audio device; resetting..."
+  did=
+  for card in /sys/class/sound/card*; do
+    [[ $card =~ /card([0-9]+)$ ]] || continue
+    dev=$(usb_device_for_card "${BASH_REMATCH[1]}") && reset_usb "$dev" && did=1
+  done
+  [[ -n $did ]] && restart_services || true
+fi
+
+sleep 2
+echo
+if timeout 5s wpctl status; then
+  echo "Audio is back."
+else
+  echo "Audio still not responding; replug the device or reboot." >&2
+  exit 1
+fi
