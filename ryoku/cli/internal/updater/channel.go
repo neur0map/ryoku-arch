@@ -103,8 +103,16 @@ func channelUpdate() error {
 	progress.at("channel")
 	progress.logf("Updating Ryoku (channel: %s)", ch)
 	gitFetch(repo, ch)
+	// report what the sync actually did; "Update complete" alone hid a box that
+	// redeployed the same commit every time.
+	before := gitShort(repo, "HEAD")
 	if err := syncChannel(repo, ch); err != nil {
 		return err
+	}
+	if after := gitShort(repo, "HEAD"); after != before {
+		progress.logf("Advanced %s -> %s", before, after)
+	} else {
+		progress.logf("Already on the latest %s commit (%s)", ch, before)
 	}
 
 	progress.at("deploy")
@@ -120,16 +128,25 @@ func channelUpdate() error {
 // on a dev box tracking unstable-dev exactly as it does on main, not only when
 // the branch is named <ch>. A branch that already contains the channel tip
 // (current or ahead) is left alone; a diverged branch keeps its own commits,
-// except the channel branch, which mirrors upstream and is reset onto it. A dirty
-// tree is never touched: the deploy runs on what is checked out.
+// except the channel branch, which mirrors upstream and is reset onto it. Local
+// edits to tracked files are never touched: the deploy runs on what is checked
+// out. Every path that declines to advance logs why, so a skip is not mistaken
+// for a successful update.
 func syncChannel(repo, ch string) error {
 	remote := "refs/remotes/origin/" + ch
 	// No channel ref to track (offline first run, or the branch is gone): deploy
 	// what is checked out rather than guess.
 	if _, err := sys.RunOut("git", "-C", repo, "rev-parse", "--verify", "--quiet", remote); err != nil {
+		progress.logf("No origin/%s to track (offline, or the branch is gone); deploying the checkout as-is", ch)
 		return nil
 	}
-	if dirty, _ := sys.RunOut("git", "-C", repo, "status", "--porcelain"); strings.TrimSpace(dirty) != "" {
+	// untracked files don't block a fast-forward (git refuses one that would
+	// overwrite them, which surfaces as a real error below). Counting them as
+	// dirty froze boxes: one stray build artifact and update redeployed the same
+	// commit forever.
+	if dirty, _ := sys.RunOut("git", "-C", repo, "status", "--porcelain", "--untracked-files=no"); strings.TrimSpace(dirty) != "" {
+		progress.logf("Uncommitted changes in %s; staying on %s (commit or stash them, then update again)",
+			repo, gitShort(repo, "HEAD"))
 		return nil
 	}
 	// HEAD already contains the channel tip (current or ahead): nothing to pull.
@@ -139,7 +156,9 @@ func syncChannel(repo, ch string) error {
 	// HEAD is strictly behind on a straight line: fast-forward onto the channel.
 	if isAncestor(repo, "HEAD", remote) {
 		if err := sys.Run("git", "-C", repo, "merge", "--ff-only", remote); err != nil {
-			return fmt.Errorf("fast-forward to origin/%s failed: %w", ch, err)
+			// usually an untracked file the incoming commits also add; git names it above.
+			return fmt.Errorf("fast-forward to origin/%s failed (see git's message above; "+
+				"move the colliding file out of %s, then update again): %w", ch, repo, err)
 		}
 		return nil
 	}
