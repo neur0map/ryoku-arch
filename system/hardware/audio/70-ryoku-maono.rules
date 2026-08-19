@@ -1,0 +1,6 @@
+# Maono USB mics (PD400X, DM30, ...) expose gain, EQ, compressor, limiter and
+# the monitor mix on a vendor-defined HID page rather than the audio interface.
+# The kernel leaves that node root-only, so grant the active-session user access
+# (uaccess, no group setup) and any control app can reach it.
+KERNEL=="hidraw*", ATTRS{idVendor}=="352f", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="352f", TAG+="uaccess"

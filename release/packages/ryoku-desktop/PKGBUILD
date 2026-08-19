@@ -498,6 +498,11 @@ package() {
   install -Dm644 "$_repo/system/hardware/ddc/60-ryoku-i2c.rules" \
     "$pkgdir/usr/lib/udev/rules.d/60-ryoku-i2c.rules"
 
+  # Maono USB mics: their control features sit on a vendor HID page the kernel
+  # leaves root-only, so uaccess is what lets a control app reach them at all.
+  install -Dm644 "$_repo/system/hardware/audio/70-ryoku-maono.rules" \
+    "$pkgdir/usr/lib/udev/rules.d/70-ryoku-maono.rules"
+
   # Bluetooth tuning: bluez owns /etc/bluetooth/main.conf and BlueZ has no
   # drop-in dir, so Ryoku cannot ship a copy here (pacman file conflict). The
   # ryoku-bluetooth-tune helper (installed by the hardware glob above) sets the

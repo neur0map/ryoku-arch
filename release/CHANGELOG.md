@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+- `ryoku-desktop` ships `system/hardware/audio/70-ryoku-maono.rules` to
+  `/usr/lib/udev/rules.d`, so the vendor HID node on Maono USB mics is reachable
+  by the active-session user. See the system/hardware changelog.
+
 ### Fixed
 - `ryoku-desktop` ships the default-app map to
   `/usr/share/applications/mimeapps.list` instead of the materialized config, so

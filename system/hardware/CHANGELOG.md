@@ -18,6 +18,15 @@
   `ryoku-desktop` PKGBUILD installs the helper via the hardware glob and the rule
   under `polkit-1/rules.d`; the `.install` runs `apply` on install + upgrade, and
   the installer seeds the country from geolocation or the locale.
+- `audio/70-ryoku-maono.rules`: reach the control features on Maono USB mics.
+  The PD400X and its siblings put gain, EQ, compressor, limiter and the monitor
+  mix behind a vendor-defined HID page (usage page `0xFF01`) instead of the audio
+  interface, and the kernel leaves both `/dev/hidraw*` and the raw USB node
+  root-owned, so a control app running as the user cannot open either one. The
+  rule grants the active-session user access (`uaccess`, no group setup), the
+  same pattern as `60-ryoku-i2c.rules`. Shipped to `/usr/lib/udev` by
+  `ryoku-desktop`. The four standard USB-audio controls (mic gain and mute,
+  headphone level and mute) already worked without it.
 - `leds/ryoku-leds`: `RYOKU_LEDS_DISABLE=1` turns the OpenRGB accent sync off.
   `ryoku-leds apply` runs from Hyprland autostart and again from the shell daemon
   on every wallpaper change, and there was no off switch short of forking the
