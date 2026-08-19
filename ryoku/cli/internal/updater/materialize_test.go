@@ -153,6 +153,46 @@ func TestMaterializeSweepsStaleQuickshell(t *testing.T) {
 	wantFile(t, filepath.Join(dest, "hypr/user.lua"), "USER")
 }
 
+// A withdrawn Ryoku drop-in is swept with no manifest entry and WirePlumber
+// restarts, while the user's own drop-in in the same directory survives.
+func TestMaterializeSweepsWithdrawnRyokuDropIn(t *testing.T) {
+	base, dest := t.TempDir(), t.TempDir()
+	t.Setenv("RYOKU_CONFIG_BASE", base)
+	t.Setenv("XDG_CONFIG_HOME", dest)
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+
+	const dir = "wireplumber/wireplumber.conf.d"
+	writeFile(t, filepath.Join(base, dir, "51-ryoku-bluetooth.conf"), "SHIPPED\n")
+	writeFile(t, filepath.Join(dest, dir, "50-ryoku-alsa-soft-mixer.conf"), "OLD\n")
+	writeFile(t, filepath.Join(dest, dir, "99-my-own.conf"), "MINE\n")
+
+	bin := t.TempDir()
+	log := filepath.Join(t.TempDir(), "systemctl.log")
+	t.Setenv("RYOKU_TEST_SYSTEMCTL_LOG", log)
+	writeFile(t, filepath.Join(bin, "systemctl"), "#!/bin/sh\nprintf '%s\\n' \"$*\" >>\"$RYOKU_TEST_SYSTEMCTL_LOG\"\n")
+	if err := os.Chmod(filepath.Join(bin, "systemctl"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	if err := Materialize(); err != nil {
+		t.Fatalf("materialize: %v", err)
+	}
+	if sys.Exists(filepath.Join(dest, dir, "50-ryoku-alsa-soft-mixer.conf")) {
+		t.Error("withdrawn Ryoku drop-in should be swept without a manifest entry")
+	}
+	wantFile(t, filepath.Join(dest, dir, "99-my-own.conf"), "MINE")
+	wantFile(t, filepath.Join(dest, dir, "51-ryoku-bluetooth.conf"), "SHIPPED")
+
+	restarts, err := os.ReadFile(log)
+	if err != nil {
+		t.Fatalf("WirePlumber was not restarted after the sweep: %v", err)
+	}
+	if !strings.Contains(string(restarts), "--user try-restart wireplumber.service") {
+		t.Errorf("sweeping a drop-in should restart WirePlumber; log: %q", restarts)
+	}
+}
+
 // The user overlay lays user_edits over the freshly materialized base: a fork
 // wins over the base file it shadows, a file base never shipped still lands (the
 // overlay is sparse), and a base file the user did not touch stays base's, so an

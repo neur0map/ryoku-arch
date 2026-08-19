@@ -64,6 +64,17 @@
   line of `iw reg get`), and when it is `00` sets it from the country in
   `/etc/locale.conf`, or warns to run `ryoku-wifi-regdom set <CC>` when no
   country can be inferred (`internal/doctor/reconcile_wifi_regdom.go`).
+- **A WirePlumber drop-in Ryoku stopped shipping is now actually removed.**
+  `materialize` pruned only what the previous manifest recorded, but `deploy.sh`
+  copies configs without writing that manifest, so on a checkout-deployed box a
+  withdrawn drop-in survived every update and `wpConfigPruned` never fired to
+  restart WirePlumber. The global ALSA soft-mixer override outlived its removal
+  in 280fc656 that way: `api.alsa.soft-mixer=true` stayed live, PipeWire kept its
+  hands off the hardware mixer, and playback sat at whatever level the card
+  booted with while the desktop showed 100%. `wireplumber.conf.d` is now
+  converged against the shipped set, matched on the `NN-ryoku-*.conf` naming so
+  the user's own drop-ins in the same directory are left alone
+  (`internal/updater/materialize.go`).
 - **Your `~/.config/hypr/user.lua` stops getting wiped on every update.** The
   retired "adopt" step copied the tool's own user files (`hypr/user.lua`,
   `hypr/monitors_user.lua`, `kitty/user.conf`) into the `user_edits` overlay,

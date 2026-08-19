@@ -6,12 +6,19 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"ryoku-cli/internal/sys"
 	"sort"
 	"strings"
 )
 
 const wirePlumberPolicyRel = "wireplumber/wireplumber.conf.d/51-ryoku-bluetooth.conf"
+
+// Ryoku's drop-ins share wireplumber.conf.d with the user's own, so only the
+// NN-ryoku-*.conf ones are ours to converge.
+const wpDropInDir = "wireplumber/wireplumber.conf.d"
+
+var ryokuDropIn = regexp.MustCompile(`^[0-9]+-ryoku-[^/]*\.conf$`)
 
 // generatedSeed: base files seeded once on a fresh install, then never
 // clobbered or pruned by an update. The machine owns them after first boot.
@@ -117,6 +124,21 @@ func Materialize() error {
 		}
 	}
 	wpConfigPruned := false
+
+	// Withdrawn policy goes even without a manifest entry: deploy.sh copies the
+	// files but never writes the manifest, so a box configured that way would
+	// keep a dropped override forever.
+	if local, err := walkRel(filepath.Join(dest, wpDropInDir)); err == nil {
+		for _, rel := range local {
+			full := wpDropInDir + "/" + rel
+			if curSet[full] || !ryokuDropIn.MatchString(rel) {
+				continue
+			}
+			_ = os.Remove(filepath.Join(dest, full))
+			wpConfigPruned = true
+			pruneEmptyParents(dest, filepath.Dir(full))
+		}
+	}
 
 	// retiredKeep: a path Ryoku used to lay into ~/.config and deliberately
 	// stopped shipping. The manifest prune would delete the user's copy, which
