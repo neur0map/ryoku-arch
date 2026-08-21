@@ -19,6 +19,20 @@ Rectangle {
 
     property bool isQuickshell: typeof sddm === "undefined" || sddm.hostName === undefined
 
+    // ── fingerprint sensor hint ─────────────────────────────────────────────
+    // Driven by the lock shim's carry-over props (fingerprintHint,
+    // fingerprintReady, fingerprintState). These are undefined under a real
+    // SDDM greeter, so every gate evaluates false and the hint is invisible
+    // there. Under the lock screen shim, they drive the sensor hint UI.
+    readonly property bool fpVisible: (typeof sddm !== "undefined") && sddm.fingerprintHint === true && sddm.fingerprintReady === true
+    readonly property var fpState: typeof sddm !== "undefined" ? (sddm.fingerprintState || "idle") : "idle"
+    readonly property string fpHintText: {
+        if (root.fpState === "success") return "ACCESS GRANTED ✦"
+        if (root.fpState === "fail")    return "SCAN DENIED ✦ TYPE YOUR KEY"
+        if (root.fpState === "scanning") return "SENSOR ACTIVE ✦ TOUCH OR TYPE"
+        return "TOUCH SENSOR ✦ TO UNLOCK"
+    }
+
     // Theme Config
     readonly property string themeMode: config.themeMode || "dark"
     readonly property bool enableWindup: config.enableWindup !== "false" && config.enableWindup !== false
@@ -85,6 +99,14 @@ Rectangle {
         onFinished: root.doLogin()
         NumberAnimation { target: root; property: "boomScale"; to: 35.0; duration: 150; easing.type: Easing.InQuad }
         NumberAnimation { target: root; property: "boomOpacity"; to: 1.0; duration: 120; easing.type: Easing.InQuad }
+    }
+
+    // Fingerprint unlock flourish: the windup's reveal without the windup, run
+    // only on a genuine sensor win (never triggers a second authentication).
+    ParallelAnimation {
+        id: boomReveal
+        NumberAnimation { target: root; property: "boomScale"; to: 35.0; duration: 190; easing.type: Easing.InQuad }
+        NumberAnimation { target: root; property: "boomOpacity"; to: 1.0; duration: 130; easing.type: Easing.InQuad }
     }
 
     readonly property real smoothSecAngle: -((localTimeMS % 60000) / 60000.0) * 360.0 - windupOffset * 10.0
@@ -258,6 +280,38 @@ Rectangle {
                 Text { text: "✦"; anchors.left: userNameDisp.right; anchors.leftMargin: 8 * s; anchors.verticalCenter: userNameDisp.verticalCenter; color: root.mainText; opacity: (uMa.containsMouse || root.userMenuOpen) ? 1.0 : 0; font.pixelSize: 12 * s; Behavior on opacity { NumberAnimation { duration: 200 } } }
                 MouseArea { id: uMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { root.userMenuOpen = !root.userMenuOpen } }
             }
+            // ── fingerprint sensor hint ─────────────────────────────────────
+            // Sits between the user name and the password field so the eye
+            // naturally hits it before typing. Uses mainText for full brightness
+            // while scanning (not dim subColor). A pulse animation makes it
+            // clear the sensor is active.
+            Text {
+                id: fpHint
+                width: parent.width
+                height: root.fpVisible ? 16 * s : 0
+                visible: root.fpVisible
+                horizontalAlignment: Text.AlignRight
+                verticalAlignment: Text.AlignVCenter
+                text: root.fpHintText
+                color: root.fpState === "success" ? root.mainText
+                    : (root.fpState === "fail" ? "#ff4444"
+                    : (root.fpState === "scanning" ? root.mainText : root.dimText))
+                font.family: outfitFont.name
+                font.pixelSize: 9 * s
+                font.letterSpacing: 2 * s
+                opacity: root.fpState === "scanning" ? fpPulse.value : 1.0
+                Behavior on color { ColorAnimation { duration: 200 } }
+                Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+            }
+            // Gentle opacity pulse while the sensor listens.
+            SequentialAnimation {
+                id: fpPulse
+                loops: Animation.Infinite
+                running: root.fpVisible && root.fpState === "scanning"
+                NumberAnimation { target: fpPulseVal; property: "value"; from: 1.0; to: 0.45; duration: 600; easing.type: Easing.InOutSine }
+                NumberAnimation { target: fpPulseVal; property: "value"; from: 0.45; to: 1.0; duration: 600; easing.type: Easing.InOutSine }
+            }
+            Item { id: fpPulseVal; property real value: 1.0 }
             Item {
                 width: parent.width; height: 30 * s
                 TextInput {
@@ -294,12 +348,29 @@ Rectangle {
             doLogin()
         }
     }
-    function doLogin() { var uname = (userHelper.currentItem && userHelper.currentItem.uLogin) ? userHelper.currentItem.uLogin : (typeof userModel !== "undefined" ? userModel.lastUser : "user"); if (typeof sddm !== "undefined") sddm.login(uname, passInput.text, root.sessionIndex) }
+    // ── race condition guard ────────────────────────────────────────────────
+    // _unlocked prevents boomSequence.onFinished: doLogin() from firing a
+    // second PAM auth if the fingerprint wins mid-windup (after
+    // boomTriggerTimer at 1450ms). boomSequence.stop() kills the animation.
+    property bool _unlocked: false
+    function doLogin() { if (_unlocked) return; _unlocked = true; var uname = (userHelper.currentItem && userHelper.currentItem.uLogin) ? userHelper.currentItem.uLogin : (typeof userModel !== "undefined" ? userModel.lastUser : "user"); if (typeof sddm !== "undefined") sddm.login(uname, passInput.text, root.sessionIndex) }
     function capitalizeFirst(str) { if (!str) return ""; return str.charAt(0).toUpperCase() + str.slice(1) }
+    // ── login event handlers ────────────────────────────────────────────────
     Connections {
         target: typeof sddm !== "undefined" ? sddm : null
-        function onLoginSucceeded() { }
-        function onLoginFailed() { isWindup = false; windupAnim.stop(); boomTriggerTimer.stop(); boomSequence.stop(); root.windupOffset = 0; root.boomScale = 1.0; root.boomOpacity = 0.0; root.sparkIntensity = 0; errText.text = "ACCESS DENIED"; passInput.text = ""; passInput.forceActiveFocus(); shake.start() }
+        function onLoginSucceeded() {
+            if (typeof sddm !== "undefined" && sddm.fingerprintUnlock === true) {
+                // Sensor win: skip the windup, play the reveal flourish, no
+                // second authentication. The _unlocked guard prevents
+                // boomSequence.onFinished from calling doLogin() again.
+                _unlocked = true
+                windupAnim.stop()
+                boomTriggerTimer.stop()
+                boomSequence.stop()
+                boomReveal.start()
+            }
+        }
+        function onLoginFailed() { _unlocked = false; isWindup = false; windupAnim.stop(); boomTriggerTimer.stop(); boomSequence.stop(); root.windupOffset = 0; root.boomScale = 1.0; root.boomOpacity = 0.0; root.sparkIntensity = 0; errText.text = "ACCESS DENIED"; passInput.text = ""; passInput.forceActiveFocus(); shake.start() }
     }
     SequentialAnimation {
         id: shake

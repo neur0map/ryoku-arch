@@ -1,3 +1,26 @@
+// SddmShim.qml - Quickshell shim for Ryoku in-session lock
+//
+// This file replaces the default Quickshell SDDM shim to add fingerprint
+// unlock support via pam_fprintd_grosshack.so. It exposes the same API as
+// a real SDDM greeter (login, reboot, powerOff, suspend, userModel,
+// sessionModel, keyboard) so themes work unchanged, plus fingerprint state
+// properties that the theme reads to show a sensor hint.
+//
+// How it works:
+//   1. On lock, lock_shell.qml sets armWhenReady = true
+//   2. This shim probes fprintd-list and reads ~/.config/qylock/fingerprint
+//   3. If fingerprint is enabled and fingers are enrolled, armFingerprint()
+//      starts a PAM conversation with the ryoku-lock service
+//   4. pam_fprintd_grosshack.so forks fprintd-verify at conversation start,
+//      so the sensor scans while pam_unix waits for a password
+//   5. Either success unlocks within the SAME conversation
+//   6. A failed scan triggers a 700ms re-arm timer for the next touch
+//
+// PAM flow (touch OR type):
+//   pam_fprintd_grosshack.so  ->  sensor scan  ->  success = unlock
+//   pam_unix.so                ->  password     ->  success = unlock
+//   pam_deny.so               ->  neither      ->  fail + re-arm
+
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -6,11 +29,27 @@ import Quickshell.Services.Pam
 Item {
     id: shim
 
+    // ── theme configuration ────────────────────────────────────────────────
     property string themePath: ""
     property var config: ({})
     property bool configReady: false
     property string hostName: "localhost"
 
+    // ── fingerprint unlock state ────────────────────────────────────────────
+    // These properties are read at lock start and updated live. The theme
+    // binds to sddm.fingerprintHint, sddm.fingerprintReady,
+    // sddm.fingerprintState, and sddm.fingerprintUnlock to show the sensor
+    // hint and play the reveal flourish.
+    property bool fpEnabled: true            // from ~/.config/qylock/fingerprint
+    property bool fpHasFingers: false        // fprintd-list reports >= 1 finger
+    readonly property bool fingerprintReady: fpEnabled && fpHasFingers
+    property string fingerprintState: "idle" // idle | scanning | success | fail
+    property bool fingerprintUnlock: false   // true if sensor won (not typed)
+    property bool armWhenReady: false        // lock surface is secured, arm now
+    property bool fpTyped: false             // a key was fed to the conversation
+
+    // ── theme config loader ─────────────────────────────────────────────────
+    // Parses theme.conf (key=value format) from the theme directory.
     function loadConfig(path) {
         if (!path) {
             config = { background: "bg.png" };
@@ -33,7 +72,6 @@ Item {
                         }
                     }
                 }
-                // Default background fallback
                 if (!newConfig.background) {
                     newConfig.background = "bg.png";
                 }
@@ -51,16 +89,15 @@ Item {
         }
     }
 
+    // ── user model ──────────────────────────────────────────────────────────
+    // Single-user model for the lock screen. The real SDDM greeter enumerates
+    // all system users; the in-session lock only needs the current user.
     property var userModel: ListModel {
         id: internalUserModel
         property string lastUser: Quickshell.env("USER") || "traveler"
         property int lastIndex: 0
         function rowCount() { return count; }
-
-        function index(row, col) {
-            return row;
-        }
-
+        function index(row, col) { return row; }
         function data(row, role) {
             var item = get(row);
             if (!item) return "";
@@ -68,7 +105,6 @@ Item {
             if (role === (Qt.UserRole + 2)) return item.realName;
             return item.name;
         }
-
         Component.onCompleted: {
             append({
                 name: Quickshell.env("USER") || "traveler",
@@ -79,6 +115,8 @@ Item {
         }
     }
 
+    // ── session model ───────────────────────────────────────────────────────
+    // Enumerates available desktop sessions from /usr/share/*-sessions/.
     property var sessionModel: ListModel {
         id: internalSessionModel
         property int lastIndex: 0
@@ -90,12 +128,10 @@ Item {
             return item.name;
         }
         Component.onCompleted: {
-            // Initial session placeholder
             append({ name: "Session", file: "" });
         }
     }
 
-    // Enumerate system sessions
     Process {
         id: sessionEnumerator
         command: [
@@ -107,15 +143,10 @@ Item {
             "echo \"$NAME|||$FILE\"; " +
             "fi; done"
         ]
-
         stdout: StdioCollector {
-            onStreamFinished: {
-                shim.parseSessions(this.text);
-            }
+            onStreamFinished: { shim.parseSessions(this.text); }
         }
-
         onExited: (exitCode, exitStatus) => {
-            // No sessions fallback
             if (internalSessionModel.count === 0) {
                 internalSessionModel.append({ name: "Unknown", file: "unknown.desktop" });
             }
@@ -128,22 +159,17 @@ Item {
             internalSessionModel.append({ name: "Session", file: "unknown.desktop" });
             return;
         }
-
         internalSessionModel.clear();
         var lines = output.trim().split("\n");
         var currentDesktop = (Quickshell.env("XDG_SESSION_DESKTOP") || Quickshell.env("DESKTOP_SESSION") || "").toLowerCase();
         var bestIndex = 0;
         var added = 0;
-
         for (var i = 0; i < lines.length; i++) {
             var line = lines[i].trim();
             if (line === "") continue;
-
             var parts = line.split("|||");
             if (parts.length === 2 && parts[0] !== "" && parts[1] !== "") {
                 internalSessionModel.append({ name: parts[0], file: parts[1] });
-                
-                // Match current desktop
                 var fileName = parts[1].toLowerCase();
                 if (currentDesktop !== "" && (fileName.indexOf(currentDesktop) !== -1 || currentDesktop.indexOf(fileName.replace(".desktop", "")) !== -1)) {
                     bestIndex = added;
@@ -151,8 +177,6 @@ Item {
                 added++;
             }
         }
-
-        // Fallback for sessions
         if (added === 0) {
             internalSessionModel.append({ name: "Unknown", file: "unknown.desktop" });
         } else {
@@ -160,17 +184,45 @@ Item {
         }
     }
 
+    // ── SDDM-compatible interface ───────────────────────────────────────────
+    // Themes bind to sddm.login(), sddm.hostName, sddm.loginSucceeded,
+    // sddm.loginFailed, etc. Under a real SDDM greeter these are provided by
+    // the greeter; under the lock screen this shim provides them.
     property var sddm: QtObject {
-        // Ryoku: report a hostName so skins' isQuickshell test (which keys off
-        // sddm.hostName being undefined) evaluates false. Skins like material-you
-        // and nothing gate login and power behind `!isQuickshell`; since the shim
-        // implements those actions it must present as a capable backend, not a stub.
         property string hostName: shim.hostName
         signal loginFailed()
         signal loginSucceeded()
 
+        // Fingerprint properties exposed to the theme. Under a real SDDM
+        // greeter these are undefined, so theme gates on them evaluate false
+        // and the greeter is visually untouched. Under this shim they drive
+        // the sensor hint.
+        readonly property bool fingerprintHint: true
+        property bool fingerprintReady: shim.fingerprintReady
+        property string fingerprintState: shim.fingerprintState
+        property bool fingerprintUnlock: shim.fingerprintUnlock
+
+        // login() is called by the theme when the user submits a password.
+        // If a grosshack conversation is already active (the sensor is live),
+        // the typed key is fed into it instead of starting a new conversation.
         function login(user, password, sessionIndex) {
             pam.user = user;
+            if (pam.active) {
+                // Already inside an armed grosshack conversation: feed this
+                // key instead of restarting the scan. The open prompt may
+                // already be waiting, so respond immediately; otherwise stash
+                // it and onResponseRequiredChanged sends it on arrival.
+                if (pam.responseRequired) {
+                    shim.fpTyped = true;
+                    pam.respond(password);
+                    pam.pendingPassword = "";
+                } else {
+                    pam.pendingPassword = password;
+                }
+                return;
+            }
+            shim.fpTyped = false;
+            shim.fingerprintState = "idle";
             pam.pendingPassword = password;
             pam.start();
         }
@@ -180,16 +232,17 @@ Item {
         function suspend() { Quickshell.execDetached(["bash", "-c", "if [ -d /run/systemd/system ]; then systemctl suspend; else loginctl suspend; fi"]); }
     }
 
-    // SDDM exposes a writable `keyboard` carrying the lock-key state; skins set
-    // `keyboard.numLock = true` so the numpad works. Provide it so the assignment
-    // resolves instead of raising a ReferenceError.
+    // SDDM exposes a writable `keyboard` carrying the lock-key state; skins
+    // set `keyboard.numLock = true` so the numpad works. Provide it so the
+    // assignment resolves instead of raising a ReferenceError.
     property var keyboard: QtObject {
         property bool numLock: false
         property bool capsLock: false
     }
 
-    // Resolve the real hostname for sddm.hostName; the "localhost" default above
-    // keeps the isQuickshell test correct until this returns.
+    // ── hostname resolver ───────────────────────────────────────────────────
+    // Resolve the real hostname for sddm.hostName; the "localhost" default
+    // above keeps the isQuickshell test correct until this returns.
     Process {
         id: hostnameProc
         command: ["cat", "/etc/hostname"]
@@ -201,28 +254,156 @@ Item {
         }
     }
 
+    // ── fingerprint readiness probes ────────────────────────────────────────
+    // Two independent probes determine if the sensor is available:
+    //   1. fpToggleProc reads ~/.config/qylock/fingerprint (the Settings toggle)
+    //   2. fpListProc runs fprintd-list to check for enrolled fingers
+    // Both call maybeArm() when done, which starts the PAM conversation if
+    // all conditions are met.
+
+    // Read the Settings toggle (missing file = enabled).
+    Process {
+        id: fpToggleProc
+        command: [
+            "bash", "-c",
+            "if [ -f \"$HOME/.config/qylock/fingerprint\" ]; then cat \"$HOME/.config/qylock/fingerprint\"; else printf 'on'; fi"
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var v = this.text.trim().toLowerCase();
+                shim.fpEnabled = !(v === "off" || v === "0" || v === "false");
+                shim.maybeArm();
+            }
+        }
+    }
+
+    // Probe enrolled fingers; the lock only offers the sensor when this user
+    // actually has one stored.
+    Process {
+        id: fpListProc
+        command: ["fprintd-list", Quickshell.env("USER") || "traveler"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var txt = this.text || "";
+                var hasDev = txt.indexOf("Using device") !== -1 || txt.indexOf("Device at") !== -1 || txt.indexOf("found ") !== -1;
+                var n = 0;
+                var lines = txt.split("\n");
+                for (var i = 0; i < lines.length; i++) {
+                    if (lines[i].trim().indexOf("- #") === 0)
+                        n++;
+                }
+                shim.fpHasFingers = hasDev && n > 0;
+                shim.maybeArm();
+            }
+        }
+        onExited: (code) => {
+            if (code !== 0) {
+                shim.fpHasFingers = false;
+                shim.maybeArm();
+            }
+        }
+    }
+
+    // ── PAM conversation ────────────────────────────────────────────────────
+    // The core of the fingerprint unlock: a single PamContext using the
+    // ryoku-lock PAM service. This service contains the grosshack pair:
+    //   - pam_fprintd_grosshack.so forks fprintd-verify at conversation start
+    //   - pam_unix.so waits for a typed password
+    //   - Either success unlocks within the SAME conversation
+    //
+    // The config is a relative path ("ryoku-lock"), resolved against
+    // configDirectory which points to <lock_dir>/assets/pam/. This means
+    // no root edit of /etc/pam.d is needed -- the PAM service ships with
+    // the lock screen itself.
     PamContext {
         id: pam
         property string pendingPassword: ""
 
+        config: "ryoku-lock"
+        configDirectory: Quickshell.shellDir + "/assets/pam"
+
+        // When PAM asks for a password (the pam_unix prompt), feed it the
+        // stashed password if we have one, or mark it as required so the
+        // theme's login() handler sends it on the next keypress.
         onResponseRequiredChanged: {
             if (responseRequired && pendingPassword !== "") {
+                shim.fpTyped = true;
                 respond(pendingPassword);
                 pendingPassword = "";
             }
         }
 
+        // PAM conversation completed. Success = unlock; failure = re-arm.
         onCompleted: (result) => {
             if (result === PamResult.Success) {
+                // A scan that ended without a typed key means the sensor won.
+                shim.fingerprintUnlock = (shim.fingerprintState === "scanning" && !shim.fpTyped);
+                shim.fingerprintState = "success";
                 shim.sddm.loginSucceeded();
                 Quickshell.execDetached(["loginctl", "unlock-session"]);
-                // Notify success handlers
             } else {
+                shim.fingerprintState = "fail";
+                shim.fpTyped = false;
                 shim.sddm.loginFailed();
+                // Conversation is over; re-arm so the next touch scans again.
+                rearmTimer.restart();
             }
         }
     }
 
+    // ── re-arm timer ────────────────────────────────────────────────────────
+    // After a failed scan, wait 700ms before re-arming. This prevents
+    // tight loops and gives the theme time to show "type your key".
+    Timer {
+        id: rearmTimer
+        interval: 700
+        onTriggered: {
+            if (!shim.armWhenReady || pam.active)
+                return;
+            if (shim.fingerprintReady)
+                shim.armFingerprint();
+        }
+    }
+
+    // ── fingerprint control functions ───────────────────────────────────────
+
+    // armFingerprint: starts a new PAM conversation with the grosshack
+    // service. The sensor begins scanning immediately.
+    function armFingerprint() {
+        if (!shim.fingerprintReady || pam.active)
+            return;
+        pam.user = Quickshell.env("USER") || "traveler";
+        pam.pendingPassword = "";
+        shim.fpTyped = false;
+        shim.fingerprintUnlock = false;
+        shim.fingerprintState = "scanning";
+        pam.start();
+    }
+
+    // resetAuth: aborts any active PAM conversation and resets state.
+    // Called when the lock surface is unlocked.
+    function resetAuth() {
+        shim.fingerprintUnlock = false;
+        shim.fpTyped = false;
+        pam.abort();
+        if (shim.fingerprintState !== "idle")
+            shim.fingerprintState = "idle";
+    }
+
+    // maybeArm: conditionally arms the fingerprint sensor. Called by both
+    // readiness probes when they finish; the arm only fires when ALL
+    // conditions are met (toggle on, fingers enrolled, lock secured).
+    function maybeArm() {
+        if (shim.armWhenReady && shim.fingerprintReady && !pam.active)
+            shim.armFingerprint();
+    }
+
+    // ── initialization ──────────────────────────────────────────────────────
     onThemePathChanged: loadConfig(themePath)
-    Component.onCompleted: { sessionEnumerator.running = true; hostnameProc.running = true }
+    Component.onCompleted: {
+        sessionEnumerator.running = true;
+        hostnameProc.running = true;
+        fpToggleProc.running = true;
+        fpListProc.running = true;
+    }
 }

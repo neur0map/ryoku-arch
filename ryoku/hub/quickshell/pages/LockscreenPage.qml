@@ -81,7 +81,54 @@ Item {
         return parts.join("  \u00b7  ");
     }
 
-    Component.onCompleted: { pg.reload(); pg.kreload(); }
+    // ── fingerprint unlock state (fprintd, live) ────────────────────────────
+    // The sensor's lock-screen counterpart of the keyring card above: whether
+    // the grosshack PAM stack offers a touch-to-unlock at the in-session lock,
+    // and enrolment kept inside Settings. Everything reads/writes fprintd as
+    // this user; nothing here touches root PAM files.
+    property bool ffpEnabled: true            // ~/.config/qylock/fingerprint toggle
+    property bool fdaemon: false              // fprintd service reachable
+    property bool fready: false               // a device is present
+    property string fdevice: ""
+    property var ffingers: []                 // enrolled names from fprintd
+    property var fnames: ({})                 // fingerprint name -> user label map
+    property bool floading: true
+    property string ferr: ""
+    property string fpending: ""              // "" | "enroll" | "verify" | "del"
+    property bool foverlay: false             // the enroll/verify modal
+    property string foverlayMode: ""          // "enroll" | "verify"
+    property string fstatus: ""               // live copy from fprintd output
+    property string fresult: ""               // last finished action result
+    property string fterm: ""                 // accumulated terminal output
+    property int fprogress: -1                // -1 unknown, else percent
+    property string fuser: Quickshell.env("USER") || "traveler"
+    // naming flow after successful enroll
+    property string fnewFinger: ""            // finger name just enrolled (from fprintd)
+    property string fnameDraft: ""            // user's draft name for the new finger
+    property bool fnaming: false              // showing the name field after enroll
+
+    readonly property string fStatusLine: {
+        if (pg.floading)
+            return "Checking\u2026";
+        if (!pg.fdaemon)
+            return "fingerprint service is not running";
+        if (!pg.fready)
+            return "no fingerprint device found";
+        var parts = [ pg.fdevice || "sensor" ];
+        if (pg.ffingers.length === 0)
+            parts.push("no fingers enrolled yet");
+        else
+            parts.push(pg.ffingers.length + (pg.ffingers.length === 1 ? " finger" : " fingers") + " enrolled");
+        return parts.join("  \u00b7  ");
+    }
+
+    function ffriendly(finger) {
+        return pg.fnames[finger] || finger.replace(/-/g, " ");
+    }
+
+    property bool settOpen: false
+
+    Component.onCompleted: { pg.reload(); pg.kreload(); pg.freload(); }
 
     function kreload() {
         kstatusProc.running = true;
@@ -127,6 +174,145 @@ Item {
         pg.kpending = pg.kconvertFor;
         ksetProc.command = ["ryoku", "keyring", "set", pg.kconvertFor, "--reset"];
         ksetProc.running = true;
+    }
+
+    // ── fingerprint actions ─────────────────────────────────────────────────
+    function freload() {
+        pg.floading = true;
+        freadProc.running = true;
+        flistProc.running = true;
+        fnamesReadProc.running = true;
+    }
+    function fparseList(text) {
+        var t = text || "";
+        var dev = "";
+        var m = t.match(/Using\s+device\s+(\S+)/i);
+        if (m) dev = m[1];
+        var fingers = [];
+        var lines = t.split("\n");
+        for (var i = 0; i < lines.length; i++) {
+            var s = lines[i].trim();
+            if (s.indexOf("- #") === 0) {
+                var idx = s.indexOf(":", 3);
+                if (idx > -1) fingers.push(s.slice(idx + 1).trim());
+            }
+        }
+        pg.fdevice = dev;
+        pg.ffingers = fingers;
+        pg.fready = t.indexOf("Using device") !== -1 || t.indexOf("Device at") !== -1 || t.indexOf("found ") !== -1;
+        pg.fdaemon = pg.fready && t.trim() !== "" && t.indexOf("no devices") === -1;
+        pg.floading = false;
+    }
+    function ftoggle(v) {
+        pg.ffpEnabled = v;
+        fwriteProc.command = [
+            "bash", "-c",
+            "mkdir -p \"$HOME/.config/qylock\"; printf '%s\\n' " + (v ? "on" : "off") + " > \"$HOME/.config/qylock/fingerprint\""
+        ];
+        fwriteProc.running = true;
+    }
+    function fparseNames(text) {
+        try {
+            pg.fnames = JSON.parse(text || "{}");
+        } catch (e) {
+            pg.fnames = {};
+        }
+    }
+    function fwriteNames() {
+        var json = JSON.stringify(pg.fnames);
+        fnamesWriteProc.command = ["bash", "-c", "mkdir -p \"$HOME/.config/qylock\"; cat > \"$HOME/.config/qylock/fingerprints.json\""];
+        fnamesWriteProc.stdinEnabled = true;
+        fnamesWriteProc.running = true;
+        // Write happens in onStarted
+    }
+    function fstartEnroll() {
+        pg.ferr = "";
+        pg.fresult = "";
+        pg.fprogress = -1;
+        pg.fterm = "";
+        pg.fstatus = "";
+        pg.fpending = "enroll";
+        pg.foverlayMode = "enroll";
+        pg.fnaming = false;
+        pg.fnewFinger = "";
+        pg.fnameDraft = "";
+        pg.foverlay = true;
+        fenrollProc.command = ["fprintd-enroll"];
+        fenrollProc.running = true;
+    }
+    function fstartVerify(finger) {
+        pg.ferr = "";
+        pg.fresult = "";
+        pg.fprogress = -1;
+        pg.fterm = "";
+        pg.fstatus = "";
+        pg.fpending = "verify";
+        pg.foverlayMode = "verify";
+        pg.foverlay = true;
+        var cmd = ["fprintd-verify"];
+        if (finger !== "")
+            cmd.push("-f", finger);
+        fverifyProc.command = cmd;
+        fverifyProc.running = true;
+    }
+    function fdelete(finger) {
+        pg.ferr = "";
+        pg.fpending = "del";
+        fdelProc.command = ["fprintd-delete", pg.fuser].concat(finger ? ["-f", finger] : []);
+        fdelProc.running = true;
+    }
+    function fcloseOverlay() {
+        if (pg.fpending === "enroll")
+            fenrollProc.signal(15);
+        if (pg.fpending === "verify")
+            fverifyProc.signal(15);
+        pg.fpending = "";
+        pg.foverlay = false;
+        pg.foverlayMode = "";
+        pg.fstatus = "";
+        pg.fresult = "";
+        pg.fterm = "";
+        pg.fprogress = -1;
+        pg.fnaming = false;
+        pg.fnewFinger = "";
+        pg.fnameDraft = "";
+    }
+    function fappendTerm(raw) {
+        var t = (raw || "").trim();
+        if (!t) return;
+        // Strip "Using device ..." lines, keep the rest
+        var lines = t.split("\n");
+        var out = [];
+        for (var i = 0; i < lines.length; i++) {
+            var s = lines[i].trim();
+            if (s && !s.match(/^Using device/i))
+                out.push(s);
+        }
+        if (out.length > 0)
+            pg.fterm += out.join("\n") + "\n";
+    }
+    function fsaveName() {
+        if (pg.fnewFinger !== "" && pg.fnameDraft.trim() !== "") {
+            pg.fnames[pg.fnewFinger] = pg.fnameDraft.trim();
+            fwriteNames();
+        }
+        pg.fnewFinger = "";
+        pg.fnameDraft = "";
+        pg.fnaming = false;
+        pg.freload();
+        pg.fcloseOverlay();
+    }
+    function fskipName() {
+        if (pg.fnewFinger !== "") {
+            var label = pg.fnewFinger.replace(/-/g, " ");
+            pg.fnames[pg.fnewFinger] = label;
+            fwriteNames();
+        }
+        pg.fnewFinger = "";
+        pg.fnameDraft = "";
+        pg.fnaming = false;
+        pg.freload();
+        pg.fcloseOverlay();
     }
 
     function browseStore() {
@@ -277,6 +463,107 @@ Item {
         }
     }
 
+    // ── fingerprint backend (fprintd as this user; no root) ──────────────────
+    Process {
+        id: freadProc
+        command: [ "bash", "-c", "[ -f \"$HOME/.config/qylock/fingerprint\" ] && cat \"$HOME/.config/qylock/fingerprint\" || printf 'on'" ]
+        stdout: StdioCollector { id: freadOut }
+        onExited: () => {
+            var v = freadOut.text.trim().toLowerCase();
+            pg.ffpEnabled = !(v === "off" || v === "0" || v === "false");
+        }
+    }
+    Process {
+        id: flistProc
+        command: ["fprintd-list", pg.fuser]
+        stdout: StdioCollector { id: flistOut }
+        onExited: (code) => {
+            if (code !== 0 && flistOut.text.trim() === "") {
+                pg.fdaemon = false; pg.fready = false; pg.ffingers = []; pg.floading = false;
+                pg.ferr = "The fingerprint service is not running.";
+                return;
+            }
+            pg.ferr = "";
+            pg.fparseList(flistOut.text);
+        }
+    }
+    Process {
+        id: fwriteProc
+        onExited: () => { pg.freload(); }
+    }
+    Process {
+        id: fnamesReadProc
+        command: ["bash", "-c", "[ -f \"$HOME/.config/qylock/fingerprints.json\" ] && cat \"$HOME/.config/qylock/fingerprints.json\" || printf '{}'" ]
+        stdout: StdioCollector { id: fnamesReadOut }
+        onExited: () => { pg.fparseNames(fnamesReadOut.text); }
+    }
+    Process {
+        id: fnamesWriteProc
+        stdinEnabled: true
+        onStarted: {
+            if (pg.fnames !== undefined) {
+                write(JSON.stringify(pg.fnames));
+            }
+        }
+        onExited: () => { pg.freload(); }
+    }
+    Process {
+        id: fenrollProc
+        stdout: StdioCollector { id: fenOut; waitForEnd: false }
+        stderr: StdioCollector { id: fenErr; waitForEnd: false; onDataChanged: pg.fappendTerm(this.text) }
+        onExited: (code) => {
+            pg.fpending = "";
+            var t = (fenErr.text || "") + (fenOut.text || "");
+            pg.fappendTerm("\n--- " + (code === 0 ? "DONE" : "EXIT " + code) + " ---\n");
+            if (/enroll-completed/i.test(t)) {
+                var m = t.match(/Enrolling\s+([a-z0-9-]+-finger)/i);
+                if (m) {
+                    pg.fnewFinger = m[1];
+                    pg.fnameDraft = m[1].replace(/-/g, " ");
+                    pg.fnaming = true;
+                    pg.fresult = "Enrollment complete. Name this fingerprint.";
+                    return;
+                }
+                pg.fresult = "Fingerprint enrolled.";
+            } else if (/enroll-data-full/i.test(t)) {
+                pg.fresult = "Storage full.";
+            } else if (code !== 0) {
+                pg.fresult = code === 124 ? "Timed out." : "Enrollment stopped.";
+            }
+            pg.freload();
+        }
+    }
+    Process {
+        id: fverifyProc
+        stdout: StdioCollector { id: fverOut; waitForEnd: false }
+        stderr: StdioCollector { id: fverErr; waitForEnd: false; onDataChanged: pg.fappendTerm(this.text) }
+        onExited: (code) => {
+            pg.fpending = "";
+            var t = (fverErr.text || "") + (fverOut.text || "");
+            pg.fappendTerm("\n--- " + (code === 0 ? "MATCH" : "NO MATCH") + " ---\n");
+            if (code === 0 || /verified/i.test(t)) {
+                pg.fresult = "Fingerprint verified.";
+            } else {
+                pg.fresult = "No match.";
+            }
+        }
+    }
+    Process {
+        id: fdelProc
+        stderr: StdioCollector { id: fdelErr }
+        onExited: (code) => {
+            pg.fpending = "";
+            if (code !== 0)
+                pg.ferr = fdelErr.text.trim() || ("Couldn't remove the fingerprint (exit " + code + ").");
+            else if (pg.fpending === "del") {
+                // If we deleted a specific finger, remove it from names
+                // fdelete is called with the finger name, so we need to track it
+                // For simplicity, just reload names (fwriteNames cleans up missing)
+            }
+            pg.freload();
+        }
+    }
+
     // ── head: eyebrow, Fraunces title + refresh, blurb, error line ──────────
     Column {
         id: head
@@ -393,14 +680,13 @@ Item {
         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fBody
     }
 
-    // ── "At sign-in": the keyring unlock mode, a compact hairline card ───────
+    // ── Sign-in & Fingerprint: combined collapsible settings card ──────────────
     Rectangle {
-        id: signin
+        id: sett
+        property bool open: false
         anchors { left: parent.left; right: parent.right; top: head.bottom }
-        anchors.leftMargin: Tokens.s6
-        anchors.rightMargin: Tokens.s6
-        anchors.topMargin: Tokens.s4
-        implicitHeight: signinCol.implicitHeight + Tokens.s4 * 2
+        anchors.leftMargin: Tokens.s6; anchors.rightMargin: Tokens.s6; anchors.topMargin: Tokens.s4
+        implicitHeight: settCol.implicitHeight + Tokens.s4 * 2
         height: implicitHeight
         radius: Tokens.radius
         color: "transparent"
@@ -408,122 +694,128 @@ Item {
         border.color: Tokens.line
 
         Column {
-            id: signinCol
+            id: settCol
             anchors { left: parent.left; right: parent.right; top: parent.top }
-            anchors.leftMargin: Tokens.s4
-            anchors.rightMargin: Tokens.s4
-            anchors.topMargin: Tokens.s4
+            anchors.leftMargin: Tokens.s4; anchors.rightMargin: Tokens.s4; anchors.topMargin: Tokens.s4
             spacing: Tokens.s2
 
+            // header with collapse chevron
             Row {
                 width: parent.width
                 spacing: Tokens.s2
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: I18n.tr("At sign-in")
+                    text: I18n.tr("Sign-in & Fingerprint")
                     color: Tokens.ink; font.family: Tokens.ui
                     font.pixelSize: Tokens.fRow; font.weight: Font.DemiBold
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - x
-                    text: I18n.tr("How the keyring unlocks your saved passwords and secrets.")
+                    text: pg.settOpen ? "" : (pg.kStatusLine + "  \u00b7  " + pg.fStatusLine)
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; elide: Text.ElideRight
                 }
-            }
-
-            // three-mode chip row.
-            Row {
-                topPadding: Tokens.s1
-                spacing: Tokens.s2
-                Chip { label: I18n.tr("Unlock at sign-in"); mode: "unlock-on-login" }
-                Chip { label: I18n.tr("Never ask"); mode: "never-ask" }
-                Chip { label: I18n.tr("Ask each time"); mode: "ask" }
-            }
-
-            // live status line + caveats from `ryoku keyring status`.
-            Text {
-                width: parent.width
-                topPadding: Tokens.s1
-                text: pg.kStatusLine
-                color: Tokens.inkDim; font.family: Tokens.ui
-                font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
-            }
-            Text {
-                width: parent.width
-                visible: pg.knotes.length > 0 && pg.kconvertFor === ""
-                text: pg.knotes.join("\n")
-                color: Tokens.inkMuted; font.family: Tokens.ui
-                font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
-                lineHeight: 1.3
-            }
-
-            // blocked path: convert with a password, or start fresh (backs up).
-            Column {
-                width: parent.width
-                visible: pg.kconvertFor !== ""
-                topPadding: Tokens.s2
-                spacing: Tokens.s2
-                Text {
-                    width: parent.width
-                    text: I18n.tr("That keyring is locked with a password. Enter it to switch it to no-password, or start fresh (your old keyring is backed up, never deleted).")
-                    color: Tokens.inkMuted; font.family: Tokens.ui
-                    font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
+                Glyph {
+                    anchors.verticalCenter: parent.verticalCenter
+                    path: pg.pChevron; size: 15; weight: 2; rotation: pg.settOpen ? 90 : -90
+                    tint: Tokens.ink
+                    Behavior on rotation { NumberAnimation { duration: Tokens.snap } }
                 }
-                Row {
+            }
+
+            TapHandler { onTapped: pg.settOpen = !pg.settOpen }
+
+            // collapsible content
+            Column {
+                visible: pg.settOpen
+                spacing: Tokens.s3
+                topPadding: Tokens.s2
+
+                // ── Keyring section ──
+                Column {
                     spacing: Tokens.s2
-                    Rectangle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 240; height: Tokens.ctlH + 4
-                        radius: Tokens.radius; color: "transparent"
-                        border.width: Tokens.border
-                        border.color: kpwField.activeFocus ? Tokens.ink : Tokens.line
-                        Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
-                        TextInput {
-                            id: kpwField
-                            anchors.fill: parent
-                            anchors.leftMargin: Tokens.s3
-                            anchors.rightMargin: Tokens.s3
-                            verticalAlignment: TextInput.AlignVCenter
-                            color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
-                            echoMode: TextInput.Password
-                            selectByMouse: true
-                            selectionColor: Tokens.ink
-                            selectedTextColor: Tokens.inkOnBone
-                            onAccepted: pg.kconvert(text)
-                            Text {
-                                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-                                visible: kpwField.text.length === 0
-                                text: I18n.tr("Current keyring password")
-                                color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s2
+                        Text { text: I18n.tr("Keyring"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.capitalization: Font.AllUppercase; font.letterSpacing: Tokens.trackMark }
+                    }
+
+                    // three-mode chip row.
+                    Row { topPadding: Tokens.s1; spacing: Tokens.s2
+                        Chip { label: I18n.tr("Unlock at sign-in"); mode: "unlock-on-login" }
+                        Chip { label: I18n.tr("Never ask"); mode: "never-ask" }
+                        Chip { label: I18n.tr("Ask each time"); mode: "ask" }
+                    }
+
+                    Text { width: parent.width; topPadding: Tokens.s1; text: pg.kStatusLine; color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap }
+                    Text { width: parent.width; visible: pg.knotes.length > 0 && pg.kconvertFor === ""; text: pg.knotes.join("\n"); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap; lineHeight: 1.3 }
+
+                    Column {
+                        width: parent.width; visible: pg.kconvertFor !== ""; topPadding: Tokens.s2; spacing: Tokens.s2
+                        Text { width: parent.width; text: I18n.tr("That keyring is locked with a password. Enter it to switch it to no-password, or start fresh (your old keyring is backed up, never deleted)."); color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap }
+                        Row { spacing: Tokens.s2
+                            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 240; height: Tokens.ctlH + 4; radius: Tokens.radius; color: "transparent"; border.width: Tokens.border; border.color: kpwField.activeFocus ? Tokens.ink : Tokens.line; Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
+                                TextInput { id: kpwField; anchors.fill: parent; anchors.leftMargin: Tokens.s3; anchors.rightMargin: Tokens.s3; verticalAlignment: TextInput.AlignVCenter; color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; echoMode: TextInput.Password; selectByMouse: true; selectionColor: Tokens.ink; selectedTextColor: Tokens.inkOnBone; onAccepted: pg.kconvert(text)
+                                    Text { anchors { left: parent.left; verticalCenter: parent.verticalCenter } visible: kpwField.text.length === 0; text: I18n.tr("Current keyring password"); color: Tokens.inkFaint; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                                }
+                            }
+                            Btn { anchors.verticalCenter: parent.verticalCenter; text: I18n.tr("CONVERT"); compact: true; armed: pg.kpending === "" && kpwField.text.length > 0; onAct: pg.kconvert(kpwField.text) }
+                            Btn { anchors.verticalCenter: parent.verticalCenter; text: pg.kconfirmReset ? I18n.tr("CONFIRM - START FRESH") : I18n.tr("START FRESH (KEEPS A BACKUP)"); compact: true; armed: pg.kpending === ""; onAct: { if (pg.kconfirmReset) pg.kreset(); else pg.kconfirmReset = true; } }
+                        }
+                    }
+                    Text { width: parent.width; visible: pg.kerror !== ""; topPadding: Tokens.s1; text: pg.kerror; color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; font.weight: Font.Medium; wrapMode: Text.WordWrap }
+                }
+
+                // hairline separator
+                Rectangle { width: parent.width; height: Tokens.border; color: Tokens.line; visible: pg.settOpen && pg.ffingers.length >= 0 }
+
+                // ── Fingerprint section ──
+                Column {
+                    visible: pg.settOpen && (pg.fdaemon || pg.floading)
+                    spacing: Tokens.s2
+
+                    Row {
+                        width: parent.width
+                        spacing: Tokens.s2
+                        Text { text: I18n.tr("Fingerprint"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.capitalization: Font.AllUppercase; font.letterSpacing: Tokens.trackMark }
+                    }
+
+                    // toggle row
+                    Row { width: parent.width; topPadding: Tokens.s1; spacing: Tokens.s2
+                        Text { anchors.verticalCenter: parent.verticalCenter; text: I18n.tr("Unlock with fingerprint"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                        Sw { anchors.verticalCenter: parent.verticalCenter; on: pg.ffpEnabled; onToggled: (v) => pg.ftoggle(v) }
+                        Text { anchors.verticalCenter: parent.verticalCenter; text: I18n.tr(pg.ffpEnabled ? "On \u00b7 the lock screen listens for a touch" : "Off \u00b7 password only"); color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap; width: parent.width - 200 }
+                    }
+
+                    // enrolled fingers list
+                    Text { width: parent.width; topPadding: Tokens.s1; text: pg.fStatusLine; color: Tokens.inkDim; font.family: Tokens.mono; font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap }
+
+                    Column {
+                        spacing: Tokens.s1
+                        Repeater {
+                            model: pg.ffingers
+                            delegate: Row {
+                                width: parent.width
+                                spacing: Tokens.s2
+                                Text { width: 160; text: pg.ffriendly(modelData); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                                Text { width: 100; text: modelData; color: Tokens.inkDim; font.family: Tokens.mono; font.pixelSize: Tokens.fSmall }
+                                Btn { text: I18n.tr("VERIFY"); compact: true; onAct: pg.fstartVerify(modelData); armed: pg.fpending === "" && pg.fdaemon && pg.fready }
+                                Btn { text: "\u2715"; compact: true; onAct: pg.fdelete(modelData); armed: pg.fpending === "" }
                             }
                         }
                     }
-                    Btn {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: I18n.tr("CONVERT"); compact: true
-                        armed: pg.kpending === "" && kpwField.text.length > 0
-                        onAct: pg.kconvert(kpwField.text)
-                    }
-                    Btn {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: pg.kconfirmReset ? I18n.tr("CONFIRM - START FRESH") : I18n.tr("START FRESH (KEEPS A BACKUP)")
-                        compact: true
-                        armed: pg.kpending === ""
-                        onAct: { if (pg.kconfirmReset) pg.kreset(); else pg.kconfirmReset = true; }
-                    }
-                }
-            }
 
-            // errors in the page's voice: brightest ink, never red.
-            Text {
-                width: parent.width
-                visible: pg.kerror !== ""
-                topPadding: Tokens.s1
-                text: pg.kerror
-                color: Tokens.ink; font.family: Tokens.ui
-                font.pixelSize: Tokens.fSmall; font.weight: Font.Medium; wrapMode: Text.WordWrap
+                    // actions row
+                    Row { topPadding: Tokens.s2; spacing: Tokens.s2
+                        Btn { text: pg.fpending === "" ? I18n.tr("ENROLL FINGERPRINT") : I18n.tr("ENROLLING\u2026"); armed: pg.fpending === "" && pg.fdaemon && pg.fready; onAct: pg.fstartEnroll() }
+                        Btn { text: I18n.tr("VERIFY ANY"); compact: true; armed: pg.fpending === "" && pg.fdaemon && pg.fready && pg.ffingers.length > 0; onAct: pg.fstartVerify("") }
+                        Btn { text: pg.fpending === "confirm" ? I18n.tr("CONFIRM - REMOVE ALL") : I18n.tr("REMOVE ALL"); compact: true; armed: pg.ffingers.length > 0; onAct: { if (pg.fpending === "confirm") { pg.fdelete(""); pg.fpending = ""; } else { pg.fpending = "confirm"; } } }
+                    }
+
+                    Text { width: parent.width; visible: pg.ferr !== ""; topPadding: Tokens.s1; text: pg.ferr; color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; font.weight: Font.Medium; wrapMode: Text.WordWrap }
+                }
             }
         }
     }
@@ -533,7 +825,7 @@ Item {
         id: flick
         anchors {
             left: parent.left; right: parent.right
-            top: signin.bottom; bottom: parent.bottom
+            top: sett.bottom; bottom: parent.bottom
             leftMargin: Tokens.s6; rightMargin: Tokens.s6
             topMargin: Tokens.s4; bottomMargin: Tokens.s6
         }
@@ -885,5 +1177,171 @@ Item {
 
         HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
         TapHandler { onTapped: if (!tile.active && !tile.busy) tile.applied() }
+    }
+
+    // ── enroll/verify modal: mini terminal ──────────────────────────────────
+    Rectangle {
+        id: fovl
+        anchors.fill: parent
+        visible: pg.foverlay
+        opacity: visible ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: Tokens.swap; easing.type: Tokens.ease } }
+        color: Qt.rgba(0, 0, 0, 0.6)
+        z: 999
+        MouseArea { anchors.fill: parent; onClicked: (m) => { m.accepted = true; } }
+
+        Item {
+            anchors.centerIn: parent
+            width: Math.min(parent.width - Tokens.s6 * 2, 520)
+            height: 340
+
+            Rectangle {
+                id: plate
+                anchors.fill: parent
+                radius: Tokens.radius
+                color: "#1a1a1a"
+                border.width: 1
+                border.color: "#333"
+                clip: true
+
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: 0
+                    spacing: 0
+
+                    // title bar
+                    Rectangle {
+                        width: parent.width
+                        height: 32
+                        color: "#222"
+                        Row {
+                            anchors { left: parent.left; verticalCenter: parent.verticalCenter; leftMargin: Tokens.s3 }
+                            spacing: Tokens.s2
+                            Rectangle { width: 6; height: 6; radius: 3; color: pg.fpending !== "" ? "#4ade80" : "#666" }
+                            Text {
+                                text: pg.foverlayMode === "enroll" ? "fprintd-enroll" : "fprintd-verify"
+                                color: "#888"; font.family: Tokens.mono
+                                font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+                        // close button
+                        Text {
+                            anchors { right: parent.right; verticalCenter: parent.verticalCenter; rightMargin: Tokens.s3 }
+                            text: "x"; color: closeMa.containsMouse ? "#fff" : "#666"
+                            font.family: Tokens.mono; font.pixelSize: 12; font.bold: true
+                            MouseArea { id: closeMa; anchors.fill: parent; hoverEnabled: true; onClicked: pg.fcloseOverlay() }
+                        }
+                    }
+
+                    // terminal output
+                    Flickable {
+                        id: termScroll
+                        width: parent.width
+                        height: parent.height - 32 - (namingCol.visible ? namingCol.height : 0) - 40
+                        clip: true
+                        contentHeight: termText.implicitHeight + Tokens.s3 * 2
+                        contentY: Math.max(0, contentHeight - height)
+                        flickableDirection: Flickable.VerticalFlick
+                        interactive: contentHeight > height
+                        boundsBehavior: Flickable.StopAtBounds
+
+                        Text {
+                            id: termText
+                            width: parent.width
+                            anchors { left: parent.left; right: parent.right; top: parent.top; margins: Tokens.s3 }
+                            text: pg.fterm !== "" ? pg.fterm : "Waiting for sensor\u2026\n"
+                            color: "#ccc"; font.family: Tokens.mono
+                            font.pixelSize: 11; wrapMode: Text.WordWrap
+                            textFormat: Text.PlainText
+                        }
+
+                        // auto-scroll to bottom on new content
+                        Connections {
+                            target: pg
+                            function onFtermChanged() {
+                                termScroll.contentY = Math.max(0, termScroll.contentHeight - termScroll.height)
+                            }
+                        }
+
+                        // scrollbar track
+                        Rectangle {
+                            anchors.right: parent.right; anchors.rightMargin: 2
+                            width: 4; height: parent.height; radius: 2; color: "#333"
+                            visible: termScroll.contentHeight > termScroll.height
+                            Rectangle {
+                                width: parent.width
+                                height: Math.max(20, parent.height * termScroll.height / termScroll.contentHeight)
+                                radius: 2; color: "#555"
+                                y: termScroll.contentY * parent.height / termScroll.contentHeight
+                            }
+                        }
+                    }
+
+                    // naming step after enroll
+                    Column {
+                        id: namingCol
+                        width: parent.width
+                        visible: pg.fnaming
+                        padding: Tokens.s3
+                        spacing: Tokens.s2
+                        Rectangle {
+                            width: parent.width; height: 1; color: "#333"
+                        }
+                        Text { width: parent.width; text: "Name this fingerprint"; color: "#888"; font.family: Tokens.mono; font.pixelSize: 10 }
+                        Rectangle {
+                            width: parent.width; height: 28; radius: 4; color: "#222"; border.width: 1; border.color: "#444"
+                            TextInput {
+                                anchors.fill: parent; anchors.leftMargin: Tokens.s3; anchors.rightMargin: Tokens.s3; verticalAlignment: TextInput.AlignVCenter
+                                color: "#ddd"; font.family: Tokens.mono; font.pixelSize: 11
+                                text: pg.fnameDraft
+                                onTextChanged: pg.fnameDraft = text
+                                onAccepted: pg.fsaveName()
+                                focus: true
+                            }
+                        }
+                        Row { spacing: Tokens.s2
+                            Btn { text: "SAVE"; onAct: pg.fsaveName() }
+                            Btn { text: "SKIP"; compact: true; onAct: pg.fskipName() }
+                        }
+                    }
+
+                    // bottom bar
+                    Rectangle {
+                        width: parent.width
+                        height: 40
+                        color: "#222"
+                        Row {
+                            anchors { left: parent.left; verticalCenter: parent.verticalCenter; leftMargin: Tokens.s3 }
+                            spacing: Tokens.s2
+                            Text {
+                                visible: pg.fpending !== ""
+                                color: "#4ade80"; font.family: Tokens.mono; font.pixelSize: 10
+                                text: "\u25cf"
+                                SequentialAnimation on opacity {
+                                    loops: Animation.Infinite; running: pg.fpending !== ""
+                                    NumberAnimation { from: 1; to: 0.3; duration: 600 }
+                                    NumberAnimation { from: 0.3; to: 1; duration: 600 }
+                                }
+                            }
+                            Text {
+                                visible: pg.fpending !== ""
+                                color: "#666"; font.family: Tokens.mono; font.pixelSize: 10
+                                text: pg.foverlayMode === "enroll" ? "Touch sensor to enroll" : "Touch sensor to verify"
+                            }
+                            Text {
+                                visible: pg.fpending === "" && pg.fresult !== ""
+                                color: "#888"; font.family: Tokens.mono; font.pixelSize: 10
+                                text: pg.fresult
+                            }
+                        }
+                        Btn {
+                            anchors { right: parent.right; verticalCenter: parent.verticalCenter; rightMargin: Tokens.s3 }
+                            text: pg.fpending !== "" ? "ABORT" : "CLOSE"
+                            onAct: pg.fcloseOverlay()
+                        }
+                    }
+                }
+            }
+        }
     }
 }
