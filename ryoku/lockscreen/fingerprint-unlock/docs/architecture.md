@@ -1,217 +1,102 @@
-# Architecture: Fingerprint Unlock
+# Architecture
 
-This document explains how the fingerprint unlock feature works at every layer,
-from the PAM stack up to the theme UI.
+## The grosshack mechanism
 
-## Overview
-
-```
-+-------------------+     +-------------------+     +-------------------+
-|   Theme (QML)     |     |  SddmShim (QML)   |     |  PAM Service      |
-|   Main.qml        |<--->|  SddmShim.qml     |<--->|  ryoku-lock       |
-|                   |     |                   |     |                   |
-| - fpHint text     |     | - PamContext      |     | - grosshack pair  |
-| - fpPulse anim    |     | - fpEnabled       |     | - pam_fprintd     |
-| - boomReveal      |     | - fpHasFingers    |     | - pam_unix        |
-| - _unlocked guard |     | - armFingerprint  |     +-------------------+
-+-------------------+     | - resetAuth       |
-                          +-------------------+
-```
-
-## PAM Stack (`assets/pam/ryoku-lock`)
+`pam_fprintd_grosshack.so` is a patched `pam_fprintd`: at conversation start
+it forks `fprintd-verify` **and** presents the password prompt. The sensor
+scans while `pam_unix` waits — either success ends the conversation:
 
 ```
-auth  sufficient  pam_fprintd_grosshack.so
-auth  sufficient  pam_unix.so try_first_pass nullok
-auth  required    pam_env.so
-auth  required    pam_deny.so
-account required  pam_unix.so
-password required pam_deny.so
-session required  pam_unix.so
+auth  sufficient  pam_fprintd_grosshack.so   touch -> success
+auth  sufficient  pam_unix.so                password -> success
 ```
 
-### How grosshack works
+## PAM services
 
-`pam_fprintd_grosshack.so` is a modified version of `pam_fprintd` that forks
-`fprintd-verify` at the **start** of the PAM conversation. This means:
+| Service | File | Loaded by |
+|---|---|---|
+| lock screen | `~/.local/share/quickshell-lockscreen/assets/pam/ryoku-lock` | `PamContext.configDirectory` (no `/etc/pam.d` edit) |
+| sudo / sddm | `/etc/pam.d/sudo`, `/etc/pam.d/sddm` | one injected line via pkexec |
 
-1. The fingerprint sensor begins scanning immediately
-2. `pam_unix.so` simultaneously waits for a typed password
-3. The **first** successful auth (touch OR type) wins
-4. Both paths race in the same PAM conversation
-
-This is the same mechanism used in `/etc/pam.d/sddm`, so the behavior at the
-lock screen matches the sign-in screen exactly.
-
-### Why inline (not include)
-
-The `ryoku-lock` file lives in the lock's own `assets/pam/` directory and is
-loaded via `PamContext.configDirectory`. An `include system-login` would resolve
-against this confdir (not `/etc/pam.d`) and fail. The inline tail mirrors the
-module list the bundled DMS lock ships for its lock services.
-
-## SddmShim (`shim/SddmShim.qml`)
-
-The shim replaces the default Quickshell SDDM shim to add fingerprint support.
-It exposes the same API as a real SDDM greeter so themes work unchanged.
-
-### Properties exposed to theme
-
-| Property | Type | Source | Purpose |
-|---|---|---|---|
-| `sddm.fingerprintHint` | bool | hardcoded `true` | Gate: show the sensor hint (false under real SDDM) |
-| `sddm.fingerprintReady` | bool | `fpEnabled && fpHasFingers` | Sensor is available |
-| `sddm.fingerprintState` | string | PAM conversation | `idle` / `scanning` / `success` / `fail` |
-| `sddm.fingerprintUnlock` | bool | PAM completion | True if sensor won (not typed) |
-
-### Readiness probes
-
-Two independent probes run on lock start:
-
-1. **fpToggleProc**: reads `~/.config/qylock/fingerprint` (the Settings toggle)
-2. **fpListProc**: runs `fprintd-list` to check for enrolled fingers
-
-Both call `maybeArm()` when done. The arm only fires when ALL conditions are met:
-- Toggle is on (or file missing, default on)
-- At least one finger is enrolled
-- `armWhenReady` is true (lock surface is secured)
-- No PAM conversation is already active
-
-### PAM conversation flow
+`ryoku-lock` stack:
 
 ```
-armFingerprint()
-  -> pam.user = currentUser
-  -> pam.pendingPassword = ""
-  -> pam.start()
-  -> PAM reads ryoku-lock service
-  -> pam_fprintd_grossfork forks fprintd-verify
-  -> sensor begins scanning
-  -> fingerprintState = "scanning"
-
-  [user touches sensor]
-  -> fprintd-verify succeeds
-  -> PAM conversation completes with Success
-  -> onCompleted(PamResult.Success)
-  -> fingerprintUnlock = (scanning && !typed)
-  -> fingerprintState = "success"
-  -> sddm.loginSucceeded()
-  -> loginctl unlock-session
-
-  [OR user types password]
-  -> onResponseRequiredChanged (pam_unix prompt)
-  -> pam.respond(password)
-  -> PAM conversation completes with Success
-  -> same flow as above, but fingerprintUnlock = false
-
-  [OR scan fails]
-  -> PAM conversation completes with failure
-  -> onCompleted(non-Success)
-  -> fingerprintState = "fail"
-  -> sddm.loginFailed()
-  -> rearmTimer.restart() (700ms)
-  -> sensor re-arms for next touch
+auth        sufficient  pam_fprintd_grosshack.so
+auth        sufficient  pam_unix.so try_first_pass nullok
+auth        required    pam_env.so
+auth        required    pam_deny.so
+account     required    pam_unix.so
+password    required    pam_deny.so
+session     required    pam_unix.so
 ```
 
-## Lock Shell (`lock_shell.qml`)
+Quickshell forks a subprocess per conversation which calls
+`pam_start_confdir(config, user, conv, configDirectory)` then
+`pam_authenticate`. Signals surface as QML properties: `active`,
+`responseRequired`, `message`; results arrive in `onCompleted`
+(`PamResult.Success/Failed/MaxTries`) and failures without completion in
+`onError`.
 
-The entry point for `ryoku-shell lock`. Key fingerprint integration:
-
-### Wayland session lock
-
-```
-WlSessionLock
-  onSecureChanged:
-    if secure:
-      write qylock.locked marker
-      sddmShim.armWhenReady = true  <-- arms the sensor
-    else:
-      remove qylock.locked marker
-      sddmShim.armWhenReady = false
-      sddmShim.resetAuth()          <-- aborts PAM conversation
-```
-
-### Login success handler
+## Arm lifecycle (lock screen)
 
 ```
-onLoginSucceeded:
-  shellRoot.authenticated = true
-  loginctl unlock-session
-  quitTimer.start()  <-- exits the lock screen
+Super+L -> ryoku-shell lock -> WlSessionLock.secure == true
+    -> shim.armWhenReady = true          (onArmWhenReadyChanged)
+    -> maybeArm()                        (also called by both probes)
+         armFingerprint()
+              armPrepProc: pkill -u $USER -x fprintd-verify; sleep 0.2
+              pam.start()                ("ryoku-lock" from assets/pam)
+                  state = "scanning"     theme shows SENSOR ACTIVE
+touch -> EnrollStatus/VerifyStatus match
+       -> onCompleted(Success) -> loginSucceeded() -> reveal + unlock
+fail/timeout/error -> onCompleted(Failed) | onError
+                   -> rearmTimer (1s) -> armFingerprint() again
+unlock (secure false) -> resetAuth(): abort + state=idle
 ```
 
-## Theme (`Main.qml`)
+### Fix 1: the arm race
 
-### Fingerprint hint
+The readiness probes (`fprintd-list` + toggle file) usually finish *before*
+the compositor confirms the lock surface. If arming only happens when probes
+complete, `armWhenReady` flips true afterwards and nothing ever arms. The
+shim therefore arms on `onArmWhenReadyChanged` as well.
 
-The hint sits between the user name and the password field. It uses:
-- `mainText` color (full brightness) while scanning, not dim `subColor`
-- A pulse animation (opacity 1.0 -> 0.45 -> 1.0) while the sensor listens
-- Red (#ff4444) on failure
-- `height: 0` when invisible (clean collapse)
+### Fix 2: stale verifiers
 
-### Race condition protection
+Killing quickshell's PAM subprocess (abort/unlock) orphans the forked
+`fprintd-verify` grandchild. The orphan keeps the sensor claim, so the next
+scan cannot start — the user touches, nothing happens, and only burning a
+password cycle (fail → re-arm → fresh verifier) recovers. Every arm now runs
+`pkill -u $USER -x fprintd-verify` first.
 
-An `_unlocked` guard prevents `boomSequence.onFinished: doLogin()` from firing
-a second PAM auth if the fingerprint wins mid-windup:
+### Robustness
 
-```
-onLoginSucceeded:
-  if fingerprintUnlock:
-    _unlocked = true
-    windupAnim.stop()
-    boomTriggerTimer.stop()
-    boomSequence.stop()    <-- kills the running animation
-    boomReveal.start()     <-- plays reveal without doLogin()
-```
+- `onError` resets state instead of leaving "scanning" forever
+- finger probe retries up to 3× (fprintd is D-Bus activated, may be waking)
+- `pam.start()` failure is logged with config/dir/user context
 
-Without this guard, if the fingerprint wins after `boomTriggerTimer` fires
-(at 1450ms) but before `boomSequence` finishes, `doLogin()` would be called
-a second time, starting a duplicate PAM conversation.
+## Settings backend (hub)
 
-### Reveal flourish
+All fprintd interaction runs as the invoking user; only the sudo/SDDM
+toggles use pkexec.
 
-On sensor win, `boomReveal` plays the same scale/flash animation as the
-windup's reveal, but without `onFinished: doLogin()`. This gives visual
-feedback that the unlock succeeded without triggering a second auth.
+| Concern | Mechanism |
+|---|---|
+| enrolled fingers + sensor name | `fprintd-list $USER` (parsed) |
+| enroll progress | stage passes parsed live from stdout/stderr of `fprintd-enroll`; total from D-Bus property `num-enroll-stages` (`busctl call net.reactivated.Fprint ...`) |
+| verify | `fprintd-verify [-f finger]`, exit code cross-checked against `Verify result:` token |
+| delete | `fprintd-delete [-f finger]`; friendly-name labels in `~/.config/qylock/fingerprints.json` cleaned in sync |
+| lock toggle | `~/.config/qylock/fingerprint` (`on`/`off`) |
+| sudo/sddm toggles | `pkexec bash -c 'sed -i "1i <line>"'` to add, `sed -i '/pam_fprintd_grosshack/d'` to remove; backup written first |
 
-## Settings Page (`LockscreenPage.qml`)
+Stream parsing uses per-stream offsets so cumulative `StdioCollector` buffers
+are never counted twice. Retry statuses (`enroll-swipe-too-short`,
+`enroll-finger-not-centered`, …) map to human guidance lines in the modal.
 
-### Fingerprint card
+## Race conditions covered
 
-Under the "Sign-in & Fingerprint" collapsible section:
-
-- **Toggle**: writes `~/.config/qylock/fingerprint` (`on`/`off`)
-- **Status line**: device name, enrolled finger count
-- **Finger list**: each finger with VERIFY and DELETE buttons
-- **Actions**: ENROLL FINGERPRINT, VERIFY ANY, REMOVE ALL
-
-### Enrollment modal
-
-A dark terminal-style overlay that shows live fprintd output:
-
-- Captures **stderr** (where fprintd actually outputs)
-- Displays raw output in a monospace Flickable with auto-scroll
-- Blinking green dot while the command is running
-- ABORT/CLOSE button sends SIGTERM to the fprintd child
-
-### Finger naming
-
-After successful enrollment, the modal shows a text field where the user can
-assign a friendly name (e.g. "right index"). Names are stored in
-`~/.config/qylock/fingerprints.json` and displayed in the finger list.
-
-## Data Flow
-
-```
-~/.config/qylock/fingerprint     <-- Settings toggle ("on"/"off")
-~/.config/qylock/fingerprints.json  <-- finger name labels
-~/.local/share/quickshell-lockscreen/
-  shim/SddmShim.qml              <-- PAM + fingerprint state
-  lock_shell.qml                  <-- lock entry point
-  assets/pam/ryoku-lock           <-- PAM service
-~/.local/share/qylock/themes/
-  clockwork/orbital/Main.qml     <-- theme with sensor hint
-~/.config/quickshell/hub/pages/
-  LockscreenPage.qml              <-- Settings fingerprint card
-```
+- fingerprint wins during password windup → `_unlocked` guard in the theme;
+  reveal flourish plays without a second authentication
+- typed password during an armed scan → fed into the open conversation
+  (`pendingPassword` stash + `onResponseRequiredChanged`)
+- outside-click on the modal mid-enroll → ignored (would discard stages)

@@ -1,25 +1,17 @@
 // SddmShim.qml - Quickshell shim for Ryoku in-session lock
 //
-// This file replaces the default Quickshell SDDM shim to add fingerprint
-// unlock support via pam_fprintd_grosshack.so. It exposes the same API as
-// a real SDDM greeter (login, reboot, powerOff, suspend, userModel,
-// sessionModel, keyboard) so themes work unchanged, plus fingerprint state
-// properties that the theme reads to show a sensor hint.
+// Exposes the same API as a real SDDM greeter (login, reboot, powerOff,
+// suspend, userModel, sessionModel, keyboard) so themes work unchanged,
+// plus fingerprint state properties the theme reads for the sensor hint.
 //
-// How it works:
-//   1. On lock, lock_shell.qml sets armWhenReady = true
-//   2. This shim probes fprintd-list and reads ~/.config/qylock/fingerprint
-//   3. If fingerprint is enabled and fingers are enrolled, armFingerprint()
-//      starts a PAM conversation with the ryoku-lock service
-//   4. pam_fprintd_grosshack.so forks fprintd-verify at conversation start,
-//      so the sensor scans while pam_unix waits for a password
-//   5. Either success unlocks within the SAME conversation
-//   6. A failed scan triggers a 700ms re-arm timer for the next touch
-//
-// PAM flow (touch OR type):
-//   pam_fprintd_grosshack.so  ->  sensor scan  ->  success = unlock
-//   pam_unix.so                ->  password     ->  success = unlock
-//   pam_deny.so               ->  neither      ->  fail + re-arm
+// Fingerprint flow:
+//   1. lock_shell.qml sets armWhenReady = true once WlSessionLock.secure
+//   2. The shim probes fprintd-list + ~/.config/qylock/fingerprint
+//   3. Stale fprintd-verify processes are cleared, then a PAM conversation
+//      starts against the ryoku-lock service (grosshack pair)
+//   4. grosshack forks fprintd-verify at conversation start: the sensor
+//      scans while pam_unix waits for a password; first success wins
+//   5. A failed scan re-arms after 1s
 
 import QtQuick
 import Quickshell
@@ -49,20 +41,13 @@ Item {
     property bool armPending: false          // an armPrep run is in flight
     property bool fpTyped: false             // a key was fed to the conversation
 
-    // THE arm trigger. maybeArm() is also called by the readiness probes when
-    // they land, but both probes usually finish BEFORE the compositor acks the
-    // lock surface (WlSessionLock.secure). Without this watcher the race is
-    // lost every time: armWhenReady flips true after the last probe already
-    // ran, no conversation ever starts, and the theme keeps saying
-    // "touch sensor" while nothing at all is listening.
+    // arm the moment the lock secures; probes alone race and lose it.
     onArmWhenReadyChanged: {
         if (shim.armWhenReady)
             shim.maybeArm();
     }
 
-    // pre-arm cleanup: kill verifiers orphaned by earlier aborted
-    // conversations so the new scan can claim the sensor on its first cycle.
-    // Runs in milliseconds; the settle beat lets fprintd release the device.
+    // orphaned verifiers hold the sensor claim; clear them before arming.
     Process {
         id: armPrepProc
         command: ["bash", "-c", "pkill -u \"$USER\" -x fprintd-verify 2>/dev/null; sleep 0.2"]
@@ -405,10 +390,7 @@ Item {
         }
     }
 
-    // ── re-arm timer ────────────────────────────────────────────────────────
-    // After a failed scan, wait a moment before re-arming: the aborted
-    // conversation's fprintd-verify needs to release the sensor claim, and
-    // the theme needs a beat to show "type your key".
+    // settle before rescanning so the old verifier releases the claim.
     Timer {
         id: rearmTimer
         interval: 1000
@@ -422,12 +404,6 @@ Item {
 
     // ── fingerprint control functions ───────────────────────────────────────
 
-    // armFingerprint: clears any stale fprintd-verify first, then starts a
-    // new PAM conversation with the grosshack service. Killing strays matters:
-    // an aborted conversation leaves its forked verifier alive, the orphan
-    // keeps the sensor claim, and the next scan silently cannot start -- the
-    // user sees "touch the sensor", touches, nothing happens, and only a
-    // burned password cycle (fail -> re-arm -> fresh verifier) revives it.
     function armFingerprint() {
         if (!shim.fingerprintReady || pam.active || shim.armPending)
             return;
@@ -461,11 +437,7 @@ Item {
             shim.fingerprintState = "idle";
     }
 
-    // maybeArm: conditionally arms the fingerprint sensor. Called by both
-    // readiness probes when they finish AND whenever the secured flag flips.
     function maybeArm() {
-        console.log("[fp] maybeArm: secure=" + shim.armWhenReady,
-            "ready=" + shim.fingerprintReady, "active=" + pam.active);
         if (shim.armWhenReady && shim.fingerprintReady && !pam.active)
             shim.armFingerprint();
     }

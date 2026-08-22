@@ -1,55 +1,41 @@
 # Changelog
 
-## Fingerprint unlock for in-session lock
+## v2 — final
+
+### Fixed
+- **Touch-to-unlock never fired on a fresh lock**: readiness probes finished
+  before `WlSessionLock.secure`, so `armWhenReady` landed too late and no PAM
+  conversation ever started. The shim arms on `onArmWhenReadyChanged`.
+- **Fingerprint only worked after a wrong password**: aborted conversations
+  orphaned their forked `fprintd-verify`; the orphan kept the sensor claim so
+  the next scan silently failed. Every arm now clears stale verifiers first.
+- Dead PAM conversations (`onError`) no longer leave the hint claiming the
+  sensor is listening.
+- `pam.start()` failures surface with config/dir/user context instead of
+  failing silently; finger probe retries while fprintd wakes up.
 
 ### Added
-
-- **Fingerprint touch-to-unlock** on the in-session lock (`ryoku-shell lock`)
-  using `pam_fprintd_grosshack.so` -- the same mechanism the SDDM greeter uses
-- **PAM service `ryoku-lock`** shipped in `assets/pam/` -- no root edit of
-  `/etc/pam.d` needed, self-contained inline module stack
-- **Auto-arm** of fingerprint sensor when the lock surface is secured
-- **Sensor hint** in the orbital theme:
-  - "SENSOR ACTIVE / TOUCH OR TYPE" text with pulse animation
-  - Positioned between user name and password field (eye naturally hits it)
-  - Full brightness `mainText` color while scanning (not dim `subColor`)
-- **Reveal flourish** on fingerprint unlock (no windup, no second auth)
-- **Race condition protection**: `_unlocked` guard prevents `boomSequence` from
-  calling `doLogin()` a second time if fingerprint wins mid-windup
-- **Fingerprint section in Ryoku Settings** (Lockscreen page):
-  - Toggle to enable/disable fingerprint unlock
-  - Enroll, verify, and remove fingerprints
-  - Live terminal-style output during enrollment/verification
-  - Finger naming after enrollment (stored in `fingerprints.json`)
-- **Install script** with backup/restore/uninstall support:
-  - `--dry-run` to preview changes
-  - `--uninstall` to restore from backups
-  - Backups stored in `~/.ryoku-fingerprint-backups/`
-- **Comprehensive documentation**:
-  - Architecture docs explaining PAM flow, grosshack mechanism, data flow
-  - Installation guide with prerequisites and troubleshooting
-  - Testing checklist covering all scenarios
+- **Sudo toggle**: grosshack line injected into `/etc/pam.d/sudo` (pkexec,
+  backup-first, removal deletes only that line).
+- **Sign-in screen toggle**: same for `/etc/pam.d/sddm`.
+- Enroll progress: real stage counts (`num-enroll-stages` via D-Bus, passes
+  parsed live from stdout+stderr), retry guidance in plain language.
+- Verify result plate with match/no-match and auto-close on success.
+- Two-step destructive confirms (per-finger delete, REMOVE ALL).
+- `install.sh` committed (referenced but missing from earlier iterations).
 
 ### Changed
+- Settings card runs full width again (symmetric with the gallery) and splits
+  into two columns: controls left, enrolled prints right.
+- Enroll/verify modal switched from a raw terminal window to the hub's paper
+  style; fprintd output demoted to a two-line log strip.
+- Collapse chevron moved beside the title; only the header toggles the sheet.
 
-- **`SddmShim.qml`**: PAM config changed from default (`login`) to `ryoku-lock`;
-  fingerprint state props exposed to theme; readiness probes for fprintd;
-  auto-arm on `armWhenReady`; re-arm timer (700ms) after failed scan
-- **`lock_shell.qml`**: arm fingerprint on `WlSessionLock.secure`; reset on
-  unlock; `armWhenReady` lifecycle tied to lock surface
-- **Orbital theme `Main.qml`**: fingerprint hint moved above password field;
-  scanning color changed to full brightness; pulse animation added; reveal
-  flourish on sensor win; `_unlocked` race condition guard
-- **`LockscreenPage.qml`**: fingerprint card under "Sign-in & Fingerprint"
-  collapsible section; terminal-style enroll/verify overlay capturing stderr;
-  finger naming flow; JSON-based finger name storage
+### Untouched
+- clockwork/orbital theme files.
 
-### Files
+## v1
 
-| File | Status |
-|---|---|
-| `ryoku/lockscreen/qylock/quickshell-lockscreen/shim/SddmShim.qml` | Modified |
-| `ryoku/lockscreen/qylock/quickshell-lockscreen/lock_shell.qml` | Modified |
-| `ryoku/lockscreen/qylock/quickshell-lockscreen/assets/pam/ryoku-lock` | New |
-| `ryoku/lockscreen/qylock/themes/clockwork/orbital/Main.qml` | Modified |
-| `ryoku/hub/quickshell/pages/LockscreenPage.qml` | Modified |
+- Initial fingerprint unlock wiring: `ryoku-lock` PAM service, SddmShim
+  fingerprint state + auto-arm, sensor hint in the orbital theme,
+  Fingerprint section in hub settings.

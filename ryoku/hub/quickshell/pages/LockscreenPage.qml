@@ -84,11 +84,7 @@ Item {
         return parts.join("  \u00b7  ");
     }
 
-    // ── fingerprint unlock state (fprintd, live) ────────────────────────────
-    // The sensor's lock-screen counterpart of the keyring card above: whether
-    // the grosshack PAM stack offers a touch-to-unlock at the in-session lock,
-    // and enrolment kept inside Settings. Everything reads/writes fprintd as
-    // this user; nothing here touches root PAM files.
+    // ── fingerprint unlock state (fprintd, live; no root writes) ────────────
     property bool ffpEnabled: true            // ~/.config/qylock/fingerprint toggle
     property bool fdaemon: false              // fprintd service reachable
     property bool fready: false               // a device is present
@@ -119,12 +115,7 @@ Item {
     property string fdelConfirmFor: ""        // per-finger delete armed
     property string fdelTarget: ""            // finger being deleted right now
 
-    // ── grosshack elsewhere (sudo / sddm) ────────────────────────────────────
-    // The same mechanism the lock uses, offered for the other password
-    // prompts: one "auth sufficient pam_fprintd_grosshack.so" line at the top
-    // of /etc/pam.d/sudo or /etc/pam.d/sddm. Applied through pkexec (the same
-    // root half as `ryoku keyring set`), always backing the file up first,
-    // and removal only ever deletes the injected line.
+    // grosshack line in /etc/pam.d/{sudo,sddm}; pkexec applies/removes it.
     property bool fpamModuleOk: false         // pam_fprintd_grosshack.so present
     property bool fsudoOn: false              // grosshack line in /etc/pam.d/sudo
     property bool fsddmOn: false              // grosshack line in /etc/pam.d/sddm
@@ -178,8 +169,6 @@ Item {
         return pg.fnames[finger] || finger.replace(/-/g, " ");
     }
 
-    // one human sentence per raw fprintd status token; the empty token means
-    // the conversation just started and the sensor is waiting for a touch.
     function fheadline(mode, s) {
         var retry = {
             "retry-scan": I18n.tr("Scan didn't read cleanly \u2014 touch again"),
@@ -300,9 +289,6 @@ Item {
         pg.fready = t.indexOf("Using device") !== -1 || t.indexOf("Device at") !== -1 || t.indexOf("found ") !== -1;
         pg.fdaemon = pg.fready && t.trim() !== "" && t.indexOf("no devices") === -1;
         pg.floading = false;
-        // drop labels for prints that no longer exist, so a delete can never
-        // leave a ghost name behind in fingerprints.json. Only runs once the
-        // names map itself has loaded, and an empty map deletes nothing.
         if (pg.fdaemon && !pg.floading) {
             var stale = false;
             for (var k in pg.fnames)
@@ -332,7 +318,6 @@ Item {
         fnamesWriteProc.running = true;
         // Write happens in onStarted
     }
-    // reset everything the modal shows; called by both start functions.
     function fopenOverlay(mode, cmd, proc) {
         pg.ferr = "";
         pg.fresult = "";
@@ -354,9 +339,6 @@ Item {
         if (pg.fpending !== "" || !pg.fdaemon || !pg.fready)
             return;
         pg.fopenOverlay("enroll", ["fprintd-enroll"], fenrollProc);
-        // total stages come off the D-Bus device object; the daemon is spawned
-        // by the enroll call itself, so the first probe usually misses and the
-        // retry timer keeps asking until it answers or the enroll ends.
         fstagesProc.running = true;
         stagesRetry.tries = 0;
         stagesRetry.restart();
@@ -375,10 +357,7 @@ Item {
         fdelProc.command = ["fprintd-delete", pg.fuser].concat(finger ? ["-f", finger] : []);
         fdelProc.running = true;
     }
-    // live stream pump: feed each StdioCollector's cumulative buffer here with
-    // its own stream key; only fresh bytes are parsed and appended to the log,
-    // so a stage line is counted exactly once no matter how often dataChanged
-    // fires.
+    // pump fresh bytes of one stream; counts each stage exactly once.
     function fpump(stream, full) {
         full = full || "";
         var start = pg.foffsets[stream] || 0;
@@ -444,7 +423,6 @@ Item {
         }
         pg.fcloseOverlay();
     }
-    // last two log lines, one per Text so long lines elide instead of wrapping
     readonly property var ftail: {
         var lines = pg.fterm.trim().split("\n");
         while (lines.length < 2) lines.unshift("");
@@ -643,11 +621,7 @@ Item {
         }
         onExited: () => { pg.freload(); }
     }
-    // both streams pump through fpump with their own stream key: the collectors
-    // expose the whole cumulative buffer on every dataChanged, and the offset
-    // map makes sure each byte is parsed and logged exactly once. "Enroll
-    // result:" lines arrive on stdout, so without this the progress UI sat
-    // frozen until exit.
+    // both streams pump through fpump (stdout carries "Enroll result:").
     Process {
         id: fenrollProc
         stdout: StdioCollector { id: fenOut; waitForEnd: false; onDataChanged: pg.fpump("out", this.text) }
@@ -679,9 +653,6 @@ Item {
             pg.freload();
         }
     }
-    // total stages come off the D-Bus device object. The enroll call spawns
-    // the daemon, so the first probe usually races it; the retry timer keeps
-    // asking until the property answers or the enroll ends.
     Process {
         id: fstagesProc
         command: [
@@ -729,7 +700,6 @@ Item {
             }
         }
     }
-    // a clean verify closes itself; the result was the point.
     Timer { id: verifyClose; interval: 1400; onTriggered: pg.fcloseOverlay() }
     Process {
         id: fdelProc
@@ -752,8 +722,6 @@ Item {
             pg.fpending = "";
         }
     }
-    // destructive confirms fall back on their own, so an armed state can never
-    // outlive its moment and eat a click hours later.
     Timer {
         id: confirmReset
         interval: 3000
@@ -959,13 +927,9 @@ Item {
                     color: Tokens.inkMuted; font.family: Tokens.ui
                     font.pixelSize: Tokens.fSmall; elide: Text.ElideRight
                 }
-                // the header alone toggles; taps on the controls below stay
-                // interactive instead of collapsing the card
                 TapHandler { onTapped: pg.settOpen = !pg.settOpen }
             }
 
-            // collapsible content: controls left, prints right — the wide
-            // margin becomes the finger list instead of dead space.
             Row {
                 visible: pg.settOpen
                 spacing: Tokens.s5
@@ -1114,10 +1078,7 @@ Item {
                         }
                     }
 
-                    // grosshack elsewhere: the same one-line PAM mechanism,
-                    // offered for sudo and the sign-in screen. Root half runs
-                    // through pkexec; every change backs its file up first and
-                    // removal only deletes the injected line.
+                    // grosshack for sudo / sddm; root half runs via pkexec.
                     Column {
                         visible: pg.fpamModuleOk && !pg.fpamLoading
                         width: parent.width
@@ -1698,10 +1659,6 @@ Item {
         TapHandler { onTapped: if (!tile.active && !tile.busy) tile.applied() }
     }
 
-    // ── enroll / verify overlay ─────────────────────────────────────────────
-    // The hub's grammar instead of a terminal window: a paperLift plate on a
-    // bare click-catcher, a ring that fills stage by stage, one sentence of
-    // guidance, and fprintd's raw output demoted to a two-line log strip.
     component FpRing: Item {
         id: ring
         property real frac: 0            // 0..1 once the total is known
