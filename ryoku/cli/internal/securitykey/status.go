@@ -51,17 +51,25 @@ func gatherStatus() Status {
 }
 
 func probeDevice() (bool, string) {
-	if !sys.Has("pamu2fcfg") {
-		return false, ""
-	}
-	out, err := exec.Command("pamu2fcfg", "-L").CombinedOutput()
-	if err != nil {
-		return false, ""
-	}
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			return true, line
+	for _, probe := range []struct {
+		name string
+		args []string
+	}{
+		{name: "systemd-cryptenroll", args: []string{"--fido2-device=list"}},
+		{name: "fido2-token", args: []string{"-L"}},
+	} {
+		if !sys.Has(probe.name) {
+			continue
+		}
+		out, err := exec.Command(probe.name, probe.args...).CombinedOutput()
+		if err != nil {
+			continue
+		}
+		for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+			line = strings.TrimSpace(line)
+			if line != "" {
+				return true, line
+			}
 		}
 	}
 	return false, ""
