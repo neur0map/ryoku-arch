@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"ryoku-cli/internal/sys"
 )
@@ -12,23 +13,29 @@ func runEnroll(args []string) error {
 	if len(args) != 0 {
 		return fmt.Errorf("usage: ryoku security-key enroll")
 	}
-	if !sys.Has("pamu2fcfg") {
-		return fmt.Errorf("pamu2fcfg is not installed; install pam-u2f first")
-	}
-	origin := defaultOrigin()
-	cmd := exec.Command("pamu2fcfg", "-o", origin, "-i", origin)
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, nil
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		msg := strings.TrimSpace(string(out))
-		if msg == "" {
-			msg = err.Error()
+	var cred string
+	if fakeFIDO() {
+		cred = fakeEnrollment()
+	} else {
+		if !sys.Has("pamu2fcfg") {
+			return fmt.Errorf("pamu2fcfg is not installed; install pam-u2f first")
 		}
-		return fmt.Errorf("pamu2fcfg failed: %s", msg)
-	}
-	cred, err := parseEnrollment(string(out))
-	if err != nil {
-		return err
+		origin := defaultOrigin()
+		cmd := exec.Command("pamu2fcfg", "-o", origin, "-i", origin)
+		cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, nil
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			msg := strings.TrimSpace(string(out))
+			if msg == "" {
+				msg = err.Error()
+			}
+			return fmt.Errorf("pamu2fcfg failed: %s", msg)
+		}
+		var err2 error
+		cred, err2 = parseEnrollment(string(out))
+		if err2 != nil {
+			return err2
+		}
 	}
 	a, err := loadAuthFile()
 	if err != nil {
@@ -44,6 +51,10 @@ func runEnroll(args []string) error {
 	}
 	fmt.Printf("enrolled security key %d for %s\n", len(a.creds), currentUser())
 	return nil
+}
+
+func fakeEnrollment() string {
+	return fmt.Sprintf("fake-key-handle-%d,es256,+presence", time.Now().UnixNano())
 }
 
 func parseEnrollment(out string) (string, error) {

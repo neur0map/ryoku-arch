@@ -70,6 +70,24 @@ func TestRemoveCredentialByID(t *testing.T) {
 	}
 }
 
+func TestFakeFIDOStatusAndEnroll(t *testing.T) {
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	t.Setenv("USER", "nero")
+	t.Setenv("RYOKU_FAKE_FIDO", "1")
+	st := gatherStatus()
+	if !st.Supported || !st.DevicePresent || st.DeviceName == "" {
+		t.Fatalf("fake FIDO status missing device: %#v", st)
+	}
+	if err := runEnroll(nil); err != nil {
+		t.Fatalf("fake enroll: %v", err)
+	}
+	st = gatherStatus()
+	if !st.Enrolled || st.Credentials != 1 {
+		t.Fatalf("fake enroll did not persist credential: %#v", st)
+	}
+}
+
 func TestStatusJSONReflectsPamAndCredentials(t *testing.T) {
 	cfg := t.TempDir()
 	pamRoot := t.TempDir()

@@ -21,6 +21,11 @@ func authFilePath() string {
 	return filepath.Join(sys.ConfigHome(), "Yubico", "u2f_keys")
 }
 
+func fakeFIDO() bool {
+	v := os.Getenv("RYOKU_FAKE_FIDO")
+	return v == "1" || v == "true" || v == "on" || v == "yes"
+}
+
 func Run(args []string) error {
 	if len(args) == 0 {
 		return usageErr()

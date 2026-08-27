@@ -51,6 +51,9 @@ func gatherStatus() Status {
 }
 
 func probeDevice() (bool, string) {
+	if fakeFIDO() {
+		return true, "Fake YubiKey 5 NFC"
+	}
 	for _, probe := range []struct {
 		name string
 		args []string
