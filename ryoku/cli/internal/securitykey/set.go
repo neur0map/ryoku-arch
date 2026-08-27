@@ -48,7 +48,7 @@ func runSet(args []string) error {
 			return err
 		}
 		if err := rewriteEnabledTargets(); err != nil {
-			return fmt.Errorf("rewrite enabled PAM targets: %w", err)
+			fmt.Printf("note: policy saved; re-apply enabled PAM targets with sudo (%v)\n", err)
 		}
 		fmt.Printf("security key mode set to %s\n", mode)
 		return nil
@@ -70,7 +70,7 @@ func runSet(args []string) error {
 			return err
 		}
 		if err := rewriteEnabledTargets(); err != nil {
-			return fmt.Errorf("rewrite enabled PAM targets: %w", err)
+			fmt.Printf("note: policy saved; re-apply enabled PAM targets with sudo (%v)\n", err)
 		}
 		fmt.Printf("security key %s %s\n", subject, map[bool]string{true: "enabled", false: "disabled"}[on])
 		return nil

@@ -71,11 +71,27 @@ func TestRemoveCredentialByID(t *testing.T) {
 }
 
 func TestParseProbeOutputIgnoresHeaderAndNoDevice(t *testing.T) {
-	if name, ok := parseProbeOutput("PATH         MANUFACTURER PRODUCT               COMPATIBLE RK CLIENTPIN UP UV ALWAYSUV\nNo FIDO2 devices found.\n"); ok || name != "" {
+	if name, _, ok := parseProbeOutput("PATH         MANUFACTURER PRODUCT               COMPATIBLE RK CLIENTPIN UP UV ALWAYSUV\nNo FIDO2 devices found.\n"); ok || name != "" {
 		t.Fatalf("header-only probe must report no device, got ok=%v name=%q", ok, name)
 	}
-	if name, ok := parseProbeOutput("PATH         MANUFACTURER PRODUCT               COMPATIBLE RK CLIENTPIN UP UV ALWAYSUV\n/dev/hidraw0 Yubico       YubiKey 5 NFC         yes        yes yes       yes yes no\n"); !ok || name == "" {
+	name, caps, ok := parseProbeOutput("PATH         MANUFACTURER PRODUCT               COMPATIBLE RK CLIENTPIN UP UV ALWAYSUV\n/dev/hidraw0 Yubico       YubiKey 5 NFC         ✓          ✓  ✓         ✓  ✗  ✓\n")
+	if !ok || name == "" {
 		t.Fatalf("device row must be detected, got ok=%v name=%q", ok, name)
+	}
+	if !caps.Compatible || !caps.ResidentKey || !caps.ClientPIN || !caps.UserPresence || caps.UserVerification || !caps.AlwaysUV {
+		t.Fatalf("unexpected parsed capabilities: %#v", caps)
+	}
+}
+
+func TestEnrollmentArgsUsePINForAlwaysUVKeys(t *testing.T) {
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	args := strings.Join(enrollmentArgs("pam://ryoku", Capabilities{ClientPIN: true, AlwaysUV: true}), " ")
+	if !strings.Contains(args, "-N") {
+		t.Fatalf("AlwaysUV/CLIENTPIN enrollment must request PIN verification: %q", args)
+	}
+	if strings.Contains(args, "-V") {
+		t.Fatalf("built-in UV must only be requested when the policy asks for it: %q", args)
 	}
 }
 
@@ -216,7 +232,7 @@ func TestSetPolicyRewritesEnabledTargets(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	if !strings.Contains(text, "auth required pam_u2f.so") || !strings.Contains(text, "userpresence=1") || !strings.Contains(text, "pinverification=1") {
+	if !strings.Contains(text, "auth required pam_u2f.so") || !strings.Contains(text, "userpresence=1") || !strings.Contains(text, "pinverification=1") || !strings.Contains(text, "userverification=0") {
 		t.Fatalf("enabled PAM target not rewritten with policy: %q", text)
 	}
 }

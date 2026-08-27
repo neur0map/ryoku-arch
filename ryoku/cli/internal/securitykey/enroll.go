@@ -21,7 +21,8 @@ func runEnroll(args []string) error {
 			return fmt.Errorf("pamu2fcfg is not installed; install pam-u2f first")
 		}
 		origin := defaultOrigin()
-		cmd := exec.Command("pamu2fcfg", "-o", origin, "-i", origin)
+		_, _, caps := probeDevice()
+		cmd := exec.Command("pamu2fcfg", enrollmentArgs(origin, caps)...)
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, nil
 		out, err := cmd.CombinedOutput()
 		if err != nil {
@@ -31,6 +32,7 @@ func runEnroll(args []string) error {
 			}
 			return fmt.Errorf("pamu2fcfg failed: %s", msg)
 		}
+		adoptPolicyFor(caps)
 		var err2 error
 		cred, err2 = parseEnrollment(string(out))
 		if err2 != nil {
@@ -51,6 +53,30 @@ func runEnroll(args []string) error {
 	}
 	fmt.Printf("enrolled security key %d for %s\n", len(a.creds), currentUser())
 	return nil
+}
+
+func enrollmentArgs(origin string, caps Capabilities) []string {
+	args := []string{"-o", origin, "-i", origin}
+	p := readPolicy()
+	if caps.AlwaysUV || caps.ClientPIN || p.PinVerification {
+		args = append(args, "-N")
+	}
+	if p.UserVerification {
+		args = append(args, "-V")
+	}
+	return args
+}
+
+func adoptPolicyFor(caps Capabilities) {
+	if !caps.AlwaysUV && !caps.ClientPIN {
+		return
+	}
+	p := readPolicy()
+	p.PinVerification = true
+	p.TouchRequired = true
+	if err := writePolicy(p); err != nil {
+		fmt.Printf("warning: couldn't record security-key policy: %v\n", err)
+	}
 }
 
 func fakeEnrollment() string {

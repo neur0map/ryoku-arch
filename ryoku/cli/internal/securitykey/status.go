@@ -15,10 +15,20 @@ type Credential struct {
 	Label string `json:"label"`
 }
 
+type Capabilities struct {
+	Compatible       bool `json:"compatible"`
+	ResidentKey      bool `json:"residentKey"`
+	ClientPIN        bool `json:"clientPin"`
+	UserPresence     bool `json:"userPresence"`
+	UserVerification bool `json:"userVerification"`
+	AlwaysUV         bool `json:"alwaysUv"`
+}
+
 type Status struct {
 	Supported        bool         `json:"supported"`
 	DevicePresent    bool         `json:"devicePresent"`
 	DeviceName       string       `json:"deviceName"`
+	Capabilities     Capabilities `json:"capabilities"`
 	Enrolled         bool         `json:"enrolled"`
 	Credentials      int          `json:"credentials"`
 	CredentialIDs    []Credential `json:"credentialIds"`
@@ -36,11 +46,12 @@ type Status struct {
 func gatherStatus() Status {
 	a, _ := loadAuthFile()
 	p := readPolicy()
-	present, name := probeDevice()
+	present, name, caps := probeDevice()
 	st := Status{
 		Supported:        sys.Has("pamu2fcfg"),
 		DevicePresent:    present,
 		DeviceName:       name,
+		Capabilities:     caps,
 		Enrolled:         len(a.creds) > 0,
 		Credentials:      len(a.creds),
 		Sudo:             pamEnabled(TargetSudo),
@@ -59,9 +70,9 @@ func gatherStatus() Status {
 	return st
 }
 
-func probeDevice() (bool, string) {
+func probeDevice() (bool, string, Capabilities) {
 	if fakeFIDO() {
-		return true, "Fake YubiKey 5 NFC"
+		return true, "Fake YubiKey 5 NFC", Capabilities{Compatible: true, ResidentKey: true, ClientPIN: true, UserPresence: true, UserVerification: true}
 	}
 	for _, probe := range []struct {
 		name string
@@ -77,22 +88,47 @@ func probeDevice() (bool, string) {
 		if err != nil {
 			continue
 		}
-		if name, ok := parseProbeOutput(string(out)); ok {
-			return true, name
+		if name, caps, ok := parseProbeOutput(string(out)); ok {
+			return true, name, caps
 		}
 	}
-	return false, ""
+	return false, "", Capabilities{}
 }
 
-func parseProbeOutput(out string) (string, bool) {
+func parseProbeOutput(out string) (string, Capabilities, bool) {
 	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || probeNoise(line) {
 			continue
 		}
-		return line, true
+		return line, parseCapabilities(line), true
 	}
-	return "", false
+	return "", Capabilities{}, false
+}
+
+func parseCapabilities(line string) Capabilities {
+	fields := strings.Fields(line)
+	if len(fields) < 7 {
+		return Capabilities{}
+	}
+	vals := fields[len(fields)-6:]
+	return Capabilities{
+		Compatible:       parseCapability(vals[0]),
+		ResidentKey:      parseCapability(vals[1]),
+		ClientPIN:        parseCapability(vals[2]),
+		UserPresence:     parseCapability(vals[3]),
+		UserVerification: parseCapability(vals[4]),
+		AlwaysUV:         parseCapability(vals[5]),
+	}
+}
+
+func parseCapability(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "✓", "yes", "true", "1", "y", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func probeNoise(line string) bool {

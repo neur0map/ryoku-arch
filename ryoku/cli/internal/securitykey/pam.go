@@ -63,6 +63,8 @@ func pamLine() string {
 	}
 	if p.UserVerification {
 		parts = append(parts, "userverification=1")
+	} else {
+		parts = append(parts, "userverification=0")
 	}
 	return strings.Join(parts, " ")
 }
