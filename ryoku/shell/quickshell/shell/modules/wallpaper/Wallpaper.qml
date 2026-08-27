@@ -45,11 +45,17 @@ Item {
     // does, this surface paints nothing at all and the clip shows through.
     property bool live: false
 
+    // Stay transparent until the daemon sends the first frame: a freshly reloaded
+    // backdrop maps over a running video, and painting the paper fill before the
+    // `live` frame lands is what flashed the wallpaper black on reload.
+    property bool ready: false
+
     readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-shell.sock"
 
     function apply(line) {
         try {
             const f = JSON.parse(line);
+            root.ready = true;
             root.fit = f.fit || "Cover";
             root.live = f.live === true;
             root.transition = f.transition || null; // set before url so onUrlChanged sees the matching preset
@@ -92,7 +98,7 @@ Item {
         id: win
 
         screen: root.screen
-        color: root.live ? "transparent" : Theme.paper
+        color: root.ready && !root.live ? Theme.paper : "transparent"
         exclusiveZone: -1
         WlrLayershell.namespace: "ryoku-wallpaper"
         WlrLayershell.layer: WlrLayer.Background
@@ -109,7 +115,7 @@ Item {
 
         Backdrop {
             anchors.fill: parent
-            visible: !root.live
+            visible: root.ready && !root.live
             url: root.wallpaperUrl
             fit: root.fit
             transition: root.transition

@@ -169,6 +169,12 @@ Item {
         band.dragClass = "";
     }
 
+    // ── context menu (right-click) ─────────────────────────────────────────────
+    // The menu state and actions live on the Dock singleton (shared with the
+    // per-monitor DockMenuOverlay). The band only forwards the owning screen so a
+    // right-click on this monitor's dock opens the menu on this monitor.
+    required property string screenName
+
     // ── diffed models: create ONLY genuinely new islands, slide the rest ───────
     ListModel { id: pinsModel }
     ListModel { id: runningModel }

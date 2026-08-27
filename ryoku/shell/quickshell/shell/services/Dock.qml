@@ -243,4 +243,57 @@ Singleton {
         }
         Hyprland.dispatch('hl.dsp.focus({ window = "address:' + target.address + '" })');
     }
+
+    // Close every window of a class (dock menu Close).
+    function closeAll(className) {
+        const toplevels = Hyprland.toplevels ? Hyprland.toplevels.values : [];
+        for (let i = 0; i < toplevels.length; ++i) {
+            const d = toplevels[i] && toplevels[i].lastIpcObject;
+            if (d && (d.class === className || d.initialClass === className) && d.address)
+                Hyprland.dispatch('closewindow address:' + d.address);
+        }
+    }
+
+    // ── right-click context menu ───────────────────────────────────────────────
+    // One menu at a time, owned by the monitor the click came from (menuScreen);
+    // the per-monitor DockMenuOverlay renders it and dismisses on an outside click.
+    property string menuClass: ""
+    property bool menuPinned: false
+    property int menuCount: 0
+    property real menuGx: 0
+    property real menuGy: 0
+    property string menuScreen: ""
+    property string menuEdge: "bottom"
+    property real menuEdgeClear: 54
+    readonly property bool menuOpen: root.menuClass !== ""
+    function openMenu(className, pinned, count, gx, gy, screenName, edge, edgeClear) {
+        root.menuClass = className;
+        root.menuPinned = pinned;
+        root.menuCount = count;
+        root.menuGx = gx;
+        root.menuGy = gy;
+        root.menuScreen = screenName;
+        root.menuEdge = edge;
+        root.menuEdgeClear = edgeClear;
+    }
+    function closeMenu() { root.menuClass = ""; }
+    function menuActOpen() {
+        if (root.menuCount > 0) {
+            const e = DesktopEntries.heuristicLookup(root.menuClass);
+            if (e) AppLaunch.run(e, null);
+        } else {
+            root.activate(root.menuClass);
+        }
+        root.closeMenu();
+    }
+    function menuActPin() {
+        const pins = root.pinnedOrStarter();
+        root.setPinned(root.menuPinned ? root.unpin(pins, root.menuClass)
+                                       : root.pin(pins, root.menuClass));
+        root.closeMenu();
+    }
+    function menuActClose() {
+        root.closeAll(root.menuClass);
+        root.closeMenu();
+    }
 }

@@ -213,9 +213,8 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         onSingleTapped: (eventPoint, button) => {
             if (button === Qt.RightButton) {
-                const pins = Dock.pinnedOrStarter();
-                Dock.setPinned(item.pinned ? Dock.unpin(pins, item.className)
-                                           : Dock.pin(pins, item.className));
+                const g = item.mapToGlobal(item.width / 2, item.height / 2);
+                Dock.openMenu(item.className, item.pinned, item.count, g.x, g.y, item.band.screenName, item.band.edge, item.band.reservedDepth);
                 return;
             }
             if (button === Qt.MiddleButton) {
@@ -237,6 +236,7 @@ Item {
     DragHandler {
         id: drag
         enabled: item.pinned
+        acceptedButtons: Qt.LeftButton
         target: null
         grabPermissions: PointerHandler.CanTakeOverFromAnything
         onActiveChanged: {

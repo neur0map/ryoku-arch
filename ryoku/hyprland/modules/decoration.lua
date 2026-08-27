@@ -168,16 +168,12 @@ hl.layer_rule({
   ignore_alpha = 0.05,
 })
 
--- The wallpaper rides the background layer: the awww image daemon and the
--- ryoku-livewall video daemon each map a surface there (mpvpaper/phonto on
--- boxes whose orphaned players predate livewall), and switching image<->live
--- maps one over the other. The global `layers` animation is `popin 90%`, which
--- scale-pops a fullscreen wallpaper surface in/out and reads as a flicker.
--- Override it to a pure `fade` for the wallpaper namespaces so the surfaces
--- crossfade instead (the video fades in over the image, and out to reveal it),
--- matching the switcher's own fade.
+-- Wallpaper surfaces (the in-shell backdrop ryoku-wallpaper and the ryoku-livewall
+-- video, plus legacy mpvpaper/phonto/awww) ride the background layer. The global
+-- `layers` popin scale-pops them and reads as a flicker, so fade them instead:
+-- image<->live crossfades cleanly.
 hl.layer_rule({
   name      = "wallpaper-crossfade",
-  match     = { namespace = "^(awww-daemon|ryoku-livewall|mpvpaper|phonto)$" },
+  match     = { namespace = "^(ryoku-wallpaper|awww-daemon|ryoku-livewall|mpvpaper|phonto)$" },
   animation = "fade",
 })

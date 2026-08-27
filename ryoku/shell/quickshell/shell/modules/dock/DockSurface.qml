@@ -80,6 +80,8 @@ PanelWindow {
         return false;
     }
     readonly property bool pointerInside: band.hovered || peekHover.hovered
+    readonly property string screenName: dock.screen ? dock.screen.name : ""
+    readonly property bool menuHere: Dock.menuOpen && Dock.menuScreen === dock.screenName
     readonly property bool revealed: {
         // A fullscreen window on this monitor forces the dock away; only a hover
         // into the peek strip brings it back over the fullscreen content.
@@ -88,7 +90,8 @@ PanelWindow {
         return !dock.autohide
             || dock.pointerInside
             || !Dock.anyFocused
-            || band.dragging;
+            || band.dragging
+            || dock.menuHere;
     }
 
     // Perp offset (the axis pointing away from the screen edge) of the band's
@@ -103,6 +106,7 @@ PanelWindow {
     DockBand {
         id: band
         edge: dock.edge
+        screenName: dock.screenName
         reservedDepth: dock.depth + dock.edgeGap
 
         // Centre along the band's own axis; slide along the perpendicular one.
@@ -123,7 +127,6 @@ PanelWindow {
         height: dock.horizontal ? dock.peek : band.height
         HoverHandler { id: peekHover }
     }
-
     // Input mask = band rect ∪ peek strip, so the empty margins and the magnify
     // headroom stay click-through.
     mask: Region {

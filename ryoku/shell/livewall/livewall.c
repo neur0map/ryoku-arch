@@ -260,6 +260,7 @@ int main(int argc, char **argv) {
 	        src_w, src_h, render_w, render_h, fit ? "fit" : "fill", screen_w, screen_h, fps);
 
 	int64_t next = now_ns();
+	int announced = 0;
 	while (running) {
 		// pull one decoded frame (loop the file at EOF)
 		int got = 0;
@@ -294,6 +295,14 @@ int main(int argc, char **argv) {
 		wl_surface_attach(surface, b->wl_buf, 0, 0);
 		wl_surface_damage_buffer(surface, 0, 0, render_w, render_h);
 		wl_surface_commit(surface);
+		if (!announced) {
+			// First real frame is on its way: tell ryoku-shell the wallpaper is
+			// live so the backdrop steps aside. Flush so the frame lands first.
+			announced = 1;
+			wl_display_flush(dpy);
+			printf("READY\n");
+			fflush(stdout);
+		}
 
 		next += frame_ns;
 		int64_t t = now_ns();
