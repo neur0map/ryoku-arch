@@ -193,6 +193,7 @@ type Keybind struct {
 	Keys   string `json:"keys"`
 	Action string `json:"action"`
 	Value  string `json:"value"`
+	Release bool   `json:"release,omitempty"`
 }
 
 // AnimCurve = a user bezier. P0/P3 fixed at (0,0) and (1,1); only the two
@@ -1565,6 +1566,9 @@ func genKeybind(k Keybind) string {
 		dsp = "hl.dsp.window.float({ action = \"toggle\" })"
 	default:
 		return ""
+	}
+	if k.Release {
+		return fmt.Sprintf("hl.bind(%s, %s, { release = true })\n", luaStr(k.Keys), dsp)
 	}
 	return fmt.Sprintf("hl.bind(%s, %s)\n", luaStr(k.Keys), dsp)
 }

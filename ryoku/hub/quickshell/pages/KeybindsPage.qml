@@ -247,7 +247,7 @@ Item {
         if (!pg.hubReady)
             return;
         var a = (pg.hub.hyprVal("keybinds") || []).slice();
-        a.push({ "keys": "", "action": "exec", "value": "" });
+        a.push({ "keys": "", "action": "exec", "value": "", "release": false });
         pg.hub.hyprEdit("keybinds", a);
     }
     function removeRow(i) {
@@ -988,7 +988,7 @@ Item {
                             id: rowRect
                             required property int index
                             required property var modelData
-
+                            readonly property bool isRelease: rowRect.modelData.release === true
                             readonly property int lineH: 30
                             readonly property real gap: Tokens.s2
                             readonly property real removeW: 26
@@ -1035,7 +1035,36 @@ Item {
                                             pg.patch(rowRect.index, "keys", v);
                                     }
                                 }
+                                Rectangle {
+                                    id: releaseToggle
+                                    anchors.right: removeBtn.left
+                                    anchors.rightMargin: rowRect.gap
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    implicitHeight: 24
+                                    implicitWidth: relText.implicitWidth + 12
+                                    radius: Tokens.radius
+                                    color: rowRect.isRelease ? Tokens.ink : "transparent"
+                                    border.width: Tokens.border
+                                    border.color: rowRect.isRelease ? Tokens.ink : Tokens.line
 
+                                    Text {
+                                        id: relText
+                                        anchors.centerIn: parent
+                                        text: rowRect.isRelease ? "RELEASE" : "PRESS"
+                                        color: rowRect.isRelease ? Tokens.paper : Tokens.inkFaint
+                                        font.family: Tokens.mono
+                                        font.pixelSize: Tokens.fMicro
+                                        font.weight: Font.Medium
+                                    }
+
+                                    HoverHandler { id: relHov; cursorShape: Qt.PointingHandCursor }
+                                    TapHandler {
+                                        onTapped: {
+                                            if (pg.hubReady)
+                                                pg.patch(rowRect.index, "release", !rowRect.isRelease);
+                                        }
+                                    }
+                                }
                                 // record: capture the combo by pressing it. Safe
                                 // because startRecord enters the record submap
                                 // first, so the live chord reaches the field, not
@@ -1064,7 +1093,7 @@ Item {
                                 // bar fills whatever is left when it is hidden.
                                 Item {
                                     id: cmdBox
-                                    anchors.right: removeBtn.left
+                                    anchors.right: releaseToggle.left
                                     anchors.rightMargin: rowRect.gap
                                     anchors.verticalCenter: parent.verticalCenter
                                     height: rowRect.lineH
