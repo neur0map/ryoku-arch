@@ -1666,6 +1666,13 @@
   dead code and their tests; `hwcaps_test.go` asserts the corrected verdict.
 
 ### Added
+- **Security Key/Passkey Support**,
+- Added security key/passkey support for authentication with `pam-u2f`.
+- Added `ryoku security-key` commands for status, enrollment, removal, policy, and PAM wiring.
+- Added support for FIDO2 PIN + touch authentication, including YubiKey FIPS devices that require user verification.
+- Added passkey controls to Lockscreen Settings for sudo, admin prompts, and the SDDM sign-in screen.
+- Added passkey enrollment and removal UI in Lockscreen Settings.
+- Added SDDM greeter support for passkey PIN + touch login prompts.
 - **Appearance / Look grew the rest of the decoration surface**, all live
   previewed: corner softness (`rounding_power`), dim-inactive with strength,
   blur X-ray, vibrancy and noise, shadow sharpness (`render_power`), the new
@@ -1955,6 +1962,18 @@
   field `ryoku status --json` now publishes. "Up to date" shows when current.
 
 ### Fixed
+- **Passkey PAM keeps PIN verification.** Applying sudo, admin-prompt, or SDDM
+  targets now preserves the configured FIDO2 PIN policy instead of falling back to
+  touch-only PAM lines.
+- **The SDDM greeter shows passkey prompts.** Passkey login now surfaces PAM touch
+  prompts and accepts the FIDO PIN through the sign-in field instead of leaving
+  the greeter stuck on a static waiting message.
+- **Passkey setup opens an interactive terminal.** Settings now launches
+  enrollment in a terminal so PIN-based keys can prompt correctly, then refreshes
+  the passkey list after setup.
+- **Passkey management has its own home.** Lockscreen Settings separates passkey
+  policy from fingerprint management and lists enrolled passkeys with remove
+  actions in the right-hand management column.
 - **The login screen keeps the lock skin you pick.** Choosing a lockscreen skin
   applies it as the SDDM greeter too, but a skin pulled from the catalogue
   downloads into a 0700 user-owned dir (`os.MkdirTemp`), and the `cp -a` into
