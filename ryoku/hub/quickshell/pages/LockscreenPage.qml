@@ -1420,6 +1420,96 @@ Item {
                             spacing: Tokens.s2
                             Text {
                                 width: parent.width
+                                text: I18n.tr("Use passkey for")
+                                color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            }
+
+                            Item {
+                                width: parent.width
+                                height: Math.max(skSudoCol.height, skSudoSw.implicitHeight)
+                                visible: pg.skSupported
+                                Column {
+                                    id: skSudoCol
+                                    anchors { left: parent.left; right: skSudoSw.left; rightMargin: Tokens.s4; verticalCenter: parent.verticalCenter }
+                                    spacing: 2
+                                    Text { text: I18n.tr("Sudo"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                                    Text {
+                                        width: parent.width
+                                        text: I18n.tr("Use your security key for terminal admin commands")
+                                        color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                        wrapMode: Text.WordWrap
+                                    }
+                                }
+                                Sw {
+                                    id: skSudoSw
+                                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                                    opacity: pg.skPending === "toggle" && pg.skPendingTarget === "sudo" ? 0.4 : 1
+                                    Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
+                                    on: pg.skSudoOn
+                                    onToggled: (v) => pg.sktoggle("sudo", v)
+                                }
+                            }
+
+                            Item {
+                                width: parent.width
+                                height: Math.max(skPolkitCol.height, skPolkitSw.implicitHeight)
+                                visible: pg.skSupported
+                                Column {
+                                    id: skPolkitCol
+                                    anchors { left: parent.left; right: skPolkitSw.left; rightMargin: Tokens.s4; verticalCenter: parent.verticalCenter }
+                                    spacing: 2
+                                    Text { text: I18n.tr("Admin prompts"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                                    Text {
+                                        width: parent.width
+                                        text: I18n.tr("Use your security key for graphical admin prompts")
+                                        color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                        wrapMode: Text.WordWrap
+                                    }
+                                }
+                                Sw {
+                                    id: skPolkitSw
+                                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                                    opacity: pg.skPending === "toggle" && pg.skPendingTarget === "polkit" ? 0.4 : 1
+                                    Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
+                                    on: pg.skPolkitOn
+                                    onToggled: (v) => pg.sktoggle("polkit", v)
+                                }
+                            }
+
+                            Item {
+                                width: parent.width
+                                height: Math.max(skLoginCol.height, skLoginSw.implicitHeight)
+                                visible: pg.skSupported
+                                Column {
+                                    id: skLoginCol
+                                    anchors { left: parent.left; right: skLoginSw.left; rightMargin: Tokens.s4; verticalCenter: parent.verticalCenter }
+                                    spacing: 2
+                                    Text { text: I18n.tr("Sign-in screen"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                                    Text {
+                                        width: parent.width
+                                        text: I18n.tr("Use your security key at the SDDM greeter")
+                                        color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                        wrapMode: Text.WordWrap
+                                    }
+                                }
+                                Sw {
+                                    id: skLoginSw
+                                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                                    opacity: pg.skPending === "toggle" && pg.skPendingTarget === "login" ? 0.4 : 1
+                                    Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
+                                    on: pg.skLoginOn
+                                    onToggled: (v) => pg.sktoggle("login", v)
+                                }
+                            }
+                        }
+
+                        Rectangle { width: parent.width; height: Tokens.border; color: Tokens.lineSoft }
+
+                        Column {
+                            width: parent.width
+                            spacing: Tokens.s2
+                            Text {
+                                width: parent.width
                                 text: I18n.tr("Security key behavior")
                                 color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                             }
@@ -1515,7 +1605,7 @@ Item {
 
                         Btn {
                             width: parent.width
-                            text: pg.skPending === "enroll" ? I18n.tr("SETTING UP\u2026") : I18n.tr("SET UP SECURITY KEY")
+                            text: pg.skPending === "enroll" ? I18n.tr("SETTING UP\u2026") : (pg.skEnrolled ? I18n.tr("ADD SECURITY KEY") : I18n.tr("SET UP SECURITY KEY"))
                             primary: true
                             armed: pg.skPending === "" && pg.skSupported
                             onAct: pg.skenroll()
@@ -1524,7 +1614,13 @@ Item {
                         Column {
                             width: parent.width
                             visible: pg.skEnrolled
-                            spacing: 0
+                            spacing: Tokens.s1
+
+                            Text {
+                                width: parent.width
+                                text: I18n.tr("Enrolled passkeys")
+                                color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            }
 
                             Repeater {
                                 model: pg.skCredentialIds
@@ -1548,7 +1644,7 @@ Item {
                                     Btn {
                                         id: skRemoveBtn
                                         anchors { right: parent.right; rightMargin: Tokens.s2; verticalCenter: parent.verticalCenter }
-                                        text: pg.skPending === "remove" && pg.skPendingTarget === modelData.id ? I18n.tr("REMOVING\u2026") : "\u2715"
+                                        text: pg.skPending === "remove" && pg.skPendingTarget === modelData.id ? I18n.tr("REMOVING\u2026") : I18n.tr("REMOVE")
                                         compact: true
                                         armed: pg.skPending === ""
                                         onAct: pg.skremove(modelData.id)
@@ -1561,83 +1657,6 @@ Item {
                             }
                         }
 
-                        Item {
-                            width: parent.width
-                            height: Math.max(skSudoCol.height, skSudoSw.implicitHeight)
-                            visible: pg.skSupported
-                            Column {
-                                id: skSudoCol
-                                anchors { left: parent.left; right: skSudoSw.left; rightMargin: Tokens.s4; verticalCenter: parent.verticalCenter }
-                                spacing: 2
-                                Text { text: I18n.tr("Sudo"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
-                                Text {
-                                    width: parent.width
-                                    text: I18n.tr("Use the key for admin commands")
-                                    color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
-                                    wrapMode: Text.WordWrap
-                                }
-                            }
-                            Sw {
-                                id: skSudoSw
-                                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                                opacity: pg.skPending === "toggle" && pg.skPendingTarget === "sudo" ? 0.4 : 1
-                                Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
-                                on: pg.skSudoOn
-                                onToggled: (v) => pg.sktoggle("sudo", v)
-                            }
-                        }
-
-                        Item {
-                            width: parent.width
-                            height: Math.max(skPolkitCol.height, skPolkitSw.implicitHeight)
-                            visible: pg.skSupported
-                            Column {
-                                id: skPolkitCol
-                                anchors { left: parent.left; right: skPolkitSw.left; rightMargin: Tokens.s4; verticalCenter: parent.verticalCenter }
-                                spacing: 2
-                                Text { text: I18n.tr("Admin prompts"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
-                                Text {
-                                    width: parent.width
-                                    text: I18n.tr("Use the key for polkit prompts")
-                                    color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
-                                    wrapMode: Text.WordWrap
-                                }
-                            }
-                            Sw {
-                                id: skPolkitSw
-                                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                                opacity: pg.skPending === "toggle" && pg.skPendingTarget === "polkit" ? 0.4 : 1
-                                Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
-                                on: pg.skPolkitOn
-                                onToggled: (v) => pg.sktoggle("polkit", v)
-                            }
-                        }
-
-                        Item {
-                            width: parent.width
-                            height: Math.max(skLoginCol.height, skLoginSw.implicitHeight)
-                            visible: pg.skSupported
-                            Column {
-                                id: skLoginCol
-                                anchors { left: parent.left; right: skLoginSw.left; rightMargin: Tokens.s4; verticalCenter: parent.verticalCenter }
-                                spacing: 2
-                                Text { text: I18n.tr("Sign-in screen"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
-                                Text {
-                                    width: parent.width
-                                    text: I18n.tr("Use the key at the greeter too (SDDM)")
-                                    color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
-                                    wrapMode: Text.WordWrap
-                                }
-                            }
-                            Sw {
-                                id: skLoginSw
-                                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                                opacity: pg.skPending === "toggle" && pg.skPendingTarget === "login" ? 0.4 : 1
-                                Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
-                                on: pg.skLoginOn
-                                onToggled: (v) => pg.sktoggle("login", v)
-                            }
-                        }
 
                         Text {
                             width: parent.width
