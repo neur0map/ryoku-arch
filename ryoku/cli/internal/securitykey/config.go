@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"ryoku-cli/internal/sys"
@@ -22,8 +24,32 @@ type policy struct {
 	UserVerification bool   `json:"userVerification"`
 }
 
+var lookupUserConfigHome = func(uid string) (string, bool) {
+	u, err := user.LookupId(uid)
+	if err != nil || strings.TrimSpace(u.HomeDir) == "" {
+		return "", false
+	}
+	return filepath.Join(u.HomeDir, ".config"), true
+}
+
+func actorConfigHome() string {
+	if v := strings.TrimSpace(os.Getenv("XDG_CONFIG_HOME")); v != "" {
+		return v
+	}
+	for _, key := range []string{"SUDO_UID", "PKEXEC_UID"} {
+		if raw := strings.TrimSpace(os.Getenv(key)); raw != "" {
+			if _, err := strconv.Atoi(raw); err == nil {
+				if home, ok := lookupUserConfigHome(raw); ok {
+					return home
+				}
+			}
+		}
+	}
+	return sys.ConfigHome()
+}
+
 func policyPath() string {
-	return filepath.Join(sys.ConfigHome(), "ryoku", "security-key.json")
+	return filepath.Join(actorConfigHome(), "ryoku", "security-key.json")
 }
 
 func defaultPolicy() policy {

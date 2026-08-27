@@ -97,6 +97,25 @@ func TestFakeFIDOStatusAndEnroll(t *testing.T) {
 	}
 }
 
+func TestPolicyPathUsesCallingUserUnderSudo(t *testing.T) {
+	rootHome := t.TempDir()
+	userCfg := filepath.Join(t.TempDir(), ".config")
+	t.Setenv("HOME", rootHome)
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("SUDO_UID", "1234")
+	prev := lookupUserConfigHome
+	lookupUserConfigHome = func(uid string) (string, bool) {
+		if uid == "1234" {
+			return userCfg, true
+		}
+		return "", false
+	}
+	defer func() { lookupUserConfigHome = prev }()
+	if got := actorConfigHome(); got != userCfg {
+		t.Fatalf("actorConfigHome = %q, want %q", got, userCfg)
+	}
+}
+
 func TestPolicyDrivesPamLine(t *testing.T) {
 	cfg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", cfg)
