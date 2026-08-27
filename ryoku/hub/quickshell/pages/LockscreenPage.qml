@@ -1611,52 +1611,6 @@ Item {
                             onAct: pg.skenroll()
                         }
 
-                        Column {
-                            width: parent.width
-                            visible: pg.skEnrolled
-                            spacing: Tokens.s1
-
-                            Text {
-                                width: parent.width
-                                text: I18n.tr("Enrolled passkeys")
-                                color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
-                            }
-
-                            Repeater {
-                                model: pg.skCredentialIds
-                                delegate: Rectangle {
-                                    required property var modelData
-                                    width: parent.width
-                                    height: 34
-                                    color: "transparent"
-
-                                    Text {
-                                        anchors { left: parent.left; leftMargin: Tokens.s2; verticalCenter: parent.verticalCenter }
-                                        text: modelData.label || (I18n.tr("Security key") + " " + modelData.id)
-                                        color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
-                                    }
-                                    Text {
-                                        anchors { left: parent.left; leftMargin: 150; right: skRemoveBtn.left; rightMargin: Tokens.s3; verticalCenter: parent.verticalCenter }
-                                        text: I18n.tr("Credential") + " " + modelData.id
-                                        color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
-                                        elide: Text.ElideRight
-                                    }
-                                    Btn {
-                                        id: skRemoveBtn
-                                        anchors { right: parent.right; rightMargin: Tokens.s2; verticalCenter: parent.verticalCenter }
-                                        text: pg.skPending === "remove" && pg.skPendingTarget === modelData.id ? I18n.tr("REMOVING\u2026") : I18n.tr("REMOVE")
-                                        compact: true
-                                        armed: pg.skPending === ""
-                                        onAct: pg.skremove(modelData.id)
-                                    }
-                                    Rectangle {
-                                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                                        height: Tokens.border; color: Tokens.lineSoft
-                                    }
-                                }
-                            }
-                        }
-
 
                         Text {
                             width: parent.width
@@ -1733,6 +1687,56 @@ Item {
                         text: I18n.tr("No prints yet. Enroll one below and it will show up here.")
                         color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                         wrapMode: Text.WordWrap
+                    }
+
+                    Column {
+                        width: parent.width
+                        visible: pg.skEnrolled
+                        spacing: Tokens.s1
+
+                        Text {
+                            width: parent.width
+                            text: I18n.tr("Passkeys")
+                            color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.capitalization: Font.AllUppercase; font.letterSpacing: Tokens.trackMark
+                        }
+
+                        Repeater {
+                            model: pg.skCredentialIds
+                            delegate: Rectangle {
+                                id: passkeyRow
+                                required property var modelData
+                                width: parent.width
+                                height: 34
+                                color: "transparent"
+
+                                Text {
+                                    id: passkeyName
+                                    anchors { left: parent.left; leftMargin: Tokens.s2; verticalCenter: parent.verticalCenter }
+                                    width: Math.min(180, passkeyRow.width - 170)
+                                    text: passkeyRow.modelData.label || (I18n.tr("Security key") + " " + passkeyRow.modelData.id)
+                                    color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    anchors { left: passkeyName.right; leftMargin: Tokens.s3; right: skRemoveBtn.left; rightMargin: Tokens.s3; verticalCenter: parent.verticalCenter }
+                                    text: I18n.tr("Credential") + " " + passkeyRow.modelData.id
+                                    color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
+                                    elide: Text.ElideRight
+                                }
+                                Btn {
+                                    id: skRemoveBtn
+                                    anchors { right: parent.right; rightMargin: Tokens.s2; verticalCenter: parent.verticalCenter }
+                                    text: pg.skPending === "remove" && pg.skPendingTarget === passkeyRow.modelData.id ? I18n.tr("REMOVING\u2026") : I18n.tr("REMOVE")
+                                    compact: true
+                                    armed: pg.skPending === ""
+                                    onAct: pg.skremove(passkeyRow.modelData.id)
+                                }
+                                Rectangle {
+                                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                                    height: Tokens.border; color: Tokens.lineSoft
+                                }
+                            }
+                        }
                     }
 
                     // enrolled fingers: one quiet row each, delete behind an
