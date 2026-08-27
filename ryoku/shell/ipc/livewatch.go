@@ -97,14 +97,12 @@ func (d *daemon) liveGateWorker() {
 	}
 }
 
-// resumeLive relaunches the saved clip when the wallpaper is a video and no
-// player is up. A still wallpaper is already on screen and needs nothing. No
-// reveal preset: this is a resume of the wallpaper already on screen, not a
-// switch to a new one.
+// resumeLive relaunches the saved clip when the wallpaper is a video and no player
+// is up. nil preset: a resume of what is already on screen, not a switch.
 func (d *daemon) resumeLive() {
 	cur := readState()
 	if !isVideo(cur) || !isFile(cur) || liveAlive() {
 		return
 	}
-	_ = d.showLiveWallpaper(cur, nil)
+	_ = d.showLiveWallpaper(cur)
 }

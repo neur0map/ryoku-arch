@@ -133,6 +133,12 @@ ShellRoot {
                 screen: perScreen.modelData
             }
 
+            // The dock's right-click context menu: a full-screen overlay on the
+            // monitor that owns the open menu (the thin dock strip cannot host it).
+            DockMenuOverlay {
+                screen: perScreen.modelData
+            }
+
             // Toggle-driven overlays, each bound to a ShellState flag.
             Launcher {
                 screen: perScreen.modelData
