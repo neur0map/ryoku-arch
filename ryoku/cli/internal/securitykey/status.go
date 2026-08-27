@@ -70,9 +70,18 @@ func probeDevice() (bool, string) {
 		}
 		for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 			line = strings.TrimSpace(line)
-			if line != "" {
-				return true, line
+			if line == "" {
+				continue
 			}
+			low := strings.ToLower(line)
+			if strings.Contains(low, "no fido2 devices found") || strings.Contains(low, "no fido devices found") || strings.Contains(low, "no devices found") {
+				continue
+			}
+			return true, line
+		}
+		low := strings.ToLower(strings.TrimSpace(string(out)))
+		if strings.Contains(low, "no fido2 devices found") || strings.Contains(low, "no fido devices found") || strings.Contains(low, "no devices found") {
+			return false, ""
 		}
 	}
 	return false, ""
