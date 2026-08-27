@@ -51,13 +51,15 @@ func Run(args []string) error {
 
 const usage = `Usage: ryoku security-key <command>
 
-  status [--json]                 show security-key status and wiring
-  enroll                          enroll the inserted FIDO2/U2F key
-  remove <id|all>                 remove one enrolled key (1-based) or all
-  set <sudo|polkit|login> <on|off>
-                                  enable or disable pam_u2f for that target
-  apply-pam <sudo|polkit|login> <on|off>
-                                  privileged: edit /etc/pam.d for that target
+  status [--json]                        show security-key status and wiring
+  enroll                                 enroll the inserted FIDO2/U2F key
+  remove <id|all>                        remove one enrolled key (1-based) or all
+  set <sudo|polkit|login> <on|off>       enable or disable pam_u2f for that target
+  set mode <either|mfa>                  security key or password vs key + password
+  set touch-required <on|off>            require touching the security key
+  set pin-verification <on|off>          require the authenticator PIN when supported
+  set user-verification <on|off>         require built-in user verification when supported
+  apply-pam <sudo|polkit|login> <on|off> privileged: edit /etc/pam.d for that target
 `
 
 func usageErr() error { return fmt.Errorf("%s", usage) }

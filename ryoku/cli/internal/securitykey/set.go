@@ -18,11 +18,64 @@ func parseOnOff(s string) (bool, error) {
 	}
 }
 
+func requireEnrollment(target string) error {
+	if !sys.Has("pamu2fcfg") {
+		return fmt.Errorf("pamu2fcfg is not installed; install pam-u2f first")
+	}
+	a, err := loadAuthFile()
+	if err != nil {
+		return err
+	}
+	if len(a.creds) == 0 {
+		return fmt.Errorf("enroll a security key before enabling %s", target)
+	}
+	return nil
+}
+
 func runSet(args []string) error {
 	if len(args) != 2 {
-		return fmt.Errorf("usage: ryoku security-key set <sudo|polkit|login> <on|off>")
+		return fmt.Errorf("usage: ryoku security-key set <sudo|polkit|login> <on|off>|mode <either|mfa>|touch-required <on|off>|pin-verification <on|off>|user-verification <on|off>")
 	}
-	target := args[0]
+	subject := args[0]
+	if subject == "mode" {
+		mode, err := parseMode(args[1])
+		if err != nil {
+			return err
+		}
+		p := readPolicy()
+		p.Mode = mode
+		if err := writePolicy(p); err != nil {
+			return err
+		}
+		if err := rewriteEnabledTargets(); err != nil {
+			return fmt.Errorf("rewrite enabled PAM targets: %w", err)
+		}
+		fmt.Printf("security key mode set to %s\n", mode)
+		return nil
+	}
+	if subject == "touch-required" || subject == "pin-verification" || subject == "user-verification" {
+		on, err := parseOnOff(args[1])
+		if err != nil {
+			return err
+		}
+		p := readPolicy()
+		if subject == "touch-required" {
+			p.TouchRequired = on
+		} else if subject == "pin-verification" {
+			p.PinVerification = on
+		} else {
+			p.UserVerification = on
+		}
+		if err := writePolicy(p); err != nil {
+			return err
+		}
+		if err := rewriteEnabledTargets(); err != nil {
+			return fmt.Errorf("rewrite enabled PAM targets: %w", err)
+		}
+		fmt.Printf("security key %s %s\n", subject, map[bool]string{true: "enabled", false: "disabled"}[on])
+		return nil
+	}
+	target := subject
 	on, err := parseOnOff(args[1])
 	if err != nil {
 		return err
@@ -31,15 +84,8 @@ func runSet(args []string) error {
 		return err
 	}
 	if on {
-		if !sys.Has("pamu2fcfg") {
-			return fmt.Errorf("pamu2fcfg is not installed; install pam-u2f first")
-		}
-		a, err := loadAuthFile()
-		if err != nil {
+		if err := requireEnrollment(target); err != nil {
 			return err
-		}
-		if len(a.creds) == 0 {
-			return fmt.Errorf("enroll a security key before enabling %s", target)
 		}
 	}
 	if err := applyPAMHalf(target, on); err != nil {

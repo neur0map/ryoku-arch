@@ -16,33 +16,42 @@ type Credential struct {
 }
 
 type Status struct {
-	Supported     bool         `json:"supported"`
-	DevicePresent bool         `json:"devicePresent"`
-	DeviceName    string       `json:"deviceName"`
-	Enrolled      bool         `json:"enrolled"`
-	Credentials   int          `json:"credentials"`
-	CredentialIDs []Credential `json:"credentialIds"`
-	Sudo          bool         `json:"sudo"`
-	Polkit        bool         `json:"polkit"`
-	Login         bool         `json:"login"`
-	Lock          bool         `json:"lock"`
-	LockSupported bool         `json:"lockSupported"`
+	Supported        bool         `json:"supported"`
+	DevicePresent    bool         `json:"devicePresent"`
+	DeviceName       string       `json:"deviceName"`
+	Enrolled         bool         `json:"enrolled"`
+	Credentials      int          `json:"credentials"`
+	CredentialIDs    []Credential `json:"credentialIds"`
+	Sudo             bool         `json:"sudo"`
+	Polkit           bool         `json:"polkit"`
+	Login            bool         `json:"login"`
+	Lock             bool         `json:"lock"`
+	LockSupported    bool         `json:"lockSupported"`
+	AuthMode         string       `json:"authMode"`
+	TouchRequired    bool         `json:"touchRequired"`
+	PinVerification  bool         `json:"pinVerification"`
+	UserVerification bool         `json:"userVerification"`
 }
 
 func gatherStatus() Status {
 	a, _ := loadAuthFile()
+	p := readPolicy()
 	present, name := probeDevice()
 	st := Status{
-		Supported:     sys.Has("pamu2fcfg"),
-		DevicePresent: present,
-		DeviceName:    name,
-		Enrolled:      len(a.creds) > 0,
-		Credentials:   len(a.creds),
-		Sudo:          pamEnabled(TargetSudo),
-		Polkit:        pamEnabled(TargetPolkit),
-		Login:         pamEnabled(TargetLogin),
-		Lock:          false,
-		LockSupported: false,
+		Supported:        sys.Has("pamu2fcfg"),
+		DevicePresent:    present,
+		DeviceName:       name,
+		Enrolled:         len(a.creds) > 0,
+		Credentials:      len(a.creds),
+		Sudo:             pamEnabled(TargetSudo),
+		Polkit:           pamEnabled(TargetPolkit),
+		Login:            pamEnabled(TargetLogin),
+		Lock:             false,
+		LockSupported:    false,
+		AuthMode:         p.Mode,
+		TouchRequired:    p.TouchRequired,
+		PinVerification:  p.PinVerification,
+		UserVerification: p.UserVerification,
 	}
 	for i := range a.creds {
 		st.CredentialIDs = append(st.CredentialIDs, Credential{ID: fmt.Sprintf("%d", i+1), Label: fmt.Sprintf("Security key %d", i+1)})
@@ -126,6 +135,10 @@ func printStatus(st Status) {
 	fmt.Printf("supported:   %s\n", yesno(st.Supported))
 	fmt.Printf("device:      %s\n", map[bool]string{true: st.DeviceName, false: "not detected"}[st.DevicePresent])
 	fmt.Printf("enrolled:    %s (%d credential%s)\n", yesno(st.Enrolled), st.Credentials, plural(st.Credentials))
+	fmt.Printf("mode:        %s\n", st.AuthMode)
+	fmt.Printf("touch:       %s\n", yesno(st.TouchRequired))
+	fmt.Printf("pin verify:  %s\n", yesno(st.PinVerification))
+	fmt.Printf("user verify: %s\n", yesno(st.UserVerification))
 	fmt.Printf("sudo:        %s\n", yesno(st.Sudo))
 	fmt.Printf("polkit:      %s\n", yesno(st.Polkit))
 	fmt.Printf("login:       %s\n", yesno(st.Login))

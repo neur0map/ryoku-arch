@@ -39,7 +39,33 @@ func pamPath(target string) (string, error) {
 
 func pamLine() string {
 	origin := defaultOrigin()
-	return fmt.Sprintf("auth sufficient pam_u2f.so authfile=%%h/.config/Yubico/u2f_keys openasuser cue origin=%s appid=%s", origin, origin)
+	p := readPolicy()
+	control := "sufficient"
+	if p.Mode == ModeMFA {
+		control = "required"
+	}
+	parts := []string{
+		"auth",
+		control,
+		"pam_u2f.so",
+		"authfile=%h/.config/Yubico/u2f_keys",
+		"openasuser",
+		"cue",
+		"origin=" + origin,
+		"appid=" + origin,
+	}
+	if p.TouchRequired {
+		parts = append(parts, "userpresence=1")
+	} else {
+		parts = append(parts, "userpresence=0")
+	}
+	if p.PinVerification {
+		parts = append(parts, "pinverification=1")
+	}
+	if p.UserVerification {
+		parts = append(parts, "userverification=1")
+	}
+	return strings.Join(parts, " ")
 }
 
 func defaultOrigin() string {
@@ -123,6 +149,34 @@ func pamWritable(path string) bool {
 	}
 	f.Close()
 	return true
+}
+
+func enabledTargets() []string {
+	var out []string
+	for _, target := range []string{TargetSudo, TargetPolkit, TargetLogin} {
+		if pamEnabled(target) {
+			out = append(out, target)
+		}
+	}
+	return out
+}
+
+func rewriteEnabledTargets() error {
+	var errs []string
+	for _, target := range enabledTargets() {
+		path, err := pamPath(target)
+		if err != nil {
+			errs = append(errs, err.Error())
+			continue
+		}
+		if err := applyPAMFile(path, true); err != nil {
+			errs = append(errs, err.Error())
+		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf(strings.Join(errs, "; "))
+	}
+	return nil
 }
 
 func applyPAMHalf(target string, on bool) error {

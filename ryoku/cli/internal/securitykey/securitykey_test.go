@@ -97,6 +97,27 @@ func TestFakeFIDOStatusAndEnroll(t *testing.T) {
 	}
 }
 
+func TestPolicyDrivesPamLine(t *testing.T) {
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	if err := writePolicy(policy{Mode: ModeMFA, TouchRequired: true, PinVerification: true, UserVerification: true}); err != nil {
+		t.Fatal(err)
+	}
+	line := pamLine()
+	if !strings.Contains(line, "auth required pam_u2f.so") {
+		t.Fatalf("pam line must switch to required for MFA: %q", line)
+	}
+	if !strings.Contains(line, "userpresence=1") {
+		t.Fatalf("pam line missing userpresence: %q", line)
+	}
+	if !strings.Contains(line, "pinverification=1") {
+		t.Fatalf("pam line missing pinverification: %q", line)
+	}
+	if !strings.Contains(line, "userverification=1") {
+		t.Fatalf("pam line missing userverification: %q", line)
+	}
+}
+
 func TestStatusJSONReflectsPamAndCredentials(t *testing.T) {
 	cfg := t.TempDir()
 	pamRoot := t.TempDir()
@@ -117,12 +138,18 @@ func TestStatusJSONReflectsPamAndCredentials(t *testing.T) {
 	if err := applyPAMFile(filepath.Join(pamRoot, "polkit-1"), true); err != nil {
 		t.Fatal(err)
 	}
+	if err := writePolicy(policy{Mode: ModeMFA, TouchRequired: true, PinVerification: true, UserVerification: false}); err != nil {
+		t.Fatal(err)
+	}
 	st := gatherStatus()
 	if !st.Enrolled || st.Credentials != 2 || !st.Sudo || !st.Polkit || st.Login {
 		t.Fatalf("unexpected status: %#v", st)
 	}
 	if st.LockSupported || st.Lock {
 		t.Fatalf("lockscreen must be unavailable in first version: %#v", st)
+	}
+	if st.AuthMode != ModeMFA || !st.TouchRequired || !st.PinVerification || st.UserVerification {
+		t.Fatalf("unexpected policy in status: %#v", st)
 	}
 	if len(st.CredentialIDs) != 2 || st.CredentialIDs[0].ID != "1" {
 		t.Fatalf("unexpected credential ids: %#v", st.CredentialIDs)
@@ -133,6 +160,42 @@ func TestStatusJSONReflectsPamAndCredentials(t *testing.T) {
 	}
 	if !strings.Contains(string(raw), "\"credentials\":2") {
 		t.Fatalf("json missing credential count: %s", raw)
+	}
+}
+
+func TestSetPolicyRewritesEnabledTargets(t *testing.T) {
+	cfg := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	t.Setenv("RYOKU_SECURITY_KEY_PAM_ROOT", root)
+	t.Setenv("USER", "nero")
+	if err := writeAuthFile(authFile{creds: []string{"cred-a"}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"sudo", "polkit-1", "sddm"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte("auth include system-auth\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := applyPAMFile(filepath.Join(root, "sudo"), true); err != nil {
+		t.Fatal(err)
+	}
+	if err := runSet([]string{"mode", "mfa"}); err != nil {
+		t.Fatalf("set mode: %v", err)
+	}
+	if err := runSet([]string{"touch-required", "on"}); err != nil {
+		t.Fatalf("set touch-required: %v", err)
+	}
+	if err := runSet([]string{"pin-verification", "on"}); err != nil {
+		t.Fatalf("set pin-verification: %v", err)
+	}
+	raw, err := os.ReadFile(filepath.Join(root, "sudo"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(raw)
+	if !strings.Contains(text, "auth required pam_u2f.so") || !strings.Contains(text, "userpresence=1") || !strings.Contains(text, "pinverification=1") {
+		t.Fatalf("enabled PAM target not rewritten with policy: %q", text)
 	}
 }
 

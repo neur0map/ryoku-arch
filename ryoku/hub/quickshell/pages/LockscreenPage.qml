@@ -182,10 +182,24 @@ Item {
     property bool skLoginOn: false
     property bool skLockOn: false
     property bool skLockSupported: false
+    property string skAuthMode: "either"
+    property bool skTouchRequired: true
+    property bool skPinVerification: false
+    property bool skUserVerification: false
     property bool skLoading: true
     property string skError: ""
     property string skPending: ""
     property string skPendingTarget: ""
+
+    readonly property string skModeLine: {
+        var parts = [pg.skAuthMode === "mfa" ? "security key + password" : "security key or password"];
+        parts.push(pg.skTouchRequired ? "touch required" : "no touch requirement");
+        if (pg.skPinVerification)
+            parts.push("PIN required");
+        if (pg.skUserVerification)
+            parts.push("user verification required");
+        return parts.join("  \u00b7  ");
+    }
 
     readonly property string skStatusLine: {
         if (pg.skLoading)
@@ -323,6 +337,24 @@ Item {
         pg.skPending = "toggle";
         pg.skPendingTarget = target;
         skActionProc.command = ["ryoku", "security-key", "set", target, on ? "on" : "off"];
+        skActionProc.running = true;
+    }
+    function sksetMode(mode) {
+        if (pg.skPending !== "")
+            return;
+        pg.skError = "";
+        pg.skPending = "mode";
+        pg.skPendingTarget = mode;
+        skActionProc.command = ["ryoku", "security-key", "set", "mode", mode];
+        skActionProc.running = true;
+    }
+    function sksetFlag(name, on) {
+        if (pg.skPending !== "")
+            return;
+        pg.skError = "";
+        pg.skPending = "flag";
+        pg.skPendingTarget = name;
+        skActionProc.command = ["ryoku", "security-key", "set", name, on ? "on" : "off"];
         skActionProc.running = true;
     }
 
@@ -669,6 +701,10 @@ Item {
                     pg.skLoginOn = o.login === true;
                     pg.skLockOn = o.lock === true;
                     pg.skLockSupported = o.lockSupported === true;
+                    pg.skAuthMode = o.authMode || "either";
+                    pg.skTouchRequired = o.touchRequired !== false;
+                    pg.skPinVerification = o.pinVerification === true;
+                    pg.skUserVerification = o.userVerification === true;
                     pg.skError = "";
                 } catch (e) {
                     pg.skError = "Couldn't read the security-key status.";
@@ -1379,6 +1415,104 @@ Item {
 
                         Rectangle { width: parent.width; height: Tokens.border; color: Tokens.lineSoft }
 
+                        Column {
+                            width: parent.width
+                            spacing: Tokens.s2
+                            Text {
+                                width: parent.width
+                                text: I18n.tr("Security key behavior")
+                                color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            }
+                            Row { topPadding: Tokens.s1; spacing: Tokens.s2
+                                Chip { label: I18n.tr("Security key or password"); mode: "sk-either"; kind: "security-key" }
+                                Chip { label: I18n.tr("Security key + password"); mode: "sk-mfa"; kind: "security-key" }
+                            }
+                            Text {
+                                width: parent.width
+                                text: pg.skModeLine
+                                color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+
+                        Item {
+                            width: parent.width
+                            height: Math.max(skTouchCol.height, skTouchSw.implicitHeight)
+                            visible: pg.skSupported
+                            Column {
+                                id: skTouchCol
+                                anchors { left: parent.left; right: skTouchSw.left; rightMargin: Tokens.s4; verticalCenter: parent.verticalCenter }
+                                spacing: 2
+                                Text { text: I18n.tr("Touch requirement"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                                Text {
+                                    width: parent.width
+                                    text: I18n.tr("Require touching the key during authentication")
+                                    color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+                            Sw {
+                                id: skTouchSw
+                                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                                opacity: pg.skPending === "flag" && pg.skPendingTarget === "touch-required" ? 0.4 : 1
+                                Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
+                                on: pg.skTouchRequired
+                                onToggled: (v) => pg.sksetFlag("touch-required", v)
+                            }
+                        }
+
+                        Item {
+                            width: parent.width
+                            height: Math.max(skPinCol.height, skPinSw.implicitHeight)
+                            visible: pg.skSupported
+                            Column {
+                                id: skPinCol
+                                anchors { left: parent.left; right: skPinSw.left; rightMargin: Tokens.s4; verticalCenter: parent.verticalCenter }
+                                spacing: 2
+                                Text { text: I18n.tr("PIN verification"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                                Text {
+                                    width: parent.width
+                                    text: I18n.tr("Require the authenticator PIN when the key supports it")
+                                    color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+                            Sw {
+                                id: skPinSw
+                                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                                opacity: pg.skPending === "flag" && pg.skPendingTarget === "pin-verification" ? 0.4 : 1
+                                Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
+                                on: pg.skPinVerification
+                                onToggled: (v) => pg.sksetFlag("pin-verification", v)
+                            }
+                        }
+
+                        Item {
+                            width: parent.width
+                            height: Math.max(skUvCol.height, skUvSw.implicitHeight)
+                            visible: pg.skSupported
+                            Column {
+                                id: skUvCol
+                                anchors { left: parent.left; right: skUvSw.left; rightMargin: Tokens.s4; verticalCenter: parent.verticalCenter }
+                                spacing: 2
+                                Text { text: I18n.tr("User verification"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall }
+                                Text {
+                                    width: parent.width
+                                    text: I18n.tr("Require the key's built-in user verification when available")
+                                    color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+                            Sw {
+                                id: skUvSw
+                                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                                opacity: pg.skPending === "flag" && pg.skPendingTarget === "user-verification" ? 0.4 : 1
+                                Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
+                                on: pg.skUserVerification
+                                onToggled: (v) => pg.sksetFlag("user-verification", v)
+                            }
+                        }
+
                         Btn {
                             width: parent.width
                             text: pg.skPending === "enroll" ? I18n.tr("SETTING UP\u2026") : I18n.tr("SET UP SECURITY KEY")
@@ -1508,7 +1642,15 @@ Item {
                         Text {
                             width: parent.width
                             visible: pg.skSupported
-                            text: I18n.tr("Lock screen security-key unlock is not wired yet. This first version handles enrollment plus sudo, admin prompts, and the sign-in screen.")
+                            text: I18n.tr("Real key setup that needs a PIN works best from a terminal right now. The Hub can show status and policy, but the underlying enrollment tool still prompts on stdin.")
+                            color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: pg.skSupported
+                            text: I18n.tr("Lock screen security-key unlock is not wired yet. This version handles enrollment plus sudo, admin prompts, and the sign-in screen.")
                             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                             wrapMode: Text.WordWrap
                         }
@@ -1780,15 +1922,20 @@ Item {
         id: chip
         property string label: ""
         property string mode: ""
-        readonly property bool on: pg.kmode === chip.mode
-        readonly property bool busy: pg.kpending === chip.mode
+        property string kind: "keyring"
+        readonly property bool on: chip.kind === "security-key"
+            ? ((chip.mode === "sk-mfa" && pg.skAuthMode === "mfa") || (chip.mode === "sk-either" && pg.skAuthMode !== "mfa"))
+            : (pg.kmode === chip.mode)
+        readonly property bool busy: chip.kind === "security-key"
+            ? (pg.skPending === "mode" && ((chip.mode === "sk-mfa" && pg.skPendingTarget === "mfa") || (chip.mode === "sk-either" && pg.skPendingTarget === "either")))
+            : (pg.kpending === chip.mode)
         implicitWidth: chLab.implicitWidth + Tokens.s4 * 2
         height: Tokens.ctlH + 4
         radius: Tokens.radius
         color: chip.on ? Tokens.tint10 : (chHover.hovered ? Tokens.tint5 : "transparent")
         border.width: Tokens.border
         border.color: chip.on ? Tokens.ink : (chHover.hovered ? Tokens.lineStrong : Tokens.line)
-        opacity: (pg.kpending !== "" && !chip.busy) ? 0.4 : 1
+        opacity: (((chip.kind === "security-key") ? (pg.skPending !== "") : (pg.kpending !== "")) && !chip.busy) ? 0.4 : 1
         Behavior on color { ColorAnimation { duration: Tokens.snap } }
         Behavior on border.color { ColorAnimation { duration: Tokens.snap } }
         Behavior on opacity { NumberAnimation { duration: Tokens.snap } }
@@ -1812,7 +1959,14 @@ Item {
         }
 
         HoverHandler { id: chHover; cursorShape: Qt.PointingHandCursor }
-        TapHandler { onTapped: pg.kchoose(chip.mode) }
+        TapHandler {
+            onTapped: {
+                if (chip.kind === "security-key")
+                    pg.sksetMode(chip.mode === "sk-mfa" ? "mfa" : "either");
+                else
+                    pg.kchoose(chip.mode);
+            }
+        }
     }
 
     // ── one lock-skin tile ──────────────────────────────────────────────────
