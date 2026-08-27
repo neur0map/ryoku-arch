@@ -48,7 +48,6 @@ func pamLine() string {
 		"auth",
 		control,
 		"pam_u2f.so",
-		"authfile=%h/.config/Yubico/u2f_keys",
 		"openasuser",
 		"cue",
 		"origin=" + origin,

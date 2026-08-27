@@ -107,6 +107,9 @@ func TestPolicyDrivesPamLine(t *testing.T) {
 	if !strings.Contains(line, "auth required pam_u2f.so") {
 		t.Fatalf("pam line must switch to required for MFA: %q", line)
 	}
+	if strings.Contains(line, "authfile=%h/.config/Yubico/u2f_keys") {
+		t.Fatalf("pam line must not use %%h authfile expansion: %q", line)
+	}
 	if !strings.Contains(line, "userpresence=1") {
 		t.Fatalf("pam line missing userpresence: %q", line)
 	}
