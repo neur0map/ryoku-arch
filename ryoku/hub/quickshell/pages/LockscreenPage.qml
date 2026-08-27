@@ -1100,24 +1100,12 @@ Item {
                 TapHandler { onTapped: pg.settOpen = !pg.settOpen }
             }
 
-            Flickable {
-                id: settingsFlick
+            Row {
                 visible: pg.settOpen
-                width: parent.width
-                height: visible ? Math.min(settingsBody.implicitHeight, Math.max(180, pg.height - sett.y - settCol.y - y - Tokens.s6)) : 0
-                contentWidth: width
-                contentHeight: settingsBody.implicitHeight
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                ScrollBar.vertical: ScrollRail { policy: ScrollBar.AsNeeded }
+                spacing: Tokens.s5
 
-                Row {
-                    id: settingsBody
-                    width: settingsFlick.width - Tokens.s3
-                    spacing: Tokens.s5
-
-                    // ── left: keyring, sensor, switches ──
-                    Column {
+                // ── left: keyring, sensor, switches ──
+                Column {
                     id: settingsLeft
                     width: Math.round((settCol.width - Tokens.s5 - Tokens.border) * 0.56)
                     spacing: Tokens.s3
