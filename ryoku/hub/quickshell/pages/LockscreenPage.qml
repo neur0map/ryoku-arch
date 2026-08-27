@@ -1753,7 +1753,7 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: Math.max(0, parent.width - x)
                                 horizontalAlignment: Text.AlignRight
-                                text: pg.skPending === "enroll" ? I18n.tr("SETTING UP\u2026") : (pg.skLoading ? I18n.tr("Checking\u2026") : "")
+                                text: pg.skPending === "enroll" ? I18n.tr("SETTING UP\u2026") : pg.skStatusLine
                                 color: Tokens.inkFaint; font.family: Tokens.ui
                                 font.pixelSize: Tokens.fTiny; elide: Text.ElideRight
                             }
@@ -1761,10 +1761,43 @@ Item {
 
                         Text {
                             width: parent.width
-                            visible: !pg.skLoading && !pg.skEnrolled
-                            text: pg.skSupported ? I18n.tr("No passkeys yet. Add a security key below and it will show up here.") : I18n.tr("Security key support is unavailable.")
+                            visible: !pg.skLoading && !pg.skSupported
+                            text: I18n.tr("Install pam-u2f to enroll a FIDO2 or U2F security key here.")
                             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                             wrapMode: Text.WordWrap
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: !pg.skLoading && pg.skSupported && !pg.skDevicePresent
+                            text: I18n.tr("Insert your YubiKey or other security key, then retry setup.")
+                            color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: !pg.skLoading && pg.skSupported && pg.skDevicePresent && !pg.skEnrolled
+                            text: I18n.tr("No passkeys yet. Set up the inserted security key below and it will show up here.")
+                            color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: !pg.skLoading && pg.skSupported && pg.skDevicePresent && pg.skEnrolled
+                            text: I18n.tr("Use Add security key to enroll another key, or remove an old one below.")
+                            color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Btn {
+                            width: parent.width
+                            visible: !pg.skLoading && pg.skSupported && !pg.skDevicePresent
+                            text: I18n.tr("RETRY SECURITY KEY")
+                            compact: true
+                            armed: pg.skPending === ""
+                            onAct: pg.skreload()
                         }
 
                         Column {
@@ -1817,7 +1850,7 @@ Item {
                             width: parent.width
                             text: pg.skPending === "enroll" ? I18n.tr("SETTING UP\u2026") : (pg.skEnrolled ? I18n.tr("ADD SECURITY KEY") : I18n.tr("SET UP SECURITY KEY"))
                             primary: true
-                            armed: pg.skPending === "" && pg.skSupported
+                            armed: pg.skPending === "" && pg.skSupported && pg.skDevicePresent
                             onAct: pg.skenroll()
                         }
 
