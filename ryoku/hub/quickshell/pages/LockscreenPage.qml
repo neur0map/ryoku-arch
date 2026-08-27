@@ -1349,68 +1349,13 @@ Item {
                             width: parent.width
                             spacing: Tokens.s2
                             Text { text: I18n.tr("Security key / Passkey"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.capitalization: Font.AllUppercase; font.letterSpacing: Tokens.trackMark }
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: parent.width - x
-                                text: pg.skStatusLine
-                                horizontalAlignment: Text.AlignRight
-                                color: Tokens.inkFaint; font.family: Tokens.ui
-                                font.pixelSize: Tokens.fTiny; elide: Text.ElideRight
-                            }
                         }
 
-                        Item {
+                        Text {
                             width: parent.width
-                            height: Math.max(securityGlyph.height, securityCol.implicitHeight)
-
-                            Glyph {
-                                id: securityGlyph
-                                anchors { left: parent.left; top: parent.top; topMargin: 2 }
-                                path: pg.pKey; size: 22; weight: 1.5
-                                tint: pg.skDevicePresent ? Tokens.ink : Tokens.inkFaint
-                            }
-                            Column {
-                                id: securityCol
-                                anchors { left: securityGlyph.right; right: securityRetry.visible ? securityRetry.left : parent.right; leftMargin: Tokens.s3; rightMargin: Tokens.s3; verticalCenter: parent.verticalCenter }
-                                spacing: 2
-
-                                Text {
-                                    width: parent.width
-                                    text: {
-                                        if (pg.skLoading)
-                                            return I18n.tr("Checking\u2026");
-                                        if (!pg.skSupported)
-                                            return I18n.tr("Security key support unavailable");
-                                        if (pg.skDevicePresent)
-                                            return pg.skDeviceName || I18n.tr("Security key detected");
-                                        return I18n.tr("No security key detected");
-                                    }
-                                    color: pg.skDevicePresent ? Tokens.ink : Tokens.inkMuted
-                                    font.family: Tokens.ui; font.pixelSize: Tokens.fSmall; font.weight: Font.DemiBold
-                                    elide: Text.ElideRight
-                                }
-                                Text {
-                                    width: parent.width
-                                    text: {
-                                        if (pg.skLoading)
-                                            return "";
-                                        if (!pg.skSupported)
-                                            return I18n.tr("Install pam-u2f to enroll a FIDO2 or U2F key here.");
-                                        if (!pg.skEnrolled)
-                                            return I18n.tr("Insert your YubiKey or other security key, then set it up.");
-                                        return I18n.tr("Ready. The enrolled key can be used as an alternative to your password for the toggles below.");
-                                    }
-                                    color: Tokens.inkDim; font.family: Tokens.ui
-                                    font.pixelSize: Tokens.fSmall; wrapMode: Text.WordWrap
-                                }
-                            }
-                            Btn {
-                                id: securityRetry
-                                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                                visible: !pg.skLoading && pg.skSupported && !pg.skDevicePresent
-                                text: I18n.tr("RETRY"); compact: true
-                                onAct: pg.skreload()
-                            }
+                            text: I18n.tr("Choose where enrolled passkeys are accepted and how they authenticate.")
+                            color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            wrapMode: Text.WordWrap
                         }
 
                         Rectangle { width: parent.width; height: Tokens.border; color: Tokens.lineSoft }
@@ -1603,14 +1548,6 @@ Item {
                             }
                         }
 
-                        Btn {
-                            width: parent.width
-                            text: pg.skPending === "enroll" ? I18n.tr("SETTING UP\u2026") : (pg.skEnrolled ? I18n.tr("ADD SECURITY KEY") : I18n.tr("SET UP SECURITY KEY"))
-                            primary: true
-                            armed: pg.skPending === "" && pg.skSupported
-                            onAct: pg.skenroll()
-                        }
-
 
                         Text {
                             width: parent.width
@@ -1626,14 +1563,6 @@ Item {
                             text: I18n.tr("Lock screen security-key unlock is not wired yet. This version handles enrollment plus sudo, admin prompts, and the sign-in screen.")
                             color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
                             wrapMode: Text.WordWrap
-                        }
-
-                        Text {
-                            width: parent.width
-                            visible: pg.skError !== ""
-                            text: pg.skError
-                            color: Tokens.ink; font.family: Tokens.ui
-                            font.pixelSize: Tokens.fSmall; font.weight: Font.Medium; wrapMode: Text.WordWrap
                         }
                     }
                 }
@@ -1689,55 +1618,6 @@ Item {
                         wrapMode: Text.WordWrap
                     }
 
-                    Column {
-                        width: parent.width
-                        visible: pg.skEnrolled
-                        spacing: Tokens.s1
-
-                        Text {
-                            width: parent.width
-                            text: I18n.tr("Passkeys")
-                            color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.capitalization: Font.AllUppercase; font.letterSpacing: Tokens.trackMark
-                        }
-
-                        Repeater {
-                            model: pg.skCredentialIds
-                            delegate: Rectangle {
-                                id: passkeyRow
-                                required property var modelData
-                                width: parent.width
-                                height: 34
-                                color: "transparent"
-
-                                Text {
-                                    id: passkeyName
-                                    anchors { left: parent.left; leftMargin: Tokens.s2; verticalCenter: parent.verticalCenter }
-                                    width: Math.min(180, passkeyRow.width - 170)
-                                    text: passkeyRow.modelData.label || (I18n.tr("Security key") + " " + passkeyRow.modelData.id)
-                                    color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
-                                    elide: Text.ElideRight
-                                }
-                                Text {
-                                    anchors { left: passkeyName.right; leftMargin: Tokens.s3; right: skRemoveBtn.left; rightMargin: Tokens.s3; verticalCenter: parent.verticalCenter }
-                                    text: I18n.tr("Credential") + " " + passkeyRow.modelData.id
-                                    color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
-                                    elide: Text.ElideRight
-                                }
-                                Btn {
-                                    id: skRemoveBtn
-                                    anchors { right: parent.right; rightMargin: Tokens.s2; verticalCenter: parent.verticalCenter }
-                                    text: pg.skPending === "remove" && pg.skPendingTarget === passkeyRow.modelData.id ? I18n.tr("REMOVING\u2026") : I18n.tr("REMOVE")
-                                    compact: true
-                                    armed: pg.skPending === ""
-                                    onAct: pg.skremove(passkeyRow.modelData.id)
-                                }
-                                Rectangle {
-                                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                                    height: Tokens.border; color: Tokens.lineSoft
-                                }
-                            }
-                        }
-                    }
 
                     // enrolled fingers: one quiet row each, delete behind an
                     // armed second click so nothing vanishes on a stray tap.
@@ -1857,6 +1737,97 @@ Item {
                         text: pg.ferr
                         color: Tokens.ink; font.family: Tokens.ui
                         font.pixelSize: Tokens.fSmall; font.weight: Font.Medium; wrapMode: Text.WordWrap
+                    }
+
+                    Rectangle { width: parent.width; height: Tokens.border; color: Tokens.line }
+
+                    Column {
+                        width: parent.width
+                        spacing: Tokens.s2
+
+                        Row {
+                            width: parent.width
+                            spacing: Tokens.s2
+                            Text { text: I18n.tr("Passkeys"); color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro; font.weight: Font.Medium; font.capitalization: Font.AllUppercase; font.letterSpacing: Tokens.trackMark }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Math.max(0, parent.width - x)
+                                horizontalAlignment: Text.AlignRight
+                                text: pg.skPending === "enroll" ? I18n.tr("SETTING UP\u2026") : (pg.skLoading ? I18n.tr("Checking\u2026") : "")
+                                color: Tokens.inkFaint; font.family: Tokens.ui
+                                font.pixelSize: Tokens.fTiny; elide: Text.ElideRight
+                            }
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: !pg.skLoading && !pg.skEnrolled
+                            text: pg.skSupported ? I18n.tr("No passkeys yet. Add a security key below and it will show up here.") : I18n.tr("Security key support is unavailable.")
+                            color: Tokens.inkMuted; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Column {
+                            width: parent.width
+                            visible: pg.skEnrolled
+                            spacing: 0
+
+                            Repeater {
+                                model: pg.skCredentialIds
+                                delegate: Rectangle {
+                                    id: passkeyRow
+                                    required property var modelData
+                                    required property int index
+                                    width: parent.width
+                                    height: 34
+                                    color: "transparent"
+
+                                    Text {
+                                        id: passkeyName
+                                        anchors { left: parent.left; leftMargin: Tokens.s2; verticalCenter: parent.verticalCenter }
+                                        width: Math.min(180, passkeyRow.width - 170)
+                                        text: passkeyRow.modelData.label || (I18n.tr("Security key") + " " + passkeyRow.modelData.id)
+                                        color: Tokens.ink; font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                                        elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        anchors { left: passkeyName.right; leftMargin: Tokens.s3; right: skRemoveBtn.left; rightMargin: Tokens.s3; verticalCenter: parent.verticalCenter }
+                                        text: I18n.tr("Credential") + " " + passkeyRow.modelData.id
+                                        color: Tokens.inkFaint; font.family: Tokens.mono; font.pixelSize: Tokens.fTiny
+                                        elide: Text.ElideRight
+                                    }
+                                    Btn {
+                                        id: skRemoveBtn
+                                        anchors { right: parent.right; rightMargin: Tokens.s2; verticalCenter: parent.verticalCenter }
+                                        text: pg.skPending === "remove" && pg.skPendingTarget === passkeyRow.modelData.id ? I18n.tr("REMOVING\u2026") : I18n.tr("REMOVE")
+                                        compact: true
+                                        armed: pg.skPending === ""
+                                        onAct: pg.skremove(passkeyRow.modelData.id)
+                                    }
+                                    Rectangle {
+                                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                                        height: Tokens.border; color: Tokens.lineSoft
+                                        visible: passkeyRow.index < pg.skCredentialIds.length - 1
+                                    }
+                                }
+                            }
+                        }
+
+                        Btn {
+                            width: parent.width
+                            text: pg.skPending === "enroll" ? I18n.tr("SETTING UP\u2026") : (pg.skEnrolled ? I18n.tr("ADD SECURITY KEY") : I18n.tr("SET UP SECURITY KEY"))
+                            primary: true
+                            armed: pg.skPending === "" && pg.skSupported
+                            onAct: pg.skenroll()
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: pg.skError !== ""
+                            text: pg.skError
+                            color: Tokens.ink; font.family: Tokens.ui
+                            font.pixelSize: Tokens.fSmall; font.weight: Font.Medium; wrapMode: Text.WordWrap
+                        }
                     }
                 }
             }
