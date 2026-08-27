@@ -48,11 +48,6 @@ Item {
                 font.family: Theme.mono
                 font.pixelSize: face.px
                 font.weight: Font.Bold
-                SequentialAnimation on opacity {
-                    loops: Animation.Infinite
-                    NumberAnimation { from: 1; to: 0.3; duration: 620; easing.type: Easing.InOutSine }
-                    NumberAnimation { from: 0.3; to: 1; duration: 620; easing.type: Easing.InOutSine }
-                }
             }
             Text {
                 text: face.t.mm

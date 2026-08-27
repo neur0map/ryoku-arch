@@ -173,8 +173,12 @@ Item {
         cache: false
         asynchronous: true
         fillMode: view.fillModeFor(imgA)
-        onStatusChanged: if (status === Image.Ready && source == view.url && !view.aFront)
-            view.startReveal()
+        onStatusChanged: {
+            if (status === Image.Ready)
+                srcA.scheduleUpdate();
+            if (status === Image.Ready && source == view.url && !view.aFront)
+                view.startReveal();
+        }
     }
     Image {
         id: imgB
@@ -182,21 +186,27 @@ Item {
         cache: false
         asynchronous: true
         fillMode: view.fillModeFor(imgB)
-        onStatusChanged: if (status === Image.Ready && source == view.url && view.aFront)
-            view.startReveal()
+        onStatusChanged: {
+            if (status === Image.Ready)
+                srcB.scheduleUpdate();
+            if (status === Image.Ready && source == view.url && view.aFront)
+                view.startReveal();
+        }
     }
 
+    // live:false + an explicit scheduleUpdate() on load: re-capture only when the
+    // image content actually changes, not every frame forever on a static wallpaper.
     ShaderEffectSource {
         id: srcA
         sourceItem: imgA
         hideSource: true
-        live: true
+        live: false
     }
     ShaderEffectSource {
         id: srcB
         sourceItem: imgB
         hideSource: true
-        live: true
+        live: false
     }
 
     // The reveal: mix(oldTex, newTex, mask) over the shared duration. oldTex is the
