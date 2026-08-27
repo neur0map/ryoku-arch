@@ -68,23 +68,39 @@ func probeDevice() (bool, string) {
 		if err != nil {
 			continue
 		}
-		for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-			line = strings.TrimSpace(line)
-			if line == "" {
-				continue
-			}
-			low := strings.ToLower(line)
-			if strings.Contains(low, "no fido2 devices found") || strings.Contains(low, "no fido devices found") || strings.Contains(low, "no devices found") {
-				continue
-			}
-			return true, line
-		}
-		low := strings.ToLower(strings.TrimSpace(string(out)))
-		if strings.Contains(low, "no fido2 devices found") || strings.Contains(low, "no fido devices found") || strings.Contains(low, "no devices found") {
-			return false, ""
+		if name, ok := parseProbeOutput(string(out)); ok {
+			return true, name
 		}
 	}
 	return false, ""
+}
+
+func parseProbeOutput(out string) (string, bool) {
+	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || probeNoise(line) {
+			continue
+		}
+		return line, true
+	}
+	return "", false
+}
+
+func probeNoise(line string) bool {
+	low := strings.ToLower(strings.TrimSpace(line))
+	if low == "" {
+		return true
+	}
+	if strings.Contains(low, "no fido2 devices found") || strings.Contains(low, "no fido devices found") || strings.Contains(low, "no devices found") {
+		return true
+	}
+	if strings.HasPrefix(low, "path ") && strings.Contains(low, "manufacturer") && strings.Contains(low, "product") {
+		return true
+	}
+	if strings.HasPrefix(low, "path\t") && strings.Contains(low, "manufacturer") && strings.Contains(low, "product") {
+		return true
+	}
+	return false
 }
 
 func runStatus(args []string) error {

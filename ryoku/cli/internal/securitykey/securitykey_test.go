@@ -70,6 +70,15 @@ func TestRemoveCredentialByID(t *testing.T) {
 	}
 }
 
+func TestParseProbeOutputIgnoresHeaderAndNoDevice(t *testing.T) {
+	if name, ok := parseProbeOutput("PATH         MANUFACTURER PRODUCT               COMPATIBLE RK CLIENTPIN UP UV ALWAYSUV\nNo FIDO2 devices found.\n"); ok || name != "" {
+		t.Fatalf("header-only probe must report no device, got ok=%v name=%q", ok, name)
+	}
+	if name, ok := parseProbeOutput("PATH         MANUFACTURER PRODUCT               COMPATIBLE RK CLIENTPIN UP UV ALWAYSUV\n/dev/hidraw0 Yubico       YubiKey 5 NFC         yes        yes yes       yes yes no\n"); !ok || name == "" {
+		t.Fatalf("device row must be detected, got ok=%v name=%q", ok, name)
+	}
+}
+
 func TestFakeFIDOStatusAndEnroll(t *testing.T) {
 	cfg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", cfg)
