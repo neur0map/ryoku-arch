@@ -190,6 +190,7 @@ Item {
     property string skError: ""
     property string skPending: ""
     property string skPendingTarget: ""
+    property int skEnrollPolls: 0
 
     readonly property string skModeLine: {
         var parts = [pg.skAuthMode === "mfa" ? "security key + password" : "security key or password"];
@@ -315,11 +316,10 @@ Item {
     function skenroll() {
         if (pg.skPending !== "")
             return;
-        pg.skError = "";
-        pg.skPending = "enroll";
-        pg.skPendingTarget = "";
-        skActionProc.command = ["ryoku", "security-key", "enroll"];
-        skActionProc.running = true;
+        pg.skError = I18n.tr("Finish security-key setup in the terminal window, then return here.");
+        pg.skEnrollPolls = 0;
+        Quickshell.execDetached(["sh", "-c", "exec \"${TERMINAL:-kitty}\" --class ryoku-passkey -e sh -c 'ryoku security-key enroll; printf \"\\n── press enter to close ──\\n\"; read _'"]);
+        skEnrollRefresh.restart();
     }
     function skremove(id) {
         if (pg.skPending !== "")
@@ -725,6 +725,17 @@ Item {
             else
                 pg.skError = "";
             pg.skreload();
+        }
+    }
+    Timer {
+        id: skEnrollRefresh
+        interval: 2500
+        repeat: true
+        onTriggered: {
+            pg.skEnrollPolls++;
+            pg.skreload();
+            if (pg.skEnrolled || pg.skEnrollPolls >= 24)
+                stop();
         }
     }
 
