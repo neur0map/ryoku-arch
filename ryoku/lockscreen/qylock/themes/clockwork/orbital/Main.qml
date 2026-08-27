@@ -64,6 +64,10 @@ Rectangle {
     property bool userMenuOpen: false
     property bool isWindup: false
     property real uiOpacity: 0
+    property string authInfo: ""
+    readonly property bool fidoInfo: authInfo.toLowerCase().indexOf("fido") >= 0 || authInfo.toLowerCase().indexOf("authenticator") >= 0 || authInfo.toLowerCase().indexOf("pin") >= 0
+    readonly property bool touchInfo: authInfo.toLowerCase().indexOf("touch") >= 0
+    readonly property string inputHint: authInfo !== "" ? authInfo.toUpperCase() : "TYPE PASSWORD OR FIDO PIN"
     readonly property real marginR: 80 * s
 
     // Time Logic
@@ -325,7 +329,7 @@ Rectangle {
                 TextInput {
                     id: passInput; anchors.fill: parent; echoMode: TextInput.Password; passwordCharacter: "✦"; color: root.dimText; font.family: outfitFont.name; font.pixelSize: 14 * s; font.letterSpacing: 10 * s; horizontalAlignment: TextInput.AlignRight; verticalAlignment: TextInput.AlignVCenter; focus: true; property bool wasClicked: false; cursorVisible: false; cursorDelegate: Item { width: 0; height: 0 }
                     Keys.onReturnPressed: startLoginSequence()
-                    Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: "WAITING FOR KEY"; font.family: outfitFont.name; font.pixelSize: 10 * s; font.letterSpacing: 4 * s; color: root.inputWaitColor; opacity: passInput.text.length === 0 ? 0.4 : 0; Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.InOutSine } } }
+                    Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: root.inputHint; font.family: outfitFont.name; font.pixelSize: 10 * s; font.letterSpacing: 4 * s; color: root.fidoInfo ? root.mainText : root.inputWaitColor; opacity: passInput.text.length === 0 ? 0.55 : 0; Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.InOutSine } } }
                     Rectangle {
                         id: needleCursor; width: 1.5 * s; height: 12 * s; color: root.mainText; anchors.verticalCenter: parent.verticalCenter; x: passInput.cursorRectangle.x; visible: passInput.focus && (passInput.text.length > 0 || passInput.wasClicked)
                         SequentialAnimation { loops: Animation.Infinite; running: needleCursor.visible; NumberAnimation { target: needleCursor; property: "opacity"; from: 1; to: 0.1; duration: 450 } NumberAnimation { target: needleCursor; property: "opacity"; from: 0.1; to: 1; duration: 450 } }
@@ -336,9 +340,9 @@ Rectangle {
             Item {
                 width: parent.width; height: 40 * s
                 Text {
-                    id: loginBtn; anchors.right: parent.right; anchors.rightMargin: btnMa.containsMouse ? 25 * s : 0; text: "ENTER KEY"; font.family: outfitFont.name; font.pixelSize: 11 * s; font.letterSpacing: 4 * s; font.weight: Font.Bold; color: passInput.text.length > 0 ? (btnMa.containsMouse ? root.mainText : root.dimText) : "transparent"; opacity: passInput.text.length > 0 ? 1.0 : 0; Behavior on anchors.rightMargin { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                    id: loginBtn; anchors.right: parent.right; anchors.rightMargin: btnMa.containsMouse ? 25 * s : 0; text: passInput.text.length > 0 ? "UNLOCK" : (root.touchInfo ? "TOUCH KEY" : "TRY TOUCH ONLY"); font.family: outfitFont.name; font.pixelSize: 11 * s; font.letterSpacing: 4 * s; font.weight: Font.Bold; color: btnMa.containsMouse ? root.mainText : root.dimText; opacity: 1.0; Behavior on anchors.rightMargin { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
                 }
-                Text { text: "✦"; anchors.left: loginBtn.right; anchors.leftMargin: 8 * s; anchors.verticalCenter: loginBtn.verticalCenter; color: root.mainText; opacity: (btnMa.containsMouse && passInput.text.length > 0) ? 1.0 : 0; font.pixelSize: 10 * s; Behavior on opacity { NumberAnimation { duration: 200 } } }
+                Text { text: "✦"; anchors.left: loginBtn.right; anchors.leftMargin: 8 * s; anchors.verticalCenter: loginBtn.verticalCenter; color: root.mainText; opacity: btnMa.containsMouse ? 1.0 : 0; font.pixelSize: 10 * s; Behavior on opacity { NumberAnimation { duration: 200 } } }
                 MouseArea { id: btnMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { startLoginSequence() } }
             }
             Text { id: errText; width: parent.width; height: 15 * s; verticalAlignment: Text.AlignBottom; horizontalAlignment: Text.AlignRight; text: ""; color: "#ff4444"; font.family: outfitFont.name; font.pixelSize: 10 * s; font.letterSpacing: 2 * s }
@@ -347,7 +351,7 @@ Rectangle {
 
     Timer { id: boomTriggerTimer; interval: 1450; onTriggered: { boomSequence.start() } }
     function startLoginSequence() {
-        if (passInput.text.length === 0 || isWindup) return
+        if (isWindup) return
         if (root.enableWindup) {
             isWindup = true
             windupAnim.start()
@@ -361,11 +365,13 @@ Rectangle {
     // second PAM auth if the fingerprint wins mid-windup (after
     // boomTriggerTimer at 1450ms). boomSequence.stop() kills the animation.
     property bool _unlocked: false
-    function doLogin() { if (_unlocked) return; _unlocked = true; var uname = (userHelper.currentItem && userHelper.currentItem.uLogin) ? userHelper.currentItem.uLogin : (typeof userModel !== "undefined" ? userModel.lastUser : "user"); if (typeof sddm !== "undefined") sddm.login(uname, passInput.text, root.sessionIndex) }
+    function doLogin() { if (_unlocked) return; _unlocked = true; root.authInfo = ""; var uname = (userHelper.currentItem && userHelper.currentItem.uLogin) ? userHelper.currentItem.uLogin : (typeof userModel !== "undefined" ? userModel.lastUser : "user"); if (typeof sddm !== "undefined") sddm.login(uname, passInput.text, root.sessionIndex) }
     function capitalizeFirst(str) { if (!str) return ""; return str.charAt(0).toUpperCase() + str.slice(1) }
     // ── login event handlers ────────────────────────────────────────────────
     Connections {
         target: typeof sddm !== "undefined" ? sddm : null
+        function onInformationMessage(message) { root.authInfo = message || ""; errText.text = root.authInfo.toUpperCase(); passInput.forceActiveFocus() }
+        function onErrorMessage(message) { errText.text = (message || "").toUpperCase() }
         function onLoginSucceeded() {
             if (typeof sddm !== "undefined" && sddm.fingerprintUnlock === true) {
                 // Sensor win: skip the windup, play the reveal flourish, no
@@ -378,7 +384,7 @@ Rectangle {
                 boomReveal.start()
             }
         }
-        function onLoginFailed() { _unlocked = false; isWindup = false; windupAnim.stop(); boomTriggerTimer.stop(); boomSequence.stop(); root.windupOffset = 0; root.boomScale = 1.0; root.boomOpacity = 0.0; root.sparkIntensity = 0; errText.text = "ACCESS DENIED"; passInput.text = ""; passInput.forceActiveFocus(); shake.start() }
+        function onLoginFailed() { _unlocked = false; isWindup = false; windupAnim.stop(); boomTriggerTimer.stop(); boomSequence.stop(); root.windupOffset = 0; root.boomScale = 1.0; root.boomOpacity = 0.0; root.sparkIntensity = 0; root.authInfo = ""; errText.text = "ACCESS DENIED"; passInput.text = ""; passInput.forceActiveFocus(); shake.start() }
     }
     SequentialAnimation {
         id: shake
