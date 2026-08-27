@@ -27,6 +27,7 @@ import (
 	"ryoku-cli/internal/importer"
 	"ryoku-cli/internal/keyboard"
 	"ryoku-cli/internal/keyring"
+	"ryoku-cli/internal/securitykey"
 	"ryoku-cli/internal/sys"
 	"ryoku-cli/internal/updater"
 )
@@ -65,6 +66,8 @@ func main() {
 		err = doctor.Run(os.Args[2:])
 	case "keyring":
 		err = keyring.Run(os.Args[2:])
+	case "security-key":
+		err = securitykey.Run(os.Args[2:])
 	case "keyboard":
 		err = keyboard.Run(os.Args[2:])
 	case "import":
@@ -95,7 +98,8 @@ func usage() {
   recovery       last resort: reset to main and redeploy (overwrites configs)
   doctor         run convergent reconcilers (idempotent stateful fixes)
   keyring        show or set how the GNOME keyring unlocks at sign-in
-  import <path>   bring an existing config in: scan, resolve clashes, apply (--undo)
+  security-key   enroll and wire a FIDO2/U2F security key for PAM
+  import <path>  bring an existing config in: scan, resolve clashes, apply (--undo)
 `)
 }
 

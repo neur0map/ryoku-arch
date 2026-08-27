@@ -167,6 +167,10 @@ depends=(
   # enables bluetooth.service once so upgrades from bluez-less installs work.
   'bluez'
   'bluez-utils'
+  # FIDO2/U2F enrollment (`pamu2fcfg`) and PAM auth for YubiKeys and other
+  # security keys. A hard depend so the Hub's setup flow works on fresh installs
+  # and reaches existing boxes on `ryoku update`.
+  'pam-u2f'
   # rtkit hands PipeWire's audio thread realtime scheduling; without it the
   # thread runs SCHED_OTHER and crackles under load. .install enables the daemon.
   'rtkit'
