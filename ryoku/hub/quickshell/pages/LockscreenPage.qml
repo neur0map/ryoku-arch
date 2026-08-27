@@ -1116,10 +1116,20 @@ Item {
                 spacing: Tokens.s5
 
                 // ── left: keyring, sensor, switches ──
-                Column {
+                Flickable {
                     id: settingsLeft
                     width: Math.round((settCol.width - Tokens.s5 - Tokens.border) * 0.56)
-                    spacing: Tokens.s3
+                    height: Math.min(settingsLeftCol.implicitHeight, Math.max(260, pg.height - sett.y - 180))
+                    contentWidth: width
+                    contentHeight: settingsLeftCol.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    ScrollBar.vertical: ScrollRail { policy: ScrollBar.AsNeeded }
+
+                    Column {
+                        id: settingsLeftCol
+                        width: settingsLeft.width - Tokens.s3
+                        spacing: Tokens.s3
 
                 // ── Keyring section ──
                 Column {
@@ -1576,6 +1586,7 @@ Item {
                             wrapMode: Text.WordWrap
                         }
                     }
+                }
                 }
                 }
 
