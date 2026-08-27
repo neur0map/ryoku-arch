@@ -14,6 +14,7 @@ local function K(k) return rebinds[k] or k end
 -- Windows
 hl.bind(K(mod .. " + Q"),         hl.dsp.window.close())                           -- close active window
 hl.bind(K(mod .. " + F"),         hl.dsp.window.fullscreen())                      -- fullscreen
+hl.bind(K(mod .. " + SHIFT + P"), hl.dsp.window.pin())                             -- pin a floating window
 hl.bind(K(mod .. " + A"),         function() hl.dispatch(hl.dsp.window.float({ action = "toggle" })); hl.dispatch(hl.dsp.window.resize({ x = 1000, y = 660, exact = true })); hl.dispatch(hl.dsp.window.center()) end) -- float at 1000x660, centred (press again to tile back)
 hl.bind(K(mod .. " + R"),         function() hl.dispatch(hl.dsp.submap("resize")); hl.dispatch(hl.dsp.exec_cmd("hyprctl notify -1 2200 0 'Resize mode: arrows or hjkl resize, Esc exits'")) end) -- resize mode (arrows/hjkl resize, Esc exits)
 hl.bind(K(mod .. " + P"),         hl.dsp.exec_cmd("ryoku-monitor toggle"))         -- mirror <-> extend displays
