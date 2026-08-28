@@ -48,7 +48,7 @@ func gatherStatus() Status {
 	p := readPolicy()
 	present, name, caps := probeDevice()
 	st := Status{
-		Supported:        sys.Has("pamu2fcfg"),
+		Supported:        fakeFIDO() || sys.Has("pamu2fcfg"),
 		DevicePresent:    present,
 		DeviceName:       name,
 		Capabilities:     caps,
