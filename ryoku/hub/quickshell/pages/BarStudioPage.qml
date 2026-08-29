@@ -656,7 +656,7 @@ Item {
                     Step {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        from: 0; to: 64
+                        from: -12; to: 64
                         value: page.qval("barGapTop", 3)
                         onModified: value => page.qset("barGapTop", value)
                     }
@@ -674,7 +674,7 @@ Item {
                     Step {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        from: 0; to: 64
+                        from: -12; to: 64
                         value: page.qval("barGapBottom", 0)
                         onModified: value => page.qset("barGapBottom", value)
                     }
