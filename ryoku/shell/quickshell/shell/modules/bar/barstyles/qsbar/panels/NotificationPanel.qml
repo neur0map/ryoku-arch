@@ -3,6 +3,7 @@ import "../modules"
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
+import Quickshell.Services.Notifications
 import Ryoku.Ui.Singletons
 
 PanelWindow {
@@ -20,23 +21,54 @@ PanelWindow {
     readonly property int barBottom: root.v2BarHeight
     readonly property int gap: 6
 
-    // ── quickshell-owned notification history ────────────────────────────────
-    // Mako's history is capped (default max-history 5), so polling it and
-    // REPLACING our list each time loses everything older. Instead we MERGE each
-    // poll into our own retained history (capped 50) and persist it, so entries
-    // survive both mako dropping them and a quickshell restart.
-    //
-    // Identity: mako ids are a per-session counter that RESETS on a mako restart,
-    // so a bare id is ambiguous across restarts. We derive a session token
-    // (boot-id + mako pid + proc start-time) once per poll; when it changes we
-    // bump `generation`, and every entry is keyed "generation:id". Old entries
-    // (gen 0) and reused new ids (gen 1) therefore never collide. The bare id is
-    // used ONLY for makoctl dismiss/invoke operations.
+    // ── native quickshell notification server ──────────────────────────────
+    // Quickshell becomes its own org.freedesktop.Notifications D-Bus provider
+    NotificationServer {
+        id: notifServer
+        keepOnReload: true       // survive quickshell hot-reloads
+        bodySupported: true
+        imageSupported: true
+        actionsSupported: true
 
-    property var recent: []             // [{key,id,gen,appName,summary,body,firstSeen,active}]
-    property var dismissed: ({})         // composite-key -> true (persisted)
-    property string sessionToken: ""
-    property int generation: 0
+        onNotification: function(notification) {
+            notification.tracked = true   // keep it alive / don't auto-discard
+
+            var key = "n:" + notification.id + ":" + (++notifPanel.seq)
+
+            // keep a transient (non-persisted) live reference so dismiss/invoke
+            // can still reach the real Notification object while it's alive
+            var lm = notifPanel.liveMap
+            lm[key] = notification
+            notifPanel.liveMap = lm
+
+            var entry = {
+                key: key,
+                appName: notification.appName || "",
+                summary: notification.summary || "",
+                body: notification.body || "",
+                firstSeen: notifPanel.seq
+            }
+
+            var out = [entry].concat(notifPanel.recent)
+            if (out.length > 50) out = out.slice(0, 50)
+            notifPanel.recent = out            // reassign → bindings fire
+            notifPanel.pruneDismissed()
+
+            // when the notification closes (app withdrew it, expired, or we
+            // dismissed it) drop the live ref; the history entry stays put
+            notification.closed.connect(function(reason) {
+                var lm2 = notifPanel.liveMap
+                delete lm2[key]
+                notifPanel.liveMap = lm2
+            })
+
+            notifPanel.saveCache()
+        }
+    }
+
+    property var recent: []             // [{key,appName,summary,body,firstSeen}]
+    property var dismissed: ({})         // key -> true (persisted)
+    property var liveMap: ({})           // key -> live Notification (transient, not persisted)
     property int seq: 0                  // monotonic first-seen counter (ordering)
     property bool cacheLoaded: false
     property string lastSaved: ""
@@ -62,32 +94,25 @@ PanelWindow {
         onLoaded: {
             try {
                 var j = JSON.parse(cacheFile.text())
-                notifPanel.sessionToken = j.token || ""
-                notifPanel.generation   = j.generation || 0
-                notifPanel.seq          = j.seq || 0
-                notifPanel.recent       = Array.isArray(j.recent) ? j.recent : []
-                notifPanel.dismissed    = (j.dismissed && typeof j.dismissed === "object") ? j.dismissed : ({})
-                notifPanel.lastSaved    = cacheFile.text()
+                notifPanel.seq       = j.seq || 0
+                notifPanel.recent    = Array.isArray(j.recent) ? j.recent : []
+                notifPanel.dismissed = (j.dismissed && typeof j.dismissed === "object") ? j.dismissed : ({})
+                notifPanel.lastSaved = cacheFile.text()
             } catch (e) {
                 notifPanel.recent = []; notifPanel.dismissed = ({})
             }
             notifPanel.cacheLoaded = true
-            notifPanel.poll()
         }
         onLoadFailed: {                  // first run: no cache yet
             notifPanel.cacheLoaded = true
-            notifPanel.poll()
         }
     }
-    // force the initial load (don't rely on implicit auto-load) - the whole panel
-    // is gated on cacheLoaded, so a missed load would mean no notifications ever
+    // force the initial load (don't rely on implicit auto-load)
     Component.onCompleted: cacheFile.reload()
 
     function saveCache() {
         if (!notifPanel.cacheLoaded) return
         var state = JSON.stringify({
-            token: notifPanel.sessionToken,
-            generation: notifPanel.generation,
             seq: notifPanel.seq,
             recent: notifPanel.recent,
             dismissed: notifPanel.dismissed
@@ -97,109 +122,31 @@ PanelWindow {
         cacheFile.setText(state)
     }
 
-    // pid-guarded: with an empty pid, /proc//stat collapses to /proc/stat (a
-    // multi-line file) and awk would inject raw newlines into the token → broken
-    // JSON. So build the token ONLY when mako's pid is known; else token="" (the
-    // merge then keeps the current generation untouched - a safe no-op).
-    readonly property string pollScript: "pid=$(pidof mako 2>/dev/null | awk '{print $1}'); if [ -n \"$pid\" ]; then bid=$(cat /proc/sys/kernel/random/boot_id 2>/dev/null); st=$(awk '{print $22}' /proc/$pid/stat 2>/dev/null); tok=\"$bid-$pid-$st\"; else tok=\"\"; fi; lst=$(makoctl list -j 2>/dev/null); [ -z \"$lst\" ] && lst='[]'; his=$(makoctl history -j 2>/dev/null); [ -z \"$his\" ] && his='[]'; printf '{\"token\":\"%s\",\"list\":%s,\"history\":%s}' \"$tok\" \"$lst\" \"$his\""
-
-    Process {
-        id: pollProc
-        command: ["bash", "-c", notifPanel.pollScript]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var d
-                try { d = JSON.parse(this.text) } catch (e) { return }
-                notifPanel.merge(d.token || "", d.list || [], d.history || [])
-            }
-        }
-    }
-    function poll() {
-        if (!notifPanel.cacheLoaded) return
-        pollProc.running = false; pollProc.running = true
-    }
-
-    // merge this poll's active(list) + history into our retained history
-    function merge(token, listArr, histArr) {
-        // session / generation
-        if (token !== "" && token !== notifPanel.sessionToken) {
-            if (notifPanel.sessionToken !== "") notifPanel.generation += 1
-            notifPanel.sessionToken = token
-        }
-        var gen = notifPanel.generation
-
-        // incoming this poll (current generation), by bare id; active = in `list`
-        var incoming = {}
-        for (var i = 0; i < listArr.length; i++) {
-            var n = listArr[i]
-            incoming[n.id] = { appName: n.app_name || "", summary: n.summary || "", body: n.body || "", active: true }
-        }
-        for (var j = 0; j < histArr.length; j++) {
-            var h = histArr[j]
-            if (incoming[h.id] === undefined)
-                incoming[h.id] = { appName: h.app_name || "", summary: h.summary || "", body: h.body || "", active: false }
-        }
-
-        // existing entries by composite key
-        var byKey = {}
-        for (var k = 0; k < notifPanel.recent.length; k++) byKey[notifPanel.recent[k].key] = notifPanel.recent[k]
-
-        // update-or-create current-gen entries; oldest id first so newest gets the largest seq
-        var ids = []
-        for (var idk in incoming) ids.push(parseInt(idk))
-        ids.sort(function(a, b) { return a - b })
-        for (var m = 0; m < ids.length; m++) {
-            var id = ids[m]
-            var key = gen + ":" + id
-            var src = incoming[id]
-            if (byKey[key] !== undefined) {
-                var e = byKey[key]
-                e.appName = src.appName; e.summary = src.summary; e.body = src.body
-            } else {
-                byKey[key] = { key: key, id: id, gen: gen,
-                    appName: src.appName, summary: src.summary, body: src.body,
-                    firstSeen: (++notifPanel.seq) }
-            }
-        }
-
-        // recompute the (transient) active flag for ALL entries, build a NEW array
-        var out = []
-        for (var ek in byKey) {
-            var ee = byKey[ek]
-            ee.active = (ee.gen === gen && incoming[ee.id] !== undefined && incoming[ee.id].active === true)
-            out.push(ee)
-        }
-        out.sort(function(a, b) { return b.firstSeen - a.firstSeen })
-        if (out.length > 50) out = out.slice(0, 50)
-
-        // prune dismissed keys no longer present (bounds the set)
+    // prune dismissed keys that fell off the (max 50) retained history
+    function pruneDismissed() {
         var present = {}
-        for (var o = 0; o < out.length; o++) present[out[o].key] = true
+        for (var i = 0; i < notifPanel.recent.length; i++) present[notifPanel.recent[i].key] = true
         var nd = {}, changed = false
-        for (var dk in notifPanel.dismissed) {
-            if (present[dk]) nd[dk] = true; else changed = true
+        for (var k in notifPanel.dismissed) {
+            if (present[k]) nd[k] = true; else changed = true
         }
-
-        notifPanel.recent = out                  // reassign → bindings fire
         if (changed) notifPanel.dismissed = nd
-        notifPanel.saveCache()
     }
 
     // ── actions ──
-    Process { id: actionProc; command: ["bash", "-c", "true"] }
-    function runMako(cmd) {
-        actionProc.command = ["bash", "-c", cmd + " 2>/dev/null || true"]
-        actionProc.running = false; actionProc.running = true
-    }
-
     function dismissOne(entry) {
         var nd = {}
         for (var k in notifPanel.dismissed) nd[k] = true
         nd[entry.key] = true
         notifPanel.dismissed = nd                // reassign → bindings update
-        var id = parseInt(entry.id)              // normalize before it touches a shell
-        if (entry.active && id > 0) notifPanel.runMako("makoctl dismiss -h -n " + id)
+
+        var live = notifPanel.liveMap[entry.key]
+        if (live) {
+            live.tracked = false                 // == live.dismiss()
+            var lm = notifPanel.liveMap
+            delete lm[entry.key]
+            notifPanel.liveMap = lm
+        }
         notifPanel.saveCache()
     }
 
@@ -208,26 +155,25 @@ PanelWindow {
         for (var k in notifPanel.dismissed) nd[k] = true
         for (var i = 0; i < notifPanel.recent.length; i++) nd[notifPanel.recent[i].key] = true
         notifPanel.dismissed = nd
-        notifPanel.recent = []                   // clear own history; re-merged entries stay dismissed-filtered
-        notifPanel.runMako("makoctl dismiss -h --all")   // -h: don't re-add to mako history (next poll won't re-see them)
+
+        for (var k2 in notifPanel.liveMap) notifPanel.liveMap[k2].tracked = false
+        notifPanel.liveMap = ({})
+
+        notifPanel.recent = []                   // clear own history; re-arriving
+                                                    // notifications with the same key
+                                                    // stay filtered out via `dismissed`
         notifPanel.saveCache()
     }
 
     function openNotification(entry) {
-        var id = parseInt(entry.id)              // normalize before it touches a shell
-        if (entry.active && id > 0) notifPanel.runMako("makoctl invoke -n " + id)
-        // history/cache-only entries are no longer active → do nothing (never `restore`)
+        var live = notifPanel.liveMap[entry.key]
+        if (live && live.actions && live.actions.length > 0) {
+            live.actions[0].invoke()             // trigger the default action
+        } else if (live) {
+            live.tracked = false                 // no action to run → just acknowledge
+        }
+        // history/cache-only entries (no live ref) → nothing to invoke
         root.notifVisible = false
-    }
-
-    // ── poll cadence: fast while open, much slower when closed.
-    // Opening the panel still triggers an immediate refresh below; the closed
-    // cadence only keeps the badge/history roughly warm without parsing mako
-    // JSON every few seconds in idle.
-    Timer {
-        interval: notifPanel.visible ? 1500 : 10000
-        running: notifPanel.cacheLoaded; repeat: true; triggeredOnStart: true
-        onTriggered: notifPanel.poll()
     }
 
     property real reveal: root.notifVisible ? 1 : 0
@@ -239,8 +185,6 @@ PanelWindow {
     }
     visible: reveal > 0.001
     WlrLayershell.keyboardFocus: root.notifVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-
-    onVisibleChanged: { if (visible) notifPanel.poll() }
 
     MouseArea {
         anchors.fill: parent
@@ -325,7 +269,7 @@ PanelWindow {
                 contentHeight: listCol.implicitHeight
                 clip: true
                 interactive: listCol.implicitHeight > notifPanel.listCap
-                boundsBehavior: Flickable.StopAtBounds   // no overshoot/rebound at the top/bottom edge
+                boundsBehavior: Flickable.StopAtBounds
                 flickableDirection: Flickable.VerticalFlick
 
                 Column {
@@ -334,7 +278,6 @@ PanelWindow {
                     spacing: 6
 
                     Repeater {
-                        // pending is polled in the background (it drives the badge too); hold the row delegates only while the panel is open
                         model: notifPanel.visible ? notifPanel.pending : []
 
                         delegate: Rectangle {
@@ -352,7 +295,7 @@ PanelWindow {
                                 anchors { left: parent.left; right: parent.right; top: parent.top }
                                 anchors.margins: 8
                                 anchors.topMargin: 8
-                                anchors.rightMargin: 26   // leave room for the ✕
+                                anchors.rightMargin: 26
                                 spacing: 3
 
                                 UiText {
@@ -386,7 +329,6 @@ PanelWindow {
                                 }
                             }
 
-                            // click body → focus the app (only if still active in mako)
                             MouseArea {
                                 id: entryMa
                                 anchors.fill: parent
@@ -395,7 +337,6 @@ PanelWindow {
                                 onClicked: notifPanel.openNotification(modelData)
                             }
 
-                            // per-item dismiss ✕ (on top, top-right corner)
                             Rectangle {
                                 anchors.top: parent.top; anchors.right: parent.right
                                 anchors.topMargin: 4; anchors.rightMargin: 4
