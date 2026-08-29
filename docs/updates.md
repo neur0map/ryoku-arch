@@ -69,6 +69,12 @@ Two ways to override, neither of which blocks a fix:
   forks are the files you see in the overlay; `ryoku reset <path>` takes the new
   base.
 
+  That includes temporary QML workarounds. If you copied
+  `quickshell/shell/modules/overview/Overview.qml` or `WorkspaceCell.qml` into
+  `user_edits` to fix monitor-local workspace creation, remove that fork with
+  `ryoku reset <path>` after the packaged fix ships so the global workspace-id
+  allocator in the base file can take over.
+
 Ryoku Settings writes its generated `hypr/settings.lua` and `hypr/rebinds.lua`
 into the overlay (authored under `user_edits`, reflected live). Its other state
 (bar, colours, launcher, device lighting) it keeps under `~/.config/ryoku`,

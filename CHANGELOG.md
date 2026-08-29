@@ -57,6 +57,9 @@ for finer detail.
   example.
 
 ### Fixed
+- The overview's new-workspace controls now allocate workspace ids globally, so
+  clicking `+` or `NEW` on a secondary monitor creates the workspace on that
+  monitor instead of jumping to an existing workspace on another output.
 - Limine now shows the generated boot menu: the branded config moved from
   `/boot/limine/limine.conf` (which Limine scans first, shadowing everything
   `limine-entry-tool` generates into `/boot/limine.conf`: the UKI tree and the

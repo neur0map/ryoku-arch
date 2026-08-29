@@ -461,7 +461,7 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 onEntered: cell.hovered = true
                 onExited: cell.hovered = false
-                onClicked: if (cell.ov) cell.ov.switchWs(cell.ov.newWsId)
+                onClicked: if (cell.ov) cell.ov.createAndEnterWs(cell.ov.newWsId)
             }
         }
     }
