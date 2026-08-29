@@ -5,17 +5,15 @@ if test -d $HOME/.local/bin
   fish_add_path $HOME/.local/bin
 end
 
-# point `go install` and `cargo install` at ~/.local/bin (already on PATH) so
-# they show up without extra setup.
+# point `go install` and `cargo install` at ~/.local/bin, and keep an existing
+# editor choice.
 set -gx GOBIN $HOME/.local/bin
 set -gx CARGO_INSTALL_ROOT $HOME/.local
+set -q EDITOR; or set -gx EDITOR nvim
+set -q VISUAL; or set -gx VISUAL nvim
 
 if status is-interactive
-  # no greeting, keeps the login terminal clean.
   set -g fish_greeting
-
-  set -gx EDITOR nvim
-  set -gx VISUAL nvim
 
   # legible fish syntax colours. fish applies a palette-tied default before
   # config.fish runs (in our case with a malformed flag that made typed input

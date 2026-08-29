@@ -461,7 +461,7 @@ func (h *chatHub) handleTermCancel(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleTermRan is the learning feedback: the fish postexec hook (and --run)
+// handleTermRan is the learning feedback: shell post-command hooks (and --run)
 // report what actually ran after a rashin proposal, and how it exited.
 func (h *chatHub) handleTermRan(w http.ResponseWriter, r *http.Request) {
 	var rec runRecord

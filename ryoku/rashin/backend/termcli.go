@@ -17,24 +17,24 @@ import (
 
 // termcli.go is the `rashin <question>` client: it collects terminal context,
 // streams the daemon's /api/term markers, renders the answer and the command
-// plan with tier badges, and (in --fish porcelain) prints the chosen command
+// plan with tier badges, and (in --buffer porcelain) prints the chosen command
 // to stdout for the shell to drop on the prompt. The daemon does the
 // thinking; the CLI is a viewer and the human is the executor.
 
 type termOpts struct {
-	query string
-	cont  bool // -c / --continue
-	fish  bool // --fish porcelain: presentation on stderr, buffer on stdout
-	plain bool // --plain: no ANSI (also auto when stdout is not a TTY)
-	run   bool // --run: execute here with tiered confirmation
-	clip  bool // --copy: copy the one-liner
+	query  string
+	cont   bool // -c / --continue
+	buffer bool // --buffer porcelain: presentation on stderr, buffer on stdout
+	plain  bool // --plain: no ANSI (also auto when stdout is not a TTY)
+	run    bool // --run: execute here with tiered confirmation
+	clip   bool // --copy: copy the one-liner
 }
 
 // cmdTerm is the terminal lane entrypoint: `rashin ...` and
 // `ryoku-rashin term ...`. Sub-verbs (resume, last, recipe) are local; a bare
 // query hits the daemon.
 func cmdTerm(args []string) error {
-	// The fish postexec hook reports proposed-vs-ran feedback:
+	// Shell post-command hooks report proposed-vs-ran feedback:
 	// term --report <proposed> <ran> <status>.
 	if len(args) >= 4 && args[0] == "--report" {
 		st, _ := strconv.Atoi(args[3])
@@ -84,8 +84,8 @@ func parseTermArgs(args []string) (termOpts, string) {
 			endFlags = true
 		case "-c", "--continue":
 			o.cont = true
-		case "--fish":
-			o.fish = true
+		case "--buffer":
+			o.buffer = true
 		case "--plain":
 			o.plain = true
 		case "--run":
@@ -196,14 +196,14 @@ func (p *presenter) line(s string) {
 }
 
 // finish renders the answer and plan, then performs the terminal action:
-// print the buffer payload (--fish), copy (--copy), run (--run), or just show
+// print the buffer payload (--buffer), copy (--copy), run (--run), or just show
 // the plan.
 func (p *presenter) finish() error {
 	if p.failed {
 		os.Exit(1)
 	}
-	w := os.Stderr // presentation channel: stderr under --fish, else stdout
-	if !p.o.fish {
+	w := os.Stderr // presentation channel: stderr under --buffer, else stdout
+	if !p.o.buffer {
 		w = os.Stdout
 	}
 	if p.answer != "" && p.answer != "(no answer)" {
@@ -229,8 +229,8 @@ func (p *presenter) finish() error {
 		fmt.Fprintln(w, termPaint(p.o, dimc, "copied."))
 	case p.o.run:
 		return runHere(chosen, p.port)
-	case p.o.fish:
-		fmt.Println(chosen) // stdout: the fish function drops this on the prompt
+	case p.o.buffer:
+		fmt.Println(chosen)
 	default:
 		fmt.Println(chosen)
 	}
@@ -561,10 +561,10 @@ func openTTY() *os.File {
 	return f
 }
 
-// actionChannel: the presentation and prompt channel. stderr under --fish (so
+// actionChannel: the presentation and prompt channel. stderr under --buffer (so
 // stdout stays the clean buffer payload), else stdout.
 func actionChannel(o termOpts) *os.File {
-	if o.fish {
+	if o.buffer {
 		return os.Stderr
 	}
 	return os.Stdout

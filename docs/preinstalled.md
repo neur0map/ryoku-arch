@@ -141,9 +141,12 @@ The command line Ryoku hands you is already comfortable.
 
 | Package | Kind | Role |
 |---|---|---|
-| `fish` | Shell | The default shell |
-| `starship` | Prompt | The prompt |
-| `bash-completion` | CLI | Completions |
+| `fish` | Shell | The default account shell |
+| `bash`, `zsh` | Shell | Account-wide alternatives selectable in Ryoku Settings |
+| `blesh` | Shell | Fish-like highlighting and suggestions for Bash |
+| `zsh-autosuggestions`, `zsh-syntax-highlighting`, `zsh-history-substring-search` | Shell | Fish-like editing for Zsh |
+| `starship` | Prompt | The shared prompt |
+| `bash-completion` | CLI | Bash completions |
 | `bat` | CLI | `cat` with syntax highlighting |
 | `eza` | CLI | A modern `ls` |
 | `fd` | CLI | A friendly `find` |

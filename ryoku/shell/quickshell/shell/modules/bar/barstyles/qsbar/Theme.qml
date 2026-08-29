@@ -2225,7 +2225,7 @@ Item {
     property int barGapRight: 0
     function clampGap(value) {
         var n = Math.round(Number(value) || 0)
-        return Math.max(0, Math.min(64, n))
+        return Math.max(-12, Math.min(64, n))
     }
     // Lead faces the anchored edge, trail the desktop, so consumers skip barPosition.
     readonly property int barGapLead: barPosition === "bottom" ? barGapBottom : barGapTop

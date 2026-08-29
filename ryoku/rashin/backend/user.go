@@ -32,6 +32,8 @@ var userOverrideFiles = []string{
 	"hypr/monitors_user.lua",
 	"kitty/user.conf",
 	"fish/user.fish",
+	"bash/user.bash",
+	"zsh/user.zsh",
 }
 
 type userDiff struct {

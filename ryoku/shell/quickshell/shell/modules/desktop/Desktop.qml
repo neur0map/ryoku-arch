@@ -28,6 +28,15 @@ Scope {
     property bool active: true
     property string wallpaperUrl: ""
     property string wallpaperFit: "Cover"
+    readonly property bool reloadReady: readiness.ready
+
+    ReloadReadiness {
+        id: readiness
+        width: win.width
+        height: win.height
+        configReady: Config.ready
+        registryReady: Registry.ready
+    }
 
     // Resolve the placement helper the way Registry resolves discover.sh: in a
     // dev run RYOKU_SHELL_DIR points at the shell tree and the tool is NOT on
@@ -209,7 +218,7 @@ Scope {
         WidgetSlot {
             id: clockSlot
             widget: "clock"
-            visible: Config.clockEnabled
+            visible: root.reloadReady && Config.clockEnabled
             anchor: Config.clockAnchor
             freeX: Config.clockX
             freeY: Config.clockY
@@ -227,7 +236,7 @@ Scope {
         WidgetSlot {
             id: calendarSlot
             widget: "calendar"
-            visible: Config.calendarEnabled
+            visible: root.reloadReady && Config.calendarEnabled
             anchor: Config.calendarAnchor
             freeX: Config.calendarX
             freeY: Config.calendarY
@@ -253,7 +262,7 @@ Scope {
         WidgetSlot {
             id: musicSlot
             widget: "music"
-            visible: Config.musicEnabled
+            visible: root.reloadReady && Config.musicEnabled
             anchor: Config.musicAnchor
             freeX: Config.musicX
             freeY: Config.musicY
@@ -282,7 +291,7 @@ Scope {
         WidgetSlot {
             id: aioSlot
             widget: "aio"
-            visible: Config.aioEnabled
+            visible: root.reloadReady && Config.aioEnabled
             anchor: Config.aioAnchor
             freeX: Config.aioX
             freeY: Config.aioY
@@ -302,7 +311,7 @@ Scope {
         WidgetSlot {
             id: statsSlot
             widget: "stats"
-            visible: Config.statsEnabled
+            visible: root.reloadReady && Config.statsEnabled
             anchor: Config.statsAnchor
             freeX: Config.statsX
             freeY: Config.statsY
@@ -321,7 +330,7 @@ Scope {
         WidgetSlot {
             id: weatherSlot
             widget: "weather"
-            visible: Config.weatherEnabled
+            visible: root.reloadReady && Config.weatherEnabled
             anchor: Config.weatherAnchor
             freeX: Config.weatherX
             freeY: Config.weatherY
@@ -341,7 +350,7 @@ Scope {
         WidgetSlot {
             id: notesSlot
             widget: "notes"
-            visible: Config.notesEnabled
+            visible: root.reloadReady && Config.notesEnabled
             anchor: Config.notesAnchor
             freeX: Config.notesX
             freeY: Config.notesY
@@ -386,6 +395,7 @@ Scope {
                     ? "?v=" + encodeURIComponent(entry.version) : ""
 
                 pluginId: slot.pid
+                visible: root.reloadReady
                 locked: slot.dw.locked === true
                 scaleCfg: slot.dw.scale || 0.85
                 freeX: slot.dw.x !== undefined ? slot.dw.x : 80

@@ -99,7 +99,12 @@ depends=(
   'syntax-highlighting'
   'kitty'
   'fish'
+  'blesh'
   'starship'
+  'zsh'
+  'zsh-autosuggestions'
+  'zsh-history-substring-search'
+  'zsh-syntax-highlighting'
   'fastfetch'
   'yazi'
   'neovim'
@@ -367,6 +372,11 @@ package() {
   install -Dm644 "$_repo/ryoku/apps/fish/config.fish"       "$cfg/fish/config.fish"
   install -Dm644 "$_repo/ryoku/apps/fish/conf.d/rashin.fish" "$cfg/fish/conf.d/rashin.fish"
   install -Dm644 "$_repo/ryoku/shell/qt6ct/qt6ct.conf"     "$cfg/qt6ct/qt6ct.conf"
+  install -Dm644 "$_repo/ryoku/apps/terminal-shell/env.sh"  "$cfg/ryoku-terminal/env.sh"
+  install -Dm644 "$_repo/ryoku/apps/bash/ryoku.bash"        "$cfg/bash/ryoku.bash"
+  install -Dm644 "$_repo/ryoku/apps/bash/rashin.bash"       "$cfg/bash/rashin.bash"
+  install -Dm644 "$_repo/ryoku/apps/zsh/ryoku.zsh"          "$cfg/zsh/ryoku.zsh"
+  install -Dm644 "$_repo/ryoku/apps/zsh/rashin.zsh"         "$cfg/zsh/rashin.zsh"
   # GTK toolkit baseline for the xsettings-less Wayland session (see the header
   # of each file); materialized and pruned by `ryoku materialize` like qt6ct.conf.
   install -Dm644 "$_repo/ryoku/shell/gtk-3.0/settings.ini" "$cfg/gtk-3.0/settings.ini"

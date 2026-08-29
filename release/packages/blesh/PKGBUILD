@@ -1,0 +1,16 @@
+pkgname=blesh
+pkgver=0.4.0_devel3
+pkgrel=1
+pkgdesc='Bash Line Editor with syntax highlighting and autosuggestions'
+arch=('any')
+url='https://github.com/akinomyoga/ble.sh'
+license=('BSD-3-Clause')
+depends=('bash')
+_upstream=${pkgver/_/-}
+source=("https://github.com/akinomyoga/ble.sh/releases/download/v${_upstream}/ble-${_upstream}-2.tar.xz")
+sha256sums=('bdcdcfff216495403adf82a701fe41675f64b64644dc77caabd3e015871ebd61')
+
+package() {
+  install -d "$pkgdir/usr/share/blesh"
+  cp -a "ble-${_upstream}/." "$pkgdir/usr/share/blesh/"
+}

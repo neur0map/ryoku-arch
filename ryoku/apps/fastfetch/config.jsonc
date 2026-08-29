@@ -37,7 +37,7 @@
     { "type": "command", "key": "BRANCH", "text": "ryoku version --branch 2>/dev/null || echo main" },
     { "type": "kernel",  "key": "KERNEL" },
     { "type": "command", "key": "WM",     "text": "echo \"${XDG_CURRENT_DESKTOP:-Hyprland}\"" },
-    { "type": "shell",   "key": "SHELL" },
+    { "type": "command", "key": "SHELL",  "text": "basename \"${SHELL:-unknown}\"" },
     { "type": "packages","key": "PKGS" },
     "break",
 

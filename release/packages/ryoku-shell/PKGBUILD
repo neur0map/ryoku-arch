@@ -13,7 +13,7 @@ pkgdesc="Ryoku shell IPC daemon: supervises the Quickshell desktop"
 arch=('x86_64')
 url="https://ryoku.dev"
 license=('GPL-3.0-or-later')
-depends=('quickshell' 'hyprland' 'ffmpeg' 'wayland')
+depends=('quickshell' 'hyprland' 'ffmpeg' 'wayland' 'jq')
 makedepends=('go' 'wayland' 'wayland-protocols' 'ffmpeg')
 source=()
 
@@ -34,4 +34,8 @@ build() {
 package() {
   install -Dm755 "$srcdir/ryoku-shell" "$pkgdir/usr/bin/ryoku-shell"
   install -Dm755 "$srcdir/ryoku-livewall" "$pkgdir/usr/bin/ryoku-livewall"
+  install -Dm755 "$_repo/ryoku/shell/scripts/ryoku-reload-cover" \
+    "$pkgdir/usr/bin/ryoku-reload-cover"
+  install -d "$pkgdir/usr/share/ryoku/reload-cover"
+  cp -a "$_repo/ryoku/shell/quickshell/reload-cover/." "$pkgdir/usr/share/ryoku/reload-cover/"
 }

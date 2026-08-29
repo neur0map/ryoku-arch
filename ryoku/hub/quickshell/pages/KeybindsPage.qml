@@ -73,6 +73,41 @@ Item {
             }
         }
     }
+
+    property var shellState: ({ current: "", choices: [] })
+    property string shellError: ""
+    property bool shellBusy: false
+    Process {
+        id: shellGet
+        command: ["ryoku-hub", "shell", "get"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    pg.shellState = JSON.parse(this.text);
+                } catch (e) {
+                    pg.shellError = I18n.tr("Couldn't read the login shell.");
+                }
+            }
+        }
+    }
+    Process {
+        id: shellSet
+        stderr: StdioCollector { id: shellSetError }
+        onExited: (code, status) => {
+            pg.shellBusy = false;
+            pg.shellError = code === 0 ? "" : (shellSetError.text.trim() || I18n.tr("Couldn't change the login shell."));
+            shellGet.running = true;
+        }
+    }
+    function setShell(key) {
+        if (pg.shellBusy || key === pg.shellState.current)
+            return;
+        pg.shellBusy = true;
+        pg.shellError = "";
+        shellSet.command = ["ryoku-hub", "shell", "set", key];
+        shellSet.running = true;
+    }
     // role -> chosen command (draft); empty/absent uses the shipped fallback.
     readonly property var chosen: pg.hubReady ? (pg.hub.hyprVal("apps") || ({})) : ({})
     function effOf(role, fallback) {
@@ -696,6 +731,76 @@ Item {
                                 }
                                 HoverHandler { id: brHov; cursorShape: Qt.PointingHandCursor }
                                 TapHandler { onTapped: pg.openAppPickerRole(roleCard.role) }
+                            }
+                        }
+
+                        Column {
+                            width: parent.width
+                            spacing: Tokens.s2
+                            visible: roleCard.role === "terminal"
+
+                            Row {
+                                spacing: Tokens.s2
+                                Text {
+                                    text: I18n.tr("SHELL")
+                                    color: Tokens.inkMuted
+                                    font.family: Tokens.ui
+                                    font.pixelSize: Tokens.fMicro
+                                    font.weight: Font.Medium
+                                    font.letterSpacing: Tokens.trackMark
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: I18n.tr("Account-wide; new terminals, TTYs and SSH sessions use this shell.")
+                                    color: Tokens.inkFaint
+                                    font.family: Tokens.ui
+                                    font.pixelSize: Tokens.fTiny
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            Flow {
+                                width: parent.width
+                                spacing: Tokens.s2
+                                Repeater {
+                                    model: pg.shellState.choices || []
+                                    Rectangle {
+                                        id: shellChip
+                                        required property var modelData
+                                        readonly property bool selected: pg.shellState.current === shellChip.modelData.key
+                                        implicitWidth: shellLabel.implicitWidth + Tokens.s4
+                                        implicitHeight: 28
+                                        radius: Tokens.radius
+                                        opacity: shellChip.modelData.installed && !pg.shellBusy ? 1 : 0.35
+                                        color: shellChip.selected ? Tokens.ink : (shellHover.hovered ? Tokens.tint10 : "transparent")
+                                        border.width: Tokens.border
+                                        border.color: shellChip.selected ? Tokens.ink : Tokens.line
+                                        Text {
+                                            id: shellLabel
+                                            anchors.centerIn: parent
+                                            text: I18n.tr(shellChip.modelData.label)
+                                            color: shellChip.selected ? Tokens.paper : Tokens.inkDim
+                                            font.family: Tokens.ui
+                                            font.pixelSize: Tokens.fSmall
+                                        }
+                                        HoverHandler {
+                                            id: shellHover
+                                            enabled: shellChip.modelData.installed && !pg.shellBusy
+                                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                        }
+                                        TapHandler {
+                                            enabled: shellChip.modelData.installed && !pg.shellBusy
+                                            onTapped: pg.setShell(shellChip.modelData.key)
+                                        }
+                                    }
+                                }
+                            }
+                            Text {
+                                visible: pg.shellError !== ""
+                                text: pg.shellError
+                                color: Tokens.alert
+                                font.family: Tokens.ui
+                                font.pixelSize: Tokens.fTiny
                             }
                         }
 

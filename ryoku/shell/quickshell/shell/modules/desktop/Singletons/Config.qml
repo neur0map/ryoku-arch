@@ -8,6 +8,7 @@ import Quickshell.Io
 // follows the next write. Placement is a compass anchor or free monitor pixels.
 Singleton {
     id: root
+    property bool ready: false
 
     // -- clock ---------------------------------------------------------------
     property alias clockEnabled: adapter.clockEnabled
@@ -136,6 +137,8 @@ Singleton {
         printErrors: false
         atomicWrites: true
         onFileChanged: reload()
+        onLoaded: root.ready = true
+        onLoadFailed: root.ready = true
 
         JsonAdapter {
             id: adapter

@@ -16,7 +16,7 @@ end
 # proposed command on the prompt (stdout). Info verbs print and inject nothing.
 function rashin --description 'Rashin: the needle, in your terminal'
     set -l payload (RASHIN_LAST_CMD=$__rashin_last_cmd RASHIN_LAST_STATUS=$__rashin_last_status \
-        command ryoku-rashin term --fish -- $argv)
+        command ryoku-rashin term --buffer -- $argv)
     if test -n "$payload"
         set -g __rashin_proposed (string join ' && ' -- $payload)
         commandline -r -- (string join \n -- $payload)
@@ -32,7 +32,7 @@ function __rashin_transmute
     if test -z "$buf"
         return
     end
-    set -l payload (command ryoku-rashin term --fish -- $buf 2>/dev/null)
+    set -l payload (command ryoku-rashin term --buffer -- $buf 2>/dev/null)
     if test -n "$payload"
         set -g __rashin_proposed (string join ' && ' -- $payload)
         commandline -r -- (string join \n -- $payload)

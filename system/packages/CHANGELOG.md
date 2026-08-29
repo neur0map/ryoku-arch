@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- `base.packages`: **Bash and Zsh receive Fish-like editing.** `blesh`, `zsh`,
+  `zsh-autosuggestions`, `zsh-syntax-highlighting` and
+  `zsh-history-substring-search` ship with every machine so any account shell
+  selected in Ryoku Settings has highlighting, suggestions and history search.
+
 - `base.packages`: **the Spicetify Marketplace store ships by default.**
   `spicetify-marketplace` (the store custom app -- the Marketplace icon in
   Spotify's sidebar for themes and extensions) joins `spotify-launcher` and

@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- `blesh` joins the signed repository at 0.4.0-devel3, and `ryoku-desktop` depends on
+  it plus Zsh and the official Zsh editing plugins. The package now materializes
+  the managed Bash/Zsh adapters and their shared terminal environment beside the
+  existing Fish configuration, so `ryoku update` delivers shell parity to
+  existing machines.
+
 - `ryoku-desktop` hard-depends on `adw-gtk-theme` and installs the GTK 3 and
   GTK 4 `settings.ini` (`config/gtk-3.0`, `config/gtk-4.0`) beside the existing
   `qt6ct.conf`, so `ryoku materialize` lays them down and prunes them. The

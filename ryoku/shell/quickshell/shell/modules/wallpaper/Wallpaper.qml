@@ -31,48 +31,23 @@ Item {
     // scope (contract 08 sec 7: hotplug adds a monitor -> a new instance here).
     required property var screen
 
-    // The full file url the surface paints, folded from the topic's path +
-    // revision so the query busts Qt's pixmap cache on every change (contract 08
-    // sec 3.1). "" until the first frame; the window's paper colour shows.
-    property string wallpaperUrl: ""
-    // content_fit -> Image.fillMode (contract 08 sec 3.3); Cover is the default.
-    property string fit: "Cover"
-    // The reveal preset for the current revision (null = plain crossfade), streamed
-    // on the same wallpaper topic frame and handed to the backdrop's reveal shader.
-    property var transition: null
-    // True while the video player (ryoku-livewall) is painting the wallpaper. Both
-    // it and this surface live on the background layer, where the newest surface
-    // draws on top, so a shell reload used to leave this one covering a running
-    // video with the clip's frozen first frame -- the live wall "stopped playing"
-    // until the next switch. The daemon says who owns the pixels; while the player
-    // does, this surface paints nothing at all and the clip shows through.
-    property bool live: false
-
-    // Stay transparent until the daemon sends the first frame: a freshly reloaded
-    // backdrop maps over a running video, and painting the paper fill before the
-    // `live` frame lands is what flashed the wallpaper black on reload.
-    property bool ready: false
+    WallpaperFrame {
+        id: frame
+        screenName: root.screen ? root.screen.name : ""
+    }
+    readonly property string wallpaperUrl: frame.path.length > 0
+        ? "file://" + frame.path + "?v=" + frame.revision : ""
+    readonly property string fit: frame.fit
+    readonly property var transition: frame.transition
+    readonly property bool live: frame.live
+    readonly property bool ready: frame.ready
+    property bool reloadDecoded: false
+    readonly property bool reloadReady: frame.ready && (frame.live || reloadDecoded)
 
     readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-shell.sock"
 
-    function apply(line) {
-        try {
-            const f = JSON.parse(line);
-            // Per-output frame: this monitor's override, else the default
-            // (contract 08 sec 3). A hotplugged monitor with no override, or a
-            // frame lacking outputs, falls back to the default.
-            const name = root.screen ? root.screen.name : "";
-            const e = (f.outputs && f.outputs[name]) || f.default;
-            if (!e)
-                return; // malformed frame: keep the last image, never blank
-            root.ready = true;
-            root.fit = e.fit || "Cover";
-            root.live = e.live === true;
-            root.transition = e.transition || null; // set before url so onUrlChanged sees the matching preset
-            root.wallpaperUrl = (e.path && e.path.length > 0) ? "file://" + e.path + "?v=" + (e.revision || 0) : "";
-        } catch (err) {
-            // A malformed frame must never blank the desktop; keep the last image.
-        }
+    function apply(line: string): void {
+        frame.apply(line);
     }
 
     // Subscribe once, then stream, mirroring the Tray/Clipboard singletons. A
@@ -124,11 +99,13 @@ Item {
         mask: Region {}
 
         Backdrop {
+            id: backdrop
             anchors.fill: parent
             visible: root.ready && !root.live
             url: root.wallpaperUrl
             fit: root.fit
             transition: root.transition
+            onDecodedChanged: root.reloadDecoded = decoded
         }
     }
 }

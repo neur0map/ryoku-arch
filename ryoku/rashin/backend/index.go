@@ -141,7 +141,7 @@ var desktopMap = []desktopMapRow{
 	{"Hyprland (window manager)", "~/.config/hypr/", "Hyprland (Lua config)", "hyprctl reload"},
 	{"Shell surfaces (pill, sidebar, ryoshot, widgets, launcher, hub)", "~/.config/quickshell/", "ryoku-shell daemon", "ryoku reload"},
 	{"Terminal", "~/.config/kitty/", "kitty", "relaunch kitty"},
-	{"Shell + prompt", "~/.config/fish/config.fish, ~/.config/starship.toml", "fish, starship", "open a new shell"},
+	{"Shell + prompt", "~/.config/{fish,bash,zsh}/, ~/.config/starship.toml", "fish, bash, or zsh; starship", "open a new shell"},
 	{"Editor", "~/.config/nvim/", "Neovim (LazyVim)", "relaunch nvim"},
 	{"File manager", "~/.config/yazi/", "yazi", "relaunch yazi"},
 	{"Ryoku CLI", "binary `ryoku`; state ~/.local/state/ryoku/", "ryoku", "ryoku update | rollback | status | materialize | reload"},

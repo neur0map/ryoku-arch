@@ -36,6 +36,8 @@ Item {
     // Which buffer currently holds the committed (front) image; the other is the
     // load target for the incoming image.
     property bool aFront: true
+    property bool rendered: false
+    readonly property bool decoded: imgA.status === Image.Ready || imgB.status === Image.Ready
 
     function fillModeFor(img) {
         switch (view.fit) {
@@ -88,7 +90,11 @@ Item {
         return 0;
     }
 
-    onUrlChanged: view.beginReveal()
+    onUrlChanged: {
+        view.rendered = false;
+        view.beginReveal();
+    }
+    Component.onCompleted: view.beginReveal()
 
     // Load `url` into the back buffer and, once decoded, start the reveal. A reveal
     // already running is committed instantly first, so the new reveal starts from a
@@ -100,11 +106,13 @@ Item {
             view.commitInstant();
         const back = view.aFront ? imgB : imgA;
         if (back.source == view.url) {
-            if (back.status === Image.Ready)
+            if (back.status === Image.Ready) {
+                renderTimer.restart();
                 view.startReveal();
+            }
             return;
         }
-        back.source = view.url; // startReveal fires from the back buffer's onStatusChanged when Ready
+        back.source = view.url;
     }
 
     // Commit the current front/back pair: the back (incoming) image becomes the new
@@ -163,6 +171,12 @@ Item {
         revealAnim.restart();
     }
 
+    Timer {
+        id: renderTimer
+        interval: 16
+        onTriggered: view.rendered = true
+    }
+
     // The two ping-pong image buffers. Each renders (with its fill mode) only into
     // its ShaderEffectSource; the shader composites the sources, so the raw Images
     // are hidden. A buffer fires startReveal once its incoming image is decoded, but
@@ -174,8 +188,11 @@ Item {
         asynchronous: true
         fillMode: view.fillModeFor(imgA)
         onStatusChanged: {
-            if (status === Image.Ready)
+            if (status === Image.Ready) {
                 srcA.scheduleUpdate();
+                if (source === view.url)
+                    renderTimer.restart();
+            }
             if (status === Image.Ready && source == view.url && !view.aFront)
                 view.startReveal();
         }
@@ -187,8 +204,11 @@ Item {
         asynchronous: true
         fillMode: view.fillModeFor(imgB)
         onStatusChanged: {
-            if (status === Image.Ready)
+            if (status === Image.Ready) {
                 srcB.scheduleUpdate();
+                if (source === view.url)
+                    renderTimer.restart();
+            }
             if (status === Image.Ready && source == view.url && view.aFront)
                 view.startReveal();
         }

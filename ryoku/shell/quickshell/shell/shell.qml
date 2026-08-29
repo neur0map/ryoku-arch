@@ -57,6 +57,53 @@ ShellRoot {
         services: [ShellState, ScreenTime, Keypresses]
     }
 
+    readonly property string reloadStatePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryoku-reload-cover.json"
+    readonly property string reloadCoverBin: Quickshell.env("RYOKU_SHELL_DIR")
+        ? Quickshell.env("RYOKU_SHELL_DIR") + "/scripts/ryoku-reload-cover"
+        : "ryoku-reload-cover"
+    property string reloadToken: ""
+    property bool reloadFinishSent: false
+    property var reloadScreens: ({})
+    function setReloadScreenReady(name: string, ready: bool): void {
+        var next = ({});
+        for (var key in reloadScreens)
+            next[key] = reloadScreens[key];
+        next[name] = ready;
+        reloadScreens = next;
+        finishReloadCover();
+    }
+    function finishReloadCover(): void {
+        if (!reloadToken || reloadFinishSent)
+            return;
+        for (var i = 0; i < Quickshell.screens.length; i++) {
+            var screen = Quickshell.screens[i];
+            if (!screen || !reloadScreens[screen.name])
+                return;
+        }
+        reloadFinishSent = true;
+        reloadFinish.command = [reloadCoverBin, "finish", reloadToken];
+        reloadFinish.running = true;
+    }
+
+    FileView {
+        id: reloadState
+        path: root.reloadStatePath
+        blockLoading: true
+        printErrors: false
+        onLoaded: {
+            try {
+                const token = JSON.parse(text() || "{}").token;
+                root.reloadToken = typeof token === "string" && /^[0-9a-f]{32}$/.test(token) ? token : "";
+            } catch (error) {
+                root.reloadToken = "";
+            }
+            root.finishReloadCover();
+        }
+    }
+    Process {
+        id: reloadFinish
+    }
+
     // Power Saver strips compositor blur and shadow too (the heaviest present-time
     // GPU cost), reusing the decoration.lua path lowPowerMode already takes. Perf
     // folds the active power profile into its switches; mirror the profile-driven
@@ -96,6 +143,9 @@ ShellRoot {
             id: perScreen
             required property var modelData
             readonly property var st: ShellState.forScreen(modelData)
+            readonly property bool reloadReady: wallpaper.reloadReady && desktop.reloadReady
+            onReloadReadyChanged: root.setReloadScreenReady(modelData.name, reloadReady)
+            Component.onCompleted: root.setReloadScreenReady(modelData.name, reloadReady)
 
             // Always-on backdrop and desktop widget layer.
             Wallpaper {
@@ -103,6 +153,7 @@ ShellRoot {
                 screen: perScreen.modelData
             }
             Desktop {
+                id: desktop
                 screen: perScreen.modelData
                 active: true
                 wallpaperUrl: wallpaper.wallpaperUrl

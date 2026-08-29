@@ -247,6 +247,7 @@ broadcom-bt-firmware
 
 # Shell + CLI
 bash-completion
+blesh
 bat
 btop
 eza
@@ -254,6 +255,10 @@ fastfetch
 fd
 fish
 fzf
+zsh
+zsh-autosuggestions
+zsh-history-substring-search
+zsh-syntax-highlighting
 git
 github-cli
 lazygit

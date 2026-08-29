@@ -46,44 +46,43 @@ rashin <what you want>        ask; actionable asks come back as a command plan
 rashin -c <follow-up>         continue the previous terminal exchange
 rashin -r | --resume          list recent asks, recall one instantly (no model call)
 rashin --last                 reprint the last answer and plan
-rashin recipes                list learned shortcuts (fish abbreviations)
+rashin recipes                list learned shortcuts (Fish, Bash, and Zsh)
 rashin recipe save <name>     save the last plan as a recipe
 rashin recipe rm <name>       remove a recipe
 ```
 
-Flags: `--copy` (put the plan's one-liner on the clipboard), `--run` (execute
-here with tiered confirmation), `--fish` (porcelain: presentation on stderr,
-final buffer text on stdout; what the fish function calls), `--plain` (no
-ANSI; automatic when stdout is not a TTY). `rashin status|enable|disable|setup`
-pass through to the matching `ryoku-rashin` verbs, so the short name never
-surprises.
+Flags: `--copy` puts the plan's one-liner on the clipboard, `--run` executes
+here with tiered confirmation, `--buffer` keeps presentation on stderr and
+prints only the final buffer text on stdout, and `--plain` disables ANSI
+(automatic when stdout is not a TTY). `rashin status|enable|disable|setup`
+pass through to the matching `ryoku-rashin` verbs.
 
-Also bound in fish: **Alt+R** transmutes the current command line. Type
-`find every heic in Photos and convert to jpg`, hit Alt+R, and the buffer is
-replaced by the proposed command. No quoting, no prefix.
+Also bound in Fish, Bash, and Zsh: **Alt+R** transmutes the current command
+line. Type `find every heic in Photos and convert to jpg`, hit Alt+R, and the
+buffer is replaced by the proposed command. Nothing runs until Enter.
 
 ## How an ask flows
 
 ```mermaid
 sequenceDiagram
-    participant F as fish function
+    participant S as shell adapter
     participant C as rashin (CLI)
     participant D as daemon /api/term
     participant M as model (fast lane)
     participant H as hermes session
-    F->>C: term --fish + cwd, last cmd, exit status
+    S->>C: term --buffer + cwd, last cmd, exit status
     C->>D: POST /api/term {q, ctx}
     D->>M: term pattern + vault maps + habits + terminal ctx
     M->>D: propose({commands}) tool call
     D->>D: validate: PATH, paths, danger tier
     D-->>C: @plan, @answer markers
-    C-->>F: chosen command on stdout
-    F->>F: commandline -r (Enter to run)
+    C-->>S: chosen command on stdout
+    S->>S: replace line buffer (Enter to run)
     Note over D,H: heavy asks escalate: TOOLS_REQUIRED -> hermes session,<br/>permissions answered right in the terminal
 ```
 
-1. The CLI collects terminal context: cwd, and (from the fish wrapper) the
-   last command and its exit status. Nothing else leaves the process.
+1. The CLI collects terminal context: cwd, last command, and exit status from
+   the active shell adapter. Nothing else leaves the process.
 2. `POST /api/term` runs the **fast lane** (the same direct chat-completions
    loop as `/api/ask`, usually one or two seconds) with a terminal persona:
    the vault's generated maps, the habits layer, the terminal context, the
@@ -198,27 +197,25 @@ same request live; whoever answers first wins, the reply is sent exactly once.
    `habits.md` names them so the model suggests the abbreviation instead of
    re-deriving the pipeline.
 
-## The fish weave
+## Shell adapters
 
-One shipped file, `~/.config/fish/conf.d/rashin.fish` (source:
-`ryoku/apps/fish/conf.d/rashin.fish`), containing four small pieces:
+Ryoku ships one adapter for each supported interactive shell:
 
-- `function rashin` wraps the binary in interactive shells: runs
-  `ryoku-rashin term --fish -- $argv` with the terminal context, lets the
-  presentation stream to the tty, and if stdout carries a buffer payload,
-  `commandline -r -- $payload; commandline -f repaint`. Outside interactive
-  use it execs the binary unchanged.
-- The **Alt+R** binding sends the current buffer as the ask and replaces it
-  with the result.
-- `__rashin_ran`, a `fish_postexec` hook that reports the executed command
-  and `$status` back to the daemon, only when the previous buffer came from a
-  rashin injection (a session-scoped flag the wrapper sets and the hook
-  clears).
-- The recipes loader: `source $XDG_STATE_HOME/ryoku/rashin-recipes.fish` when
-  present.
+- Fish uses `commandline`, `fish_postexec`, and native abbreviations.
+- Bash uses `READLINE_LINE`, an Alt+R Readline/ble.sh binding,
+  `PROMPT_COMMAND`, and ble.sh abbreviations.
+- Zsh uses `BUFFER`, an Alt+R ZLE widget, additive `preexec`/`precmd` hooks,
+  and aliases.
 
-The function and hook are no-ops when the daemon is down; nothing blocks the
-shell. Everything degrades to the bare binary on machines without fish.
+Each adapter runs `ryoku-rashin term --buffer`, leaves presentation on the
+terminal, and places only the chosen command in the editor buffer. A
+session-scoped proposal marker causes the next executed command and status to
+be reported; unrelated commands are never reported. Generated recipes live
+under `$XDG_STATE_HOME/ryoku/rashin-recipes.{fish,bash,zsh}` and are sourced by
+their matching adapter.
+
+The adapters are inert when `ryoku-rashin` is absent. A disabled daemon returns
+the normal enable/setup guidance without blocking shell startup.
 
 ## When things are not ideal
 

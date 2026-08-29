@@ -82,13 +82,30 @@ Item {
         out.sort(function (a, b) { return a - b; });
         return out;
     }
+    readonly property var globalWsIds: {
+        var out = [];
+        var all = Hyprland.workspaces.values;
+        for (var i = 0; i < all.length; i++) {
+            var w = all[i];
+            if (w && w.id > 0)
+                out.push(w.id);
+        }
+        out.sort(function (a, b) { return a - b; });
+        return out;
+    }
     readonly property int maxOccDesk: {
         var m = 0;
         for (var i = 0; i < root.allWsIds.length; i++)
             m = Math.max(m, root.deskOf(root.allWsIds[i]));
         return Math.max(m, root.activeDesktop);
     }
-    readonly property int newDesktopIdx: root.maxOccDesk + 1
+    readonly property int maxOccDeskGlobal: {
+        var m = 0;
+        for (var i = 0; i < root.globalWsIds.length; i++)
+            m = Math.max(m, root.deskOf(root.globalWsIds[i]));
+        return Math.max(m, root.activeDesktop);
+    }
+    readonly property int newDesktopIdx: root.maxOccDeskGlobal + 1
     // Only desktops that actually hold workspaces, then ONE trailing "add
     // desktop" card. Empty desktops in between are never shown, so the strip
     // stays short (no wall of blank "NEW" cards).
@@ -128,7 +145,7 @@ Item {
     // then close. Unlike switchToDesktop (which only previews in the grid), this
     // actually takes you to the new desktop.
     function createDesktop() {
-        root.switchWs(root.newDesktopIdx * root.perDesktop + 1);
+        root.createAndEnterWs(root.newDesktopIdx * root.perDesktop + 1);
     }
 
     // ---- the viewed desktop's block + its occupancy ---------------------------
@@ -141,17 +158,18 @@ Item {
                 out.push(root.allWsIds[i]);
         return out;
     }
-    // highest 1-based position occupied in this block (0 = desktop empty).
-    readonly property int maxPos: {
-        var m = 0;
-        for (var i = 0; i < root.wsList.length; i++)
-            m = Math.max(m, root.wsList[i] - root.blockBase);
-        return m;
-    }
-    // next free position's id (clamped to the block), for the "+" add slot.
+    // first globally free id in this block, for the "+" add slot. If this
+    // desktop is full, fall through to the next globally empty desktop.
     readonly property int newWsId: {
-        var nx = root.blockBase + root.maxPos + 1;
-        return nx > root.blockBase + root.perDesktop ? root.blockBase + root.perDesktop : nx;
+        var used = ({});
+        for (var i = 0; i < root.globalWsIds.length; i++)
+            used[root.globalWsIds[i]] = true;
+        var lo = root.blockBase + 1;
+        var hi = root.blockBase + root.perDesktop;
+        for (var id = lo; id <= hi; id++)
+            if (!used[id])
+                return id;
+        return root.newDesktopIdx * root.perDesktop + 1;
     }
     // The viewed desktop's occupied workspaces as full live cells, then ONE
     // full-size "+" add cell. Empty / gap positions are not shown, and the add
@@ -283,7 +301,10 @@ Item {
         if (root.selected < 0 || root.selected >= root.slotModel.length)
             return;
         var slot = root.slotModel[root.selected];
-        root.switchWs(slot.add ? root.newWsId : slot.wsId);
+        if (slot.add)
+            root.createAndEnterWs(root.newWsId);
+        else
+            root.switchWs(slot.wsId);
     }
 
     // ---- actions (lua-config hyprland: dispatch via the hl.dsp API) -----------
@@ -316,6 +337,14 @@ Item {
             Hyprland.dispatch('hl.dsp.focus({ workspace = ' + id + ' })');
         });
     }
+    function createAndEnterWs(id) {
+        var mon = root.screenName;
+        root.commitOnClose(function () {
+            if (mon)
+                Hyprland.dispatch('hl.dsp.focus({ monitor = "' + mon + '" })');
+            Hyprland.dispatch('hl.dsp.focus({ workspace = ' + id + ' })');
+        });
+    }
     function focusWindow(tl, addr) {
         root.commitOnClose(function () {
             if (tl && tl.wayland)
@@ -326,7 +355,13 @@ Item {
     }
     function moveWindow(addr, wsId) {
         if (!addr) return;
+        var used = false;
+        for (var i = 0; i < root.globalWsIds.length; i++)
+            if (root.globalWsIds[i] === wsId)
+                used = true;
         Hyprland.dispatch('hl.dsp.window.move({ workspace = ' + wsId + ', window = "address:' + root.normAddr(addr) + '" })');
+        if (!used && root.screenName)
+            Hyprland.dispatch('hl.dsp.workspace.move({ workspace = ' + wsId + ', monitor = "' + root.screenName + '" })');
         Hyprland.refreshToplevels();
         Hyprland.refreshWorkspaces();
     }

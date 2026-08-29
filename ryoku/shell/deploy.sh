@@ -70,6 +70,7 @@ restart_shell() {
 
   [[ -x $shell ]] || return 0
   check_renderer || return 0
+  "$bindir/ryoku-reload-cover" begin >/dev/null 2>&1 || true
   systemctl --user stop ryoku-shell 2>/dev/null || true
   "$shell" quit >/dev/null 2>&1 || true
   for _ in {1..20}; do
@@ -141,6 +142,7 @@ say "building ryoku-shell"
 mkdir -p "$bindir"
 install -m755 "$here/ipc/ryoku-shell" "$bindir/ryoku-shell"
 say "installed $bindir/ryoku-shell"
+install -m755 "$here/scripts/ryoku-reload-cover" "$bindir/ryoku-reload-cover"
 
 # Every hyprland leaf script the config calls by bare name (ryoku-app, the
 # ryoku-cmd-*, ...). The package ships them to /usr/bin; a checkout must put the
@@ -508,12 +510,21 @@ wireplumber_before=
 mkdir -p "$cfg/matugen"; cp -a "$here/matugen/." "$cfg/matugen/"
 cp -a "$here/../apps/fish/config.fish" "$cfg/fish/config.fish"
 mkdir -p "$cfg/fish/conf.d"; cp -a "$here/../apps/fish/conf.d/." "$cfg/fish/conf.d/"
+mkdir -p "$cfg/ryoku-terminal"; cp -a "$here/../apps/terminal-shell/." "$cfg/ryoku-terminal/"
+mkdir -p "$cfg/bash"; cp -a "$here/../apps/bash/." "$cfg/bash/"
+mkdir -p "$cfg/zsh"; cp -a "$here/../apps/zsh/." "$cfg/zsh/"
 mkdir -p "$cfg/qt6ct"; cp -a "$here/qt6ct/qt6ct.conf" "$cfg/qt6ct/qt6ct.conf"
 # GTK toolkit baseline for the xsettings-less session; the matugen hook renders
 # gtk.css into these same dirs at runtime, so only settings.ini is copied here.
 mkdir -p "$cfg/gtk-3.0"; cp -a "$here/gtk-3.0/settings.ini" "$cfg/gtk-3.0/settings.ini"
 mkdir -p "$cfg/gtk-4.0"; cp -a "$here/gtk-4.0/settings.ini" "$cfg/gtk-4.0/settings.ini"
 mkdir -p "$cfg/btop"; cp -a "$here/../apps/btop/btop.conf" "$cfg/btop/btop.conf"
+mkdir -p "$cfg/fastfetch"
+cp -a "$here/../apps/fastfetch/config.jsonc" "$cfg/fastfetch/config.jsonc"
+install -m755 "$here/../apps/fastfetch/ryoku-fastfetch" "$bindir/ryoku-fastfetch"
+mkdir -p "$cfg/kitty"
+cp -a "$here/../apps/kitty/kitty.conf" "$cfg/kitty/kitty.conf"
+cp -a "$here/../apps/kitty/current-theme.conf" "$cfg/kitty/current-theme.conf"
 mkdir -p "$cfg/wireplumber"; cp -a "$here/../apps/wireplumber/." "$cfg/wireplumber/"
 mkdir -p "$cfg/systemd/user"; cp -a "$here/systemd/user/." "$cfg/systemd/user/"
 # dev deploy runs the daemon from ~/.local/bin; the package ships /usr/bin.

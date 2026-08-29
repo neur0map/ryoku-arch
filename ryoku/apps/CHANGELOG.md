@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- `fish/`, `bash/`, `zsh/`, `terminal-shell/`: **Fish, Bash, and Zsh now
+  carry the same Ryoku terminal tools.** All three initialize Starship, zoxide,
+  mise and fzf, share the same eza aliases and environment, load user overrides
+  last, and expose Rashin buffer replacement, Alt+R, learning hooks and recipes.
+  Bash uses ble.sh; Zsh uses its packaged highlighting, suggestion and history
+  plugins. Kitty no longer pins Fish, so it and any other terminal that follows
+  the session environment opens the account-wide shell selected in Settings;
+  Fastfetch reads that same session value instead of mistaking its timeout
+  wrapper for the active shell.
+
 - `wireplumber/`: **Bluetooth earbuds that offer neither LDAC nor aptX stop
   sounding terrible.** `bluez5.codecs` ranked `aac` above `sbc_xq`, so a device
   without a hi-fi codec always landed on AAC, and on Linux that is the weaker

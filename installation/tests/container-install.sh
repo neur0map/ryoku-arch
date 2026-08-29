@@ -91,6 +91,11 @@ files=(
   quickshell/shell/shell.qml
   hypr/hyprland.lua
   fish/config.fish
+  ryoku-terminal/env.sh
+  bash/ryoku.bash
+  bash/rashin.bash
+  zsh/ryoku.zsh
+  zsh/rashin.zsh
   starship.toml
   kitty/kitty.conf
   yazi/yazi.toml

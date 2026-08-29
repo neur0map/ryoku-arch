@@ -57,6 +57,16 @@ func TestRecipeRoundTrip(t *testing.T) {
 		t.Errorf("fish file missing quoted command:\n%s", fish)
 	}
 
+	for _, path := range []string{RecipesBashPath(), RecipesZshPath()} {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("recipe file not written: %s: %v", path, err)
+		}
+		if !strings.Contains(string(b), "rr-k") || !strings.Contains(string(b), "abc") {
+			t.Errorf("recipe file missing rr-k command: %s\n%s", path, b)
+		}
+	}
+
 	if err := RemoveRecipe("k"); err != nil {
 		t.Fatalf("RemoveRecipe: %v", err)
 	}

@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- **The terminal application and account shell are separate choices.** Keybinds
+  > Apps keeps the terminal-emulator picker and adds Fish, Bash and Zsh chips
+  beneath it. A validated privileged backend changes the account login shell,
+  preserves existing startup files, and refreshes the session environment for
+  new terminals (`backend/shellpref.go`, `quickshell/pages/KeybindsPage.qml`).
+
 - **Desktop Visualizer exposes exact colours and two-stop gradients.** The
   Visualizer tab adds the shared colour picker, a Gradient switch and a second
   colour picker, keeps extra visualizer state when saving, includes Frame in the

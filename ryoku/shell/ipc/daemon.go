@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -29,6 +30,33 @@ var components = []component{
 	//	launcher, visualizer, widgets, overview), replacing the old
 	// per-surface Quickshell configs. Always-on, as the pill frame was.
 	{"shell", true},
+}
+
+func reloadCoverPath() string {
+	if shellDir != "" {
+		return filepath.Join(shellDir, "scripts", "ryoku-reload-cover")
+	}
+	if exe, err := os.Executable(); err == nil {
+		return filepath.Join(filepath.Dir(exe), "ryoku-reload-cover")
+	}
+	return "ryoku-reload-cover"
+}
+
+var reloadCoverOutput = func(ctx context.Context) ([]byte, error) {
+	return exec.CommandContext(ctx, reloadCoverPath(), "begin").Output()
+}
+
+var reloadCoverBegin = func() string {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	out, err := reloadCoverOutput(ctx)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+func beginReloadCover() string {
+	return reloadCoverBegin()
 }
 
 // parseDisabledComponents pulls the "disabledComponents" string array from a
@@ -1124,6 +1152,7 @@ func (d *daemon) voice() string {
 // on the same error is what made `ryoku reload` look like it does nothing on a
 // black screen.
 func (d *daemon) reload() string {
+	_ = beginReloadCover()
 	d.mu.Lock()
 	was := make(map[string]int, len(d.proc))
 	procs := make([]*exec.Cmd, 0, len(d.proc))

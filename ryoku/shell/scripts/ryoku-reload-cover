@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state="${XDG_RUNTIME_DIR:-/tmp}/ryoku-reload-cover.json"
+base="${XDG_CONFIG_HOME:-$HOME/.config}"
+dir="${RYOKU_SHELL_DIR:+$RYOKU_SHELL_DIR/quickshell/reload-cover}"
+dir="${dir:-$base/quickshell/reload-cover}"
+[[ -f "$dir/shell.qml" ]] || dir="/usr/share/ryoku/reload-cover"
+
+pid_start() {
+    awk '{ print $22 }' "/proc/$1/stat" 2>/dev/null || true
+}
+write_state() {
+    local tmp start
+    umask 077
+    mkdir -p "$(dirname "$state")"
+    start=$(pid_start "$2")
+    tmp=$(mktemp "${state}.XXXXXX")
+    printf '{"token":"%s","pid":%s,"pidStart":"%s"}\n' "$1" "$2" "$start" >"$tmp"
+    chmod 600 "$tmp"
+    mv -f "$tmp" "$state"
+}
+claim_state() {
+    umask 077
+    mkdir -p "$(dirname "$state")"
+    (set -C; printf '{"token":"%s","pid":0,"pidStart":""}\n' "$1" >"$state") 2>/dev/null
+}
+state_field() {
+    jq -r ".$1 // empty" "$state" 2>/dev/null || true
+}
+state_token() { state_field token; }
+state_pid() { state_field pid; }
+state_start() { state_field pidStart; }
+owns_pid() {
+    [[ $1 =~ ^[0-9]+$ && -n $2 && $(pid_start "$1") == "$2" ]]
+}
+state_matches() {
+    [[ $(state_token) == "$1" && $(state_pid) == "$2" && $(state_start) == "$3" ]]
+}
+call_bool() {
+    [[ $(qs -p "$dir" ipc call reload-cover "$1" "$2" 2>/dev/null) == true ]]
+}
+call_status() {
+    qs -p "$dir" ipc call reload-cover status "$1" 2>/dev/null || true
+}
+stop_owned() {
+    local token="$1" pid="$2" start="$3"
+    if owns_pid "$pid" "$start"; then
+        kill "$pid" 2>/dev/null || true
+        for _ in $(seq 1 40); do
+            owns_pid "$pid" "$start" || break
+            sleep 0.05
+        done
+    fi
+    state_matches "$token" "$pid" "$start" && rm -f "$state"
+}
+reap_after_exit() {
+    local token="$1" pid="$2" start="$3"
+    (
+        for _ in $(seq 1 600); do
+            owns_pid "$pid" "$start" || {
+                state_matches "$token" "$pid" "$start" && rm -f "$state"
+                exit 0
+            }
+            sleep 0.1
+        done
+    ) >/dev/null 2>&1 &
+}
+reclaim_state() {
+    local token pid start phase
+    [[ -e $state ]] || return 0
+    token=$(state_token)
+    pid=$(state_pid)
+    start=$(state_start)
+    if ! owns_pid "$pid" "$start"; then
+        rm -f "$state"
+        return 0
+    fi
+    phase=$(call_status "$token")
+    if [[ $phase == failed ]]; then
+        stop_owned "$token" "$pid" "$start"
+        return 0
+    fi
+    return 1
+}
+cleanup_after_open() {
+    local token="$1" pid="$2" start="$3"
+    (
+        sleep 0.55
+        state_matches "$token" "$pid" "$start" || exit 0
+        stop_owned "$token" "$pid" "$start"
+    ) >/dev/null 2>&1 &
+}
+
+case "${1:-}" in
+    begin)
+        reclaim_state || exit 1
+        if [[ ${RYOKU_RELOAD_COVER_TEST:-0} == 1 ]]; then
+            token="test-$(date +%s%N)"
+            claim_state "$token" || exit 1
+            write_state "$token" "$$"
+            printf '%s\n' "$token"
+            exit 0
+        fi
+        command -v qs >/dev/null 2>&1 && [[ -f "$dir/shell.qml" ]] || exit 1
+        token="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+        claim_state "$token" || exit 1
+        if command -v setsid >/dev/null 2>&1; then
+            setsid env RYOKU_RELOAD_COVER_TOKEN="$token" qs -p "$dir" >/dev/null 2>&1 < /dev/null &
+        else
+            env RYOKU_RELOAD_COVER_TOKEN="$token" qs -p "$dir" >/dev/null 2>&1 < /dev/null &
+        fi
+        pid=$!
+        write_state "$token" "$pid"
+        start=$(state_start)
+        reap_after_exit "$token" "$pid" "$start"
+        mapped=0
+        for _ in $(seq 1 80); do
+            call_bool mapped "$token" && mapped=1
+            if [[ $mapped == 1 ]] && call_bool covered "$token"; then
+                printf '%s\n' "$token"
+                exit 0
+            fi
+            sleep 0.05
+        done
+        stop_owned "$token" "$pid" "$start"
+        exit 1
+        ;;
+    finish)
+        token="${2:-}"
+        [[ -n $token && $(state_token) == "$token" ]] || exit 0
+        if [[ ${RYOKU_RELOAD_COVER_TEST:-0} == 1 ]]; then
+            rm -f "$state"
+            exit 0
+        fi
+        call_bool finish "$token" || exit 1
+        cleanup_after_open "$token" "$(state_pid)" "$(state_start)"
+        ;;
+    fail)
+        token="${2:-}"
+        [[ -n $token && $(state_token) == "$token" ]] || exit 0
+        [[ ${RYOKU_RELOAD_COVER_TEST:-0} == 1 ]] || call_bool fail "$token"
+        ;;
+    *)
+        printf 'usage: ryoku-reload-cover begin | finish <token> | fail <token>\n' >&2
+        exit 2
+        ;;
+esac
