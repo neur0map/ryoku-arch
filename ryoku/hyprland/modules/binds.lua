@@ -82,6 +82,7 @@ for i = 1, 10 do
     local key = i % 10 -- 10 maps to the 0 key
     hl.bind(K(mod .. " + " .. key),          hl.dsp.exec_cmd(ws_helper .. " focus " .. i)) -- focus workspace 1-10 on this desktop
     hl.bind(K(mod .. " + ALT + " .. key),    hl.dsp.exec_cmd(ws_helper .. " move " .. i))  -- move window to workspace 1-10 on this desktop
+    hl.bind(K(mod .. " + SHIFT + " .. key),  hl.dsp.exec_cmd(ws_helper .. " movesilent " .. i))  -- move window silently to workspace 1-10 on this desktop
 end
 
 -- Media and volume keys. ryoku-volume honours the volume panel's BOOST toggle

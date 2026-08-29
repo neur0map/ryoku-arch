@@ -65,6 +65,15 @@ case "$cmd" in
     ws=$(target_ws "${2:?slot 1..$PER required}")
     hyprctl dispatch "hl.dsp.window.move({ workspace = $ws })" >/dev/null
     ;;
+  movesilent)
+    ws=$(target_ws "${2:?slot 1..$PER required}")
+    addr=$(hyprctl activewindow -j | jq -r '.address')
+    hyprctl dispatch "hl.dsp.window.move({
+        workspace = \"$ws\",
+        window = \"address:$addr\",
+        follow = false
+    })" >/dev/null
+    ;;
   hide)
     ws=$(hyprctl activewindow -j 2>/dev/null | jq -r '.workspace.name // empty' || true)
     [[ -z $ws ]] && exit 0
