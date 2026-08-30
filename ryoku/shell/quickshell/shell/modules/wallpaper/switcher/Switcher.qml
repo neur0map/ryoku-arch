@@ -82,7 +82,6 @@ Item {
             sourceComponent: SwitcherBody {
                 s: win.s
                 active: win.shown
-                screenName: root.screen ? root.screen.name : ""
                 onRequestClose: root.requestClose()
 
                 opacity: win.shown ? 1 : 0

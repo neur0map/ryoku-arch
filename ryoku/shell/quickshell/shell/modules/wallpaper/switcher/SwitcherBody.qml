@@ -2,8 +2,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "Singletons"
 import Ryoku.Ui.Singletons
-import Quickshell.Hyprland
-import shell.services
 
 // Wallpaper switcher - a shelf of tall wallpaper columns filling the screen and a
 // single compact instrument pill floating at top-centre (力 · mode · layout · the
@@ -18,23 +16,6 @@ Item {
     required property real s
     required property bool active
     signal requestClose()
-
-    // the output this pick targets: "*" = all screens, else a connector name.
-    // opened from the bar it carries a screen; from Super+W it is the monitor
-    // the switcher is shown on. Connected monitors feed the target selector.
-    property string screenName: ""
-    property string target: "*"
-    readonly property var monitors: Hyprland.monitors.values
-    readonly property string targetLabel: body.target === "*" ? "All" : (body.target.length > 0 ? body.target : "All")
-    function cycleTarget() {
-        var opts = ["*"];
-        for (var i = 0; i < body.monitors.length; i++)
-            if (body.monitors[i] && body.monitors[i].name)
-                opts.push(body.monitors[i].name);
-        var idx = opts.indexOf(body.target);
-        body.target = opts[(idx + 1 + opts.length) % opts.length];
-        body.schedulePreview();
-    }
 
     // ── mode / filter / search (transient per open); layout + sort live in View ──
     property string mode: "walls"            // walls | themes
@@ -81,7 +62,7 @@ Item {
     readonly property var shown: body.themesMode ? body.themeShown : body.wallShown
     readonly property var selEntry: (body.selIndex >= 0 && body.selIndex < body.shown.length)
         ? body.shown[body.selIndex] : null
-    readonly property string activeKey: (body.themesMode ? Themes.active : Walls.currentFor(body.target)) || ""
+    readonly property string activeKey: (body.themesMode ? Themes.active : Walls.current) || ""
 
     // colour groups present under the current type filter.
     readonly property var wallGroups: {
@@ -106,10 +87,7 @@ Item {
     property bool started: false
 
     Component.onCompleted: {
-        body.target = ShellState.wallpaperSwitcherTarget.length > 0 ? ShellState.wallpaperSwitcherTarget
-            : (body.screenName.length > 0 ? body.screenName : "*");
-        ShellState.wallpaperSwitcherTarget = "";
-        body.originalWall = Walls.currentFor(body.target);
+        body.originalWall = Walls.current;
         body.originalTheme = Themes.active;
         body.forceActiveFocus();
     }
@@ -117,32 +95,29 @@ Item {
     Timer {
         id: previewTimer
         interval: 190
-        onTriggered: body.applyPreview(false)
+        onTriggered: body.applyPreview()
     }
     function schedulePreview() { if (View.livePreview) previewTimer.restart(); }
-    function applyPreview(isCommit) {
+    function applyPreview() {
         var e = body.selEntry;
         if (!e) return;
         if (body.themesMode) {
             Themes.apply(e.id);
             body.touchedTheme = true;
         } else {
-            // live wallpapers preview through the tile's own loop; applying one
-            // to the desktop spawns a player, so only do that on the keep.
-            if (!isCommit && e.type === "live") return;
-            Walls.apply(e.path, body.target);
+            Walls.apply(e.path);
             body.touchedWall = true;
         }
     }
     function commit() {                       // Enter / click a column: keep the pick
         previewTimer.stop();
-        body.applyPreview(true);
+        body.applyPreview();
         body.requestClose();
     }
     function cancel() {                       // Esc: put back what was on screen
         previewTimer.stop();
         if (body.touchedWall && body.originalWall.length > 0)
-            Walls.apply(body.originalWall, body.target);
+            Walls.apply(body.originalWall);
         if (body.touchedTheme)
             Themes.apply(body.originalTheme.length > 0 ? body.originalTheme : "Wallpaper");
         body.requestClose();
@@ -250,7 +225,7 @@ Item {
                 id: segTxt
                 anchors.centerIn: parent
                 text: I18n.tr(seg.label)
-                color: seg.on ? Theme.inkOnBone : (segHov.hovered ? Theme.onSurface : Theme.inkDim)
+                color: seg.on ? Theme.inkOnBone : (segHov.hovered ? Theme.onSurface : Theme.sumi)
                 font.family: Theme.ui
                 font.pixelSize: Math.round(12 * body.s)
                 font.weight: seg.on ? Font.DemiBold : Font.Medium
@@ -282,7 +257,7 @@ Item {
                     visible: ib.glyph.length > 0
                     anchors.verticalCenter: parent.verticalCenter
                     text: ib.glyph
-                    color: ib.on ? Theme.seal : (ibHov.hovered ? Theme.onSurface : Theme.inkDim)
+                    color: ib.on ? Theme.seal : (ibHov.hovered ? Theme.onSurface : Theme.sumi)
                     font.family: Theme.mono
                     font.pixelSize: Math.round(13 * body.s)
                 }
@@ -290,7 +265,7 @@ Item {
                     visible: ib.label.length > 0
                     anchors.verticalCenter: parent.verticalCenter
                     text: I18n.tr(ib.label)
-                    color: ib.on ? Theme.onSurface : (ibHov.hovered ? Theme.onSurface : Theme.inkDim)
+                    color: ib.on ? Theme.onSurface : (ibHov.hovered ? Theme.onSurface : Theme.sumi)
                     font.family: Theme.ui
                     font.pixelSize: Math.round(11.5 * body.s)
                 }
@@ -307,23 +282,18 @@ Item {
         color: Theme.sep
     }
 
-    // ── the stage: a compact bottom-centre card above the bar. The live desktop
-    // behind it is the real preview (browsing applies to the target screen). ──
-    Rectangle {
+    // ── the stage: the active layout, a fixed region above the bar (so a
+    // layout swap never moves the bar or resizes the stage) ──
+    Item {
         id: stage
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: bar.top
-        anchors.bottomMargin: Math.round(12 * body.s)
-        width: Math.round(Math.min(parent.width - 48 * body.s, 1100 * body.s))
-        height: Math.round(Math.min(parent.height * 0.40, 460 * body.s))
+        anchors.fill: parent
+        anchors.topMargin: Math.round(26 * body.s)
+        anchors.bottomMargin: Math.round(64 * body.s)
         visible: body.shown.length > 0
-        color: "transparent"
-        clip: true
 
         Loader {
             id: host
             anchors.fill: parent
-            anchors.margins: Math.round(10 * body.s)
             sourceComponent: View.layout === "grid" ? gridC
                 : View.layout === "hearthstone" ? hearthC
                 : View.layout === "drift" ? driftC : stripsC
@@ -398,7 +368,7 @@ Item {
     Rectangle {
         id: drawer
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: stage.top
+        anchors.bottom: bar.top
         anchors.bottomMargin: body.drawer !== "" ? Math.round(10 * body.s) : Math.round(2 * body.s)
         Behavior on anchors.bottomMargin { NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard } }
         opacity: body.drawer !== "" ? 1 : 0
@@ -486,13 +456,6 @@ Item {
             Sep {}
             IconBtn {
                 anchors.verticalCenter: parent.verticalCenter
-                visible: !body.themesMode && body.monitors.length > 1
-                glyph: "\u25a3"; label: body.targetLabel
-                onClicked: body.cycleTarget()
-            }
-            Sep { visible: !body.themesMode && body.monitors.length > 1 }
-            IconBtn {
-                anchors.verticalCenter: parent.verticalCenter
                 glyph: "\u25b4"; label: View.layoutLabel(View.layout)
                 on: body.drawer === "layout"
                 onClicked: body.drawer = (body.drawer === "layout" ? "" : "layout")
@@ -518,7 +481,7 @@ Item {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "\u2315"
-                    color: body.search.length > 0 ? Theme.onSurface : Theme.inkDim
+                    color: body.search.length > 0 ? Theme.onSurface : Theme.sumi
                     font.family: Theme.mono
                     font.pixelSize: Math.round(13 * body.s)
                 }
@@ -535,7 +498,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: body.shown.length > 0 ? (body.pad2(body.selIndex + 1) + " / " + body.pad2(body.shown.length)) : "--"
-                color: Theme.inkDim
+                color: Theme.onSurfaceVariant
                 font.family: Theme.mono
                 font.pixelSize: Math.round(11 * body.s)
                 font.letterSpacing: 1 * body.s
