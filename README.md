@@ -168,7 +168,7 @@ Broadcom Wi-Fi, read-only NVRAM, slow USB media) is in
 
 ## Install
 
-Two ways in. A fresh machine boots the signed **ISO**; an existing Arch box
+Three ways in. A fresh machine boots the signed **ISO**; an existing Arch box
 converts in place with the **shell installer**.
 
 ### Fresh install (the ISO)
@@ -209,6 +209,27 @@ curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/ryoku-shel
 Preview everything it would do without changing anything by appending
 `-s -- --dry-run` after `bash`. Details in
 [`ryoku-shell-installer/`](ryoku-shell-installer/README.md).
+
+
+### Ryoku on NixOS
+
+An official NixOS port of the Ryoku desktop is available for users who want
+Ryoku integrated declaratively into an existing NixOS system.
+
+The NixOS implementation is maintained separately so that its packaging,
+system integration, updates, and release lifecycle can follow Nix conventions
+without affecting the Arch implementation.
+
+[**View Ryoku on NixOS →**](https://github.com/Aetherelic/Ryoku-on-NixOS)
+
+
+## Install on an existing flake-based NixOS system:
+
+```bash
+nix run github:Aetherelic/Ryoku-on-NixOS/main#install
+```
+Ryoku on NixOS is maintained by [Aether](https://github.com/Aetherelic)
+
 
 > [!WARNING]
 > The shell installer is young and still being tested across different hardware,
