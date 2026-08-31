@@ -110,7 +110,7 @@ Item {
     // bar module): a click-pinned popout must close the moment it's unpinned
     // (close button, Escape, keybind re-toggle), even under the pointer.
     readonly property bool hovered: (hoverOpen && triggerHH.hovered) || triggerHovered
-        || (bodyHH.hovered && (hoverOpen || closeDelay > 0))
+        || (bodyHH.hovered && (hoverOpen || centered || closeDelay > 0))
     // host gates this off while a centre surface is open or a window is
     // fullscreen, so an edge hover never fights a modal surface.
     property bool active: true

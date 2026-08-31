@@ -141,28 +141,49 @@ Item {
             // travel to the fresh popout; once it has arrived (`_touched`),
             // leaving for `_graceMs` clears the pin. timer also catches a
             // hover-leave a masked layer surface can otherwise miss.
+            readonly property bool autoDismiss: (place.framePopout && place.framePopout.autoDismiss !== undefined)
+                ? place.framePopout.autoDismiss
+                : !pop.centered
             property bool _touched: false
             readonly property int _graceMs: 2500
             onHoveredChanged: {
+                if (!pop.autoDismiss) return;
                 if (pop.hovered) { pop._touched = true; graceTimer.stop(); }
                 else if (pop.pinned) graceTimer.restart();
             }
             onPinnedChanged: {
                 pop._touched = false;
+                if (!pop.autoDismiss) {
+                    graceTimer.stop();
+                    return;
+                }
                 if (pop.pinned) graceTimer.restart(); else graceTimer.stop();
             }
             Timer {
                 id: graceTimer
                 interval: pop._touched ? 220 : pop._graceMs
-                onTriggered: if (pop.pinned && !pop.hovered) root.unpinRequested(pop.modelData);
+                onTriggered: if (pop.autoDismiss && pop.pinned && !pop.hovered) root.unpinRequested(pop.modelData);
             }
             // body fits content vertically. openH = loaded content's intrinsic
             // height + inner pad, so no deadspace. width is fixed (content lays
             // out to contentW); content is inset by `pad` so nothing sits flush
             // against the edges.
             readonly property real pad: 16 * root.s
-            readonly property real contentW: 360 * root.s
-            readonly property real contentH: contentLoader.item ? contentLoader.item.implicitHeight : 420 * root.s
+            readonly property var sObj: (place && place.settings) ? place.settings : ({})
+            readonly property real contentW: ((sObj && sObj.width && Number(sObj.width) > 0)
+                ? Number(sObj.width)
+                : ((place.framePopout && place.framePopout.width && place.framePopout.width > 0)
+                    ? place.framePopout.width
+                    : ((contentLoader.item && contentLoader.item.implicitWidth > 0)
+                        ? contentLoader.item.implicitWidth
+                        : 680))) * root.s
+            readonly property real contentH: ((sObj && sObj.height && Number(sObj.height) > 0)
+                ? Number(sObj.height)
+                : ((place.framePopout && place.framePopout.height && place.framePopout.height > 0)
+                    ? place.framePopout.height
+                    : ((contentLoader.item && contentLoader.item.implicitHeight > 0)
+                        ? contentLoader.item.implicitHeight
+                        : 520))) * root.s
             openW: contentW + pad * 2
             openH: contentH + pad * 2
             hoverW: (place.framePopout && place.framePopout.hoverW) ? place.framePopout.hoverW * root.s : 0
