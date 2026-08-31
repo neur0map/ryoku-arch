@@ -83,8 +83,22 @@ surface at a time, so they take turns rather than overlap.
 
 - Ryoku handles the **hover trigger, the open/close animation, and the fuse into
   the frame**.
-- The popout **grows to fit your content** - it's exactly as tall as your view
-  needs, with even padding. You never set the popout's width or height.
+- **Dimensions & Sizing**:
+  - By default, edge popouts use a compact `360px` width budget and grow vertically
+    to fit your content's `implicitHeight`.
+  - For rich or modal views (calculators, email, system monitors), you can specify
+    a custom width and height:
+    - **In manifest defaults**: declare `"width"` and/or `"height"` under `defaults.framePopout`.
+    - **In plugin settings**: declare `"width"` and/or `"height"` controls in `metadata.settings`.
+      Ryoku Settings will expose them directly to users, and the popout will resize live.
+    - **Implicit fallback**: if no fixed setting is set, Ryoku respects your root
+      `implicitWidth` (falling back to standard 680px for centered popouts).
+- **Dismissal & Lifecycle**:
+  - **Edge hover popouts** auto-retract after the pointer leaves (`autoDismiss: true`).
+  - **Centered modal popouts** stay open until explicitly closed via `Escape`, clicking
+    outside, or toggling the shortcut (`autoDismiss: false`).
+  - To override this behavior on any popout, set `"autoDismiss": true` or `false`
+    in `defaults.framePopout`.
 
 `ryoku-shell plugin <id>` toggles your frame popout open (bind it to a key).
 
@@ -220,7 +234,13 @@ to `plugins.json`; read the live values from `pluginApi.pluginSettings`.
   "hosts": ["framePopout", "desktopWidget"],
   "defaults": {
     "host": "framePopout",
-    "framePopout": { "edge": "top", "align": "end" },
+    "framePopout": {
+      "edge": "center",
+      "align": "center",
+      "width": 680,
+      "height": 520,
+      "autoDismiss": false
+    },
     "icon": "image",
     "label": "Your Plugin"
   },
