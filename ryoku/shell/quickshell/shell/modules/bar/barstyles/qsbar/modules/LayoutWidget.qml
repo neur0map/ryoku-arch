@@ -22,7 +22,7 @@ Item {
 
     readonly property string tooltipText: "Keyboard layout · " + rootMod.layout
 
-    visible: implicitWidth > 0.5
+    visible: root.modLayout && implicitWidth > 0.5
     implicitWidth: root.modLayout ? row.implicitWidth + 18 : 0
     implicitHeight: 28
     opacity: root.modLayout ? 1 : 0

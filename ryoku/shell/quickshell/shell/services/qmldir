@@ -35,6 +35,7 @@ singleton Events Events.qml
 singleton Holidays Holidays.qml
 singleton Flags Flags.qml
 singleton Keyring Keyring.qml
+singleton KeyboardLayout KeyboardLayout.qml
 singleton OsdFeed OsdFeed.qml
 singleton Polkit Polkit.qml
 singleton PowerProfiles PowerProfiles.qml

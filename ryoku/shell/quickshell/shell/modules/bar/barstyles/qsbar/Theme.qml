@@ -2556,6 +2556,7 @@ Item {
     onBarTemperatureSourceChanged: if (_widgetsLoaded) saveWidgets()
     onModBatteryChanged:       if (_widgetsLoaded) saveWidgets()
     onBarShadowEnabledChanged: if (_widgetsLoaded) saveWidgets()
+    onModLayoutChanged:        if (_widgetsLoaded) saveWidgets()
     onBarFrostEnabledChanged:  if (_widgetsLoaded) saveWidgets()
     onBarAutoHideChanged:      if (_widgetsLoaded) saveWidgets()
     onBarGapTopChanged:        if (_widgetsLoaded) saveWidgets()
