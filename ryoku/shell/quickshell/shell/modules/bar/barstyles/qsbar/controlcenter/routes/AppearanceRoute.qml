@@ -36,8 +36,13 @@ Item {
         return (page.root && prop !== "") ? page.root[prop] === true : false
     }
     function toggleMod(prop) {
-        if (page.root && prop !== "" && page.root[prop] !== undefined)
-            page.root[prop] = !page.root[prop]
+        if (!page.root || prop === "" || page.root[prop] === undefined)
+            return
+
+        page.root[prop] = !page.root[prop]
+
+        if (page.root.saveWidgets)
+            page.root.saveWidgets()
     }
 
     // ── density (compact) - drive whichever mechanism the live Theme consumes ──

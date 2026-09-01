@@ -29,11 +29,13 @@ Item {
         { key: "carousel", label: "Carousel", sub: "Thumb row" }
     ]
 
-    // Open the one wallpaper surface, the ryogami picker (Super+W). It owns
-    // per-screen targeting through its own monitor picker, so the `target` a row
-    // passes is informational now; the control-center just summons the picker.
+    // Aim the wallpaper switcher at a screen ("*" = all, else a connector) then
+    // open it, mirroring SystemRoute. ShellState reads and clears the target on open.
     function openSwitcher(target) {
-        Quickshell.execDetached(["ryogami", "wallpaper", "ui"]);
+        Services.ShellState.wallpaperSwitcherTarget = target;
+        const st = Services.ShellState.forActive();
+        if (st)
+            st.wallpaperSwitcherOpen = true;
         if (page.cc)
             page.cc.close();
     }

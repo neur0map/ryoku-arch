@@ -49,7 +49,6 @@ Item {
         { v: 1, label: "Stream" },
         { v: 2, label: "Surge" },
         { v: 3, label: "Bolt" },
-	{ v: 4, label: "Bolt-2"},
         { v: 7, label: "Reactor" },
         { v: 8, label: "Quotes" }
     ]
@@ -151,29 +150,6 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             on: page.root ? page.root.barAutoHide === true : false
                             onToggled: value => { if (page.root && page.root.barAutoHide !== undefined) page.root.barAutoHide = value }
-                        }
-                    }
-                    SettingRow {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        divider: true
-                        controlWidth: 58
-                        label: I18n.tr("Size")
-                        unit: "%"
-                        value: String(Math.round(100 * (page.root ? page.root.barScale : 1)))
-                        desc: I18n.tr("Scale the QS Bar without changing display scaling")
-                        source: "shell.json"
-                        Step {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            from: 100
-                            to: 200
-                            stepBy: 10
-                            value: 100 * (page.root ? page.root.barScale : 1)
-                            onModified: v => {
-                                if (page.root && page.root.barScale !== undefined)
-                                    page.root.barScale = v / 100
-                            }
                         }
                     }
                 }
