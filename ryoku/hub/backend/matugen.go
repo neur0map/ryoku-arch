@@ -158,6 +158,7 @@ func defaultMatugenConfig() matugenConfig {
 			"zathura":   true,
 			"alacritty": true,
 			"tmux":      true,
+			"sidra": true,
 		},
 	}
 }

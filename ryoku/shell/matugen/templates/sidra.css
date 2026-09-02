@@ -1,0 +1,633 @@
+/*
+
+Sidra × Matugen — Refined
+Save as:
+~/.config/matugen/templates/sidra.css
+Material You / Material 3 inspired theme
+*/
+
+/* ============================================================
+
+Core palette
+============================================================ */
+
+:root {
+/* Surfaces */
+--pageBG: {{colors.surface.default.hex}} !important;
+--shelfBG: {{colors.surface_container_low.default.hex}} !important;
+--opaqueShelfBG: {{colors.surface_container.default.hex}} !important;
+--fallbackMaterialBG: {{colors.surface_container.default.hex}} !important;
+--genericJoeColor: {{colors.surface_container_high.default.hex}} !important;
+
+/* Text */
+--systemPrimary: {{colors.on_surface.default.hex}} !important;
+--systemPrimary-vibrant: {{colors.on_surface.default.hex}} !important;
+--systemSecondary: {{colors.on_surface_variant.default.hex}} !important;
+--systemSecondary-vibrant: {{colors.on_surface_variant.default.hex}} !important;
+--systemTertiary: {{colors.outline.default.hex}} !important;
+--systemQuaternary: {{colors.outline_variant.default.hex}} !important;
+--systemQuinary: {{colors.surface_variant.default.hex}} !important;
+
+/* Borders / separators */
+--labelDivider: {{colors.outline_variant.default.hex}} !important;
+--vibrantDivider: {{colors.outline.default.hex}} !important;
+
+/* Player */
+--playerBackground: {{colors.surface_container.default.hex}} !important;
+--playerBackgroundFallback: {{colors.surface_container.default.hex}} !important;
+--playerLCDBGFill: {{colors.surface_container_high.default.hex}} !important;
+--playerMissingArtworkBg: {{colors.surface_variant.default.hex}} !important;
+--playerMissingArtworkIcon: {{colors.on_surface_variant.default.hex}} !important;
+--playerScrubberFill: {{colors.primary.default.hex}} !important;
+--playerScrubberTrack: {{colors.surface_variant.default.hex}} !important;
+--playerPlatterButtonBGFill: {{colors.primary.default.hex}} !important;
+--playerPlatterButtonIconFill: {{colors.on_primary.default.hex}} !important;
+--playerDropShadow2: {{colors.shadow.default.hex}} !important;
+
+/* Navigation */
+--segmentedControlBG: {{colors.surface_container.default.hex}} !important;
+--segmentedControlSelectedBG: {{colors.secondary_container.default.hex}} !important;
+
+/* Tracklist */
+--tracklistHoverColor: {{colors.surface_container_high.default.hex}} !important;
+--tracklistAltRowColor: {{colors.surface_container_low.default.hex}} !important;
+
+/* Materials */
+--systemStandardThickMaterialSover:
+{{colors.surface_container.default.hex}} !important;
+
+--systemHeaderMaterialSover:
+{{colors.surface_container_high.default.hex}} !important;
+
+--systemToolbarTitlebarMaterialSover:
+{{colors.surface_container_high.default.hex}} !important;
+}
+
+/* ============================================================
+
+Global aliases
+
+============================================================ */
+
+{
+/* Accent */
+--keyColor: {{colors.primary.default.hex}} !important;
+--keyColor-rollover: {{colors.primary_fixed.default.hex}} !important;
+--keyColor-pressed: {{colors.primary_fixed_dim.default.hex}} !important;
+--keyColor-deepPressed: {{colors.primary_fixed_dim.default.hex}} !important;
+--keyColor-disabled: {{colors.primary_container.default.hex}} !important;
+
+--musicKeyColor: {{colors.primary.default.hex}} !important;
+--musicBrandBG: {{colors.primary.default.hex}} !important;
+--selectionColor: {{colors.primary.default.hex}} !important;
+
+/* Chrome / LCD */
+--chromePlayerBGFill:
+{{colors.surface_container.default.hex}} !important;
+
+--lcd-bg-color:
+{{colors.surface_container_high.default.hex}} !important;
+
+/* Useful semantic aliases */
+--sidra-accent: {{colors.primary.default.hex}} !important;
+--sidra-accent-hover: {{colors.primary_container.default.hex}} !important;
+--sidra-accent-soft: {{colors.primary_container.default.hex}} !important;
+
+--sidra-surface: {{colors.surface.default.hex}} !important;
+--sidra-surface-low:
+{{colors.surface_container_low.default.hex}} !important;
+
+--sidra-surface-container:
+{{colors.surface_container.default.hex}} !important;
+
+--sidra-surface-high:
+{{colors.surface_container_high.default.hex}} !important;
+
+--sidra-text: {{colors.on_surface.default.hex}} !important;
+--sidra-text-secondary:
+{{colors.on_surface_variant.default.hex}} !important;
+
+--sidra-border:
+{{colors.outline_variant.default.hex}} !important;
+
+--sidra-border-strong:
+{{colors.outline.default.hex}} !important;
+
+/* Scrollbars */
+scrollbar-color:
+{{colors.outline.default.hex}}
+{{colors.surface.default.hex}}
+!important;
+}
+
+/* ============================================================
+
+Base document
+============================================================ */
+
+html,
+body {
+background:
+{{colors.surface.default.hex}} !important;
+
+color:
+{{colors.on_surface.default.hex}} !important;
+
+color-scheme: dark;
+}
+
+/* ============================================================
+
+Selection
+============================================================ */
+
+::selection {
+background:
+{{colors.primary.default.hex}} !important;
+
+color:
+{{colors.on_primary.default.hex}} !important;
+}
+
+/* ============================================================
+
+Scrollbars
+============================================================ */
+
+::-webkit-scrollbar {
+width: 10px;
+height: 10px;
+}
+
+::-webkit-scrollbar-track {
+background:
+{{colors.surface.default.hex}} !important;
+}
+
+::-webkit-scrollbar-thumb {
+background:
+{{colors.outline_variant.default.hex}} !important;
+
+border: 2px solid
+{{colors.surface.default.hex}} !important;
+
+border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+background:
+{{colors.outline.default.hex}} !important;
+}
+
+/* ============================================================
+
+Player
+============================================================ */
+
+.chrome-player::before {
+background-color:
+{{colors.surface_container.default.hex}} !important;
+
+background-image: none !important;
+}
+
+.chrome-player {
+background-color:
+{{colors.surface_container.default.hex}} !important;
+
+border-color:
+{{colors.outline_variant.default.hex}} !important;
+}
+
+/* ============================================================
+
+Side panels
+============================================================ */
+
+.side-panel {
+background-color:
+{{colors.surface.default.hex}} !important;
+
+backdrop-filter:
+blur(50px) saturate(100%) !important;
+
+-webkit-backdrop-filter:
+blur(50px) saturate(100%) !important;
+
+border-color:
+{{colors.outline_variant.default.hex}} !important;
+}
+
+.side-panel.side-panel-header-wrapper,
+.side-panel .side-panel-header-wrapper,
+.side-panel-header-wrapper {
+background-color:
+{{colors.surface.default.hex}} !important;
+
+border-color:
+{{colors.outline_variant.default.hex}} !important;
+}
+
+/* ============================================================
+
+Footer
+============================================================ */
+
+:is(
+footer,
+.scrollable-page footer
+) {
+background:
+{{colors.surface_container_low.default.hex}} !important;
+
+background-color:
+{{colors.surface_container_low.default.hex}} !important;
+
+border-color:
+{{colors.outline_variant.default.hex}} !important;
+
+color:
+{{colors.on_surface.default.hex}} !important;
+}
+
+:is(
+footer,
+.scrollable-page footer
+) :is(
+a,
+button,
+select,
+[role="button"],
+[class*="dropdown"]
+) {
+background-color:
+{{colors.surface_container.default.hex}} !important;
+
+border-color:
+{{colors.outline_variant.default.hex}} !important;
+
+color:
+{{colors.on_surface.default.hex}} !important;
+
+transition:
+background-color 150ms ease,
+border-color 150ms ease,
+color 150ms ease !important;
+}
+
+:is(
+footer,
+.scrollable-page footer
+) :is(
+a,
+button,
+select,
+[role="button"],
+[class*="dropdown"]
+):hover {
+background-color:
+{{colors.surface_container_high.default.hex}} !important;
+
+border-color:
+{{colors.outline.default.hex}} !important;
+}
+
+/* ============================================================
+
+Country / region picker
+============================================================ */
+
+[class*="locale-switcher"] {
+background:
+{{colors.surface_container.default.hex}} !important;
+
+background-color:
+{{colors.surface_container.default.hex}} !important;
+
+color:
+{{colors.on_surface.default.hex}} !important;
+
+border-color:
+{{colors.outline_variant.default.hex}} !important;
+}
+
+/* ============================================================
+
+Country / region banner
+============================================================ */
+
+[data-testid="banner-container"] {
+background:
+{{colors.surface_container.default.hex}} !important;
+
+background-color:
+{{colors.surface_container.default.hex}} !important;
+
+color:
+{{colors.on_surface.default.hex}} !important;
+
+border-color:
+{{colors.outline_variant.default.hex}} !important;
+
+box-shadow:
+0 4px 16px
+{{colors.shadow.default.hex}} !important;
+}
+
+[data-testid="banner-container"]
+[data-testid="close-button"] {
+color:
+{{colors.on_surface.default.hex}} !important;
+
+fill:
+{{colors.on_surface.default.hex}} !important;
+
+transition:
+color 150ms ease,
+opacity 150ms ease !important;
+}
+
+[data-testid="banner-container"]
+[data-testid="close-button"]:hover {
+color:
+{{colors.primary.default.hex}} !important;
+
+opacity: 1 !important;
+}
+
+[data-testid="banner-container"]
+[data-testid="close-button"] svg path {
+fill:
+currentColor !important;
+}
+
+[data-testid="banner-container"]
+[data-testid="dropdown-button"] {
+background-color:
+{{colors.surface_container_high.default.hex}} !important;
+
+border-color:
+{{colors.outline.default.hex}} !important;
+
+color:
+{{colors.on_surface.default.hex}} !important;
+
+transition:
+background-color 150ms ease,
+border-color 150ms ease !important;
+}
+
+[data-testid="banner-container"]
+[data-testid="dropdown-button"]:hover {
+background-color:
+{{colors.surface_container_highest.default.hex}} !important;
+
+border-color:
+{{colors.primary.default.hex}} !important;
+}
+
+/* ============================================================
+
+Primary buttons
+============================================================ */
+
+.button.primary button.click-action {
+background-color:
+{{colors.primary.default.hex}} !important;
+
+color:
+{{colors.on_primary.default.hex}} !important;
+
+border-color:
+{{colors.primary.default.hex}} !important;
+
+transition:
+background-color 150ms ease,
+box-shadow 150ms ease,
+transform 100ms ease !important;
+}
+
+.button.primary button.click-action:hover {
+background-color:
+{{colors.primary_container.default.hex}} !important;
+
+color:
+{{colors.on_primary_container.default.hex}} !important;
+
+box-shadow:
+0 2px 8px
+{{colors.shadow.default.hex}} !important;
+}
+
+.button.primary button.click-action:active {
+transform: scale(0.98);
+}
+
+/* ============================================================
+
+Links
+============================================================ */
+
+a {
+color:
+{{colors.primary.default.hex}} !important;
+
+transition:
+color 150ms ease !important;
+}
+
+a:hover {
+color:
+{{colors.primary_fixed.default.hex}} !important;
+}
+
+/* ============================================================
+
+Inputs / controls
+============================================================ */
+
+:is(
+input,
+textarea,
+select
+) {
+background-color:
+{{colors.surface_container.default.hex}} !important;
+
+color:
+{{colors.on_surface.default.hex}} !important;
+
+border-color:
+{{colors.outline_variant.default.hex}} !important;
+}
+
+:is(
+input,
+textarea,
+select
+):focus {
+border-color:
+{{colors.primary.default.hex}} !important;
+
+outline:
+2px solid
+{{colors.primary.default.hex}} !important;
+
+outline-offset: -1px;
+}
+
+/* ============================================================
+
+Generic interactive states
+============================================================ */
+
+:is(
+button,
+[role="button"]
+) {
+transition:
+background-color 150ms ease,
+color 150ms ease,
+border-color 150ms ease,
+opacity 150ms ease !important;
+}
+
+:is(
+button,
+[role="button"]
+):hover {
+background-color:
+{{colors.surface_container_high.default.hex}} !important;
+}
+
+:is(
+button,
+[role="button"]
+):focus-visible {
+outline:
+2px solid
+{{colors.primary.default.hex}} !important;
+
+outline-offset: 2px;
+}
+
+/* ============================================================
+
+Segmented controls / navigation
+============================================================ */
+
+:is(
+[role="tablist"],
+.segmented-control
+) {
+background-color:
+{{colors.surface_container.default.hex}} !important;
+
+border-color:
+{{colors.outline_variant.default.hex}} !important;
+}
+
+:is(
+[role="tab"],
+.segmented-control button
+) {
+color:
+{{colors.on_surface_variant.default.hex}} !important;
+}
+
+:is(
+[role="tab"][aria-selected="true"],
+.segmented-control button.active
+) {
+background-color:
+{{colors.secondary_container.default.hex}} !important;
+
+color:
+{{colors.on_secondary_container.default.hex}} !important;
+}
+
+/* ============================================================
+
+Tracklist
+============================================================ */
+
+:is(
+.tracklist,
+.track-list
+) {
+background-color:
+{{colors.surface.default.hex}} !important;
+}
+
+.tracklist :is(
+tr,
+[role="row"]
+):hover {
+background-color:
+{{colors.surface_container_high.default.hex}} !important;
+}
+
+.tracklist :is(
+tr:nth-child(even),
+[role="row"]:nth-child(even)
+) {
+background-color:
+{{colors.surface_container_low.default.hex}} !important;
+}
+
+.tracklist :is(
+tr:nth-child(even),
+[role="row"]:nth-child(even)
+):hover {
+background-color:
+{{colors.surface_container_high.default.hex}} !important;
+}
+
+/* ============================================================
+
+Dividers
+============================================================ */
+
+hr {
+border-color:
+{{colors.outline_variant.default.hex}} !important;
+}
+
+/* ============================================================
+
+Disabled states
+============================================================ */
+
+:is(
+button,
+input,
+textarea,
+select,
+[role="button"]
+):disabled,
+:is(
+button,
+input,
+textarea,
+select,
+[role="button"]
+)[aria-disabled="true"] {
+opacity: 0.5 !important;
+cursor: not-allowed !important;
+}
+
+/* ============================================================
+
+Reduced motion
+============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+*,
+*::before,
+*::after {
+transition-duration: 0.01ms !important;
+animation-duration: 0.01ms !important;
+animation-iteration-count: 1 !important;
+scroll-behavior: auto !important;
+}
+}

@@ -91,3 +91,7 @@ output_path = "~/.config/alacritty/colors.toml"
 [templates.tmux]
 input_path = "~/.config/matugen/templates/tmux.conf"
 output_path = "~/.config/tmux/ryoku-colors.conf"
+
+[templates.sidra]
+input_path = "~/.config/matugen/templates/sidra.css"
+output_path = "~/.config/Sidra/custom.css"
