@@ -8,14 +8,14 @@ import Quickshell.Io
  * Ryoku wallpaper topic bridge, one instance per monitor (the shell root's
  * per-screen scope constructs it with `screen`).
  *
- * Ryogami (the Rust wallpaper daemon) now owns the Background layer surface and
- * paints the wallpaper, transitions, and livewalls itself, so this component no
- * longer draws anything. It only subscribes to the `wallpaper` topic on
- * $XDG_RUNTIME_DIR/ryogami.sock -- one coalesced full-state frame
- * {default: ENTRY, outputs: {connector: ENTRY}} per revision -- and re-exposes
- * this output's entry (outputs[screen.name] or, absent an override, default) as
- * the wallpaper/depth urls and fit that the desktop's glass widget backdrop and
- * the depth-cutout foreground (modules/depth/DepthForeground) composite against.
+ * Ryogami (the Go wallpaper daemon) publishes one coalesced full-state frame
+ * {default: ENTRY, outputs: {connector: ENTRY}} per revision on the `wallpaper`
+ * topic of $XDG_RUNTIME_DIR/ryogami.sock. This bridge subscribes and re-exposes
+ * this output's entry (outputs[screen.name] or, absent an override, default)
+ * as the wallpaper/depth/video urls and fit that the desktop's backdrop
+ * (modules/desktop -> WallpaperMod.Backdrop) paints: stills with the reveal
+ * transition, live clips through the in-shell QtMultimedia player, and the
+ * depth-cutout foreground (modules/depth/DepthForeground) composites against.
  * Contract 08 sec 1, 2.6, 5, 7.
  *
  * The ryogami wallpaper picker (Super+W) sets wallpapers through ryogami,
@@ -37,12 +37,16 @@ Item {
     readonly property string depthUrl: frame.depth.length > 0
         ? "file://" + frame.depth + "?v=" + frame.depthRev : ""
     readonly property string fit: frame.fit
-    // The reveal preset for the current revision (null = plain crossfade) and
-    // whether a live player owns the slot (the in-shell painter yields to it).
+    // The reveal preset for the current revision (null = plain crossfade).
     readonly property var transition: frame.transition
+    // The video clip for a live wallpaper ("" for a still).
+    readonly property string videoUrl: frame.videoPath.length > 0
+        ? "file://" + frame.videoPath : ""
+    // The ryogami-live yield flag: hide the in-shell painter while the C
+    // player owns the background layer; false for the in-shell engine.
     readonly property bool live: frame.live
-    // Ryogami paints the wallpaper out of band, so there is no in-shell decode
-    // left to gate on: widgets simply wait for the first topic frame.
+    // The first topic frame gates readiness, not the in-shell decode: the
+    // backdrop itself waits on the Image decode before revealing.
     readonly property bool reloadReady: frame.ready
 
     readonly property string sockPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ryogami.sock"

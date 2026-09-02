@@ -13,11 +13,9 @@ import (
 // per-output state for restore, bump the catalog's apply count, trigger the
 // matugen palette, and broadcast the applied event the picker listens for.
 
-// applyWallpaper handles static and video applies. Stills render on the
-// in-shell surface (with a reveal transition); a video plays through
-// ryoku-livewall on its own background surface while the shell paints the
-// clip's still underneath, so the reveal, the depth cutout and the palette all
-// work from a real frame and the screen never goes black if the player dies.
+// applyWallpaper handles static and video applies, dispatching on the
+// video_engine knob: "ryogami" (the C player + READY handshake, default) or
+// "in_shell" (the clip publishes as videoPath and the shell decodes it).
 func (d *daemon) applyWallpaper(wpType, path, mode string, outputs []string, mute map[string]bool, volume map[string]int) error {
 	if path == "" {
 		return fmt.Errorf("missing 'path' parameter")
@@ -26,13 +24,54 @@ func (d *daemon) applyWallpaper(wpType, path, mode string, outputs []string, mut
 		return fmt.Errorf("wallpaper not readable: %v", err)
 	}
 	fit := contentFit()
-	live := wpType == "video"
+	isVideo := wpType == "video"
 	paint := path
-	if live {
+	prefs := wallPrefs()
+	if isVideo {
 		if still := liveStill(path, d.config().videoFrame()); still != "" {
 			paint = still
 		}
-	} else if d.video.Playing() {
+	}
+
+	if isVideo && prefs.Engine == "in_shell" {
+		if d.video.Playing() {
+			d.video.Stop()
+		}
+		name := filepath.Base(path)
+		key := strings.TrimSuffix(name, filepath.Ext(name))
+		clip := path
+		if !prefs.Enabled {
+			clip = ""
+		} else if entry, ok := d.store.get(keyFor(d.store, name, key)); ok && entry.VideoFile != "" && entry.VideoFile != path {
+			// Animated image formats are transcoded to mp4 at scan time: the
+			// player cannot advance those frames from the original.
+			clip = entry.VideoFile
+			if mp4Still := liveStill(entry.VideoFile, d.config().videoFrame()); mp4Still != "" {
+				paint = mp4Still
+			}
+		} else if prefs.Transcode {
+			if capped := transcodeCachePath(path, prefs.TransFps, prefs.TransWidth); capped != "" && fileExists(capped) {
+				clip = capped
+				if mp4Still := liveStill(capped, d.config().videoFrame()); mp4Still != "" {
+					paint = mp4Still
+				}
+			} else {
+				clip = ""
+				d.transcodeAsync(path, outputs, prefs)
+			}
+		}
+		d.surface.show(paint, fit, d.transitionFor(mode), false, true, clip)
+		d.setCurrent(name)
+		d.saveOutputs(outputs, wpType, path, mute)
+		d.store.mutate(keyFor(d.store, name, key), func(e *Entry) { e.ApplyCount++ })
+		d.broadcast("ryogami.wall.applied", map[string]interface{}{
+			"type": wpType, "name": name, "path": path, "we_id": "", "key": key,
+		})
+		return nil
+	}
+
+	live := isVideo
+	if !isVideo && d.video.Playing() {
 		d.video.Stop()
 	}
 	// A reveal transition is an image operation: the clip's still gets one
@@ -74,10 +113,10 @@ func (d *daemon) applyWallpaper(wpType, path, mode string, outputs []string, mut
 		d.video.Play(outputs, path, liveFit(fit), d.config().ResourceTier, repaint)
 	}
 	if len(outputs) == 0 || contains(outputs, "*") {
-		d.surface.show(paint, fit, tr, frameLive, live)
+		d.surface.show(paint, fit, tr, frameLive, live, "")
 	} else {
 		for _, out := range outputs {
-			d.surface.showOutput(out, paint, fit, tr, frameLive, live)
+			d.surface.showOutput(out, paint, fit, tr, frameLive, live, "")
 		}
 	}
 	name := filepath.Base(path)
@@ -153,6 +192,38 @@ func (d *daemon) restoreOutputs() {
 		}
 		live := e["type"] == "video"
 		paint := p
+		prefs := wallPrefs()
+		if live && prefs.Engine == "in_shell" {
+			name := filepath.Base(p)
+			key := strings.TrimSuffix(name, filepath.Ext(name))
+			clip := p
+			if !prefs.Enabled {
+				clip = ""
+			} else if entry, ok := d.store.get(keyFor(d.store, name, key)); ok && entry.VideoFile != "" && entry.VideoFile != p {
+				clip = entry.VideoFile
+				if mp4Still := liveStill(entry.VideoFile, d.config().videoFrame()); mp4Still != "" {
+					paint = mp4Still
+				}
+			} else if prefs.Transcode {
+				if capped := transcodeCachePath(p, prefs.TransFps, prefs.TransWidth); capped != "" && fileExists(capped) {
+					clip = capped
+					if mp4Still := liveStill(capped, d.config().videoFrame()); mp4Still != "" {
+						paint = mp4Still
+					}
+				} else {
+					clip = ""
+					d.transcodeAsync(p, []string{out}, prefs)
+				}
+			}
+			if out == "*" {
+				d.surface.show(paint, fit, nil, false, true, clip)
+			} else {
+				d.surface.showOutput(out, paint, fit, nil, false, true, clip)
+			}
+			restored = filepath.Base(p)
+			return
+		}
+
 		if live {
 			var outs []string
 			if out != "*" {
@@ -172,9 +243,9 @@ func (d *daemon) restoreOutputs() {
 		}
 		frameLive := live && paint == p
 		if out == "*" {
-			d.surface.show(paint, fit, nil, frameLive, live)
+			d.surface.show(paint, fit, nil, frameLive, live, "")
 		} else {
-			d.surface.showOutput(out, paint, fit, nil, frameLive, live)
+			d.surface.showOutput(out, paint, fit, nil, frameLive, live, "")
 		}
 		restored = filepath.Base(p)
 	}
@@ -280,10 +351,22 @@ var _ = json.Marshal
 // cuts, never reveals.
 func (d *daemon) repaintOutputs(outputs []string, paint, fit string, live bool) {
 	if len(outputs) == 0 || contains(outputs, "*") {
-		d.surface.show(paint, fit, nil, live, true)
+		d.surface.show(paint, fit, nil, live, true, "")
 		return
 	}
 	for _, out := range outputs {
-		d.surface.showOutput(out, paint, fit, nil, live, true)
+		d.surface.showOutput(out, paint, fit, nil, live, true, "")
 	}
+}
+
+// transcodeAsync builds the in-shell transcode cache off the hot path, then
+// re-applies the same wallpaper so the frame points at the bite-sized cache.
+func (d *daemon) transcodeAsync(path string, outputs []string, prefs wallTune) {
+	go func() {
+		capped := ensureVideoTranscode(path, prefs.TransFps, prefs.TransWidth)
+		if capped == "" {
+			return
+		}
+		_ = d.applyWallpaper("video", path, "live-reload", outputs, nil, nil)
+	}()
 }

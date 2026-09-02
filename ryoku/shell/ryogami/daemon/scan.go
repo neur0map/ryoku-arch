@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -57,7 +58,8 @@ func ScanDirs(wallDir, videoDir, cacheDir string, prior map[string]Entry, onItem
 	thumbsDir := filepath.Join(cacheDir, "wallpaper", "thumbs")
 	thumbsSmDir := filepath.Join(cacheDir, "wallpaper", "thumbs-sm")
 	videoThumbsDir := filepath.Join(cacheDir, "wallpaper", "video-thumbs")
-	for _, d := range []string{thumbsDir, thumbsSmDir, videoThumbsDir} {
+	animDir := filepath.Join(cacheDir, "wallpaper", "anim")
+	for _, d := range []string{thumbsDir, thumbsSmDir, videoThumbsDir, animDir} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			return nil, fmt.Errorf("create %s: %w", d, err)
 		}
@@ -189,6 +191,15 @@ func processItem(it scanned, prior map[string]Entry, onItem func(Entry)) Entry {
 		}
 	} else {
 		e.ThumbSm = it.thumbSmPath
+	}
+
+	if it.wpType == "static" {
+		if isAnimatedImage(it.src) {
+			if animPath := ensureAnimatedMp4(it); animPath != "" {
+				e.VideoFile = animPath
+				e.Type = "video"
+			}
+		}
 	}
 
 	if it.wpType == "video" {
@@ -415,6 +426,84 @@ func hueBucket(hue, sat uint16) uint16 {
 		return 99
 	}
 	return uint16(hueToBucketIdx(hue))
+}
+
+// isAnimatedImage reports whether the source needs the mp4 transcode path so
+// the in-shell player advances frames (webp is transcoded unconditionally; the
+// QMl ffmpeg backend sees it as a single frame; gif/apng/avif are gated on the
+// frame count).
+func isAnimatedImage(src string) bool {
+	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(src), "."))
+	if ext == "webp" {
+		return true
+	}
+	if ext != "gif" && ext != "png" && ext != "avif" {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "ffprobe", "-v", "error",
+		"-select_streams", "v:0",
+		"-count_frames",
+		"-show_entries", "stream=nb_read_frames",
+		"-of", "csv=p=0", src).Output()
+	if err != nil {
+		return false
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(string(out)))
+	if err != nil {
+		return false
+	}
+	return n > 1
+}
+
+// ensureAnimatedMp4 transcodes an animated image to a cached mp4 the player
+// can play frame-by-frame. "" on failure (the entry stays static). Regenerated
+// when missing or older than the source.
+func ensureAnimatedMp4(it scanned) string {
+	cacheRoot := filepath.Dir(filepath.Dir(it.thumbPath))
+	animDir := filepath.Join(cacheRoot, "anim")
+	if err := os.MkdirAll(animDir, 0o755); err != nil {
+		return ""
+	}
+	animPath := filepath.Join(animDir, it.key+".mp4")
+	if fi, err := os.Stat(animPath); err == nil && fi.ModTime().Unix() >= it.mtime {
+		return animPath
+	}
+	tmp := tmpPath(animPath)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(it.src), "."))
+	var cmd *exec.Cmd
+	if ext == "gif" {
+		// GIF needs a palette for clean h264 colors; the standard ffmpeg
+		// recipe splits, generates a palette from one stream, applies it to
+		// the other.
+		cmd = exec.CommandContext(ctx, "ffmpeg", "-y", "-v", "error",
+			"-i", it.src,
+			"-filter_complex",
+			"fps=24,scale='min(1920,iw)':-2:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5",
+			"-map", "[b]",
+			"-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+			"-pix_fmt", "yuv420p", "-an", tmp)
+	} else {
+		cmd = exec.CommandContext(ctx, "ffmpeg", "-y", "-v", "error",
+			"-i", it.src,
+			"-vf", "fps=24,scale='min(1920,iw)':-2",
+			"-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+			"-pix_fmt", "yuv420p", "-an", tmp)
+	}
+	if out, err := cmd.CombinedOutput(); err != nil {
+		os.Remove(tmp)
+		fmt.Fprintf(os.Stderr, "ryogami: animated transcode failed for %s: %v: %s\n",
+			it.name, err, strings.TrimSpace(string(out)))
+		return ""
+	}
+	if os.Rename(tmp, animPath) != nil {
+		os.Remove(tmp)
+		return ""
+	}
+	return animPath
 }
 
 // ensureVideoPreview builds the small clip the picker's hover/selection

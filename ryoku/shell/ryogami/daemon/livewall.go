@@ -10,7 +10,9 @@ package main
 // otherwise) and caches it, so the player's steady cost is a fraction of a core.
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -283,4 +285,50 @@ func vaapiRenderNode() string {
 		}
 	}
 	return ""
+}
+
+// transcodeCachePath is the cached re-encode path for a clip at a given
+// fps/width cap, keyed by source mtime + cap (distinct from livewallSource).
+func transcodeCachePath(src string, fps, capW int) string {
+	st, err := os.Stat(src)
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Join(cacheHome(), "ryogami", "livewall")
+	name := strings.TrimSuffix(filepath.Base(src), filepath.Ext(src))
+	return filepath.Join(dir, name+"-"+strconv.FormatInt(st.ModTime().Unix(), 10)+
+		"-w"+strconv.Itoa(capW)+"-f"+strconv.Itoa(fps)+".mp4")
+}
+
+// ensureVideoTranscode re-encodes a clip to a bite-sized mp4 (fps + width
+// capped), cached per source mtime and cap, for the in-shell engine. "" on
+// failure keeps the original.
+func ensureVideoTranscode(src string, fps, capW int) string {
+	out := transcodeCachePath(src, fps, capW)
+	if out == "" {
+		return ""
+	}
+	if fileExists(out) {
+		return out
+	}
+	if os.MkdirAll(filepath.Dir(out), 0o755) != nil {
+		return ""
+	}
+	tmp := out + ".tmp." + strconv.Itoa(os.Getpid()) + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + ".mp4"
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "nice", "-n", "19", "ffmpeg", "-y", "-v", "error",
+		"-i", src,
+		"-vf", fmt.Sprintf("scale='min(%d,iw)':-2:flags=bicubic,fps=%d", capW, fps),
+		"-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-bf", "0",
+		"-pix_fmt", "yuv420p", "-an", tmp)
+	if err := cmd.Run(); err != nil || !fileExists(tmp) {
+		_ = os.Remove(tmp)
+		return ""
+	}
+	if os.Rename(tmp, out) != nil {
+		_ = os.Remove(tmp)
+		return ""
+	}
+	return out
 }

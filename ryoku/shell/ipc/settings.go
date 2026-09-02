@@ -59,6 +59,7 @@ var (
 	menuExpansionValues   = []string{"AlwaysExpanded", "ExpandBothWays", "ExpandUp", "ExpandDown"}
 	tempUnitValues        = []string{"Metric", "Imperial"}
 	contentFitValues      = []string{"Contain", "Cover", "Fill", "ScaleDown"}
+	videoEngineValues     = []string{"ryogami", "in_shell"}
 	quickSettingsIconVals = []string{"Arch", "Fedora", "Hyprland", "Nix"}
 	matugenPrefValues     = []string{"Darkness", "Lightness", "Saturation", "LessSaturation", "Value"}
 	matugenTypeValues     = []string{"Content", "Expressive", "Fidelity", "FruitSalad", "Monochrome", "Neutral", "Rainbow", "TonalSpot", "Vibrant"}
@@ -240,8 +241,13 @@ type notificationsSettings struct {
 }
 
 type wallpaperSettings struct {
-	ContentFit       string `json:"content_fit"`
-	TransitionPreset string `json:"transition_preset"`
+	ContentFit          string `json:"content_fit"`
+	TransitionPreset    string `json:"transition_preset"`
+	VideoEngine         string `json:"video_engine"`
+	VideoEnabled        bool   `json:"video_enabled"`
+	VideoTranscode      bool   `json:"video_transcode"`
+	VideoTranscodeFps   int    `json:"video_transcode_fps"`
+	VideoTranscodeWidth int    `json:"video_transcode_width"`
 }
 
 func ip(n int) *int { return &n }
@@ -308,7 +314,7 @@ func defaultSettings() *settings {
 			RightMenuExpansionType: "AlwaysExpanded",
 		},
 		Notifications: notificationsSettings{NotificationPosition: "Right", PopupWindowMargins: 0},
-		Wallpaper:     wallpaperSettings{ContentFit: "Cover", TransitionPreset: "random"},
+		Wallpaper:     wallpaperSettings{ContentFit: "Cover", TransitionPreset: "random", VideoEngine: "ryogami", VideoEnabled: true, VideoTranscodeFps: 24, VideoTranscodeWidth: 1920},
 	}
 }
 
@@ -519,6 +525,16 @@ func (n *notificationsSettings) normalize(v *validator) {
 
 func (w *wallpaperSettings) normalize(v *validator) {
 	v.enum("wallpaper.content_fit", w.ContentFit, contentFitValues)
+	// video_engine: "ryogami" (C player, default) or "in_shell" (QtMultimedia).
+	// An empty value reads as the default, so a shell.json with no key keeps
+	// the shipped engine.
+	if w.VideoEngine == "" {
+		w.VideoEngine = "ryogami"
+	}
+	v.enum("wallpaper.video_engine", w.VideoEngine, videoEngineValues)
+	// Clamp the transcode caps so a hand-edited value never runs unbounded.
+	v.rangeI("wallpaper.video_transcode_fps", &w.VideoTranscodeFps, 1, 120)
+	v.rangeI("wallpaper.video_transcode_width", &w.VideoTranscodeWidth, 640, 7680)
 	// wallpaper.transition_preset is Ryogami's now: it reads the key from
 	// shell.json per-apply and falls back to random on an unknown name, so
 	// ryoku-shell keeps the key but no longer duplicates the preset name list.

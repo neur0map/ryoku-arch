@@ -194,3 +194,46 @@ func contentFit() string {
 	}
 	return def
 }
+
+// wallPrefs are the video-engine knobs the shell owns in shell.json: the
+// engine (ryogami C player or in-shell), the master switch, the bite-sized
+// transcode, and the fps/width caps.
+type wallTune struct {
+	Engine     string `json:"video_engine"`
+	Enabled    bool   `json:"video_enabled"`
+	Transcode  bool   `json:"video_transcode"`
+	TransFps   int    `json:"video_transcode_fps"`
+	TransWidth int    `json:"video_transcode_width"`
+}
+
+func wallPrefs() wallTune {
+	var shell struct {
+		Wallpaper struct {
+			Engine     *string `json:"video_engine"`
+			Enabled    *bool   `json:"video_enabled"`
+			Transcode  *bool   `json:"video_transcode"`
+			TransFps   *int    `json:"video_transcode_fps"`
+			TransWidth *int    `json:"video_transcode_width"`
+		} `json:"wallpaper"`
+	}
+	p := wallTune{Engine: "ryogami", Enabled: true, TransFps: 24, TransWidth: 1920}
+	loadJSON(filepath.Join(ryokuConfigDir(), "shell.json"), &shell)
+	if shell.Wallpaper.Engine != nil {
+		if e := *shell.Wallpaper.Engine; e == "in_shell" {
+			p.Engine = "in_shell"
+		}
+	}
+	if shell.Wallpaper.Enabled != nil {
+		p.Enabled = *shell.Wallpaper.Enabled
+	}
+	if shell.Wallpaper.Transcode != nil {
+		p.Transcode = *shell.Wallpaper.Transcode
+	}
+	if shell.Wallpaper.TransFps != nil && *shell.Wallpaper.TransFps > 0 {
+		p.TransFps = *shell.Wallpaper.TransFps
+	}
+	if shell.Wallpaper.TransWidth != nil && *shell.Wallpaper.TransWidth > 0 {
+		p.TransWidth = *shell.Wallpaper.TransWidth
+	}
+	return p
+}

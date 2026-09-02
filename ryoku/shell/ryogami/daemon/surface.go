@@ -16,6 +16,7 @@ type frameEntry struct {
 	Fit        string      `json:"fit"`
 	Live       bool        `json:"live"`
 	Video      bool        `json:"video,omitempty"`
+	VideoPath  string      `json:"videoPath,omitempty"`
 	Transition interface{} `json:"transition"`
 	Depth      string      `json:"depth"`
 	DepthRev   int64       `json:"depthRev"`
@@ -65,21 +66,23 @@ func fresh(rev int64, pic, fit string, tr interface{}) frameEntry {
 }
 
 // show is the broadcast set: replace the default and clear every override.
-// video marks a frame whose path is a video's still: the shell's depth worker
-// must not treat it as a depth-eligible image (a video carries no cutout).
-func (w *wallSurface) show(pic, fit string, tr interface{}, live, video bool) {
+// live is the ryogami-live yield flag; isVideo marks a frame whose path is a
+// video's still; videoPath, when set, is the in-shell clip (video_engine
+// "in_shell").
+func (w *wallSurface) show(pic, fit string, tr interface{}, live, isVideo bool, videoPath string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.seq++
 	w.def = fresh(w.seq, pic, fit, tr)
 	w.def.Live = live
-	w.def.Video = video
+	w.def.Video = isVideo
+	w.def.VideoPath = videoPath
 	w.outputs = map[string]frameEntry{}
 	w.publishLocked()
 }
 
 // showOutput writes one per-output override, leaving the rest intact.
-func (w *wallSurface) showOutput(name, pic, fit string, tr interface{}, live, video bool) {
+func (w *wallSurface) showOutput(name, pic, fit string, tr interface{}, live, isVideo bool, videoPath string) {
 	if name == "" {
 		return
 	}
@@ -88,7 +91,8 @@ func (w *wallSurface) showOutput(name, pic, fit string, tr interface{}, live, vi
 	w.seq++
 	e := fresh(w.seq, pic, fit, tr)
 	e.Live = live
-	e.Video = video
+	e.Video = isVideo
+	e.VideoPath = videoPath
 	w.outputs[name] = e
 	w.publishLocked()
 }

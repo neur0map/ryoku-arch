@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Added
+- **A wallpaper video engine toggle (`wallpaper.video_engine`).** Video
+  wallpapers now play through one of two engines: `ryogami` (the default, the
+  lightweight C player that decodes a cached transcode into `wl_shm` on its own
+  background layer while the shell yields to it) or `in_shell` (the shell's own
+  QtMultimedia player, which decodes the clip inside the wallpaper surface).
+  The switch is in the wall-ui picker's Live wallpapers card and in shell.json.
+  Behind the `in_shell` engine there are two resource knobs: `video_enabled`
+  (off keeps only the still, the cheapest option) and `video_transcode` with
+  its `video_transcode_fps`/`video_transcode_width` caps, which re-encodes the
+  clip once to a bite-sized cached mp4 instead of decoding the full-res source.
+  Animated image formats (gif, animated webp/apng/avif) are transcoded to mp4
+  at scan time so the in-shell player advances their frames
+  (`modules/wallpaper/`, `ryogami/daemon/`, `ryogami/wall-ui/`,
+  `ipc/settings.go`).
+
 ### Changed
 - **ryogami: the light/dark toggle now retints the whole desktop, and the
   ollama AI tagging subsystem is gone.** The picker's light/dark (and

@@ -34,6 +34,9 @@ Scope {
     property string wallpaperFit: "Cover"
     property string depthUrl: ""
     property var wallpaperTransition: null
+    property string videoUrl: ""
+    // The ryogami-live yield flag (default "ryogami" engine): hide the painter
+    // while the C player owns the background layer.
     property bool wallpaperLive: false
     readonly property var depthState: Services.ShellState.forScreen(root.screen)
     // compose mode frees every widget for dragging (like visualiser placement),
@@ -174,9 +177,10 @@ Scope {
 
         // The base wallpaper painter: the reveal backdrop composites each new
         // frame over the old one through the preset the daemon attached to the
-        // frame (a GPU mask shader), decoding capped at surface resolution. A
-        // live player (mpvpaper on the background layer) owns the pixels while
-        // a video plays, so the painter yields instead of occluding it.
+        // frame (a GPU mask shader), decoding capped at surface resolution.
+        // Live clips play inside this same surface (QtMultimedia + optional
+        // interpolation), so the backdrop no longer yields to a second Wayland
+        // client: it keeps the still decoded and swaps to the video itself.
         WallpaperMod.Backdrop {
             id: backdrop
             anchors.fill: parent
@@ -188,13 +192,15 @@ Scope {
             url: root.wallpaperUrl
             fit: root.wallpaperFit
             transition: root.wallpaperTransition
-            visible: !root.wallpaperLive
+            videoUrl: root.videoUrl
+            live: root.wallpaperLive
         }
 
         // Mirror of the same image for glass widgets: Qt cannot sample another
         // scene graph, so ShaderEffectSource captures the pixels beneath a
         // frosted widget from this offscreen copy. WidgetGlass hides this
-        // source after taking its crop.
+        // source after taking its crop. Hidden while a video plays: the glass
+        // samples the still, and a live clip would freeze the capture.
         Image {
             id: glassBackdrop
             anchors.fill: parent
@@ -203,7 +209,7 @@ Scope {
             asynchronous: true
             sourceSize.width: Math.ceil(width * backdrop.screenDpr)
             sourceSize.height: Math.ceil(height * backdrop.screenDpr)
-            visible: !root.wallpaperLive && ((Config.calendarEnabled && Config.calendarStyle === "glass")
+            visible: root.videoUrl === "" && ((Config.calendarEnabled && Config.calendarStyle === "glass")
                 || (Config.musicEnabled && Config.musicStyle === "glass"))
             fillMode: {
                 switch (root.wallpaperFit) {

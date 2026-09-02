@@ -173,6 +173,7 @@ ShellRoot {
                 wallpaperFit: wallpaper.fit
                 depthUrl: wallpaper.depthUrl
                 wallpaperTransition: wallpaper.transition
+                videoUrl: wallpaper.videoUrl
                 wallpaperLive: wallpaper.live
             }
             Visualizer {

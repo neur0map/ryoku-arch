@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtMultimedia
 import "Singletons"
 
 // A full-bleed wallpaper surface that REVEALS each new image over the current one
@@ -11,12 +12,19 @@ import "Singletons"
 // restores the wallpaper-daemon transition set in-shell. fade is a plain eased
 // crossfade; init and the live still-frame (a null transition) also just crossfade.
 //
+// Live clips play in-shell (QtMultimedia): the daemon publishes the clip's still
+// as `url` and the clip itself as `videoUrl`; the still reveals like any image,
+// then the reveal shader yields to the video surface once frames present.
+//
 // Two image buffers ping-pong: the just-shown image becomes the base of the next
 // reveal. A revision arriving mid-reveal commits the in-flight reveal instantly
 // (the incoming image becomes the committed base with no seam left behind), then
 // the next reveal grows from that image, so rapid Super+Shift+W never flashes.
 Item {
     id: view
+    // Yield to the ryogami-live C player: when the frame says live, the whole
+    // painter hides so the C player's layer below shows through.
+    visible: !view.live
 
     // The full file url the surface paints (path + cache-busting revision), "" until
     // the first frame; the window's paper colour shows through until then and in the
@@ -36,6 +44,12 @@ Item {
     // The monitor scale, so the decode cap below matches physical pixels.
     property real dpr: 1
 
+    // The live clip ("" for a still).
+    property string videoUrl: ""
+    // The ryogami-live yield flag: the painter hides while the C player owns
+    // the layer; false for the in-shell engine, which plays inside this surface.
+    property bool live: false
+
     // Decoding is capped at the surface resolution: an 8K source costs a
     // screen-sized texture instead of a full-resolution decode, which lagged
     // every switch and overran the image allocation cap on very large files.
@@ -48,6 +62,32 @@ Item {
     property bool rendered: false
     readonly property bool decoded: imgA.status === Image.Ready || imgB.status === Image.Ready
 
+    // The player is presenting frames: the reveal shader yields to the video
+    // surface, exactly where the old ryogami-live READY flip hid the still.
+    // Read this through the player itself from any notify handler: reading the
+    // binding from its own notify handler (onVideoActiveChanged) looped the
+    // MediaPlayer's playbackState notify and froze the wallpaper.
+    readonly property bool videoActive: player.playbackState === MediaPlayer.PlayingState && player.hasVideo
+
+    // The video owns the surface once it has presented a frame; the reveal
+    // hides only behind this, never a transient playbackState dip.
+    property bool videoOn: false
+
+    // Hop the videoOn assignment ~80 ms after the first frame so vout only
+    // becomes visible with a frame already in its surface (a too-early flip
+    // paints black for one frame). yieldScheduled keeps onVideoFrameChanged
+    // (every frame) from re-arming the timer each time.
+    property bool yieldScheduled: false
+    Timer {
+        id: yieldDelay
+        interval: 80
+        onTriggered: {
+            view.yieldScheduled = false;
+            if (player.playing && view.videoUrl !== "")
+                view.videoOn = true;
+        }
+    }
+
     function fillModeFor(img) {
         switch (view.fit) {
         case "Contain":
@@ -58,6 +98,21 @@ Item {
             return (img.sourceSize.width <= view.width && img.sourceSize.height <= view.height) ? Image.Pad : Image.PreserveAspectFit;
         default:
             return Image.PreserveAspectCrop; // Cover
+        }
+    }
+
+    // VideoOutput has no Pad and no Stretch-that-preserves; Contain maps to a
+    // letterboxed fit, Fill to a stretch, everything else covers. ScaleDown is
+    // Contain's behaviour here (a small clip plays 1:1, a large one fits).
+    function videoFill() {
+        switch (view.fit) {
+        case "Contain":
+        case "ScaleDown":
+            return VideoOutput.PreserveAspectFit;
+        case "Fill":
+            return VideoOutput.Stretch;
+        default:
+            return VideoOutput.PreserveAspectCrop;
         }
     }
 
@@ -104,6 +159,79 @@ Item {
         view.beginReveal();
     }
     Component.onCompleted: view.beginReveal()
+
+    // A new clip loads on the url change; a cleared videoUrl stops the player
+    // and hands the surface back to the reveal shader (the still under it). A
+    // video swap to the same clip still restarts: the daemon re-publishes a
+    // fresh revision rather than sending the identical url twice. The clip is
+    // buffered here but NOT played: the transition runs first, and the video
+    // starts only once the reveal's picture is committed (startVideo).
+    onVideoUrlChanged: {
+        if (view.videoUrl === "") {
+            player.stop();
+            view.videoOn = false;
+            view.yieldScheduled = false;
+            yieldDelay.stop();
+            return;
+        }
+        view.videoOn = false;
+        view.yieldScheduled = false;
+        yieldDelay.stop();
+        player.source = view.videoUrl;
+        startWatch.restart();
+    }
+
+    // Watchdog: a clip whose still never decoded must still play.
+    Timer {
+        id: startWatch
+        interval: 3000
+        onTriggered: view.startVideo()
+    }
+
+    // Begin playback at the still's moment (the daemon extracts the frame at
+    // second 1); the seek runs only once the media is loaded and long enough.
+    function startVideo() {
+        if (view.videoUrl === "" || player.playbackState === MediaPlayer.PlayingState)
+            return;
+        const loaded = player.mediaStatus === MediaPlayer.LoadedMedia
+            || player.mediaStatus === MediaPlayer.BufferedMedia;
+        if (loaded && player.duration > 1000)
+            player.position = 1000;
+        player.play();
+    }
+
+    // The video takes the surface once the reveal is done and frames present.
+    // The QML MediaPlayer does not expose playbackStateChanged/hasVideoChanged,
+    // so maybeYield hooks videoFrameChanged and reads the player.playing property.
+    Connections {
+        target: player
+        function onVideoFrameChanged() { view.maybeYield() }
+        function onErrorChanged() {
+            if (player.error !== MediaPlayer.NoError && view.videoUrl !== "") {
+                player.position = 0;
+                player.play();
+            }
+        }
+    }
+
+    function maybeYield() {
+        if (view.videoUrl === "" || revealAnim.running)
+            return;
+        const playing = player.playing;
+        const back = view.aFront ? imgB : imgA;
+        if (!playing) {
+            if (back.source === view.url && back.status === Image.Loading)
+                return;
+            view.startVideo();
+            return;
+        }
+        if (back.source === view.url && back.status === Image.Loading)
+            return;
+        if (view.yieldScheduled)
+            return;
+        view.yieldScheduled = true;
+        yieldDelay.restart();
+    }
 
     // Load `url` into the back buffer and, once decoded, start the reveal. A reveal
     // already running is committed instantly first, so the new reveal starts from a
@@ -218,6 +346,8 @@ Item {
             }
             if (status === Image.Ready && source == view.url && !view.aFront)
                 view.startReveal();
+            else if (status === Image.Error)
+                view.maybeYield();
         }
     }
     Image {
@@ -236,6 +366,8 @@ Item {
             }
             if (status === Image.Ready && source == view.url && view.aFront)
                 view.startReveal();
+            else if (status === Image.Error)
+                view.maybeYield();
         }
     }
 
@@ -256,10 +388,12 @@ Item {
 
     // The reveal: mix(oldTex, newTex, mask) over the shared duration. oldTex is the
     // committed front buffer, newTex the incoming back buffer; they swap on commit,
-    // so at rest (progress 0) the shader simply shows the committed image.
+    // so at rest (progress 0) the shader simply shows the committed image. It
+    // yields to the video surfaces only while the clip owns the slot (videoOn).
     ShaderEffect {
         id: reveal
         anchors.fill: parent
+        visible: !view.videoOn
 
         property variant oldTex: view.aFront ? srcA : srcB
         property variant newTex: view.aFront ? srcB : srcA
@@ -281,7 +415,25 @@ Item {
             property: "progress"
             from: 0
             to: 1
-            onFinished: view.commit()
+            onFinished: {
+                view.commit();
+                view.startVideo();
+                view.maybeYield();
+            }
         }
     }
+
+    MediaPlayer {
+        id: player
+        loops: MediaPlayer.Infinite
+        videoOutput: vout
+        audioOutput: AudioOutput { muted: true }
+    }
+    VideoOutput {
+        id: vout
+        anchors.fill: parent
+        fillMode: view.videoFill()
+        visible: view.videoOn
+    }
+
 }

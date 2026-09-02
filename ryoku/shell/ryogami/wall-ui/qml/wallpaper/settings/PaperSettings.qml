@@ -56,7 +56,7 @@ Column {
     SettingsCard {
         colors: root.colors
         title: "Engine"
-        subtitle: "Pixels are painted by the built-in path: the shell renders stills with reveal transitions, ryogami-live plays video and live items."
+        subtitle: "Pixels are painted by the built-in path: the shell renders stills with reveal transitions and plays video in-shell."
 
         SettingsRow {
             colors: root.colors
@@ -93,6 +93,68 @@ Column {
                     }
                 }
             }
+        }
+    }
+
+    SettingsCard {
+        colors: root.colors
+        title: "Live wallpapers"
+        subtitle: "How video wallpapers play: the default engine decodes a cached transcode through ryogami-live; the in-shell engine decodes the clip through the shell."
+
+        SettingsRow {
+            colors: root.colors
+            title: "Video engine"
+            description: "ryogami = the C player (cached transcode, low resources); in-shell = the shell's QtMultimedia player."
+            Row {
+                spacing: 4
+                Repeater {
+                    model: [
+                        { key: "ryogami",  label: "ryogami" },
+                        { key: "in_shell", label: "in-shell" }
+                    ]
+                    FilterButton {
+                        colors: root.colors
+                        label: modelData.label
+                        skew: 8 * Config.uiScale; height: 26 * Config.uiScale
+                        isActive: Config.engineVideoEngine === modelData.key
+                        onClicked: Config._shellSet("wallpaper.video_engine", modelData.key)
+                    }
+                }
+            }
+        }
+
+        RowToggle {
+            colors: root.colors
+            title: "Video wallpapers"
+            description: "Off keeps only the wallpaper still and plays no clip at all, the cheapest option."
+            checked: Config.engineVideoEnabled
+            onToggle: function(v) { Config._shellSet("wallpaper.video_enabled", v) }
+        }
+
+        RowToggle {
+            colors: root.colors
+            title: "Cache a re-encode"
+            description: "Re-encode the clip once to a bite-sized cached mp4 (capped fps + width) and play that instead of decoding the full-resolution source live."
+            checked: Config.engineVideoTranscode
+            onToggle: function(v) { Config._shellSet("wallpaper.video_transcode", v) }
+        }
+
+        RowInput {
+            colors: root.colors
+            title: "Re-encode fps"
+            description: "The frame-rate cap for the cached re-encode. Lower decodes fewer frames."
+            value: Config.engineVideoTransFps
+            min: 1; max: 120
+            onCommit: function(v) { Config._shellSet("wallpaper.video_transcode_fps", Math.round(v)) }
+        }
+
+        RowInput {
+            colors: root.colors
+            title: "Re-encode width"
+            description: "The width cap for the cached re-encode. The engine never decodes more pixels; a 4K clip plays at 1920 by default."
+            value: Config.engineVideoTransWidth
+            min: 640; max: 7680
+            onCommit: function(v) { Config._shellSet("wallpaper.video_transcode_width", Math.round(v)) }
         }
     }
 

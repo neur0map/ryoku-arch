@@ -157,6 +157,68 @@ QtObject {
         return Math.max(0, Math.min(100, Math.round(v)))
     }
 
+    // The ryogami daemon reads the wallpaper engine options from shell.json,
+    // so the picker reads and patches the same file it does.
+    readonly property string ryokuShellPath: (Quickshell.env("XDG_CONFIG_HOME") || (homeDir + "/.config")) + "/ryoku/shell.json"
+
+    property var _shell: ({})
+
+    property var _shellFile: FileView {
+        path: Config.ryokuShellPath
+        watchChanges: true
+        onLoaded: Config._reparseShell()
+        onFileChanged: { reload(); Config._reparseShell() }
+    }
+
+    function _reparseShell() {
+        var raw = _shellFile.text() || ""
+        if (!raw) { config._shell = {}; return }
+        try { config._shell = JSON.parse(raw) } catch (e) { config._shell = {} }
+    }
+
+    // _shellGet walks a dotted path in the parsed shell.json, defaulting to def.
+    function _shellGet(dotted, def) {
+        var o = config._shell
+        var parts = dotted.split(".")
+        for (var i = 0; o != null && i < parts.length; i++)
+            o = o[parts[i]]
+        return (o === undefined || o === null) ? def : o
+    }
+
+    // _shellSet patches shell.json (atomic write), preserving every other key.
+    function _shellSet(dotted, value) {
+        var src = (config._shell && typeof config._shell === "object") ? config._shell : {}
+        var data
+        try { data = JSON.parse(JSON.stringify(src)) } catch (e) { data = {} }
+        var parts = dotted.split(".")
+        var obj = data
+        for (var i = 0; i < parts.length - 1; i++) {
+            if (typeof obj[parts[i]] !== "object" || obj[parts[i]] === null)
+                obj[parts[i]] = {}
+            obj = obj[parts[i]]
+        }
+        obj[parts[parts.length - 1]] = value
+        config._shell = data
+        _shellWriter.setText(JSON.stringify(data, null, 2) + "\n")
+    }
+
+    property var _shellWriter: FileView {
+        path: Config.ryokuShellPath
+        preload: true
+    }
+
+    readonly property string engineVideoEngine: config._shellGet("wallpaper.video_engine", "ryogami")
+    readonly property bool   engineVideoEnabled: config._shellGet("wallpaper.video_enabled", true) !== false
+    readonly property bool   engineVideoTranscode: config._shellGet("wallpaper.video_transcode", false) === true
+    readonly property int    engineVideoTransFps: {
+        var v = config._shellGet("wallpaper.video_transcode_fps", 24)
+        return (typeof v === "number" && v > 0) ? Math.round(v) : 24
+    }
+    readonly property int    engineVideoTransWidth: {
+        var v = config._shellGet("wallpaper.video_transcode_width", 1920)
+        return (typeof v === "number" && v > 0) ? Math.round(v) : 1920
+    }
+
     readonly property string videoConvertPreset: _data.performance?.videoConvertPreset ?? "balanced"
     readonly property string videoConvertResolution: _data.performance?.videoConvertResolution ?? "2k"
     readonly property string imageOptimizePreset: _data.performance?.imageOptimizePreset ?? "balanced"
