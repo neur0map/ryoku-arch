@@ -9,12 +9,16 @@ Item {
     readonly property bool iconOnly: root.iconOnly("G19")
 
     property string layout: {
-        var value = KeyboardLayout.variant || ""
+        var value = KeyboardLayout.variant || KeyboardLayout.layout || ""
         if (!value)
-            return ""
+            return "US"
 
-        var match = value.match(/\(([^)]+)\)/)
-        return match ? match[1].toUpperCase() : value.toUpperCase()
+        var match = value.match(/$([^)]+)$/)
+        if (match) {
+            var inner = match[1].trim().toUpperCase()
+            return inner.length <= 4 ? inner : inner.slice(0, 2)
+        }
+        return value.length <= 4 ? value.toUpperCase() : value.slice(0, 2).toUpperCase()
     }
 
     readonly property string layoutIcon: "keyboard"
@@ -88,12 +92,18 @@ Item {
 
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
 
         onEntered: tip.show()
         onExited: tip.hide()
 
-        onClicked: {
+        onClicked: function(mouse) {
             tip.hide()
+            if (mouse.button === Qt.RightButton) {
+                Quickshell.execDetached(["hyprctl", "switchxkblayout", "all", "next"])
+            } else {
+                Quickshell.execDetached(["ryoku-shell", "hub", "open", "input"])
+            }
         }
     }
 }
