@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Fixed
+- **KDE apps follow the wallpaper palette.** Dolphin, Ark, Gwenview and Kate
+  resolve their colours through KColorScheme and `~/.config/kdeglobals`, which
+  the qt6ct palette never reached, so they painted at Qt's defaults: white file
+  names on a white view in icon and compact mode, and rows striping light and
+  dark in details. The palette now renders KDE's colour groups and the daemon
+  merges them into kdeglobals, leaving the fonts, icon theme and widget style a
+  user set there alone. Qt apps read the same palette through the KDE platform
+  theme, so the qt5ct and Kvantum outputs nothing consumed are gone
+  (`matugen/templates/kdeglobals`, `ipc/matugen.go`, `hyprland/modules/env.lua`).
+
 ### Added
 - **The update island and the Hub's Updates page name the release line.**
   The Hub shows "Ryoku Onogoro" over the version pair, and both say
